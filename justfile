@@ -6,6 +6,11 @@ default:
 switch:
     sudo nixos-rebuild switch --flake .#$(hostname)
 
+# Update hyprflake and rebuild/switch in one command
+rebuild:
+    nix flake lock --update-input hyprflake
+    sudo nixos-rebuild switch --flake .#$(hostname)
+
 # Rebuild NixOS and activate on next boot (doesn't affect current session)
 boot:
     sudo nixos-rebuild boot --flake .#$(hostname)
