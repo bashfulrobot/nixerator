@@ -11,8 +11,9 @@
 
     hyprflake = {
       url = "github:bashfulrobot/hyprflake";
+      # Only share nixpkgs to avoid version conflicts
+      # Let hyprflake manage its own home-manager, hyprland, and stylix
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
     };
   };
 
