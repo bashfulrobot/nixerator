@@ -6,9 +6,8 @@ default:
 switch:
     sudo nixos-rebuild switch --flake .#$(hostname)
 
-# Update hyprflake and rebuild/switch in one command
+# Rebuild and switch (alias for switch)
 rebuild:
-    nix flake lock --update-input hyprflake
     sudo nixos-rebuild switch --flake .#$(hostname)
 
 # Rebuild NixOS and activate on next boot (doesn't affect current session)
@@ -27,9 +26,10 @@ build:
 check:
     nix flake check
 
-# Update flake inputs (nixpkgs, home-manager, etc.)
+# Update flake inputs and rebuild/switch
 update:
     nix flake update
+    sudo nixos-rebuild switch --flake .#$(hostname)
 
 # Update a specific flake input
 update-input input:
