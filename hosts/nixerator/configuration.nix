@@ -53,6 +53,7 @@
     wget
     curl
     just
+    nerd-fonts.iosevka
   ] ++ [
     pkgs.${globals.preferences.editor}
   ];
