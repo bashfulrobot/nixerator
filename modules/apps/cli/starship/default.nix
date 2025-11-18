@@ -29,13 +29,15 @@ in
         enableTransience = true;
         settings = {
           command_timeout = 300;
-          character = {
-            success_symbol = "[](bold)";
-            error_symbol = "[](bold)";
-          };
+          add_newline = false;
           format = "$custom$character";
           right_format = "$all";
-          add_newline = false;
+
+          character = {
+            success_symbol = "[⦿](bold)";
+            error_symbol = "[⦿](bold red)";
+          };
+
           line_break.disabled = true;
           package.disabled = true;
           container.disabled = true;
