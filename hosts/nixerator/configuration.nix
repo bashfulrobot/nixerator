@@ -48,6 +48,7 @@
 
   # Enable modules
   apps.cli.git.enable = true;
+  apps.cli.starship.enable = true;
 
   # System packages
   environment.systemPackages = with pkgs; [
