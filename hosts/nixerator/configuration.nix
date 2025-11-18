@@ -43,10 +43,8 @@
   # Enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  # Enable fish shell (required when setting as user shell)
-  programs.fish.enable = true;
-
   # Enable modules
+  apps.cli.fish.enable = true;
   apps.cli.git.enable = true;
   apps.cli.starship.enable = true;
 
