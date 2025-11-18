@@ -120,5 +120,11 @@
 
     # Theme polarity - dark, light, or either (auto-detect)
     polarity = "dark";
+
+    # User configuration
+    user = {
+      username = "dustin";
+      photo = ./.face;
+    };
   };
 }
