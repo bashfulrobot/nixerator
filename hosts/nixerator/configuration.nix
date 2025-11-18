@@ -72,12 +72,10 @@
     # Browse available schemes: https://tinted-theming.github.io/base16-gallery/
     colorScheme = "catppuccin-mocha";
 
-    # Wallpaper - remote URL with hash
-    # For local wallpapers, use: stylix.image = ./path/to/wallpaper.png;
-    wallpaper = {
-      url = "https://raw.githubusercontent.com/NixOS/nixos-artwork/master/wallpapers/nix-wallpaper-simple-blue.png";
-      sha256 = "sha256-Q7L0xNKBw1MdJlkXNYMHd5SWPq9n8Hd/akWCp1Cp2lE=";
-    };
+    # Wallpaper - local file path
+    # Default: Catppuccin Mocha galaxy-waves.jpg (included in hyprflake)
+    # To override, set: hyprflake.wallpaper = ./path/to/your-wallpaper.png;
+    # wallpaper = ./path/to/your-wallpaper.png;
 
     # Font configuration - applied system-wide via Stylix
     fonts = {
