@@ -143,3 +143,84 @@ For each new machine, capture the machine-specific configuration once:
    ```
 
 After initial setup, `hardware-configuration.nix` and `boot.nix` are committed and rarely change. All other configuration is managed through `lib/globals.nix` and host-specific files.
+
+## Alternative Bootstrap (Experimental)
+
+Alternative installation approach inspired by [sweenu/nixfiles](https://github.com/sweenu/nixfiles). Evaluate and adapt as needed.
+
+### Creating Installation ISO
+
+Generate a custom NixOS installation ISO:
+
+```bash
+# Using nixos-generators
+nixos-generate --flake '.#nixerator' --format iso
+
+# Or build directly
+nix build .#nixosConfigurations.nixerator.config.system.build.isoImage
+```
+
+Write to USB:
+```bash
+sudo dd if=result/iso/*.iso of=/dev/sdX bs=4M status=progress
+```
+
+### Fresh Installation Steps
+
+Boot from ISO and execute:
+
+```bash
+# Clone configuration first
+git clone https://github.com/bashfulrobot/nixerator /tmp/nixerator
+cd /tmp/nixerator
+
+# Partition and format (adjust for your setup)
+sudo parted /dev/sda -- mklabel gpt
+sudo parted /dev/sda -- mkpart ESP fat32 1MiB 512MiB
+sudo parted /dev/sda -- set 1 esp on
+sudo parted /dev/sda -- mkpart primary 512MiB 100%
+
+sudo mkfs.fat -F 32 -n boot /dev/sda1
+sudo mkfs.ext4 -L nixos /dev/sda2
+
+# Mount filesystems
+sudo mount /dev/disk/by-label/nixos /mnt
+sudo mkdir -p /mnt/boot
+sudo mount /dev/disk/by-label/boot /mnt/boot
+
+# Generate hardware config
+sudo nixos-generate-config --root /mnt --dir /tmp
+sudo cp /tmp/hardware-configuration.nix hosts/nixerator/
+
+# Install
+sudo nixos-install --flake '.#nixerator' --root /mnt
+
+# Reboot
+reboot
+```
+
+### Post-Installation Tasks
+
+After first boot:
+
+```bash
+# Set user password
+passwd
+
+# Update flake inputs
+just update
+
+# Rebuild with latest
+just switch
+```
+
+**Important files to backup:**
+- SSH keys (`~/.ssh`)
+- Shell history
+- NetworkManager configurations (`/etc/NetworkManager/system-connections/`)
+- Personal documents and dotfiles
+
+## Credits
+
+- Bootstrap installation approach inspired by [sweenu/nixfiles](https://github.com/sweenu/nixfiles)
+- Hyprland desktop environment via [bashfulrobot/hyprflake](https://github.com/bashfulrobot/hyprflake)
