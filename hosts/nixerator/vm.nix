@@ -23,4 +23,14 @@
 
   # Spice VD Agent for clipboard sharing and dynamic resolution
   services.spice-vdagentd.enable = true;
+
+  # Additional VM utilities
+  environment.systemPackages = with pkgs; [
+    spice-vdagent  # Spice agent for better display/clipboard
+    qemu-utils     # QEMU utilities for VM management
+  ];
+
+  # Enable automatic login for VM testing (optional - remove for security)
+  # services.xserver.displayManager.autoLogin.enable = true;
+  # services.xserver.displayManager.autoLogin.user = "dustin";
 }
