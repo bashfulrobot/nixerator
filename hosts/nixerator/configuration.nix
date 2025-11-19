@@ -69,7 +69,6 @@
     enable = true;
     allowedTCPPorts = [
       22    # SSH
-      5905  # SPICE/VNC
     ];
   };
 
