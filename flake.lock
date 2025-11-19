@@ -300,11 +300,11 @@
         "stylix": "stylix"
       },
       "locked": {
-        "lastModified": 1763496556,
-        "narHash": "sha256-Ir+ALzv5v4imcVgsWKqxOeqQgn8E3BW4JccFGAEnTqk=",
+        "lastModified": 1763514265,
+        "narHash": "sha256-wBiGzrlhAY2e9WFW7FproS0t9O0B6McXpfaBIsAz4qc=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "575ab5e922c654d1569ef76953c409a1ca5a4d56",
+        "rev": "07a9672696aab42b9f6ea403c3e48f0861a11ace",
         "type": "github"
       },
       "original": {
