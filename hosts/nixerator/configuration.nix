@@ -56,6 +56,9 @@
     nerd-fonts.iosevka
   ] ++ [
     pkgs.${globals.preferences.editor}
+  ] ++ [
+    # Development & linting tools
+    statix  # Nix linter and code quality checker
   ];
 
   # Enable SSH
