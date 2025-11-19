@@ -65,16 +65,17 @@
   networking.firewall.enable = true;
 
   # Hyprflake Configuration
-  # All options explicitly set (even if they match defaults)
+  # All options explicitly set to demonstrate available customization
+  # Values marked (default) can be removed to use hyprflake's defaults
   # Customize these values to personalize your desktop environment
   hyprflake = {
     # Color scheme - Base16 theme name
     # Browse available schemes: https://tinted-theming.github.io/base16-gallery/
-    colorScheme = "catppuccin-mocha";
+    colorScheme = "catppuccin-mocha";  # (default)
 
     # Wallpaper - local file path
     # Default: Catppuccin Mocha galaxy-waves.jpg (included in hyprflake)
-    # To override, set: hyprflake.wallpaper = ./path/to/your-wallpaper.png;
+    # To override, uncomment and set path:
     # wallpaper = ./path/to/your-wallpaper.png;
 
     # Font configuration - using hyprflake defaults
@@ -82,33 +83,39 @@
     # Default sansSerif: Inter
     # Default serif: Noto Serif
     # Default emoji: Noto Color Emoji
-    # Override only if you want different fonts
+    # To override, uncomment and customize:
+    # fonts = {
+    #   monospace = {
+    #     name = "JetBrainsMono Nerd Font";
+    #     package = pkgs.nerd-fonts.jetbrains-mono;
+    #   };
+    # };
 
     # Cursor theme
     cursor = {
-      name = "Adwaita";
-      size = 24;
-      package = pkgs.adwaita-icon-theme;
+      name = "Adwaita";  # (hyprflake default: "catppuccin-mocha-dark-cursors")
+      size = 24;  # (default)
+      package = pkgs.adwaita-icon-theme;  # (hyprflake default: pkgs.catppuccin-cursors.mochaDark)
     };
 
     # Keyboard layout and variant
     keyboard = {
-      layout = "us";
-      variant = "";
+      layout = "us";  # (default)
+      variant = "";   # (default) - examples: "colemak", "dvorak", "altgr-intl"
     };
 
     # Opacity settings - applied to windows (0.0 - 1.0)
     opacity = {
-      terminal = 0.9;
-      desktop = 1.0;
-      popups = 0.95;
-      applications = 1.0;
+      terminal = 0.9;      # (default)
+      desktop = 1.0;       # (default)
+      popups = 0.95;       # (default)
+      applications = 1.0;  # (default)
     };
 
     # Theme polarity - dark, light, or either (auto-detect)
-    polarity = "dark";
+    polarity = "dark";  # (default)
 
-    # User configuration
+    # User configuration (required)
     user = {
       username = "dustin";
       photo = ./.face;
