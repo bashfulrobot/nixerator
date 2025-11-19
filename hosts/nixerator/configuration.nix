@@ -77,25 +77,12 @@
     # To override, set: hyprflake.wallpaper = ./path/to/your-wallpaper.png;
     # wallpaper = ./path/to/your-wallpaper.png;
 
-    # Font configuration - applied system-wide via Stylix
-    fonts = {
-      monospace = {
-        name = "JetBrains Mono";
-        package = pkgs.jetbrains-mono;
-      };
-      sansSerif = {
-        name = "Inter";
-        package = pkgs.inter;
-      };
-      serif = {
-        name = "Noto Serif";
-        package = pkgs.noto-fonts;
-      };
-      emoji = {
-        name = "Noto Color Emoji";
-        package = pkgs.noto-fonts-color-emoji;
-      };
-    };
+    # Font configuration - using hyprflake defaults
+    # Default monospace: Iosevka Nerd Font (includes icon glyphs for waybar)
+    # Default sansSerif: Inter
+    # Default serif: Noto Serif
+    # Default emoji: Noto Color Emoji
+    # Override only if you want different fonts
 
     # Cursor theme
     cursor = {
