@@ -65,7 +65,13 @@
   services.openssh.enable = true;
 
   # Firewall
-  networking.firewall.enable = true;
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [
+      22    # SSH
+      5905  # SPICE/VNC
+    ];
+  };
 
   # Hyprflake Configuration
   # All options explicitly set to demonstrate available customization
