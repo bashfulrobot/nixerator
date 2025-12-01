@@ -13,8 +13,18 @@
   ];
 
   # Networking
-  networking.hostName = hostname;
-  networking.networkmanager.enable = true;
+  networking = {
+    hostName = hostname;
+    networkmanager.enable = true;
+
+    # Firewall
+    firewall = {
+      enable = true;
+      allowedTCPPorts = [
+        22    # SSH
+      ];
+    };
+  };
 
   # Time zone and localization (from globals)
   time.timeZone = globals.defaults.timeZone;
@@ -44,9 +54,11 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   # Enable modules
-  apps.cli.fish.enable = true;
-  apps.cli.git.enable = true;
-  apps.cli.starship.enable = true;
+  apps.cli = {
+    fish.enable = true;
+    git.enable = true;
+    starship.enable = true;
+  };
 
   # System packages
   environment.systemPackages = with pkgs; [
@@ -63,14 +75,6 @@
 
   # Enable SSH
   services.openssh.enable = true;
-
-  # Firewall
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [
-      22    # SSH
-    ];
-  };
 
   # Hyprflake Configuration
   # All options explicitly set to demonstrate available customization
