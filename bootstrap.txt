@@ -6,21 +6,10 @@
 - Open a terminal in the live session
 - Run all commands as root or with sudo
 
-## Step 1: Connect to Internet
+## Step 1: Verify Internet Connection
 
-# For WiFi:
-sudo systemctl start wpa_supplicant
-sudo wpa_cli
-> add_network
-> set_network 0 ssid "YOUR_NETWORK_NAME"
-> set_network 0 psk "YOUR_PASSWORD"
-> enable_network 0
-> quit
-
-# For Ethernet (usually automatic):
-# Just plug in the cable and wait a moment
-
-# Verify internet connection:
+# The GUI live session should already be connected to the internet
+# Just verify the connection works:
 ping -c 3 google.com
 
 ## Step 2: Retrieve SSH Keys (for Git authentication)
