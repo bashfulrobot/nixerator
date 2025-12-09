@@ -11,7 +11,7 @@
 
   # System defaults
   defaults = {
-    stateVersion = "25.05";
+    stateVersion = "25.11";
     timeZone = "America/Vancouver";
     locale = "en_US.UTF-8";
   };
