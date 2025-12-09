@@ -14,6 +14,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     hyprflake = {
       url = "github:bashfulrobot/hyprflake";
       # Follow all inputs to ensure version consistency and avoid conflicts
@@ -40,6 +45,18 @@
           system = "x86_64-linux";
           # username and stateVersion are automatically pulled from globals
           extraModules = [
+            # Hyprland desktop environment
+            inputs.hyprflake.nixosModules.default
+          ];
+        };
+
+        donkeykong = lib.mkHost {
+          inherit globals;
+          hostname = "donkeykong";
+          system = "x86_64-linux";
+          extraModules = [
+            # Disko declarative disk partitioning
+            inputs.disko.nixosModules.disko
             # Hyprland desktop environment
             inputs.hyprflake.nixosModules.default
           ];
