@@ -9,11 +9,17 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    stylix = {
+      url = "github:nix-community/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     hyprflake = {
       url = "github:bashfulrobot/hyprflake";
-      # Only share nixpkgs to avoid version conflicts
-      # Let hyprflake manage its own home-manager, hyprland, and stylix
+      # Follow all inputs to ensure version consistency and avoid conflicts
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+      inputs.stylix.follows = "stylix";
     };
   };
 
