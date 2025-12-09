@@ -126,14 +126,44 @@ sudo chmod 700 /mnt/home/dustin/.gnupg
 sudo scp -r dustin@192.168.169.4:~/.gnupg/* /mnt/home/dustin/.gnupg/ 2>/dev/null || true
 sudo chmod 600 /mnt/home/dustin/.gnupg/* 2>/dev/null || true
 
-# Fix ownership (important! - keys must be owned by user, not root)
-sudo chown -R dustin:users /mnt/home/dustin/.ssh
-sudo chown -R dustin:users /mnt/home/dustin/.gnupg
-
 # Copy nixerator repository to final location
 sudo mkdir -p /mnt/home/dustin/dev/nix
 sudo cp -r /tmp/install/nixerator /mnt/home/dustin/dev/nix/
-sudo chown -R dustin:users /mnt/home/dustin/dev
+
+# Create post-install script to fix permissions after reboot
+# (Cannot chown now - user doesn't exist yet during installation)
+sudo tee /mnt/home/dustin/post-install.sh > /dev/null << 'EOF'
+#!/usr/bin/env bash
+# Post-installation permission fix script
+# Run this after first boot to fix file ownership
+
+echo "Fixing file permissions and ownership..."
+
+# Fix SSH keys ownership
+sudo chown -R dustin:users ~/.ssh
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/id_* 2>/dev/null || true
+chmod 644 ~/.ssh/id_*.pub 2>/dev/null || true
+chmod 644 ~/.ssh/config 2>/dev/null || true
+
+# Fix GPG keys ownership
+sudo chown -R dustin:users ~/.gnupg
+chmod 700 ~/.gnupg
+find ~/.gnupg -type f -exec chmod 600 {} \;
+
+# Fix repository ownership
+sudo chown -R dustin:users ~/dev
+
+# Restart GPG agent with correct permissions
+gpgconf --kill gpg-agent
+gpg --list-keys
+
+echo "✅ Permissions fixed! You can now use SSH and GPG."
+echo "Removing this script..."
+rm ~/post-install.sh
+EOF
+
+sudo chmod +x /mnt/home/dustin/post-install.sh
 
 ## Step 9: Set Root Password
 
@@ -169,28 +199,37 @@ sudo reboot
 
 # After successfully booting and logging in:
 
-# 1. Verify SSH and GPG keys are present
-# These were copied in Step 6.5 and should already be in place
-ls -la ~/.ssh/id_*
+# 1. Fix file permissions and ownership
+# Run the post-install script created during installation
+~/post-install.sh
+
+# This script will:
+# - Fix SSH key ownership and permissions
+# - Fix GPG key ownership and permissions
+# - Fix repository ownership
+# - Restart GPG agent
+# - Remove itself when done
+
+# 2. Verify SSH and GPG keys work
+ssh-add -l
 gpg --list-keys
+git config --global user.signingkey  # Verify signing key
 
-# If GPG agent needs restarting:
-gpgconf --kill gpg-agent
-gpg --list-keys  # This will start the agent with correct permissions
+# 3. Test SSH to GitHub
+ssh -T git@github.com
 
-# 2. Verify nixerator repository is in place
-# The repository was copied to ~/dev/nix/nixerator in Step 6.5
+# 4. Verify nixerator repository
 cd ~/dev/nix/nixerator
 git status
 
-# 3. Verify system is working:
+# 5. Verify system is working
 neofetch
 hyprctl version
 
-# 4. Update flake inputs if needed:
+# 6. Update flake inputs if needed
 nix flake update
 
-# 5. Rebuild after changes:
+# 7. Rebuild after changes
 sudo nixos-rebuild switch --flake ~/dev/nix/nixerator#donkeykong
 
 ## Troubleshooting
