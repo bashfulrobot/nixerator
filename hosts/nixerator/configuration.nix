@@ -53,6 +53,9 @@
   # Enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
+  # Enable archetypes
+  archetypes.workstation.enable = true;
+
   # Enable modules
   apps.cli = {
     fish.enable = true;
