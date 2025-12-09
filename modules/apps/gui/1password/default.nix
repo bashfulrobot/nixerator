@@ -1,38 +1,14 @@
-{ user-settings, config, lib, secrets, pkgs, inputs, ... }:
+{ user-settings, config, lib, pkgs, ... }:
 
 let
-  cfg = config.apps.one-password;
-  onePassPath = "~/.1password/agent.sock";
-
-  # Beta version override - set to false for stable version
-  useBeta = true;
-
-  # Create beta package overlay
-  _1password-gui-beta = pkgs._1password-gui.overrideAttrs (oldAttrs: rec {
-    version = "8.11.6-25.BETA";
-    src =
-      if pkgs.stdenv.hostPlatform.system == "x86_64-linux" then
-        pkgs.fetchurl {
-          url = "https://downloads.1password.com/linux/tar/beta/x86_64/1password-${version}.x64.tar.gz";
-          hash = "sha256-gOq2Yl4HmwrmV41iwPQ1jFEHUv6TydTBHLGecgiiRxE=";
-        }
-      else
-        pkgs.fetchurl {
-          url = "https://downloads.1password.com/linux/tar/beta/aarch64/1password-${version}.arm64.tar.gz";
-          hash = "sha256-fRgTfZjQRrPbYUKIub+y9iYSBvsElN90ag0maPKTM2g=";
-        };
-  });
-
-  # Choose package based on beta flag
-  selectedGuiPackage = if useBeta then _1password-gui-beta else pkgs.unstable._1password-gui;
-
+  cfg = config.apps.gui.one-password;
 in {
 
   options = {
-    apps.one-password.enable = lib.mkOption {
+    apps.gui.one-password.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable one-password.";
+      description = "Enable 1Password password manager.";
     };
   };
 
@@ -50,20 +26,17 @@ in {
       };
     };
 
-    # Enable the 1Passsword GUI with myself as an authorized user for polkit
+    # Enable 1Password CLI and GUI with polkit authorization
     programs = {
       _1password = {
         enable = true;
-        package = pkgs.unstable._1password-cli;
+        package = pkgs._1password-cli;
       };
       _1password-gui = {
         enable = true;
-        package = selectedGuiPackage;
-        # polkitPolicyOwners = [ "${user-settings.user.username}" ];
-        polkitPolicyOwners = [ "dustin" ];
-        # polkitPolicyOwners = config.users.groups.wheel.members;
+        package = pkgs._1password-gui;
+        polkitPolicyOwners = [ "${user-settings.user.username}" ];
       };
-
     };
 
     # used in Gnome and Hyprland
