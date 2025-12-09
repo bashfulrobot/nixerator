@@ -59,6 +59,34 @@ in
         ];
       };
 
+      # Wayland flags for Chromium and Electron apps
+      home.file =
+        let
+          waylandFlags = ''
+            --enable-features=UseOzonePlatform
+            --ozone-platform=wayland
+            --enable-features=WaylandWindowDecorations
+            --ozone-platform-hint=wayland
+            --gtk-version=4
+            --enable-features=VaapiVideoDecoder
+            --enable-gpu-rasterization
+          '';
+        in
+        {
+          ".config/chromium-flags.conf".text = waylandFlags;
+          ".config/electron-flags.conf".text = waylandFlags;
+          ".config/electron-flags16.conf".text = waylandFlags;
+          ".config/electron-flags17.conf".text = waylandFlags;
+          ".config/electron-flags18.conf".text = waylandFlags;
+          ".config/electron-flags19.conf".text = waylandFlags;
+          ".config/electron-flags20.conf".text = waylandFlags;
+          ".config/electron-flags21.conf".text = waylandFlags;
+          ".config/electron-flags22.conf".text = waylandFlags;
+          ".config/electron-flags23.conf".text = waylandFlags;
+          ".config/electron-flags24.conf".text = waylandFlags;
+          ".config/electron-flags25.conf".text = waylandFlags;
+        };
+
     };
 
   };
