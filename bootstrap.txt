@@ -1,0 +1,164 @@
+# NixOS Installation Guide for Donkeykong
+# Using nixerator flake with disko declarative partitioning
+
+## Prerequisites
+- Boot donkeykong from NixOS live USB
+- Open a terminal in the live session
+- Run all commands as root or with sudo
+
+## Step 1: Connect to Internet
+
+# For WiFi:
+sudo systemctl start wpa_supplicant
+sudo wpa_cli
+> add_network
+> set_network 0 ssid "YOUR_NETWORK_NAME"
+> set_network 0 psk "YOUR_PASSWORD"
+> enable_network 0
+> quit
+
+# For Ethernet (usually automatic):
+# Just plug in the cable and wait a moment
+
+# Verify internet connection:
+ping -c 3 google.com
+
+## Step 2: Set up Git SSH Access (if using SSH for clone)
+
+# If you have SSH keys on another system, you can temporarily use HTTPS instead.
+# For HTTPS (recommended for initial install):
+# Skip to Step 3 and use HTTPS URL
+
+# For SSH (if you have access):
+# You'll need to add the live session's SSH key to GitHub or use an existing key
+
+## Step 3: Clone the nixerator Repository
+
+# Create a working directory
+mkdir -p /tmp/install
+cd /tmp/install
+
+# Clone using HTTPS (easier for live session)
+nix-shell -p git --run "git clone https://github.com/bashfulrobot/nixerator.git"
+cd nixerator
+
+## Step 4: Verify Disk Configuration
+
+# Check that the disk ID matches what's in disko.nix
+ls -l /dev/disk/by-id/ | grep nvme
+
+# The disko.nix is configured for:
+# nvme-SAMSUNG_MZVLC1T0HFLU-00BLL_S7SDNF0Y302997
+
+# If the disk ID is different, you'll need to edit hosts/donkeykong/disko.nix
+# before proceeding (use nano or vim)
+
+## Step 5: Partition and Format Disk with Disko
+
+# WARNING: This will ERASE ALL DATA on the disk!
+# Make absolutely sure you're targeting the correct disk!
+
+# Run disko to partition, format, and set up LUKS encryption
+# You will be prompted to create an encryption password - REMEMBER THIS!
+# You'll need it every time you boot the system.
+
+sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko -- \
+  --mode disko \
+  --flake .#donkeykong
+
+# Enter your LUKS encryption password when prompted
+# Enter it again to confirm
+
+## Step 6: Install NixOS
+
+# The disko command has already mounted everything at /mnt
+# Now we install NixOS using the flake configuration
+
+sudo nixos-install --flake .#donkeykong
+
+# This will:
+# - Build the system configuration
+# - Install all packages
+# - Set up the bootloader
+# - May take 15-30 minutes depending on internet speed
+
+## Step 7: Set Root Password
+
+# During installation, you'll be prompted to set the root password
+# If not, or if you need to change it:
+
+sudo nixos-enter --root /mnt -c 'passwd root'
+
+## Step 8: Set User Password
+
+# Set password for your user (dustin)
+sudo nixos-enter --root /mnt -c 'passwd dustin'
+
+## Step 9: Reboot
+
+# Unmount and reboot
+sudo umount -R /mnt
+sudo reboot
+
+# Remove the USB drive when the system restarts
+
+## Step 10: First Boot
+
+# On first boot:
+# 1. You'll see the systemd-boot menu
+# 2. Select the default NixOS option
+# 3. You'll be prompted for your LUKS encryption password
+# 4. Enter the password you created in Step 5
+# 5. System will boot and show GDM login screen
+# 6. Log in with user 'dustin' and the password from Step 8
+
+## Post-Installation
+
+# After successfully booting:
+
+# 1. Verify system is working:
+neofetch
+hyprctl version
+
+# 2. Update flake inputs if needed:
+cd ~/path/to/nixerator
+nix flake update
+
+# 3. Rebuild after changes:
+sudo nixos-rebuild switch --flake .#donkeykong
+
+## Troubleshooting
+
+# If disko fails:
+# - Verify disk ID matches: ls -l /dev/disk/by-id/
+# - Check disk isn't mounted: lsblk
+# - Unmount if needed: sudo umount /mnt/*
+# - Close LUKS if exists: sudo cryptsetup close cryptroot
+
+# If installation fails:
+# - Check internet connection
+# - Verify flake.lock is present in repo
+# - Try: nix flake metadata .#donkeykong to test flake
+
+# If boot fails:
+# - Double-check LUKS password
+# - Boot from live USB and check /boot/loader/entries/
+# - Verify ESP partition is properly mounted
+
+## Important Files
+
+# Configuration: hosts/donkeykong/configuration.nix
+# Disk layout: hosts/donkeykong/disko.nix
+# Boot config: hosts/donkeykong/boot.nix
+# Home-manager: hosts/donkeykong/home.nix
+
+## System Specifications
+
+# Host: donkeykong
+# Disk: Samsung NVMe 1TB SSD
+# Encryption: LUKS (cryptroot)
+# Filesystem: ext4 with LVM
+# Swap: 32GB (for hibernation)
+# RAM: 32GB
+# Desktop: Hyprland (via hyprflake)
+# Boot: systemd-boot (UEFI)
