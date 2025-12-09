@@ -23,14 +23,14 @@ sudo wpa_cli
 # Verify internet connection:
 ping -c 3 google.com
 
-## Step 2: Set up Git SSH Access (if using SSH for clone)
+## Step 2: Retrieve SSH Keys (for Git authentication)
 
-# If you have SSH keys on another system, you can temporarily use HTTPS instead.
-# For HTTPS (recommended for initial install):
-# Skip to Step 3 and use HTTPS URL
-
-# For SSH (if you have access):
-# You'll need to add the live session's SSH key to GitHub or use an existing key
+# Copy SSH keys from existing system to enable SSH git clone
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+scp -r dustin@192.168.169.4:~/.ssh/* ~/.ssh/
+chmod 600 ~/.ssh/id_*
+chmod 644 ~/.ssh/*.pub
 
 ## Step 3: Clone the nixerator Repository
 
@@ -38,8 +38,8 @@ ping -c 3 google.com
 mkdir -p /tmp/install
 cd /tmp/install
 
-# Clone using HTTPS (easier for live session)
-nix-shell -p git --run "git clone https://github.com/bashfulrobot/nixerator.git"
+# Clone using SSH (now that keys are set up)
+nix-shell -p git --run "git clone git@github.com:bashfulrobot/nixerator.git"
 cd nixerator
 
 ## Step 4: Verify Disk Configuration
@@ -114,10 +114,10 @@ sudo reboot
 
 ## Post-Installation
 
-# After successfully booting:
+# After successfully booting and logging in:
 
-# 1. Retrieve SSH and GPG keys from existing system:
-# This enables git SSH authentication and commit signing
+# 1. Retrieve SSH and GPG keys from existing system
+# This must be done FIRST to enable git SSH authentication and commit signing
 
 # Copy SSH keys:
 mkdir -p ~/.ssh
@@ -136,20 +136,22 @@ chmod 600 ~/.gnupg/*
 gpgconf --kill gpg-agent
 gpg --list-keys  # This will start the agent with correct permissions
 
-# 2. Verify system is working:
+# 2. Clone nixerator repository using SSH
+# Create directory structure and clone into ~/dev/nix/nixerator
+mkdir -p ~/dev/nix
+cd ~/dev/nix
+git clone git@github.com:bashfulrobot/nixerator.git
+cd nixerator
+
+# 3. Verify system is working:
 neofetch
 hyprctl version
 
-# 3. Clone nixerator using SSH (now that keys are set up):
-cd ~
-git clone git@github.com:bashfulrobot/nixerator.git
-
 # 4. Update flake inputs if needed:
-cd ~/nixerator
 nix flake update
 
 # 5. Rebuild after changes:
-sudo nixos-rebuild switch --flake .#donkeykong
+sudo nixos-rebuild switch --flake ~/dev/nix/nixerator#donkeykong
 
 ## Troubleshooting
 
