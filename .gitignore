@@ -1,0 +1,7 @@
+# Flake lock backups
+flake.lock-backup-*
+
+# Nix build artifacts
+result
+result-*
+
