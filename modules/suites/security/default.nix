@@ -14,6 +14,6 @@ in
 
   config = lib.mkIf cfg.enable {
     # Security applications
-    apps.one-password.enable = true;
+    apps.gui.one-password.enable = true;
   };
 }
