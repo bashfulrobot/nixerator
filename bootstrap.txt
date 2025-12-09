@@ -26,11 +26,21 @@ ping -c 3 google.com
 ## Step 2: Retrieve SSH Keys (for Git authentication)
 
 # Copy SSH keys from existing system to enable SSH git clone
+# Only copy actual key files (id_*) with proper permissions
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
-scp -r dustin@192.168.169.4:~/.ssh/* ~/.ssh/
-chmod 600 ~/.ssh/id_*
-chmod 644 ~/.ssh/*.pub
+
+# Copy private keys (id_rsa, id_ed25519, etc.)
+scp dustin@192.168.169.4:~/.ssh/id_* ~/.ssh/ 2>/dev/null || true
+
+# Set correct permissions on private keys (must be 600)
+chmod 600 ~/.ssh/id_* 2>/dev/null || true
+
+# Copy public keys (id_*.pub)
+scp dustin@192.168.169.4:~/.ssh/id_*.pub ~/.ssh/ 2>/dev/null || true
+
+# Set correct permissions on public keys (644)
+chmod 644 ~/.ssh/id_*.pub 2>/dev/null || true
 
 ## Step 3: Clone the nixerator Repository
 
@@ -82,6 +92,46 @@ sudo nixos-install --flake .#donkeykong
 # - Set up the bootloader
 # - May take 15-30 minutes depending on internet speed
 
+## Step 6.5: Copy SSH and GPG Keys to Installed System
+
+# IMPORTANT: Copy keys to the final filesystem BEFORE rebooting
+# The live session is ephemeral - keys copied there won't persist
+
+# Copy SSH keys to installed system
+sudo mkdir -p /mnt/home/dustin/.ssh
+sudo chmod 700 /mnt/home/dustin/.ssh
+
+# Copy private keys (id_rsa, id_ed25519, etc.)
+sudo scp dustin@192.168.169.4:~/.ssh/id_* /mnt/home/dustin/.ssh/ 2>/dev/null || true
+
+# Set correct permissions on private keys (must be 600)
+sudo chmod 600 /mnt/home/dustin/.ssh/id_* 2>/dev/null || true
+
+# Copy public keys (id_*.pub)
+sudo scp dustin@192.168.169.4:~/.ssh/id_*.pub /mnt/home/dustin/.ssh/ 2>/dev/null || true
+
+# Set correct permissions on public keys (644)
+sudo chmod 644 /mnt/home/dustin/.ssh/id_*.pub 2>/dev/null || true
+
+# Optional: Copy SSH config if you have one
+sudo scp dustin@192.168.169.4:~/.ssh/config /mnt/home/dustin/.ssh/config 2>/dev/null || true
+sudo chmod 644 /mnt/home/dustin/.ssh/config 2>/dev/null || true
+
+# Copy GPG keys to installed system
+sudo mkdir -p /mnt/home/dustin/.gnupg
+sudo chmod 700 /mnt/home/dustin/.gnupg
+sudo scp -r dustin@192.168.169.4:~/.gnupg/* /mnt/home/dustin/.gnupg/ 2>/dev/null || true
+sudo chmod 600 /mnt/home/dustin/.gnupg/* 2>/dev/null || true
+
+# Fix ownership (important! - keys must be owned by user, not root)
+sudo chown -R dustin:users /mnt/home/dustin/.ssh
+sudo chown -R dustin:users /mnt/home/dustin/.gnupg
+
+# Copy nixerator repository to final location
+sudo mkdir -p /mnt/home/dustin/dev/nix
+sudo cp -r /tmp/install/nixerator /mnt/home/dustin/dev/nix/
+sudo chown -R dustin:users /mnt/home/dustin/dev
+
 ## Step 7: Set Root Password
 
 # During installation, you'll be prompted to set the root password
@@ -116,32 +166,19 @@ sudo reboot
 
 # After successfully booting and logging in:
 
-# 1. Retrieve SSH and GPG keys from existing system
-# This must be done FIRST to enable git SSH authentication and commit signing
+# 1. Verify SSH and GPG keys are present
+# These were copied in Step 6.5 and should already be in place
+ls -la ~/.ssh/id_*
+gpg --list-keys
 
-# Copy SSH keys:
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
-scp -r dustin@192.168.169.4:~/.ssh/* ~/.ssh/
-chmod 600 ~/.ssh/id_*
-chmod 644 ~/.ssh/*.pub
-
-# Copy GPG keys:
-mkdir -p ~/.gnupg
-chmod 700 ~/.gnupg
-scp -r dustin@192.168.169.4:~/.gnupg/* ~/.gnupg/
-chmod 600 ~/.gnupg/*
-
-# Fix GPG permissions (important!):
+# If GPG agent needs restarting:
 gpgconf --kill gpg-agent
 gpg --list-keys  # This will start the agent with correct permissions
 
-# 2. Clone nixerator repository using SSH
-# Create directory structure and clone into ~/dev/nix/nixerator
-mkdir -p ~/dev/nix
-cd ~/dev/nix
-git clone git@github.com:bashfulrobot/nixerator.git
-cd nixerator
+# 2. Verify nixerator repository is in place
+# The repository was copied to ~/dev/nix/nixerator in Step 6.5
+cd ~/dev/nix/nixerator
+git status
 
 # 3. Verify system is working:
 neofetch
