@@ -20,10 +20,10 @@
     };
 
     # Load kernel modules needed for encryption early
+    # Crypto modules (AES, SIMD) are auto-loaded by kernel as needed
     availableKernelModules = [
       "dm-crypt"      # Device mapper crypto
       "dm-mod"        # Device mapper
-      "crypto_simd"   # SIMD crypto acceleration
     ];
   };
 
