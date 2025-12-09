@@ -10,27 +10,7 @@ For systems with disko (automated partitioning):
 
 ```bash
 # See bootstrap.txt for complete installation guide
-cat bootstrap.txt
-```
-
-For manual setup:
-
-```bash
-# 1. Boot NixOS live USB
-# 2. Partition and mount disks
-# 3. Generate hardware config
-sudo nixos-generate-config --root /mnt
-sudo cp /mnt/etc/nixos/hardware-configuration.nix /tmp/
-
-# 4. Clone this repo
-git clone git@github.com:bashfulrobot/nixerator.git /tmp/nixerator
-cd /tmp/nixerator
-
-# 5. Copy hardware config to your host
-sudo cp /tmp/hardware-configuration.nix hosts/HOSTNAME/
-
-# 6. Install
-sudo nixos-install --flake .#HOSTNAME
+cat docs/bootstrap.txt
 ```
 
 ### Update Existing System
@@ -39,11 +19,6 @@ sudo nixos-install --flake .#HOSTNAME
 cd ~/dev/nix/nixerator
 sudo nixos-rebuild switch --flake .#HOSTNAME
 ```
-
-## Hosts
-
-- **nixerator** - VM development host (virtiofs shared folder)
-- **donkeykong** - LUKS encrypted desktop (disko partitioning, ext4, 32GB swap)
 
 ## Common Commands
 
@@ -62,10 +37,12 @@ nix flake update
 ## Configuration
 
 Global settings: `settings/globals.nix`
+
 - Username, timezone, locale
 - Editor, shell preferences
 
 Host-specific: `hosts/HOSTNAME/configuration.nix`
+
 - Enable modules via options
 - Example: `apps.cli.git.enable = true;`
 
@@ -108,6 +85,7 @@ Requires virtiofs share in libvirt:
 ```
 
 Initial VM setup:
+
 ```bash
 sudo mkdir -p /home/dustin/dev/nix/nixerator
 sudo mount -t virtiofs mount_nixerator /home/dustin/dev/nix/nixerator
