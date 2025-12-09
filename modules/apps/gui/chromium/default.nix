@@ -59,7 +59,7 @@ in
         ];
       };
 
-      # Wayland flags for Chromium and Electron apps
+      # Wayland flags and Dark Reader configuration
       home.file =
         let
           waylandFlags = ''
@@ -71,8 +71,21 @@ in
             --enable-features=VaapiVideoDecoder
             --enable-gpu-rasterization
           '';
+
+          # Access stylix colors when available for Dark Reader
+          inherit (config.lib.stylix.colors) base00 base05 base01 base0D base07 base02;
+
+          # Fallback colors if stylix is not configured
+          backgroundColor = if config.stylix.enable then "#${base00}" else "#1e1e2e";
+          textColor = if config.stylix.enable then "#${base05}" else "#cdd6f4";
+          surfaceColor = if config.stylix.enable then "#${base01}" else "#313244";
+          accentColor = if config.stylix.enable then "#${base0D}" else "#89b4fa";
+          lightBackgroundColor = if config.stylix.enable then "#${base07}" else "#eff1f5";
+          lightTextColor = if config.stylix.enable then "#${base02}" else "#4c4f69";
+          fontFamily = if config.stylix.enable then config.stylix.fonts.monospace.name else "Iosevka Nerd Font";
         in
         {
+          # Wayland flags for Chromium and Electron apps
           ".config/chromium-flags.conf".text = waylandFlags;
           ".config/electron-flags.conf".text = waylandFlags;
           ".config/electron-flags16.conf".text = waylandFlags;
@@ -85,24 +98,9 @@ in
           ".config/electron-flags23.conf".text = waylandFlags;
           ".config/electron-flags24.conf".text = waylandFlags;
           ".config/electron-flags25.conf".text = waylandFlags;
-        };
 
-      # Dark Reader configuration using Stylix colors
-      home.file.".config/darkreader/Dark-Reader-Settings.json".text =
-        let
-          # Access stylix colors when available
-          inherit (config.lib.stylix.colors) base00 base05 base01 base0D base07 base02;
-
-          # Fallback colors if stylix is not configured
-          backgroundColor = if config.stylix.enable then "#${base00}" else "#1e1e2e";
-          textColor = if config.stylix.enable then "#${base05}" else "#cdd6f4";
-          surfaceColor = if config.stylix.enable then "#${base01}" else "#313244";
-          accentColor = if config.stylix.enable then "#${base0D}" else "#89b4fa";
-          lightBackgroundColor = if config.stylix.enable then "#${base07}" else "#eff1f5";
-          lightTextColor = if config.stylix.enable then "#${base02}" else "#4c4f69";
-          fontFamily = if config.stylix.enable then config.stylix.fonts.monospace.name else "Iosevka Nerd Font";
-        in
-        builtins.toJSON {
+          # Dark Reader configuration using Stylix colors
+          ".config/darkreader/Dark-Reader-Settings.json".text = builtins.toJSON {
           schemeVersion = 2;
           enabled = true;
           fetchNews = true;
@@ -270,6 +268,7 @@ in
           detectDarkTheme = true;
           displayedNews = [ "google-docs-bugs" ];
         };
+      };
 
     };
 
