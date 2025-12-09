@@ -19,12 +19,8 @@
       allowDiscards = true;  # Important for SSD TRIM support
     };
 
-    # Load kernel modules needed for encryption early
-    # Crypto modules (AES, SIMD) are auto-loaded by kernel as needed
-    availableKernelModules = [
-      "dm-crypt"      # Device mapper crypto
-      "dm-mod"        # Device mapper
-    ];
+    # NixOS will auto-detect required kernel modules for LUKS/LVM
+    # availableKernelModules from hardware-configuration.nix will be used
   };
 
   # Enable hibernation support (with 32GB swap)
