@@ -87,6 +87,190 @@ in
           ".config/electron-flags25.conf".text = waylandFlags;
         };
 
+      # Dark Reader configuration using Stylix colors
+      home.file.".config/darkreader/Dark-Reader-Settings.json".text =
+        let
+          # Access stylix colors when available
+          inherit (config.lib.stylix.colors) base00 base05 base01 base0D base07 base02;
+
+          # Fallback colors if stylix is not configured
+          backgroundColor = if config.stylix.enable then "#${base00}" else "#1e1e2e";
+          textColor = if config.stylix.enable then "#${base05}" else "#cdd6f4";
+          surfaceColor = if config.stylix.enable then "#${base01}" else "#313244";
+          accentColor = if config.stylix.enable then "#${base0D}" else "#89b4fa";
+          lightBackgroundColor = if config.stylix.enable then "#${base07}" else "#eff1f5";
+          lightTextColor = if config.stylix.enable then "#${base02}" else "#4c4f69";
+          fontFamily = if config.stylix.enable then config.stylix.fonts.monospace.name else "Iosevka Nerd Font";
+        in
+        builtins.toJSON {
+          schemeVersion = 2;
+          enabled = true;
+          fetchNews = true;
+          theme = {
+            mode = 1; # Dark mode
+            brightness = 100;
+            contrast = 100;
+            grayscale = 0;
+            sepia = 0;
+            useFont = false;
+            fontFamily = fontFamily;
+            textStroke = 0;
+            engine = "dynamicTheme";
+            stylesheet = "";
+            darkSchemeBackgroundColor = backgroundColor;
+            darkSchemeTextColor = textColor;
+            lightSchemeBackgroundColor = lightBackgroundColor;
+            lightSchemeTextColor = lightTextColor;
+            scrollbarColor = surfaceColor;
+            selectionColor = accentColor;
+            styleSystemControls = true;
+            lightColorScheme = "Default";
+            darkColorScheme = "Default";
+            immediateModify = false;
+          };
+          presets = [];
+          customThemes = [
+            # Office 365
+            {
+              builtIn = true;
+              theme = {
+                mode = 1;
+                brightness = 100;
+                contrast = 100;
+                grayscale = 0;
+                sepia = 0;
+                useFont = false;
+                fontFamily = fontFamily;
+                textStroke = 0;
+                engine = "cssFilter";
+                stylesheet = "";
+                darkSchemeBackgroundColor = backgroundColor;
+                darkSchemeTextColor = textColor;
+                lightSchemeBackgroundColor = lightBackgroundColor;
+                lightSchemeTextColor = lightTextColor;
+                scrollbarColor = surfaceColor;
+                selectionColor = accentColor;
+                styleSystemControls = true;
+                lightColorScheme = "Default";
+                darkColorScheme = "Default";
+                immediateModify = false;
+              };
+              url = [ "*.officeapps.live.com" ];
+            }
+            # SharePoint
+            {
+              builtIn = true;
+              theme = {
+                mode = 1;
+                brightness = 100;
+                contrast = 100;
+                grayscale = 0;
+                sepia = 0;
+                useFont = false;
+                fontFamily = fontFamily;
+                textStroke = 0;
+                engine = "cssFilter";
+                stylesheet = "";
+                darkSchemeBackgroundColor = backgroundColor;
+                darkSchemeTextColor = textColor;
+                lightSchemeBackgroundColor = lightBackgroundColor;
+                lightSchemeTextColor = lightTextColor;
+                scrollbarColor = surfaceColor;
+                selectionColor = accentColor;
+                styleSystemControls = true;
+                lightColorScheme = "Default";
+                darkColorScheme = "Default";
+                immediateModify = false;
+              };
+              url = [ "*.sharepoint.com" ];
+            }
+            # Google Docs
+            {
+              builtIn = true;
+              theme = {
+                mode = 1;
+                brightness = 100;
+                contrast = 100;
+                grayscale = 0;
+                sepia = 0;
+                useFont = false;
+                fontFamily = fontFamily;
+                textStroke = 0;
+                engine = "cssFilter";
+                stylesheet = "";
+                darkSchemeBackgroundColor = backgroundColor;
+                darkSchemeTextColor = textColor;
+                lightSchemeBackgroundColor = lightBackgroundColor;
+                lightSchemeTextColor = lightTextColor;
+                scrollbarColor = surfaceColor;
+                selectionColor = accentColor;
+                styleSystemControls = true;
+                lightColorScheme = "Default";
+                darkColorScheme = "Default";
+                immediateModify = false;
+              };
+              url = [ "docs.google.com" ];
+            }
+            # OneDrive
+            {
+              builtIn = true;
+              theme = {
+                mode = 1;
+                brightness = 100;
+                contrast = 100;
+                grayscale = 0;
+                sepia = 0;
+                useFont = false;
+                fontFamily = fontFamily;
+                textStroke = 0;
+                engine = "cssFilter";
+                stylesheet = "";
+                darkSchemeBackgroundColor = backgroundColor;
+                darkSchemeTextColor = textColor;
+                lightSchemeBackgroundColor = lightBackgroundColor;
+                lightSchemeTextColor = lightTextColor;
+                scrollbarColor = surfaceColor;
+                selectionColor = accentColor;
+                styleSystemControls = true;
+                lightColorScheme = "Default";
+                darkColorScheme = "Default";
+                immediateModify = false;
+              };
+              url = [ "onedrive.live.com" ];
+            }
+          ];
+          enabledByDefault = true;
+          enabledFor = [];
+          disabledFor = [
+            "mail.google.com"
+            "docs.google.com"
+            "www.linkedin.com"
+          ];
+          changeBrowserTheme = false;
+          syncSettings = true;
+          syncSitesFixes = false;
+          automation = {
+            behavior = "OnOff";
+            enabled = false;
+            mode = "";
+          };
+          time = {
+            activation = "18:00";
+            deactivation = "9:00";
+          };
+          location = {
+            latitude = null;
+            longitude = null;
+          };
+          previewNewDesign = false;
+          previewNewestDesign = false;
+          enableForPDF = true;
+          enableForProtectedPages = false;
+          enableContextMenus = false;
+          detectDarkTheme = true;
+          displayedNews = [ "google-docs-bugs" ];
+        };
+
     };
 
   };
