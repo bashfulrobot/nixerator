@@ -116,15 +116,39 @@ sudo reboot
 
 # After successfully booting:
 
-# 1. Verify system is working:
+# 1. Retrieve SSH and GPG keys from existing system:
+# This enables git SSH authentication and commit signing
+
+# Copy SSH keys:
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+scp -r dustin@192.168.169.4:~/.ssh/* ~/.ssh/
+chmod 600 ~/.ssh/id_*
+chmod 644 ~/.ssh/*.pub
+
+# Copy GPG keys:
+mkdir -p ~/.gnupg
+chmod 700 ~/.gnupg
+scp -r dustin@192.168.169.4:~/.gnupg/* ~/.gnupg/
+chmod 600 ~/.gnupg/*
+
+# Fix GPG permissions (important!):
+gpgconf --kill gpg-agent
+gpg --list-keys  # This will start the agent with correct permissions
+
+# 2. Verify system is working:
 neofetch
 hyprctl version
 
-# 2. Update flake inputs if needed:
-cd ~/path/to/nixerator
+# 3. Clone nixerator using SSH (now that keys are set up):
+cd ~
+git clone git@github.com:bashfulrobot/nixerator.git
+
+# 4. Update flake inputs if needed:
+cd ~/nixerator
 nix flake update
 
-# 3. Rebuild after changes:
+# 5. Rebuild after changes:
 sudo nixos-rebuild switch --flake .#donkeykong
 
 ## Troubleshooting
