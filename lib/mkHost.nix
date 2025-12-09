@@ -24,6 +24,9 @@
       # Home Manager integration
       inputs.home-manager.nixosModules.home-manager
       {
+        # Allow unfree packages (e.g., Google Chrome)
+        nixpkgs.config.allowUnfree = true;
+
         home-manager = {
           useGlobalPkgs = true;
           useUserPackages = true;
