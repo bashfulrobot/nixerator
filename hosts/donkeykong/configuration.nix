@@ -3,7 +3,7 @@
 {
   # Import hardware configuration
   imports = [
-    ./hardware-configuration.nix  # Hardware-specific settings (CPU, modules, etc.)
+    ./hardware-configuration.nix  # Hardware-specific settings (generated with --no-filesystems)
     ./disko.nix                   # Disko declarative disk partitioning
     ./boot.nix                    # Bootloader with LUKS encryption support
 

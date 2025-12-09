@@ -70,17 +70,17 @@ sudo nix --experimental-features "nix-command flakes" run github:nix-community/d
 
 ## Step 6: Generate Hardware Configuration
 
-# Generate hardware config to detect hardware-specific settings
-# (disko.nix handles disk config, but we need CPU/hardware specifics)
+# Generate hardware config WITHOUT filesystem info (disko handles that)
+# Using --no-filesystems flag per disko documentation
 sudo nixos-generate-config --root /mnt --no-filesystems
 
-# Review the generated config for hardware-specific modules
+# Review the generated config
 cat /mnt/etc/nixos/hardware-configuration.nix
 
-# Copy hardware config to repository
+# Copy to repository
 sudo cp /mnt/etc/nixos/hardware-configuration.nix ./hosts/donkeykong/
 
-# Commit hardware config to repo (important!)
+# Commit to git (important for reproducibility!)
 git add hosts/donkeykong/hardware-configuration.nix
 git commit -m "feat(donkeykong): add hardware configuration"
 
