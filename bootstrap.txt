@@ -68,27 +68,21 @@ sudo nix --experimental-features "nix-command flakes" run github:nix-community/d
 # Enter your LUKS encryption password when prompted
 # Enter it again to confirm
 
-## Step 6: Generate Hardware Configuration (Optional)
+## Step 6: Generate Hardware Configuration
 
-# Generate hardware config to see what hardware is detected
-# NOTE: This will include filesystem config which conflicts with disko
-# We'll review it and extract only the needed hardware-specific parts
-sudo nixos-generate-config --root /mnt
+# Generate hardware config WITHOUT filesystem info (disko handles that)
+# Using --no-filesystems flag per disko documentation
+sudo nixos-generate-config --root /mnt --no-filesystems
 
-# Review the generated config - look for hardware-specific settings:
-# - boot.initrd.availableKernelModules (network, storage drivers)
-# - hardware.cpu.* (CPU microcode)
-# - Any other hardware-specific settings
+# Review the generated config
 cat /mnt/etc/nixos/hardware-configuration.nix
 
-# Extract relevant settings and add to hosts/donkeykong/configuration.nix if needed
-# Common additions:
-# - Network card kernel modules
-# - Special hardware drivers
-# - CPU microcode (hardware.cpu.intel.updateMicrocode or hardware.cpu.amd.updateMicrocode)
+# Copy to repository
+sudo cp /mnt/etc/nixos/hardware-configuration.nix ./hosts/donkeykong/
 
-# For most systems, the current config (disko.nix + boot.nix) is sufficient
-# Only add hardware-specific settings if you see missing drivers or features
+# Commit to git (important for reproducibility!)
+git add hosts/donkeykong/hardware-configuration.nix
+git commit -m "feat(donkeykong): add hardware configuration"
 
 ## Step 7: Install NixOS
 
