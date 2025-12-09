@@ -59,6 +59,10 @@
     starship.enable = true;
   };
 
+  apps.gui = {
+    chromium.enable = true;
+  };
+
   # System packages
   environment.systemPackages = with pkgs; [
     wget
