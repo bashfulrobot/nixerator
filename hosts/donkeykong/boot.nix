@@ -23,7 +23,6 @@
     availableKernelModules = [
       "dm-crypt"      # Device mapper crypto
       "dm-mod"        # Device mapper
-      "aes_x86_64"    # AES encryption (x86_64 specific)
       "crypto_simd"   # SIMD crypto acceleration
     ];
   };
