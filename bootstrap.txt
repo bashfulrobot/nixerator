@@ -68,11 +68,25 @@ sudo nix --experimental-features "nix-command flakes" run github:nix-community/d
 # Enter your LUKS encryption password when prompted
 # Enter it again to confirm
 
-## Step 6: Install NixOS
+## Step 6: Generate Hardware Configuration
 
-# The disko command has already mounted everything at /mnt
-# Now we install NixOS using the flake configuration
+# Generate hardware config to detect hardware-specific settings
+# (disko.nix handles disk config, but we need CPU/hardware specifics)
+sudo nixos-generate-config --root /mnt --no-filesystems
 
+# Review the generated config for hardware-specific modules
+cat /mnt/etc/nixos/hardware-configuration.nix
+
+# Copy hardware config to repository
+sudo cp /mnt/etc/nixos/hardware-configuration.nix ./hosts/donkeykong/
+
+# Commit hardware config to repo (important!)
+git add hosts/donkeykong/hardware-configuration.nix
+git commit -m "feat(donkeykong): add hardware configuration"
+
+## Step 7: Install NixOS
+
+# Now install NixOS using the flake configuration
 sudo nixos-install --flake .#donkeykong
 
 # This will:
@@ -81,7 +95,7 @@ sudo nixos-install --flake .#donkeykong
 # - Set up the bootloader
 # - May take 15-30 minutes depending on internet speed
 
-## Step 6.5: Copy SSH and GPG Keys to Installed System
+## Step 8: Copy SSH and GPG Keys to Installed System
 
 # IMPORTANT: Copy keys to the final filesystem BEFORE rebooting
 # The live session is ephemeral - keys copied there won't persist
@@ -121,19 +135,19 @@ sudo mkdir -p /mnt/home/dustin/dev/nix
 sudo cp -r /tmp/install/nixerator /mnt/home/dustin/dev/nix/
 sudo chown -R dustin:users /mnt/home/dustin/dev
 
-## Step 7: Set Root Password
+## Step 9: Set Root Password
 
 # During installation, you'll be prompted to set the root password
 # If not, or if you need to change it:
 
 sudo nixos-enter --root /mnt -c 'passwd root'
 
-## Step 8: Set User Password
+## Step 10: Set User Password
 
 # Set password for your user (dustin)
 sudo nixos-enter --root /mnt -c 'passwd dustin'
 
-## Step 9: Reboot
+## Step 11: Reboot
 
 # Unmount and reboot
 sudo umount -R /mnt
@@ -141,7 +155,7 @@ sudo reboot
 
 # Remove the USB drive when the system restarts
 
-## Step 10: First Boot
+## Step 12: First Boot
 
 # On first boot:
 # 1. You'll see the systemd-boot menu

@@ -3,8 +3,9 @@
 {
   # Import hardware configuration
   imports = [
-    ./disko.nix  # Disko declarative disk partitioning (replaces hardware-configuration.nix)
-    ./boot.nix   # Bootloader with LUKS encryption support
+    ./hardware-configuration.nix  # Hardware-specific settings (CPU, modules, etc.)
+    ./disko.nix                   # Disko declarative disk partitioning
+    ./boot.nix                    # Bootloader with LUKS encryption support
 
     # Auto-import all modules
     ../../modules
