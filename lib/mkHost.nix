@@ -27,6 +27,9 @@
         # Allow unfree packages (e.g., Google Chrome)
         nixpkgs.config.allowUnfree = true;
 
+        # Enable Nix flakes for all hosts
+        nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
         home-manager = {
           useGlobalPkgs = true;
           useUserPackages = true;

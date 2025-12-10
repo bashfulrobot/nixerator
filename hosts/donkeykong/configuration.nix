@@ -12,71 +12,14 @@
   ];
 
   # Networking
-  networking = {
-    hostName = hostname;
-    networkmanager.enable = true;
-
-    # Firewall
-    firewall = {
-      enable = true;
-      allowedTCPPorts = [
-        22    # SSH
-      ];
-    };
-  };
+  networking.hostName = hostname;
 
   # Time zone and localization (from globals)
   time.timeZone = globals.defaults.timeZone;
   i18n.defaultLocale = globals.defaults.locale;
 
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = globals.defaults.locale;
-    LC_IDENTIFICATION = globals.defaults.locale;
-    LC_MEASUREMENT = globals.defaults.locale;
-    LC_MONETARY = globals.defaults.locale;
-    LC_NAME = globals.defaults.locale;
-    LC_NUMERIC = globals.defaults.locale;
-    LC_PAPER = globals.defaults.locale;
-    LC_TELEPHONE = globals.defaults.locale;
-    LC_TIME = globals.defaults.locale;
-  };
-
-  # User configuration (from globals)
-  users.users.${username} = {
-    isNormalUser = true;
-    description = globals.user.fullName;
-    extraGroups = [ "networkmanager" "wheel" ];
-    shell = pkgs.${globals.preferences.shell};
-  };
-
-  # Enable flakes
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
   # Enable archetypes
   archetypes.workstation.enable = true;
-
-  # Enable modules
-  apps.cli = {
-    fish.enable = true;
-    git.enable = true;
-    starship.enable = true;
-  };
-
-  # System packages
-  environment.systemPackages = with pkgs; [
-    wget
-    curl
-    just
-    nerd-fonts.iosevka
-  ] ++ [
-    pkgs.${globals.preferences.editor}
-  ] ++ [
-    # Development & linting tools
-    statix  # Nix linter and code quality checker
-  ];
-
-  # Enable SSH
-  services.openssh.enable = true;
 
   # Hyprflake Configuration
   # All options explicitly set to demonstrate available customization

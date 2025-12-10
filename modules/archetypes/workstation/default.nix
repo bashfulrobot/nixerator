@@ -8,11 +8,17 @@ in
     archetypes.workstation.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable workstation archetype with browser, security, and development suites, and common workstation tools.";
+      description = "Enable workstation archetype with core system infrastructure, browsers, security, and development suites.";
     };
   };
 
   config = lib.mkIf cfg.enable {
+    # Enable core system infrastructure
+    suites.core.enable = true;
+
+    # Enable terminal suite
+    suites.terminal.enable = true;
+
     # Enable browser suite
     suites.browsers.enable = true;
 
