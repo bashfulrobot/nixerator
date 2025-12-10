@@ -21,4 +21,10 @@
     editor = "helix";  # Package name in nixpkgs
     shell = "fish";
   };
+
+  # Git configuration
+  git = {
+    # SSH public key for commit signing
+    gitPubSigningKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICF9sPiX7zVCn+SW7bQpgS+dhUlVJYNktP6PO4mJWUJZ dustin@bashfulrobot.com";
+  };
 }

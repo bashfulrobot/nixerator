@@ -35,6 +35,13 @@ in
             push.default = "simple";
             merge.ff = "only";
 
+            # SSH signing configuration
+            user.signingkey = "~/.ssh/id_ed25519.pub";
+            commit.gpgsign = true;
+            tag.gpgsign = true;
+            gpg.format = "ssh";
+            gpg.ssh.allowedSignersFile = "~/.config/git/allowed_signers";
+
             # Git aliases
             alias = {
               a = "add";
@@ -81,6 +88,11 @@ in
           };
         };
       };
+
+      # Create allowed_signers file for SSH signing
+      home.file.".config/git/allowed_signers".text = ''
+        ${globals.user.email} ${globals.git.gitPubSigningKey}
+      '';
 
     };
 
