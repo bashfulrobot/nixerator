@@ -27,8 +27,8 @@
       inputs.stylix.follows = "stylix";
     };
 
-    nix-ai-tools = {
-      url = "github:dustinblackman/nix-ai-tools";
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
