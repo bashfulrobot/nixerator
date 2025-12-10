@@ -26,6 +26,11 @@
       inputs.home-manager.follows = "home-manager";
       inputs.stylix.follows = "stylix";
     };
+
+    nix-ai-tools = {
+      url = "github:dustinblackman/nix-ai-tools";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs:
