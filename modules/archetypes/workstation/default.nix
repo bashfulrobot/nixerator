@@ -8,7 +8,7 @@ in
     archetypes.workstation.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable workstation archetype with browser and security suites, and common workstation tools.";
+      description = "Enable workstation archetype with browser, security, and development suites, and common workstation tools.";
     };
   };
 
@@ -18,5 +18,9 @@ in
 
     # Enable security suite
     suites.security.enable = true;
+
+    # Enable development suite
+    suites.dev.enable = true;
   };
 }
+
