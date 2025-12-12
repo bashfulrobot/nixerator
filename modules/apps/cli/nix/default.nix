@@ -1,5 +1,6 @@
-{ user-settings, pkgs, config, lib, ... }:
+{ user-settings, pkgs, config, lib, globals, ... }:
 let cfg = config.apps.cli.nix;
+username = globals.user.name;
 
 in {
   options = {
