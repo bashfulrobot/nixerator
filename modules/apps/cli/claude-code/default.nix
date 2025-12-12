@@ -79,6 +79,7 @@ in
         • Reference issues/PRs when applicable: "fixes #123" or "closes #456"
         • Ensure commits represent atomic, logical changes
         • Verify all staged changes align with commit message intent
+        • Never use the lipstick emoji in commits, just the artists pallet for design or visual commit messages.
 
         ## Multiple Commits for Unrelated Changes
 
