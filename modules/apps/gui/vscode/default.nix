@@ -17,7 +17,11 @@ in {
     environment.systemPackages = with pkgs; [
 
       # keep-sorted start case=no numeric=yes
-      vscode
+      (vscode.override {
+        commandLineArgs = [
+          "--password-store=gnome-libsecret"
+        ];
+      })
       # keep-sorted end
     ];
     home-manager.users.${username} = {
