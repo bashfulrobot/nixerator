@@ -1,4 +1,4 @@
-{ user-settings, lib, pkgs, config, inputs, ... }:
+{ user-settings, lib, pkgs, config, inputs, globals, ... }:
 let
   cfg = config.apps.cli.gemini-cli;
   username = globals.user.name;
