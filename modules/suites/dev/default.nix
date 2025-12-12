@@ -14,10 +14,15 @@ in
 
   config = lib.mkIf cfg.enable {
     # Development CLI applications
-    apps.cli = {
+    apps = {
+      cli = {
       claude-code.enable = true;
       gemini-cli.enable = true;
       git.enable = true;
+    };
+      gui = {
+        vscode.enable = true;
+      };
     };
 
     # Development tools
