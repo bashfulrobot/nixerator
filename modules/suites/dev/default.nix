@@ -19,6 +19,7 @@ in
       claude-code.enable = true;
       gemini-cli.enable = true;
       git.enable = true;
+      nix.enable = true;
     };
       gui = {
         vscode.enable = true;
