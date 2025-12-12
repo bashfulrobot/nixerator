@@ -16,6 +16,7 @@ in
     # Development CLI applications
     apps.cli = {
       claude-code.enable = true;
+      gemini-cli.enable = true;
       git.enable = true;
     };
 
