@@ -425,6 +425,11 @@ in {
         --ozone-platform=wayland
         --enable-features=WaylandWindowDecorations
       '';
+
+        # Use Gnome-keyring for handling secrets
+        ".config/Code/User/argv.json".text = builtins.toJSON {
+          password-store = "gnome-libsecret";
+        };
       };
     };
   };
