@@ -27,17 +27,7 @@ in
 
         # Import sensitive host configurations from encrypted file
         # The hosts.nix file is encrypted with git-crypt
-        matchBlocks = (import ./hosts.nix) // {
-          # Global config for all hosts
-          "*" = {
-            addKeysToAgent = "yes";
-            identitiesOnly = true;
-            extraOptions = {
-              IgnoreUnknown = "UseKeychain";
-              UseKeychain = "yes";
-            };
-          };
-        };
+        matchBlocks = import ./hosts.nix;
       };
     };
   };
