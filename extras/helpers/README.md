@@ -37,8 +37,12 @@ The script will:
 
 ### What Gets Encrypted
 
-Currently encrypted files:
-- `modules/system/ssh/hosts.nix` - SSH host configurations with IPs and usernames
+Configure encrypted files in `.gitattributes`. Add sensitive files that should be encrypted by git-crypt.
+
+Example encrypted files might include:
+- SSH host configurations with IPs and usernames
+- API keys and credentials
+- Private configuration files
 
 ### Troubleshooting
 
