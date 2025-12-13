@@ -41,7 +41,27 @@ cd /tmp/install
 nix-shell -p git --run "git clone git@github.com:bashfulrobot/nixerator.git"
 cd nixerator
 
-## Step 4: Verify Disk Configuration
+## Step 4: Unlock Encrypted Files with git-crypt
+
+# The nixerator repository contains encrypted sensitive files (SSH host configurations)
+# These files are encrypted with git-crypt and must be unlocked before use
+
+# Copy the git-crypt key from your existing system (same host as SSH keys)
+scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt ~/.ssh/
+chmod 600 ~/.ssh/nixerator-git-crypt
+
+# Run the setup script to unlock the repository
+# This script uses nix-shell to automatically provide git-crypt and other tools
+./extras/helpers/setup-git-crypt.sh
+
+# Verify that encrypted files are now readable
+# The SSH hosts file should show as plain text, not binary
+file modules/system/ssh/hosts.nix
+
+# Expected output: "modules/system/ssh/hosts.nix: ASCII text"
+# If it shows "data" or "Git crypt", the unlock failed
+
+## Step 5: Verify Disk Configuration
 
 # Check that the disk ID matches what's in disko.nix
 ls -l /dev/disk/by-id/ | grep nvme
@@ -52,7 +72,7 @@ ls -l /dev/disk/by-id/ | grep nvme
 # If the disk ID is different, you'll need to edit hosts/donkeykong/disko.nix
 # before proceeding (use nano or vim)
 
-## Step 5: Partition and Format Disk with Disko
+## Step 6: Partition and Format Disk with Disko
 
 # WARNING: This will ERASE ALL DATA on the disk!
 # Make absolutely sure you're targeting the correct disk!
@@ -68,7 +88,7 @@ sudo nix --experimental-features "nix-command flakes" run github:nix-community/d
 # Enter your LUKS encryption password when prompted
 # Enter it again to confirm
 
-## Step 6: Generate Hardware Configuration
+## Step 7: Generate Hardware Configuration
 
 # Generate hardware config WITHOUT filesystem info (disko handles that)
 # Using --no-filesystems flag per disko documentation
@@ -84,7 +104,7 @@ sudo cp /mnt/etc/nixos/hardware-configuration.nix ./hosts/donkeykong/
 git add hosts/donkeykong/hardware-configuration.nix
 git commit -m "feat(donkeykong): add hardware configuration"
 
-## Step 7: Install NixOS
+## Step 8: Install NixOS
 
 # Now install NixOS using the flake configuration
 sudo nixos-install --flake .#donkeykong
@@ -95,7 +115,7 @@ sudo nixos-install --flake .#donkeykong
 # - Set up the bootloader
 # - May take 15-30 minutes depending on internet speed
 
-## Step 8: Copy SSH and GPG Keys to Installed System
+## Step 9: Copy SSH and GPG Keys to Installed System
 
 # IMPORTANT: Copy keys to the final filesystem BEFORE rebooting
 # The live session is ephemeral - keys copied there won't persist
@@ -119,6 +139,10 @@ sudo chmod 644 /mnt/home/dustin/.ssh/id_*.pub 2>/dev/null || true
 # Optional: Copy SSH config if you have one
 sudo scp dustin@192.168.169.4:~/.ssh/config /mnt/home/dustin/.ssh/config 2>/dev/null || true
 sudo chmod 644 /mnt/home/dustin/.ssh/config 2>/dev/null || true
+
+# Copy git-crypt key to installed system
+sudo scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt /mnt/home/dustin/.ssh/
+sudo chmod 600 /mnt/home/dustin/.ssh/nixerator-git-crypt
 
 # Copy GPG keys to installed system
 sudo mkdir -p /mnt/home/dustin/.gnupg
@@ -145,6 +169,7 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/id_* 2>/dev/null || true
 chmod 644 ~/.ssh/id_*.pub 2>/dev/null || true
 chmod 644 ~/.ssh/config 2>/dev/null || true
+chmod 600 ~/.ssh/nixerator-git-crypt 2>/dev/null || true
 
 # Fix GPG keys ownership
 sudo chown -R dustin:users ~/.gnupg
@@ -165,19 +190,19 @@ EOF
 
 sudo chmod +x /mnt/home/dustin/post-install.sh
 
-## Step 9: Set Root Password
+## Step 10: Set Root Password
 
 # During installation, you'll be prompted to set the root password
 # If not, or if you need to change it:
 
 sudo nixos-enter --root /mnt -c 'passwd root'
 
-## Step 10: Set User Password
+## Step 11: Set User Password
 
 # Set password for your user (dustin)
 sudo nixos-enter --root /mnt -c 'passwd dustin'
 
-## Step 11: Reboot
+## Step 12: Reboot
 
 # Unmount and reboot
 sudo umount -R /mnt
@@ -185,7 +210,7 @@ sudo reboot
 
 # Remove the USB drive when the system restarts
 
-## Step 12: First Boot
+## Step 13: First Boot
 
 # On first boot:
 # 1. You'll see the systemd-boot menu
@@ -218,18 +243,22 @@ git config --global user.signingkey  # Verify signing key
 # 3. Test SSH to GitHub
 ssh -T git@github.com
 
-# 4. Verify nixerator repository
+# 4. Verify git-crypt is working
 cd ~/dev/nix/nixerator
+file modules/system/ssh/hosts.nix  # Should show "ASCII text"
+git-crypt status | grep hosts.nix  # Should show "encrypted"
+
+# 5. Verify nixerator repository
 git status
 
-# 5. Verify system is working
+# 6. Verify system is working
 neofetch
 hyprctl version
 
-# 6. Update flake inputs if needed
+# 7. Update flake inputs if needed
 nix flake update
 
-# 7. Rebuild after changes
+# 8. Rebuild after changes
 sudo nixos-rebuild switch --flake ~/dev/nix/nixerator#donkeykong
 
 ## Troubleshooting
@@ -249,6 +278,12 @@ sudo nixos-rebuild switch --flake ~/dev/nix/nixerator#donkeykong
 # - Double-check LUKS password
 # - Boot from live USB and check /boot/loader/entries/
 # - Verify ESP partition is properly mounted
+
+# If git-crypt unlock fails:
+# - Verify key exists: ls -l ~/.ssh/nixerator-git-crypt
+# - Check key permissions: should be 600 (rw-------)
+# - Re-run setup script: ./extras/helpers/setup-git-crypt.sh
+# - Manual unlock: git-crypt unlock ~/.ssh/nixerator-git-crypt
 
 ## Important Files
 
