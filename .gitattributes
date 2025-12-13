@@ -1,2 +1,3 @@
-# Encrypt sensitive SSH host configurations with git-crypt
-modules/system/ssh/hosts.nix filter=git-crypt diff=git-crypt
+# git-crypt encrypted files
+# Add files here that should be encrypted by git-crypt
+# Example: secrets/passwords.nix filter=git-crypt diff=git-crypt

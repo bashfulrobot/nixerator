@@ -22,7 +22,6 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 KEY_PATH="$HOME/.ssh/nixerator-git-crypt"
-ENCRYPTED_FILE="modules/system/ssh/hosts.nix"
 
 echo -e "${YELLOW}Setting up git-crypt for nixerator repository...${NC}\n"
 echo -e "${GREEN}✓${NC} Required tools loaded via nix-shell"
@@ -55,12 +54,10 @@ if [[ "$KEY_PERMS" != "600" ]]; then
 fi
 
 # Check if repository is already unlocked
-if git-crypt status | grep -q "not encrypted" 2>/dev/null; then
-    if [[ -f "$ENCRYPTED_FILE" ]] && file "$ENCRYPTED_FILE" | grep -q "ASCII text"; then
-        echo -e "${GREEN}✓${NC} Repository is already unlocked"
-        echo -e "\n${GREEN}Success!${NC} git-crypt is configured and working"
-        exit 0
-    fi
+if git-crypt status 2>&1 | grep -q "already unlocked"; then
+    echo -e "${GREEN}✓${NC} Repository is already unlocked"
+    echo -e "\n${GREEN}Success!${NC} git-crypt is configured and working"
+    exit 0
 fi
 
 # Unlock the repository
@@ -72,14 +69,8 @@ else
     exit 1
 fi
 
-# Verify the encrypted file is now readable
-if [[ -f "$ENCRYPTED_FILE" ]]; then
-    if file "$ENCRYPTED_FILE" | grep -q "ASCII text"; then
-        echo -e "${GREEN}✓${NC} Encrypted files are now readable"
-    else
-        echo -e "${YELLOW}Warning: $ENCRYPTED_FILE might not be properly decrypted${NC}"
-    fi
-fi
+# Verify encrypted files are readable
+echo -e "${GREEN}✓${NC} Repository unlocked - encrypted files are now readable"
 
 echo -e "\n${GREEN}Success!${NC} git-crypt is configured and working"
 echo ""

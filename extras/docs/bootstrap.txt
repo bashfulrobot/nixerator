@@ -41,10 +41,10 @@ cd /tmp/install
 nix-shell -p git --run "git clone git@github.com:bashfulrobot/nixerator.git"
 cd nixerator
 
-## Step 4: Unlock Encrypted Files with git-crypt
+## Step 4: Setup git-crypt (if using encrypted files)
 
-# The nixerator repository contains encrypted sensitive files (SSH host configurations)
-# These files are encrypted with git-crypt and must be unlocked before use
+# The nixerator repository supports git-crypt for encrypting sensitive files
+# If you have encrypted files, you'll need to unlock the repository
 
 # Copy the git-crypt key from your existing system (same host as SSH keys)
 scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt ~/.ssh/
@@ -54,12 +54,9 @@ chmod 600 ~/.ssh/nixerator-git-crypt
 # This script uses nix-shell to automatically provide git-crypt and other tools
 ./extras/helpers/setup-git-crypt.sh
 
-# Verify that encrypted files are now readable
-# The SSH hosts file should show as plain text, not binary
-file modules/system/ssh/hosts.nix
-
-# Expected output: "modules/system/ssh/hosts.nix: ASCII text"
-# If it shows "data" or "Git crypt", the unlock failed
+# The script will unlock any encrypted files configured in .gitattributes
+# Check git-crypt status to verify
+git-crypt status
 
 ## Step 5: Verify Disk Configuration
 
@@ -243,10 +240,9 @@ git config --global user.signingkey  # Verify signing key
 # 3. Test SSH to GitHub
 ssh -T git@github.com
 
-# 4. Verify git-crypt is working
+# 4. Verify git-crypt is working (if using encrypted files)
 cd ~/dev/nix/nixerator
-file modules/system/ssh/hosts.nix  # Should show "ASCII text"
-git-crypt status | grep hosts.nix  # Should show "encrypted"
+git-crypt status  # Check encryption status
 
 # 5. Verify nixerator repository
 git status
@@ -279,7 +275,7 @@ sudo nixos-rebuild switch --flake ~/dev/nix/nixerator#donkeykong
 # - Boot from live USB and check /boot/loader/entries/
 # - Verify ESP partition is properly mounted
 
-# If git-crypt unlock fails:
+# If git-crypt unlock fails (when using encrypted files):
 # - Verify key exists: ls -l ~/.ssh/nixerator-git-crypt
 # - Check key permissions: should be 600 (rw-------)
 # - Re-run setup script: ./extras/helpers/setup-git-crypt.sh
