@@ -18,7 +18,7 @@ in
     # System-level packages
     environment.systemPackages = with pkgs; [
       # keep-sorted start case=no numeric=yes
-      inputs.llm-agents.packages.${pkgs.system}.claude-code
+      inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code
       nodejs-slim_24 # Dependency of claude-code
       # keep-sorted end
     ];
