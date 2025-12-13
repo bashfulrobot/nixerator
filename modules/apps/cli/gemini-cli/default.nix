@@ -105,7 +105,7 @@ in
     environment.systemPackages = with pkgs; [
 
       # keep-sorted start case=no numeric=yes
-      inputs.llm-agents.packages.${pkgs.system}.gemini-cli
+      inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.gemini-cli
       # keep-sorted end
     ];
 
