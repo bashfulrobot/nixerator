@@ -7,17 +7,20 @@
   # Load AMDGPU driver in initramfs
   boot.initrd.kernelModules = [ "amdgpu" ];
 
-  # Enable graphics hardware acceleration
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;  # Required for 32-bit applications and games
+  # Hardware configuration for AMD GPU
+  hardware = {
+    # Enable graphics hardware acceleration
+    graphics = {
+      enable = true;
+      enable32Bit = true;  # Required for 32-bit applications and games
+    };
+
+    # Load AMDGPU driver early for proper resolution during boot
+    amdgpu.initrd.enable = true;
+
+    # Ensure firmware is available for GPU
+    firmware = [ pkgs.linux-firmware ];
   };
-
-  # Load AMDGPU driver early for proper resolution during boot
-  hardware.amdgpu.initrd.enable = true;
-
-  # Ensure firmware is available for GPU
-  hardware.firmware = [ pkgs.linux-firmware ];
 
   # Troubleshooting options (uncomment if experiencing desktop lockups):
   # boot.kernelParams = [

@@ -74,7 +74,7 @@
 
     # User configuration (required)
     user = {
-      username = username;
+      inherit username;
       photo = ./.face;
     };
   };

@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 # Disko configuration for qbert
 # bcachefs without encryption, with compression

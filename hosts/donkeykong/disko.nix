@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 # Disko configuration for donkeykong
 # ext4 with LUKS encryption - simple and proven

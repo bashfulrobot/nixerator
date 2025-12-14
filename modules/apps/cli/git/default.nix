@@ -28,15 +28,17 @@ in
         git = {
           enable = true;
           settings = {
-            user.name = globals.user.fullName;
-            user.email = globals.user.email;
+            user = {
+              inherit (globals.user) email;
+              name = globals.user.fullName;
+              signingkey = "~/.ssh/id_ed25519.pub";
+            };
             init.defaultBranch = "main";
             pull.rebase = false;
             push.default = "simple";
             merge.ff = "only";
 
             # SSH signing configuration
-            user.signingkey = "~/.ssh/id_ed25519.pub";
             commit.gpgsign = true;
             tag.gpgsign = true;
             gpg.format = "ssh";

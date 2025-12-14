@@ -13,20 +13,14 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Enable core system infrastructure
-    suites.core.enable = true;
-
-    # Enable terminal suite
-    suites.terminal.enable = true;
-
-    # Enable browser suite
-    suites.browsers.enable = true;
-
-    # Enable security suite
-    suites.security.enable = true;
-
-    # Enable development suite
-    suites.dev.enable = true;
+    # Enable workstation suites
+    suites = {
+      core.enable = true;           # Core system infrastructure
+      terminal.enable = true;       # Terminal suite
+      browsers.enable = true;       # Browser suite
+      security.enable = true;       # Security suite
+      dev.enable = true;            # Development suite
+    };
   };
 }
 
