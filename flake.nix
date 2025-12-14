@@ -66,6 +66,18 @@
             inputs.hyprflake.nixosModules.default
           ];
         };
+
+        qbert = lib.mkHost {
+          inherit globals;
+          hostname = "qbert";
+          system = "x86_64-linux";
+          extraModules = [
+            # Disko declarative disk partitioning
+            inputs.disko.nixosModules.disko
+            # Hyprland desktop environment
+            inputs.hyprflake.nixosModules.default
+          ];
+        };
       };
 
       # Expose lib and globals for use in other flakes
