@@ -15,6 +15,7 @@ in
   config = lib.mkIf cfg.enable {
     # Core system infrastructure
     system.ssh.enable = true;
+    apps.cli.tailscale.enable = true;
 
     # Essential system utilities
     environment.systemPackages = with pkgs; [
