@@ -105,6 +105,7 @@ build trace="false":
         echo "🔧 Development rebuild..."
         sudo nixos-rebuild switch --fast --impure --flake {{host_flake}}
     fi
+    just configure-mcp
 
 # === Production Commands ===
 # Production rebuild with bootloader
@@ -119,6 +120,7 @@ rebuild trace="false":
         echo "🚀 Production rebuild..."
         sudo nixos-rebuild switch --impure --flake {{host_flake}}
     fi
+    just configure-mcp
 
 # Rebuild and activate on next boot
 [group('prod')]
@@ -145,6 +147,7 @@ upgrade trace="false":
     else
         sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
     fi
+    just configure-mcp
 
 # Update a specific flake input
 [group('prod')]
