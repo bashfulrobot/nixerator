@@ -26,7 +26,7 @@ in
     ];
 
     # Home Manager user configuration
-    home-manager.users.${username} = {
+    home-manager.users.${username} = { lib, ... }: {
       home.file = {
         ".claude/CLAUDE.md".source = ./CLAUDE.md;
 
@@ -154,15 +154,15 @@ in
       };
 
       # Configure MCP servers via activation script (not via file management to allow Claude to write to it)
-      home.activation.setupClaudeMcpServers = ''
+      home.activation.setupClaudeMcpServers = lib.hm.dag.entryAfter ["writeBoundary"] ''
         # Configure MCP servers using claude CLI so the file remains mutable
         # Remove and re-add to ensure idempotency
-        claude mcp remove --scope user sequential-thinking 2>/dev/null || true
-        claude mcp add --transport stdio --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking 2>/dev/null || true
+        $DRY_RUN_CMD claude mcp remove --scope user sequential-thinking 2>/dev/null || true
+        $DRY_RUN_CMD claude mcp add --transport stdio --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking 2>/dev/null || true
 
         ${lib.optionalString (secrets.kong.kongKonnectPAT or null != null) ''
-          claude mcp remove --scope user kong-konnect 2>/dev/null || true
-          claude mcp add --transport http --scope user kong-konnect https://us.mcp.konghq.com/ -H "Authorization: Bearer ${secrets.kong.kongKonnectPAT}" 2>/dev/null || true
+          $DRY_RUN_CMD claude mcp remove --scope user kong-konnect 2>/dev/null || true
+          $DRY_RUN_CMD claude mcp add --transport http --scope user kong-konnect https://us.mcp.konghq.com/ -H "Authorization: Bearer ${secrets.kong.kongKonnectPAT}" 2>/dev/null || true
         ''}
       '';
 
