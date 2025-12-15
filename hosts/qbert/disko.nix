@@ -1,8 +1,7 @@
 _:
 
 # Disko configuration for qbert
-# bcachefs without encryption, with compression
-# Subvolumes for better snapshot management
+# ext4 without encryption - simple and reliable
 # 64GB swap for hibernation support with 64GB RAM
 #
 # Drive: nvme-WDS100T3X0C-00SJG0_210611801063 (1TB WD SN850X, nvme0n1)
@@ -18,7 +17,7 @@ _:
         content = {
           type = "gpt";
           partitions = {
-            # ESP boot partition (unencrypted, required for UEFI)
+            # ESP boot partition (required for UEFI)
             ESP = {
               size = "1G";
               type = "EF00";
@@ -31,7 +30,6 @@ _:
             };
 
             # Swap partition (for hibernation with 64GB RAM)
-            # Placed before bcachefs to ensure consistent partition layout
             swap = {
               size = "64G";
               content = {
@@ -41,38 +39,14 @@ _:
               };
             };
 
-            # Bcachefs partition (remaining space ~866GB)
-            bcachefs = {
+            # Root partition (ext4, remaining space ~866GB)
+            root = {
               size = "100%";
               content = {
-                type = "bcachefs";
-                name = "qbert_root";
-                # No encryption (user preference)
-                # LZ4 compression for performance and space savings
-                extraArgs = [
-                  "--discard"
-                  "--compression=lz4"
-                  "--background_compression=lz4"
-                ];
-                subvolumes = {
-                  # Root subvolume
-                  "/subvolumes/root" = {
-                    mountpoint = "/";
-                    mountOptions = [ "noatime" ];
-                  };
-
-                  # Home subvolume (easier to snapshot separately)
-                  "/subvolumes/home" = {
-                    mountpoint = "/home";
-                    mountOptions = [ "noatime" ];
-                  };
-
-                  # Nix store subvolume (can be excluded from snapshots)
-                  "/subvolumes/nix" = {
-                    mountpoint = "/nix";
-                    mountOptions = [ "noatime" ];
-                  };
-                };
+                type = "filesystem";
+                format = "ext4";
+                mountpoint = "/";
+                mountOptions = [ "noatime" ];
               };
             };
           };

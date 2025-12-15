@@ -15,11 +15,8 @@
       };
     };
 
-    # Enable bcachefs support
-    supportedFilesystems = [ "bcachefs" ];
-
     # No encryption configured (user preference)
-    # Bcachefs filesystem will mount without password prompt
+    # ext4 filesystem will mount without password prompt
 
     # Enable hibernation support (with 64GB swap partition)
     # The resumeDevice is configured in disko.nix with resumeDevice = true
