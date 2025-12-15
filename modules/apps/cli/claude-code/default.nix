@@ -21,7 +21,7 @@ in
     environment.systemPackages = with pkgs; [
       # keep-sorted start case=no numeric=yes
       inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code
-      nodejs-slim_24 # Dependency of claude-code
+      nodejs_24 # Includes npm and npx for MCP servers
       # keep-sorted end
 
       # Script to configure MCP servers
@@ -36,7 +36,7 @@ in
         claude mcp remove --scope user kong-konnect 2>/dev/null || true
 
         # Add sequential-thinking MCP server
-        claude mcp add --transport stdio --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+        claude mcp add --transport stdio --scope user sequential-thinking -- ${pkgs.nodejs_24}/bin/npx -y @modelcontextprotocol/server-sequential-thinking
         echo "✓ Added sequential-thinking MCP server"
 
         # Add Kong Konnect MCP server if PAT is configured
@@ -64,7 +64,7 @@ in
           ${lib.getExe inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code} mcp remove --scope user kong-konnect 2>/dev/null || true
 
           # Add sequential-thinking MCP server
-          ${lib.getExe inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code} mcp add --transport stdio --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+          ${lib.getExe inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code} mcp add --transport stdio --scope user sequential-thinking -- ${pkgs.nodejs_24}/bin/npx -y @modelcontextprotocol/server-sequential-thinking
 
           # Add Kong Konnect MCP server if PAT is configured
           ${lib.optionalString (secrets.kong.kongKonnectPAT or null != null) ''
