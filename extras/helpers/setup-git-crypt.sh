@@ -8,7 +8,7 @@
 #
 # Prerequisites:
 #   - Nix must be installed (with flakes enabled)
-#   - The git-crypt key must be at ~/.ssh/nixerator-git-crypt
+#   - The git-crypt key must be at ~/.ssh/nixerator-git-crypt-key
 #
 # Usage:
 #   ./setup-git-crypt.sh
@@ -21,7 +21,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-KEY_PATH="$HOME/.ssh/nixerator-git-crypt"
+KEY_PATH="$HOME/.ssh/nixerator-git-crypt-key"
 
 echo -e "${YELLOW}Setting up git-crypt for nixerator repository...${NC}\n"
 echo -e "${GREEN}✓${NC} Required tools loaded via nix-shell"
@@ -38,8 +38,8 @@ if [[ ! -f "$KEY_PATH" ]]; then
     echo -e "${RED}Error: git-crypt key not found at $KEY_PATH${NC}"
     echo ""
     echo "Please copy the key to this location first:"
-    echo "  scp source-machine:~/.ssh/nixerator-git-crypt ~/.ssh/"
-    echo "  chmod 600 ~/.ssh/nixerator-git-crypt"
+    echo "  scp source-machine:~/.ssh/nixerator-git-crypt-key ~/.ssh/"
+    echo "  chmod 600 ~/.ssh/nixerator-git-crypt-key"
     exit 1
 fi
 echo -e "${GREEN}✓${NC} git-crypt key found at $KEY_PATH"

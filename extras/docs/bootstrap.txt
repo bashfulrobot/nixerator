@@ -47,8 +47,8 @@ cd nixerator
 # If you have encrypted files, you'll need to unlock the repository
 
 # Copy the git-crypt key from your existing system (same host as SSH keys)
-scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt ~/.ssh/
-chmod 600 ~/.ssh/nixerator-git-crypt
+scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt-key ~/.ssh/
+chmod 600 ~/.ssh/nixerator-git-crypt-key
 
 # Run the setup script to unlock the repository
 # This script uses nix-shell to automatically provide git-crypt and other tools
@@ -138,8 +138,8 @@ sudo scp dustin@192.168.169.4:~/.ssh/config /mnt/home/dustin/.ssh/config 2>/dev/
 sudo chmod 644 /mnt/home/dustin/.ssh/config 2>/dev/null || true
 
 # Copy git-crypt key to installed system
-sudo scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt /mnt/home/dustin/.ssh/
-sudo chmod 600 /mnt/home/dustin/.ssh/nixerator-git-crypt
+sudo scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt-key /mnt/home/dustin/.ssh/
+sudo chmod 600 /mnt/home/dustin/.ssh/nixerator-git-crypt-key
 
 # Copy GPG keys to installed system
 sudo mkdir -p /mnt/home/dustin/.gnupg
@@ -166,7 +166,7 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/id_* 2>/dev/null || true
 chmod 644 ~/.ssh/id_*.pub 2>/dev/null || true
 chmod 644 ~/.ssh/config 2>/dev/null || true
-chmod 600 ~/.ssh/nixerator-git-crypt 2>/dev/null || true
+chmod 600 ~/.ssh/nixerator-git-crypt-key 2>/dev/null || true
 
 # Fix GPG keys ownership
 sudo chown -R dustin:users ~/.gnupg
@@ -276,10 +276,10 @@ sudo nixos-rebuild switch --flake ~/dev/nix/nixerator#donkeykong
 # - Verify ESP partition is properly mounted
 
 # If git-crypt unlock fails (when using encrypted files):
-# - Verify key exists: ls -l ~/.ssh/nixerator-git-crypt
+# - Verify key exists: ls -l ~/.ssh/nixerator-git-crypt-key
 # - Check key permissions: should be 600 (rw-------)
 # - Re-run setup script: ./extras/helpers/setup-git-crypt.sh
-# - Manual unlock: git-crypt unlock ~/.ssh/nixerator-git-crypt
+# - Manual unlock: git-crypt unlock ~/.ssh/nixerator-git-crypt-key
 
 ## Important Files
 

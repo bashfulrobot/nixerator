@@ -13,10 +13,10 @@ Sets up git-crypt encryption for the nixerator repository on a new system.
 2. **The encryption key must be copied to the new system:**
    ```bash
    # From your source machine, copy the key:
-   scp ~/.ssh/nixerator-git-crypt new-machine:~/.ssh/
+   scp ~/.ssh/nixerator-git-crypt-key new-machine:~/.ssh/
 
    # On the new machine, secure it:
-   chmod 600 ~/.ssh/nixerator-git-crypt
+   chmod 600 ~/.ssh/nixerator-git-crypt-key
    ```
 
 ### Usage
@@ -30,7 +30,7 @@ cd nixerator
 
 The script will:
 - ✓ Verify git-crypt is installed
-- ✓ Check the encryption key exists at `~/.ssh/nixerator-git-crypt`
+- ✓ Check the encryption key exists at `~/.ssh/nixerator-git-crypt-key`
 - ✓ Verify key permissions are secure (600)
 - ✓ Unlock the repository
 - ✓ Verify encrypted files are readable
@@ -47,12 +47,12 @@ Example encrypted files might include:
 ### Troubleshooting
 
 **Error: git-crypt key not found**
-- Copy the key from your source machine to `~/.ssh/nixerator-git-crypt`
+- Copy the key from your source machine to `~/.ssh/nixerator-git-crypt-key`
 
 **Script is slow on first run**
 - nix-shell is downloading the required packages (git-crypt, git, etc.)
 - Subsequent runs will be instant as packages are cached
 
 **Files still show as binary**
-- Run `git-crypt unlock ~/.ssh/nixerator-git-crypt` manually
-- Check key permissions: `ls -l ~/.ssh/nixerator-git-crypt` (should be `-rw-------`)
+- Run `git-crypt unlock ~/.ssh/nixerator-git-crypt-key` manually
+- Check key permissions: `ls -l ~/.ssh/nixerator-git-crypt-key` (should be `-rw-------`)
