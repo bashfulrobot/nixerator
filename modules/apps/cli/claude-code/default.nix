@@ -17,13 +17,63 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    # System-level packages
+    # MCP server configuration script
     environment.systemPackages = with pkgs; [
       # keep-sorted start case=no numeric=yes
       inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code
       nodejs-slim_24 # Dependency of claude-code
       # keep-sorted end
+
+      # Script to configure MCP servers
+      (pkgs.writeShellScriptBin "configure-claude-mcp" ''
+        #!/usr/bin/env bash
+        set -e
+
+        echo "Configuring Claude MCP servers..."
+
+        # Remove existing servers (ignore errors if they don't exist)
+        claude mcp remove --scope user sequential-thinking 2>/dev/null || true
+        claude mcp remove --scope user kong-konnect 2>/dev/null || true
+
+        # Add sequential-thinking MCP server
+        claude mcp add --transport stdio --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+        echo "✓ Added sequential-thinking MCP server"
+
+        # Add Kong Konnect MCP server if PAT is configured
+        ${lib.optionalString (secrets.kong.kongKonnectPAT or null != null) ''
+          claude mcp add --transport http --scope user kong-konnect https://us.mcp.konghq.com/ -H "Authorization: Bearer ${secrets.kong.kongKonnectPAT}"
+          echo "✓ Added kong-konnect MCP server"
+        ''}
+
+        echo "MCP server configuration complete!"
+      '')
     ];
+
+    # Systemd user service to configure MCP servers on login
+    systemd.user.services.configure-claude-mcp = {
+      description = "Configure Claude Code MCP servers";
+      wantedBy = [ "default.target" ];
+      after = [ "network-online.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.writeShellScript "configure-claude-mcp-service" ''
+          #!/usr/bin/env bash
+
+          # Remove existing servers (ignore errors if they don't exist)
+          ${lib.getExe inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code} mcp remove --scope user sequential-thinking 2>/dev/null || true
+          ${lib.getExe inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code} mcp remove --scope user kong-konnect 2>/dev/null || true
+
+          # Add sequential-thinking MCP server
+          ${lib.getExe inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code} mcp add --transport stdio --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+
+          # Add Kong Konnect MCP server if PAT is configured
+          ${lib.optionalString (secrets.kong.kongKonnectPAT or null != null) ''
+            ${lib.getExe inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code} mcp add --transport http --scope user kong-konnect https://us.mcp.konghq.com/ -H "Authorization: Bearer ${secrets.kong.kongKonnectPAT}"
+          ''}
+        ''}";
+        RemainAfterExit = true;
+      };
+    };
 
     # Home Manager user configuration
     home-manager.users.${username} = { lib, ... }: {
@@ -152,19 +202,6 @@ in
           Always analyze staged changes first, split into atomic commits if needed, then apply the 3 supported argument flags.
         '';
       };
-
-      # Configure MCP servers via activation script (not via file management to allow Claude to write to it)
-      home.activation.setupClaudeMcpServers = lib.hm.dag.entryAfter ["writeBoundary"] ''
-        # Configure MCP servers using claude CLI so the file remains mutable
-        # Remove and re-add to ensure idempotency
-        $DRY_RUN_CMD claude mcp remove --scope user sequential-thinking 2>/dev/null || true
-        $DRY_RUN_CMD claude mcp add --transport stdio --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking 2>/dev/null || true
-
-        ${lib.optionalString (secrets.kong.kongKonnectPAT or null != null) ''
-          $DRY_RUN_CMD claude mcp remove --scope user kong-konnect 2>/dev/null || true
-          $DRY_RUN_CMD claude mcp add --transport http --scope user kong-konnect https://us.mcp.konghq.com/ -H "Authorization: Bearer ${secrets.kong.kongKonnectPAT}" 2>/dev/null || true
-        ''}
-      '';
 
       programs.fish.shellAbbrs = {
         cc = {

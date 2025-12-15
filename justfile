@@ -271,6 +271,12 @@ reset-hard:
     @git pull
 
 # === Helper Commands ===
+# Configure Claude MCP servers
+[group('helpers')]
+configure-mcp:
+    @echo "🔧 Configuring Claude MCP servers..."
+    @configure-claude-mcp
+
 # Enhanced package search functionality
 [group('helpers')]
 pkg-search query:
