@@ -40,8 +40,12 @@
       # Import configuration data
       globals = import ./settings/globals.nix;
 
+      # Load secrets from encrypted JSON file
+      secretsFile = "${self}/secrets/secrets.json";
+      secrets = builtins.fromJSON (builtins.readFile secretsFile);
+
       # Import library functions
-      lib = import ./lib { inherit inputs; };
+      lib = import ./lib { inherit inputs secrets; };
     in
     {
       # NixOS configurations

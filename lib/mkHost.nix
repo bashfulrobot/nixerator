@@ -1,4 +1,4 @@
-{ inputs }:
+{ inputs, secrets }:
 
 {
   # Function to create a host configuration with home-manager integration
@@ -14,7 +14,7 @@
     inherit system;
 
     specialArgs = {
-      inherit inputs hostname username globals;
+      inherit inputs hostname username globals secrets;
     };
 
     modules = [
@@ -34,7 +34,7 @@
           useGlobalPkgs = true;
           useUserPackages = true;
           extraSpecialArgs = {
-            inherit inputs hostname username globals;
+            inherit inputs hostname username globals secrets;
           };
           users.${username} = import ../hosts/${hostname}/home.nix;
           backupFileExtension = "backup";
