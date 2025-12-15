@@ -7,6 +7,7 @@
     ./disko.nix                   # Disko declarative disk partitioning
     ./boot.nix                    # Bootloader with bcachefs support
     ./gpu.nix                     # AMD GPU configuration
+    ./usb-wakeup.nix              # USB wakeup configuration for Logitech devices
 
     # Auto-import all modules
     ../../modules
