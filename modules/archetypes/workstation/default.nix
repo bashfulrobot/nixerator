@@ -20,6 +20,7 @@ in
       browsers.enable = true;       # Browser suite
       security.enable = true;       # Security suite
       dev.enable = true;            # Development suite
+      offcomms.enable = true;       # Communications suite
     };
   };
 }
