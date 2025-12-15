@@ -154,12 +154,12 @@ in
       };
 
       # Configure MCP servers via activation script (not via file management to allow Claude to write to it)
-      home.activation.setupClaudeMcpServers = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      home.activation.setupClaudeMcpServers = ''
         # Configure MCP servers using claude CLI so the file remains mutable
-        $DRY_RUN_CMD claude mcp add sequential-thinking --type stdio --command "npx" --args "-y" --args "@modelcontextprotocol/server-sequential-thinking" 2>/dev/null || true
+        claude mcp add sequential-thinking --type stdio --command "npx" --args "-y" --args "@modelcontextprotocol/server-sequential-thinking" 2>/dev/null || true
 
         ${lib.optionalString (secrets.kong.kongKonnectPAT or null != null) ''
-          $DRY_RUN_CMD claude mcp add kong-konnect --type http --url "https://us.mcp.konghq.com/" --header "Authorization: Bearer ${secrets.kong.kongKonnectPAT}" 2>/dev/null || true
+          claude mcp add kong-konnect --type http --url "https://us.mcp.konghq.com/" --header "Authorization: Bearer ${secrets.kong.kongKonnectPAT}" 2>/dev/null || true
         ''}
       '';
 
