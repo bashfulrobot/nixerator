@@ -26,7 +26,7 @@ default:
     @echo "  log [days=7]               - Show commits from last N days"
     @echo "  lint [target=.]            - Lint specific file/directory"
     @echo "  pkg-search <query>         - Search for packages"
-    @echo "  update-input <input>       - Update specific flake input"
+    @echo "  update <input>             - Update specific flake input"
     @echo ""
     @echo "💡 Pro Tips:"
     @echo "  • Common workflow: just check → just build → just rebuild"
@@ -146,16 +146,9 @@ upgrade trace="false":
         sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
     fi
 
-# Update flake inputs and rebuild
-[group('prod')]
-update:
-    @echo "🔄 Updating flake inputs..."
-    @nix flake update
-    @sudo nixos-rebuild switch --flake {{host_flake}}
-
 # Update a specific flake input
 [group('prod')]
-update-input input:
+update input:
     @echo "🔄 Updating {{input}}..."
     @nix flake lock --update-input {{input}}
 
