@@ -16,7 +16,6 @@ in
     # Browser applications
     apps.gui = {
       google-chrome.enable = true;
-      chromium.enable = false;  # Disabled in favor of Google Chrome
     };
   };
 }
