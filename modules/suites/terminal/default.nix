@@ -18,5 +18,12 @@ in
       fish.enable = true;
       starship.enable = true;
     };
+
+    # Terminal utilities
+    environment.systemPackages = with pkgs; [
+      gum
+      bat
+      glow
+    ];
   };
 }
