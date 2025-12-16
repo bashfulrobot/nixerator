@@ -6,6 +6,7 @@
     ./hardware-configuration.nix  # Hardware-specific settings (generated with --no-filesystems)
     ./disko.nix                   # Disko declarative disk partitioning
     ./boot.nix                    # Bootloader with LUKS encryption support
+    ./usb-wakeup.nix              # Comprehensive wakeup configuration for laptop
 
     # Auto-import all modules
     ../../modules
