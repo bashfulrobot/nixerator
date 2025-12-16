@@ -149,20 +149,6 @@ upgrade trace="false":
     fi
     just configure-mcp
 
-# Update hyprflake and rebuild
-[group('prod')]
-update-hypr trace="false":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "🎨 Updating hyprflake..."
-    nix flake update hyprflake
-    if [[ "{{trace}}" == "true" ]]; then
-        sudo nixos-rebuild switch --impure --flake {{host_flake}} --show-trace
-    else
-        sudo nixos-rebuild switch --impure --flake {{host_flake}}
-    fi
-    just configure-mcp
-
 # Update a specific flake input
 [group('prod')]
 update input:
