@@ -4,6 +4,7 @@
   # Function to create a host configuration with home-manager integration
   mkHost = {
     globals,
+    versions,
     hostname,
     system,
     username ? globals.user.name,
@@ -14,7 +15,7 @@
     inherit system;
 
     specialArgs = {
-      inherit inputs hostname username globals secrets;
+      inherit inputs hostname username globals versions secrets;
     };
 
     modules = [
@@ -34,7 +35,7 @@
           useGlobalPkgs = true;
           useUserPackages = true;
           extraSpecialArgs = {
-            inherit inputs hostname username globals secrets;
+            inherit inputs hostname username globals versions secrets;
           };
           users.${username} = import ../hosts/${hostname}/home.nix;
           backupFileExtension = "backup";

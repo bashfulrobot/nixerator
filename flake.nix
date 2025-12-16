@@ -45,6 +45,7 @@
     let
       # Import configuration data
       globals = import ./settings/globals.nix;
+      versions = import ./settings/versions.nix;
 
       # Load secrets from encrypted JSON file
       secretsFile = "${self}/secrets/secrets.json";
@@ -57,7 +58,7 @@
       # NixOS configurations
       nixosConfigurations = {
         nixerator = lib.mkHost {
-          inherit globals;
+          inherit globals versions;
           hostname = "nixerator";
           system = "x86_64-linux";
           # username and stateVersion are automatically pulled from globals
@@ -68,7 +69,7 @@
         };
 
         donkeykong = lib.mkHost {
-          inherit globals;
+          inherit globals versions;
           hostname = "donkeykong";
           system = "x86_64-linux";
           extraModules = [
@@ -80,7 +81,7 @@
         };
 
         qbert = lib.mkHost {
-          inherit globals;
+          inherit globals versions;
           hostname = "qbert";
           system = "x86_64-linux";
           extraModules = [
@@ -92,7 +93,7 @@
         };
       };
 
-      # Expose lib and globals for use in other flakes
-      inherit lib globals;
+      # Expose lib, globals, and versions for use in other flakes
+      inherit lib globals versions;
     };
 }

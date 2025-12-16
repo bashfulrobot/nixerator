@@ -1,12 +1,10 @@
-{ lib, pkgs, ... }:
-# TODO: UPDATE ME
-let version = "0.1.1";
-in pkgs.stdenv.mkDerivation {
+{ lib, pkgs, versions, ... }:
+pkgs.stdenv.mkDerivation {
   name = "meetsum";
   src = pkgs.fetchurl {
     url =
-      "https://github.com/bashfulrobot/meetsum/releases/download/v${version}/meetsum-linux-amd64";
-    sha256 = "sha256-NHxdaG6OE6YiK/m9OXukqJ0aISyYmmk4ez/UM6cUKR4=";
+      "https://github.com/bashfulrobot/meetsum/releases/download/v${versions.cli.meetsum.version}/meetsum-linux-amd64";
+    sha256 = versions.cli.meetsum.sha256;
   };
   phases = [ "installPhase" "patchPhase" ];
   installPhase = ''
