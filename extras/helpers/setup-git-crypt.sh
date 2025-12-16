@@ -44,8 +44,17 @@ if [[ ! -f "$KEY_PATH" ]]; then
 fi
 echo -e "${GREEN}✓${NC} git-crypt key found at $KEY_PATH"
 
-# Check key permissions
+# Check key permissions and ownership
 KEY_PERMS=$(stat -c %a "$KEY_PATH" 2>/dev/null || stat -f %A "$KEY_PATH" 2>/dev/null)
+KEY_OWNER=$(stat -c %U "$KEY_PATH" 2>/dev/null || stat -f %Su "$KEY_PATH" 2>/dev/null)
+
+if [[ "$KEY_OWNER" != "$USER" ]]; then
+    echo -e "${YELLOW}Warning: Key owned by $KEY_OWNER, should be $USER${NC}"
+    echo "Fixing ownership..."
+    sudo chown "$USER:$(id -gn)" "$KEY_PATH"
+    echo -e "${GREEN}✓${NC} Key ownership fixed"
+fi
+
 if [[ "$KEY_PERMS" != "600" ]]; then
     echo -e "${YELLOW}Warning: Key permissions are $KEY_PERMS, should be 600${NC}"
     echo "Fixing permissions..."
