@@ -13,6 +13,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Development tools
+    dev = {
+      go.enable = true;
+    };
+
     # Development CLI applications
     apps = {
       cli = {
