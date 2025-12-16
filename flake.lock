@@ -3,22 +3,18 @@
     "aquamarine": {
       "inputs": {
         "hyprutils": [
-          "hyprflake",
           "hyprland",
           "hyprutils"
         ],
         "hyprwayland-scanner": [
-          "hyprflake",
           "hyprland",
           "hyprwayland-scanner"
         ],
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -219,7 +215,6 @@
     "gitignore": {
       "inputs": {
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "pre-commit-hooks",
           "nixpkgs"
@@ -281,17 +276,14 @@
     "hyprcursor": {
       "inputs": {
         "hyprlang": [
-          "hyprflake",
           "hyprland",
           "hyprlang"
         ],
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -315,7 +307,9 @@
         "home-manager": [
           "home-manager"
         ],
-        "hyprland": "hyprland",
+        "hyprland": [
+          "hyprland"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ],
@@ -324,11 +318,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1765847054,
-        "narHash": "sha256-XiIol5hFRe3KZe+H5UXAvqjTVRlHIwu4om5WdNsg11A=",
+        "lastModified": 1765851750,
+        "narHash": "sha256-Bm2/yYpLXTAjsMd3Ar2LQsbYzrUzqskSDAlv5Bqu1n0=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "bb36a48c4cc0e210802f22114c1e5d5dfffaa933",
+        "rev": "fdebbad84beb20004c2c0b76cae79d5d5e87c934",
         "type": "github"
       },
       "original": {
@@ -340,17 +334,14 @@
     "hyprgraphics": {
       "inputs": {
         "hyprutils": [
-          "hyprflake",
           "hyprland",
           "hyprutils"
         ],
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -381,7 +372,6 @@
         "hyprwayland-scanner": "hyprwayland-scanner",
         "hyprwire": "hyprwire",
         "nixpkgs": [
-          "hyprflake",
           "nixpkgs"
         ],
         "pre-commit-hooks": "pre-commit-hooks",
@@ -405,38 +395,31 @@
     "hyprland-guiutils": {
       "inputs": {
         "aquamarine": [
-          "hyprflake",
           "hyprland",
           "aquamarine"
         ],
         "hyprgraphics": [
-          "hyprflake",
           "hyprland",
           "hyprgraphics"
         ],
         "hyprlang": [
-          "hyprflake",
           "hyprland",
           "hyprlang"
         ],
         "hyprtoolkit": "hyprtoolkit",
         "hyprutils": [
-          "hyprflake",
           "hyprland",
           "hyprutils"
         ],
         "hyprwayland-scanner": [
-          "hyprflake",
           "hyprland",
           "hyprwayland-scanner"
         ],
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -458,12 +441,10 @@
     "hyprland-protocols": {
       "inputs": {
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -485,17 +466,14 @@
     "hyprlang": {
       "inputs": {
         "hyprutils": [
-          "hyprflake",
           "hyprland",
           "hyprutils"
         ],
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -517,43 +495,36 @@
     "hyprtoolkit": {
       "inputs": {
         "aquamarine": [
-          "hyprflake",
           "hyprland",
           "hyprland-guiutils",
           "aquamarine"
         ],
         "hyprgraphics": [
-          "hyprflake",
           "hyprland",
           "hyprland-guiutils",
           "hyprgraphics"
         ],
         "hyprlang": [
-          "hyprflake",
           "hyprland",
           "hyprland-guiutils",
           "hyprlang"
         ],
         "hyprutils": [
-          "hyprflake",
           "hyprland",
           "hyprland-guiutils",
           "hyprutils"
         ],
         "hyprwayland-scanner": [
-          "hyprflake",
           "hyprland",
           "hyprland-guiutils",
           "hyprwayland-scanner"
         ],
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "hyprland-guiutils",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "hyprland-guiutils",
           "systems"
@@ -576,12 +547,10 @@
     "hyprutils": {
       "inputs": {
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -603,12 +572,10 @@
     "hyprwayland-scanner": {
       "inputs": {
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -630,17 +597,14 @@
     "hyprwire": {
       "inputs": {
         "hyprutils": [
-          "hyprflake",
           "hyprland",
           "hyprutils"
         ],
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
@@ -727,7 +691,6 @@
         "flake-compat": "flake-compat",
         "gitignore": "gitignore",
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ]
@@ -751,6 +714,7 @@
         "disko": "disko",
         "home-manager": "home-manager",
         "hyprflake": "hyprflake",
+        "hyprland": "hyprland",
         "llm-agents": "llm-agents",
         "nixpkgs": "nixpkgs",
         "stylix": "stylix"
@@ -940,32 +904,26 @@
     "xdph": {
       "inputs": {
         "hyprland-protocols": [
-          "hyprflake",
           "hyprland",
           "hyprland-protocols"
         ],
         "hyprlang": [
-          "hyprflake",
           "hyprland",
           "hyprlang"
         ],
         "hyprutils": [
-          "hyprflake",
           "hyprland",
           "hyprutils"
         ],
         "hyprwayland-scanner": [
-          "hyprflake",
           "hyprland",
           "hyprwayland-scanner"
         ],
         "nixpkgs": [
-          "hyprflake",
           "hyprland",
           "nixpkgs"
         ],
         "systems": [
-          "hyprflake",
           "hyprland",
           "systems"
         ]
