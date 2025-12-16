@@ -6,7 +6,16 @@ pkgs.stdenv.mkDerivation {
       "https://github.com/bashfulrobot/meetsum/releases/download/v${versions.cli.meetsum.version}/meetsum-linux-amd64";
     sha256 = versions.cli.meetsum.sha256;
   };
-  phases = [ "installPhase" "patchPhase" ];
+
+  nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+
+  buildInputs = [
+    pkgs.stdenv.cc.cc.lib
+  ];
+
+  dontUnpack = true;
+  dontBuild = true;
+
   installPhase = ''
     mkdir -p $out/bin
     cp $src $out/bin/meetsum

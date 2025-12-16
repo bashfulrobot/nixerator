@@ -20,7 +20,6 @@ in
 
     apps.cli = {
       meetsum.enable = true;
-      meetsum.useShell = true;
     };
   };
 }
