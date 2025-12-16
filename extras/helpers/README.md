@@ -1,5 +1,61 @@
 # Helper Scripts
 
+## reset-home-permissions.sh
+
+Fixes file permissions on home directory, SSH keys, and GPG keys to ensure proper security and functionality.
+
+### Usage
+
+```bash
+# Run as your user (will fix permissions for your home directory)
+./extras/helpers/reset-home-permissions.sh
+
+# Or run with sudo (will detect and fix for your user, not root)
+sudo ./extras/helpers/reset-home-permissions.sh
+```
+
+### What It Fixes
+
+**SSH Directory (`~/.ssh/`):**
+- Directory: 700 (rwx------)
+- Private keys (id_*, *_rsa, *_ed25519): 600 (rw-------)
+- Public keys (*.pub): 644 (rw-r--r--)
+- config: 600 (rw-------)
+- authorized_keys: 600 (rw-------)
+- known_hosts: 644 (rw-r--r--)
+- Git-crypt keys: 600 (rw-------)
+
+**GPG Directory (`~/.gnupg/`):**
+- Directory: 700 (rwx------)
+- All files: 600 (rw-------)
+- private-keys-v1.d/: 700 (rwx------)
+- Configuration files (gpg.conf, gpg-agent.conf): 600
+
+**Home Directory:**
+- Ensures correct ownership (does not change permissions)
+
+### When to Use
+
+Run this script when:
+- SSH authentication is failing due to permission errors
+- GPG key operations are failing
+- After restoring files from backup
+- After copying SSH/GPG keys between systems
+- SSH complains about "permissions too open"
+
+### Troubleshooting
+
+After running the script, if issues persist:
+```bash
+# Restart GPG agent
+gpgconf --kill gpg-agent
+
+# Restart SSH agent (gcr-ssh-agent)
+systemctl --user restart gcr-ssh-agent
+
+# Or log out and log back in for a full refresh
+```
+
 ## setup-git-crypt.sh
 
 Sets up git-crypt encryption for the nixerator repository on a new system.
