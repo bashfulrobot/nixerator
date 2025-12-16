@@ -8,6 +8,7 @@
     ./boot.nix                    # Bootloader with bcachefs support
     ./gpu.nix                     # AMD GPU configuration
     ./usb-wakeup.nix              # USB wakeup configuration for Logitech devices
+    ./reboot-windows.nix          # Desktop entry for rebooting to Windows
 
     # Auto-import all modules
     ../../modules
