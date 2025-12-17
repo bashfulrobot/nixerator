@@ -16,6 +16,7 @@ in
     # Enable workstation suites
     suites = {
       core.enable = true;           # Core system infrastructure
+      desktop.enable = true;        # Desktop environment (Hyprland)
       terminal.enable = true;       # Terminal suite
       browsers.enable = true;       # Browser suite
       security.enable = true;       # Security suite
