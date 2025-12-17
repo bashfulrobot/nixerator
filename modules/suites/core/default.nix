@@ -23,6 +23,18 @@ in
       wget
       curl
       nerd-fonts.iosevka  # System-wide font with icon glyphs
+    ] ++ [
+      # Desktop entry for rebooting to firmware (UEFI/BIOS setup)
+      (pkgs.makeDesktopItem {
+        name = "reboot-firmware";
+        desktopName = "Reboot to Firmware";
+        comment = "Reboot the computer and enter firmware (UEFI/BIOS) setup";
+        exec = "${pkgs.systemd}/bin/systemctl reboot --firmware-setup";
+        icon = "system-reboot";
+        terminal = false;
+        type = "Application";
+        categories = [ "System" ];
+      })
     ];
 
     # Networking defaults
