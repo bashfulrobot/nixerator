@@ -8,13 +8,14 @@ in
     suites.core.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable core system infrastructure suite with SSH and essential system tools.";
+      description = "Enable core system infrastructure suite with SSH, Flatpak, and essential system tools.";
     };
   };
 
   config = lib.mkIf cfg.enable {
     # Core system infrastructure
     system.ssh.enable = true;
+    system.flatpak.enable = true;
     apps.cli.tailscale.enable = true;
 
     # Essential system utilities
