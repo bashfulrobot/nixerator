@@ -17,7 +17,7 @@ in
     # Centralized desktop environment configuration for all workstations
     # Individual hosts can override these settings in their configuration.nix
     hyprflake = {
-      # Enable custom Plymouth theme
+      # Enable hyprflake Plymouth theme
       plymouth.enable = lib.mkDefault true;
 
       # Color scheme - Base16 theme name
