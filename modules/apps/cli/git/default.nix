@@ -19,6 +19,7 @@ in
     environment.systemPackages = with pkgs; [
       git
       git-crypt
+      git-filter-repo
     ];
 
     # Home Manager user configuration
