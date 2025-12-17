@@ -1,8 +1,8 @@
 { config, pkgs, lib, ... }:
 
 # Desktop entry for rebooting to Windows on qbert
-# Windows is installed on nvme1n1 (Samsung 500GB)
-# Linux is on nvme0n1 (WD 1TB SN850X)
+# Windows is installed on nvme0n1 (Samsung 500GB)
+# Linux is on nvme1n1 (WD 1TB SN850X)
 
 {
   # Create desktop entry for rebooting to Windows
