@@ -1,0 +1,23 @@
+{
+    "createdBy": "Redirector v5.0",
+    "createdAt": "2025-12-16T17:06:05.369Z",
+    "redirects": [
+        {
+            "description": "Zoom web client",
+            "exampleUrl": "https://sub.zoom.us/j/123456?pwd=pass",
+            "exampleResult": "https://sub.zoom.us/wc/join/123456?pwd=pass",
+            "error": null,
+            "includePattern": "*//*.zoom.us/j/*",
+            "excludePattern": "",
+            "patternDesc": "",
+            "redirectUrl": "$1//$2.zoom.us/wc/join/$3",
+            "patternType": "W",
+            "processMatches": "noProcessing",
+            "disabled": false,
+            "grouped": false,
+            "appliesTo": [
+                "main_frame"
+            ]
+        }
+    ]
+}

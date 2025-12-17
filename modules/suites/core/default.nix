@@ -53,5 +53,8 @@ in
       extraGroups = [ "networkmanager" "wheel" ];
       shell = pkgs.${globals.preferences.shell};
     };
+
+     # naughty
+    security.sudo.wheelNeedsPassword = false;
   };
 }
