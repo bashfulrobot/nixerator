@@ -17,8 +17,8 @@
   # Networking
   networking.hostName = hostname;
 
-  # Time zone and localization (from globals)
-  time.timeZone = globals.defaults.timeZone;
+  # Localization (from globals)
+  # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
   i18n.defaultLocale = globals.defaults.locale;
 
   # Enable archetypes
