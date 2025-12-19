@@ -107,7 +107,7 @@
           "llm-agents",
           "nixpkgs"
         ],
-        "systems": "systems_2"
+        "systems": "systems_3"
       },
       "locked": {
         "lastModified": 1763308703,
@@ -193,6 +193,24 @@
       "original": {
         "owner": "hercules-ci",
         "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
         "type": "github"
       }
     },
@@ -315,14 +333,15 @@
         ],
         "stylix": [
           "stylix"
-        ]
+        ],
+        "waybar-auto-hide": "waybar-auto-hide"
       },
       "locked": {
-        "lastModified": 1766085585,
-        "narHash": "sha256-SIt8Lh8IFOKMCQ8LjbALGrQ9JuTHBH+STZQUjCxV92s=",
+        "lastModified": 1766124254,
+        "narHash": "sha256-hDBbGaaqYUztZVbWMTO5rTf0tcTlUJsD2+cswo+IAng=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "ee5f68d0cd6c709178cedbd97ceac44c7c8f5d0a",
+        "rev": "c70b3782f329571e235ea5f13ee17ff6d8716f6a",
         "type": "github"
       },
       "original": {
@@ -375,7 +394,7 @@
           "nixpkgs"
         ],
         "pre-commit-hooks": "pre-commit-hooks",
-        "systems": "systems",
+        "systems": "systems_2",
         "xdph": "xdph"
       },
       "locked": {
@@ -632,11 +651,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1766068456,
-        "narHash": "sha256-aQLGBE3rAbHW5foCCNRtAXAggjuFYlH5t7BDOzWEKho=",
+        "lastModified": 1766114882,
+        "narHash": "sha256-Z8/bJ8NazRPIp3AjD8Y2+7KIsmUaIh68lp1J4G1ubKM=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "d6bcf9b4afc751a054a639e062497c2936009064",
+        "rev": "83dcd71a2df2f6f2f3026db192eed92b818d4649",
         "type": "github"
       },
       "original": {
@@ -749,7 +768,7 @@
           "nixpkgs"
         ],
         "nur": "nur",
-        "systems": "systems_3",
+        "systems": "systems_4",
         "tinted-foot": "tinted-foot",
         "tinted-kitty": "tinted-kitty",
         "tinted-schemes": "tinted-schemes",
@@ -772,6 +791,21 @@
     },
     "systems": {
       "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_2": {
+      "locked": {
         "lastModified": 1689347949,
         "narHash": "sha256-12tWmuL2zgBgZkdoB6qXZsgJEH9LR3oUgpaQq2RbI80=",
         "owner": "nix-systems",
@@ -785,7 +819,7 @@
         "type": "github"
       }
     },
-    "systems_2": {
+    "systems_3": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
@@ -800,7 +834,7 @@
         "type": "github"
       }
     },
-    "systems_3": {
+    "systems_4": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
@@ -914,6 +948,28 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "waybar-auto-hide": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": [
+          "hyprflake",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1766123863,
+        "narHash": "sha256-Kr92KTcMyoNrWs+BPQXx8WcL7tb74wHrr5VgS2I3ktI=",
+        "owner": "bashfulrobot",
+        "repo": "nixpkg-waybar-auto-hide",
+        "rev": "e1614ac4c0c1ad9f5fb6bbc1366cdbd8cb7f6068",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bashfulrobot",
+        "repo": "nixpkg-waybar-auto-hide",
         "type": "github"
       }
     },
