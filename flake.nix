@@ -43,7 +43,7 @@
     };
 
     hyprshell = {
-      url = "github:H3rmt/hyprshell/hyprshell-release";
+      url = "github:H3rmt/hyprshell/hyprshell";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
