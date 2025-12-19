@@ -125,11 +125,11 @@
     },
     "crane": {
       "locked": {
-        "lastModified": 1762538466,
-        "narHash": "sha256-8zrIPl6J+wLm9MH5ksHcW7BUHo7jSNOu0/hA0ohOOaM=",
+        "lastModified": 1765739568,
+        "narHash": "sha256-gQYx35Of4UDKUjAYvmxjUEh/DdszYeTtT6MDin4loGE=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "0cea393fffb39575c46b7a0318386467272182fe",
+        "rev": "67d2baff0f9f677af35db61b32b5df6863bcc075",
         "type": "github"
       },
       "original": {
@@ -198,11 +198,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1762980239,
-        "narHash": "sha256-8oNVE8TrD19ulHinjaqONf9QWCKK+w4url56cdStMpM=",
+        "lastModified": 1765495779,
+        "narHash": "sha256-MhA7wmo/7uogLxiewwRRmIax70g6q1U/YemqTGoFHlM=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "52a2caecc898d0b46b2b905f058ccc5081f842da",
+        "rev": "5635c32d666a59ec9a55cab87e898889869f7b71",
         "type": "github"
       },
       "original": {
@@ -378,11 +378,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1766132172,
-        "narHash": "sha256-ialmg075Xx0PbbgODf8nbkV0TyNN7nuBmoSwWoTBTIs=",
+        "lastModified": 1766133016,
+        "narHash": "sha256-VxjuyGuZ8if52yiNI/nwgDtCOd9uHgVMSeGqLiSvXR0=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "9128386fdddb27341d6ed761272126d286e0e534",
+        "rev": "afae0411470a39c3a410b2f596dc017336b9f152",
         "type": "github"
       },
       "original": {
@@ -567,16 +567,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1763389720,
-        "narHash": "sha256-NsFOXepWzgbopnoqwg8EekDLbj01jr8vjaEz/F3QFKU=",
+        "lastModified": 1765770848,
+        "narHash": "sha256-tGs8R5OV7TOmwSjKh2/Umi7yoARa2xIb7zJMNxckvlQ=",
         "owner": "H3rmt",
         "repo": "hyprshell",
-        "rev": "4567017e5dc0ed03b9762fb0736e877917884d40",
+        "rev": "01531df3820ab6346814f83abd5852a88ccf2c69",
         "type": "github"
       },
       "original": {
         "owner": "H3rmt",
-        "ref": "hyprshell-release",
+        "ref": "hyprshell",
         "repo": "hyprshell",
         "type": "github"
       }
