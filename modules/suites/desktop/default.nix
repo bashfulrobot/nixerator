@@ -64,8 +64,9 @@ in
       # Theme polarity - dark, light, or either (auto-detect)
       polarity = lib.mkDefault "dark";
 
-      # Waybar configuration
-      waybar.autohide = lib.mkDefault true;
+      # Waybar auto-hide configuration
+      # Automatically hides waybar when workspace is empty and shows on cursor hover at top edge
+      waybar-auto-hide.enable = lib.mkDefault true;
 
       # User configuration (required)
       user = {
