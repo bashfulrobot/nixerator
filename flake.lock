@@ -337,11 +337,11 @@
         "waybar-auto-hide": "waybar-auto-hide"
       },
       "locked": {
-        "lastModified": 1766128013,
-        "narHash": "sha256-EittuYyMZTUTryB23RdAmirG3lM6bEPCrAEMlf8YHXk=",
+        "lastModified": 1766128797,
+        "narHash": "sha256-Sf7gf3cWqTOsMSb3YpI+neto5eRQXmn8XJDHffeYlvQ=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "8a062c9c9d753b02ed2a6ff2f30fef60f3ba2b26",
+        "rev": "01e11c7f7bf0f5f634a4fbae1087c1e55a17c345",
         "type": "github"
       },
       "original": {
@@ -960,11 +960,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1766123863,
-        "narHash": "sha256-Kr92KTcMyoNrWs+BPQXx8WcL7tb74wHrr5VgS2I3ktI=",
+        "lastModified": 1766128778,
+        "narHash": "sha256-ngMMk/ibT0sYaHpXldaSF0RLnx0+mSK7yNH3TaK7LGo=",
         "owner": "bashfulrobot",
         "repo": "nixpkg-waybar-auto-hide",
-        "rev": "e1614ac4c0c1ad9f5fb6bbc1366cdbd8cb7f6068",
+        "rev": "e0c91bba9d80ce85b196a8d8237fc8e2122f799f",
         "type": "github"
       },
       "original": {
