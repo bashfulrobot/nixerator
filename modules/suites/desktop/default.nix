@@ -68,6 +68,10 @@ in
       # Automatically hides waybar when workspace is empty and shows on cursor hover at top edge
       waybar-auto-hide.enable = lib.mkDefault true;
 
+      # Hyprshell window switcher and app launcher
+      # Provides window switching and usage-based app launcher
+      hyprshell.enable = lib.mkDefault true;
+
       # User configuration (required)
       user = {
         inherit username;

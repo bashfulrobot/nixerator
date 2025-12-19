@@ -32,6 +32,22 @@
         home-manager.follows = "home-manager";
         stylix.follows = "stylix";
         hyprland.follows = "hyprland";
+        waybar-auto-hide.follows = "waybar-auto-hide";
+        hyprshell.follows = "hyprshell";
+      };
+    };
+
+    waybar-auto-hide = {
+      url = "github:bashfulrobot/nixpkg-waybar-auto-hide";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    hyprshell = {
+      url = "github:H3rmt/hyprshell/hyprshell-release";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+        hyprland.follows = "hyprland";
       };
     };
 
