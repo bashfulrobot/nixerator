@@ -64,6 +64,9 @@ in
       # Theme polarity - dark, light, or either (auto-detect)
       polarity = lib.mkDefault "dark";
 
+      # Waybar configuration
+      waybar.autohide = lib.mkDefault true;
+
       # User configuration (required)
       user = {
         inherit username;
