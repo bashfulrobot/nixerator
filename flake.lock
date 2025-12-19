@@ -364,6 +364,9 @@
         "hyprland": [
           "hyprland"
         ],
+        "hyprshell": [
+          "hyprshell"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ],
@@ -375,11 +378,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1766129000,
-        "narHash": "sha256-Z88QzGWeD989RLP8dKoPC7gSakL94IAXnMSby9c8lTE=",
+        "lastModified": 1766132172,
+        "narHash": "sha256-ialmg075Xx0PbbgODf8nbkV0TyNN7nuBmoSwWoTBTIs=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "dd6856bc46509b7f8939d895a52d2f0889f6207e",
+        "rev": "9128386fdddb27341d6ed761272126d286e0e534",
         "type": "github"
       },
       "original": {
