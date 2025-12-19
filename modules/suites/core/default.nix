@@ -18,6 +18,9 @@ in
     system.flatpak.enable = true;
     apps.cli.tailscale.enable = true;
 
+    # Automatic timezone detection based on geolocation
+    services.automatic-timezoned.enable = true;
+
     # Essential system utilities
     environment.systemPackages = with pkgs; [
       wget
