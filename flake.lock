@@ -337,11 +337,11 @@
         "waybar-auto-hide": "waybar-auto-hide"
       },
       "locked": {
-        "lastModified": 1766126210,
-        "narHash": "sha256-KLeqCOhivldVWUdExkUGlADiS0sy4HhQYhA9RS9Zm0o=",
+        "lastModified": 1766126865,
+        "narHash": "sha256-elBP95lkzYclmV2m5Hc9fCXwoO1jOszcS5X8K5A+6fA=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "34ce02eb875a3efce244f1b0db9b114fd8fa0f69",
+        "rev": "7a4785075ecb335672a20c5214512dbb79f038d5",
         "type": "github"
       },
       "original": {
