@@ -385,6 +385,9 @@
         "hyprland": [
           "hyprland"
         ],
+        "hyprshell": [
+          "hyprshell"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ],
@@ -396,11 +399,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1766200278,
-        "narHash": "sha256-uvt51QyKfPeOsWW26blVs225cBOW1hkysGs6+gEpPt8=",
+        "lastModified": 1766203785,
+        "narHash": "sha256-YsRUljxmEwbKhbNlolts4ZdbGbIf9JsFuF/o6runSQ0=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "9987cf37d1c9675c436b6d352d2b66a4b1a9a297",
+        "rev": "e1349610331a5469918df901bb82bbeaaaa76000",
         "type": "github"
       },
       "original": {
@@ -735,11 +738,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1766199389,
-        "narHash": "sha256-eBYlwloFcrWCZf3wWEhvhkFpawH99+oOEiI7clzP3AM=",
+        "lastModified": 1766200816,
+        "narHash": "sha256-lAclhOn97Tdlqd7bkrct/Q3h1Fe2vlJc23CTVaGl1yE=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "80271102f6ea498db1e9c9a205df9ded6db171bd",
+        "rev": "7b02cd68dc849bf8bf6dc030f3b4ae288afac4bd",
         "type": "github"
       },
       "original": {
