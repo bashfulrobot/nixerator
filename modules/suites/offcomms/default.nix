@@ -21,5 +21,9 @@ in
     apps.cli = {
       meetsum.enable = true;
     };
+
+    environment.systemPackages = with pkgs; [
+      discord-ptb
+    ];
   };
 }
