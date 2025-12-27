@@ -1,7 +1,8 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, globals, ... }:
 
 let
   cfg = config.apps.cli.superfile;
+  username = globals.user.name;
   inherit (config.lib.stylix) colors;
 in
 {
@@ -14,9 +15,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    programs.superfile = {
-      enable = true;
-      firstUseCheck = false;
+    # Home Manager user configuration
+    home-manager.users.${username} = {
+      programs.superfile = {
+        enable = true;
+        firstUseCheck = false;
 
       # Integrate with zoxide for smart directory jumping
       zoxidePackage = pkgs.zoxide;
