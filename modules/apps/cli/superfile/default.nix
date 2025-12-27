@@ -61,15 +61,15 @@ in
         pinnedFolders = [
           {
             name = "Home";
-            location = "~";
+            location = "/home/${username}";
           }
           {
             name = "Projects";
-            location = "~/dev";
+            location = "/home/${username}/dev";
           }
           {
             name = "Nix Config";
-            location = "~/dev/nix/nixerator";
+            location = "/home/${username}/dev/nix/nixerator";
           }
         ];
 
