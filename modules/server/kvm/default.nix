@@ -53,8 +53,8 @@ in {
       spice-protocol
       virt-manager
       virt-viewer
+      virtio-win
       win-spice
-      win-virtio
       # keep-sorted end
     ];
 
