@@ -9,6 +9,7 @@
     ./gpu.nix                     # AMD GPU configuration
     ./usb-wakeup.nix              # USB wakeup configuration for Logitech devices
     ./reboot-windows.nix          # Desktop entry for rebooting to Windows
+    ./modules.nix                 # Module configuration
 
     # Auto-import all modules
     ../../modules
