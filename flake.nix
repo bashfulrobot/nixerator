@@ -19,16 +19,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    hyprland = {
-      url = "github:hyprwm/Hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    hyprshell = {
-      url = "github:H3rmt/hyprshell?ref=hyprshell-release";
-      inputs.hyprland.follows = "hyprland";
-    };
-
     hyprflake = {
       url = "github:bashfulrobot/hyprflake";
       # Follow all inputs to ensure version consistency and avoid conflicts
@@ -36,8 +26,6 @@
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
         stylix.follows = "stylix";
-        hyprland.follows = "hyprland";
-        hyprshell.follows = "hyprshell";
         waybar-auto-hide.follows = "waybar-auto-hide";
       };
     };
