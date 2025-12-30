@@ -124,6 +124,58 @@ in
           • Verify all staged changes align with commit message intent
           • Never use the lipstick emoji in commits, just the artists pallet for design or visual commit messages.
 
+          ## git-cliff Changelog Compatibility
+
+          **CRITICAL: Commits MUST be parseable by git-cliff for automated changelog generation.**
+
+          ### Required Format (STRICT):
+          ```
+          <type>(<scope>): <emoji> <description>
+
+          [optional body]
+
+          [optional footer]
+          ```
+
+          ### Format Rules:
+          1. **Type is MANDATORY** - Must be one of: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, security, deps
+          2. **Scope is STRONGLY RECOMMENDED** - Use parentheses: `(scope)` - identifies the component/module affected
+          3. **Emoji AFTER the colon** - Format: `type(scope): <emoji> description`
+          4. **Subject line** - Must be on the same line as type/scope, separated by `: `
+          5. **No emojis before type** - ❌ `✨ feat(auth):` ✅ `feat(auth): ✨`
+          6. **No prefixes before type** - ❌ `🔧 chore(deps):` ✅ `chore(deps): 🔧`
+
+          ### Examples of CORRECT commits (git-cliff compatible):
+          ```
+          feat(auth): ✨ add OAuth2 login flow
+          fix(api): 🐛 resolve race condition in token refresh
+          docs(readme): 📝 update installation instructions
+          refactor(database): ♻️ migrate from ORM to raw SQL queries
+          chore(deps): ⬆️ update flake inputs for v0.0.4
+          ```
+
+          ### Examples of INCORRECT commits (git-cliff will reject/warn):
+          ```
+          ❌ ✨ feat(auth): add OAuth2 login flow          (emoji before type)
+          ❌ feat: add OAuth2 login flow                   (missing scope - not ideal)
+          ❌ Add OAuth2 login flow                         (missing type entirely)
+          ❌ feat add OAuth2 login flow                    (missing colon separator)
+          ❌ FEAT(auth): ✨ add OAuth2                     (uppercase type)
+          ❌ feature(auth): ✨ add OAuth2                  (invalid type name)
+          ```
+
+          ### Scope Guidelines:
+          - Use lowercase, kebab-case for multi-word scopes: `feat(api-client):`
+          - Be specific but concise: `fix(waybar)` not `fix(desktop-environment-status-bar)`
+          - Use component/module names: `feat(hyprland)`, `docs(plymouth)`, `fix(keyring)`
+          - For cross-cutting changes, use logical grouping: `refactor(modules)`, `chore(deps)`
+
+          ### Body and Footer (Optional):
+          - Add blank line after subject before body
+          - Use body for detailed explanation of WHY (not what - git diff shows what)
+          - Use footer for breaking changes: `BREAKING CHANGE: description`
+          - Use footer for issue references: `Fixes #123` or `Closes #456`
+
           ## Multiple Commits for Unrelated Changes
 
           **CRITICAL: If staged changes span multiple unrelated scopes or types, create MULTIPLE separate commits.**
