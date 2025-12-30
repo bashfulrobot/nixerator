@@ -59,7 +59,7 @@ in
       };
 
       # Declare packages to install
-      packages = cfg.packages;
+      inherit (cfg) packages;
 
       # Flathub remote is added automatically by nix-flatpak
       # Custom remotes can be added here if needed:

@@ -98,11 +98,11 @@ in {
     networking = lib.mkIf cfg.routing.enable {
       nat = {
         enable = true;
-        externalInterface = cfg.routing.externalInterface;
+        inherit (cfg.routing) externalInterface;
         # Note
         # - for every routed network created in Terraform, you need to add a new internal interface here
         # - and a static route needs to be added to the LAN router for the new network
-        internalInterfaces = cfg.routing.internalInterfaces;
+        inherit (cfg.routing) internalInterfaces;
       };
       firewall = {
         enable = true;
