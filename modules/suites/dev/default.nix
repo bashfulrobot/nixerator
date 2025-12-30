@@ -35,6 +35,7 @@ in
     environment.systemPackages = with pkgs; [
       just    # Task runner for project commands
       statix  # Nix linter and code quality checker
+      git-cliff  # Conventional changelog generator
     ] ++ [
       pkgs.${globals.preferences.editor}  # User's preferred editor
     ];
