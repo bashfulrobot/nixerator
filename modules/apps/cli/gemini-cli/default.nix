@@ -103,9 +103,14 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
-      # Override gemini-cli with correct npmDepsHash
+      # Override gemini-cli with correct npmDeps hash
       (inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.gemini-cli.overrideAttrs (oldAttrs: {
-        npmDepsHash = "sha256-68kUX8QQdGXIiwLDntAIdfD0cGjUiRVuFvBbEQIOFn8=";
+        npmDeps = pkgs.fetchNpmDepsWithPackuments {
+          inherit (oldAttrs) src;
+          name = "${oldAttrs.pname}-${oldAttrs.version}-npm-deps";
+          hash = "sha256-68kUX8QQdGXIiwLDntAIdfD0cGjUiRVuFvBbEQIOFn8=";
+          cacheVersion = 2;
+        };
       }))
     ];
 
