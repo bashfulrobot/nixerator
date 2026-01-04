@@ -102,11 +102,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [
-
-      # keep-sorted start case=no numeric=yes
-      inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.gemini-cli
-      # keep-sorted end
+    environment.systemPackages = [
+      # Override gemini-cli with correct npmDepsHash
+      (inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.gemini-cli.overrideAttrs (oldAttrs: {
+        npmDepsHash = "sha256-68kUX8QQdGXIiwLDntAIdfD0cGjUiRVuFvBbEQIOFn8=";
+      }))
     ];
 
     home-manager.users.${username} = {
