@@ -8,7 +8,7 @@ in
     suites.core.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable core system infrastructure suite with SSH, Flatpak, and essential system tools.";
+      description = "Enable core system infrastructure suite with SSH, Flatpak, backup tools (restic), and essential system tools.";
     };
   };
 
@@ -17,6 +17,7 @@ in
     system.ssh.enable = true;
     system.flatpak.enable = true;
     apps.cli.tailscale.enable = true;
+    apps.cli.restic.enable = true;
 
     # Automatic timezone detection based on geolocation
     services.automatic-timezoned.enable = true;
