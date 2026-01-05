@@ -29,6 +29,11 @@ in
           # Disable greeting
           set fish_greeting
         '';
+
+        # Shell aliases
+        shellAliases = {
+          nix-system-info = "nix-shell -p nix-info --run \"nix-info -m\"";
+        };
       };
 
     };
