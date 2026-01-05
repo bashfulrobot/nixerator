@@ -1,4 +1,4 @@
-{ user-settings, lib, pkgs, config, inputs, globals, ... }:
+{ user-settings, lib, pkgs, config, globals, ... }:
 let
   cfg = config.apps.cli.gemini-cli;
   username = globals.user.name;
@@ -102,25 +102,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [
-      # Override gemini-cli with correct npmDeps hash
-      (inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.gemini-cli.overrideAttrs (oldAttrs: {
-        npmDeps = pkgs.fetchNpmDepsWithPackuments {
-          inherit (oldAttrs) src;
-          name = "${oldAttrs.pname}-${oldAttrs.version}-npm-deps";
-          hash = "sha256-68kUX8QQdGXIiwLDntAIdfD0cGjUiRVuFvBbEQIOFn8=";
-          cacheVersion = 2;
-        };
-      }))
-    ];
-
     home-manager.users.${username} = {
-      home.file = {
-        ".gemini/commands/commit.toml".text = ''
-prompt = """
-${commit-prompt}
-"""
-        '';
+      programs.gemini-cli = {
+        enable = true;
+        package = pkgs.gemini-cli;
+
+        commands.commit = {
+          description = "Create conventional commits with emoji and optional push, tagging, or GitHub releases";
+          prompt = commit-prompt;
+        };
       };
 
       programs.fish.shellAbbrs = {
