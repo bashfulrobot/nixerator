@@ -2,11 +2,12 @@
   config,
   lib,
   pkgs,
+  globals,
   ...
 }:
 let
   cfg = config.apps.cli.codex;
-  tomlFormat = pkgs.formats.toml { };
+  username = globals.user.name;
 in
 {
   options.apps.cli.codex = with lib; {
@@ -21,7 +22,7 @@ in
 
     settings = mkOption {
       type = with types; nullOr (submodule {
-        freeformType = tomlFormat.type;
+        freeformType = pkgs.formats.toml { }.type;
         options = { };
       });
       default = { };
@@ -41,9 +42,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    programs.codex = {
-      enable = true;
-      inherit (cfg) package settings custom-instructions;
+    home-manager.users.${username} = {
+      programs.codex = {
+        enable = true;
+        inherit (cfg) package settings custom-instructions;
+      };
     };
   };
 }
