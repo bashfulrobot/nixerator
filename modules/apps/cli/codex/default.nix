@@ -20,18 +20,6 @@ in
       description = "The codex package to use.";
     };
 
-    settings = mkOption {
-      type = with types; nullOr (submodule {
-        freeformType = pkgs.formats.toml { }.type;
-        options = { };
-      });
-      default = { };
-      description = ''
-        Configuration written to ~/.codex/config.toml.
-        See <https://github.com/openai/codex-rs/blob/main/doc/config.md> for supported values.
-      '';
-    };
-
     custom-instructions = mkOption {
       type = types.lines;
       default = "";
@@ -45,7 +33,8 @@ in
     home-manager.users.${username} = {
       programs.codex = {
         enable = true;
-        inherit (cfg) package settings custom-instructions;
+        inherit (cfg) package custom-instructions;
+        settings = null;
       };
     };
   };
