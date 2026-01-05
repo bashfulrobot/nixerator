@@ -219,6 +219,7 @@ in
           };
         } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
           kong-konnect = {
+            type = "http";
             url = "https://us.mcp.konghq.com/";
             headers = {
               Authorization = "Bearer ${secrets.kong.kongKonnectPAT}";
