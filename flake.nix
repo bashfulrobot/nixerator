@@ -43,6 +43,10 @@
     nix-flatpak = {
       url = "github:gmodena/nix-flatpak";
     };
+
+    nixos-hardware = {
+      url = "github:NixOS/nixos-hardware/master";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs:
@@ -81,6 +85,8 @@
             inputs.disko.nixosModules.disko
             # Hyprland desktop environment
             inputs.hyprflake.nixosModules.default
+            # Hardware-specific configuration for Lenovo ThinkPad T14 Intel Gen 6
+            inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t14-intel-gen6
           ];
         };
 
