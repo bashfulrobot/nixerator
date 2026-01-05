@@ -30,7 +30,6 @@ let
     ❌ feat: add OAuth2 (missing scope)
 
     ## Arguments ($ARGUMENTS):
-    --push: Push after commit.
     --tag <level>: Tag version (major|minor|patch).
     --release: Create GitHub release (requires --tag).
 
@@ -40,7 +39,7 @@ let
     3. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
     4. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
     5. If --tag: `git tag -s v<version> -m "Release v<version>"`
-    6. If --push: `git push && git push --tags` (if tagged).
+    6. Always push: `git push && git push --tags` (if tagged).
     7. If --release: `gh release create v<version> --notes-from-tag`.
   '';
 in
@@ -115,7 +114,6 @@ in
           setCursor = true;
           expansion = "claude -p \"%\"";
         };
-        ccommit = "claude -p '/commit --push'";
       };
     };
   };
