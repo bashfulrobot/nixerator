@@ -5,12 +5,12 @@
   ...
 }:
 let
-  cfg = config.programs.codex;
+  cfg = config.apps.cli.codex;
   tomlFormat = pkgs.formats.toml { };
 in
 {
-  options.programs.codex = with lib; {
-    enable = mkEnableOption "Codex";
+  options.apps.cli.codex = with lib; {
+    enable = mkEnableOption "Codex CLI tool";
 
     package = mkOption {
       type = types.package;
@@ -41,14 +41,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ cfg.package ];
-
-    home.file.".codex/config.toml" = lib.mkIf (cfg.settings != null) {
-      source = tomlFormat.generate "codex-config.toml" cfg.settings;
-    };
-
-    home.file.".codex/AGENTS.md" = lib.mkIf (cfg.custom-instructions != "") {
-      text = cfg.custom-instructions;
+    programs.codex = {
+      enable = true;
+      inherit (cfg) package settings custom-instructions;
     };
   };
 }
