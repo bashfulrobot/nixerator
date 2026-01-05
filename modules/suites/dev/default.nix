@@ -25,6 +25,7 @@ in
       gemini-cli.enable = true;
       git.enable = true;
       nix.enable = true;
+      codex.enable = true;
     };
       gui = {
         vscode.enable = true;
