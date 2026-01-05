@@ -6,7 +6,7 @@ let
   commit-prompt = ''
     ---
     description: Create conventional commits with emoji and optional push, tagging, or GitHub releases
-    allowed-tools: ["Bash", "Grep", "Read"]
+    allowed-tools: ["Bash", "Grep", "Read", "Git"]
     ---
 
     You are a strict git commit enforcer. Create commits that follow these EXACT rules from the user's CLAUDE.md:
@@ -51,7 +51,7 @@ let
     - feat: ✨ New feature
     - fix: 🐛 Bug fix
     - docs: 📝 Documentation changes
-    - style: 💄 Code style changes (formatting, etc.)
+    - style: 🎨 Code style changes (formatting, etc.)
     - refactor: ♻️ Code refactoring
     - perf: ⚡ Performance improvements
     - test: ✅ Adding or updating tests
