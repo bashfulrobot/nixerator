@@ -31,6 +31,22 @@
         # Enable Nix flakes for all hosts
         nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
+        # Automatic garbage collection
+        nix.gc = {
+          automatic = true;
+          dates = "weekly";
+          options = "--delete-older-than 14d";
+        };
+
+        # Optimize store automatically
+        nix.optimise = {
+          automatic = true;
+          dates = [ "weekly" ];
+        };
+
+        # Keep system generations manageable
+        boot.loader.systemd-boot.configurationLimit = 10;
+
         home-manager = {
           useGlobalPkgs = true;
           useUserPackages = true;
