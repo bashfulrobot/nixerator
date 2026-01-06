@@ -16,6 +16,7 @@ in
     # Core system infrastructure
     system.ssh.enable = true;
     system.flatpak.enable = true;
+    system.nix.enable = true;
     apps.cli.tailscale.enable = true;
     apps.cli.restic.enable = true;
 
