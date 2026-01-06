@@ -35,7 +35,7 @@ Fallback values are used if Stylix is not enabled.
 
 ### Configuration Details
 
-Based on `Sample-Dark-Reader-Settings.json`, the generated theme includes:
+The generated theme includes:
 
 - System-based automation (follows system dark/light mode)
 - Custom themes for specific sites:
@@ -49,7 +49,6 @@ Based on `Sample-Dark-Reader-Settings.json`, the generated theme includes:
 
 To modify the configuration:
 
-1. Edit `darkreader-theme.nix` to change theme settings or add custom site themes
-2. Update `Sample-Dark-Reader-Settings.json` to change the base configuration
-3. Rebuild your NixOS configuration
-4. Re-import the generated settings into Chrome
+1. Edit the `mkDarkReaderConfig` function in `default.nix` to change theme settings or add custom site themes
+2. Rebuild your NixOS configuration
+3. Re-import the generated settings into Chrome
