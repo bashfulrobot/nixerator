@@ -24,6 +24,7 @@ in
 
     environment.systemPackages = with pkgs; [
       discord-ptb
+      slack
       todoist-electron
     ];
   };
