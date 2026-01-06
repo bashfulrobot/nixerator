@@ -80,10 +80,6 @@ in
               addresses = [ "tcp://${secrets.qbert.tailscale_ip}:22000" ];
               id = secrets.qbert.syncthing_id;
             };
-            "maximus" = {
-              addresses = [ "tcp://${secrets.maximus.tailscale_ip}:22000" ];
-              id = secrets.maximus.syncthing_id;
-            };
           };
 
           folders = {
@@ -102,12 +98,6 @@ in
             "Downloads" = {
               path = "${globals.user.homeDirectory}/Downloads";
               devices = [ "qbert" ];
-              versioning = simpleVersioning;
-            };
-
-            "phone" = {
-              path = "${globals.user.homeDirectory}/Phone";
-              devices = [ "maximus" ];
               versioning = simpleVersioning;
             };
 
@@ -185,10 +175,6 @@ in
               addresses = [ "tcp://${secrets.donkey-kong.tailscale_ip}:22000" ];
               id = secrets.donkey-kong.syncthing_id;
             };
-            "maximus" = {
-              addresses = [ "tcp://${secrets.maximus.tailscale_ip}:22000" ];
-              id = secrets.maximus.syncthing_id;
-            };
           };
 
           folders = {
@@ -207,12 +193,6 @@ in
             "Downloads" = {
               path = "${globals.user.homeDirectory}/Downloads";
               devices = [ "donkey-kong" ];
-              versioning = simpleVersioning;
-            };
-
-            "phone" = {
-              path = "${globals.user.homeDirectory}/Phone";
-              devices = [ "maximus" ];
               versioning = simpleVersioning;
             };
 
