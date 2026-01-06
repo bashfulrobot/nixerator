@@ -22,7 +22,10 @@ in
 
     packages = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "com.github.tchx84.Flatseal" ];
+      default = [
+        "com.github.tchx84.Flatseal"
+        "org.pvermeer.WebAppHub"
+      ];
       description = "List of Flatpak packages to install";
       example = [
         "com.github.tchx84.Flatseal"
