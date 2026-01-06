@@ -145,6 +145,12 @@ in
               versioning = staggeredVersioning;
             };
 
+            ".talos" = {
+              path = "${globals.user.homeDirectory}/.talos";
+              devices = [ "qbert" ];
+              versioning = staggeredVersioning;
+            };
+
           };
         };
       })
@@ -220,6 +226,12 @@ in
 
             ".kube" = {
               path = "${globals.user.homeDirectory}/.kube";
+              devices = [ "donkey-kong" ];
+              versioning = staggeredVersioning;
+            };
+
+            ".talos" = {
+              path = "${globals.user.homeDirectory}/.talos";
               devices = [ "donkey-kong" ];
               versioning = staggeredVersioning;
             };
