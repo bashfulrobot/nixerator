@@ -8,7 +8,7 @@ in
     archetypes.workstation.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable workstation archetype with core system infrastructure, browsers, security, development, infrastructure, and k8s suites.";
+      description = "Enable workstation archetype with core system infrastructure, browsers, security, and development suites.";
     };
   };
 
@@ -22,8 +22,6 @@ in
       security.enable = true;       # Security suite
       dev.enable = true;            # Development suite
       offcomms.enable = true;       # Communications suite
-      infrastructure.enable = true; # Infrastructure and cloud tools
-      k8s.enable = true;            # Kubernetes tooling
     };
   };
 }
