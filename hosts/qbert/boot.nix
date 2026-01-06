@@ -11,7 +11,6 @@
       systemd-boot = {
         enable = true;
         consoleMode = "max";  # Ensure Windows and other OSes are found in boot menu
-        configurationLimit = 5;  # Limit generations to prevent boot partition from filling up
       };
     };
 
