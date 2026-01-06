@@ -24,6 +24,7 @@ in
       claude-code.enable = true;
       gemini-cli.enable = true;
       git.enable = true;
+      lswt.enable = true;
       nix.enable = true;
       codex.enable = true;
     };
