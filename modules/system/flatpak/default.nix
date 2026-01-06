@@ -28,6 +28,7 @@ in
         "com.github.tchx84.Flatseal"
         "org.mozilla.firefox"
         "com.spotify.Client"
+        "org.pvermeer.WebAppHub"
       ];
     };
 
