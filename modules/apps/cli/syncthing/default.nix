@@ -132,9 +132,10 @@ in
               versioning = staggeredVersioning;
             };
 
-            ".aws" = {
-              path = "${globals.user.homeDirectory}/.aws";
+            ".ssh" = {
+              path = "${globals.user.homeDirectory}/.ssh";
               devices = [ "qbert" ];
+              ignorePerms = false;
               versioning = staggeredVersioning;
             };
 
@@ -144,23 +145,6 @@ in
               versioning = staggeredVersioning;
             };
 
-            ".doppler" = {
-              path = "${globals.user.homeDirectory}/.doppler";
-              devices = [ "qbert" ];
-              versioning = staggeredVersioning;
-            };
-
-            "virter" = {
-              path = "${globals.user.homeDirectory}/.config/virter";
-              devices = [ "qbert" ];
-              versioning = staggeredVersioning;
-            };
-
-            "bin" = {
-              path = "${globals.user.homeDirectory}/bin";
-              devices = [ "qbert" ];
-              versioning = staggeredVersioning;
-            };
           };
         };
       })
@@ -227,9 +211,10 @@ in
               versioning = staggeredVersioning;
             };
 
-            ".aws" = {
-              path = "${globals.user.homeDirectory}/.aws";
+            ".ssh" = {
+              path = "${globals.user.homeDirectory}/.ssh";
               devices = [ "donkey-kong" ];
+              ignorePerms = false;
               versioning = staggeredVersioning;
             };
 
@@ -239,23 +224,6 @@ in
               versioning = staggeredVersioning;
             };
 
-            ".doppler" = {
-              path = "${globals.user.homeDirectory}/.doppler";
-              devices = [ "donkey-kong" ];
-              versioning = staggeredVersioning;
-            };
-
-            "virter" = {
-              path = "${globals.user.homeDirectory}/.config/virter";
-              devices = [ "donkey-kong" ];
-              versioning = staggeredVersioning;
-            };
-
-            "bin" = {
-              path = "${globals.user.homeDirectory}/bin";
-              devices = [ "donkey-kong" ];
-              versioning = staggeredVersioning;
-            };
           };
         };
       })
