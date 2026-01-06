@@ -1,6 +1,12 @@
 { config, pkgs, lib, globals, ... }:
 
 {
+  # Apps
+  apps.cli.syncthing = {
+    enable = true;
+    host.qbert = true;
+  };
+
   # Server modules
   server = {
     kvm = {

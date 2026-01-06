@@ -1,6 +1,12 @@
 { config, pkgs, lib, globals, ... }:
 
 {
+  # Apps
+  apps.cli.syncthing = {
+    enable = true;
+    host.donkeykong = true;
+  };
+
   # Server modules
   server = {
     kvm = {
