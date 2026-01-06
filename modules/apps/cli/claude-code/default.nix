@@ -70,6 +70,21 @@ in
           cleanupPeriod = 15;
           coAuthor = "";
           includeCoAuthoredBy = false;
+
+          # Permissions - auto-approve common Nix and git operations
+          permissions.allow = [
+            "Bash(nix flake check:*)"
+            "Bash(statix check:*)"
+            "Bash(echo:*)"
+            "Bash(mkdir:*)"
+            "WebFetch(domain:git.sr.ht)"
+            "WebFetch(domain:github.com)"
+            "Bash(git add:*)"
+            "Bash(git push)"
+            "Bash(git commit:*)"
+            "Bash(git rm:*)"
+            "Bash(git reset:*)"
+          ];
         };
 
         # Memory file (CLAUDE.md - project rules and context)
