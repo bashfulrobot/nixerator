@@ -23,7 +23,7 @@ in
     # Home Manager user configuration
     home-manager.users.${username} = {
 
-      # Wayland flags for Chrome
+      # Wayland flags for Chrome and Dark Reader configuration
       home.file =
         let
           waylandFlags = ''
@@ -35,9 +35,15 @@ in
             --enable-features=VaapiVideoDecoder
             --enable-gpu-rasterization
           '';
+
+          # Generate Dark Reader theme configuration using Stylix colors
+          darkReaderConfig = import ./darkreader-theme.nix { inherit config pkgs lib; };
         in
         {
           ".config/chrome-flags.conf".text = waylandFlags;
+
+          # Dark Reader settings using Stylix colors
+          ".config/darkreader/settings.json".source = "${darkReaderConfig}/Dark-Reader-Settings.json";
         };
 
     };
