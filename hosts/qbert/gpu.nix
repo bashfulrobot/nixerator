@@ -23,10 +23,10 @@
   };
 
   # Fix for monitor not waking after sleep/suspend
-  # Disables PP_GFXOFF_MASK which causes display detection issues after wake
-  # Source: https://wiki.archlinux.org/title/AMDGPU
+  # Disable runtime PM (BACO) which causes SMU suspend/resume failures
+  # Error: "suspend of IP block <smu> failed -22"
   boot.kernelParams = [
-    "amdgpu.ppfeaturemask=0xffff7fff"  # Disable GFXOFF for reliable monitor wake
+    "amdgpu.runpm=0"  # Disable runtime power management (BACO)
   ];
 
   # OpenCL support for compute tasks (uncomment if needed)
