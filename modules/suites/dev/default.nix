@@ -26,6 +26,7 @@ in
       git.enable = true;
       lswt.enable = true;
       nix.enable = true;
+      nix-search-tv.enable = true;
       codex.enable = true;
     };
       gui = {
