@@ -22,11 +22,12 @@
     firmware = [ pkgs.linux-firmware ];
   };
 
-  # Troubleshooting options (uncomment if experiencing desktop lockups):
-  # boot.kernelParams = [
-  #   "amdgpu.dc=0"      # Disable Display Core
-  #   "amdgpu.gfxoff=0"  # Disable power gating
-  # ];
+  # Fix for monitor not waking after sleep/suspend
+  # Disables PP_GFXOFF_MASK which causes display detection issues after wake
+  # Source: https://wiki.archlinux.org/title/AMDGPU
+  boot.kernelParams = [
+    "amdgpu.ppfeaturemask=0xffff7fff"  # Disable GFXOFF for reliable monitor wake
+  ];
 
   # OpenCL support for compute tasks (uncomment if needed)
   # hardware.amdgpu.opencl.enable = true;
