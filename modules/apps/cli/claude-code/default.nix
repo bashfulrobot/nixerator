@@ -79,6 +79,8 @@ in
             "Bash(mkdir:*)"
             "WebFetch(domain:git.sr.ht)"
             "WebFetch(domain:github.com)"
+            "WebFetch(domain:konghq.com)"
+            "WebFetch(domain:githubusercontent.com)"
             "Bash(git add:*)"
             "Bash(git push)"
             "Bash(git commit:*)"
