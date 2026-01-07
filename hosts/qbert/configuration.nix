@@ -17,6 +17,7 @@
 
   # Networking
   networking.hostName = hostname;
+  networking.interfaces.enp34s0.wakeOnLan.enable = true;
 
   # Localization (from globals)
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
