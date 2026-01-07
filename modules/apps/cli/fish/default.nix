@@ -32,7 +32,7 @@ in
 
         # Shell aliases
         shellAliases = {
-          nix-system-info = "nix-shell -p nix-info --run \"nix-info -m\"";
+          nix-info = "nix-info --markdown --sandbox --host-os";
         };
       };
 

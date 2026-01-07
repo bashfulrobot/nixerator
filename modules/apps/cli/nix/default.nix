@@ -23,6 +23,7 @@ in {
       # https://github.com/nix-community/nixd/blob/main/docs/editor-setup.md
       # lsp for nix - mayb e for zed
       nix-index # Nix package indexer
+      nix-info # Get high level info for debugging
       nix-prefetch-github # Get sha256 info for GitHub
       nixd # nix language server
       nixfmt-rfc-style # Nix code formatter
