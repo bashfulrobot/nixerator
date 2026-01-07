@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, hostname, username, globals, ... }:
+{ pkgs, lib, username, globals, ... }:
 
 {
   # Home Manager configuration
@@ -28,12 +28,13 @@
     };
   };
 
-  # Let Home Manager install and manage itself
-  programs.home-manager.enable = true;
+  programs = {
+    # Let Home Manager install and manage itself
+    home-manager.enable = true;
 
-  programs.codex = {
-    enable = true;
-    custom-instructions = ''
+    codex = {
+      enable = true;
+      custom-instructions = ''
       ---
       description: Create conventional commits with emoji and optional push, tagging, or GitHub releases
       allowed-tools: ["Bash", "Grep", "Read"]
@@ -80,17 +81,18 @@
       For complex changes, consider using `gemini -p "@staged-files Analyze and group these changes for atomic commits"` for analysis.
 
       Always analyze staged changes first, split into atomic commits if needed, then apply the supported argument flags to the final command.
-    '';
-  };
+      '';
+    };
 
   # Git configuration is now handled by modules/cli/git
 
   # Bash configuration
-  programs.bash = {
-    enable = true;
-    enableCompletion = true;
-    bashrcExtra = ''
-      # Add your custom bash configuration here
-    '';
+    bash = {
+      enable = true;
+      enableCompletion = true;
+      bashrcExtra = ''
+        # Add your custom bash configuration here
+      '';
+    };
   };
 }

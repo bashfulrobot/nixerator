@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ pkgs, ... }:
 
 # Boot configuration for qbert with bcachefs (no encryption)
 

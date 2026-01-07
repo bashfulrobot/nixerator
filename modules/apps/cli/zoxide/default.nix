@@ -1,7 +1,6 @@
 {
   globals,
   lib,
-  pkgs,
   config,
   ...
 }:

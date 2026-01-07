@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+_:
 
 {
   # Comprehensive wakeup configuration for laptop

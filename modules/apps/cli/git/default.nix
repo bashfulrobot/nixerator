@@ -1,4 +1,4 @@
-{ globals, lib, pkgs, config, secrets, ... }:
+{ globals, lib, pkgs, config, ... }:
 
 let
   cfg = config.apps.cli.git;

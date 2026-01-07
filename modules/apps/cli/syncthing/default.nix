@@ -65,8 +65,7 @@ in
         overrideFolders = true;
 
         settings.gui = {
-          user = secrets.syncthing.gui.user;
-          password = secrets.syncthing.gui.password;
+          inherit (secrets.syncthing.gui) user password;
         };
       }
 

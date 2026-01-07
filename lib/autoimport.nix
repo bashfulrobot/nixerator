@@ -22,7 +22,7 @@ let
   # Collects all files of a directory as a list of strings of paths
   files = dir:
     collect isString
-    (mapAttrsRecursive (path: type: concatStringsSep "/" path) (getDir dir));
+    (mapAttrsRecursive (path: _type: concatStringsSep "/" path) (getDir dir));
 
   # Core autoimport function
   # dir: directory to import from (path)

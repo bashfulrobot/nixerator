@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+_:
 
 {
   # USB wakeup configuration for Logitech MX Mechanical keyboard and MX Master 3 mouse

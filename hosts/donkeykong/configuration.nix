@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, hostname, username, globals, ... }:
+{ hostname, globals, ... }:
 
 {
   # Import hardware configuration

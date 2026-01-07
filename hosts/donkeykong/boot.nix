@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ pkgs, ... }:
 
 # Boot configuration for donkeykong with LUKS encryption
 
@@ -33,4 +33,3 @@
     kernelPackages = pkgs.linuxPackages_latest;
   };
 }
-

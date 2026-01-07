@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 # AMD GPU Configuration for qbert
 # Based on previous qbert configuration from nixcfg-main

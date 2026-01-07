@@ -49,7 +49,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }@inputs:
+  outputs = { self, ... }@inputs:
     let
       # Import configuration data
       globals = import ./settings/globals.nix;

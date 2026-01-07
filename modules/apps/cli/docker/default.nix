@@ -1,4 +1,4 @@
-{ globals, pkgs, lib, config, ... }:
+{ globals, lib, config, ... }:
 
 let
   cfg = config.apps.cli.docker;

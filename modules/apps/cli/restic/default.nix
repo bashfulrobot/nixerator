@@ -1,4 +1,4 @@
-{ globals, pkgs, config, lib, ... }:
+{ pkgs, config, lib, ... }:
 
 let
   cfg = config.apps.cli.restic;

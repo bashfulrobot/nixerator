@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ pkgs, ... }:
 
 # Desktop entry for rebooting to Windows on qbert
 # Windows is installed on nvme0n1 (Samsung 500GB)

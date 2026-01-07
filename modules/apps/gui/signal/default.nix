@@ -1,12 +1,11 @@
-{ globals, lib, pkgs, config, ... }:
+{ lib, pkgs, config, ... }:
 
 let
   cfg = config.apps.gui.signal;
-  username = globals.user.name;
 
   # Override Signal desktop to add password store flag
   customSignal = pkgs.signal-desktop.overrideAttrs (oldAttrs: rec {
-    desktopItems = map (item: item.override (d: {
+    desktopItems = map (item: item.override (_d: {
       exec = "${pkgs.signal-desktop}/bin/signal-desktop --password-store=\"gnome-libsecret\" --no-sandbox %U";
     })) oldAttrs.desktopItems;
 

@@ -1,4 +1,4 @@
-{ globals, lib, pkgs, config, ... }:
+{ globals, lib, config, ... }:
 
 let
   cfg = config.apps.cli.starship;

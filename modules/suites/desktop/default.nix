@@ -1,4 +1,4 @@
-{ lib, pkgs, config, globals, username, ... }:
+{ lib, pkgs, config, username, ... }:
 
 let
   cfg = config.suites.desktop;

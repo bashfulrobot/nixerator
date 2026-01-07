@@ -28,20 +28,22 @@
         # Allow unfree packages (e.g., Google Chrome)
         nixpkgs.config.allowUnfree = true;
 
-        # Enable Nix flakes for all hosts
-        nix.settings.experimental-features = [ "nix-command" "flakes" ];
+        nix = {
+          # Enable Nix flakes for all hosts
+          settings.experimental-features = [ "nix-command" "flakes" ];
 
-        # Automatic garbage collection
-        nix.gc = {
-          automatic = true;
-          dates = "weekly";
-          options = "--delete-older-than 14d";
-        };
+          # Automatic garbage collection
+          gc = {
+            automatic = true;
+            dates = "weekly";
+            options = "--delete-older-than 14d";
+          };
 
-        # Optimize store automatically
-        nix.optimise = {
-          automatic = true;
-          dates = [ "weekly" ];
+          # Optimize store automatically
+          optimise = {
+            automatic = true;
+            dates = [ "weekly" ];
+          };
         };
 
         # Keep system generations manageable
@@ -53,7 +55,9 @@
           extraSpecialArgs = {
             inherit inputs hostname username globals versions secrets;
           };
-          users.${username} = import ../hosts/${hostname}/home.nix;
+          users.${username} = {
+            imports = [ ../hosts/${hostname}/home.nix ] ++ homeManagerModules;
+          };
           backupFileExtension = "backup";
         };
 

@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, hostname, username, globals, ... }:
+{ pkgs, lib, username, globals, ... }:
 
 {
   # Home Manager configuration

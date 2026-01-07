@@ -8,7 +8,7 @@ let
   mkDarkReaderConfig = stylixConfig:
     let
       # Access stylix colors when available
-      inherit (stylixConfig.lib.stylix.colors) base00 base05 base01 base0D base07 base02;
+      inherit (stylixConfig.lib.stylix.colors) base00 base05 base07 base02;
 
       # Fallback colors if stylix is not configured
       darkBackgroundColor = if stylixConfig.stylix.enable then "#${base00}" else "#181a1b";

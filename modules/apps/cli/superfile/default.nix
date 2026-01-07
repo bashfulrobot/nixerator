@@ -1,4 +1,4 @@
-{ lib, pkgs, config, globals, ... }:
+{ lib, config, globals, ... }:
 
 let
   cfg = config.apps.cli.superfile;
