@@ -58,7 +58,8 @@
           users.${username} = {
             imports = [ ../hosts/${hostname}/home.nix ] ++ homeManagerModules;
           };
-          backupFileExtension = "backup";
+          # Use a backup command that creates timestamped backups and keeps only the last 5
+          backupCommand = "${inputs.nixpkgs.legacyPackages.${system}.bash}/bin/bash -c 'if [ -e \"$1\" ]; then mv -f \"$1\" \"$1.backup-$(date +%Y%m%d-%H%M%S)\"; ls -t \"$1\".backup-* 2>/dev/null | tail -n +6 | xargs -r rm -f; fi' --";
         };
 
         # System state version
