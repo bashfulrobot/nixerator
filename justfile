@@ -183,6 +183,21 @@ update-db:
     @echo "🗄️  Updating nix database..."
     @nix run 'nixpkgs#nix-index' --extra-experimental-features 'nix-command flakes'
 
+# Check code health with deadnix and statix
+[group('maintenance')]
+health:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🏥 Running code health checks..."
+    echo ""
+    echo "🔍 Checking for unused code with deadnix..."
+    deadnix .
+    echo ""
+    echo "🔍 Running statix linter..."
+    fd -e nix --hidden --no-ignore --follow . -x statix check {}
+    echo ""
+    echo "✅ Code health check complete"
+
 # Lint nix files (all by default, or specify a file/directory)
 [group('maintenance')]
 lint target=".":

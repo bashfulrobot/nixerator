@@ -18,6 +18,7 @@ in {
       # keep-sorted start case=no numeric=yes
       cachix # Binary cache client for pushing/pulling packages
       comma # Nix command wrapper
+      deadnix # Find and remove unused Nix code
       keep-sorted # Keep code sorted
       # Nixd
       # https://github.com/nix-community/nixd/blob/main/docs/editor-setup.md

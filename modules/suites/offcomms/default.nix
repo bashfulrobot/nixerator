@@ -15,6 +15,7 @@ in
   config = lib.mkIf cfg.enable {
     # Communication applications
     apps.gui = {
+      obsidian.enable = true;
       signal.enable = true;
     };
 
