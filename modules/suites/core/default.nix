@@ -24,6 +24,7 @@ in
 
     # Essential system utilities
     environment.systemPackages = with pkgs; [
+      comma
       wget
       curl
       nerd-fonts.iosevka  # System-wide font with icon glyphs
