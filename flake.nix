@@ -47,6 +47,11 @@
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware/master";
     };
+
+    spicetify-nix = {
+      url = "github:Gerg-L/spicetify-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, ... }@inputs:
@@ -74,6 +79,10 @@
             # Hyprland desktop environment
             inputs.hyprflake.nixosModules.default
           ];
+          homeManagerModules = [
+            # Spicetify for customized Spotify
+            inputs.spicetify-nix.homeManagerModules.default
+          ];
         };
 
         donkeykong = lib.mkHost {
@@ -88,6 +97,10 @@
             # Hardware-specific configuration for Lenovo ThinkPad T14 Intel Gen 6
             inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t14-intel-gen6
           ];
+          homeManagerModules = [
+            # Spicetify for customized Spotify
+            inputs.spicetify-nix.homeManagerModules.default
+          ];
         };
 
         qbert = lib.mkHost {
@@ -99,6 +112,10 @@
             inputs.disko.nixosModules.disko
             # Hyprland desktop environment
             inputs.hyprflake.nixosModules.default
+          ];
+          homeManagerModules = [
+            # Spicetify for customized Spotify
+            inputs.spicetify-nix.homeManagerModules.default
           ];
         };
       };

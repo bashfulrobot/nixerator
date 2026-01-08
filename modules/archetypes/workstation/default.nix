@@ -24,6 +24,7 @@ in
       offcomms.enable = true;       # Communications suite
       infrastructure.enable = true; # Infrastructure and cloud tools
       k8s.enable = true;            # Kubernetes tooling
+      media.enable = true;          # Media suite
     };
   };
 }
