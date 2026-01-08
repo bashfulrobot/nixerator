@@ -29,6 +29,12 @@
     "amdgpu.runpm=0"  # Disable runtime power management (BACO)
   ];
 
+  # Make sure Xserver uses the amdgpu driver
+  services.xserver = {
+    enable = true;
+    videoDrivers = [ "amdgpu" ];
+  };
+
   # OpenCL support for compute tasks (uncomment if needed)
   # hardware.amdgpu.opencl.enable = true;
 
