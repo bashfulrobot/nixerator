@@ -171,6 +171,38 @@ clean-old days:
     @echo "🧹 Cleaning packages older than {{days}} days..."
     @sudo nix-collect-garbage --delete-older-than {{days}}d
 
+# Manual garbage collection (more aggressive than auto - 7 days vs 14)
+[group('maintenance')]
+gc-auto:
+    @echo "🧹 Manual garbage collection (7 days)..."
+    @sudo nix-collect-garbage --delete-older-than 7d
+
+# Nuclear garbage collection - maximum cleanup for fresh builds
+[group('maintenance')]
+gc-nuclear:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "☢️  NUCLEAR GARBAGE COLLECTION"
+    echo "================================"
+    echo "🗑️  Deleting old system generations..."
+    sudo nix-env --delete-generations old --profile /nix/var/nix/profiles/system
+    echo ""
+    echo "🗑️  Deleting old boot generations..."
+    sudo /nix/var/nix/profiles/system/bin/switch-to-configuration boot
+    echo ""
+    echo "🧹 Running full garbage collection..."
+    sudo nix-collect-garbage -d
+    echo ""
+    echo "🗑️  Clearing nix evaluation cache..."
+    rm -rf ~/.cache/nix
+    echo ""
+    echo "⚡ Optimizing nix store (this may take a while)..."
+    nix-store --optimize
+    echo ""
+    echo "✅ Nuclear cleanup complete!"
+    echo "💾 Disk space reclaimed:"
+    df -h / | tail -1
+
 # Optimize nix store
 [group('maintenance')]
 optimize:

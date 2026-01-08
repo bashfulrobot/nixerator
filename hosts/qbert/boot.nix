@@ -12,8 +12,6 @@
         enable = true;
         consoleMode = "max";  # Ensure Windows and other OSes are found in boot menu
         netbootxyz.enable = false;
-        # Maximum number of latest generations in the boot menu. Useful to prevent boot partition running out of disk space.
-        configurationLimit = 5;
       };
     };
 

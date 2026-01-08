@@ -47,7 +47,7 @@
         };
 
         # Keep system generations manageable
-        boot.loader.systemd-boot.configurationLimit = inputs.nixpkgs.lib.mkDefault 10;
+        boot.loader.systemd-boot.configurationLimit = inputs.nixpkgs.lib.mkDefault 5;
 
         home-manager = {
           useGlobalPkgs = true;
