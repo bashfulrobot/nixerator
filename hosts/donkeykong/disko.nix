@@ -58,6 +58,7 @@ _:
             size = "32G";
             content = {
               type = "swap";
+              resumeDevice = true;  # Enable hibernation resume
             };
           };
 
