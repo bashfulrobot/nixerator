@@ -27,9 +27,13 @@
 
     # Enable hibernation support (with 32GB swap)
     resumeDevice = "/dev/vg0/swap";
-    kernelParams = [ "resume=/dev/vg0/swap" ];
+    kernelParams = [
+      "resume=/dev/vg0/swap"
+      "quiet"
+      "splash"
+    ];
 
-    # Latest kernel for best hardware support
-    kernelPackages = pkgs.linuxPackages_latest;
+    # Zen kernel for better desktop performance
+    kernelPackages = pkgs.linuxPackages_zen;
   };
 }
