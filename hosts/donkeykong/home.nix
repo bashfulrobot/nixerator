@@ -24,7 +24,7 @@
 
     # Home Manager environment variables (from globals)
     sessionVariables = {
-      EDITOR = lib.getExe pkgs.${globals.preferences.editor};
+      EDITOR = lib.mkForce (lib.getExe pkgs.${globals.preferences.editor});
     };
   };
 
