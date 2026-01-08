@@ -30,6 +30,7 @@ in
       libnotify   # for notify-send
       # Script runtime dependencies
       netcat-gnu  # for nc command
+      spicetify-cli  # CLI for customizing Spotify
       # keep-sorted end
     ] ++ spotifyScripts;
 
