@@ -46,6 +46,9 @@ in
           hidePodcasts
           shuffle
         ];
+        enabledCustomApps = with spicePkgs.apps; [
+          marketplace
+        ];
       };
 
       # NCSPOT
