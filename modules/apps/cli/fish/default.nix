@@ -32,6 +32,7 @@ in
 
         # Shell aliases
         shellAliases = {
+          ni = "nix run 'nixpkgs#nix-index' --extra-experimental-features 'nix-command flakes'";
           nix-info = "nix-info --markdown --sandbox --host-os";
         };
       };
