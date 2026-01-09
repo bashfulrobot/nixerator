@@ -27,7 +27,7 @@ in
         package = pkgs.helix;
 
         extraPackages = with pkgs; [
-          nixfmt-rfc-style
+          nixfmt
           nixd
           statix
           marksman
@@ -57,7 +57,7 @@ in
             {
               name = "nix";
               auto-format = true;
-              formatter.command = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
+              formatter.command = "${pkgs.nixfmt}/bin/nixfmt";
               language-servers = [ "nixd" "statix" ];
             }
             {
