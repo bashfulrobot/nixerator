@@ -79,7 +79,6 @@ in {
       spiceUSBRedirection.enable = true;
 
     };
-    services.spice-vdagentd.enable = true;
 
     # Optional routing configuration
     boot.kernel.sysctl = lib.mkIf cfg.routing.enable ({
