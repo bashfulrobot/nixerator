@@ -1,16 +1,14 @@
 # Nixerator
 
-Modular NixOS configuration with flakes, home-manager, and Hyprland desktop via [hyprflake](https://github.com/bashfulrobot/hyprflake).
+Modular NixOS configuration with flakes, home-manager, and Hyprland desktop.
 
 ## Quick Start
 
-### Install NixOS on New System
-
-For systems with disko (automated partitioning):
+### New System Installation
 
 ```bash
-# See bootstrap.txt for complete installation guide
-cat docs/bootstrap.txt
+# See detailed installation guide
+cat extras/docs/bootstrap.txt
 ```
 
 ### Update Existing System
@@ -32,69 +30,59 @@ just generations     # List generations
 # Direct nix commands
 sudo nixos-rebuild switch --flake .#HOSTNAME
 nix flake update
+nix-collect-garbage -d
 ```
 
 ## Configuration
 
-Global settings: `settings/globals.nix`
+**Global settings**: `settings/globals.nix`
+Username, timezone, locale, editor preferences
 
-- Username, timezone, locale
-- Editor, shell preferences
+**Host-specific**: `hosts/HOSTNAME/configuration.nix`
+Enable modules via options:
 
-Host-specific: `hosts/HOSTNAME/configuration.nix`
-
-- Enable modules via options
-- Example: `apps.cli.git.enable = true;`
-
-## Structure
-
-```
-├── flake.nix              # Flake inputs and outputs
-├── settings/globals.nix   # Global configuration
-├── lib/                   # Helper functions
-├── modules/               # Auto-imported modules
-│   ├── apps/cli/          # CLI tools (git, helix, etc.)
-│   ├── apps/gui/          # GUI apps (firefox, etc.)
-│   └── system/            # System config
-└── hosts/                 # Per-host configuration
-    ├── nixerator/         # VM development host
-    └── donkeykong/        # Encrypted desktop
-        ├── configuration.nix
-        ├── disko.nix      # Disk partitioning
-        ├── boot.nix       # LUKS + hibernation
-        └── home.nix       # Home-manager config
+```nix
+{
+  apps.cli.git.enable = true;
+  apps.gui.google-chrome.enable = true;
+  suites.dev.enable = true;  # Enable entire suite
+}
 ```
 
-## Adding Modules
+## Documentation
 
-1. Create `modules/apps/cli/APPNAME/default.nix`
-2. Define options and config (see git module as example)
-3. Enable in host config: `apps.cli.APPNAME.enable = true;`
-4. Auto-imported via `modules/default.nix`
+- **[Architecture](extras/docs/architecture.md)** - Directory structure and design principles
+- **[Module Development](extras/docs/module-development.md)** - Creating new modules
+- **[VM Development](extras/docs/vm-development.md)** - Development VM setup
+- **[Web Apps](extras/docs/webapps.md)** - Progressive web application modules
+- **[SSH Configuration](extras/docs/ssh.md)** - SSH module and host aliases
+- **[Google Chrome](extras/docs/google-chrome.md)** - Chrome with Dark Reader theme
+- **[Helper Scripts](extras/docs/helpers.md)** - Utility scripts
+- **[Web App Hub](extras/docs/web-app-hub.md)** - PWA creation tool
 
-## VM Development (nixerator host)
+## Module Categories
 
-Requires virtiofs share in libvirt:
-
-```xml
-<filesystem type="mount" accessmode="passthrough">
-  <driver type="virtiofs"/>
-  <source dir="/path/on/host"/>
-  <target dir="mount_nixerator"/>
-</filesystem>
+```
+modules/
+├── apps/
+│   ├── cli/          # Command-line tools
+│   ├── gui/          # Graphical applications
+│   └── webapps/      # Progressive web apps
+├── suites/           # Grouped module collections
+├── system/           # System configuration
+└── dev/              # Development environments
 ```
 
-Initial VM setup:
+Enable individually or by suite:
 
-```bash
-sudo mkdir -p /home/dustin/dev/nix/nixerator
-sudo mount -t virtiofs mount_nixerator /home/dustin/dev/nix/nixerator
-cd /home/dustin/dev/nix/nixerator
-sudo nixos-rebuild switch --flake .#nixerator
+```nix
+# Individual apps
+apps.cli.git.enable = true;
+
+# Or enable entire suite
+suites.dev.enable = true;
 ```
 
-After first rebuild, mount is permanent.
+## Desktop
 
-## Credits
-
-- Hyprland desktop: [bashfulrobot/hyprflake](https://github.com/bashfulrobot/hyprflake)
+- The desktop configuration is an external repo for the Hyprland desktop: [bashfulrobot/hyprflake](https://github.com/bashfulrobot/hyprflake)
