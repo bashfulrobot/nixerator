@@ -17,7 +17,6 @@ in
     apps.webapps = {
       calendar.enable = true;
       clari.enable = true;
-      kong-docs.enable = true;
       mail.enable = true;
     };
   };

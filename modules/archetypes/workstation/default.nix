@@ -25,6 +25,7 @@ in
       infrastructure.enable = true; # Infrastructure and cloud tools
       k8s.enable = true;            # Kubernetes tooling
       media.enable = true;          # Media suite
+      kong.enable = true;           # Kong API Gateway suite
     };
   };
 }
