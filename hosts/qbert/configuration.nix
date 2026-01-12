@@ -7,7 +7,7 @@
     ./disko.nix                   # Disko declarative disk partitioning
     ./boot.nix                    # Bootloader with bcachefs support
     ./gpu.nix                     # AMD GPU configuration
-    ./usb-wakeup.nix              # USB wakeup configuration for Logitech devices
+    ./power-management.nix        # Power management workarounds for AMD GPU suspend and USB wakeup
     ./reboot-windows.nix          # Desktop entry for rebooting to Windows
     ./modules.nix                 # Module configuration
 

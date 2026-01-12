@@ -22,12 +22,8 @@
     firmware = [ pkgs.linux-firmware ];
   };
 
-  # Fix for monitor not waking after sleep/suspend
-  # Disable runtime PM (BACO) which causes SMU suspend/resume failures
-  # Error: "suspend of IP block <smu> failed -22"
-  boot.kernelParams = [
-    "amdgpu.runpm=0"  # Disable runtime power management (BACO)
-  ];
+  # AMD GPU suspend/resume fix moved to power-management.nix
+  # Fixes "amdgpu: suspend of IP block <smu> failed -22" error
 
   # Make sure Xserver uses the amdgpu driver
   services.xserver = {
