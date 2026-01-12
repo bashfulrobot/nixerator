@@ -46,7 +46,7 @@
   '';
 
   # Post-resume script to ensure display wakes up after AMD GPU suspend
-  systemd.services.post-resume = {
+  systemd.services.post-resume-amd-gpu = {
     description = "Post-Resume Actions for AMD GPU";
     wantedBy = [ "suspend.target" ];
     after = [ "suspend.target" ];
