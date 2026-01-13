@@ -118,6 +118,14 @@
             inputs.spicetify-nix.homeManagerModules.default
           ];
         };
+
+        srv = lib.mkHost {
+          inherit globals versions;
+          hostname = "srv";
+          system = "x86_64-linux";
+          extraModules = [ ];
+          homeManagerModules = [ ];
+        };
       };
 
       # Expose lib, globals, and versions for use in other flakes
