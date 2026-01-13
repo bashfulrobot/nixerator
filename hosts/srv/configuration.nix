@@ -57,7 +57,7 @@
     bottom
     cloud-utils
     curl
-    du-dust
+    dust
     eza
     fd
     gdu
