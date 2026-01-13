@@ -317,6 +317,12 @@ reset-hard:
     @git clean -fd
     @git pull
 
+# Pull with tailscale restart
+[group('git')]
+pull-conflict:
+    @echo "🔄 Pulling with tailscale restart..."
+    @sudo tailscale down && git stash && git pull && git stash clear && sudo tailscale up --ssh --accept-dns
+
 # === Helper Commands ===
 # Enhanced package search functionality
 [group('helpers')]
