@@ -15,6 +15,10 @@
     # USB autosuspend disabled globally
     # Prevents USB dongles from powering down during suspend
     "usbcore.autosuspend=-1"
+
+    # Force deep sleep (S3) mode at kernel level
+    # Prevents fallback to unreliable s2idle mode with AMD GPUs
+    "mem_sleep_default=deep"
   ];
 
   # Kernel modules configuration for AMD GPU
@@ -39,10 +43,12 @@
   '';
 
   # Systemd sleep configuration
+  # Note: SuspendMode was removed in systemd 254+, use SuspendState instead
   systemd.sleep.extraConfig = ''
-    # Use deep sleep (S3) for better power savings
-    SuspendMode=deep
-    HibernateMode=platform shutdown
+    # Use mem (deep sleep/S3) for better power savings
+    # This corresponds to /sys/power/state "mem" which uses the mode from /sys/power/mem_sleep
+    SuspendState=mem
+    HibernateState=disk
   '';
 
   # Post-resume script to ensure display wakes up after AMD GPU suspend
