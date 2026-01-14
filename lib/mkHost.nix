@@ -28,6 +28,14 @@
         # Allow unfree packages (e.g., Google Chrome)
         nixpkgs.config.allowUnfree = true;
 
+        # Apply custom package overlays
+        nixpkgs.overlays = [
+          # Local package overrides for latest versions
+          (final: prev: {
+            insomnia = prev.callPackage ../packages/insomnia { };
+          })
+        ];
+
         nix = {
           # Enable Nix flakes for all hosts
           settings.experimental-features = [ "nix-command" "flakes" ];
