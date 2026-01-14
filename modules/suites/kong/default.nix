@@ -13,6 +13,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Kong GUI applications
+    apps.gui = {
+      insomnia.enable = true;
+    };
+
     # Kong web applications
     apps.webapps = {
       kong-docs.enable = true;
