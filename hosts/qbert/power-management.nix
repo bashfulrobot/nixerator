@@ -46,12 +46,14 @@
   # Systemd logind configuration - use hibernate instead of suspend for idle timeout
   # Hibernate avoids AMD GPU power state bugs and works reliably with WOL
   services.logind = {
-    lidSwitch = "hibernate";           # Hibernate on lid close
-    extraConfig = ''
-      HandlePowerKey=hibernate
-      IdleAction=hibernate
-      IdleActionSec=30min
-    '';
+    settings = {
+      Login = {
+        HandleLidSwitch = "hibernate"; # Hibernate on lid close
+        HandlePowerKey = "hibernate";
+        IdleAction = "hibernate";
+        IdleActionSec = "30min";
+      };
+    };
   };
 
   # Systemd sleep configuration
