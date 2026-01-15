@@ -69,12 +69,59 @@ in
         # Waybar auto-hide configuration
         # Automatically hides waybar when workspace is empty and shows on cursor hover at top edge
         waybar.autoHide = lib.mkDefault true;
+
+        # Idle management configuration (hypridle)
+        # Controls screen locking, display power management, and suspend timeouts
+        idle = {
+          lockTimeout = lib.mkDefault 300;     # Lock screen after 5 minutes
+          dpmsTimeout = lib.mkDefault 360;     # Turn off display after 6 minutes
+          suspendTimeout = lib.mkDefault 600;  # Suspend after 10 minutes (set to 0 to disable)
+        };
       };
 
       # System configuration - System-level configuration
       system = {
         # Enable Plymouth boot splash theme
         plymouth.enable = lib.mkDefault true;
+
+        # Power management configuration
+        # Desktop defaults - hosts can override for laptop-specific needs
+        power = {
+          # No power profile backend by default (performance desktop)
+          profilesBackend = lib.mkDefault "none";
+
+          # Thermald disabled by default (enable for Intel laptops)
+          thermald.enable = lib.mkDefault false;
+
+          # Sleep configuration - defaults allow suspend/hibernate
+          # Override in host configuration to disable (see qbert example)
+          sleep = {
+            allowSuspend = lib.mkDefault true;
+            allowHibernation = lib.mkDefault true;
+            hibernateDelay = lib.mkDefault null;
+          };
+
+          # Logind power event handling
+          logind = {
+            handlePowerKey = lib.mkDefault "poweroff";
+            handleLidSwitch = lib.mkDefault "suspend";
+            handleLidSwitchDocked = lib.mkDefault "ignore";
+            idleAction = lib.mkDefault "ignore";  # Handled by hypridle
+            idleActionSec = lib.mkDefault 0;
+          };
+
+          # Resume commands - empty by default
+          resumeCommands = lib.mkDefault "";
+
+          # Battery thresholds - null by default (TLP only)
+          battery = {
+            startThreshold = lib.mkDefault null;
+            stopThreshold = lib.mkDefault null;
+          };
+
+          # TLP settings - empty by default
+          tlp.settings = lib.mkDefault { };
+        };
       };
 
       # Note: Hyprshell window switcher (alt-tab) is now always enabled via hyprflake
