@@ -1,15 +1,33 @@
 { config, lib, pkgs, ... }:
 
 # Power management configuration for qbert
-# Disables suspend/hibernate to avoid AMD GPU power state bugs
-# Uses lock + DPMS only (managed by hypridle from hyprflake)
+# AMD GPU-specific workarounds for suspend/hibernate bugs
+# Disables suspend/hibernate via hyprflake power management options
 
 {
-  # Kernel boot parameters
+  # Override hyprflake power management for qbert
+  # Disables suspend/hibernate due to AMD GPU bugs
+  hyprflake = {
+    # Disable suspend timeout in hypridle (lock + DPMS only)
+    desktop.idle.suspendTimeout = 0;
+
+    # Disable suspend and hibernate system-wide
+    system.power.sleep = {
+      allowSuspend = false;
+      allowHibernation = false;
+    };
+
+    # Logind configuration (lock on lid close, power button shuts down)
+    system.power.logind = {
+      handleLidSwitch = "lock";
+      handlePowerKey = "poweroff";
+    };
+  };
+
+  # AMD GPU-specific kernel parameters and configuration
+  # Required workaround for "amdgpu: suspend of IP block <smu> failed -22" error
   boot.kernelParams = [
-    # AMD GPU suspend bug workaround
-    # Fixes "amdgpu: suspend of IP block <smu> failed -22" error
-    # This disables AMD GPU runtime power management to prevent SMU failures
+    # Disable AMD GPU runtime power management to prevent SMU failures
     "amdgpu.runpm=0"
 
     # USB autosuspend disabled globally
@@ -40,26 +58,5 @@
     # idVendor 046d = Logitech
     ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="046d", TEST=="power/control", ATTR{power/control}="on"
     ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="046d", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"
-  '';
-
-  # Systemd logind configuration - disable suspend/hibernate
-  # Idle behavior managed by hypridle (lock + DPMS only)
-  services.logind = {
-    settings = {
-      Login = {
-        HandleLidSwitch = "lock"; # Lock screen on lid close (if applicable)
-        HandlePowerKey = "poweroff"; # Power button shuts down
-        IdleAction = "ignore"; # Hypridle manages idle timeout
-        IdleActionSec = "0"; # Disabled
-      };
-    };
-  };
-
-  # Disable suspend and hibernate system-wide
-  systemd.sleep.extraConfig = ''
-    AllowSuspend=no
-    AllowHibernation=no
-    AllowHybridSleep=no
-    AllowSuspendThenHibernate=no
   '';
 }
