@@ -18,10 +18,8 @@
     # No encryption configured (user preference)
     # ext4 filesystem will mount without password prompt
 
-    # Enable hibernation support (with 64GB swap partition)
-    # The resumeDevice is configured in disko.nix with resumeDevice = true
+    # Hibernation disabled for qbert
     kernelParams = [
-      "resume=/dev/disk/by-partlabel/disk-main-swap"
       "quiet"
       "splash"
     ];

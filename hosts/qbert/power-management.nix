@@ -1,9 +1,8 @@
 { config, lib, pkgs, ... }:
 
-# Power management workarounds for qbert's AMD Navi GPU suspend bugs
-# This module fixes the AMD GPU SMU suspend failure and USB wakeup issues
-# specific to this system's hardware (RX 6800/6900 XT + Logitech wireless peripherals)
-# Uses hibernate instead of suspend to avoid AMD GPU power state bugs
+# Power management configuration for qbert
+# Disables suspend/hibernate to avoid AMD GPU power state bugs
+# Uses lock + DPMS only (managed by hypridle from hyprflake)
 
 {
   # Kernel boot parameters
@@ -43,55 +42,24 @@
     ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="046d", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"
   '';
 
-  # Systemd logind configuration - use hibernate instead of suspend for idle timeout
-  # Hibernate avoids AMD GPU power state bugs and works reliably with WOL
+  # Systemd logind configuration - disable suspend/hibernate
+  # Idle behavior managed by hypridle (lock + DPMS only)
   services.logind = {
     settings = {
       Login = {
-        HandleLidSwitch = "hibernate"; # Hibernate on lid close
-        HandlePowerKey = "hibernate";
-        IdleAction = "hibernate";
-        IdleActionSec = "30min";
+        HandleLidSwitch = "lock"; # Lock screen on lid close (if applicable)
+        HandlePowerKey = "poweroff"; # Power button shuts down
+        IdleAction = "ignore"; # Hypridle manages idle timeout
+        IdleActionSec = "0"; # Disabled
       };
     };
   };
 
-  # Systemd sleep configuration
-  # Note: SuspendMode was removed in systemd 254+, use SuspendState instead
+  # Disable suspend and hibernate system-wide
   systemd.sleep.extraConfig = ''
-    # Use mem (deep sleep/S3) for better power savings (if suspend is manually triggered)
-    # This corresponds to /sys/power/state "mem" which uses the mode from /sys/power/mem_sleep
-    SuspendState=mem
-    HibernateState=disk
+    AllowSuspend=no
+    AllowHibernation=no
+    AllowHybridSleep=no
+    AllowSuspendThenHibernate=no
   '';
-
-  # Post-resume script to ensure display wakes up after AMD GPU suspend/hibernate
-  systemd.services.post-resume-amd-gpu = {
-    description = "Post-Resume Actions for AMD GPU";
-    wantedBy = [ "suspend.target" "hibernate.target" ];
-    after = [ "suspend.target" "hibernate.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      # Force DPMS on to wake displays after resume
-      ExecStart = "${pkgs.bash}/bin/bash -c '" +
-        "# Wait for system to stabilize\n" +
-        "${pkgs.coreutils}/bin/sleep 2\n" +
-        "# Find Hyprland socket and force DPMS on\n" +
-        "for socket_dir in /run/user/*/hypr/*/; do\n" +
-        "  socket=\"$socket_dir.socket.sock\"\n" +
-        "  if [ -S \"$socket\" ]; then\n" +
-        "    HYPR_USER=$(${pkgs.coreutils}/bin/stat -c %U \"$socket\")\n" +
-        "    HYPR_SIGNATURE=$(${pkgs.coreutils}/bin/basename \"$(${pkgs.coreutils}/bin/dirname \"$socket\")\")\n" +
-        "    sudo -u \"$HYPR_USER\" HYPRLAND_INSTANCE_SIGNATURE=\"$HYPR_SIGNATURE\" ${pkgs.hyprland}/bin/hyprctl dispatch dpms on || true\n" +
-        "    # Restart hyprpaper for this user\n" +
-        "    ${pkgs.systemd}/bin/systemctl --user -M \"$HYPR_USER\"@.host restart hyprpaper.service || true\n" +
-        "  fi\n" +
-        "done\n" +
-        "# Force display re-detection at kernel level (card1 for AMD GPU)\n" +
-        "for port in /sys/class/drm/card1-*/status; do\n" +
-        "  [ -f \"$port\" ] && echo detect > \"$port\" 2>/dev/null || true\n" +
-        "done\n" +
-        "'";
-    };
-  };
 }
