@@ -34,8 +34,32 @@ in
 
     # Home Manager configuration
     home-manager.users.${username} = {
-      programs.k9s = {
-        enable = true;
+      programs = {
+        k9s = {
+          enable = true;
+        };
+
+        fish = {
+          shellAbbrs = {
+            # Helm
+            h = "helm";
+
+            # Talos
+            t = "talosctl";
+
+            # Omni
+            o = "omnictl";
+
+            # Minikube
+            mk = "minikube";
+
+            # ArgoCD
+            argo = "argocd";
+
+            # Kustomize
+            kz = "kustomize";
+          };
+        };
       };
     };
   };
