@@ -15,6 +15,7 @@ in
   config = lib.mkIf cfg.enable {
     # Browser applications
     apps.gui = {
+      brave.enable = true;
       google-chrome.enable = true;
     };
   };
