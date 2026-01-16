@@ -126,6 +126,16 @@ in
       home.sessionVariables = {
         NIXERATOR_PATH = lib.mkDefault "/home/${username}/dev/nix/nixerator";
       };
+
+      # Install custom browser configurations for Helium
+      home.file = {
+        ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/browsers/helium.yml" = {
+          source = ./browsers/helium.yml;
+        };
+        ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/desktop-files/helium.desktop" = {
+          source = ./desktop-files/helium.desktop;
+        };
+      };
     };
   };
 }

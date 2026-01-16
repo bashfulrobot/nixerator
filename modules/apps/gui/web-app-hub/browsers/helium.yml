@@ -1,0 +1,6 @@
+name: Helium
+system_bin: /run/current-system/sw/bin/helium
+can_isolate: true
+can_start_maximized: true
+desktop_file_name_prefix: io.github.helium
+base: chromium
