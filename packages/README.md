@@ -22,6 +22,7 @@ packages/
 ## Current Overrides
 
 - **insomnia** (12.2.0) - API client for GraphQL, REST, WebSockets, etc.
+- **helium** (0.7.10.1) - Privacy-focused Chromium-based web browser (beta)
 
 ## Usage
 

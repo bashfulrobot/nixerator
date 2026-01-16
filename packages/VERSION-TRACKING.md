@@ -46,6 +46,26 @@ Local package overrides serve several purposes:
 
 ---
 
+### Helium
+
+**Current Local Version:** 0.7.10.1
+**Last Updated:** 2026-01-16
+**Nixpkgs Version:** Not in nixpkgs
+**Pending Nixpkgs PR:** None yet
+**Upstream Releases:** https://github.com/imputnet/helium-linux/releases
+
+**Files:**
+- Package: `packages/helium/default.nix`
+- Module: `modules/apps/gui/helium/default.nix`
+
+**Next Check:** Monthly (around the 15th)
+
+**Status:** Beta software - privacy-focused Chromium-based browser
+
+**Version Bump Process:** See section below
+
+---
+
 ## Version Bump Process
 
 ### For Insomnia (and similar packages)
@@ -242,6 +262,7 @@ Add entry to "Tracked Packages" section above.
 
 **Monthly checks (around 15th of each month):**
 - Insomnia
+- Helium
 - (Add other packages as you override them)
 
 **Check method:**
