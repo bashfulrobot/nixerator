@@ -127,13 +127,19 @@ in
         NIXERATOR_PATH = lib.mkDefault "/home/${username}/dev/nix/nixerator";
       };
 
-      # Install custom browser configurations for Helium
+      # Install custom browser configurations
       home.file = {
         ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/browsers/helium.yml" = {
           source = ./browsers/helium.yml;
         };
         ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/desktop-files/helium.desktop" = {
           source = ./desktop-files/helium.desktop;
+        };
+        ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/browsers/brave.yml" = {
+          source = ./browsers/brave.yml;
+        };
+        ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/desktop-files/brave.desktop" = {
+          source = ./desktop-files/brave.desktop;
         };
       };
     };

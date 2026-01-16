@@ -1,0 +1,6 @@
+name: Brave
+system_bin: /run/current-system/sw/bin/brave
+can_isolate: true
+can_start_maximized: true
+desktop_file_name_prefix: com.brave.Browser
+base: chromium
