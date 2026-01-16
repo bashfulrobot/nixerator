@@ -27,5 +27,19 @@ in
         };
       };
     };
+
+    # Home Manager configuration for docker aliases
+    home-manager.users.${username} = {
+      programs.fish = {
+        shellAbbrs = {
+          d = "docker";
+          dc = "docker compose";
+          dps = "docker ps";
+          di = "docker images";
+          dex = "docker exec -it";
+          dlogs = "docker logs -f";
+        };
+      };
+    };
   };
 }
