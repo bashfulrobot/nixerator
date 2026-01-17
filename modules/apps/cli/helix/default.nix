@@ -20,7 +20,13 @@ in
 
     environment.variables = { EDITOR = "hx"; };
 
+    security.sudo.extraConfig = ''
+      Defaults env_keep += "EDITOR"
+    '';
+
     home-manager.users.${username} = {
+      programs.fish.shellAliases.vi = "hx";
+
       programs.helix = {
         enable = true;
         defaultEditor = true;
