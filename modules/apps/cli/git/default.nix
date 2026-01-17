@@ -27,7 +27,7 @@ in
 
       programs = {
         fish = {
-          shellAbbrs = {
+          shellAliases = {
             g = "git";
             ga = "git add";
             gc = "git commit";

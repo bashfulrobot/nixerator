@@ -40,23 +40,12 @@ in
         };
 
         fish = {
-          shellAbbrs = {
-            # Helm
+          shellAliases = {
             h = "helm";
-
-            # Talos
             t = "talosctl";
-
-            # Omni
             o = "omnictl";
-
-            # Minikube
             mk = "minikube";
-
-            # ArgoCD
             argo = "argocd";
-
-            # Kustomize
             kz = "kustomize";
           };
         };

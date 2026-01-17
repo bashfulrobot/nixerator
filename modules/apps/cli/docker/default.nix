@@ -31,7 +31,7 @@ in
     # Home Manager configuration for docker aliases
     home-manager.users.${username} = {
       programs.fish = {
-        shellAbbrs = {
+        shellAliases = {
           d = "docker";
           dc = "docker compose";
           dps = "docker ps";
