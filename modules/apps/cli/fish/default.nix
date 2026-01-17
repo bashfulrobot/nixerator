@@ -32,6 +32,8 @@ in
 
         # Shell aliases
         shellAliases = {
+          gs = "git status";
+          gsp = "git stash && git pull && git stash clear && gs";
           ni = "nix run 'nixpkgs#nix-index' --extra-experimental-features 'nix-command flakes'";
           nix-info = "nix-info --markdown --sandbox --host-os";
         };
