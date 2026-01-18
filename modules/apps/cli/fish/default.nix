@@ -33,9 +33,17 @@ in
         # Shell aliases
         shellAliases = {
           gs = "git status";
-          gsp = "git stash && git pull && git stash clear && gs";
           ni = "nix run 'nixpkgs#nix-index' --extra-experimental-features 'nix-command flakes'";
           nix-info = "nix-info --markdown --sandbox --host-os";
+
+          # Directory navigation
+          gon = "cd ~/dev/nix/nixerator";
+          goh = "cd ~/dev/nix/hyprflake";
+
+          # NixOS operations
+          upgrade = "cd ~/dev/nix/nixerator && just upgrade";
+          rebuild = "cd ~/dev/nix/nixerator && just rebuild";
+          gsp = "cd ~/dev/nix/nixerator && just git-conflict";
         };
 
         # Custom functions
