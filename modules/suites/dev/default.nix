@@ -1,4 +1,10 @@
-{ lib, pkgs, config, globals, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  ...
+}:
 
 let
   cfg = config.suites.dev;
@@ -37,15 +43,19 @@ in
     };
 
     # Development tools
-    environment.systemPackages = with pkgs; [
-      filezilla  # FTP/SFTP client
-      just    # Task runner for project commands
-      statix  # Nix linter and code quality checker
-      git-cliff  # Conventional changelog generator
-      jq      # JSON processor
-      yq-go   # YAML processor
-    ] ++ [
-      pkgs.${globals.preferences.editor}  # User's preferred editor
-    ];
+    environment.systemPackages =
+      with pkgs;
+      [
+        filezilla # FTP/SFTP client
+        just # Task runner for project commands
+        statix # Nix linter and code quality checker
+        git-cliff # Conventional changelog generator
+        jq # JSON processor
+        yq-go # YAML processor
+        hugo # Static site generator
+      ]
+      ++ [
+        pkgs.${globals.preferences.editor} # User's preferred editor
+      ];
   };
 }
