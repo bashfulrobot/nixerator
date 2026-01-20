@@ -22,6 +22,7 @@ in
     apps = {
       cli = {
         claude-code.enable = true;
+        opencode.enable = true;
         gemini-cli.enable = true;
         git.enable = true;
         helix.enable = true;
