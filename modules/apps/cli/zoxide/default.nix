@@ -2,6 +2,7 @@
   globals,
   lib,
   config,
+  pkgs,
   ...
 }:
 
@@ -25,12 +26,24 @@ in
 
       programs.zoxide = {
         enable = true;
-        enableFishIntegration = true;
-        options = [
-          # Replace cd.
-          "--cmd cd"
-        ];
+        # Disabled - using zoxide.fish plugin for enhanced tab completion
+        enableFishIntegration = false;
       };
+
+      # zoxide.fish provides enhanced tab completion that completes directories
+      # first, then falls back to zoxide queries. Also aliases cd to z by default.
+      # https://github.com/icezyclon/zoxide.fish
+      programs.fish.plugins = [
+        {
+          name = "zoxide.fish";
+          src = pkgs.fetchFromGitHub {
+            owner = "icezyclon";
+            repo = "zoxide.fish";
+            rev = "3.0";
+            hash = "sha256-OjrX0d8VjDMxiI5JlJPyu/scTs/fS/f5ehVyhAA/KDM=";
+          };
+        }
+      ];
 
     };
 
