@@ -47,7 +47,6 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
-      gnomeExtensions.syncthing-indicator
       syncthing
     ];
 
@@ -251,7 +250,7 @@ in
             StartupWMClass=chrome-localhost__-Default
             Comment=Launch Syncthing Web UI
             Icon=${globals.user.homeDirectory}/.local/share/xdg-desktop-portal/icons/192x192/syncthing.png
-            Exec=google-chrome --ozone-platform-hint=auto --force-dark-mode --enable-features=WebUIDarkMode --app="http://localhost:8384" %U
+            Exec=google-chrome-stable --ozone-platform-hint=auto --force-dark-mode --enable-features=WebUIDarkMode --app="http://localhost:8384" %U
 
             Terminal=false
           '';
