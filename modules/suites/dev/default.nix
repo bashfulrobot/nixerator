@@ -36,6 +36,7 @@ in
         nix.enable = true;
         nix-search-tv.enable = true;
         codex.enable = true;
+        shadowenv.enable = true;
       };
       gui = {
         vscode.enable = true;
@@ -53,7 +54,6 @@ in
         jq # JSON processor
         yq-go # YAML processor
         hugo # Static site generator
-        shadowenv # Directory-based environment switching
       ]
       ++ [
         pkgs.${globals.preferences.editor} # User's preferred editor
