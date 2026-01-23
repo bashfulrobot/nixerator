@@ -21,6 +21,7 @@ in
 
     apps.cli = {
       meetsum.enable = true;
+      pandoc.enable = true;
     };
 
     environment.systemPackages = with pkgs; [
