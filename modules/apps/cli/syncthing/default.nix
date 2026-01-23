@@ -239,27 +239,20 @@ in
       })
     ];
 
-    # Home Manager configuration for desktop files and icons
+    # Home Manager configuration for desktop file and stignore files
     home-manager.users.${globals.user.name} = {
       home.file = {
-        "syncthing.desktop" = {
+        # Override package desktop file since we use custom configDir
+        "syncthing-ui.desktop" = {
           text = ''
             [Desktop Entry]
+            Name=Syncthing Web UI
+            Exec=xdg-open http://localhost:8384
+            Icon=syncthing
             Type=Application
-            Name=Syncthing
-            StartupWMClass=chrome-localhost__-Default
-            Comment=Launch Syncthing Web UI
-            Icon=${globals.user.homeDirectory}/.local/share/xdg-desktop-portal/icons/192x192/syncthing.png
-            Exec=google-chrome-stable --ozone-platform-hint=auto --force-dark-mode --enable-features=WebUIDarkMode --app="http://localhost:8384" %U
-
-            Terminal=false
+            Categories=Network;FileTransfer;
           '';
-          target = ".local/share/applications/syncthing.desktop";
-        };
-
-        "syncthing.png" = {
-          source = ./syncthing.png;
-          target = ".local/share/xdg-desktop-portal/icons/192x192/syncthing.png";
+          target = ".local/share/applications/syncthing-ui.desktop";
         };
 
         "dev/.stignore" = {
