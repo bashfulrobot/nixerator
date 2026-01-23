@@ -1,4 +1,11 @@
-{ globals, pkgs, config, lib, versions, ... }:
+{
+  globals,
+  pkgs,
+  config,
+  lib,
+  versions,
+  ...
+}:
 
 let
   cfg = config.apps.cli.meetsum;
@@ -11,7 +18,7 @@ let
     # meetsum configuration file
     paths:
       # Base directory for customer meetings
-      customers_dir: "${homeDir}/Documents/Kong/Customers"
+      customers_dir: "${homeDir}/Documents/Kong/Meetings"
 
       # Directory containing the LLM instructions file
       automation_dir: "${homeDir}/.config/meetsum"
@@ -56,7 +63,8 @@ in
     environment.systemPackages = [ meetsum ];
 
     home-manager.users.${username} = {
-      xdg.configFile."meetsum/Meeting-summary-llm-instructions.md".source = ./build/Meeting-summary-llm-instructions.md;
+      xdg.configFile."meetsum/Meeting-summary-llm-instructions.md".source =
+        ./build/Meeting-summary-llm-instructions.md;
       xdg.configFile."meetsum/settings.yaml".source = settingsYaml;
     };
   };
