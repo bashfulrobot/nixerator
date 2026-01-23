@@ -6,8 +6,8 @@
   cli = {
     meetsum = {
       # Source: https://github.com/bashfulrobot/meetsum/releases
-      version = "0.2.0";
-      sha256 = "sha256-DaRZYW+DXdmLN82zj8hysbunW3dA2N49HKyLhe9VvNo=";
+      version = "0.3.0";
+      sha256 = "sha256-b2uJtJf8laqGnumsQhCd2qVIkCNUtYn2gfmEUFRnRMk=";
       repo = "https://github.com/bashfulrobot/meetsum";
     };
   };
