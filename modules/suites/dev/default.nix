@@ -53,6 +53,7 @@ in
         jq # JSON processor
         yq-go # YAML processor
         hugo # Static site generator
+        shadowenv # Directory-based environment switching
       ]
       ++ [
         pkgs.${globals.preferences.editor} # User's preferred editor
