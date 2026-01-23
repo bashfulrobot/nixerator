@@ -317,11 +317,50 @@ reset-hard:
     @git clean -fd
     @git pull
 
-# Pull with tailscale restart
+# Force pull from remote, stopping syncthing to prevent conflicts
 [group('git')]
 pull-conflict:
-    @echo "🔄 Pulling with tailscale restart..."
-    @sudo tailscale down && git stash && git pull && git stash clear && sudo tailscale up --ssh --accept-dns
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔄 Force pulling from remote..."
+
+    # Stop syncthing
+    echo "⏹️  Stopping syncthing..."
+    systemctl --user stop syncthing || true
+
+    # Fetch to see what's coming
+    git fetch
+
+    # Find and remove untracked files that exist in remote
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+    echo "🔍 Checking for conflicting untracked files..."
+    git ls-tree -r --name-only "origin/$current_branch" 2>/dev/null | while read -r remote_file; do
+        if [[ -e "$remote_file" ]] && ! git ls-files --error-unmatch "$remote_file" >/dev/null 2>&1; then
+            echo "🗑️  Removing: $remote_file"
+            rm -rf "$remote_file"
+        fi
+    done
+
+    # Stash any tracked changes
+    git stash || true
+
+    # Pull
+    echo "⬇️  Pulling..."
+    if git pull; then
+        echo "✅ Pull successful"
+    else
+        echo "❌ Pull failed"
+        git stash pop 2>/dev/null || true
+    fi
+
+    # Clear stash
+    git stash clear || true
+
+    # Start syncthing
+    echo "▶️  Starting syncthing..."
+    systemctl --user start syncthing
+
+    echo "✅ Done"
 
 # === Helper Commands ===
 # Enhanced package search functionality
