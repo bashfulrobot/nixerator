@@ -17,8 +17,8 @@ let
   settingsYaml = pkgs.writeText "settings.yaml" ''
     # meetsum configuration file
     paths:
-      # Base directory for customer meetings
-      customers_dir: "${homeDir}/Documents/Kong/Meetings"
+      # Base directory for meetings
+      file_browser_root_dir: "${homeDir}/Documents/Kong/Meetings"
 
       # Directory containing the LLM instructions file
       automation_dir: "${homeDir}/.config/meetsum"
