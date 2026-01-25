@@ -1,7 +1,29 @@
-{ lib, pkgs, config, globals, ... }:
+{ lib, pkgs, config, globals, secrets, ... }:
 let
   cfg = config.apps.cli.gemini-cli;
   username = globals.user.name;
+
+  # MCP Servers configuration for settings.json
+  mcpServers = {
+    sequential-thinking = {
+      command = "${pkgs.nodejs_24}/bin/npx";
+      args = [ "-y" "@modelcontextprotocol/server-sequential-thinking" ];
+    };
+  } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
+    kong-konnect = {
+      httpUrl = "https://us.mcp.konghq.com/";
+      headers = {
+        Authorization = "Bearer ${secrets.kong.kongKonnectPAT}";
+      };
+    };
+  };
+
+  # Settings JSON content
+  settingsJson = builtins.toJSON {
+    inherit mcpServers;
+    # Enable Gemini 3 preview features
+    previewFeatures = true;
+  };
 
   commit-prompt = ''
     Format: `<type>(<scope>): <emoji> <description>`
@@ -46,8 +68,16 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # System packages for MCP server dependencies
+    environment.systemPackages = with pkgs; [
+      nodejs_24 # Includes npm and npx for MCP servers
+    ];
+
     home-manager.users.${username} = {
       home.packages = [ pkgs.gemini-cli ];
+
+      # Create ~/.gemini/settings.json with MCP servers
+      home.file.".gemini/settings.json".text = settingsJson;
 
       # Create ~/.gemini/commands/commit.toml
       home.file.".gemini/commands/commit.toml".text = ''
