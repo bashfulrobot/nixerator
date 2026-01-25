@@ -21,8 +21,21 @@ let
   # Settings JSON content
   settingsJson = builtins.toJSON {
     inherit mcpServers;
-    # Enable Gemini 3 preview features
-    previewFeatures = true;
+    # General settings
+    general = {
+      # Enable Gemini 3 preview features
+      previewFeatures = true;
+    };
+    # IDE integration
+    ide = {
+      enabled = true;
+    };
+    # Auth settings
+    security = {
+      auth = {
+        selectedType = "oauth-personal";
+      };
+    };
   };
 
   commit-prompt = ''
