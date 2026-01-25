@@ -28,14 +28,15 @@ in
     apps = {
       cli = {
         claude-code.enable = true;
-        opencode.enable = true;
+        codex.enable = true;
+        cue.enable = true;
         gemini-cli.enable = true;
         git.enable = true;
         helix.enable = true;
         lswt.enable = true;
         nix.enable = true;
         nix-search-tv.enable = true;
-        codex.enable = true;
+        opencode.enable = true;
         shadowenv.enable = true;
       };
       gui = {

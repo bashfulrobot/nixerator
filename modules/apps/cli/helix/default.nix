@@ -33,13 +33,14 @@ in
         package = pkgs.helix;
 
         extraPackages = with pkgs; [
-          nixfmt
-          nixd
-          statix
-          marksman
-          gopls
-          golangci-lint-langserver
+          cuelsp
           delve
+          golangci-lint-langserver
+          gopls
+          marksman
+          nixd
+          nixfmt
+          statix
           yaml-language-server
         ] ++ lib.optional (lib.hasAttr "helix-gpt" pkgs) pkgs."helix-gpt";
 
@@ -61,6 +62,11 @@ in
         languages = {
           language = [
             {
+              name = "cue";
+              auto-format = true;
+              language-servers = [ "cuelsp" ];
+            }
+            {
               name = "nix";
               auto-format = true;
               formatter.command = "${pkgs.nixfmt}/bin/nixfmt";
@@ -77,6 +83,9 @@ in
           ];
 
           language-server = {
+            cuelsp = {
+              command = "cuelsp";
+            };
             yaml = {
               command = "yaml-language-server";
               args = [ "--stdio" ];
