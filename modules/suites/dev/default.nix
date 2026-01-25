@@ -54,6 +54,7 @@ in
         jq # JSON processor
         yq-go # YAML processor
         hugo # Static site generator
+        envsubst # Environment variable substitution
       ]
       ++ [
         pkgs.${globals.preferences.editor} # User's preferred editor
