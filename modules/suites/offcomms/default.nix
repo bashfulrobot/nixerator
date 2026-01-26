@@ -1,4 +1,9 @@
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.suites.offcomms;
@@ -28,6 +33,7 @@ in
       discord-ptb
       slack
       todoist-electron
+      morgen
     ];
   };
 }
