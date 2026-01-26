@@ -68,7 +68,7 @@ in
 
         # Waybar auto-hide configuration
         # Automatically hides waybar when workspace is empty and shows on cursor hover at top edge
-        waybar.autoHide = lib.mkDefault true;
+        waybar.autoHide = lib.mkDefault false;
 
         # Idle management configuration (hypridle)
         # Controls screen locking, display power management, and suspend timeouts
