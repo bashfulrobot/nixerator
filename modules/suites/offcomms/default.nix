@@ -31,9 +31,10 @@ in
 
     environment.systemPackages = with pkgs; [
       discord-ptb
+      morgen
       slack
       todoist-electron
-      morgen
+      typora
     ];
   };
 }
