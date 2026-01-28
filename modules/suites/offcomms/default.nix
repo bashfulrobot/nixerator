@@ -22,6 +22,8 @@ in
     apps.gui = {
       obsidian.enable = true;
       signal.enable = true;
+      typora.enable = true;
+      typora.nautilusIntegration = true;
     };
 
     apps.cli = {
@@ -34,7 +36,6 @@ in
       morgen
       slack
       todoist-electron
-      typora
     ];
   };
 }
