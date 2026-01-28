@@ -11,6 +11,12 @@ in {
       default = false;
       description = "Enable the vscode editor.";
     };
+
+    apps.gui.vscode.nautilusIntegration = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Add 'Open in VS Code' to Nautilus right-click context menu.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -23,9 +29,50 @@ in {
         ];
       })
       # keep-sorted end
+    ] ++ lib.optionals cfg.nautilusIntegration [
+      nautilus-python
     ];
     home-manager.users.${username} = {
-      home.file = {
+      home.file = lib.mkMerge [
+        (lib.mkIf cfg.nautilusIntegration {
+          ".local/share/nautilus-python/extensions/vscode-open.py".text = ''
+            from gi.repository import Nautilus, GObject
+            from subprocess import call
+            import os
+
+            class VSCodeExtension(GObject.GObject, Nautilus.MenuProvider):
+                def launch_vscode(self, menu, files):
+                    safepaths = ""
+                    args = ""
+                    for file in files:
+                        filepath = file.get_location().get_path()
+                        safepaths += '"' + filepath + '" '
+                        if os.path.isdir(filepath) and os.path.exists(filepath):
+                            args = "--new-window "
+                    call("code " + args + safepaths + "&", shell=True)
+
+                def get_file_items(self, *args):
+                    files = args[-1]
+                    item = Nautilus.MenuItem(
+                        name="VSCodeOpen",
+                        label="Open in VS Code",
+                        tip="Opens the selected files with VS Code"
+                    )
+                    item.connect("activate", self.launch_vscode, files)
+                    return [item]
+
+                def get_background_items(self, *args):
+                    file_ = args[-1]
+                    item = Nautilus.MenuItem(
+                        name="VSCodeOpenBackground",
+                        label="Open in VS Code",
+                        tip="Opens the current directory in VS Code"
+                    )
+                    item.connect("activate", self.launch_vscode, [file_])
+                    return [item]
+          '';
+        })
+        {
         ".vscode/extensions/stylix-theme/package.json".text = builtins.toJSON {
         name = "stylix-theme";
         displayName = "Stylix Theme";
@@ -434,7 +481,8 @@ in {
         ".config/Code/User/argv.json".text = builtins.toJSON {
           password-store = "gnome-libsecret";
         };
-      };
+        }
+      ];
     };
   };
 }
