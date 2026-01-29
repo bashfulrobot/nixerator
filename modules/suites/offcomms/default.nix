@@ -20,6 +20,7 @@ in
   config = lib.mkIf cfg.enable {
     # Communication applications
     apps.gui = {
+      insync.enable = true;
       obsidian.enable = true;
       signal.enable = true;
       typora.enable = true;
