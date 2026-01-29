@@ -26,6 +26,7 @@ in
     # Essential system utilities
     environment.systemPackages = with pkgs; [
       comma
+      gnome-disk-utility
       gnome-system-monitor
       wget
       curl
