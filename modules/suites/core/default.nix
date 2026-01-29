@@ -18,6 +18,7 @@ in
     system.flatpak.enable = true;
     apps.cli.tailscale.enable = true;
     apps.cli.restic.enable = true;
+    apps.gui.pctrl.enable = true;
     apps.gui.web-app-hub.enable = true;
 
     # Automatic timezone detection based on geolocation
