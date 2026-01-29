@@ -1,4 +1,11 @@
-{ lib, pkgs, config, globals, username, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  username,
+  ...
+}:
 
 let
   cfg = config.suites.core;
@@ -8,7 +15,7 @@ in
     suites.core.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable core system infrastructure suite with SSH, Flatpak, Web App Hub, backup tools (restic), and essential system tools.";
+      description = "Enable core system infrastructure suite with SSH, Flatpak, GNOME Online Accounts (Google Drive), Web App Hub, backup tools (restic), and essential system tools.";
     };
   };
 
@@ -16,6 +23,7 @@ in
     # Core system infrastructure
     system.ssh.enable = true;
     system.flatpak.enable = true;
+    system.gnome-online-accounts.enable = true;
     apps.cli.tailscale.enable = true;
     apps.cli.restic.enable = true;
     apps.gui.web-app-hub.enable = true;
@@ -24,33 +32,36 @@ in
     services.automatic-timezoned.enable = true;
 
     # Essential system utilities
-    environment.systemPackages = with pkgs; [
-      comma
-      gnome-disk-utility
-      gnome-system-monitor
-      wget
-      curl
-      nerd-fonts.iosevka  # System-wide font with icon glyphs
-    ] ++ [
-      # Desktop entry for rebooting to firmware (UEFI/BIOS setup)
-      (pkgs.makeDesktopItem {
-        name = "reboot-firmware";
-        desktopName = "Reboot to Firmware";
-        comment = "Reboot the computer and enter firmware (UEFI/BIOS) setup";
-        exec = "${pkgs.systemd}/bin/systemctl reboot --firmware-setup";
-        icon = "system-reboot";
-        terminal = false;
-        type = "Application";
-        categories = [ "System" ];
-      })
-    ];
+    environment.systemPackages =
+      with pkgs;
+      [
+        comma
+        gnome-disk-utility
+        gnome-system-monitor
+        wget
+        curl
+        nerd-fonts.iosevka # System-wide font with icon glyphs
+      ]
+      ++ [
+        # Desktop entry for rebooting to firmware (UEFI/BIOS setup)
+        (pkgs.makeDesktopItem {
+          name = "reboot-firmware";
+          desktopName = "Reboot to Firmware";
+          comment = "Reboot the computer and enter firmware (UEFI/BIOS) setup";
+          exec = "${pkgs.systemd}/bin/systemctl reboot --firmware-setup";
+          icon = "system-reboot";
+          terminal = false;
+          type = "Application";
+          categories = [ "System" ];
+        })
+      ];
 
     # Networking defaults
     networking = {
       networkmanager.enable = lib.mkDefault true;
       firewall = {
         enable = lib.mkDefault true;
-        allowedTCPPorts = lib.mkDefault [ 22 ];  # SSH
+        allowedTCPPorts = lib.mkDefault [ 22 ]; # SSH
       };
     };
 
@@ -71,11 +82,14 @@ in
     users.users.${username} = {
       isNormalUser = true;
       description = globals.user.fullName;
-      extraGroups = [ "networkmanager" "wheel" ];
+      extraGroups = [
+        "networkmanager"
+        "wheel"
+      ];
       shell = pkgs.${globals.preferences.shell};
     };
 
-     # naughty
+    # naughty
     security.sudo.wheelNeedsPassword = false;
   };
 }
