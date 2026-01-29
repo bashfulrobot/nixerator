@@ -34,7 +34,6 @@
           (final: prev: {
             insomnia = prev.callPackage ../packages/insomnia { };
             helium = prev.callPackage ../packages/helium { };
-            pctrl = prev.callPackage ../packages/pctrl { };
           })
         ];
 
