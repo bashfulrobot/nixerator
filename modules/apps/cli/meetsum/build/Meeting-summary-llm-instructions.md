@@ -51,6 +51,17 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
     - Recognize technology names and acronyms that may appear abbreviated or misspelled
     - Use input as a guide to identify and expand on relevant transcript sections
 
+#### ***ACTIVITY TIMELINE*** (Optional - only if discussed)
+- Section title: `_ACTIVITY TIMELINE_` (italics only, all caps)
+- **Only include this section if the transcript contains dates, deadlines, or milestones**
+- Add an intro line: "To provide a clear view of upcoming milestones and deadlines discussed during the call:"
+- Use bullet point format with `-`
+- Format: `- **{Date}**: {Description of milestone, deadline, or scheduled activity}`
+- Bold the date portion for visual emphasis
+- List dates in chronological order
+- Include context about potential changes (e.g., "potential slip to Mon")
+- Capture all mentioned dates: target dates, handoffs, go-lives, scheduled meetings, etc.
+
 #### ***PEOPLE*** (Optional - only if discussed)
 - Section title: `*PEOPLE*` (bold only, all caps)
 - **Only include this section if the transcript contains relevant information**
@@ -113,6 +124,7 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
   - **NEVER** use `**text**` anywhere in the document
 - Document title: `*_TITLE_*` (bold italics, all caps)
 - Topic sections: `_TITLE_` (italics only, all caps)
+- Activity Timeline section: `_ACTIVITY TIMELINE_` (italics only, all caps)
 - Other sections (People, Automation/Infrastructure/Tools, Risks, Highlights, Action Items, Meeting Recording): `*TITLE*` (bold only, all caps)
 - Use `-` for bullet points (not `•`)
 - Use standard markdown formatting for links
@@ -139,7 +151,8 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
 - [ ] All section titles are properly formatted (*_ALL WORDS CAPS_*)
 - [ ] Topic sections are in paragraph format with sufficient detail
 - [ ] If `pov-input.md` exists, all input details are incorporated into topics
-- [ ] Optional sections (People, Automation/Infrastructure/Tools, Risks) included only if relevant content exists in transcript
+- [ ] Optional sections (Activity Timeline, People, Automation/Infrastructure/Tools, Risks) included only if relevant content exists in transcript
+- [ ] Activity Timeline lists dates chronologically with bold dates and clear descriptions (if included)
 - [ ] All sections use `-` bullet points (except topic sections which are paragraphs)
 - [ ] People section includes names, roles, and responsibilities (if included)
 - [ ] Automation/Infrastructure/Tools section captures technical systems discussed (if included)
@@ -161,6 +174,14 @@ Detailed paragraph discussing the first topic...
 
 *_TOPIC TWO EXAMPLE_*
 Detailed paragraph discussing the second topic...
+
+_ACTIVITY TIMELINE_
+
+To provide a clear view of upcoming milestones and deadlines discussed during the call:
+- **Jan 30 (Fri)**: Wave 1.2 target due date (potential slip to Mon).
+- **Feb 2 (Mon)**: Standard Image update scheduled. Internal prep for Martech.
+- **Feb 9 (Week of)**: Team out / No Knowledge Transfer sessions.
+- **Feb 23**: GIH non-prod handoff target.
 
 *PEOPLE*
 - Jane Smith (VP of Engineering): Leads the platform team, responsible for infrastructure decisions
