@@ -50,13 +50,22 @@ in
           };
           functions = {
             kns-force-delete = {
-              description = "Force delete a namespace stuck in Terminating state";
+              description = "Force delete a namespace, clearing finalizers if stuck";
               body = ''
+                set -l ns
                 if test (count $argv) -eq 0
-                    echo "Usage: kns-force-delete <namespace>"
-                    return 1
+                    set ns (kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | fzf --header="Select namespace to force delete")
+                    if test -z "$ns"
+                        echo "No namespace selected"
+                        return 1
+                    end
+                else
+                    set ns $argv[1]
                 end
-                kubectl get namespace $argv[1] -o json | jq '.spec.finalizers = []' | kubectl replace --raw "/api/v1/namespaces/$argv[1]/finalize" -f -
+                echo "Deleting namespace: $ns"
+                kubectl delete namespace $ns --wait=false
+                echo "Clearing finalizers..."
+                kubectl get namespace $ns -o json | jq '.spec.finalizers = []' | kubectl replace --raw "/api/v1/namespaces/$ns/finalize" -f -
               '';
             };
           };
