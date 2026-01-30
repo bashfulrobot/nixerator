@@ -26,5 +26,10 @@ in
     environment.systemPackages = with pkgs;
       [ insync ]
       ++ lib.optionals cfg.nautilusIntegration [ insync-nautilus ];
+
+    # Autostart insync via hyprflake's autostart.d pattern
+    hyprflake.desktop.autostartD.execOnce = {
+      "50-insync" = "insync start --no-daemon";
+    };
   };
 }
