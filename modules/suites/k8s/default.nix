@@ -48,6 +48,18 @@ in
             argo = "argocd";
             kz = "kustomize";
           };
+          functions = {
+            kns-force-delete = {
+              description = "Force delete a namespace stuck in Terminating state";
+              body = ''
+                if test (count $argv) -eq 0
+                    echo "Usage: kns-force-delete <namespace>"
+                    return 1
+                end
+                kubectl get namespace $argv[1] -o json | jq '.spec.finalizers = []' | kubectl replace --raw "/api/v1/namespaces/$argv[1]/finalize" -f -
+              '';
+            };
+          };
         };
       };
     };
