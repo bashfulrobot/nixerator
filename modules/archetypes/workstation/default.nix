@@ -26,6 +26,7 @@ in
       k8s.enable = true;            # Kubernetes tooling
       media.enable = true;          # Media suite
       kong.enable = true;           # Kong API Gateway suite
+      av.enable = true;             # Audio/visual creative suite
     };
   };
 }
