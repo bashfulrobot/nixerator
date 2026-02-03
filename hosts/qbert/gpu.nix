@@ -31,8 +31,8 @@
     videoDrivers = [ "amdgpu" ];
   };
 
-  # OpenCL support for compute tasks (uncomment if needed)
-  # hardware.amdgpu.opencl.enable = true;
+  # OpenCL support for compute tasks
+  hardware.amdgpu.opencl.enable = true;
 
   # LACT - Linux AMDGPU Controller Tool (uncomment if needed)
   # Provides GUI for overclocking, undervolting, fan curves
