@@ -1,4 +1,4 @@
-{ lib, pkgs, config, username, ... }:
+{ lib, pkgs, config, inputs, username, ... }:
 
 let
   cfg = config.suites.desktop;
@@ -13,6 +13,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Apple fonts for system-wide availability
+    system.apple-fonts.enable = true;
+
     # Hyprflake Configuration
     # Centralized desktop environment configuration for all workstations
     # Individual hosts can override these settings in their configuration.nix
@@ -33,11 +36,6 @@ in
         # Default sansSerif: Inter
         # Default serif: Noto Serif
         # Default emoji: Noto Color Emoji
-        # Override in host configuration with:
-        # hyprflake.style.fonts.monospace = {
-        #   name = "JetBrainsMono Nerd Font";
-        #   package = pkgs.nerd-fonts.jetbrains-mono;
-        # };
 
         # Cursor theme
         cursor = {
@@ -130,6 +128,27 @@ in
       user = {
         inherit username;
         photo = ./.face;
+      };
+    };
+
+    # Stylix font configuration - Apple fonts (SF Pro, SF Mono, New York)
+    # To revert to defaults, comment out this stylix.fonts block:
+    #   monospace: DejaVu Sans Mono
+    #   sansSerif: DejaVu Sans
+    #   serif: DejaVu Serif
+    #   emoji: Noto Color Emoji
+    stylix.fonts = {
+      monospace = {
+        name = "SFMono Nerd Font";
+        package = inputs.apple-fonts.packages.${pkgs.system}.sf-mono-nerd;
+      };
+      sansSerif = {
+        name = "SF Pro Display";
+        package = inputs.apple-fonts.packages.${pkgs.system}.sf-pro;
+      };
+      serif = {
+        name = "New York";
+        package = inputs.apple-fonts.packages.${pkgs.system}.ny;
       };
     };
   };
