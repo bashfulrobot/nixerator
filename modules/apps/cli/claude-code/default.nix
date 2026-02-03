@@ -335,10 +335,14 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # System packages for MCP server dependencies
+    # System packages for MCP server dependencies and LSP servers
     environment.systemPackages = with pkgs; [
       nodejs_24 # Includes npm and npx for MCP servers
       (writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
+
+      # Language servers for Claude Code intelligence
+      gopls # Go language server
+      rust-analyzer # Rust language server
     ];
 
     home-manager.users.${username} = {
@@ -400,6 +404,12 @@ in
             env = {
               KUBECONFIG = kubeconfigFile;
             };
+          };
+          # Go code intelligence via official gopls MCP (detached mode)
+          # Tools: go_diagnostics, go_references, go_search, go_symbol_references, etc.
+          gopls = {
+            command = "${pkgs.gopls}/bin/gopls";
+            args = [ "mcp" ];
           };
         } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
           kong-konnect = {
