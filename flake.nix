@@ -57,6 +57,10 @@
       url = "github:mrshmllow/affinity-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    determinate = {
+      url = "https://flakehub.com/f/DeterminateSystems/determinate/*";
+    };
   };
 
   outputs = { self, ... }@inputs:
@@ -81,6 +85,8 @@
           system = "x86_64-linux";
           # username and stateVersion are automatically pulled from globals
           extraModules = [
+            # Determinate Nix distribution
+            inputs.determinate.nixosModules.default
             # Hyprland desktop environment
             inputs.hyprflake.nixosModules.default
           ];
@@ -95,6 +101,8 @@
           hostname = "donkeykong";
           system = "x86_64-linux";
           extraModules = [
+            # Determinate Nix distribution
+            inputs.determinate.nixosModules.default
             # Disko declarative disk partitioning
             inputs.disko.nixosModules.disko
             # Hyprland desktop environment
@@ -113,6 +121,8 @@
           hostname = "qbert";
           system = "x86_64-linux";
           extraModules = [
+            # Determinate Nix distribution
+            inputs.determinate.nixosModules.default
             # Disko declarative disk partitioning
             inputs.disko.nixosModules.disko
             # Hyprland desktop environment
