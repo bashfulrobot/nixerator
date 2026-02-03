@@ -33,8 +33,9 @@
         nixpkgs.overlays = [
           # Local package overrides for latest versions
           (final: prev: {
-            insomnia = prev.callPackage ../packages/insomnia { };
+            handy = prev.callPackage ../packages/handy { };
             helium = prev.callPackage ../packages/helium { };
+            insomnia = prev.callPackage ../packages/insomnia { };
           })
         ];
 

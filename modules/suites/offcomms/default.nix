@@ -34,6 +34,7 @@ in
 
     environment.systemPackages = with pkgs; [
       discord-ptb
+      handy
       morgen
       slack
       todoist-electron
