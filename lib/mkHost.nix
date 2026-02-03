@@ -11,6 +11,7 @@
     stateVersion ? globals.defaults.stateVersion,
     extraModules ? [],
     homeManagerModules ? [],
+    useDeterminate ? false,
   }: inputs.nixpkgs.lib.nixosSystem {
     inherit system;
 
@@ -37,8 +38,11 @@
           })
         ];
 
-        nix = {
-          # Enable Nix flakes for all hosts
+        # Nix settings - Determinate Nix manages these automatically when enabled
+        nix = if useDeterminate then {
+          # Determinate Nix handles flakes, GC, and optimization automatically
+        } else {
+          # Standard Nix configuration for non-Determinate hosts
           settings.experimental-features = [ "nix-command" "flakes" ];
 
           # Automatic garbage collection

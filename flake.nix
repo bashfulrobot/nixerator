@@ -83,6 +83,7 @@
           inherit globals versions;
           hostname = "nixerator";
           system = "x86_64-linux";
+          useDeterminate = true;
           # username and stateVersion are automatically pulled from globals
           extraModules = [
             # Determinate Nix distribution
@@ -100,6 +101,7 @@
           inherit globals versions;
           hostname = "donkeykong";
           system = "x86_64-linux";
+          useDeterminate = true;
           extraModules = [
             # Determinate Nix distribution
             inputs.determinate.nixosModules.default
@@ -120,6 +122,7 @@
           inherit globals versions;
           hostname = "qbert";
           system = "x86_64-linux";
+          useDeterminate = true;
           extraModules = [
             # Determinate Nix distribution
             inputs.determinate.nixosModules.default
