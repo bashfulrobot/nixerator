@@ -139,16 +139,16 @@ in
     #   emoji: Noto Color Emoji
     stylix.fonts = {
       monospace = {
-        name = "SFMono Nerd Font";
-        package = inputs.apple-fonts.packages.${pkgs.system}.sf-mono-nerd;
+        name = lib.mkForce "SFMono Nerd Font";
+        package = lib.mkForce inputs.apple-fonts.packages.${pkgs.system}.sf-mono-nerd;
       };
       sansSerif = {
-        name = "SF Pro Display";
-        package = inputs.apple-fonts.packages.${pkgs.system}.sf-pro;
+        name = lib.mkForce "SF Pro Display";
+        package = lib.mkForce inputs.apple-fonts.packages.${pkgs.system}.sf-pro;
       };
       serif = {
-        name = "New York";
-        package = inputs.apple-fonts.packages.${pkgs.system}.ny;
+        name = lib.mkForce "New York";
+        package = lib.mkForce inputs.apple-fonts.packages.${pkgs.system}.ny;
       };
     };
   };
