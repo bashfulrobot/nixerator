@@ -331,10 +331,19 @@ in
         default = false;
         description = "Enable claude-code CLI tool with custom configuration.";
       };
+
+      enableGSD = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable Get Shit Done (GSD) commands for Claude Code.";
+      };
     };
   };
 
   config = lib.mkIf cfg.enable {
+    # Enable Get Shit Done commands if requested
+    apps.cli.get-shit-done.enable = cfg.enableGSD;
+
     # System packages for MCP server dependencies and LSP servers
     environment.systemPackages = with pkgs; [
       nodejs_24 # Includes npm and npx for MCP servers
