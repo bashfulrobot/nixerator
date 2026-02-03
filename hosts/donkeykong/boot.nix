@@ -31,19 +31,10 @@
       "resume=/dev/vg0/swap"
       "quiet"
       "splash"
+      "mitigations=off" # Disable Spectre/Meltdown mitigations for single-user workstation
     ];
 
     # Zen kernel for better desktop performance
     kernelPackages = pkgs.linuxPackages_zen;
-
-    # Disable nova-core (experimental NVIDIA Rust driver) - not needed for Intel GPU
-    # and causes build failures due to missing kernel::firmware Rust bindings
-    kernelPatches = [{
-      name = "disable-nova-core";
-      patch = null;
-      structuredExtraConfig = {
-        DRM_NOVA = pkgs.lib.kernel.no;
-      };
-    }];
   };
 }

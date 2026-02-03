@@ -13,6 +13,13 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Kernel sysctl tweaks for desktop responsiveness
+    boot.kernel.sysctl = {
+      "vm.swappiness" = 10; # Prefer RAM over swap
+      "vm.vfs_cache_pressure" = 50; # Keep directory/inode caches longer
+      "kernel.sched_autogroup_enabled" = 1; # Better desktop responsiveness
+    };
+
     # Enable workstation suites
     suites = {
       core.enable = true;           # Core system infrastructure
