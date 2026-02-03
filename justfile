@@ -120,6 +120,14 @@ rebuild trace="false":
         sudo nixos-rebuild switch --impure --flake {{host_flake}}
     fi
 
+# Initial rebuild for Determinate Nix (bootstraps binary cache)
+[group('prod')]
+init-determinate:
+    @echo "🚀 Initial Determinate Nix rebuild (with binary cache bootstrap)..."
+    @sudo nixos-rebuild switch --impure --flake {{host_flake}} \
+        --option extra-substituters https://install.determinate.systems \
+        --option extra-trusted-public-keys "cache.flakehub.com-3:hJuILl5sVK4iKm86JzgdXW12Y2Hwd5G07qKtHTOcDCM="
+
 # Rebuild and activate on next boot
 [group('prod')]
 boot:
@@ -402,6 +410,7 @@ alias up := upgrade
 alias gc := clean
 alias l := log
 alias s := switch
+alias id := init-determinate
 
 # Rebuild and switch (alias for rebuild)
 [group('prod')]
