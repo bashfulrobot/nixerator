@@ -38,6 +38,7 @@ in
       morgen
       slack
       todoist-electron
+      percollate # web to pdf converter
     ];
   };
 }
