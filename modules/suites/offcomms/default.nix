@@ -30,6 +30,7 @@ in
     apps.cli = {
       meetsum.enable = true;
       pandoc.enable = true;
+      percollate.enable = true;
     };
 
     environment.systemPackages = with pkgs; [
@@ -38,7 +39,6 @@ in
       morgen
       slack
       todoist-electron
-      percollate # web to pdf converter
     ];
   };
 }
