@@ -22,15 +22,18 @@ in
 
   config = lib.mkIf cfg.enable {
     # Core GNOME services required for Online Accounts
-    services.accounts-daemon.enable = true;
-    services.gnome.gnome-online-accounts.enable = true;
-    services.gnome.evolution-data-server.enable = true;
-    services.gnome.gnome-keyring.enable = true;
-
-    # GVFS with full GNOME support (includes Google Drive backend)
-    services.gvfs = {
-      enable = true;
-      package = pkgs.gnome.gvfs;
+    services = {
+      accounts-daemon.enable = true;
+      gnome = {
+        gnome-online-accounts.enable = true;
+        evolution-data-server.enable = true;
+        gnome-keyring.enable = true;
+      };
+      # GVFS with full GNOME support (includes Google Drive backend)
+      gvfs = {
+        enable = true;
+        package = pkgs.gnome.gvfs;
+      };
     };
 
     # Required packages

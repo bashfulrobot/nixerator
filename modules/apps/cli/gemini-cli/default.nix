@@ -87,18 +87,20 @@ in
     ];
 
     home-manager.users.${username} = {
-      home.packages = [ pkgs.gemini-cli ];
+      home = {
+        packages = [ pkgs.gemini-cli ];
 
-      # Create ~/.gemini/settings.json with MCP servers
-      home.file.".gemini/settings.json".text = settingsJson;
+        # Create ~/.gemini/settings.json with MCP servers
+        file.".gemini/settings.json".text = settingsJson;
 
-      # Create ~/.gemini/commands/commit.toml
-      home.file.".gemini/commands/commit.toml".text = ''
-        description = "Create conventional commits with emoji and optional push, tagging, or GitHub releases"
-        prompt = """
-        ${commit-prompt}
-        """
-      '';
+        # Create ~/.gemini/commands/commit.toml
+        file.".gemini/commands/commit.toml".text = ''
+          description = "Create conventional commits with emoji and optional push, tagging, or GitHub releases"
+          prompt = """
+          ${commit-prompt}
+          """
+        '';
+      };
 
       programs.fish.shellAbbrs = {
         gcommit = "gemini /commit";

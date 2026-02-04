@@ -27,59 +27,61 @@
   system.ssh.enable = true;
 
   # Server-specific modules
-  server.kvm = {
-    enable = true;
-    routing = {
+  server = {
+    kvm = {
       enable = true;
-      externalInterface = "enp3s0";
-      internalInterfaces = [
-        "virbr1"
-        "virbr2"
-        "virbr3"
-        "virbr4"
-        "virbr5"
-        "virbr6"
-        "virbr7"
-      ];
-      proxyArpInterfaces = [ "ens2" ];
-    };
-  };
-
-  server.nfs = {
-    enable = true;
-    exports = {
-      spitfire = {
-        path = "/exports/spitfire";
-        bindMount = "/srv/nfs/spitfire";
-        exportConfig = "172.16.166.0/24(rw,sync,no_subtree_check,no_root_squash,all_squash,anonuid=1000,anongid=100)";
-        uid = 1000;
-        gid = 100;
+      routing = {
+        enable = true;
+        externalInterface = "enp3s0";
+        internalInterfaces = [
+          "virbr1"
+          "virbr2"
+          "virbr3"
+          "virbr4"
+          "virbr5"
+          "virbr6"
+          "virbr7"
+        ];
+        proxyArpInterfaces = [ "ens2" ];
       };
     };
-    additionalPaths = [
-      {
-        path = "/srv/nfs/restores";
-        mode = "0755";
-        uid = 1000;
-        gid = 100;
-      }
-    ];
-  };
 
-  server.restic = {
-    enable = true;
-    repository = secrets.restic.srv.restic_repository;
-    password = secrets.restic.srv.restic_password;
-    awsAccessKeyId = secrets.restic.srv.b2_account_id;
-    awsSecretAccessKey = secrets.restic.srv.b2_account_key;
-    awsRegion = secrets.restic.srv.region;
-    backupPaths = [ "/srv/nfs" ];
-    restorePath = "/srv/nfs/restores";
-    schedule = "*-*-* 03:00:00";
-    keepDaily = 7;
-    keepWeekly = 4;
-    keepMonthly = 12;
-    keepYearly = 2;
+    nfs = {
+      enable = true;
+      exports = {
+        spitfire = {
+          path = "/exports/spitfire";
+          bindMount = "/srv/nfs/spitfire";
+          exportConfig = "172.16.166.0/24(rw,sync,no_subtree_check,no_root_squash,all_squash,anonuid=1000,anongid=100)";
+          uid = 1000;
+          gid = 100;
+        };
+      };
+      additionalPaths = [
+        {
+          path = "/srv/nfs/restores";
+          mode = "0755";
+          uid = 1000;
+          gid = 100;
+        }
+      ];
+    };
+
+    restic = {
+      enable = true;
+      repository = secrets.restic.srv.restic_repository;
+      password = secrets.restic.srv.restic_password;
+      awsAccessKeyId = secrets.restic.srv.b2_account_id;
+      awsSecretAccessKey = secrets.restic.srv.b2_account_key;
+      awsRegion = secrets.restic.srv.region;
+      backupPaths = [ "/srv/nfs" ];
+      restorePath = "/srv/nfs/restores";
+      schedule = "*-*-* 03:00:00";
+      keepDaily = 7;
+      keepWeekly = 4;
+      keepMonthly = 12;
+      keepYearly = 2;
+    };
   };
 
   # Allow unfree packages

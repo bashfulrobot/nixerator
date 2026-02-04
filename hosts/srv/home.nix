@@ -2,11 +2,12 @@
 
 {
   # Home Manager configuration for srv host
-  home.username = username;
-  home.homeDirectory = lib.mkForce globals.user.homeDirectory;
-
-  # Home Manager state version
-  home.stateVersion = globals.defaults.stateVersion;
+  home = {
+    inherit username;
+    homeDirectory = lib.mkForce globals.user.homeDirectory;
+    # Home Manager state version
+    inherit (globals.defaults) stateVersion;
+  };
 
   # Let Home Manager manage itself
   programs.home-manager.enable = true;

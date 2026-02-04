@@ -21,12 +21,16 @@ in
 
   config = lib.mkIf cfg.enable {
     # Core system infrastructure
-    system.ssh.enable = true;
-    system.flatpak.enable = true;
-    system.gnome-online-accounts.enable = true;
-    apps.cli.tailscale.enable = true;
-    apps.cli.restic.enable = true;
-    apps.gui.web-app-hub.enable = true;
+    system = {
+      ssh.enable = true;
+      flatpak.enable = true;
+      gnome-online-accounts.enable = true;
+    };
+    apps = {
+      cli.tailscale.enable = true;
+      cli.restic.enable = true;
+      gui.web-app-hub.enable = true;
+    };
 
     # Automatic timezone detection based on geolocation
     services.automatic-timezoned.enable = true;

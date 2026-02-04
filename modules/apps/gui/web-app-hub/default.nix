@@ -120,26 +120,28 @@ in
 
     # Add extraction script to user's PATH
     home-manager.users.${username} = {
-      home.packages = [ extract-webapps ];
+      home = {
+        packages = [ extract-webapps ];
 
-      # Set environment variable for nixerator path if different from default
-      home.sessionVariables = {
-        NIXERATOR_PATH = lib.mkDefault "/home/${username}/dev/nix/nixerator";
-      };
+        # Set environment variable for nixerator path if different from default
+        sessionVariables = {
+          NIXERATOR_PATH = lib.mkDefault "/home/${username}/dev/nix/nixerator";
+        };
 
-      # Install custom browser configurations
-      home.file = {
-        ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/browsers/helium.yml" = {
-          source = ./browsers/helium.yml;
-        };
-        ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/desktop-files/helium.desktop" = {
-          source = ./desktop-files/helium.desktop;
-        };
-        ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/browsers/brave.yml" = {
-          source = ./browsers/brave.yml;
-        };
-        ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/desktop-files/brave.desktop" = {
-          source = ./desktop-files/brave.desktop;
+        # Install custom browser configurations
+        file = {
+          ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/browsers/helium.yml" = {
+            source = ./browsers/helium.yml;
+          };
+          ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/desktop-files/helium.desktop" = {
+            source = ./desktop-files/helium.desktop;
+          };
+          ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/browsers/brave.yml" = {
+            source = ./browsers/brave.yml;
+          };
+          ".var/app/org.pvermeer.WebAppHub/config/web-app-hub/desktop-files/brave.desktop" = {
+            source = ./desktop-files/brave.desktop;
+          };
         };
       };
     };
