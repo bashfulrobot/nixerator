@@ -47,6 +47,11 @@ let
 
       # Enable markdown preview
       markdown_preview: true
+
+    # Logging configuration
+    logging:
+      # Output options: screen, file, both
+      output: "both"
   '';
 
 in
