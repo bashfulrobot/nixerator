@@ -3,7 +3,6 @@
 # Uses local package override from ../../packages/insomnia
 # This allows running the latest version before nixpkgs PR is merged
 #
-# TODO: Version bump reminder - Check for new releases monthly
 # Release URL: https://github.com/Kong/insomnia/releases
 # Current local version: 12.2.0 (see ../../packages/insomnia/default.nix)
 # Nixpkgs version: 11.6.0 (as of 2026-01-14)
