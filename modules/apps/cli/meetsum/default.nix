@@ -48,6 +48,10 @@ let
       # Enable markdown preview
       markdown_preview: true
 
+    # User configuration
+    user:
+      name: "${globals.user.name}"
+
     # Logging configuration
     logging:
       # Output options: screen, file, both
