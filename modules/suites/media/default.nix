@@ -20,8 +20,9 @@ in
 
     # Additional media packages
     environment.systemPackages = with pkgs; [
-      vlc  # media player
-      mpv  # video player
+      vlc        # media player
+      mpv        # video player
+      v4l-utils  # webcam and video device utilities
     ];
   };
 }
