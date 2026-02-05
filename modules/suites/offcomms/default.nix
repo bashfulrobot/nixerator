@@ -20,6 +20,7 @@ in
   config = lib.mkIf cfg.enable {
     # Communication applications
     apps.gui = {
+      cameractrls.enable = true;
       insync.enable = true;
       obsidian.enable = true;
       signal.enable = true;
@@ -28,7 +29,6 @@ in
     };
 
     apps.cli = {
-      kiyoproctrls.enable = true;
       meetsum.enable = true;
       pandoc.enable = true;
       percollate.enable = true;
