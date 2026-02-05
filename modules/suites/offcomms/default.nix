@@ -28,6 +28,7 @@ in
     };
 
     apps.cli = {
+      kiyoproctrls.enable = true;
       meetsum.enable = true;
       pandoc.enable = true;
       percollate.enable = true;
