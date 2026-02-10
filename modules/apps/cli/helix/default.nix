@@ -42,7 +42,7 @@ in
           nixfmt
           statix
           yaml-language-server
-        ] ++ lib.optional (lib.hasAttr "helix-gpt" pkgs) pkgs."helix-gpt";
+        ];
 
         settings = lib.mkMerge [
           {
