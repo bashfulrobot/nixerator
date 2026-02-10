@@ -9,6 +9,7 @@
 let
   cfg = config.apps.cli.codex;
   username = globals.user.name;
+  context7ApiKey = (secrets.context7 or { }).apiKey or null;
 in
 {
   options = { # Changed from options.apps.cli.codex = {
@@ -37,6 +38,13 @@ in
             sequential-thinking = {
               command = "${pkgs.nodejs_24}/bin/npx";
               args = [ "-y" "@modelcontextprotocol/server-sequential-thinking" ];
+            };
+          } // lib.optionalAttrs (context7ApiKey != null) {
+            context7 = {
+              url = "https://mcp.context7.com/mcp";
+              http_headers = {
+                CONTEXT7_API_KEY = context7ApiKey;
+              };
             };
           } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
             kong-konnect = {

@@ -5,6 +5,7 @@ let
   username = globals.user.name;
   homeDir = "/home/${username}";
   kubeconfigFile = "${homeDir}/.kube/mcp-viewer.kubeconfig";
+  context7ApiKey = (secrets.context7 or { }).apiKey or null;
 
   # Kubernetes MCP setup script
   k8s-mcp-setup = ''
@@ -419,6 +420,14 @@ in
           gopls = {
             command = "${pkgs.gopls}/bin/gopls";
             args = [ "mcp" ];
+          };
+        } // lib.optionalAttrs (context7ApiKey != null) {
+          context7 = {
+            type = "http";
+            url = "https://mcp.context7.com/mcp";
+            headers = {
+              CONTEXT7_API_KEY = context7ApiKey;
+            };
           };
         } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
           kong-konnect = {
