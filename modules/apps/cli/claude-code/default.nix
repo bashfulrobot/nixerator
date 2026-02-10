@@ -6,6 +6,44 @@ let
   homeDir = "/home/${username}";
   kubeconfigFile = "${homeDir}/.kube/mcp-viewer.kubeconfig";
   context7ApiKey = (secrets.context7 or { }).apiKey or null;
+  mcpServers = {
+    sequential-thinking = {
+      command = "${pkgs.nodejs_24}/bin/npx";
+      args = [ "-y" "@modelcontextprotocol/server-sequential-thinking" ];
+    };
+    kubernetes-mcp-server = {
+      command = "${pkgs.nodejs_24}/bin/npx";
+      args = [ "-y" "kubernetes-mcp-server@latest" "--read-only" ];
+      env = {
+        KUBECONFIG = kubeconfigFile;
+      };
+    };
+    # Go code intelligence via official gopls MCP (detached mode)
+    # Tools: go_diagnostics, go_references, go_search, go_symbol_references, etc.
+    gopls = {
+      command = "${pkgs.gopls}/bin/gopls";
+      args = [ "mcp" ];
+    };
+  } // lib.optionalAttrs (context7ApiKey != null) {
+    context7 = {
+      type = "http";
+      url = "https://mcp.context7.com/mcp";
+      headers = {
+        CONTEXT7_API_KEY = context7ApiKey;
+      };
+    };
+  } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
+    kong-konnect = {
+      type = "http";
+      url = "https://us.mcp.konghq.com/";
+      headers = {
+        Authorization = "Bearer ${secrets.kong.kongKonnectPAT}";
+      };
+    };
+  };
+  mcpConfigJson = builtins.toJSON {
+    inherit mcpServers;
+  };
 
   # Kubernetes MCP setup script
   k8s-mcp-setup = ''
@@ -403,41 +441,7 @@ in
         commands.commit = commitPrompt;
 
         # MCP Servers (Model Context Protocol integrations)
-        mcpServers = {
-          sequential-thinking = {
-            command = "${pkgs.nodejs_24}/bin/npx";
-            args = [ "-y" "@modelcontextprotocol/server-sequential-thinking" ];
-          };
-          kubernetes-mcp-server = {
-            command = "${pkgs.nodejs_24}/bin/npx";
-            args = [ "-y" "kubernetes-mcp-server@latest" "--read-only" ];
-            env = {
-              KUBECONFIG = kubeconfigFile;
-            };
-          };
-          # Go code intelligence via official gopls MCP (detached mode)
-          # Tools: go_diagnostics, go_references, go_search, go_symbol_references, etc.
-          gopls = {
-            command = "${pkgs.gopls}/bin/gopls";
-            args = [ "mcp" ];
-          };
-        } // lib.optionalAttrs (context7ApiKey != null) {
-          context7 = {
-            type = "http";
-            url = "https://mcp.context7.com/mcp";
-            headers = {
-              CONTEXT7_API_KEY = context7ApiKey;
-            };
-          };
-        } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
-          kong-konnect = {
-            type = "http";
-            url = "https://us.mcp.konghq.com/";
-            headers = {
-              Authorization = "Bearer ${secrets.kong.kongKonnectPAT}";
-            };
-          };
-        };
+        mcpServers = mcpServers;
       };
 
       # Fish abbreviations
@@ -448,6 +452,8 @@ in
           expansion = "claude -p \"%\"";
         };
       };
+
+      home.file.".claude/mcp.json".text = mcpConfigJson;
     };
   };
 }
