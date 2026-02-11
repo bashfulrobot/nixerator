@@ -42,10 +42,12 @@
 
     nix-flatpak = {
       url = "github:gmodena/nix-flatpak";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware/master";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     spicetify-nix = {
@@ -65,6 +67,7 @@
 
     determinate = {
       url = "https://flakehub.com/f/DeterminateSystems/determinate/*";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
@@ -155,3 +158,4 @@
       inherit lib globals versions;
     };
 }
+
