@@ -1,25 +1,19 @@
-Unbreakable Rules:
+# Global Rules
 
-- Files always have a blank line at the end
-- Always write tests that test behavior, not the implementation
-- Never mock in tests
-- Small, pure, functions whenever possible
-- Immutable values whenever possible
-- Never take a shortcut
-- Ultra think through problems before taking the hacky solution
-- Use real schemas/types in tests, never redefine them
+- Files always end with a blank line.
+- Tests verify behavior, never mock, and use real schemas/types.
+- Small, pure functions and immutable values whenever possible.
+- Think through problems thoroughly; never take the hacky shortcut.
 
-______________________________________________________________________
+## Specialized Subagents
 
-## Specialized Subagents Available
+Available globally via Claude Code (auto-delegated based on context):
 
-The following expert subagents are available globally via Claude Code:
-
-- **rusty** - Principal Rust Engineer (systems programming, Cloudflare Workers)
-- **francis** - Principal Frontend Architect (Astro, Vue.js 3, Tailwind CSS)
-- **trinity** - Principal Test Engineer (BDD, TDD, DDD, quality engineering)
-- **parker** - Principal Product Owner (Agile, user stories, backlog management)
-- **gopher** - Principal Go Engineer (distributed systems, cloud-native, CLI development)
-- **kong** - Principal API Strategy Consultant (Kong platform, API management)
-
-Use `/agents use <name>` to explicitly invoke a subagent, or Claude Code will automatically delegate based on context.
+- **rust** — Rust systems programming, Cloudflare Workers
+- **frontend** — Astro, Vue.js 3, Tailwind CSS
+- **testing** — BDD, TDD, DDD, quality engineering
+- **product** — Agile, user stories, backlog management
+- **go** — distributed systems, cloud-native, CLI development
+- **api** — Kong platform, API management
+- **nix** — NixOS, flakes, Home Manager, Stylix
+- **bash** — shell scripting, systems automation
