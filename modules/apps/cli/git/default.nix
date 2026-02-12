@@ -46,8 +46,9 @@ in
             lg = "lazygit";
           };
           functions = {
-            gwork = ''
-              function gwork --argument-names name
+            gwork = {
+              argumentNames = [ "name" ];
+              body = ''
                 git rev-parse --git-dir >/dev/null 2>&1
                 if test $status -ne 0
                   echo "not inside a git repository"
@@ -55,7 +56,6 @@ in
                 end
 
                 if test -z "$name"
-                  # fzf pick existing work branches
                   if type -q fzf
                     set -l existing (git branch --format='%(refname:short)' | grep '^work/' | fzf --prompt="branch> ")
                     if test -n "$existing"
@@ -90,10 +90,10 @@ in
                 git switch main >/dev/null 2>&1
                 git pull --ff-only >/dev/null 2>&1
                 git switch -c "$name"
-              end
-            '';
-            gfin = ''
-              function gfin
+              '';
+            };
+            gfin = {
+              body = ''
                 git rev-parse --git-dir >/dev/null 2>&1
                 if test $status -ne 0
                   echo "not inside a git repository"
@@ -102,7 +102,6 @@ in
 
                 set -l branch (git rev-parse --abbrev-ref HEAD)
 
-                # if on main, offer fzf pick of work branches
                 if test "$branch" = "main"
                   if type -q fzf
                     set -l pick (git branch --format='%(refname:short)' | grep '^work/' | fzf --prompt="finish branch> ")
@@ -151,8 +150,8 @@ in
                 git push origin main
                 git push origin --delete "$branch" 2>/dev/null; or true
                 git branch -d "$branch"
-              end
-            '';
+              '';
+            };
           };
         };
       };
