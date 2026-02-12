@@ -78,8 +78,8 @@ in
                   return 1
                 end
 
-                set -l status (git status --porcelain)
-                if test -n "$status"
+                set -l git_status (git status --porcelain)
+                if test -n "$git_status"
                   echo "working tree is not clean"
                   return 1
                 end
@@ -148,8 +148,8 @@ in
                   return 1
                 end
 
-                set -l status (git status --porcelain)
-                if test -n "$status"
+                set -l git_status (git status --porcelain)
+                if test -n "$git_status"
                   echo "working tree is not clean"
                   return 1
                 end
@@ -283,3 +283,4 @@ in
 
   };
 }
+
