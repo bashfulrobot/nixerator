@@ -1,4 +1,10 @@
-{ globals, lib, pkgs, config, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.git;
@@ -85,7 +91,7 @@ in
                 end
 
                 if not string match -q "*/*" "$name"
-                  set -l name "work/$name"
+                  set name "work/$name"
                 end
 
                 set -l repo_root (git rev-parse --show-toplevel)
@@ -111,35 +117,43 @@ in
                 end
 
                 mkdir -p "$worktrees_dir"
-                git switch main
-                git pull --ff-only
+                git switch main >/dev/null 2>&1
+                git pull --ff-only >/dev/null 2>&1
                 git worktree add -b "$name" "$worktree_path" main
                 cd "$worktree_path"
               end
             '';
             gfin = ''
               function gfin
+                set -l needs_pick false
+
                 git rev-parse --git-dir >/dev/null 2>&1
                 if test $status -ne 0
-                  if type -q fzf
-                    set -l existing (git worktree list --porcelain | awk '
-                      $1 == "worktree" { path = $2 }
-                      $1 == "branch" { branch = $2 }
-                      $1 == "branch" { print path "\t" branch }
-                    ' | fzf --prompt="worktree> " --with-nth=1 --delimiter="\t")
-                    if test -n "$existing"
-                      set -l selected (echo "$existing" | awk -F'\t' '{print $1}')
-                      if test -n "$selected"
-                        cd "$selected"
-                      end
-                    end
+                  set needs_pick true
+                else
+                  set -l branch (git rev-parse --abbrev-ref HEAD)
+                  if test "$branch" = "main"
+                    set needs_pick true
                   end
+                end
 
-                  git rev-parse --git-dir >/dev/null 2>&1
-                  if test $status -ne 0
-                    echo "not inside a git repository"
+                if test "$needs_pick" = true
+                  if not type -q fzf
+                    echo "not in a worktree (run from a worktree or install fzf)"
                     return 1
                   end
+
+                  set -l existing (git worktree list --porcelain 2>/dev/null | awk '
+                    $1 == "worktree" { path = $2 }
+                    $1 == "branch" && $2 != "refs/heads/main" { print path "\t" $2 }
+                  ' | fzf --prompt="finish worktree> " --with-nth=1 --delimiter="\t")
+                  if test -z "$existing"
+                    echo "no worktree selected"
+                    return 1
+                  end
+
+                  set -l selected (echo "$existing" | awk -F'\t' '{print $1}')
+                  cd "$selected"
                 end
 
                 set -l branch (git rev-parse --abbrev-ref HEAD)
@@ -193,14 +207,12 @@ in
                   return 1
                 end
 
-                git -C "$main_path" switch main
-                git -C "$main_path" pull --ff-only
                 git -C "$main_path" merge --ff-only "$branch"
                 git -C "$main_path" push origin main
                 git -C "$main_path" push origin --delete "$branch"
                 git worktree remove "$worktree_path"
                 git -C "$main_path" branch -d "$branch"
-                cd "$HOME/dev"
+                cd "$main_path"
               end
             '';
           };
@@ -283,4 +295,3 @@ in
 
   };
 }
-
