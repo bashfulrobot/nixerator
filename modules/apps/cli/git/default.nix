@@ -48,26 +48,19 @@ in
           functions = {
             gwork = ''
               function gwork --argument-names name
+                git rev-parse --git-dir >/dev/null 2>&1
+                if test $status -ne 0
+                  echo "not inside a git repository"
+                  return 1
+                end
+
                 if test -z "$name"
+                  # fzf pick existing work branches
                   if type -q fzf
-                    set -l repo_root (git rev-parse --show-toplevel 2>/dev/null)
-                    if test -n "$repo_root"
-                      set -l repo_name (basename "$repo_root")
-                      set -l worktrees_dir "$HOME/dev/worktrees/$repo_name"
-                      if test -d "$worktrees_dir"
-                        set -l existing (git worktree list --porcelain | awk '
-                          $1 == "worktree" { path = $2 }
-                          $1 == "branch" { branch = $2 }
-                          $1 == "branch" { print path "\t" branch }
-                        ' | fzf --prompt="worktree> " --with-nth=1 --delimiter="\t")
-                        if test -n "$existing"
-                          set -l selected (echo "$existing" | awk -F'\t' '{print $1}')
-                          if test -n "$selected"
-                            cd "$selected"
-                            return 0
-                          end
-                        end
-                      end
+                    set -l existing (git branch --format='%(refname:short)' | grep '^work/' | fzf --prompt="branch> ")
+                    if test -n "$existing"
+                      git switch "$existing"
+                      return $status
                     end
                   end
 
@@ -76,12 +69,6 @@ in
                     echo "usage: gwork <branch-name>"
                     return 1
                   end
-                end
-
-                git rev-parse --git-dir >/dev/null 2>&1
-                if test $status -ne 0
-                  echo "not inside a git repository"
-                  return 1
                 end
 
                 set -l git_status (git status --porcelain)
@@ -94,72 +81,41 @@ in
                   set name "work/$name"
                 end
 
-                set -l repo_root (git rev-parse --show-toplevel)
-                set -l repo_name (basename "$repo_root")
-                set -l worktrees_dir "$HOME/dev/worktrees/$repo_name"
-                set -l worktree_path "$worktrees_dir/$name"
-
-                if test -e "$worktree_path"
-                  echo "worktree path already exists: $worktree_path"
-                  return 1
-                end
-
                 git show-ref --verify --quiet "refs/heads/$name"
                 if test $status -eq 0
                   echo "branch already exists: $name"
                   return 1
                 end
 
-                git show-ref --verify --quiet "refs/remotes/origin/$name"
-                if test $status -eq 0
-                  echo "remote branch already exists: origin/$name"
-                  return 1
-                end
-
-                mkdir -p "$worktrees_dir"
                 git switch main >/dev/null 2>&1
                 git pull --ff-only >/dev/null 2>&1
-                git worktree add -b "$name" "$worktree_path" main
-                cd "$worktree_path"
+                git switch -c "$name"
               end
             '';
             gfin = ''
               function gfin
-                set -l needs_pick false
-
                 git rev-parse --git-dir >/dev/null 2>&1
                 if test $status -ne 0
-                  set needs_pick true
-                else
-                  set -l branch (git rev-parse --abbrev-ref HEAD)
-                  if test "$branch" = "main"
-                    set needs_pick true
-                  end
-                end
-
-                if test "$needs_pick" = true
-                  if not type -q fzf
-                    echo "not in a worktree (run from a worktree or install fzf)"
-                    return 1
-                  end
-
-                  set -l existing (git worktree list --porcelain 2>/dev/null | awk '
-                    $1 == "worktree" { path = $2 }
-                    $1 == "branch" && $2 != "refs/heads/main" { print path "\t" $2 }
-                  ' | fzf --prompt="finish worktree> " --with-nth=1 --delimiter="\t")
-                  if test -z "$existing"
-                    echo "no worktree selected"
-                    return 1
-                  end
-
-                  set -l selected (echo "$existing" | awk -F'\t' '{print $1}')
-                  cd "$selected"
+                  echo "not inside a git repository"
+                  return 1
                 end
 
                 set -l branch (git rev-parse --abbrev-ref HEAD)
+
+                # if on main, offer fzf pick of work branches
                 if test "$branch" = "main"
-                  echo "already on main; refusing to finish"
-                  return 1
+                  if type -q fzf
+                    set -l pick (git branch --format='%(refname:short)' | grep '^work/' | fzf --prompt="finish branch> ")
+                    if test -n "$pick"
+                      set branch "$pick"
+                    else
+                      echo "no branch selected"
+                      return 1
+                    end
+                  else
+                    echo "already on main; nothing to finish"
+                    return 1
+                  end
                 end
 
                 set -l git_status (git status --porcelain)
@@ -168,51 +124,33 @@ in
                   return 1
                 end
 
-                set -l worktree_path (git rev-parse --show-toplevel)
-                set -l main_path (git worktree list --porcelain | awk '
-                  $1 == "worktree" { path = $2 }
-                  $1 == "branch" && $2 == "refs/heads/main" { print path; exit }
-                ')
-
-                if test -z "$main_path"
-                  echo "could not find main worktree"
-                  return 1
-                end
-
-                git -C "$main_path" remote get-url origin >/dev/null 2>&1
+                git remote get-url origin >/dev/null 2>&1
                 if test $status -ne 0
                   echo "remote 'origin' not configured"
                   return 1
                 end
 
-                git show-ref --verify --quiet "refs/heads/$branch"
-                if test $status -ne 0
-                  echo "branch does not exist: $branch"
-                  return 1
-                end
+                git fetch origin --prune
 
-                git -C "$main_path" fetch origin --prune
-
-                set -l main_sync (git -C "$main_path" rev-list --left-right --count origin/main...main)
+                set -l main_sync (git rev-list --left-right --count origin/main...main)
                 set -l behind (echo "$main_sync" | awk '{print $1}')
                 set -l ahead (echo "$main_sync" | awk '{print $2}')
                 if test "$behind" -gt 0
                   echo "main is behind origin/main"
-                  echo "fix: git -C \"$main_path\" pull --ff-only"
+                  echo "fix: git pull --ff-only"
                   return 1
                 end
                 if test "$ahead" -gt 0
                   echo "main is ahead of origin/main"
-                  echo "fix: git -C \"$main_path\" push origin main"
+                  echo "fix: git push origin main"
                   return 1
                 end
 
-                git -C "$main_path" merge --ff-only "$branch"
-                git -C "$main_path" push origin main
-                git -C "$main_path" push origin --delete "$branch"
-                git worktree remove "$worktree_path"
-                git -C "$main_path" branch -d "$branch"
-                cd "$main_path"
+                git switch main
+                git merge --ff-only "$branch"
+                git push origin main
+                git push origin --delete "$branch" 2>/dev/null; or true
+                git branch -d "$branch"
               end
             '';
           };
