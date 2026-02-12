@@ -29,6 +29,12 @@ in
       vocalinux.enable = true;
     };
 
+    # Voxtype voice-to-text (managed by hyprflake)
+    hyprflake.desktop.voxtype = {
+      enable = true;
+      hotkey = "RIGHTALT";
+    };
+
     apps.cli = {
       meetsum.enable = true;
       pandoc.enable = true;
@@ -37,7 +43,7 @@ in
 
     environment.systemPackages = with pkgs; [
       discord-ptb
-      # handy  # TODO: Package removed, needs to be re-added via llm-agents overlay
+      llm-agents.handy
       morgen
       slack
       todoist-electron
