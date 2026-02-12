@@ -27,6 +27,7 @@ in
       gnome-online-accounts.enable = true;
     };
     apps = {
+      cli.bluetooth-settings.enable = true;
       cli.tailscale.enable = true;
       cli.restic.enable = true;
       gui.web-app-hub.enable = true;
