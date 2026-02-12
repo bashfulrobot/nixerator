@@ -35,6 +35,16 @@ in
     # Automatic timezone detection based on geolocation
     services.automatic-timezoned.enable = true;
 
+    # Remap Caps Lock to Scroll Lock
+    services.keyd = {
+      enable = true;
+      keyboards.default.settings = {
+        main = {
+          capslock = "scrolllock";
+        };
+      };
+    };
+
     # Essential system utilities
     environment.systemPackages =
       with pkgs;
