@@ -43,7 +43,7 @@ in
           # NixOS operations
           upgrade = "cd ~/dev/nix/nixerator && just upgrade";
           rebuild = "cd ~/dev/nix/nixerator && just rebuild";
-          gsp = "just pull-conflict";
+          gsp = "just sync-git";
         };
 
         # Custom functions

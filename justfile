@@ -325,50 +325,50 @@ reset-hard:
     @git clean -fd
     @git pull
 
-# Force pull from remote, stopping syncthing to prevent conflicts
+# Smart sync: detects git state and pushes, resets, or warns as needed
 [group('git')]
-pull-conflict:
+sync-git:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "🔄 Force pulling from remote..."
 
-    # Stop syncthing
-    echo "⏹️  Stopping syncthing..."
-    systemctl --user stop syncthing || true
-
-    # Fetch to see what's coming
-    git fetch
-
-    # Find and remove untracked files that exist in remote
     current_branch=$(git rev-parse --abbrev-ref HEAD)
-    echo "🔍 Checking for conflicting untracked files..."
-    git ls-tree -r --name-only "origin/$current_branch" 2>/dev/null | while read -r remote_file; do
-        if [[ -e "$remote_file" ]] && ! git ls-files --error-unmatch "$remote_file" >/dev/null 2>&1; then
-            echo "🗑️  Removing: $remote_file"
-            rm -rf "$remote_file"
-        fi
-    done
 
-    # Stash any tracked changes
-    git stash || true
+    # Pause syncthing during git operations
+    systemctl --user stop syncthing || true
+    trap 'systemctl --user start syncthing || true' EXIT
 
-    # Pull
-    echo "⬇️  Pulling..."
-    if git pull; then
-        echo "✅ Pull successful"
+    git fetch origin
+
+    local_only=$(git log "origin/$current_branch..$current_branch" --oneline 2>/dev/null || true)
+    remote_only=$(git log "$current_branch..origin/$current_branch" --oneline 2>/dev/null || true)
+
+    if [[ -n "$local_only" && -n "$remote_only" ]]; then
+        echo "⚠️  Diverged — local and remote both have commits:"
+        echo ""
+        echo "Local:"
+        echo "$local_only"
+        echo ""
+        echo "Remote:"
+        echo "$remote_only"
+        echo ""
+        echo "Resolve manually (rebase, merge, or force-push)."
+        exit 1
+
+    elif [[ -n "$local_only" ]]; then
+        echo "⬆️  Pushing unpushed commits..."
+        git push origin "$current_branch"
+        echo "✅ Pushed to origin/$current_branch"
+
+    elif [[ -n "$remote_only" ]]; then
+        echo "⬇️  Aligning git state with remote..."
+        git reset "origin/$current_branch"
+        echo "✅ Git state aligned with origin/$current_branch"
+
     else
-        echo "❌ Pull failed"
-        git stash pop 2>/dev/null || true
+        echo "✅ Already in sync with origin/$current_branch"
     fi
 
-    # Clear stash
-    git stash clear || true
-
-    # Start syncthing
-    echo "▶️  Starting syncthing..."
-    systemctl --user start syncthing
-
-    echo "✅ Done"
+    git status --short
 
 # === Helper Commands ===
 # Enhanced package search functionality
