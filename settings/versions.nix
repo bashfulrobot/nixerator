@@ -12,7 +12,16 @@
     };
   };
 
+  # GUI applications
+  gui = {
+    vocalinux = {
+      # Source: https://github.com/jatinkrmalik/vocalinux/releases
+      version = "0.5.0-beta";
+      hash = "sha256-7xT4CykipedsPaguh7COdcCSe8TjOCV5DYv9WVDSGpY=";
+      repo = "https://github.com/jatinkrmalik/vocalinux";
+    };
+  };
+
   # Add future version pins here organized by category:
-  # gui = { ... };
   # services = { ... };
 }

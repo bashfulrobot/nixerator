@@ -26,6 +26,7 @@ in
       signal.enable = true;
       typora.enable = true;
       typora.nautilusIntegration = true;
+      vocalinux.enable = true;
     };
 
     apps.cli = {
@@ -36,7 +37,7 @@ in
 
     environment.systemPackages = with pkgs; [
       discord-ptb
-      handy
+      # handy  # TODO: Package removed, needs to be re-added via llm-agents overlay
       morgen
       slack
       todoist-electron
