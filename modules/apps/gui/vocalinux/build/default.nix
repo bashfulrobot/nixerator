@@ -25,7 +25,10 @@ python3Packages.buildPythonApplication rec {
   nativeBuildInputs = with pkgs; [
     gobject-introspection
     wrapGAppsHook3
-  ];
+  ] ++ (with python3Packages; [
+    setuptools
+    wheel
+  ]);
 
   buildInputs = with pkgs; [
     gtk3
