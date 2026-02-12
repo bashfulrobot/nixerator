@@ -26,7 +26,6 @@ in
       signal.enable = true;
       typora.enable = true;
       typora.nautilusIntegration = true;
-      vocalinux.enable = true;
     };
 
     # Voxtype voice-to-text (managed by hyprflake)
@@ -43,10 +42,10 @@ in
 
     environment.systemPackages = with pkgs; [
       discord-ptb
-      llm-agents.handy
       morgen
       slack
       todoist-electron
     ];
   };
 }
+
