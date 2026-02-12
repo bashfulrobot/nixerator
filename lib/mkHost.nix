@@ -31,9 +31,11 @@
 
         # Apply custom package overlays
         nixpkgs.overlays = [
+          # llm-agents packages (exposes pkgs.llm-agents.<name>)
+          inputs.llm-agents.overlays.default
+
           # Local package overrides for latest versions
           (final: prev: {
-            handy = prev.callPackage ../packages/handy { };
             helium = prev.callPackage ../packages/helium { };
             insomnia = prev.callPackage ../packages/insomnia { };
             whispering = prev.callPackage ../packages/whispering { };
