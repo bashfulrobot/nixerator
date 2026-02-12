@@ -31,7 +31,7 @@ in
     # Voxtype voice-to-text (managed by hyprflake)
     hyprflake.desktop.voxtype = {
       enable = true;
-      hotkey = "RIGHTALT";
+      hotkey = "SCROLLLOCK";
     };
 
     apps.cli = {
@@ -48,4 +48,3 @@ in
     ];
   };
 }
-
