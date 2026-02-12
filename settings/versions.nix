@@ -19,6 +19,8 @@
       version = "0.5.0-beta";
       hash = "sha256-7xT4CykipedsPaguh7COdcCSe8TjOCV5DYv9WVDSGpY=";
       repo = "https://github.com/jatinkrmalik/vocalinux";
+      # VOSK small English model: https://alphacephei.com/vosk/models
+      modelHash = "sha256-CIoPZ/krX+UW2w7c84W3oc1n4zc9BBS/fc8rVYUthuY=";
     };
   };
 

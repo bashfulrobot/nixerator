@@ -10,26 +10,36 @@
 let
   cfg = config.apps.gui.vocalinux;
   username = globals.user.name;
-  homeDir = "/home/${username}";
   vocalinux = pkgs.callPackage ./build {
     inherit versions;
     inherit (pkgs) python3Packages;
   };
+  voskModel = import ./build/vosk-model.nix { inherit pkgs versions; };
 
-  # Generate config.json with VOSK defaults
   configJson = pkgs.writeText "config.json" (
     builtins.toJSON {
-      engine = "vosk";
-      model_path = "${homeDir}/.local/share/vocalinux/models/vosk-model-small-en-us-0.15";
-      activation_key = "ctrl";
-      double_tap_threshold = 0.3;
+      speech_recognition = {
+        engine = "vosk";
+        language = "auto";
+        vosk_model_size = "small";
+        whisper_model_size = "tiny";
+        vad_sensitivity = 3;
+        silence_timeout = 2.0;
+      };
       audio = {
-        sample_rate = 16000;
-        channels = 1;
+        device_index = null;
+        device_name = null;
+      };
+      shortcuts = {
+        toggle_recognition = "ctrl+ctrl";
       };
       ui = {
-        show_notification = true;
-        show_tray_icon = true;
+        start_minimized = false;
+        show_notifications = true;
+      };
+      advanced = {
+        debug_logging = false;
+        wayland_mode = false;
       };
     }
   );
@@ -47,27 +57,17 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ vocalinux ];
 
+    # uinput access for virtual keyboard input
+    users.users."${username}".extraGroups = [ "input" ];
+    services.udev.extraRules = ''
+      KERNEL=="uinput", GROUP="input", MODE="0660"
+    '';
+
     home-manager.users.${username} = {
-      # Create config file
       xdg.configFile."vocalinux/config.json".source = configJson;
 
-      # Create models directory structure
-      home.file.".local/share/vocalinux/models/.keep".text = "";
-
-      # Add note about model download
-      home.file.".local/share/vocalinux/README.txt".text = ''
-        Vocalinux requires a VOSK model to work offline.
-
-        On first run, vocalinux will prompt you to download a model, or you can
-        manually download the VOSK small English model:
-
-          curl -L https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip \
-            -o /tmp/vosk-model.zip
-          unzip /tmp/vosk-model.zip -d ~/.local/share/vocalinux/models/
-
-        For other languages or larger models, visit:
-          https://alphacephei.com/vosk/models
-      '';
+      # Symlink VOSK model into the location the app expects
+      home.file.".local/share/vocalinux/models/vosk-model-small-en-us-0.15".source = voskModel;
     };
   };
 }

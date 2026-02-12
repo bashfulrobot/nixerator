@@ -32,6 +32,7 @@ python3Packages.buildPythonApplication rec {
 
   buildInputs = with pkgs; [
     gtk3
+    libayatana-appindicator
     portaudio
   ];
 
