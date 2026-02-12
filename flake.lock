@@ -156,7 +156,7 @@
           "llm-agents",
           "nixpkgs"
         ],
-        "systems": "systems"
+        "systems": "systems_2"
       },
       "locked": {
         "lastModified": 1769353768,
@@ -393,7 +393,7 @@
     },
     "flake-utils": {
       "inputs": {
-        "systems": "systems_4"
+        "systems": "systems"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -562,16 +562,17 @@
         "stylix": [
           "stylix"
         ],
+        "voxtype": "voxtype",
         "waybar-auto-hide": [
           "waybar-auto-hide"
         ]
       },
       "locked": {
-        "lastModified": 1770873077,
-        "narHash": "sha256-5g3uT6LGINT+YUKZ6vTH+/LTNrVUhnWTWV4X8ebFscs=",
+        "lastModified": 1770875117,
+        "narHash": "sha256-baySCJPtmLJ74UPqeXpc/ojNSfywAEOxqR1PIDHSzh0=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "2a01cbc199143c1a9e4e6ee79674d0ae534e6f27",
+        "rev": "33dd24103a62a1511dfbacf7deb5c69a84a3aebe",
         "type": "github"
       },
       "original": {
@@ -886,7 +887,6 @@
         "nixpkgs": "nixpkgs_5",
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
-        "voxtype": "voxtype",
         "waybar-auto-hide": "waybar-auto-hide"
       }
     },
@@ -1063,7 +1063,7 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "systems": "systems_2"
+        "systems": "systems_3"
       },
       "locked": {
         "lastModified": 1770846656,
@@ -1092,7 +1092,7 @@
           "nixpkgs"
         ],
         "nur": "nur",
-        "systems": "systems_3",
+        "systems": "systems_4",
         "tinted-foot": "tinted-foot",
         "tinted-kitty": "tinted-kitty",
         "tinted-schemes": "tinted-schemes",
@@ -1312,6 +1312,7 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "nixpkgs": [
+          "hyprflake",
           "nixpkgs"
         ]
       },
