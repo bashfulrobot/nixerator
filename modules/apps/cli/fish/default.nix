@@ -44,6 +44,7 @@ in
           upgrade = "cd ~/dev/nix/nixerator && just upgrade";
           rebuild = "cd ~/dev/nix/nixerator && just rebuild";
           gsp = "just sync-git";
+          bt-toggle = "rfkill toggle bluetooth";
         };
 
         # Custom functions
