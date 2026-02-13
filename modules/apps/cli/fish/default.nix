@@ -44,7 +44,7 @@ in
           upgrade = "cd ~/dev/nix/nixerator && just upgrade";
           rebuild = "cd ~/dev/nix/nixerator && just rebuild";
           gsp = "just sync-git";
-          bt-toggle = "rfkill toggle bluetooth";
+          bt-toggle = "rfkill toggle bluetooth; rfkill list bluetooth | grep -q 'Soft blocked: yes'; and echo 'Bluetooth: OFF'; or echo 'Bluetooth: ON'";
         };
 
         # Custom functions
