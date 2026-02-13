@@ -7,6 +7,8 @@ _:
     host.qbert = true;
   };
 
+  apps.cli.ollama.acceleration = "rocm";
+
   # Server modules
   server = {
     kvm = {

@@ -34,7 +34,7 @@ in
       media.enable = true;          # Media suite
       kong.enable = true;           # Kong API Gateway suite
       av.enable = true;             # Audio/visual creative suite
+      ai.enable = true;             # AI tooling suite
     };
   };
 }
-
