@@ -20,6 +20,9 @@
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
   i18n.defaultLocale = globals.defaults.locale;
 
+  # Voxtype whisper threads (8 cores)
+  hyprflake.desktop.voxtype.threads = 8;
+
   # Enable archetypes
   archetypes.workstation.enable = true;
 }
