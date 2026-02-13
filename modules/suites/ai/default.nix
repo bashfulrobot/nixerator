@@ -14,7 +14,6 @@ in
 
   config = lib.mkIf cfg.enable {
     apps.gui = {
-      whispering.enable = true;
     };
 
     apps.cli.ollama = {

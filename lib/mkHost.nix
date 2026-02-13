@@ -38,7 +38,6 @@
           (final: prev: {
             helium = prev.callPackage ../packages/helium { };
             insomnia = prev.callPackage ../packages/insomnia { };
-            whispering = prev.callPackage ../packages/whispering { };
           })
         ];
 
@@ -85,4 +84,3 @@
     ] ++ extraModules;
   };
 }
-

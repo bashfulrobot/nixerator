@@ -66,26 +66,6 @@ Local package overrides serve several purposes:
 
 ---
 
-### Whispering
-
-**Current Local Version:** 7.11.0  
-**Last Updated:** 2026-02-11  
-**Nixpkgs Version:** Not in nixpkgs  
-**Pending Nixpkgs PR:** None yet  
-**Upstream Releases:** https://github.com/EpicenterHQ/epicenter/releases
-
-**Files:**
-- Package: `packages/whispering/default.nix`
-- Module: `modules/apps/gui/whispering/default.nix`
-
-**Next Check:** Monthly (around the 11th)
-
-**Status:** Open-source transcription app (local + cloud engines)
-
-**Version Bump Process:** See section below
-
----
-
 ## Version Bump Process
 
 ### For Insomnia (and similar packages)
@@ -324,4 +304,3 @@ Then rebuild.
 - Nixpkgs version bump process: `/home/dustin/dev/nix/nixpkgs-version-bump.txt`
 - Your nixpkgs fork: https://github.com/bashfulrobot/nixpkgs
 - Your previous PRs: [#443207](https://github.com/NixOS/nixpkgs/pull/443207), [#480124](https://github.com/NixOS/nixpkgs/pull/480124)
-
