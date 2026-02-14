@@ -35,10 +35,11 @@ let
       BOLD='\033[1m'
       NC='\033[0m'
 
-      info()  { printf "''${CYAN}▸ %s''${NC}\n" "$*"; }
-      ok()    { printf "''${GREEN}✔ %s''${NC}\n" "$*"; }
-      warn()  { printf "''${YELLOW}⚠ %s''${NC}\n" "$*"; }
-      die()   { printf "''${RED}✖ %s''${NC}\n" "$*" >&2; exit 1; }
+      info()    { printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"; }
+      ok()      { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
+      warn()    { printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC"; }
+      die()     { printf '%s✖ %s%s\n' "$RED" "$*" "$NC" >&2; exit 1; }
+      prompt()  { printf '%s%s%s' "$BOLD" "$*" "$NC"; }
 
       # ── Helpers ──────────────────────────────────────────────────────────
       require_git_repo() {
@@ -89,7 +90,7 @@ let
 
         if [[ -z "$msg" ]]; then
           warn "no AI tool available, enter commit message manually"
-          printf "''${BOLD}message: ''${NC}"
+          prompt "message: "
           read -r msg
         fi
 
@@ -112,7 +113,7 @@ let
         require_git_repo
 
         if [[ -z "$branch_name" ]]; then
-          printf "''${BOLD}branch name: ''${NC}"
+          prompt "branch name: "
           read -r branch_name
           [[ -n "$branch_name" ]] || die "branch name required"
         fi
@@ -215,23 +216,23 @@ let
 
           # Confirm with user
           echo ""
-          printf "''${BOLD}proposed commit message:''${NC}\n"
-          printf "  ''${GREEN}%s''${NC}\n\n" "$msg"
-          printf "''${BOLD}[y]es / [e]dit / [r]etry / [q]uit: ''${NC}"
+          printf '%sproposed commit message:%s\n' "$BOLD" "$NC"
+          printf '  %s%s%s\n\n' "$GREEN" "$msg" "$NC"
+          prompt "[y]es / [e]dit / [r]etry / [q]uit: "
           read -r choice
 
           case "$choice" in
             y|Y|"")
               ;;
             e|E)
-              printf "''${BOLD}enter message: ''${NC}"
+              prompt "enter message: "
               read -r msg
               [[ -n "$msg" ]] || die "empty message"
               ;;
             r|R)
               msg="$(generate_commit_msg "$diff")"
-              printf "  ''${GREEN}%s''${NC}\n" "$msg"
-              printf "''${BOLD}accept? [y/n]: ''${NC}"
+              printf '  %s%s%s\n' "$GREEN" "$msg" "$NC"
+              prompt "accept? [y/n]: "
               read -r yn
               [[ "$yn" =~ ^[yY] ]] || die "aborted"
               ;;
