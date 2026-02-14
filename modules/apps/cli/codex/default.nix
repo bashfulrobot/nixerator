@@ -184,6 +184,7 @@ in
     home-manager.users.${username} = {
       programs.codex = {
         enable = true;
+        package = pkgs.llm-agents.codex;
 
         # Custom instructions (written to ~/.codex/AGENTS.md)
         custom-instructions = builtins.readFile ./CODEX.md;
