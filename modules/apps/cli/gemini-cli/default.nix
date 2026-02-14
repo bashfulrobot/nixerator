@@ -71,26 +71,26 @@ let
       esac
     done
 
+    git add -A
+
     diff=$(git diff --staged)
     if [[ -z "$diff" ]]; then
-      echo "No staged changes to commit." >&2
+      echo "No changes to commit." >&2
       exit 1
     fi
 
     recent=$(git log --oneline -5 2>/dev/null || true)
+    base_prompt=$(cat <<'EOF'
+Write a concise Conventional Commit message for the staged diff below. Output ONLY the commit message, nothing else.
 
-    prompt="Write a concise Conventional Commit message for the diff below. Output ONLY the commit message, nothing else.
-
-    ${commit-guidelines}
-
-    Recent commits (match this style):
-    $recent
-
-    Diff:
-    $diff"
+${commit-guidelines}
+EOF
+)
 
     if [[ -n "$custom_prompt" ]]; then
-      prompt="$custom_prompt"
+      prompt=$(printf "%s\n\n%s\n\nRecent commits (match this style):\n%s\n\nDiff:\n%s\n" "$custom_prompt" "$base_prompt" "$recent" "$diff")
+    else
+      prompt=$(printf "%s\n\nRecent commits (match this style):\n%s\n\nDiff:\n%s\n" "$base_prompt" "$recent" "$diff")
     fi
 
     msg=$(gemini -y --prompt "$prompt")
