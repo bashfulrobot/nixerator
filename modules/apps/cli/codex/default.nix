@@ -148,7 +148,7 @@ let
     ## Preflight
     - Ensure you are in the repo root before running git commands.
     - Inspect working tree and staged changes; avoid committing unrelated changes.
-    - Use Gemini CLI to run git commands (Codex should not run git commit/tag/push directly).
+    - Use Gemini CLI to run all git commands (Codex should not run git commit/tag/push directly).
 
     ## Process:
     1. Parse $ARGUMENTS flags.
