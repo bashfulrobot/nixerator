@@ -28,6 +28,7 @@ in
     };
     apps = {
       cli.tailscale.enable = true;
+      cli.cpx.enable = true;
       cli.restic.enable = true;
       gui.web-app-hub.enable = true;
     };
