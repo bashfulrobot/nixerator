@@ -349,7 +349,7 @@ let
     - Sign with `git commit -S`. Split unrelated changes atomically.
 
     ## Type→Emoji:
-    feat:✨ fix:🐛 docs:📝 style:💄 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
+    feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
 
     ## Examples:
     ✅ feat(auth): ✨ add OAuth2 login flow
