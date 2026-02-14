@@ -10,7 +10,7 @@ modules/
 │   ├── workstation/      # Desktop/laptop with full suite
 │   └── server/           # Minimal server configuration
 ├── suites/               # Feature bundles
-│   ├── core/             # SSH, Flatpak, Tailscale, Restic, essential tools
+│   ├── core/             # SSH, Flatpak, Tailscale, backup tools, essential tools
 │   ├── desktop/          # Hyprland desktop environment
 │   ├── terminal/         # Shell, prompt, terminal tools
 │   ├── browsers/         # Web browsers
@@ -33,7 +33,7 @@ modules/
 ├── server/               # Server-specific modules
 │   ├── kvm/              # KVM/libvirt virtualization
 │   ├── nfs/              # NFS server
-│   └── restic/           # Restic backup server
+│   └── restic/           # Backrest + Restic backup server module
 └── dev/                  # Development environments
     └── go/               # Go development setup
 ```
@@ -68,7 +68,7 @@ Suites bundle related modules. Enable them individually or via archetypes.
 
 | Suite | Description | Key Modules |
 |-------|-------------|-------------|
-| core | Essential infrastructure | SSH, Flatpak, Tailscale, Restic, Web App Hub |
+| core | Essential infrastructure | SSH, Flatpak, Tailscale, Backrest + Restic backup tools, Web App Hub |
 | desktop | Hyprland environment | hyprflake integration |
 | terminal | Shell environment | fish, starship, helix, zoxide |
 | browsers | Web browsers | Brave, Chrome |

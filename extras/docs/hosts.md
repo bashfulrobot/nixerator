@@ -88,7 +88,7 @@ Detailed information about each host configuration.
 - Static IP: 192.168.168.1
 - KVM virtualization with network routing
 - NFS server for network storage
-- Restic backup server (B2 cloud storage)
+- Backrest (restic-backed) backup server (B2 cloud storage)
 - Docker support
 - Tailscale mesh networking
 
@@ -105,14 +105,14 @@ Detailed information about each host configuration.
 | Service | Description |
 |---------|-------------|
 | NFS | Exports `/srv/nfs/spitfire` to 172.16.166.0/24 |
-| Restic | Scheduled backups at 03:00 daily to B2 |
+| Backrest + Restic | Scheduled backups at 03:00 daily to B2 |
 | KVM | Virtualization with multiple bridge networks |
 | Docker | Container runtime |
 
 **Special Notes:**
 
 - Does not auto-import modules; uses explicit imports in `modules.nix`
-- Secrets for Restic (repository, password, B2 credentials) stored in git-crypt encrypted `secrets/secrets.json`
+- Secrets for restic credentials used by the backup stack (repository, password, B2 credentials) are stored in git-crypt encrypted `secrets/secrets.json`
 
 ## Host Configuration Pattern
 

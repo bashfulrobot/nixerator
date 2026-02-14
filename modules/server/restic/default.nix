@@ -161,6 +161,8 @@ in {
 
     environment.systemPackages = with pkgs; [
       (writeScriptBin "backup-mgr" backup-mgr)
+      # Backrest from nixpkgs; wrapped to use nixpkgs restic via BACKREST_RESTIC_COMMAND.
+      backrest
       restic
     ];
 

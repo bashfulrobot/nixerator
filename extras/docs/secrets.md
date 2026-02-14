@@ -45,6 +45,11 @@ Secrets are available via the `secrets` special argument:
 }
 ```
 
+The `restic` credentials schema stays unchanged and is still used by the server backup setup, including Backrest tooling layered on top of restic.
+
+Backrest package source reference (nixpkgs):
+`https://raw.githubusercontent.com/NixOS/nixpkgs/refs/heads/nixos-unstable/pkgs/by-name/ba/backrest/package.nix`
+
 ## Setup
 
 ### Initial Setup (new machine)
