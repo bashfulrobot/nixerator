@@ -148,17 +148,22 @@ let
     ## Preflight
     - Ensure you are in the repo root before running git commands.
     - Inspect working tree and staged changes; avoid committing unrelated changes.
-    - Stage all changes for this commit.
+    - Use Gemini CLI to run git commands (Codex should not run git commit/tag/push directly).
 
     ## Process:
     1. Parse $ARGUMENTS flags.
     2. Inspect changes: `git status && git diff --cached`.
-    3. Stage all changes: `git add -A`.
-    4. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
-    5. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
-    6. If --tag: `git tag -s v<version> -m "Release v<version>"`
-    7. Always push: `git push && git push --tags` (if tagged).
-    8. If --release: `gh release create v<version> --notes-from-tag`.
+    3. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
+    4. For each commit:
+       - Clear `.codex/commit-message.txt` before writing the new message.
+       - Write the exact commit message to `.codex/commit-message.txt`.
+       - Shell out to Gemini CLI to execute git commands using that message.
+         Example:
+         `gemini -p "@.codex/commit-message.txt Use the exact commit message above. Run: git commit -S -m \"<message>\""`
+    5. If --tag: include `git tag -s v<version> -m "Release v<version>"` in the Gemini instructions.
+    6. Always push: include `git push` (and `git push --tags` if tagged) in the Gemini instructions.
+    7. If --release: include `gh release create v<version> --notes-from-tag` (requires --tag).
+    8. Remove `.codex/commit-message.txt` after commands succeed.
   '';
 in
 {
@@ -185,6 +190,7 @@ in
       };
 
       home.file = mcpServerFiles // {
+        ".agents/skills/commit".directory = true;
         ".agents/skills/commit/SKILL.md".text = codexCommitSkill;
       };
     };
