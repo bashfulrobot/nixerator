@@ -21,8 +21,8 @@ in
     environment.systemPackages = with pkgs; [
       talosctl             # Talos OS management tool
       omnictl              # Omni CLI
-      argocd               # ArgoCD CLI (GitOps)
-      argocd-autopilot     # ArgoCD bootstrapping CLI
+      # argocd            # ArgoCD CLI (GitOps) - temporarily disabled due to nixpkgs yarn hash mismatch
+      # argocd-autopilot  # ArgoCD bootstrapping CLI - depends on argocd
       cilium-cli           # Cilium networking CLI
       eksctl               # AWS EKS management tool
       fluxcd               # FluxCD GitOps CLI
@@ -45,7 +45,7 @@ in
             t = "talosctl";
             o = "omnictl";
             mk = "minikube";
-            argo = "argocd";
+            # argo = "argocd"; # temporarily disabled because argocd package is disabled above
             kz = "kustomize";
           };
           functions = {
