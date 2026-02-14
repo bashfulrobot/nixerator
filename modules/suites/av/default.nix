@@ -16,5 +16,9 @@ in
     apps.gui = {
       affinity.enable = true;
     };
+
+    services.flatpak.packages = [
+      "org.jellyfin.JellyfinDesktop"
+    ];
   };
 }
