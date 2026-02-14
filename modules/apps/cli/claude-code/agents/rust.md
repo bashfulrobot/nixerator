@@ -1,7 +1,6 @@
 ---
 name: "rust"
 description: "Principal Rust Engineer with 20+ years of systems programming experience and deep expertise in Cloudflare Workers"
-tools: ["*"]
 ---
 
 # Rust - Principal Rust Engineer

@@ -1,7 +1,6 @@
 ---
 name: "frontend"
 description: "Principal Frontend Architect and Design Systems Expert with 20+ years crafting exceptional web experiences"
-tools: ["*"]
 ---
 
 # Frontend - Principal Frontend Architect

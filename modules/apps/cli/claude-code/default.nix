@@ -41,9 +41,15 @@ let
       };
     };
   };
-  mcpConfigJson = builtins.toJSON {
-    inherit mcpServers;
+  mkMcpServerJson = name: cfg: builtins.toJSON {
+    mcpServers = {
+      "${name}" = cfg;
+    };
   };
+  mcpServerFiles = lib.mapAttrs' (name: cfg: {
+    name = ".claude/mcp-servers/${name}/.mcp.json";
+    value = { text = mkMcpServerJson name cfg; };
+  }) mcpServers;
 
   # Kubernetes MCP setup script
   k8s-mcp-setup = ''
@@ -323,10 +329,13 @@ let
     end
   '';
 
-  # Commit command prompt
-  commitPrompt = ''
+  # Commit skill (slash command)
+  commitSkill = ''
     ---
+    name: commit
     description: Create conventional commits with emoji, push, tagging, or GitHub releases.
+    disable-model-invocation: true
+    argument-hint: "[--tag <major|minor|patch>] [--release]"
     allowed-tools: ["Bash", "Grep", "Read"]
     ---
 
@@ -348,18 +357,29 @@ let
     ❌ ✨ feat(auth): add OAuth2 (emoji before type)
     ❌ feat: add OAuth2 (missing scope)
 
-    ## Arguments ($ARGUMENTS):
-    --tag <level>: Tag version (major|minor|patch).
-    --release: Create GitHub release (requires --tag).
+    ## Inputs
+    - Optional flags via $ARGUMENTS:
+      - `--tag <level>`: Tag version (major|minor|patch).
+      - `--release`: Create GitHub release (requires --tag).
+
+    ## Outputs
+    - One or more signed commits.
+    - Optional signed tag and GitHub release.
+
+    ## Preflight
+    - Ensure you are in the repo root before running git commands.
+    - Inspect working tree and staged changes; avoid committing unrelated changes.
+    - Stage all changes for this commit.
 
     ## Process:
     1. Parse $ARGUMENTS flags.
     2. Inspect changes: `git status && git diff --cached`.
-    3. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
-    4. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
-    5. If --tag: `git tag -s v<version> -m "Release v<version>"`
-    6. Always push: `git push && git push --tags` (if tagged).
-    7. If --release: `gh release create v<version> --notes-from-tag`.
+    3. Stage all changes: `git add -A`.
+    4. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
+    5. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
+    6. If --tag: `git tag -s v<version> -m "Release v<version>"`
+    7. Always push: `git push && git push --tags` (if tagged).
+    8. If --release: `gh release create v<version> --notes-from-tag`.
   '';
 in
 {
@@ -423,7 +443,7 @@ in
         };
 
         # Memory file (CLAUDE.md - project rules and context)
-        memory.text = builtins.readFile ./CLAUDE.md;
+        memory.text = builtins.readFile ../../../../CLAUDE.md;
 
         # Agents (subagents for specialized tasks)
         agents = {
@@ -437,8 +457,8 @@ in
           bash = builtins.readFile ./agents/bash.md;
         };
 
-        # Commands (slash commands like /commit)
-        commands.commit = commitPrompt;
+        # Skills (slash commands like /commit)
+        # Rendered to ~/.claude/skills/commit/SKILL.md via home.file below.
 
         # MCP Servers (Model Context Protocol integrations)
         mcpServers = mcpServers;
@@ -453,7 +473,9 @@ in
         };
       };
 
-      home.file.".claude/mcp.json".text = mcpConfigJson;
+      home.file = mcpServerFiles // {
+        ".claude/skills/commit/SKILL.md".text = commitSkill;
+      };
     };
   };
 }

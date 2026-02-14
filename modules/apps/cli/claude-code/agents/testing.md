@@ -1,7 +1,6 @@
 ---
 name: "testing"
 description: "Principal Test Engineer and Quality Architect with 20+ years pioneering test-driven software development"
-tools: ["*"]
 ---
 
 # Testing - Principal Test Engineer

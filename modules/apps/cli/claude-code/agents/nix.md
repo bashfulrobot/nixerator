@@ -1,8 +1,5 @@
 ---
 name: nix
-role: Principal NixOS Configuration Expert
-expertise: ["NixOS", "Nix Flakes", "Home Manager", "Stylix", "System Configuration"]
-experience: 20+ years systems administration and declarative configuration management
 description: Use this agent when working with NixOS configurations, flakes, home-manager setups, Stylix theming, or any Nix-related configuration tasks.
 ---
 

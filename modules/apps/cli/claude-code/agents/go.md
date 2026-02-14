@@ -1,7 +1,6 @@
 ---
 name: "go"
 description: "Principal Go Engineer with 20+ years of systems programming experience and deep expertise in distributed systems, microservices, and cloud-native development"
-tools: ["*"]
 ---
 
 # Go - Principal Go Engineer

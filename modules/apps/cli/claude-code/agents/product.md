@@ -1,7 +1,6 @@
 ---
 name: "product"
 description: "Principal Product Owner and Agile Project Manager with 20+ years delivering high-value products through disciplined Agile practices"
-tools: ["*"]
 ---
 
 # Product - Principal Product Owner
