@@ -6,6 +6,7 @@ let
   homeDir = "/home/${username}";
   kubeconfigFile = "${homeDir}/.kube/mcp-viewer.kubeconfig";
   context7ApiKey = (secrets.context7 or { }).apiKey or null;
+  zaiApiKey = (secrets.zai or { }).apiKey or null;
   mcpServers = {
     sequential-thinking = {
       command = "${pkgs.nodejs_24}/bin/npx";
@@ -464,6 +465,12 @@ in
         default = true;
         description = "Enable Get Shit Done (GSD) commands for Claude Code.";
       };
+
+      enableGLM = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable GLM model toggle via Z.AI proxy (fish function 'glm').";
+      };
     };
   };
 
@@ -530,6 +537,35 @@ in
         # Skills (slash commands like /commit)
         # Rendered to ~/.claude/skills/commit/SKILL.md via home.file below.
 
+      };
+
+      # GLM toggle function
+      programs.fish.functions = lib.mkIf (cfg.enableGLM && zaiApiKey != null) {
+        glm = {
+          argumentNames = [ "cmd" ];
+          body = ''
+            switch "$cmd"
+              case on
+                set -gx ANTHROPIC_AUTH_TOKEN "${zaiApiKey}"
+                set -gx ANTHROPIC_BASE_URL "https://api.z.ai/api/anthropic"
+                set -gx API_TIMEOUT_MS "3000000"
+                echo "GLM mode ON — Claude Code will route through Z.AI"
+              case off
+                set -e ANTHROPIC_AUTH_TOKEN
+                set -e ANTHROPIC_BASE_URL
+                set -e API_TIMEOUT_MS
+                echo "GLM mode OFF — Claude Code will use Anthropic directly"
+              case status ""
+                if set -q ANTHROPIC_BASE_URL
+                  echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL)"
+                else
+                  echo "GLM mode: OFF (using Anthropic directly)"
+                end
+              case '*'
+                echo "Usage: glm [on|off|status]"
+            end
+          '';
+        };
       };
 
       # Fish abbreviations
