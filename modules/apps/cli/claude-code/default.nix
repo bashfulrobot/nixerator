@@ -483,98 +483,101 @@ in
     ];
 
     home-manager.users.${username} = {
-      programs.claude-code = {
-        enable = true;
-        package = pkgs.claude-code;
+      programs = {
+        claude-code = {
+          enable = true;
+          package = pkgs.claude-code;
 
-        # Settings (JSON config)
-        settings = {
-          cleanupPeriod = 15;
-          coAuthor = "";
-          includeCoAuthoredBy = false;
+          # Settings (JSON config)
+          settings = {
+            cleanupPeriod = 15;
+            coAuthor = "";
+            includeCoAuthoredBy = false;
 
-          # Permissions - auto-approve common Nix and git operations
-          permissions.allow = [
-            "Bash(nix flake check:*)"
-            "Bash(statix check:*)"
-            "Bash(echo:*)"
-            "Bash(mkdir:*)"
-            "WebFetch(domain:git.sr.ht)"
-            "WebFetch(domain:github.com)"
-            "WebFetch(domain:githubusercontent.com)"
-            "Bash(git add:*)"
-            "Bash(git push)"
-            "Bash(git commit:*)"
-            "Bash(git rm:*)"
-            "Bash(git reset:*)"
-          ];
+            # Permissions - auto-approve common Nix and git operations
+            permissions.allow = [
+              "Bash(nix flake check:*)"
+              "Bash(statix check:*)"
+              "Bash(echo:*)"
+              "Bash(mkdir:*)"
+              "WebFetch(domain:git.sr.ht)"
+              "WebFetch(domain:github.com)"
+              "WebFetch(domain:githubusercontent.com)"
+              "Bash(git add:*)"
+              "Bash(git push)"
+              "Bash(git commit:*)"
+              "Bash(git rm:*)"
+              "Bash(git reset:*)"
+            ];
+          };
+
+          # Memory file (CLAUDE.md - project rules and context)
+          memory.text = builtins.readFile ../../../../CLAUDE.md;
+
+          # Agents (subagents for specialized tasks)
+          agents = {
+            rust = builtins.readFile ./agents/rust.md;
+            frontend = builtins.readFile ./agents/frontend.md;
+            testing = builtins.readFile ./agents/testing.md;
+            product = builtins.readFile ./agents/product.md;
+            go = builtins.readFile ./agents/go.md;
+            api = builtins.readFile ./agents/api.md;
+            nix = builtins.readFile ./agents/nix.md;
+            bash = builtins.readFile ./agents/bash.md;
+          };
+
+          # Skills (slash commands like /commit)
+          # Rendered to ~/.claude/skills/commit/SKILL.md via home.file below.
         };
 
-        # Memory file (CLAUDE.md - project rules and context)
-        memory.text = builtins.readFile ../../../../CLAUDE.md;
-
-        # Agents (subagents for specialized tasks)
-        agents = {
-          rust = builtins.readFile ./agents/rust.md;
-          frontend = builtins.readFile ./agents/frontend.md;
-          testing = builtins.readFile ./agents/testing.md;
-          product = builtins.readFile ./agents/product.md;
-          go = builtins.readFile ./agents/go.md;
-          api = builtins.readFile ./agents/api.md;
-          nix = builtins.readFile ./agents/nix.md;
-          bash = builtins.readFile ./agents/bash.md;
-        };
-
-        # Skills (slash commands like /commit)
-        # Rendered to ~/.claude/skills/commit/SKILL.md via home.file below.
-
-      };
-
-      # GLM toggle function
-      programs.fish.functions = lib.mkIf (cfg.enableGLM && zaiApiKey != null) {
-        glm = {
-          argumentNames = [ "cmd" ];
-          body = ''
-            switch "$cmd"
-              case on
-                set -gx ANTHROPIC_AUTH_TOKEN "${zaiApiKey}"
-                set -gx ANTHROPIC_BASE_URL "https://api.z.ai/api/anthropic"
-                set -gx API_TIMEOUT_MS "3000000"
-                set -gx ANTHROPIC_DEFAULT_HAIKU_MODEL "glm-5"
-                set -gx ANTHROPIC_DEFAULT_SONNET_MODEL "glm-5"
-                set -gx ANTHROPIC_DEFAULT_OPUS_MODEL "glm-5"
-                echo "GLM mode ON — Claude Code will route through Z.AI"
-              case off
-                set -e ANTHROPIC_AUTH_TOKEN
-                set -e ANTHROPIC_BASE_URL
-                set -e API_TIMEOUT_MS
-                set -e ANTHROPIC_DEFAULT_HAIKU_MODEL
-                set -e ANTHROPIC_DEFAULT_SONNET_MODEL
-                set -e ANTHROPIC_DEFAULT_OPUS_MODEL
-                echo "GLM mode OFF — Claude Code will use Anthropic directly"
-              case status ""
-                if set -q ANTHROPIC_BASE_URL
-                  if set -q ANTHROPIC_DEFAULT_HAIKU_MODEL
-                    echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL, model: $ANTHROPIC_DEFAULT_HAIKU_MODEL)"
-                  else
-                    echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL)"
-                  end
-                else
-                  echo "GLM mode: OFF (using Anthropic directly)"
+        fish = {
+          # GLM toggle function
+          functions = lib.mkIf (cfg.enableGLM && zaiApiKey != null) {
+            glm = {
+              argumentNames = [ "cmd" ];
+              body = ''
+                switch "$cmd"
+                  case on
+                    set -gx ANTHROPIC_AUTH_TOKEN "${zaiApiKey}"
+                    set -gx ANTHROPIC_BASE_URL "https://api.z.ai/api/anthropic"
+                    set -gx API_TIMEOUT_MS "3000000"
+                    set -gx ANTHROPIC_DEFAULT_HAIKU_MODEL "glm-5"
+                    set -gx ANTHROPIC_DEFAULT_SONNET_MODEL "glm-5"
+                    set -gx ANTHROPIC_DEFAULT_OPUS_MODEL "glm-5"
+                    echo "GLM mode ON — Claude Code will route through Z.AI"
+                  case off
+                    set -e ANTHROPIC_AUTH_TOKEN
+                    set -e ANTHROPIC_BASE_URL
+                    set -e API_TIMEOUT_MS
+                    set -e ANTHROPIC_DEFAULT_HAIKU_MODEL
+                    set -e ANTHROPIC_DEFAULT_SONNET_MODEL
+                    set -e ANTHROPIC_DEFAULT_OPUS_MODEL
+                    echo "GLM mode OFF — Claude Code will use Anthropic directly"
+                  case status ""
+                    if set -q ANTHROPIC_BASE_URL
+                      if set -q ANTHROPIC_DEFAULT_HAIKU_MODEL
+                        echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL, model: $ANTHROPIC_DEFAULT_HAIKU_MODEL)"
+                      else
+                        echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL)"
+                      end
+                    else
+                      echo "GLM mode: OFF (using Anthropic directly)"
+                    end
+                  case '*'
+                    echo "Usage: glm [on|off|status]"
                 end
-              case '*'
-                echo "Usage: glm [on|off|status]"
-            end
-          '';
-        };
-      };
+              '';
+            };
+          };
 
-      # Fish abbreviations
-      programs.fish.shellAbbrs = {
-        cc = {
-          position = "command";
-          setCursor = true;
-          expansion = "claude -p \"%\"";
+          # Fish abbreviations
+          shellAbbrs = {
+            cc = {
+              position = "command";
+              setCursor = true;
+              expansion = "claude -p \"%\"";
+            };
+          };
         };
       };
 
