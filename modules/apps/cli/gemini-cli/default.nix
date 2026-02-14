@@ -58,7 +58,7 @@ let
     ❌ feat: add OAuth2 (missing scope)
 
     ## Inputs
-    - Optional flags via $ARGUMENTS:
+    - Optional flags via {{args}}:
       - `--tag <level>`: Tag version (major|minor|patch).
       - `--release`: Create GitHub release (requires --tag).
 
@@ -66,14 +66,31 @@ let
     - One or more signed commits.
     - Optional signed tag and GitHub release.
 
+    ## Context
+
+    ### Recent commits (match this style):
+    ```
+    !{git log --oneline -5}
+    ```
+
+    ### Working tree status:
+    ```
+    !{git status}
+    ```
+
+    ### Staged changes:
+    ```diff
+    !{git diff --staged}
+    ```
+
     ## Preflight
     - Ensure you are in the repo root before running git commands.
-    - Inspect working tree and staged changes; avoid committing unrelated changes.
+    - Review the context above; avoid committing unrelated changes.
     - Stage all changes for this commit.
 
     ## Process:
-    1. Parse $ARGUMENTS flags.
-    2. Inspect changes: `git status && git diff --cached`.
+    1. Parse {{args}} flags.
+    2. Review the injected context above.
     3. Stage all changes: `git add -A`.
     4. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
     5. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
