@@ -64,11 +64,11 @@ let
       }
 
       default_branch() {
-        local remote="${1:-origin}"
+        local remote="''${1:-origin}"
         local head_ref
         head_ref="$(git symbolic-ref --quiet --short "refs/remotes/$remote/HEAD" 2>/dev/null)" || true
         if [[ -n "$head_ref" ]]; then
-          echo "''${head_ref#''${remote}/}"
+          echo "''${head_ref#"''${remote}"/}"
           return
         fi
 
