@@ -43,7 +43,7 @@ in
     services.ollama = {
       enable = true;
       package = selectedPackage;
-      loadModels = cfg.loadModels;
+      inherit (cfg) loadModels;
     };
 
     home-manager.users.${username} = {
