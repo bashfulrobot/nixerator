@@ -415,6 +415,11 @@ let
     fi
 
     output=".mcp.json"
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      if ! grep -qE '(^|/)\.mcp\.json$' .gitignore 2>/dev/null; then
+        echo "Warning: .gitignore does not include .mcp.json" >&2
+      fi
+    fi
     if [[ -e "$output" ]]; then
       read -r -p "''${output} exists. Overwrite? [y/N] " reply
       case "$reply" in

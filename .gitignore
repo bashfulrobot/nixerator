@@ -7,3 +7,6 @@ result-*
 
 # MCP config (project-level)
 .mcp.json
+
+# Codex config (project-level)
+.codex/config.toml
