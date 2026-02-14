@@ -153,6 +153,7 @@ upgrade trace="false":
     else
         sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
     fi
+    just voxtype-setup
 
 # Update a specific flake input
 [group('prod')]
@@ -392,6 +393,14 @@ rebuild-reboot:
     @echo "🔌 Rebooting in 10 seconds... (Ctrl+C to cancel)"
     @sleep 10
     @sudo reboot
+
+# Ensure Voxtype models are downloaded after upgrades
+[group('helpers')]
+voxtype-setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🎙️  Ensuring Voxtype models are downloaded..."
+    voxtype setup --download
 
 # Show config inspection examples
 [group('helpers')]
