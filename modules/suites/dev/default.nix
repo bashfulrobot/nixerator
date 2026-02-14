@@ -27,7 +27,10 @@ in
     # Development CLI applications
     apps = {
       cli = {
-        claude-code.enable = true;
+        claude-code = {
+          enable = true;
+          enableGLM = true;
+        };
         codex.enable = true;
         cue.enable = true;
         gemini-cli.enable = true;
