@@ -49,7 +49,7 @@ let
     - Sign with `git commit -S`. Split unrelated changes atomically.
 
     ## Type→Emoji:
-    feat:✨ fix:🐛 docs:📝 style:💄 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
+    feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
 
     ## Examples:
     ✅ feat(auth): ✨ add OAuth2 login flow
@@ -61,14 +61,20 @@ let
     --tag <level>: Tag version (major|minor|patch).
     --release: Create GitHub release (requires --tag).
 
+    ## Preflight
+    - Ensure you are in the repo root before running git commands.
+    - Inspect working tree and staged changes; avoid committing unrelated changes.
+    - Stage all changes for this commit.
+
     ## Process:
     1. Parse $ARGUMENTS flags.
     2. Inspect changes: `git status && git diff --cached`.
-    3. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
-    4. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
-    5. If --tag: `git tag -s v<version> -m "Release v<version>"`
-    6. Always push: `git push && git push --tags` (if tagged).
-    7. If --release: `gh release create v<version> --notes-from-tag`.
+    3. Stage all changes: `git add -A`.
+    4. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
+    5. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
+    6. If --tag: `git tag -s v<version> -m "Release v<version>"`
+    7. Always push: `git push && git push --tags` (if tagged).
+    8. If --release: `gh release create v<version> --notes-from-tag`.
   '';
 in
 {
