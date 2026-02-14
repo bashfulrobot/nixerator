@@ -10,8 +10,6 @@
       sha256 = "sha256-Oyqj4DHUOyxxvNVDtDKQSagX48k87o9p9baqLxBiJec=";
       repo = "https://github.com/bashfulrobot/meetsum";
     };
-  };
-
     cpx = {
       # Source: https://github.com/11happy/cpx/releases
       version = "0.1.3";
@@ -23,4 +21,3 @@
   # Add future version pins here organized by category:
   # services = { ... };
 }
-
