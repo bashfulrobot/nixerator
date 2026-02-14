@@ -28,12 +28,12 @@ let
 
     text = ''
       # ── Colours ──────────────────────────────────────────────────────────
-      RED='\033[0;31m'
-      GREEN='\033[0;32m'
-      YELLOW='\033[1;33m'
-      CYAN='\033[0;36m'
-      BOLD='\033[1m'
-      NC='\033[0m'
+      RED=$'\033[0;31m'
+      GREEN=$'\033[0;32m'
+      YELLOW=$'\033[1;33m'
+      CYAN=$'\033[0;36m'
+      BOLD=$'\033[1m'
+      NC=$'\033[0m'
 
       info()    { printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"; }
       ok()      { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
@@ -56,6 +56,36 @@ let
 
       is_worktree() {
         [[ -f "$(git rev-parse --show-toplevel)/.git" ]]
+      }
+
+      require_remote() {
+        local remote="$1"
+        git remote get-url "$remote" >/dev/null 2>&1 || die "remote not found: $remote"
+      }
+
+      default_branch() {
+        local remote="${1:-origin}"
+        local head_ref
+        head_ref="$(git symbolic-ref --quiet --short "refs/remotes/$remote/HEAD" 2>/dev/null)" || true
+        if [[ -n "$head_ref" ]]; then
+          echo "''${head_ref#''${remote}/}"
+          return
+        fi
+
+        if git show-ref --verify --quiet "refs/remotes/$remote/main"; then
+          echo "main"
+          return
+        fi
+
+        die "unable to determine default branch for $remote (try: git remote set-head $remote -a)"
+      }
+
+      repo_path_with_branch() {
+        local wanted_branch="$1"
+        git worktree list --porcelain | awk -v wanted="refs/heads/$wanted_branch" '
+          $1 == "worktree" { wt = $2 }
+          $1 == "branch" && $2 == wanted { print wt; exit }
+        '
       }
 
       # ── AI commit message generation ─────────────────────────────────────
@@ -101,6 +131,8 @@ let
       cmd_start() {
         local use_worktree=false
         local branch_name=""
+        local remote="origin"
+        local main_branch=""
 
         while [[ $# -gt 0 ]]; do
           case "$1" in
@@ -111,6 +143,7 @@ let
         done
 
         require_git_repo
+        require_remote "$remote"
 
         if [[ -z "$branch_name" ]]; then
           prompt "branch name: "
@@ -118,15 +151,20 @@ let
           [[ -n "$branch_name" ]] || die "branch name required"
         fi
 
+        main_branch="$(default_branch "$remote")"
+
         if [[ -n "$(git status --porcelain)" ]]; then
           die "working tree is not clean — commit or stash first"
         fi
 
-        info "fetching origin..."
-        git fetch origin main
+        info "fetching $remote/$main_branch..."
+        git fetch "$remote" "$main_branch"
 
         if git show-ref --verify --quiet "refs/heads/$branch_name"; then
           die "branch already exists: $branch_name"
+        fi
+        if git show-ref --verify --quiet "refs/remotes/$remote/$branch_name"; then
+          die "remote branch already exists: $remote/$branch_name"
         fi
 
         if $use_worktree; then
@@ -136,7 +174,7 @@ let
           wt_path="$(git rev-parse --show-toplevel)/../''${repo}-''${branch_name}"
 
           info "creating worktree at $wt_path"
-          git worktree add "$wt_path" -b "$branch_name" origin/main
+          git worktree add "$wt_path" -b "$branch_name" "$remote/$main_branch"
 
           # Unlock git-crypt in the worktree
           local key_dir="$HOME/.ssh/git-crypt"
@@ -156,17 +194,17 @@ let
           fi
 
           info "pushing branch to origin..."
-          git -C "$wt_path" push -u origin "$branch_name"
+          git -C "$wt_path" push -u "$remote" "$branch_name"
 
           ok "worktree ready at $wt_path"
           info "dropping you into the worktree..."
           cd "$wt_path" && exec "''${SHELL:-/bin/bash}"
         else
           info "creating branch $branch_name"
-          git switch -c "$branch_name" origin/main
+          git switch -c "$branch_name" "$remote/$main_branch"
 
           info "pushing branch to origin..."
-          git push -u origin "$branch_name"
+          git push -u "$remote" "$branch_name"
 
           ok "branch $branch_name ready — you are now on it"
         fi
@@ -175,6 +213,8 @@ let
       # ── finish ───────────────────────────────────────────────────────────
       cmd_finish() {
         local squash=false
+        local remote="origin"
+        local main_branch=""
 
         while [[ $# -gt 0 ]]; do
           case "$1" in
@@ -185,11 +225,13 @@ let
         done
 
         require_git_repo
+        require_remote "$remote"
+        main_branch="$(default_branch "$remote")"
 
         local branch
         branch="$(current_branch)"
 
-        [[ "$branch" != "main" ]] || die "already on main — nothing to finish"
+        [[ "$branch" != "$main_branch" ]] || die "already on $main_branch — nothing to finish"
 
         # Stage any uncommitted changes
         if [[ -n "$(git status --porcelain)" ]]; then
@@ -201,11 +243,11 @@ let
         if git diff --cached --quiet; then
           info "no staged changes — checking for existing commits on branch..."
           local ahead
-          ahead="$(git rev-list --count origin/main..HEAD 2>/dev/null)" || ahead=0
+          ahead="$(git rev-list --count "$remote/$main_branch..HEAD" 2>/dev/null)" || ahead=0
           if [[ "$ahead" -eq 0 ]]; then
-            die "no changes to commit and no commits ahead of main"
+            die "no changes to commit and no commits ahead of $main_branch"
           fi
-          ok "found $ahead commit(s) ahead of main — skipping to merge"
+          ok "found $ahead commit(s) ahead of $main_branch — skipping to merge"
         else
           # Generate commit message
           local diff
@@ -247,54 +289,74 @@ let
         fi
 
         # Rebase onto latest main for ff-only merge
-        info "fetching origin..."
-        git fetch origin main
+        info "fetching $remote/$main_branch..."
+        git fetch "$remote" "$main_branch"
 
         local behind
-        behind="$(git rev-list --count HEAD..origin/main 2>/dev/null)" || behind=0
+        behind="$(git rev-list --count HEAD.."$remote/$main_branch" 2>/dev/null)" || behind=0
         if [[ "$behind" -gt 0 ]]; then
-          info "rebasing onto origin/main ($behind commits behind)..."
-          git rebase origin/main || die "rebase failed — resolve conflicts, then run: gcom finish"
+          info "rebasing onto $remote/$main_branch ($behind commits behind)..."
+          git rebase "$remote/$main_branch" || die "rebase failed — resolve conflicts, then run: gcom finish"
         fi
 
         # Detect worktree before switching branches
         local in_worktree=false
         local wt_path=""
+        local main_repo_path=""
         if is_worktree; then
           in_worktree=true
           wt_path="$(git rev-parse --show-toplevel)"
+          main_repo_path="$(repo_path_with_branch "$main_branch")"
+          [[ -n "$main_repo_path" ]] || die "could not find a worktree with $main_branch checked out"
+        else
+          main_repo_path="$(git rev-parse --show-toplevel)"
         fi
 
         # Merge into main
-        info "switching to main..."
-        git switch main
-        git pull --ff-only
+        info "switching to $main_branch in $main_repo_path..."
+        if git -C "$main_repo_path" show-ref --verify --quiet "refs/heads/$main_branch"; then
+          git -C "$main_repo_path" switch "$main_branch"
+        else
+          git -C "$main_repo_path" switch -c "$main_branch" "$remote/$main_branch"
+        fi
+        git -C "$main_repo_path" pull --ff-only "$remote" "$main_branch"
 
         if $squash; then
           info "squash-merging $branch..."
-          git merge --squash "$branch"
+          git -C "$main_repo_path" merge --squash "$branch"
           local squash_msg
-          squash_msg="$(git log --format='%s' "origin/main..$branch" | head -1)"
-          git commit -S -m "$squash_msg"
+          squash_msg="$(git -C "$main_repo_path" log --format='%s' "$remote/$main_branch..$branch" | head -1)"
+          [[ -n "$squash_msg" ]] || squash_msg="chore($branch): 🔧 squash merge $branch"
+          git -C "$main_repo_path" commit -S -m "$squash_msg"
         else
           info "merging $branch (ff-only)..."
-          git merge --ff-only "$branch"
+          git -C "$main_repo_path" merge --ff-only "$branch"
         fi
 
-        info "pushing main..."
-        git push origin main
+        info "pushing $main_branch..."
+        git -C "$main_repo_path" push "$remote" "$main_branch"
 
         # Cleanup
-        info "deleting branch $branch..."
-        git branch -d "$branch"
-        git push origin --delete "$branch" 2>/dev/null || true
-
         if $in_worktree && [[ -n "$wt_path" ]]; then
           info "removing worktree at $wt_path..."
-          git worktree remove "$wt_path" 2>/dev/null || true
+          if ! git -C "$main_repo_path" worktree remove "$wt_path"; then
+            warn "failed to remove worktree: $wt_path"
+          fi
         fi
 
-        ok "done — $branch merged into main and cleaned up"
+        if git -C "$main_repo_path" merge-base --is-ancestor "$branch" "$main_branch"; then
+          info "deleting merged branch $branch..."
+          git -C "$main_repo_path" branch -d "$branch"
+        else
+          info "branch $branch is not a merge ancestor of $main_branch; force deleting local branch..."
+          git -C "$main_repo_path" branch -D "$branch"
+        fi
+
+        if ! git -C "$main_repo_path" push "$remote" --delete "$branch"; then
+          warn "failed to delete remote branch: $remote/$branch"
+        fi
+
+        ok "done — $branch merged into $main_branch and cleaned up"
       }
 
       # ── main ─────────────────────────────────────────────────────────────
