@@ -190,7 +190,6 @@ in
       };
 
       home.file = mcpServerFiles // {
-        ".agents/skills/commit".directory = true;
         ".agents/skills/commit/SKILL.md".text = codexCommitSkill;
       };
     };
