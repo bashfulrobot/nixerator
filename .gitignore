@@ -5,3 +5,5 @@ flake.lock-backup-*
 result
 result-*
 
+# MCP config (project-level)
+.mcp.json

@@ -498,7 +498,6 @@ in
             "Bash(mkdir:*)"
             "WebFetch(domain:git.sr.ht)"
             "WebFetch(domain:github.com)"
-            "WebFetch(domain:konghq.com)"
             "WebFetch(domain:githubusercontent.com)"
             "Bash(git add:*)"
             "Bash(git push)"
@@ -526,8 +525,6 @@ in
         # Skills (slash commands like /commit)
         # Rendered to ~/.claude/skills/commit/SKILL.md via home.file below.
 
-        # MCP Servers (Model Context Protocol integrations)
-        mcpServers = mcpServers;
       };
 
       # Fish abbreviations
