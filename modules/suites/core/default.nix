@@ -27,9 +27,11 @@ in
       gnome-online-accounts.enable = true;
     };
     apps = {
-      cli.tailscale.enable = true;
-      cli.cpx.enable = true;
-      cli.restic.enable = true;
+      cli = {
+        tailscale.enable = true;
+        cpx.enable = true;
+        restic.enable = true;
+      };
       gui.web-app-hub.enable = true;
     };
 
