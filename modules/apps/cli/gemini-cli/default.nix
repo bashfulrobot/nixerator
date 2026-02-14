@@ -52,6 +52,25 @@ let
     #!/usr/bin/env bash
     set -euo pipefail
 
+    custom_prompt=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        -p|--prompt)
+          if [[ $# -lt 2 ]]; then
+            echo "Missing value for $1" >&2
+            exit 1
+          fi
+          custom_prompt="$2"
+          shift 2
+          ;;
+        *)
+          echo "Unsupported argument: $1" >&2
+          echo "Use --prompt/-p for non-interactive mode." >&2
+          exit 1
+          ;;
+      esac
+    done
+
     diff=$(git diff --staged)
     if [[ -z "$diff" ]]; then
       echo "No staged changes to commit." >&2
@@ -70,7 +89,11 @@ let
     Diff:
     $diff"
 
-    msg=$(echo "$prompt" | gemini -y)
+    if [[ -n "$custom_prompt" ]]; then
+      prompt="$custom_prompt"
+    fi
+
+    msg=$(gemini -y --prompt "$prompt")
 
     if [[ -z "$msg" ]]; then
       echo "Failed to generate commit message." >&2
