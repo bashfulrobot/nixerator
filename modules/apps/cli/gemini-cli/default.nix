@@ -38,6 +38,48 @@ let
     };
   };
 
+  # Guidelines shared between the slash command and the gcommit function
+  commit-guidelines = ''
+    Format: `<type>(<scope>): <emoji> <description>`
+    Rules:
+    - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security|deps
+    - Scope (REQUIRED): lowercase, kebab-case module name.
+    - Emoji: AFTER colon (e.g., `feat(auth): ✨`). Subject: imperative, <72 chars.
+    Type→Emoji: feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
+  '';
+
+  gcommitScript = ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    diff=$(git diff --staged)
+    if [[ -z "$diff" ]]; then
+      echo "No staged changes to commit." >&2
+      exit 1
+    fi
+
+    recent=$(git log --oneline -5 2>/dev/null || true)
+
+    prompt="Write a concise Conventional Commit message for the diff below. Output ONLY the commit message, nothing else.
+
+    ${commit-guidelines}
+
+    Recent commits (match this style):
+    $recent
+
+    Diff:
+    $diff"
+
+    msg=$(echo "$prompt" | gemini -y)
+
+    if [[ -z "$msg" ]]; then
+      echo "Failed to generate commit message." >&2
+      exit 1
+    fi
+
+    git commit -S -m "$msg"
+  '';
+
   commit-prompt = ''
     Format: `<type>(<scope>): <emoji> <description>`
 
@@ -112,6 +154,7 @@ in
     # System packages for MCP server dependencies
     environment.systemPackages = with pkgs; [
       nodejs_24 # Includes npm and npx for MCP servers
+      (writeScriptBin "gcommit" gcommitScript)
     ];
 
     home-manager.users.${username} = {
@@ -130,9 +173,6 @@ in
         '';
       };
 
-      programs.fish.shellAbbrs = {
-        gcommit = "gemini /commit";
-      };
     };
   };
 }
