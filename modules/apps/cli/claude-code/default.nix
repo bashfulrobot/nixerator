@@ -399,7 +399,7 @@ let
     fi
 
     mapfile -t servers < <(find "$mcp_dir" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | sort)
-    if [[ ${#servers[@]} -eq 0 ]]; then
+    if [[ ''${#servers[@]} -eq 0 ]]; then
       echo "No MCP servers found in $mcp_dir" >&2
       exit 1
     fi
@@ -428,11 +428,11 @@ let
     while IFS= read -r name; do
       shopt -s nullglob
       files=("$mcp_dir/$name"/.mcp*)
-      if [[ ${#files[@]} -eq 0 ]]; then
+      if [[ ''${#files[@]} -eq 0 ]]; then
         echo "No .mcp* files found for $name" >&2
         exit 1
       fi
-      if [[ ${#files[@]} -gt 1 ]]; then
+      if [[ ''${#files[@]} -gt 1 ]]; then
         echo "Multiple .mcp* files found for $name; expected one." >&2
         exit 1
       fi
