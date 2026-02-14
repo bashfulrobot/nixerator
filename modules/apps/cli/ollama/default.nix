@@ -48,7 +48,7 @@ in
 
     home-manager.users.${username} = {
       programs.fish.shellAliases = {
-        glm = "ollama launch claude --model glm-5:cloud";
+        oglm = "ollama launch claude --model glm-5:cloud";
       };
     };
   };
