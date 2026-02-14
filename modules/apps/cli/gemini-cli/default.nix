@@ -57,9 +57,14 @@ let
     ❌ ✨ feat(auth): add OAuth2 (emoji before type)
     ❌ feat: add OAuth2 (missing scope)
 
-    ## Arguments ($ARGUMENTS):
-    --tag <level>: Tag version (major|minor|patch).
-    --release: Create GitHub release (requires --tag).
+    ## Inputs
+    - Optional flags via $ARGUMENTS:
+      - `--tag <level>`: Tag version (major|minor|patch).
+      - `--release`: Create GitHub release (requires --tag).
+
+    ## Outputs
+    - One or more signed commits.
+    - Optional signed tag and GitHub release.
 
     ## Preflight
     - Ensure you are in the repo root before running git commands.
