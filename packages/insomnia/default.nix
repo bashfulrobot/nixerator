@@ -4,8 +4,8 @@
 # TODO: Check for new Insomnia releases periodically at:
 # https://github.com/Kong/insomnia/releases
 #
-# Last updated: 2026-01-14
-# Current version: 12.2.0
+# Last updated: 2026-02-15
+# Current version: 12.3.1
 # Nixpkgs PR: https://github.com/NixOS/nixpkgs/pull/480124
 #
 # Version bump process documented in: ../VERSION-TRACKING.md
@@ -19,22 +19,22 @@
 }:
 let
   pname = "insomnia";
-  version = "12.2.0";
+  version = "12.3.1";
 
   src =
     fetchurl
       {
         aarch64-darwin = {
           url = "https://github.com/Kong/insomnia/releases/download/core%40${version}/Insomnia.Core-${version}.dmg";
-          hash = "sha256-ISQVIhR5TWY/Xk6sXeL89/srxppqBS7wdoRINwuoQqg=";
+          hash = "sha256-eKHZjZ8nVRIC28LJlokWop0xHGYyYcUS6ehzu5I/8CE=";
         };
         x86_64-darwin = {
           url = "https://github.com/Kong/insomnia/releases/download/core%40${version}/Insomnia.Core-${version}.dmg";
-          hash = "sha256-ISQVIhR5TWY/Xk6sXeL89/srxppqBS7wdoRINwuoQqg=";
+          hash = "sha256-eKHZjZ8nVRIC28LJlokWop0xHGYyYcUS6ehzu5I/8CE=";
         };
         x86_64-linux = {
           url = "https://github.com/Kong/insomnia/releases/download/core%40${version}/Insomnia.Core-${version}.AppImage";
-          hash = "sha256-/0fJmbXhjrcVVSFvxd847mSKrzrZRK3Sqi6rjyaBOUw=";
+          hash = "sha256-Bcja3z/QKdJ6NNvrRjSPPUsuqy53JveAiJ8jYrwg2uY=";
         };
       }
       .${stdenv.system} or (throw "Unsupported system: ${stdenv.system}");
