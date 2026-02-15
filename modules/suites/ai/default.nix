@@ -16,9 +16,12 @@ in
     apps.gui = {
     };
 
-    apps.cli.ollama = {
-      enable = true;
-      loadModels = [ "glm-5:cloud" ];
+    apps.cli = {
+      happy.enable = true;
+      ollama = {
+        enable = true;
+        loadModels = [ "glm-5:cloud" ];
+      };
     };
   };
 }

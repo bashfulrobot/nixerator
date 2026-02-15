@@ -16,6 +16,11 @@
       sha256 = "sha256-1qxQgWTxDIRabZRyE5vIo+H0ebzGGB+nyyzO2dujlK4=";
       repo = "https://github.com/11happy/cpx";
     };
+    happy = {
+      # Source: https://www.npmjs.com/package/happy-coder
+      version = "0.13.0";
+      repo = "https://github.com/slopus/happy";
+    };
   };
 
   # Add future version pins here organized by category:
