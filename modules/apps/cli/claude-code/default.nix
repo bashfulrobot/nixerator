@@ -456,6 +456,37 @@ in
               "Bash(git rm:*)"
               "Bash(git reset:*)"
             ];
+
+            # Sync git state on session start (handles syncthing drift)
+            hooks.SessionStart = [
+              {
+                matcher = "startup";
+                hooks = [
+                  {
+                    type = "command";
+                    command = builtins.concatStringsSep " " [
+                      "bash"
+                      "-c"
+                      (lib.escapeShellArg ''
+                        git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+                        branch=$(git rev-parse --abbrev-ref HEAD)
+                        git fetch origin 2>/dev/null || exit 0
+                        local_only=$(git log "origin/$branch..$branch" --oneline 2>/dev/null)
+                        remote_only=$(git log "$branch..origin/$branch" --oneline 2>/dev/null)
+                        if [ -n "$local_only" ] && [ -n "$remote_only" ]; then
+                          echo "[git-sync] Diverged — local and remote both have commits. Resolve manually."
+                        elif [ -n "$remote_only" ]; then
+                          git reset "origin/$branch" >/dev/null 2>&1
+                          echo "[git-sync] Aligned git state with origin/$branch"
+                        elif [ -n "$local_only" ]; then
+                          echo "[git-sync] Unpushed local commits on $branch"
+                        fi
+                      '')
+                    ];
+                  }
+                ];
+              }
+            ];
           };
 
           # Memory file (CLAUDE.md - project rules and context)
