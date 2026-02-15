@@ -1,26 +1,10 @@
-{ lib, pkgs, config, globals, secrets, ... }:
+{ lib, pkgs, config, globals, ... }:
 let
   cfg = config.apps.cli.gemini-cli;
   username = globals.user.name;
 
-  # MCP Servers configuration for settings.json
-  mcpServers = {
-    sequential-thinking = {
-      command = "${pkgs.nodejs_24}/bin/npx";
-      args = [ "-y" "@modelcontextprotocol/server-sequential-thinking" ];
-    };
-  } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
-    kong-konnect = {
-      httpUrl = "https://us.mcp.konghq.com/";
-      headers = {
-        Authorization = "Bearer ${secrets.kong.kongKonnectPAT}";
-      };
-    };
-  };
-
   # Settings JSON content
   settingsJson = builtins.toJSON {
-    inherit mcpServers;
     # General settings
     general = {
       # Enable Gemini 3 preview features
@@ -37,6 +21,7 @@ let
       };
     };
   };
+  humanizerSkill = builtins.readFile ./skills/humanizer/SKILL.md;
 
   # Guidelines shared between the slash command and the gcommit function
   commit-guidelines = ''
@@ -174,9 +159,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # System packages for MCP server dependencies
     environment.systemPackages = with pkgs; [
-      nodejs_24 # Includes npm and npx for MCP servers
       (writeScriptBin "gcommit" gcommitScript)
     ];
 
@@ -184,16 +167,21 @@ in
       home = {
         packages = [ pkgs.gemini-cli ];
 
-        # Create ~/.gemini/settings.json with MCP servers
-        file.".gemini/settings.json".text = settingsJson;
+        file = {
+          # Create ~/.gemini/settings.json
+          ".gemini/settings.json".text = settingsJson;
 
-        # Create ~/.gemini/commands/commit.toml
-        file.".gemini/commands/commit.toml".text = ''
-          description = "Create conventional commits with emoji and optional push, tagging, or GitHub releases"
-          prompt = """
-          ${commit-prompt}
-          """
-        '';
+          # Create ~/.gemini/commands/commit.toml
+          ".gemini/commands/commit.toml".text = ''
+            description = "Create conventional commits with emoji and optional push, tagging, or GitHub releases"
+            prompt = """
+            ${commit-prompt}
+            """
+          '';
+
+          # Install humanizer skill for Gemini CLI
+          ".gemini/skills/humanizer/SKILL.md".text = humanizerSkill;
+        };
       };
 
     };
