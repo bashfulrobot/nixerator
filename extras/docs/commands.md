@@ -30,3 +30,16 @@ nix flake check
 # Update all inputs
 nix flake update
 ```
+
+## Backrest
+
+```bash
+# Launch Backrest and open UI (on workstations)
+backrest-ui
+
+# Manual mode (all hosts)
+backrest
+
+# Stop Backrest when finished
+# Press Ctrl+C in the terminal where backrest is running
+```

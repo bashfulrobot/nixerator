@@ -154,6 +154,7 @@ in {
         default = 2;
         description = "Number of yearly backups to keep.";
       };
+
     };
   };
 
@@ -166,25 +167,27 @@ in {
       restic
     ];
 
-    systemd.timers.backup-mgr = {
-      description = "backup-mgr timer";
-      enable = true;
-      wantedBy = [ "timers.target" ];
-      partOf = [ "backup-mgr.service" ];
-      timerConfig = {
-        Persistent = "true";
-        OnCalendar = cfg.schedule;
+    systemd = {
+      timers.backup-mgr = {
+        description = "backup-mgr timer";
+        enable = true;
+        wantedBy = [ "timers.target" ];
+        partOf = [ "backup-mgr.service" ];
+        timerConfig = {
+          Persistent = "true";
+          OnCalendar = cfg.schedule;
+        };
       };
-    };
 
-    systemd.services.backup-mgr = {
-      description = "Backup with restic";
-      enable = true;
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = "/run/current-system/sw/bin/fish /run/current-system/sw/bin/backup-mgr";
+      services.backup-mgr = {
+        description = "Backup with restic";
+        enable = true;
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "/run/current-system/sw/bin/fish /run/current-system/sw/bin/backup-mgr";
+        };
+        wantedBy = [ "multi-user.target" ];
       };
-      wantedBy = [ "multi-user.target" ];
     };
   };
 }

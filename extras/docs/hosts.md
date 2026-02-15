@@ -105,7 +105,8 @@ Detailed information about each host configuration.
 | Service | Description |
 |---------|-------------|
 | NFS | Exports `/srv/nfs/spitfire` to 172.16.166.0/24 |
-| Backrest + Restic | Scheduled backups at 03:00 daily to B2 |
+| Restic (`backup-mgr`) | Scheduled backups at 03:00 daily to B2 |
+| Backrest | On-demand web UI for restic |
 | KVM | Virtualization with multiple bridge networks |
 | Docker | Container runtime |
 
@@ -113,6 +114,8 @@ Detailed information about each host configuration.
 
 - Does not auto-import modules; uses explicit imports in `modules.nix`
 - Secrets for restic credentials used by the backup stack (repository, password, B2 credentials) are stored in git-crypt encrypted `secrets/secrets.json`
+- Run Backrest on demand with `backrest` and stop it with `Ctrl+C`
+- Access Backrest UI at `http://127.0.0.1:9898` on the host where it is running (or via SSH tunnel)
 
 ## Host Configuration Pattern
 
