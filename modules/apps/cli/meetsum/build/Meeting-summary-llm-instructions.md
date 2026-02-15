@@ -111,9 +111,11 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
 ## Tone and Style Guidelines
 - Business casual tone throughout
 - Professional but conversational
+- Use the humanizer skill to make phrasing sound more natural and human
 - Write from the user's perspective (first person)
 - Avoid overly formal or technical jargon unless necessary
 - Maintain consistency in voice and style
+- Do not alter predefined title formatting rules
 
 ## Technical Requirements
 - All output must be Slack-compatible markdown
