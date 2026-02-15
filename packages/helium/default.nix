@@ -4,8 +4,8 @@
 # TODO: Check for new Helium releases periodically at:
 # https://github.com/imputnet/helium-linux/releases
 #
-# Last updated: 2026-01-16
-# Current version: 0.7.10.1
+# Last updated: 2026-02-15
+# Current version: 0.9.1.1
 #
 # Note: Helium is currently beta software
 # Version bump process documented in: ../VERSION-TRACKING.md
@@ -18,11 +18,11 @@
 }:
 let
   pname = "helium";
-  version = "0.7.10.1";
+  version = "0.9.1.1";
 
   src = fetchurl {
     url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-${version}-x86_64.AppImage";
-    hash = "sha256-11xSlHIqmyyVwjjwt5FmLhp72P3m07PppOo7a9DbTcE=";
+    hash = "sha256-0Kw8Ko41Gdz4xLn62riYAny99Hd0s7/75h8bz4LUuCE=";
   };
 
   meta = {
