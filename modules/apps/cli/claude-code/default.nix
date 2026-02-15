@@ -473,49 +473,73 @@ in
             bash = builtins.readFile ./agents/bash.md;
           };
 
-          # Skills and MCP servers managed through Home Manager options.
+          # No global MCP servers — use mcp-pick per-project to avoid
+          # bloating every conversation with unused tool schemas.
+          mcpServers = { };
+
           skills.commit = ./skills/commit;
         };
 
         fish = {
-          # GLM toggle function
-          functions = lib.mkIf (cfg.enableGLM && zaiApiKey != null) {
-            glm = {
-              argumentNames = [ "cmd" ];
-              body = ''
-                switch "$cmd"
-                  case on
-                    set -gx ANTHROPIC_AUTH_TOKEN "${zaiApiKey}"
-                    set -gx ANTHROPIC_BASE_URL "https://api.z.ai/api/anthropic"
-                    set -gx API_TIMEOUT_MS "3000000"
-                    set -gx ANTHROPIC_DEFAULT_HAIKU_MODEL "glm-5"
-                    set -gx ANTHROPIC_DEFAULT_SONNET_MODEL "glm-5"
-                    set -gx ANTHROPIC_DEFAULT_OPUS_MODEL "glm-5"
-                    echo "GLM mode ON — Claude Code will route through Z.AI"
-                  case off
-                    set -e ANTHROPIC_AUTH_TOKEN
-                    set -e ANTHROPIC_BASE_URL
-                    set -e API_TIMEOUT_MS
-                    set -e ANTHROPIC_DEFAULT_HAIKU_MODEL
-                    set -e ANTHROPIC_DEFAULT_SONNET_MODEL
-                    set -e ANTHROPIC_DEFAULT_OPUS_MODEL
-                    echo "GLM mode OFF — Claude Code will use Anthropic directly"
-                  case status ""
-                    if set -q ANTHROPIC_BASE_URL
-                      if set -q ANTHROPIC_DEFAULT_HAIKU_MODEL
-                        echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL, model: $ANTHROPIC_DEFAULT_HAIKU_MODEL)"
-                      else
-                        echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL)"
+          functions = lib.mkMerge [
+            # Wrapper that offers to clean up project .mcp.json on exit
+            {
+              claude = {
+                wraps = "claude";
+                body = ''
+                  command claude $argv
+                  set -l exit_code $status
+                  if test -f .mcp.json
+                      read -P "Remove .mcp.json from this project? [y/N] " confirm
+                      if string match -qi 'y*' -- $confirm
+                          rm .mcp.json
+                          echo "Removed .mcp.json"
                       end
-                    else
-                      echo "GLM mode: OFF (using Anthropic directly)"
-                    end
-                  case '*'
-                    echo "Usage: glm [on|off|status]"
-                end
-              '';
-            };
-          };
+                  end
+                  return $exit_code
+                '';
+              };
+            }
+
+            # GLM toggle function
+            (lib.mkIf (cfg.enableGLM && zaiApiKey != null) {
+              glm = {
+                argumentNames = [ "cmd" ];
+                body = ''
+                  switch "$cmd"
+                    case on
+                      set -gx ANTHROPIC_AUTH_TOKEN "${zaiApiKey}"
+                      set -gx ANTHROPIC_BASE_URL "https://api.z.ai/api/anthropic"
+                      set -gx API_TIMEOUT_MS "3000000"
+                      set -gx ANTHROPIC_DEFAULT_HAIKU_MODEL "glm-5"
+                      set -gx ANTHROPIC_DEFAULT_SONNET_MODEL "glm-5"
+                      set -gx ANTHROPIC_DEFAULT_OPUS_MODEL "glm-5"
+                      echo "GLM mode ON — Claude Code will route through Z.AI"
+                    case off
+                      set -e ANTHROPIC_AUTH_TOKEN
+                      set -e ANTHROPIC_BASE_URL
+                      set -e API_TIMEOUT_MS
+                      set -e ANTHROPIC_DEFAULT_HAIKU_MODEL
+                      set -e ANTHROPIC_DEFAULT_SONNET_MODEL
+                      set -e ANTHROPIC_DEFAULT_OPUS_MODEL
+                      echo "GLM mode OFF — Claude Code will use Anthropic directly"
+                    case status ""
+                      if set -q ANTHROPIC_BASE_URL
+                        if set -q ANTHROPIC_DEFAULT_HAIKU_MODEL
+                          echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL, model: $ANTHROPIC_DEFAULT_HAIKU_MODEL)"
+                        else
+                          echo "GLM mode: ON (base URL: $ANTHROPIC_BASE_URL)"
+                        end
+                      else
+                        echo "GLM mode: OFF (using Anthropic directly)"
+                      end
+                    case '*'
+                      echo "Usage: glm [on|off|status]"
+                  end
+                '';
+              };
+            })
+          ];
 
           # Fish abbreviations
           shellAbbrs = {
