@@ -144,6 +144,8 @@ let
 
         require_git_repo
         require_remote "$remote"
+        info "refreshing remote refs from $remote..."
+        git fetch --quiet "$remote"
 
         if [[ -z "$branch_name" ]]; then
           prompt "branch name: "
@@ -226,6 +228,8 @@ let
 
         require_git_repo
         require_remote "$remote"
+        info "refreshing remote refs from $remote..."
+        git fetch --quiet "$remote"
         main_branch="$(default_branch "$remote")"
 
         local branch
@@ -243,7 +247,16 @@ let
         if git diff --cached --quiet; then
           info "no staged changes — checking for existing commits on branch..."
           local ahead
-          ahead="$(git rev-list --count "$remote/$main_branch..HEAD" 2>/dev/null)" || ahead=0
+          local compare_base="$remote/$main_branch"
+          if ! git rev-parse --verify --quiet "refs/remotes/$remote/$main_branch" >/dev/null 2>&1; then
+            if git rev-parse --verify --quiet "refs/heads/$main_branch" >/dev/null 2>&1; then
+              compare_base="$main_branch"
+              warn "remote base $remote/$main_branch not found; comparing against local $main_branch"
+            else
+              die "cannot determine comparison base for $main_branch"
+            fi
+          fi
+          ahead="$(git rev-list --count "$compare_base..HEAD" 2>/dev/null)" || ahead=0
           if [[ "$ahead" -eq 0 ]]; then
             die "no changes to commit and no commits ahead of $main_branch"
           fi
@@ -283,6 +296,7 @@ let
               ;;
           esac
 
+          [[ -n "$msg" ]] || die "empty message"
           info "committing..."
           git commit -S -m "$msg"
           ok "committed"
@@ -337,26 +351,50 @@ let
         git -C "$main_repo_path" push "$remote" "$main_branch"
 
         # Cleanup
+        local cleanup_ok=true
         if $in_worktree && [[ -n "$wt_path" ]]; then
           info "removing worktree at $wt_path..."
           if ! git -C "$main_repo_path" worktree remove "$wt_path"; then
             warn "failed to remove worktree: $wt_path"
+            cleanup_ok=false
           fi
         fi
 
-        if git -C "$main_repo_path" merge-base --is-ancestor "$branch" "$main_branch"; then
-          info "deleting merged branch $branch..."
-          git -C "$main_repo_path" branch -d "$branch"
+        if git -C "$main_repo_path" show-ref --verify --quiet "refs/heads/$branch"; then
+          if git -C "$main_repo_path" merge-base --is-ancestor "$branch" "$main_branch"; then
+            info "deleting merged branch $branch..."
+            if ! git -C "$main_repo_path" branch -d "$branch"; then
+              warn "safe delete failed (likely due to upstream merge checks); force deleting local branch..."
+              if ! git -C "$main_repo_path" branch -D "$branch"; then
+                warn "failed to force delete local branch: $branch"
+                cleanup_ok=false
+              fi
+            fi
+          else
+            info "branch $branch is not a merge ancestor of $main_branch; force deleting local branch..."
+            if ! git -C "$main_repo_path" branch -D "$branch"; then
+              warn "failed to force delete local branch: $branch"
+              cleanup_ok=false
+            fi
+          fi
         else
-          info "branch $branch is not a merge ancestor of $main_branch; force deleting local branch..."
-          git -C "$main_repo_path" branch -D "$branch"
+          info "local branch already absent: $branch"
         fi
 
-        if ! git -C "$main_repo_path" push "$remote" --delete "$branch"; then
-          warn "failed to delete remote branch: $remote/$branch"
+        if git -C "$main_repo_path" ls-remote --exit-code --heads "$remote" "$branch" >/dev/null 2>&1; then
+          if ! git -C "$main_repo_path" push "$remote" --delete "$branch"; then
+            warn "failed to delete remote branch: $remote/$branch"
+            cleanup_ok=false
+          fi
+        else
+          info "remote branch already absent: $remote/$branch"
         fi
 
-        ok "done — $branch merged into $main_branch and cleaned up"
+        if $cleanup_ok; then
+          ok "done — $branch merged into $main_branch and cleaned up"
+        else
+          warn "done — $branch merged into $main_branch, but cleanup had warnings"
+        fi
       }
 
       # ── main ─────────────────────────────────────────────────────────────
