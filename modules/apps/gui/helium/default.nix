@@ -5,7 +5,7 @@
 #
 # TODO: Version bump reminder - Check for new releases monthly
 # Release URL: https://github.com/imputnet/helium-linux/releases
-# Current local version: 0.8.1 (see ../../packages/helium/default.nix)
+# Current local version: 0.9.1.1 (see ../../packages/helium/default.nix)
 # Note: Helium is currently in beta
 
 { lib, pkgs, config, globals, ... }:
