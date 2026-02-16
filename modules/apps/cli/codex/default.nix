@@ -151,6 +151,7 @@ let
        Example:
        `gcommit $ARGUMENTS`
   '';
+  codexCommitSkillFile = pkgs.writeText "codex-commit-skill.md" codexCommitSkill;
 in
 {
   options = { # Changed from options.apps.cli.codex = {
@@ -176,8 +177,17 @@ in
         custom-instructions = builtins.readFile ./CODEX.md;
       };
 
-      home.file = mcpServerFiles // {
-        ".agents/skills/commit/SKILL.md".text = codexCommitSkill;
+      home.file = mcpServerFiles;
+
+      home.activation.installCodexCommitSkill = {
+        after = [ "writeBoundary" ];
+        before = [ ];
+        data = ''
+          # Write a real file (not a Home Manager symlink): Codex can ignore
+          # symlinked local command/skill artifacts.
+          # Ref: https://github.com/openai/codex/issues/4383
+          install -Dm644 ${codexCommitSkillFile} "$HOME/.codex/skills/commit/SKILL.md"
+        '';
       };
     };
   };
