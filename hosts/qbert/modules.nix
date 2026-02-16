@@ -9,6 +9,8 @@ _:
 
   apps.cli.ollama.acceleration = "rocm";
 
+  apps.gui.mv7config.enable = true;
+
   # Server modules
   server = {
     kvm = {

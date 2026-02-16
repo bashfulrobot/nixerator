@@ -23,6 +23,7 @@ packages/
 
 - **insomnia** (12.2.0) - API client for GraphQL, REST, WebSockets, etc.
 - **helium** (0.7.10.1) - Privacy-focused Chromium-based web browser (beta)
+- **mv7config** (unstable-2025-06-18) - Configure Shure MV7 microphones
 
 ## Usage
 

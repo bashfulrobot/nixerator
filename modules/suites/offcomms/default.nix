@@ -39,6 +39,7 @@ in
       meetsum.enable = true;
       pandoc.enable = true;
       percollate.enable = true;
+      wkhtmltopdf.enable = true;
     };
 
     environment.systemPackages = with pkgs; [
