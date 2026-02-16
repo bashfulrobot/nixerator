@@ -15,6 +15,7 @@ in
   config = lib.mkIf cfg.enable {
     apps.gui = {
       affinity.enable = true;
+      noisetorch.enable = true;
     };
 
     services.flatpak.packages = [

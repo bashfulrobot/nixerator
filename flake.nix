@@ -154,6 +154,11 @@
         };
       };
 
+      checks = inputs.nixpkgs.lib.genAttrs [ "x86_64-linux" ] (system: {
+        mv7config-module = import ./tests/mv7config.nix { inherit inputs system; };
+        noisetorch-module = import ./tests/noisetorch.nix { inherit inputs system; };
+      });
+
       # Expose lib, globals, and versions for use in other flakes
       inherit lib globals versions;
     };

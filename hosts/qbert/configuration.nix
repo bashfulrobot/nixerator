@@ -10,7 +10,6 @@
     ./power-management.nix        # Power management workarounds for AMD GPU suspend and USB wakeup
     ./reboot-windows.nix          # Desktop entry for rebooting to Windows
     ./modules.nix                 # Module configuration
-
     # Auto-import all modules
     ../../modules
   ];

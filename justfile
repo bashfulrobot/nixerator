@@ -394,6 +394,15 @@ rebuild-reboot:
     @sleep 10
     @sudo reboot
 
+# Stage all changes and run rebuild (for quick pre-commit verification)
+[group('helpers')]
+dev-build trace="false":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "⚡ Staging all changes and running rebuild..."
+    git add -A
+    just rebuild trace="{{trace}}"
+
 # Ensure Voxtype models are downloaded after upgrades
 [group('helpers')]
 voxtype-setup:
