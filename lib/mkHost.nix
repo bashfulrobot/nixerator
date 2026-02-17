@@ -38,7 +38,6 @@
           (final: prev: {
             helium = prev.callPackage ../packages/helium { };
             insomnia = prev.callPackage ../packages/insomnia { };
-            mv7config = prev.callPackage ../packages/mv7config { };
           })
         ];
 
