@@ -13,6 +13,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Kong CLI applications
+    apps.cli = {
+      kong-docs-offline.enable = true;
+    };
+
     # Kong GUI applications
     apps.gui = {
       insomnia.enable = true;
