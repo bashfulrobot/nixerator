@@ -78,7 +78,7 @@ let
       echo "Starting Stirling PDF..."
 
       # Wait up to 60s for the server to be ready
-      for i in $(seq 1 60); do
+      for _i in $(seq 1 60); do
         if curl -sf "http://localhost:''${PORT}" > /dev/null 2>&1; then
           xdg-open "http://localhost:''${PORT}"
           echo "Stirling PDF started at http://localhost:''${PORT}"
