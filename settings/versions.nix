@@ -22,16 +22,4 @@
       repo = "https://github.com/slopus/happy";
     };
   };
-
-  # Services
-  services = {
-    stirling-pdf = {
-      # Source: https://github.com/Stirling-Tools/Stirling-PDF/releases
-      # Using the with-login variant for full feature set (auth, pipeline, etc.)
-      version = "2.5.0";
-      sha256 = "sha256-GvhmTSraBF+vADa307AdM8neFplbobhFvFjv7LHqDXc=";
-      iconSha256 = "sha256-PGdkTQezkoyqePen+fpHeJNHTycI1iHMgjngSaGwD1k=";
-      repo = "https://github.com/Stirling-Tools/Stirling-PDF";
-    };
-  };
 }

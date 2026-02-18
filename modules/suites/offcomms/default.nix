@@ -39,7 +39,6 @@ in
       meetsum.enable = true;
       pandoc.enable = true;
       percollate.enable = true;
-      stirling-pdf.enable = true;
       wkhtmltopdf.enable = true;
     };
 
