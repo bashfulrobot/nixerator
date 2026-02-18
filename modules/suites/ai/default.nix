@@ -22,6 +22,7 @@ in
         enable = true;
         loadModels = [ "glm-5:cloud" ];
       };
+      termly.enable = true;
     };
   };
 }
