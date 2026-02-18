@@ -157,6 +157,7 @@
       checks = inputs.nixpkgs.lib.genAttrs [ "x86_64-linux" ] (system: {
         kong-docs-offline-module = import ./tests/kong-docs-offline.nix { inherit inputs system; };
         noisetorch-module = import ./tests/noisetorch.nix { inherit inputs system; };
+        termly-module = import ./tests/termly.nix { inherit inputs system; };
       });
 
       # Expose lib, globals, and versions for use in other flakes
