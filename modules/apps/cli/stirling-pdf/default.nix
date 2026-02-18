@@ -20,7 +20,27 @@ let
     name = "stirling-pdf";
     runtimeInputs = with pkgs; [
       jdk21 # Java runtime
-      tesseract # OCR (Nix installs almost all lang packs)
+      # OCR with broad language support (eng required; others common world langs)
+      (tesseract4.override {
+        enableLanguages = [
+          "eng" # English — required, do not remove
+          "fra" # French
+          "deu" # German
+          "spa" # Spanish
+          "ita" # Italian
+          "por" # Portuguese
+          "rus" # Russian
+          "chi_sim" # Chinese Simplified
+          "chi_tra" # Chinese Traditional
+          "jpn" # Japanese
+          "kor" # Korean
+          "ara" # Arabic
+          "hin" # Hindi
+          "nld" # Dutch
+          "pol" # Polish
+          "swe" # Swedish
+        ];
+      })
       libreoffice # Document format conversion
       poppler_utils # PDF utilities
       pngquant # PNG optimization
@@ -31,6 +51,7 @@ let
       unoconv # LibreOffice UNO bridge
       calibre # eBook/HTML conversion
       python3Packages.weasyprint # HTML→PDF
+      python3Packages.opencv-python-headless # Pattern recognition
       curl # Used for readiness check
       xdg-utils # For xdg-open
       coreutils # mkdir, etc.
