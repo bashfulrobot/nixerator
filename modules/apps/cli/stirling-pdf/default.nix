@@ -42,7 +42,7 @@ let
         ];
       })
       libreoffice # Document format conversion
-      poppler_utils # PDF utilities
+      poppler-utils # PDF utilities
       pngquant # PNG optimization
       jbig2enc # JBIG2 OCR compression
       ghostscript # PDF processing
