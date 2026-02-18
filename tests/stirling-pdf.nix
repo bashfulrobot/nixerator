@@ -10,36 +10,47 @@ let
           homeDirectory = "/home/testuser";
         };
       };
+      versions = {
+        services.stirling-pdf = {
+          version = "2.5.0";
+          sha256 = "sha256-GvhmTSraBF+vADa307AdM8neFplbobhFvFjv7LHqDXc=";
+          iconSha256 = "sha256-PGdkTQezkoyqePen+fpHeJNHTycI1iHMgjngSaGwD1k=";
+          repo = "https://github.com/Stirling-Tools/Stirling-PDF";
+        };
+      };
     };
     modules = [
-      {
-        system.stateVersion = "24.11";
-      }
+      { system.stateVersion = "24.11"; }
       ../modules/apps/cli/stirling-pdf
-      {
-        apps.cli.stirling-pdf.enable = true;
-      }
+      { apps.cli.stirling-pdf.enable = true; }
     ];
   };
 
-  stirlingIsInstalled =
+  launcherIsInstalled =
     lib.any
-      (pkg:
+      (p:
         let
           name =
-            if builtins.isAttrs pkg && pkg ? name then
-              pkg.name
-            else if builtins.isString pkg then
-              pkg
-            else
-              "";
+            if builtins.isAttrs p && p ? name then p.name
+            else if builtins.isString p then p
+            else "";
         in
         lib.hasPrefix "stirling-pdf" name)
       eval.config.environment.systemPackages;
 in
 lib.runTests {
-  stirlingAddsPackage = {
-    expr = stirlingIsInstalled;
+  stirlingAddsLauncher = {
+    expr = launcherIsInstalled;
     expected = true;
+  };
+
+  stirlingDefaultPort = {
+    expr = eval.config.apps.cli.stirling-pdf.port;
+    expected = 8080;
+  };
+
+  stirlingDefaultDataDir = {
+    expr = eval.config.apps.cli.stirling-pdf.dataDir;
+    expected = "/home/testuser/.local/share/stirling-pdf";
   };
 }

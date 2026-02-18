@@ -3,39 +3,73 @@
   pkgs,
   config,
   globals,
+  versions,
   ...
 }:
 
 let
   cfg = config.apps.cli.stirling-pdf;
   username = globals.user.name;
+  pkg = pkgs.callPackage ./build { inherit versions; };
 
-  stirling-pdf = pkgs.writeShellScriptBin "stirling-pdf" ''
-    set -euo pipefail
+  # Launcher wrapper: start the app (if not running) and open the browser.
+  # All native dependencies are available via runtimeInputs and are inherited
+  # by the backgrounded java process, so Stirling PDF can call tesseract,
+  # libreoffice, etc. as subprocesses.
+  stirling-pdf-launcher = pkgs.writeShellApplication {
+    name = "stirling-pdf";
+    runtimeInputs = with pkgs; [
+      jdk21 # Java runtime
+      tesseract # OCR (Nix installs almost all lang packs)
+      libreoffice # Document format conversion
+      poppler_utils # PDF utilities
+      pngquant # PNG optimization
+      jbig2enc # JBIG2 OCR compression
+      ghostscript # PDF processing
+      qpdf # PDF manipulation
+      unpaper # Document image cleanup pre-OCR
+      unoconv # LibreOffice UNO bridge
+      calibre # eBook/HTML conversion
+      python3Packages.weasyprint # HTML→PDF
+      curl # Used for readiness check
+      xdg-utils # For xdg-open
+      coreutils # mkdir, etc.
+    ];
+    text = ''
+      PORT="${toString cfg.port}"
+      DATA_DIR="${cfg.dataDir}"
+      JAR="${pkg}/share/stirling-pdf/Stirling-PDF.jar"
 
-    CONTAINER_NAME="stirling-pdf"
-    PORT="${toString cfg.port}"
-    DATA_DIR="${cfg.dataDir}"
-
-    if docker ps -q -f "name=^''${CONTAINER_NAME}$" | grep -q .; then
-      docker stop "$CONTAINER_NAME" > /dev/null
-      docker rm "$CONTAINER_NAME" > /dev/null
-      echo "Stirling PDF stopped."
-    else
-      docker rm "$CONTAINER_NAME" 2>/dev/null || true
+      # Ensure data directory structure exists
       mkdir -p "$DATA_DIR"/{configs,logs,pipeline,tessdata}
-      docker run -d \
-        --name "$CONTAINER_NAME" \
-        -p "$PORT:8080" \
-        -v "$DATA_DIR/configs:/configs" \
-        -v "$DATA_DIR/logs:/logs" \
-        -v "$DATA_DIR/pipeline:/pipeline" \
-        -v "$DATA_DIR/tessdata:/usr/share/tessdata" \
-        stirlingtools/stirling-pdf:latest > /dev/null
-      echo "Stirling PDF started at http://localhost:$PORT"
-      xdg-open "http://localhost:$PORT"
-    fi
-  '';
+
+      # If already running on the port, just open the browser
+      if curl -sf "http://localhost:''${PORT}" > /dev/null 2>&1; then
+        xdg-open "http://localhost:''${PORT}"
+        exit 0
+      fi
+
+      # Start Stirling PDF in the background from the data directory
+      cd "$DATA_DIR"
+      SERVER_PORT="''${PORT}" SERVER_HOST="127.0.0.1" \
+        nohup java -jar "$JAR" > "$DATA_DIR/logs/stirling-pdf.log" 2>&1 &
+
+      echo "Starting Stirling PDF..."
+
+      # Wait up to 60s for the server to be ready
+      for i in $(seq 1 60); do
+        if curl -sf "http://localhost:''${PORT}" > /dev/null 2>&1; then
+          xdg-open "http://localhost:''${PORT}"
+          echo "Stirling PDF started at http://localhost:''${PORT}"
+          exit 0
+        fi
+        sleep 1
+      done
+
+      echo "Stirling PDF did not respond after 60s. Check logs at $DATA_DIR/logs/stirling-pdf.log"
+      exit 1
+    '';
+  };
 in
 {
   options = {
@@ -43,24 +77,45 @@ in
       enable = lib.mkOption {
         type = lib.types.bool;
         default = false;
-        description = "Enable Stirling PDF toggle command (Docker-based PDF toolkit).";
+        description = "Enable Stirling PDF native installation (PDF toolkit web UI).";
       };
 
       port = lib.mkOption {
         type = lib.types.port;
         default = 8080;
-        description = "Host port to expose Stirling PDF on.";
+        description = "Port to serve Stirling PDF on.";
       };
 
       dataDir = lib.mkOption {
         type = lib.types.str;
         default = "/home/${username}/.local/share/stirling-pdf";
-        description = "Directory for Stirling PDF persistent data.";
+        description = "Working directory for configs, logs, pipeline, and tessdata.";
       };
     };
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ stirling-pdf ];
+    environment.systemPackages = [ stirling-pdf-launcher ];
+
+    # Desktop launcher — home.file pattern (syncthing/spotify convention in this repo)
+    home-manager.users.${username} = {
+      home.file = {
+        "stirling-pdf.desktop" = {
+          text = ''
+            [Desktop Entry]
+            Name=Stirling PDF
+            GenericName=PDF Toolkit
+            Comment=Launch Stirling PDF and open its web UI
+            Exec=stirling-pdf
+            Icon=${pkg}/share/stirling-pdf/stirling.svg
+            Type=Application
+            Categories=Office;
+            Keywords=pdf;
+            Terminal=false
+          '';
+          target = ".local/share/applications/stirling-pdf.desktop";
+        };
+      };
+    };
   };
 }
