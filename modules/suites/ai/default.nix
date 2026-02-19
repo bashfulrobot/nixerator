@@ -23,6 +23,7 @@ in
         loadModels = [ "glm-5:cloud" ];
       };
       termly.enable = true;
+      yepanywhere.enable = true;
     };
   };
 }
