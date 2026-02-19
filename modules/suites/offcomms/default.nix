@@ -32,7 +32,7 @@ in
     hyprflake.desktop.voxtype = {
       enable = true;
       hotkey = "SCROLLLOCK";
-      model = "base.en";
+      model = lib.mkDefault "base.en";
     };
 
     apps.cli = {
