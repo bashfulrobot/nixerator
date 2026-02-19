@@ -1,4 +1,4 @@
-{ hostname, globals, ... }:
+{ hostname, globals, inputs, pkgs, ... }:
 
 {
   # Import hardware configuration
@@ -20,8 +20,11 @@
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
   i18n.defaultLocale = globals.defaults.locale;
 
-  # Voxtype whisper threads (8 cores)
-  hyprflake.desktop.voxtype.threads = 8;
+  # Voxtype on donkeykong: keep thread cap + try Vulkan backend (Intel Arc iGPU)
+  hyprflake.desktop.voxtype = {
+    threads = 8;
+    package = inputs.hyprflake.inputs.voxtype.packages.${pkgs.system}.vulkan;
+  };
 
   # Enable archetypes
   archetypes.workstation.enable = true;
