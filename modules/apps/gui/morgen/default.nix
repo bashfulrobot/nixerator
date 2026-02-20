@@ -1,0 +1,29 @@
+{ lib, pkgs, config, globals, ... }:
+
+let
+  cfg = config.apps.gui.morgen;
+  username = globals.user.name;
+in
+{
+  options = {
+    apps.gui.morgen.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable Morgen calendar application.";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = with pkgs; [
+      morgen
+    ];
+
+    home-manager.users.${username} = {
+      wayland.windowManager.hyprland.settings = {
+        windowrule = [
+          "tile, class:Morgan"
+        ];
+      };
+    };
+  };
+}
