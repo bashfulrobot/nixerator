@@ -22,6 +22,7 @@ in
     apps.gui = {
       cameractrls.enable = true;
       insync.enable = true;
+      morgen.enable = true;
       obsidian.enable = true;
       signal.enable = true;
       typora.enable = true;
@@ -44,7 +45,6 @@ in
 
     environment.systemPackages = with pkgs; [
       discord-ptb
-      morgen
       slack
       todoist-electron
     ];
