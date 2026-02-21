@@ -11,6 +11,10 @@ _:
 
   # Server modules
   server = {
+    whisper-server = {
+      enable = true;
+      vulkan = true;
+    };
     kvm = {
       enable = true;
       routing = {
