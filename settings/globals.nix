@@ -1,4 +1,4 @@
-{
+rec {
   # Global configuration variables available throughout your flake
 
   # User configuration
@@ -7,6 +7,14 @@
     fullName = "Dustin Krysak";
     email = "dustin@bashfulrobot.com";
     homeDirectory = "/home/dustin";
+  };
+
+  # Common repository and development paths
+  paths = {
+    devRoot = "${user.homeDirectory}/dev";
+    nixRoot = "${user.homeDirectory}/dev/nix";
+    nixerator = "${user.homeDirectory}/dev/nix/nixerator";
+    hyprflake = "${user.homeDirectory}/dev/nix/hyprflake";
   };
 
   # System defaults
@@ -20,6 +28,13 @@
   preferences = {
     editor = "helix";  # Package name in nixpkgs
     shell = "fish";
+  };
+
+  # Tailscale IPs
+  tailscale = {
+    qbert = "100.74.137.95";
+    donkeykong = "100.117.210.113";
+    srv = "100.64.187.14";
   };
 
   # Git configuration
