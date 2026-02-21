@@ -2,6 +2,8 @@
 
 Detailed information about each host configuration.
 
+Active `flake.nix` `nixosConfigurations` outputs: `donkeykong`, `qbert`, and `srv`.
+
 ## qbert (Desktop Workstation)
 
 **Hardware:** Custom desktop with AMD GPU
@@ -57,27 +59,24 @@ Detailed information about each host configuration.
 
 **Hardware Module:** `nixos-hardware.nixosModules.lenovo-thinkpad-t14-intel-gen6`
 
-## nixerator (VM Development Host)
+## nixerator (Optional VM Profile Files)
 
-**Hardware:** Virtual machine
+**Hardware:** Virtual machine (when used)
 
 **Features:**
 
-- virtiofs shared folder support
-- Development/testing environment
-- Minimal hardware configuration
+- Reusable `vm.nix` for virtiofs shared-folder setup
+- Development/testing profile settings
+- Not part of active `flake.nix` `nixosConfigurations`
 
 **Key Files:**
 
-- `hosts/nixerator/configuration.nix` - Main config
 - `hosts/nixerator/vm.nix` - VM-specific settings
-- `hosts/nixerator/boot.nix` - Bootloader
-
-**Archetype:** workstation
+- `hosts/nixerator/home.nix` - Home Manager profile
 
 **Special Notes:**
 
-- Used for testing NixOS changes before deploying to physical hosts
+- Import `hosts/nixerator/vm.nix` into a VM host configuration to enable the profile
 
 ## srv (Home Server)
 

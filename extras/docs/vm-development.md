@@ -1,20 +1,45 @@
 # VM Development Environment
 
-Guide for setting up the nixerator VM host for development and testing.
+Guide for setting up VM development with the reusable `hosts/nixerator/vm.nix` profile.
 
 ## Overview
 
-The `nixerator` host is a development VM that uses virtiofs to share the repository from the host machine. This allows you to:
+The `hosts/nixerator/vm.nix` module configures a development VM to use virtiofs for sharing the repository from the host machine. This allows you to:
 
 - Edit nixerator configuration on your host machine
 - Test changes in an isolated VM environment
-- Rebuild the VM without affecting your host system
+- Rebuild the VM profile without affecting your host system
 
 ## Prerequisites
 
 - libvirt/KVM installed on host machine
 - NixOS ISO or existing NixOS VM
 - virtiofs support in libvirt (qemu 5.0+, libvirt 6.2+)
+
+## Variables (Set Once)
+
+Set these once in your shell before running the commands below:
+After this setup, the remaining command samples work in both shells.
+
+```bash
+# bash/zsh
+export VM_NAME="<your-vm-name>"
+export REPO_PATH="$HOME/dev/nix/nixerator"
+export SHARE_TAG="mount_nixerator"
+export CURRENT_HOST="$(hostname)"
+export CURRENT_USER="$(id -un)"
+export CURRENT_GROUP="$(id -gn)"
+```
+
+```fish
+# fish
+set -gx VM_NAME "<your-vm-name>"
+set -gx REPO_PATH "$HOME/dev/nix/nixerator"
+set -gx SHARE_TAG "mount_nixerator"
+set -gx CURRENT_HOST (hostname)
+set -gx CURRENT_USER (id -un)
+set -gx CURRENT_GROUP (id -gn)
+```
 
 ## Host Machine Setup
 
@@ -45,7 +70,7 @@ Using `virt-manager`:
 Or edit XML directly:
 
 ```bash
-virsh edit VM_NAME
+virsh edit "$VM_NAME"
 ```
 
 Add the filesystem block above inside `<devices>...</devices>`.
@@ -53,7 +78,7 @@ Add the filesystem block above inside `<devices>...</devices>`.
 ### 3. Start the VM
 
 ```bash
-virsh start VM_NAME
+virsh start "$VM_NAME"
 ```
 
 ## VM Initial Setup
@@ -64,41 +89,41 @@ After booting the VM:
 
 ```bash
 # Create mount point
-sudo mkdir -p /home/dustin/dev/nix/nixerator
+sudo mkdir -p "$REPO_PATH"
 
 # Mount the virtiofs share
-sudo mount -t virtiofs mount_nixerator /home/dustin/dev/nix/nixerator
+sudo mount -t virtiofs "$SHARE_TAG" "$REPO_PATH"
 
 # Verify
-ls -la /home/dustin/dev/nix/nixerator
+ls -la "$REPO_PATH"
 ```
 
 ### 2. Set Ownership
 
 ```bash
 # Ensure correct ownership
-sudo chown -R dustin:users /home/dustin/dev/nix/nixerator
+sudo chown -R "$CURRENT_USER:$CURRENT_GROUP" "$REPO_PATH"
 ```
 
 ### 3. Initial Rebuild
 
 ```bash
-cd /home/dustin/dev/nix/nixerator
-sudo nixos-rebuild switch --flake .#nixerator
+cd "$REPO_PATH"
+sudo nixos-rebuild switch --flake ".#$CURRENT_HOST"
 ```
 
 After the first rebuild, the mount configuration is permanent and will automatically mount on boot.
 
 ## Persistent Mount
 
-The nixerator host configuration includes automatic virtiofs mounting:
+The VM profile includes automatic virtiofs mounting:
 
 ```nix
-# hosts/nixerator/configuration.nix
-fileSystems."/home/dustin/dev/nix/nixerator" = {
+# hosts/nixerator/vm.nix
+fileSystems.${globals.paths.nixerator} = {
   device = "mount_nixerator";
   fsType = "virtiofs";
-  options = [ "nofail" ];
+  options = [ "rw" ];
 };
 ```
 
@@ -112,7 +137,7 @@ Make changes to nixerator configuration on your host machine using your preferre
 
 ```bash
 # On host machine
-cd /path/to/nixerator
+cd "$REPO_PATH"
 hx modules/apps/cli/mynewapp/default.nix
 ```
 
@@ -122,16 +147,16 @@ Changes are immediately visible in the VM:
 
 ```bash
 # In VM
-cd /home/dustin/dev/nix/nixerator
+cd "$REPO_PATH"
 
 # Test syntax
-nix flake check
+nix flake check --show-trace
 
 # Build without activating
-sudo nixos-rebuild build --flake .#nixerator
+sudo nixos-rebuild build --flake ".#$CURRENT_HOST"
 
 # Apply changes
-sudo nixos-rebuild switch --flake .#nixerator
+sudo nixos-rebuild switch --flake ".#$CURRENT_HOST"
 ```
 
 ### 3. Commit from Either Side
@@ -155,16 +180,16 @@ git push
 
 ```bash
 # Fully shut down VM
-virsh shutdown VM_NAME
+virsh shutdown "$VM_NAME"
 
 # Force off if needed
-virsh destroy VM_NAME
+virsh destroy "$VM_NAME"
 
 # Edit configuration
-virsh edit VM_NAME
+virsh edit "$VM_NAME"
 
 # Start again
-virsh start VM_NAME
+virsh start "$VM_NAME"
 ```
 
 ### Permission Denied
@@ -174,14 +199,14 @@ virsh start VM_NAME
 **Solution**: Check ownership in VM:
 
 ```bash
-sudo chown -R dustin:users /home/dustin/dev/nix/nixerator
+sudo chown -R "$CURRENT_USER:$CURRENT_GROUP" "$REPO_PATH"
 ```
 
 ### Mount Disappears After Reboot
 
 **Issue**: Mount not persistent
 
-**Solution**: Ensure you've run `nixos-rebuild switch` at least once on the nixerator host. The configuration includes the permanent mount.
+**Solution**: Ensure you've run `nixos-rebuild switch` at least once with your VM host flake target and that `hosts/nixerator/vm.nix` is imported.
 
 ### Slow Performance
 
@@ -203,18 +228,18 @@ Create snapshots before major changes:
 
 ```bash
 # Create snapshot
-virsh snapshot-create-as VM_NAME \
+virsh snapshot-create-as "$VM_NAME" \
   --name "before-major-change" \
   --description "Snapshot before testing X"
 
 # List snapshots
-virsh snapshot-list VM_NAME
+virsh snapshot-list "$VM_NAME"
 
 # Revert to snapshot
-virsh snapshot-revert VM_NAME before-major-change
+virsh snapshot-revert "$VM_NAME" before-major-change
 
 # Delete snapshot
-virsh snapshot-delete VM_NAME before-major-change
+virsh snapshot-delete "$VM_NAME" before-major-change
 ```
 
 ## Alternative: NFS Mount
@@ -238,8 +263,8 @@ sudo exportfs -ra
 ### VM Setup
 
 ```nix
-# hosts/nixerator/configuration.nix
-fileSystems."/home/dustin/dev/nix/nixerator" = {
+# hosts/nixerator/vm.nix
+fileSystems.${globals.paths.nixerator} = {
   device = "192.168.122.1:/path/to/nixerator";
   fsType = "nfs";
   options = [ "nofail" ];

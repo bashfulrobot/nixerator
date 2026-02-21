@@ -9,7 +9,7 @@ nixerator/
 ├── flake.nix              # Flake inputs and outputs
 ├── flake.lock             # Locked dependency versions
 ├── settings/
-│   ├── globals.nix        # Global settings (user, timezone, editor, etc.)
+│   ├── globals.nix        # Global settings (user, paths, timezone, editor, etc.)
 │   └── versions.nix       # Version pinning
 ├── lib/
 │   ├── default.nix        # Library exports
@@ -18,7 +18,7 @@ nixerator/
 ├── modules/
 │   ├── default.nix        # Auto-imports all modules
 │   ├── apps/
-│   │   ├── cli/           # CLI applications
+│   │   ├── cli/           # CLI applications (module-local packages in build/)
 │   │   │   ├── git/
 │   │   │   ├── helix/
 │   │   │   └── ...
@@ -39,19 +39,27 @@ nixerator/
 │   │   └── ...
 │   └── system/            # System-level configuration
 │       ├── ssh/
-│       ├── fonts/
+│       ├── apple-fonts/
 │       └── ...
 ├── hosts/                 # Per-host configurations
-│   ├── nixerator/         # VM development host
+│   ├── donkeykong/        # Encrypted laptop workstation
 │   │   ├── configuration.nix
 │   │   ├── hardware-configuration.nix
+│   │   ├── disko.nix      # Disk partitioning
+│   │   ├── boot.nix       # LUKS encryption + hibernation
+│   │   └── home.nix       # Home-manager config
+│   ├── qbert/             # Desktop workstation
+│   │   ├── configuration.nix
+│   │   ├── hardware-configuration.nix
+│   │   ├── disko.nix
 │   │   └── home.nix
-│   └── donkeykong/        # Encrypted desktop workstation
-│       ├── configuration.nix
-│       ├── hardware-configuration.nix
-│       ├── disko.nix      # Disk partitioning
-│       ├── boot.nix       # LUKS encryption + hibernation
-│       └── home.nix       # Home-manager config
+│   ├── srv/               # Home server
+│   │   ├── configuration.nix
+│   │   ├── hardware-configuration.nix
+│   │   └── modules.nix
+│   └── nixerator/         # Optional local VM profile files
+│       ├── vm.nix
+│       └── home.nix
 └── extras/
     ├── docs/              # Documentation
     └── helpers/           # Utility scripts
@@ -87,13 +95,7 @@ let
   cfg = config.apps.cli.APPNAME;
 in
 {
-  options = {
-    apps.cli.APPNAME.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable APPNAME.";
-    };
-  };
+  options.apps.cli.APPNAME.enable = lib.mkEnableOption "APPNAME";
 
   config = lib.mkIf cfg.enable {
     # Configuration here
@@ -156,6 +158,8 @@ outputs = { self, nixpkgs, ... }@inputs: {
 };
 ```
 
+Active flake host outputs are currently `donkeykong`, `qbert`, and `srv`. The `hosts/nixerator/` directory is reusable VM profile material and is not a standalone `nixosConfigurations` output.
+
 ### Configuration Files
 
 Each host has:
@@ -171,24 +175,32 @@ Each host has:
 `settings/globals.nix` contains shared configuration:
 
 ```nix
-{
+rec {
   user = {
     name = "dustin";
     fullName = "Dustin Krysak";
-    email = "dustin@krysak.com";
+    email = "dustin@bashfulrobot.com";
+    homeDirectory = "/home/dustin";
   };
-  system = {
-    timezone = "America/Vancouver";
-    locale = "en_CA.UTF-8";
+  paths = {
+    devRoot = "${user.homeDirectory}/dev";
+    nixRoot = "${user.homeDirectory}/dev/nix";
+    nixerator = "${user.homeDirectory}/dev/nix/nixerator";
+    hyprflake = "${user.homeDirectory}/dev/nix/hyprflake";
+  };
+  defaults = {
+    stateVersion = "25.11";
+    timeZone = "America/Vancouver";
+    locale = "en_US.UTF-8";
   };
   preferences = {
-    editor = "hx";
+    editor = "helix";
     shell = "fish";
   };
 }
 ```
 
-Access in modules via `globals.user.name`, etc.
+Access in modules via `globals.user.name`, `globals.paths.nixerator`, etc.
 
 ## Flake Inputs
 

@@ -27,13 +27,19 @@ Enable in your configuration:
 
 ## Configuration
 
-The extraction script uses `NIXERATOR_PATH` environment variable to locate your nixerator repository. By default, it's set to `/home/$USER/dev/nix/nixerator`.
+The extraction script uses `NIXERATOR_PATH` to locate your nixerator repository. By default, this is set from `globals.paths.nixerator`.
+
+Current default in module code:
+
+```nix
+NIXERATOR_PATH = lib.mkDefault globals.paths.nixerator;
+```
 
 Override if needed:
 
 ```nix
 {
-  home-manager.users.${username} = {
+  home-manager.users.${globals.user.name} = {
     home.sessionVariables = {
       NIXERATOR_PATH = "/path/to/your/nixerator";
     };

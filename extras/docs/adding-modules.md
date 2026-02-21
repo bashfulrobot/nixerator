@@ -29,23 +29,16 @@ mkdir -p modules/apps/cli/myapp
 
 let
   cfg = config.apps.cli.myapp;
-  username = globals.user.name;
 in
 {
-  options = {
-    apps.cli.myapp.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable myapp CLI tool.";
-    };
-  };
+  options.apps.cli.myapp.enable = lib.mkEnableOption "myapp CLI tool";
 
   config = lib.mkIf cfg.enable {
     # System-level packages
     environment.systemPackages = [ pkgs.myapp ];
 
     # Or Home Manager configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.myapp = {
         enable = true;
         # Configuration options...
@@ -80,7 +73,6 @@ Or in a host (`hosts/qbert/modules.nix`):
 
 let
   cfg = config.apps.gui.myguiapp;
-  username = globals.user.name;
 in
 {
   options.apps.gui.myguiapp.enable = lib.mkEnableOption "MyGuiApp";
@@ -89,7 +81,7 @@ in
     environment.systemPackages = [ pkgs.myguiapp ];
 
     # Optional: Desktop file customization
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       xdg.desktopEntries.myguiapp = {
         name = "My GUI App";
         exec = "${pkgs.myguiapp}/bin/myguiapp";
@@ -110,13 +102,12 @@ Web apps are desktop entries that launch a browser in app mode:
 
 let
   cfg = config.apps.webapps.mywebapp;
-  username = globals.user.name;
 in
 {
   options.apps.webapps.mywebapp.enable = lib.mkEnableOption "My Web App";
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       xdg.desktopEntries.mywebapp = {
         name = "My Web App";
         exec = "${pkgs.google-chrome}/bin/google-chrome-stable --app=https://mywebapp.com";
@@ -137,17 +128,38 @@ let
   cfg = config.suites.mysuite;
 in
 {
-  options.suites.mysuite.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable my suite with related tools.";
-  };
+  options.suites.mysuite.enable = lib.mkEnableOption "my suite";
 
   config = lib.mkIf cfg.enable {
     # Enable component modules
     apps.cli.tool1.enable = true;
     apps.cli.tool2.enable = true;
     apps.gui.app1.enable = true;
+  };
+}
+```
+
+## Adding a Module-Local Package (build/)
+
+If an app is not in nixpkgs or you need a custom derivation, keep it local to the module:
+
+1. Create `modules/apps/<category>/<name>/build/default.nix`
+2. Call it from the module with `pkgs.callPackage ./build { };`
+
+Example:
+
+```nix
+{ lib, pkgs, config, ... }:
+
+let
+  cfg = config.apps.cli.myapp;
+  myapp = pkgs.callPackage ./build { };
+in
+{
+  options.apps.cli.myapp.enable = lib.mkEnableOption "myapp";
+
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ myapp ];
   };
 }
 ```
@@ -174,13 +186,12 @@ For applications with `programs.<name>` in Home Manager:
 
 let
   cfg = config.apps.cli.myapp;
-  username = globals.user.name;
 in
 {
   options.apps.cli.myapp.enable = lib.mkEnableOption "myapp";
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.myapp = {
         enable = true;
         package = pkgs.myapp;
@@ -202,7 +213,6 @@ in
 
 let
   cfg = config.apps.cli.myapp;
-  username = globals.user.name;
 in
 {
   options.apps.cli.myapp = {
@@ -222,7 +232,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file.".config/myapp/config" = lib.mkIf (cfg.extraConfig != "") {
         text = cfg.extraConfig;
       };
@@ -284,6 +294,7 @@ sudo nixos-rebuild switch --flake .#hostname
 
 - [ ] Created module directory in appropriate location
 - [ ] Created `default.nix` with options and config
+- [ ] (Optional) Added `build/default.nix` for module-local derivation
 - [ ] Added to relevant suite or host modules.nix
 - [ ] Tested with `nixos-rebuild build`
 - [ ] Documented any secrets requirements

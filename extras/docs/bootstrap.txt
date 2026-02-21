@@ -6,6 +6,33 @@
 - Open a terminal in the live session
 - Run all commands as root or with sudo
 
+## Variables (Set Once)
+
+# Set these values for your environment before running the steps below.
+# After this setup, the remaining command samples work in both shells.
+
+# bash/zsh
+export TARGET_HOST="donkeykong"  # Flake host to install
+export INSTALL_USER="<your-local-username>"  # Must match settings/globals.nix user.name
+export SOURCE_USER="<user-on-existing-machine>"
+export SOURCE_HOST="<existing-machine-ip-or-hostname>"
+export SOURCE_SSH="$SOURCE_USER@$SOURCE_HOST"
+export REPO_SSH_URL="git@github.com:bashfulrobot/nixerator.git"
+export TARGET_HOME="/mnt/home/$INSTALL_USER"
+export TARGET_REPO_DIR="$TARGET_HOME/dev/nix"
+export TARGET_REPO_PATH="$TARGET_REPO_DIR/nixerator"
+
+# fish
+set -gx TARGET_HOST "donkeykong"
+set -gx INSTALL_USER "<your-local-username>"
+set -gx SOURCE_USER "<user-on-existing-machine>"
+set -gx SOURCE_HOST "<existing-machine-ip-or-hostname>"
+set -gx SOURCE_SSH "$SOURCE_USER@$SOURCE_HOST"
+set -gx REPO_SSH_URL "git@github.com:bashfulrobot/nixerator.git"
+set -gx TARGET_HOME "/mnt/home/$INSTALL_USER"
+set -gx TARGET_REPO_DIR "$TARGET_HOME/dev/nix"
+set -gx TARGET_REPO_PATH "$TARGET_REPO_DIR/nixerator"
+
 ## Step 1: Verify Internet Connection
 
 # The GUI live session should already be connected to the internet
@@ -20,13 +47,13 @@ mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 
 # Copy private keys (id_rsa, id_ed25519, etc.)
-scp dustin@192.168.169.4:~/.ssh/id_* ~/.ssh/ 2>/dev/null || true
+scp "$SOURCE_SSH:~/.ssh/id_*" ~/.ssh/ 2>/dev/null || true
 
 # Set correct permissions on private keys (must be 600)
 chmod 600 ~/.ssh/id_* 2>/dev/null || true
 
 # Copy public keys (id_*.pub)
-scp dustin@192.168.169.4:~/.ssh/id_*.pub ~/.ssh/ 2>/dev/null || true
+scp "$SOURCE_SSH:~/.ssh/id_*.pub" ~/.ssh/ 2>/dev/null || true
 
 # Set correct permissions on public keys (644)
 chmod 644 ~/.ssh/id_*.pub 2>/dev/null || true
@@ -38,7 +65,7 @@ mkdir -p /tmp/install
 cd /tmp/install
 
 # Clone using SSH (now that keys are set up)
-nix-shell -p git --run "git clone git@github.com:bashfulrobot/nixerator.git"
+nix-shell -p git --run "git clone $REPO_SSH_URL"
 cd nixerator
 
 ## Step 4: Setup git-crypt (if using encrypted files)
@@ -47,7 +74,7 @@ cd nixerator
 # If you have encrypted files, you'll need to unlock the repository
 
 # Copy the git-crypt key from your existing system (same host as SSH keys)
-scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt-key ~/.ssh/
+scp "$SOURCE_SSH:~/.ssh/nixerator-git-crypt-key" ~/.ssh/
 chmod 600 ~/.ssh/nixerator-git-crypt-key
 
 # Run the setup script to unlock the repository
@@ -80,7 +107,7 @@ ls -l /dev/disk/by-id/ | grep nvme
 
 sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko -- \
   --mode disko \
-  --flake .#donkeykong
+  --flake ".#$TARGET_HOST"
 
 # Enter your LUKS encryption password when prompted
 # Enter it again to confirm
@@ -104,7 +131,7 @@ git commit -m "feat(donkeykong): add hardware configuration"
 ## Step 8: Install NixOS
 
 # Now install NixOS using the flake configuration
-sudo nixos-install --flake .#donkeykong
+sudo nixos-install --flake ".#$TARGET_HOST"
 
 # This will:
 # - Build the system configuration
@@ -118,50 +145,53 @@ sudo nixos-install --flake .#donkeykong
 # The live session is ephemeral - keys copied there won't persist
 
 # Copy SSH keys to installed system
-sudo mkdir -p /mnt/home/dustin/.ssh
-sudo chmod 700 /mnt/home/dustin/.ssh
+sudo mkdir -p "$TARGET_HOME/.ssh"
+sudo chmod 700 "$TARGET_HOME/.ssh"
 
 # Copy private keys (id_rsa, id_ed25519, etc.)
-sudo scp dustin@192.168.169.4:~/.ssh/id_* /mnt/home/dustin/.ssh/ 2>/dev/null || true
+sudo scp "$SOURCE_SSH:~/.ssh/id_*" "$TARGET_HOME/.ssh/" 2>/dev/null || true
 
 # Set correct permissions on private keys (must be 600)
-sudo chmod 600 /mnt/home/dustin/.ssh/id_* 2>/dev/null || true
+sudo chmod 600 "$TARGET_HOME/.ssh"/id_* 2>/dev/null || true
 
 # Copy public keys (id_*.pub)
-sudo scp dustin@192.168.169.4:~/.ssh/id_*.pub /mnt/home/dustin/.ssh/ 2>/dev/null || true
+sudo scp "$SOURCE_SSH:~/.ssh/id_*.pub" "$TARGET_HOME/.ssh/" 2>/dev/null || true
 
 # Set correct permissions on public keys (644)
-sudo chmod 644 /mnt/home/dustin/.ssh/id_*.pub 2>/dev/null || true
+sudo chmod 644 "$TARGET_HOME/.ssh"/id_*.pub 2>/dev/null || true
 
 # Optional: Copy SSH config if you have one
-sudo scp dustin@192.168.169.4:~/.ssh/config /mnt/home/dustin/.ssh/config 2>/dev/null || true
-sudo chmod 644 /mnt/home/dustin/.ssh/config 2>/dev/null || true
+sudo scp "$SOURCE_SSH:~/.ssh/config" "$TARGET_HOME/.ssh/config" 2>/dev/null || true
+sudo chmod 644 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
 
 # Copy git-crypt key to installed system
-sudo scp dustin@192.168.169.4:~/.ssh/nixerator-git-crypt-key /mnt/home/dustin/.ssh/
-sudo chmod 600 /mnt/home/dustin/.ssh/nixerator-git-crypt-key
+sudo scp "$SOURCE_SSH:~/.ssh/nixerator-git-crypt-key" "$TARGET_HOME/.ssh/"
+sudo chmod 600 "$TARGET_HOME/.ssh/nixerator-git-crypt-key"
 
 # Copy GPG keys to installed system
-sudo mkdir -p /mnt/home/dustin/.gnupg
-sudo chmod 700 /mnt/home/dustin/.gnupg
-sudo scp -r dustin@192.168.169.4:~/.gnupg/* /mnt/home/dustin/.gnupg/ 2>/dev/null || true
-sudo chmod 600 /mnt/home/dustin/.gnupg/* 2>/dev/null || true
+sudo mkdir -p "$TARGET_HOME/.gnupg"
+sudo chmod 700 "$TARGET_HOME/.gnupg"
+sudo scp -r "$SOURCE_SSH:~/.gnupg/" "$TARGET_HOME/" 2>/dev/null || true
+sudo find "$TARGET_HOME/.gnupg" -type f -exec chmod 600 {} \; 2>/dev/null || true
 
 # Copy nixerator repository to final location
-sudo mkdir -p /mnt/home/dustin/dev/nix
-sudo cp -r /tmp/install/nixerator /mnt/home/dustin/dev/nix/
+sudo mkdir -p "$TARGET_REPO_DIR"
+sudo cp -r /tmp/install/nixerator "$TARGET_REPO_DIR/"
 
 # Create post-install script to fix permissions after reboot
 # (Cannot chown now - user doesn't exist yet during installation)
-sudo tee /mnt/home/dustin/post-install.sh > /dev/null << 'EOF'
+sudo tee "$TARGET_HOME/post-install.sh" > /dev/null << 'EOF'
 #!/usr/bin/env bash
 # Post-installation permission fix script
 # Run this after first boot to fix file ownership
 
+USER_NAME="$(id -un)"
+USER_GROUP="$(id -gn)"
+
 echo "Fixing file permissions and ownership..."
 
 # Fix SSH keys ownership
-sudo chown -R dustin:users ~/.ssh
+sudo chown -R "$USER_NAME:$USER_GROUP" ~/.ssh
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/id_* 2>/dev/null || true
 chmod 644 ~/.ssh/id_*.pub 2>/dev/null || true
@@ -169,12 +199,12 @@ chmod 644 ~/.ssh/config 2>/dev/null || true
 chmod 600 ~/.ssh/nixerator-git-crypt-key 2>/dev/null || true
 
 # Fix GPG keys ownership
-sudo chown -R dustin:users ~/.gnupg
+sudo chown -R "$USER_NAME:$USER_GROUP" ~/.gnupg
 chmod 700 ~/.gnupg
 find ~/.gnupg -type f -exec chmod 600 {} \;
 
 # Fix repository ownership
-sudo chown -R dustin:users ~/dev
+sudo chown -R "$USER_NAME:$USER_GROUP" ~/dev
 
 # Restart GPG agent with correct permissions
 gpgconf --kill gpg-agent
@@ -185,7 +215,7 @@ echo "Removing this script..."
 rm ~/post-install.sh
 EOF
 
-sudo chmod +x /mnt/home/dustin/post-install.sh
+sudo chmod +x "$TARGET_HOME/post-install.sh"
 
 ## Step 10: Set Root Password
 
@@ -196,8 +226,8 @@ sudo nixos-enter --root /mnt -c 'passwd root'
 
 ## Step 11: Set User Password
 
-# Set password for your user (dustin)
-sudo nixos-enter --root /mnt -c 'passwd dustin'
+# Set password for your configured install user
+sudo nixos-enter --root /mnt -c "passwd $INSTALL_USER"
 
 ## Step 12: Reboot
 
@@ -215,11 +245,20 @@ sudo reboot
 # 3. You'll be prompted for your LUKS encryption password
 # 4. Enter the password you created in Step 5
 # 5. System will boot and show GDM login screen
-# 6. Log in with user 'dustin' and the password from Step 8
+# 6. Log in with your configured install user and the password from Step 11
 
 ## Post-Installation
 
 # After successfully booting and logging in:
+
+# Re-set variables in your first-boot shell:
+# bash/zsh
+export TARGET_HOST="donkeykong"
+export REPO_PATH="$HOME/dev/nix/nixerator"
+
+# fish
+set -gx TARGET_HOST "donkeykong"
+set -gx REPO_PATH "$HOME/dev/nix/nixerator"
 
 # 1. Fix file permissions and ownership
 # Run the post-install script created during installation
@@ -241,7 +280,7 @@ git config --global user.signingkey  # Verify signing key
 ssh -T git@github.com
 
 # 4. Verify git-crypt is working (if using encrypted files)
-cd ~/dev/nix/nixerator
+cd "$REPO_PATH"
 git-crypt status  # Check encryption status
 
 # 5. Verify nixerator repository
@@ -255,7 +294,7 @@ hyprctl version
 nix flake update
 
 # 8. Rebuild after changes
-sudo nixos-rebuild switch --flake ~/dev/nix/nixerator#donkeykong
+sudo nixos-rebuild switch --flake "$REPO_PATH#$TARGET_HOST"
 
 ## Troubleshooting
 
@@ -268,7 +307,7 @@ sudo nixos-rebuild switch --flake ~/dev/nix/nixerator#donkeykong
 # If installation fails:
 # - Check internet connection
 # - Verify flake.lock is present in repo
-# - Try: nix flake metadata .#donkeykong to test flake
+# - Try: nix flake metadata ".#$TARGET_HOST" to test flake
 
 # If boot fails:
 # - Double-check LUKS password
