@@ -2,19 +2,19 @@
 
 let
   cfg = config.apps.cli.claude-code;
-  username = globals.user.name;
-  homeDir = "/home/${username}";
+  sequentialThinkingMcpServer = pkgs.callPackage ../mcp-server-sequential-thinking/build { };
+  kubernetesMcpServer = pkgs.callPackage ./build { };
+  homeDir = globals.user.homeDirectory;
   kubeconfigFile = "${homeDir}/.kube/mcp-viewer.kubeconfig";
   context7ApiKey = (secrets.context7 or { }).apiKey or null;
   zaiApiKey = (secrets.zai or { }).apiKey or null;
   mcpServers = {
     sequential-thinking = {
-      command = "${pkgs.nodejs_24}/bin/npx";
-      args = [ "-y" "@modelcontextprotocol/server-sequential-thinking" ];
+      command = "${sequentialThinkingMcpServer}/bin/mcp-server-sequential-thinking";
     };
     kubernetes-mcp-server = {
-      command = "${pkgs.nodejs_24}/bin/npx";
-      args = [ "-y" "kubernetes-mcp-server@latest" "--read-only" ];
+      command = "${kubernetesMcpServer}/bin/kubernetes-mcp-server";
+      args = [ "--read-only" ];
       env = {
         KUBECONFIG = kubeconfigFile;
       };
@@ -416,9 +416,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # System packages for MCP server dependencies and LSP servers
+    # System packages for MCP tooling and LSP servers
     environment.systemPackages = with pkgs; [
-      nodejs_24 # Includes npm and npx for MCP servers
       (writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
       (writeScriptBin "mcp-pick" mcpPick)
       fzf
@@ -429,7 +428,7 @@ in
       rust-analyzer # Rust language server
     ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs = {
         claude-code = {
           enable = true;

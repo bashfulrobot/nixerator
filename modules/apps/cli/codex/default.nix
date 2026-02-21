@@ -8,12 +8,11 @@
 }:
 let
   cfg = config.apps.cli.codex;
-  username = globals.user.name;
+  sequentialThinkingMcpServer = pkgs.callPackage ../mcp-server-sequential-thinking/build { };
   context7ApiKey = (secrets.context7 or { }).apiKey or null;
   mcpServers = {
     sequential-thinking = {
-      command = "${pkgs.nodejs_24}/bin/npx";
-      args = [ "-y" "@modelcontextprotocol/server-sequential-thinking" ];
+      command = "${sequentialThinkingMcpServer}/bin/mcp-server-sequential-thinking";
     };
   } // lib.optionalAttrs (context7ApiKey != null) {
     context7 = {
@@ -154,21 +153,20 @@ let
   codexCommitSkillFile = pkgs.writeText "codex-commit-skill.md" codexCommitSkill;
 in
 {
-  options = { # Changed from options.apps.cli.codex = {
+  options = {
     apps.cli.codex = {
       enable = lib.mkEnableOption "Codex CLI tool";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # System packages for MCP server dependencies
+    # System packages for MCP server selection helper
     environment.systemPackages = with pkgs; [
-      nodejs_24 # Includes npm and npx for MCP servers
       (writeScriptBin "codex-mcp-pick" codexMcpPick)
       fzf
     ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.codex = {
         enable = true;
         package = pkgs.llm-agents.codex;

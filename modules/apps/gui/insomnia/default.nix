@@ -1,10 +1,10 @@
 # Insomnia API Client Module
 #
-# Uses local package override from ../../../../packages/insomnia
+# Uses local package override from ./build/default.nix
 # This allows running the latest version before nixpkgs PR is merged
 #
 # Release URL: https://github.com/Kong/insomnia/releases
-# Current local version: 12.2.0 (see ../../../../packages/insomnia/default.nix)
+# Current local version: 12.3.1 (see ./build/default.nix)
 # Nixpkgs version: 11.6.0 (as of 2026-01-14)
 # Pending PR: https://github.com/NixOS/nixpkgs/pull/480124
 
@@ -12,7 +12,7 @@
 
 let
   cfg = config.apps.gui.insomnia;
-
+  insomniaPackage = pkgs.callPackage ./build { };
 in
 {
   options = {
@@ -24,10 +24,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [
+    environment.systemPackages = [
       # Using locally overridden package for latest version
-      # See ../../../../packages/insomnia/default.nix for version details
-      insomnia
+      # See ./build/default.nix for version details
+      insomniaPackage
     ];
   };
 }

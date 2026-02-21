@@ -7,10 +7,7 @@
 
 let
   cfg = config.apps.cli.yepanywhere;
-  yepanywherePackage = "yepanywhere@${cfg.version}";
-  yepanywhere = pkgs.writeShellScriptBin "yepanywhere" ''
-    exec ${pkgs.nodejs_24}/bin/npm exec --yes --package "${yepanywherePackage}" -- yepanywhere "$@"
-  '';
+  yepanywhereCli = pkgs.callPackage ./build { };
 in
 {
   options = {
@@ -18,18 +15,12 @@ in
       enable = lib.mkOption {
         type = lib.types.bool;
         default = false;
-        description = "Enable yepanywhere CLI (installed via npm).";
-      };
-
-      version = lib.mkOption {
-        type = lib.types.str;
-        default = "latest";
-        description = "npm version for yepanywhere (default: latest).";
+        description = "Enable yepanywhere CLI.";
       };
     };
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ yepanywhere ];
+    environment.systemPackages = [ yepanywhereCli ];
   };
 }

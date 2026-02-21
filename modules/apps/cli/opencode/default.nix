@@ -2,7 +2,7 @@
 
 let
   cfg = config.apps.cli.opencode;
-  username = globals.user.name;
+  sequentialThinkingMcpServer = pkgs.callPackage ../mcp-server-sequential-thinking/build { };
 
   # Shared commit instructions
   commitInstructions = ''
@@ -72,12 +72,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # System packages for MCP server dependencies
-    environment.systemPackages = with pkgs; [
-      nodejs_24 # Includes npm and npx for MCP servers
-    ];
-
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.opencode = {
         enable = true;
         package = pkgs.opencode;
@@ -91,7 +86,7 @@ in
           mcp = {
             sequential-thinking = {
               type = "local";
-              command = [ "${pkgs.nodejs_24}/bin/npx" "-y" "@modelcontextprotocol/server-sequential-thinking" ];
+              command = [ "${sequentialThinkingMcpServer}/bin/mcp-server-sequential-thinking" ];
               enabled = true;
             };
           } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
