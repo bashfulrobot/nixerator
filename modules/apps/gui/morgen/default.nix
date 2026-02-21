@@ -19,8 +19,8 @@ in
 
     home-manager.users.${globals.user.name} = {
       wayland.windowManager.hyprland.settings = {
-        windowrule = [
-          "tile, class:Morgan"
+        windowrulev2 = [
+          "tile,class:^([Mm]orgen)$"
         ];
       };
     };
