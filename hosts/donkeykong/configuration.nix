@@ -20,10 +20,12 @@
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
   i18n.defaultLocale = globals.defaults.locale;
 
-  # Voxtype on donkeykong: lower-latency model + thread cap
+  # Voxtype on donkeykong: offload transcription to qbert's GPU via Tailscale
   hyprflake.desktop.voxtype = {
-    model = "tiny.en";
-    threads = 8;
+    backend = "remote";
+    remoteEndpoint = "http://${globals.tailscale.qbert}:8080";
+    remoteTimeoutSecs = 30;
+    language = "en";
   };
 
   # Enable archetypes
