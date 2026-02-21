@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, globals, ... }:
 
 {
   # VM-specific configuration for libvirt/QEMU
@@ -12,7 +12,7 @@
   # In libvirt XML, this corresponds to a filesystem element with:
   # <source dir="/path/on/host"/>
   # <target dir="mount_nixerator"/>
-  fileSystems."/home/dustin/dev/nix/nixerator" = {
+  fileSystems.${globals.paths.nixerator} = {
     device = "mount_nixerator";
     fsType = "virtiofs";
     options = [ "rw" ];

@@ -1,4 +1,4 @@
-{ lib, pkgs, secrets, ... }:
+{ secrets, ... }:
 
 {
   # Import only modules that srv used in nixcfg

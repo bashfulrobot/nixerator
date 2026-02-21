@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+_:
 
 # Power management configuration for qbert
 # AMD GPU-specific workarounds for suspend/hibernate bugs
