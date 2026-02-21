@@ -19,6 +19,8 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    programs.nix-ld.enable = true;
+
     environment.systemPackages = with pkgs; [
 
       # keep-sorted start case=no numeric=yes
