@@ -42,12 +42,10 @@
 
     nix-flatpak = {
       url = "github:gmodena/nix-flatpak";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware/master";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     spicetify-nix = {
@@ -87,24 +85,6 @@
     {
       # NixOS configurations
       nixosConfigurations = {
-        nixerator = lib.mkHost {
-          inherit globals versions;
-          hostname = "nixerator";
-          system = "x86_64-linux";
-          useDeterminate = true;
-          # username and stateVersion are automatically pulled from globals
-          extraModules = [
-            # Determinate Nix distribution
-            inputs.determinate.nixosModules.default
-            # Hyprland desktop environment
-            inputs.hyprflake.nixosModules.default
-          ];
-          homeManagerModules = [
-            # Spicetify for customized Spotify
-            inputs.spicetify-nix.homeManagerModules.default
-          ];
-        };
-
         donkeykong = lib.mkHost {
           inherit globals versions;
           hostname = "donkeykong";
@@ -153,13 +133,6 @@
           homeManagerModules = [ ];
         };
       };
-
-      checks = inputs.nixpkgs.lib.genAttrs [ "x86_64-linux" ] (system: {
-        kong-docs-offline-module = import ./tests/kong-docs-offline.nix { inherit inputs system; };
-        noisetorch-module = import ./tests/noisetorch.nix { inherit inputs system; };
-        termly-module = import ./tests/termly.nix { inherit inputs system; };
-        yepanywhere-module = import ./tests/yepanywhere.nix { inherit inputs system; };
-      });
 
       # Expose lib, globals, and versions for use in other flakes
       inherit lib globals versions;
