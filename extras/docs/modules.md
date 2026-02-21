@@ -19,8 +19,10 @@ modules/
 │   ├── offcomms/         # Communications (Signal, Obsidian)
 │   ├── infrastructure/   # Cloud tools
 │   ├── k8s/              # Kubernetes tooling
+│   ├── av/               # Audio/visual creative tooling
 │   ├── media/            # Media applications
 │   ├── kong/             # Kong API Gateway tools
+│   ├── ai/               # AI tooling
 │   └── webapps/          # Web application launchers
 ├── apps/                 # Individual applications
 │   ├── cli/              # CLI applications
@@ -50,7 +52,7 @@ Full desktop environment with all productivity suites:
 archetypes.workstation.enable = true;
 ```
 
-Enables: core, desktop, terminal, browsers, security, dev, offcomms, infrastructure, k8s, media, kong
+Enables: core, desktop, terminal, browsers, security, dev, offcomms, infrastructure, k8s, media, kong, av, ai
 
 ### server
 
@@ -77,8 +79,10 @@ Suites bundle related modules. Enable them individually or via archetypes.
 | offcomms | Communications | Signal, Obsidian |
 | infrastructure | Cloud tools | Various CLI tools |
 | k8s | Kubernetes | kubectl |
+| av | Audio/visual creative tools | Affinity, noisetorch, Jellyfin Desktop |
 | media | Media apps | Spotify (spicetify) |
 | kong | API Gateway | Insomnia, Kong docs |
+| ai | AI tooling | happy, ollama, termly, yepanywhere |
 | webapps | Web launchers | Calendar, Mail, Clari |
 
 ## Auto-Import System
@@ -90,7 +94,7 @@ Modules are auto-imported from `modules/` using `lib/autoimport.nix`.
 These directory patterns are excluded from auto-import:
 
 - `disabled/` - Disabled modules
-- `build/` - Build scripts/packages
+- `build/` - Build scripts and module-local package derivations
 - `cfg/` - Configuration fragments
 - `reference/` - Reference documentation
 
@@ -131,13 +135,7 @@ let
   cfg = config.apps.cli.myapp;
 in
 {
-  options = {
-    apps.cli.myapp.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable myapp CLI tool.";
-    };
-  };
+  options.apps.cli.myapp.enable = lib.mkEnableOption "myapp CLI tool";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ pkgs.myapp ];
@@ -148,7 +146,7 @@ in
 ### Home Manager Integration
 
 ```nix
-{ lib, pkgs, config, globals, username, ... }:
+{ lib, pkgs, config, globals, ... }:
 
 let
   cfg = config.apps.cli.myapp;
@@ -157,12 +155,34 @@ in
   options.apps.cli.myapp.enable = lib.mkEnableOption "myapp";
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.myapp.enable = true;
     };
   };
 }
 ```
+
+### Module-Local Package Derivations
+
+For custom packages used by a single module (or a small local group), keep the derivation in `build/default.nix` next to the module and call it locally:
+
+```nix
+{ lib, pkgs, config, ... }:
+
+let
+  cfg = config.apps.cli.myapp;
+  myapp = pkgs.callPackage ./build { };
+in
+{
+  options.apps.cli.myapp.enable = lib.mkEnableOption "myapp";
+
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ myapp ];
+  };
+}
+```
+
+This keeps package wiring local and avoids global overlay sprawl.
 
 ### Suite Pattern
 
@@ -189,12 +209,19 @@ in
 Shared configuration is in `settings/globals.nix`:
 
 ```nix
-{
+rec {
   user = {
     name = "dustin";
     fullName = "Dustin Krysak";
     email = "dustin@bashfulrobot.com";
     homeDirectory = "/home/dustin";
+  };
+
+  paths = {
+    devRoot = "${user.homeDirectory}/dev";
+    nixRoot = "${user.homeDirectory}/dev/nix";
+    nixerator = "${user.homeDirectory}/dev/nix/nixerator";
+    hyprflake = "${user.homeDirectory}/dev/nix/hyprflake";
   };
 
   defaults = {
@@ -210,4 +237,4 @@ Shared configuration is in `settings/globals.nix`:
 }
 ```
 
-Access in modules via `globals.user.name`, `globals.defaults.locale`, etc.
+Access in modules via `globals.user.name`, `globals.paths.nixerator`, `globals.defaults.locale`, etc.

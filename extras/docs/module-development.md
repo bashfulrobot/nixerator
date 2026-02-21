@@ -22,13 +22,7 @@ let
   cfg = config.apps.cli.APPNAME;
 in
 {
-  options = {
-    apps.cli.APPNAME.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable APPNAME.";
-    };
-  };
+  options.apps.cli.APPNAME.enable = lib.mkEnableOption "APPNAME";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
@@ -45,23 +39,16 @@ in
 
 let
   cfg = config.apps.gui.APPNAME;
-  username = globals.user.name;
 in
 {
-  options = {
-    apps.gui.APPNAME.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable APPNAME.";
-    };
-  };
+  options.apps.gui.APPNAME.enable = lib.mkEnableOption "APPNAME";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
       APPNAME
     ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file.".config/APPNAME/config.conf".text = ''
         # Configuration here
       '';
@@ -79,13 +66,7 @@ let
   cfg = config.suites.SUITENAME;
 in
 {
-  options = {
-    suites.SUITENAME.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable SUITENAME suite.";
-    };
-  };
+  options.suites.SUITENAME.enable = lib.mkEnableOption "SUITENAME suite";
 
   config = lib.mkIf cfg.enable {
     apps.cli = {
@@ -112,7 +93,7 @@ Command-line applications and tools.
 
 **Pattern**:
 ```nix
-config.apps.cli.APPNAME.enable = lib.mkOption { ... }
+options.apps.cli.APPNAME.enable = lib.mkEnableOption "APPNAME"
 ```
 
 ### apps.gui.*
@@ -125,7 +106,7 @@ Graphical applications.
 
 **Pattern**:
 ```nix
-config.apps.gui.APPNAME.enable = lib.mkOption { ... }
+options.apps.gui.APPNAME.enable = lib.mkEnableOption "APPNAME"
 ```
 
 ### apps.webapps.*
@@ -138,7 +119,7 @@ Progressive web applications (from web-app-hub).
 
 **Pattern**:
 ```nix
-config.apps.webapps.APPNAME.enable = lib.mkOption { ... }
+options.apps.webapps.APPNAME.enable = lib.mkEnableOption "APPNAME"
 ```
 
 ### suites.*
@@ -151,7 +132,7 @@ Collections of related modules.
 
 **Pattern**:
 ```nix
-config.suites.SUITENAME.enable = lib.mkOption { ... }
+options.suites.SUITENAME.enable = lib.mkEnableOption "SUITENAME suite"
 ```
 
 ### system.*
@@ -160,11 +141,11 @@ System-level configuration.
 
 **Location**: `modules/system/FEATURE/default.nix`
 
-**Examples**: ssh, fonts, networking
+**Examples**: ssh, apple-fonts, networking
 
 **Pattern**:
 ```nix
-config.system.FEATURE.enable = lib.mkOption { ... }
+options.system.FEATURE.enable = lib.mkEnableOption "FEATURE"
 ```
 
 ### dev.*
@@ -177,7 +158,7 @@ Development environment configuration.
 
 **Pattern**:
 ```nix
-config.dev.LANGUAGE.enable = lib.mkOption { ... }
+options.dev.LANGUAGE.enable = lib.mkEnableOption "LANGUAGE"
 ```
 
 ## Common Patterns
@@ -192,15 +173,39 @@ Access global configuration via `globals`:
   # User info
   globals.user.name          # "dustin"
   globals.user.fullName      # "Dustin Krysak"
-  globals.user.email         # "dustin@krysak.com"
+  globals.user.email         # "dustin@bashfulrobot.com"
 
   # System settings
-  globals.system.timezone    # "America/Vancouver"
-  globals.system.locale      # "en_CA.UTF-8"
+  globals.defaults.timeZone    # "America/Vancouver"
+  globals.defaults.locale      # "en_US.UTF-8"
 
   # Preferences
-  globals.preferences.editor # "hx"
+  globals.preferences.editor # "helix"
   globals.preferences.shell  # "fish"
+
+  # Common paths
+  globals.paths.devRoot     # "<home>/dev"
+  globals.paths.nixerator   # "<home>/dev/nix/nixerator"
+}
+```
+
+### Module-Local Packages (build/)
+
+For custom packages used by a module, place the derivation in a sibling `build/` directory and call it from the module:
+
+```nix
+{ lib, pkgs, config, ... }:
+
+let
+  cfg = config.apps.cli.myapp;
+  myapp = pkgs.callPackage ./build { };
+in
+{
+  options.apps.cli.myapp.enable = lib.mkEnableOption "myapp";
+
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ myapp ];
+  };
 }
 ```
 
@@ -213,7 +218,7 @@ environment.systemPackages = with pkgs; [
 ];
 
 # User-specific (home-manager)
-home-manager.users.${username} = {
+home-manager.users.${globals.user.name} = {
   home.packages = with pkgs; [
     package-name
   ];
@@ -229,7 +234,7 @@ environment.etc."app/config.conf".text = ''
 '';
 
 # User-specific (home-manager)
-home-manager.users.${username} = {
+home-manager.users.${globals.user.name} = {
   home.file.".config/app/config.conf".text = ''
     setting = value
   '';
@@ -252,7 +257,7 @@ systemd.services.myservice = {
 };
 
 # User service (home-manager)
-home-manager.users.${username} = {
+home-manager.users.${globals.user.name} = {
   systemd.user.services.myservice = {
     Unit = {
       Description = "My User Service";
@@ -277,7 +282,7 @@ config = lib.mkIf cfg.enable {
   };
 
   # Nested conditions
-  home-manager.users.${username} = lib.mkMerge [
+  home-manager.users.${globals.user.name} = lib.mkMerge [
     (lib.mkIf cfg.feature1 {
       # Config for feature1
     })
@@ -296,7 +301,7 @@ Modules are automatically discovered and imported by `modules/default.nix`.
 
 These directory names are ignored:
 - `disabled/` - Disabled modules
-- `build/` - Build artifacts
+- `build/` - Build scripts and module-local package derivations
 - `cfg/` - Configuration templates
 - `reference/` - Reference implementations
 
@@ -323,7 +328,7 @@ defaultExcludes = [
 nix-instantiate --parse modules/apps/cli/APPNAME/default.nix
 
 # Validate entire flake
-nix flake check
+nix flake check --show-trace
 ```
 
 ### Building Without Activation
@@ -347,7 +352,7 @@ nixos-rebuild build-vm --flake .#HOSTNAME
 ## Best Practices
 
 1. **Single Responsibility**: One module = one app/feature
-2. **Default Disabled**: Always set `default = false`
+2. **Prefer mkEnableOption**: Use `lib.mkEnableOption` for `enable` toggles
 3. **Clear Descriptions**: Write helpful option descriptions
 4. **Use Globals**: Reference `globals` instead of hardcoding
 5. **Namespace Properly**: Use correct category (cli/gui/webapps/etc.)
