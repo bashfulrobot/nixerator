@@ -4,6 +4,8 @@ let
 
   inherit (config.lib.stylix) colors;
 in {
+  imports = [ ./cfg/vscode-server.nix ];
+
   options = {
     apps.gui.vscode.enable = lib.mkOption {
       type = lib.types.bool;
@@ -19,7 +21,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    programs.nix-ld.enable = true;
+    services.vscode-server.enable = true;
 
     environment.systemPackages = with pkgs; [
 
