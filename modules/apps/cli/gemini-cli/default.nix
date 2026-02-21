@@ -1,7 +1,6 @@
 { lib, pkgs, config, globals, ... }:
 let
   cfg = config.apps.cli.gemini-cli;
-  username = globals.user.name;
 
   # Settings JSON content
   settingsJson = builtins.toJSON {
@@ -163,7 +162,7 @@ in
       (writeScriptBin "gcommit" gcommitScript)
     ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home = {
         packages = [ pkgs.gemini-cli ];
 

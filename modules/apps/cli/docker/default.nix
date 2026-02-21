@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.docker;
-  username = globals.user.name;
 in
 {
   options = {
@@ -15,7 +14,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # Add user to docker group
-    users.users."${username}".extraGroups = [ "docker" ];
+    users.users."${globals.user.name}".extraGroups = [ "docker" ];
 
     # Enable Docker virtualization
     virtualisation = {
@@ -29,7 +28,7 @@ in
     };
 
     # Home Manager configuration for docker aliases
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.fish = {
         shellAliases = {
           d = "docker";

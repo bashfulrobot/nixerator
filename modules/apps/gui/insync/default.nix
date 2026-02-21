@@ -12,13 +12,15 @@ let
   cfg = config.apps.gui.insync;
 in
 {
-  options.apps.gui.insync = {
-    enable = lib.mkEnableOption "Insync Google Drive sync client";
+  options = {
+    apps.gui.insync = {
+      enable = lib.mkEnableOption "Insync Google Drive sync client";
 
-    nautilusIntegration = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable Nautilus file manager integration for Insync.";
+      nautilusIntegration = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable Nautilus file manager integration for Insync.";
+      };
     };
   };
 

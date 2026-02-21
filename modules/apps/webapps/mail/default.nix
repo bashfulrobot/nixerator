@@ -1,10 +1,9 @@
 # Auto-generated from web-app-hub
 # Original ID: wAz4yPiZ
-{ lib, pkgs, config, globals, ... }:
+{ lib, config, globals, ... }:
 
 let
   cfg = config.apps.webapps.mail;
-  username = globals.user.name;
 in
 {
   options = {
@@ -16,7 +15,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file.".local/share/applications/com.google.Chrome.chrome-wah-wAz4yPiZ.desktop".text = ''
 [Desktop Entry]
 Exec=google-chrome-stable --no-first-run --app="https://mail.google.com/mail/u/1/#search/is%3Aunread+in%3Ainbox" --class=chrome-mail.google.com__mail_u_1_-Default --name=chrome-mail.google.com__mail_u_1_-Default  

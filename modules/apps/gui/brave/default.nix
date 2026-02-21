@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.gui.brave;
-  username = globals.user.name;
 in
 {
   options = {
@@ -21,7 +20,7 @@ in
     ];
 
     # Home Manager user configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
       # Wayland flags for Brave
       home.file =

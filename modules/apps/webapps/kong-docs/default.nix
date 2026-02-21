@@ -1,10 +1,9 @@
 # Auto-generated from web-app-hub
 # Original ID: mffwTD3t
-{ lib, pkgs, config, globals, ... }:
+{ lib, config, globals, ... }:
 
 let
   cfg = config.apps.webapps.kong-docs;
-  username = globals.user.name;
 in
 {
   options = {
@@ -16,7 +15,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file.".local/share/applications/com.google.Chrome.chrome-wah-mffwTD3t.desktop".text = ''
 [Desktop Entry]
 Exec=google-chrome-stable --no-first-run --app="https://developer.konghq.com/" --class=chrome-developer.konghq.com__-Default --name=chrome-developer.konghq.com__-Default  

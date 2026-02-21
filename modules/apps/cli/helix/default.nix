@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.helix;
-  username = globals.user.name;
 in
 {
   options = {
@@ -24,7 +23,7 @@ in
       Defaults env_keep += "EDITOR"
     '';
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.fish.shellAliases.vi = "hx";
 
       programs.helix = {

@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.nix-search-tv;
-  username = globals.user.name;
 
   configFile = pkgs.writeText "nix-search-tv-config.json" (builtins.toJSON {
     indexes = [
@@ -28,7 +27,7 @@ in
   config = lib.mkIf cfg.enable {
 
     # Home Manager user configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
       home.packages = with pkgs; [
         nix-search-tv

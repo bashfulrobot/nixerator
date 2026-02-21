@@ -1,10 +1,9 @@
 # Auto-generated from web-app-hub
 # Original ID: FVFxPpYj
-{ lib, pkgs, config, globals, ... }:
+{ lib, config, globals, ... }:
 
 let
   cfg = config.apps.webapps.clari;
-  username = globals.user.name;
 in
 {
   options = {
@@ -16,7 +15,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file.".local/share/applications/com.google.Chrome.chrome-wah-FVFxPpYj.desktop".text = ''
 [Desktop Entry]
 Exec=google-chrome-stable --no-first-run --app="https://copilot.clari.com/myCalls" --class=chrome-copilot.clari.com__myCalls-Default --name=chrome-copilot.clari.com__myCalls-Default  

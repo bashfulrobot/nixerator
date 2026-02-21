@@ -17,34 +17,36 @@ in
     inputs.nix-flatpak.nixosModules.nix-flatpak
   ];
 
-  options.system.flatpak = {
-    enable = lib.mkEnableOption "Flatpak with declarative package management";
+  options = {
+    system.flatpak = {
+      enable = lib.mkEnableOption "Flatpak with declarative package management";
 
-    packages = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [
-        "com.github.tchx84.Flatseal"
-        "org.pvermeer.WebAppHub"
-      ];
-      description = "List of Flatpak packages to install";
-      example = [
-        "com.github.tchx84.Flatseal"
-        "org.mozilla.firefox"
-        "com.spotify.Client"
-        "org.pvermeer.WebAppHub"
-      ];
-    };
+      packages = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [
+          "com.github.tchx84.Flatseal"
+          "org.pvermeer.WebAppHub"
+        ];
+        description = "List of Flatpak packages to install";
+        example = [
+          "com.github.tchx84.Flatseal"
+          "org.mozilla.firefox"
+          "com.spotify.Client"
+          "org.pvermeer.WebAppHub"
+        ];
+      };
 
-    autoUpdate = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable automatic weekly Flatpak updates";
-    };
+      autoUpdate = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable automatic weekly Flatpak updates";
+      };
 
-    updateOnActivation = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Update Flatpaks on system activation (can be slow)";
+      updateOnActivation = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Update Flatpaks on system activation (can be slow)";
+      };
     };
   };
 

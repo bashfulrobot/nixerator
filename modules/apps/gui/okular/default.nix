@@ -6,7 +6,6 @@
 
 let
   cfg = config.apps.gui.okular;
-  username = globals.user.name;
 
 in
 {
@@ -27,7 +26,7 @@ in
     ];
 
     # Set up signature and initial icons
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file = {
         ".kde/share/icons/signature.png" = {
           source = ../../../../secrets/sg.png;

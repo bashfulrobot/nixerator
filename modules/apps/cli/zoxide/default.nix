@@ -8,7 +8,6 @@
 
 let
   cfg = config.apps.cli.zoxide;
-  username = globals.user.name;
 in
 {
   options = {
@@ -22,7 +21,7 @@ in
   config = lib.mkIf cfg.enable {
 
     # Home Manager user configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
       programs.zoxide = {
         enable = true;

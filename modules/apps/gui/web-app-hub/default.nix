@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.gui.web-app-hub;
-  username = globals.user.name;
 
   # Package the extraction script as a proper derivation
   extract-webapps = pkgs.writeShellApplication {
@@ -14,7 +13,7 @@ let
       # Extract web-app-hub apps into Nix modules
       set -euo pipefail
 
-      SCRIPT_DIR="''${NIXERATOR_PATH:-$HOME/dev/nix/nixerator}"
+      SCRIPT_DIR="''${NIXERATOR_PATH:-${globals.paths.nixerator}}"
       WEBAPP_DIR="$SCRIPT_DIR/modules/apps/webapps"
       DESKTOP_DIR="$HOME/.local/share/applications"
       ICON_DIR="$HOME/.var/app/org.pvermeer.WebAppHub/data/web-app-hub/icons"
@@ -63,7 +62,6 @@ let
 
       let
         cfg = config.apps.webapps.$app_name_slug;
-        username = globals.user.name;
       in
       {
         options = {
@@ -75,7 +73,7 @@ let
         };
 
         config = lib.mkIf cfg.enable {
-          home-manager.users.\''${username} = {
+          home-manager.users.\''${globals.user.name} = {
             home.file.".local/share/applications/$desktop_filename".text = '''
       $desktop_content
             ''';
@@ -119,13 +117,13 @@ in
     ];
 
     # Add extraction script to user's PATH
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home = {
         packages = [ extract-webapps ];
 
         # Set environment variable for nixerator path if different from default
         sessionVariables = {
-          NIXERATOR_PATH = lib.mkDefault "/home/${username}/dev/nix/nixerator";
+          NIXERATOR_PATH = lib.mkDefault globals.paths.nixerator;
         };
 
         # Install custom browser configurations

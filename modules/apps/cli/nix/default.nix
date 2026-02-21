@@ -1,6 +1,5 @@
 { pkgs, config, lib, globals, ... }:
 let cfg = config.apps.cli.nix;
-username = globals.user.name;
 
 in {
   options = {
@@ -33,7 +32,7 @@ in {
       nh # nix helper - rebuilds, etc
       # keep-sorted end
     ];
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
     };
   };

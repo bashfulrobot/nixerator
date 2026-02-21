@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.gui.google-chrome;
-  username = globals.user.name;
 
   # Generate Dark Reader configuration with Stylix colors
   mkDarkReaderConfig = stylixConfig:
@@ -139,7 +138,7 @@ in
     ];
 
     # Home Manager user configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
       # Wayland flags for Chrome
       home.file =

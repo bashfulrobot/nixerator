@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.fish;
-  username = globals.user.name;
 in
 {
   options = {
@@ -19,7 +18,7 @@ in
     programs.fish.enable = true;
 
     # Home Manager user configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
       programs.fish = {
         enable = true;
@@ -37,12 +36,12 @@ in
           nix-info = "nix-info --markdown --sandbox --host-os";
 
           # Directory navigation
-          gon = "cd ~/dev/nix/nixerator";
-          goh = "cd ~/dev/nix/hyprflake";
+          gon = "cd ${globals.paths.nixerator}";
+          goh = "cd ${globals.paths.hyprflake}";
 
           # NixOS operations
-          upgrade = "cd ~/dev/nix/nixerator && just upgrade";
-          rebuild = "cd ~/dev/nix/nixerator && just rebuild";
+          upgrade = "cd ${globals.paths.nixerator} && just upgrade";
+          rebuild = "cd ${globals.paths.nixerator} && just rebuild";
           gsp = "just sync-git";
           bt-toggle = "rfkill toggle bluetooth; rfkill list bluetooth | grep -q 'Soft blocked: yes'; and echo 'Bluetooth: OFF'; or echo 'Bluetooth: ON'";
         };

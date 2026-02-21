@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.ollama;
-  username = globals.user.name;
   accelerationPackages = {
     cpu = pkgs.ollama-cpu;
     cuda = pkgs.ollama-cuda;
@@ -46,7 +45,7 @@ in
       inherit (cfg) loadModels;
     };
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.fish.shellAliases = {
         oglm = "ollama launch claude --model glm-5:cloud";
       };

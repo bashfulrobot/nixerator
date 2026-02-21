@@ -13,22 +13,24 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Kong CLI applications
-    apps.cli = {
-      kong-docs-offline.enable = true;
-    };
+    apps = {
+      # Kong CLI applications
+      cli = {
+        kong-docs-offline.enable = true;
+      };
 
-    # Kong GUI applications
-    apps.gui = {
-      insomnia.enable = true;
-    };
+      # Kong GUI applications
+      gui = {
+        insomnia.enable = true;
+      };
 
-    # Kong web applications
-    apps.webapps = {
-      calendar.enable = true;
-      clari.enable = true;
-      kong-docs.enable = true;
-      mail.enable = true;
+      # Kong web applications
+      webapps = {
+        calendar.enable = true;
+        clari.enable = true;
+        kong-docs.enable = true;
+        mail.enable = true;
+      };
     };
   };
 }

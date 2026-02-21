@@ -8,7 +8,6 @@
 
 let
   cfg = config.apps.cli.git;
-  username = globals.user.name;
 
   # gcom — Git Commit Workflow Tool
   # Two-phase git workflow:
@@ -447,7 +446,7 @@ in
     ];
 
     # Home Manager user configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
       programs = {
         fish = {

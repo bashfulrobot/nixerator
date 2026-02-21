@@ -16,8 +16,10 @@ let
   cfg = config.system.gnome-online-accounts;
 in
 {
-  options.system.gnome-online-accounts = {
-    enable = lib.mkEnableOption "GNOME Online Accounts for cloud service integration (Google Drive, etc.)";
+  options = {
+    system.gnome-online-accounts = {
+      enable = lib.mkEnableOption "GNOME Online Accounts for cloud service integration (Google Drive, etc.)";
+    };
   };
 
   config = lib.mkIf cfg.enable {

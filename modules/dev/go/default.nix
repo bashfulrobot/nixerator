@@ -2,7 +2,6 @@
 
 let
   cfg = config.dev.go;
-  username = globals.user.name;
 in
 {
   options = {
@@ -28,7 +27,7 @@ in
     };
 
     # Also set for user sessions
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.sessionVariables = {
         CC = "clang";
         CXX = "clang++";
