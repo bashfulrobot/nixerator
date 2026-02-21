@@ -37,7 +37,7 @@
   };
 
   # Localization (from globals)
-  time.timeZone = "America/Vancouver";
+  time.timeZone = globals.defaults.timeZone;
   i18n.defaultLocale = globals.defaults.locale;
 
   # User configuration

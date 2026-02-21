@@ -1,11 +1,11 @@
-{ pkgs, lib, username, globals, ... }:
+{ pkgs, lib, globals, ... }:
 
 {
   # Home Manager configuration
   home = {
     # Home Manager needs a bit of information about you and the
     # paths it should manage (from globals)
-    inherit username;
+    username = globals.user.name;
     inherit (globals.user) homeDirectory;
 
     # This value determines the Home Manager release that your
