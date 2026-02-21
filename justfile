@@ -22,7 +22,10 @@ default:
     @echo ""
     @echo "🔧 Commands with Parameters:"
     @echo "  build [trace=true]         - Add trace=true for detailed debugging"
+    @echo "  build-staged [trace=true]  - Stage all changes then run build"
+    @echo "  dev-build [trace=true]     - Stage all changes then run rebuild"
     @echo "  rebuild [trace=true]       - Add trace=true for detailed debugging"
+    @echo "  rebuild-staged [trace=true] - Stage all changes then run rebuild"
     @echo "  log [days=7]               - Show commits from last N days"
     @echo "  lint [target=.]            - Lint specific file/directory"
     @echo "  pkg-search <query>         - Search for packages"
@@ -40,7 +43,6 @@ check:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "🔍 Validating flake configuration..."
-    git add -A
     nix flake check --show-trace
 
 # Fast check of changed nix files only
@@ -88,15 +90,22 @@ test:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "🧪 Testing build (dry run)..."
-    git add -A
     sudo nixos-rebuild dry-build --fast --impure --flake {{host_flake}}
+
+# Dry run build test with staged changes
+[group('dev')]
+test-staged:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🧪 Staging all changes and testing build (dry run)..."
+    git add -A
+    just test
 
 # Development rebuild with optional trace
 [group('dev')]
 build trace="false":
     #!/usr/bin/env bash
     set -euo pipefail
-    git add -A
     if [[ "{{trace}}" == "true" ]]; then
         echo "🔧 Development rebuild with trace..."
         just clean-full
@@ -105,6 +114,15 @@ build trace="false":
         echo "🔧 Development rebuild..."
         sudo nixos-rebuild switch --fast --impure --flake {{host_flake}}
     fi
+
+# Development rebuild with staged changes
+[group('dev')]
+build-staged trace="false":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔧 Staging all changes and running development rebuild..."
+    git add -A
+    just build trace="{{trace}}"
 
 # === Production Commands ===
 # Production rebuild with bootloader
@@ -119,6 +137,15 @@ rebuild trace="false":
         echo "🚀 Production rebuild..."
         sudo nixos-rebuild switch --impure --flake {{host_flake}}
     fi
+
+# Production rebuild with staged changes
+[group('prod')]
+rebuild-staged trace="false":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🚀 Staging all changes and running production rebuild..."
+    git add -A
+    just rebuild trace="{{trace}}"
 
 # Initial rebuild for Determinate Nix (bootstraps binary cache)
 [group('prod')]
@@ -400,8 +427,7 @@ dev-build trace="false":
     #!/usr/bin/env bash
     set -euo pipefail
     echo "⚡ Staging all changes and running rebuild..."
-    git add -A
-    just rebuild trace="{{trace}}"
+    just rebuild-staged trace="{{trace}}"
 
 # Ensure Voxtype models are downloaded after upgrades
 [group('helpers')]
