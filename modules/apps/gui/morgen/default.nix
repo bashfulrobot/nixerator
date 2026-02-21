@@ -19,9 +19,11 @@ in
 
     home-manager.users.${globals.user.name} = {
       wayland.windowManager.hyprland.settings = {
-        windowrule = [
-          "match:class ^([Mm]orgen)$, tile on"
-        ];
+        windowrule = {
+          name = "morgen-tile";
+          "match:class" = "^([Mm]orgen)$";
+          tile = "on";
+        };
       };
     };
   };
