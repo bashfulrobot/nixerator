@@ -1,18 +1,18 @@
 # Helium Browser Module
 #
-# Uses local package from ../../../../packages/helium
+# Uses local package from ./build/default.nix
 # Chromium-based privacy-focused browser (beta)
 #
 # TODO: Version bump reminder - Check for new releases monthly
 # Release URL: https://github.com/imputnet/helium-linux/releases
-# Current local version: 0.9.1.1 (see ../../../../packages/helium/default.nix)
+# Current local version: 0.9.1.1 (see ./build/default.nix)
 # Note: Helium is currently in beta
 
 { lib, pkgs, config, globals, ... }:
 
 let
   cfg = config.apps.gui.helium;
-  username = globals.user.name;
+  heliumPackage = pkgs.callPackage ./build { };
 in
 {
   options = {
@@ -24,10 +24,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [
+    environment.systemPackages = [
       # Using locally packaged Helium browser
-      # See ../../../../packages/helium/default.nix for version details
-      helium
+      # See ./build/default.nix for version details
+      heliumPackage
     ];
 
     # 1Password browser integration
@@ -36,7 +36,7 @@ in
     '';
 
     # Home manager configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       # 1Password native messaging host for Helium
       home.file.".config/net.imput.helium/NativeMessagingHosts/com.1password.1password.json".text = builtins.toJSON {
         name = "com.1password.1password";
