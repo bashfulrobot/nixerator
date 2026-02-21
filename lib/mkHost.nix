@@ -7,7 +7,6 @@
     versions,
     hostname,
     system,
-    username ? globals.user.name,
     stateVersion ? globals.defaults.stateVersion,
     extraModules ? [],
     homeManagerModules ? [],
@@ -16,7 +15,7 @@
     inherit system;
 
     specialArgs = {
-      inherit inputs hostname username globals versions secrets;
+      inherit inputs hostname globals versions secrets;
     };
 
     modules = [
@@ -33,12 +32,6 @@
         nixpkgs.overlays = [
           # llm-agents packages (exposes pkgs.llm-agents.<name>)
           inputs.llm-agents.overlays.default
-
-          # Local package overrides for latest versions
-          (final: prev: {
-            helium = prev.callPackage ../packages/helium { };
-            insomnia = prev.callPackage ../packages/insomnia { };
-          })
         ];
 
         # Nix settings - Determinate Nix manages these automatically when enabled
@@ -69,9 +62,9 @@
           useGlobalPkgs = true;
           useUserPackages = true;
           extraSpecialArgs = {
-            inherit inputs hostname username globals versions secrets;
+            inherit inputs hostname globals versions secrets;
           };
-          users.${username} = {
+          users.${globals.user.name} = {
             imports = [ ../hosts/${hostname}/home.nix ] ++ homeManagerModules;
           };
           # Use a backup command that creates timestamped backups and keeps only the last 5
