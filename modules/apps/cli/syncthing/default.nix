@@ -23,11 +23,7 @@ in
 {
   options = {
     apps.cli.syncthing = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable Syncthing file synchronization.";
-      };
+      enable = lib.mkEnableOption "Syncthing file synchronization";
 
       host = {
         donkeykong = lib.mkOption {
@@ -118,7 +114,7 @@ in
             };
 
             "dev" = {
-              path = "${globals.user.homeDirectory}/dev";
+              path = globals.paths.devRoot;
               devices = [ "qbert" ];
               versioning = staggeredVersioning;
             };
@@ -203,7 +199,7 @@ in
             };
 
             "dev" = {
-              path = "${globals.user.homeDirectory}/dev";
+              path = globals.paths.devRoot;
               devices = [ "donkey-kong" ];
               versioning = staggeredVersioning;
             };

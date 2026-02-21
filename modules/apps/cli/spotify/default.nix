@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.spotify;
-  username = globals.user.name;
 
   # Spotify script packages using standard pattern
   spotifyScripts = with pkgs; [
@@ -35,7 +34,7 @@ in
     ] ++ spotifyScripts;
 
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
       # SPICETIFY - Customized Spotify client
       # Note: Spicetify installs Spotify automatically

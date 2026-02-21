@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.gui.typora;
-  username = globals.user.name;
 in
 {
   options = {
@@ -26,7 +25,7 @@ in
       nautilus-python
     ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file = lib.mkIf cfg.nautilusIntegration {
         ".local/share/nautilus-python/extensions/typora-open.py".text = ''
           from gi.repository import Nautilus, GObject

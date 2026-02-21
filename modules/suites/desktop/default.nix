@@ -1,4 +1,4 @@
-{ lib, pkgs, config, inputs, username, ... }:
+{ lib, pkgs, config, inputs, globals, ... }:
 
 let
   cfg = config.suites.desktop;
@@ -126,7 +126,7 @@ in
 
       # User configuration (required)
       user = {
-        inherit username;
+        username = globals.user.name;
         photo = ./.face;
       };
     };

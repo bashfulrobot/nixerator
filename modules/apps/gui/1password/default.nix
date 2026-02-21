@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.gui.one-password;
-  username = globals.user.name;
 in
 {
 
@@ -37,12 +36,12 @@ in
       _1password-gui = {
         enable = true;
         package = pkgs._1password-gui;
-        polkitPolicyOwners = [ username ];
+        polkitPolicyOwners = [ globals.user.name ];
       };
     };
 
     # used in Gnome and Hyprland
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file."1password.desktop" = {
         source = ./1password.desktop;
         target = ".config/autostart/1password.desktop";

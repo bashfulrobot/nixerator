@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.kubectl;
-  username = globals.user.name;
 in
 {
   options = {
@@ -25,7 +24,7 @@ in
 
     # Home Manager configuration for kubectl aliases
     # kubecolor is a wrapper that colorizes kubectl output
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.fish = {
         shellAliases = {
           k = "kubecolor";

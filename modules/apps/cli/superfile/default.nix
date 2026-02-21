@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.superfile;
-  username = globals.user.name;
   inherit (config.lib.stylix) colors;
 in
 {
@@ -15,7 +14,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.superfile = {
         enable = true;
 
@@ -23,15 +22,15 @@ in
         pinnedFolders = [
           {
             name = "Home";
-            location = "/home/${username}";
+            location = globals.user.homeDirectory;
           }
           {
             name = "dev";
-            location = "/home/${username}/dev";
+            location = globals.paths.devRoot;
           }
           {
             name = "Nix Config";
-            location = "/home/${username}/dev/nix/nixerator";
+            location = globals.paths.nixerator;
           }
         ];
 

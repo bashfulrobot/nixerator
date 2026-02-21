@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.shadowenv;
-  username = globals.user.name;
 in
 {
   options = {
@@ -17,7 +16,7 @@ in
 
     environment.systemPackages = [ pkgs.shadowenv ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
 
       programs.fish = {
         interactiveShellInit = ''

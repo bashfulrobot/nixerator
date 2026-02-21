@@ -1,7 +1,6 @@
-{ globals, pkgs, config, lib, ... }:
+{ pkgs, config, lib, ... }:
 let
   cfg = config.server.nfs;
-  username = globals.user.name;
 
 in {
 
@@ -89,7 +88,7 @@ in {
     ];
 
     # Create bind mounts for exports
-    fileSystems = lib.mapAttrs' (name: exportCfg:
+    fileSystems = lib.mapAttrs' (_: exportCfg:
       lib.nameValuePair exportCfg.path (
         lib.mkIf (exportCfg.bindMount != null) {
           device = exportCfg.bindMount;
@@ -101,7 +100,7 @@ in {
     services.nfs.server = {
       enable = true;
       exports = lib.concatStringsSep "\n" (
-        lib.mapAttrsToList (name: exportCfg:
+        lib.mapAttrsToList (_: exportCfg:
           "${exportCfg.path} ${exportCfg.exportConfig}"
         ) cfg.exports
       );
@@ -110,12 +109,12 @@ in {
     # Create export directories and bind mount sources
     systemd.tmpfiles.rules =
       # Export paths
-      (lib.mapAttrsToList (name: exportCfg:
+      (lib.mapAttrsToList (_: exportCfg:
         "d ${exportCfg.path} 0755 nobody nogroup -"
       ) cfg.exports)
       ++
       # Bind mount source paths
-      (lib.mapAttrsToList (name: exportCfg:
+      (lib.mapAttrsToList (_: exportCfg:
         lib.optionalString (exportCfg.bindMount != null)
           "d ${exportCfg.bindMount} 0755 ${toString exportCfg.uid} ${toString exportCfg.gid} -"
       ) cfg.exports)

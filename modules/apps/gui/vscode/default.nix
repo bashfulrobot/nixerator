@@ -1,7 +1,6 @@
 { pkgs, config, lib, globals, ... }:
 let
   cfg = config.apps.gui.vscode;
-  username = globals.user.name;
 
   inherit (config.lib.stylix) colors;
 in {
@@ -32,7 +31,7 @@ in {
     ] ++ lib.optionals cfg.nautilusIntegration [
       nautilus-python
     ];
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file = lib.mkMerge [
         (lib.mkIf cfg.nautilusIntegration {
           ".local/share/nautilus-python/extensions/vscode-open.py".text = ''

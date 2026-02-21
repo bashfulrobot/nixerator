@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.gui.morgen;
-  username = globals.user.name;
 in
 {
   options = {
@@ -18,7 +17,7 @@ in
       morgen
     ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       wayland.windowManager.hyprland.settings = {
         windowrule = [
           "tile, class:Morgan"

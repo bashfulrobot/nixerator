@@ -2,13 +2,12 @@
 
 let
   cfg = config.apps.cli.percollate;
-  username = globals.user.name;
 in
 {
-  options.apps.cli.percollate.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable percollate web-to-PDF converter with sitemap support.";
+  options = {
+    apps.cli.percollate = {
+      enable = lib.mkEnableOption "percollate web-to-PDF converter with sitemap support";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -17,7 +16,7 @@ in
       wget # For spider fallback when no sitemap
     ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.fish.functions = {
         web2pdf = ''
           # Convert website to PDF using sitemap or wget spider

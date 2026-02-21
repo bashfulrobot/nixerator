@@ -3,7 +3,6 @@
   pkgs,
   config,
   globals,
-  username,
   ...
 }:
 
@@ -96,7 +95,7 @@ in
     };
 
     # User configuration
-    users.users.${username} = {
+    users.users.${globals.user.name} = {
       isNormalUser = true;
       description = globals.user.fullName;
       extraGroups = [

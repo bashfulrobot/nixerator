@@ -9,8 +9,7 @@
 
 let
   cfg = config.apps.cli.meetsum;
-  username = globals.user.name;
-  homeDir = "/home/${username}";
+  homeDir = globals.user.homeDirectory;
   meetsum = pkgs.callPackage ./build { inherit versions; };
 
   # Generate settings.yaml with proper home path
@@ -71,7 +70,7 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ meetsum ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       xdg.configFile."meetsum/Meeting-summary-llm-instructions.md".source =
         ./build/Meeting-summary-llm-instructions.md;
       xdg.configFile."meetsum/settings.yaml".source = settingsYaml;

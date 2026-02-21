@@ -1,7 +1,6 @@
 { globals, pkgs, config, lib, ... }:
 let
   cfg = config.server.kvm;
-  username = globals.user.name;
 
 in {
 
@@ -59,7 +58,7 @@ in {
     ];
 
     # Add user to libvirtd group
-    users.users."${username}".extraGroups =
+    users.users."${globals.user.name}".extraGroups =
       [ "libvirtd" "qemu" "kvm" "qemu-libvirtd" "lxd" ];
 
     virtualisation = {

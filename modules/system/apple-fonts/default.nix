@@ -5,8 +5,10 @@ let
   appleFontsPkgs = inputs.apple-fonts.packages.${pkgs.system};
 in
 {
-  options.system.apple-fonts = {
-    enable = lib.mkEnableOption "Apple fonts (SF Pro, SF Mono Nerd, New York)";
+  options = {
+    system.apple-fonts = {
+      enable = lib.mkEnableOption "Apple fonts (SF Pro, SF Mono Nerd, New York)";
+    };
   };
 
   config = lib.mkIf cfg.enable {

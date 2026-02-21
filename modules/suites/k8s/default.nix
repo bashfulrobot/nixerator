@@ -2,7 +2,6 @@
 
 let
   cfg = config.suites.k8s;
-  username = globals.user.name;
 in
 {
   options = {
@@ -33,7 +32,7 @@ in
     ];
 
     # Home Manager configuration
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs = {
         k9s = {
           enable = true;

@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.gui.affinity;
-  username = globals.user.name;
 in
 {
   options = {
@@ -18,7 +17,7 @@ in
       inputs.affinity-nix.packages.x86_64-linux.v3
     ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.fish.shellAliases = lib.mkIf config.apps.cli.fish.enable {
         affinity-update = "nix run github:mrshmllow/affinity-nix#{v3,photo,designer,publisher} -- update";
       };

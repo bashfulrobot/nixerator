@@ -2,7 +2,6 @@
 
 let
   cfg = config.apps.cli.pandoc;
-  username = globals.user.name;
 in
 {
   options = {
@@ -30,7 +29,7 @@ in
     ];
 
     # Fish function for markdown to PDF conversion
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.fish.functions = {
         md2pdf = ''
           if test (count $argv) -eq 0

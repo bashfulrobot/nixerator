@@ -9,7 +9,6 @@
 
 let
   cfg = config.apps.cli.cpx;
-  username = globals.user.name;
   cpx = pkgs.callPackage ./build { inherit versions; };
 in
 {
@@ -24,7 +23,7 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ cpx ];
 
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       programs.fish.shellAliases = {
         cp = "cpx";
       };

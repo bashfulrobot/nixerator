@@ -1,10 +1,9 @@
 # Auto-generated from web-app-hub
 # Original ID: Aa1MeSDZ
-{ lib, pkgs, config, globals, ... }:
+{ lib, config, globals, ... }:
 
 let
   cfg = config.apps.webapps.calendar;
-  username = globals.user.name;
 in
 {
   options = {
@@ -16,7 +15,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${username} = {
+    home-manager.users.${globals.user.name} = {
       home.file.".local/share/applications/com.google.Chrome.chrome-wah-Aa1MeSDZ.desktop".text = ''
 [Desktop Entry]
 Exec=google-chrome-stable --no-first-run --app="https://calendar.google.com/calendar/u/1/r" --class=chrome-calendar.google.com__calendar_u_1_r-Default --name=chrome-calendar.google.com__calendar_u_1_r-Default  

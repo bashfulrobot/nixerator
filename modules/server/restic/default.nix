@@ -1,7 +1,6 @@
-{ globals, pkgs, config, lib, secrets, ... }:
+{ pkgs, config, lib, ... }:
 let
   cfg = config.server.restic;
-  username = globals.user.name;
 
   backup-mgr = ''
     #!/run/current-system/sw/bin/env fish
@@ -43,6 +42,11 @@ let
 
     function check_timer_logs
       journalctl -u backup-mgr.timer
+    end
+
+    function check_logs
+      check_service_logs
+      check_timer_logs
     end
 
     function show_help
