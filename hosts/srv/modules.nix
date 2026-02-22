@@ -8,6 +8,7 @@
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/starship
     ../../modules/apps/cli/tailscale
+    ../../modules/apps/cli/vscode-server
     ../../modules/server/kvm
     ../../modules/server/nfs
     ../../modules/server/restic
@@ -21,6 +22,7 @@
     helix.enable = true;
     starship.enable = true;
     tailscale.enable = true;
+    vscode-server.enable = true;
   };
 
   # System modules
@@ -87,3 +89,4 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 }
+
