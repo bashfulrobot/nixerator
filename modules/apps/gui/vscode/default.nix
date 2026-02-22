@@ -21,6 +21,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    programs.nix-ld.enable = true;
     services.vscode-server.enable = true;
 
     environment.systemPackages = with pkgs; [
