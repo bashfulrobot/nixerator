@@ -18,6 +18,7 @@ in
 
     apps.cli = {
       happy.enable = true;
+      openspec.enable = true;
       ollama = {
         enable = true;
         loadModels = [ "glm-5:cloud" ];
