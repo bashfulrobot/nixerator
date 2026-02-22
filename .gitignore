@@ -11,3 +11,6 @@ result-*
 # Codex config (project-level)
 .codex/config.toml
 prompt.txt
+.claude/settings.local.json
+AGENTS.md
+CLAUDE.md
