@@ -108,22 +108,22 @@ let
         local msg=""
 
         if command -v gemini >/dev/null 2>&1; then
-          info "generating commit message with gemini..."
+          info "generating commit message with gemini..." >&2
           msg="$(printf '%s\n%s' "$COMMIT_RULES" "$diff" | gemini -p "Generate the commit message." 2>/dev/null | head -1)" || true
         fi
 
         if [[ -z "$msg" ]] && command -v claude >/dev/null 2>&1; then
-          info "generating commit message with claude..."
+          info "generating commit message with claude..." >&2
           msg="$(printf '%s\n%s' "$COMMIT_RULES" "$diff" | claude -p "Generate the commit message." 2>/dev/null | head -1)" || true
         fi
 
         if [[ -z "$msg" ]]; then
-          warn "no AI tool available, enter commit message manually"
-          prompt "message: "
+          warn "no AI tool available, enter commit message manually" >&2
+          prompt "message: " >&2
           read -r msg
         fi
 
-        echo "$msg"
+        printf '%s\n' "$msg"
       }
 
       # ── start ────────────────────────────────────────────────────────────
@@ -362,6 +362,11 @@ let
         if git -C "$main_repo_path" show-ref --verify --quiet "refs/heads/$branch"; then
           if git -C "$main_repo_path" merge-base --is-ancestor "$branch" "$main_branch"; then
             info "deleting merged branch $branch..."
+            # `git branch -d` prioritizes upstream merge status. Clear upstream first
+            # so safe-delete is based on our explicit merge check against $main_branch.
+            if git -C "$main_repo_path" rev-parse --verify --quiet "$branch@{upstream}" >/dev/null 2>&1; then
+              git -C "$main_repo_path" branch --unset-upstream "$branch" >/dev/null 2>&1 || true
+            fi
             if ! git -C "$main_repo_path" branch -d "$branch"; then
               warn "safe delete failed (likely due to upstream merge checks); force deleting local branch..."
               if ! git -C "$main_repo_path" branch -D "$branch"; then
