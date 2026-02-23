@@ -487,9 +487,61 @@ in {
         ".config/Code/User/argv.json".text = builtins.toJSON {
           password-store = "gnome-libsecret";
         };
+
+        ".config/Code/User/.copilot-commit-message-instructions.md".text = ''
+          # Commit Message Instructions
+
+          Use only staged diff content. Determine intent from git name-status:
+          - `A` = added
+          - `M` = modified
+          - `D` = deleted
+          - `R` = renamed
+
+          Treat example text in prompts, comments, and string literals as non-functional context. Infer commit intent only from real behavior or config changes.
+
+          Subject format is strict:
+          `type(scope): emoji description`
+
+          Allowed types and emoji:
+          - `feat` `✨`
+          - `fix` `🐛`
+          - `docs` `📝`
+          - `style` `🎨`
+          - `refactor` `♻️`
+          - `perf` `⚡`
+          - `test` `✅`
+          - `build` `👷`
+          - `ci` `💚`
+          - `chore` `🔧`
+          - `revert` `⏪`
+          - `security` `🔒`
+          - `deps` `⬆️`
+
+          Scope rules:
+          - Required
+          - Lowercase kebab-case
+          - Must match the primary changed module, component, or host
+
+          Description rules:
+          - Imperative mood
+          - Lowercase
+          - No trailing period
+          - Max 72 characters
+          - Describe only the delta
+
+          Change intent rules:
+          - For deletions (`D`): describe removal and why
+          - For additions (`A`): describe what new behavior is added
+          - For modifications (`M`): describe what changed and why
+
+          Body rules:
+          - For non-trivial changes, add a blank line after the subject
+          - Add 2-5 bullets with concrete facts only
+          - Use exact file paths, config keys, flags, function names, and package names
+          - Do not invent details
+        '';
         }
       ];
     };
   };
 }
-
