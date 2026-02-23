@@ -103,22 +103,47 @@ let
 
       Diff:'
 
+      extract_commit_line() {
+        local raw="$1"
+        local clean=""
+        local candidate=""
+
+        clean="$(printf '%s\n' "$raw" \
+          | sed -E 's/\x1B\[[0-9;]*[[:alpha:]]//g' \
+          | sed -E 's/\r$//')"
+
+        candidate="$(printf '%s\n' "$clean" | grep -E '^[a-z]+\([a-z0-9-]+\): [^[:space:]]+ .+$' | head -1)" || true
+        if [[ -z "$candidate" ]]; then
+          candidate="$(printf '%s\n' "$clean" | sed -n '/[^[:space:]]/{s/^[[:space:]]*//;s/[[:space:]]*$//;p;q;}')"
+        fi
+
+        printf '%s\n' "$candidate"
+      }
+
+      valid_commit_msg() {
+        local msg="$1"
+        [[ "$msg" =~ ^[a-z]+\([a-z0-9-]+\):[[:space:]][^[:space:]]+[[:space:]].+$ ]]
+      }
+
       generate_commit_msg() {
         local diff="$1"
         local msg=""
+        local raw=""
 
         if command -v gemini >/dev/null 2>&1; then
-          info "generating commit message with gemini..." >&2
-          msg="$(printf '%s\n%s' "$COMMIT_RULES" "$diff" | gemini -p "Generate the commit message." 2>/dev/null | head -1)" || true
+          raw="$(printf '%s\n%s' "$COMMIT_RULES" "$diff" | gemini -p "Generate the commit message." 2>/dev/null)" || true
+          msg="$(extract_commit_line "$raw")"
+          valid_commit_msg "$msg" || msg=""
         fi
 
         if [[ -z "$msg" ]] && command -v claude >/dev/null 2>&1; then
-          info "generating commit message with claude..." >&2
-          msg="$(printf '%s\n%s' "$COMMIT_RULES" "$diff" | claude -p "Generate the commit message." 2>/dev/null | head -1)" || true
+          raw="$(printf '%s\n%s' "$COMMIT_RULES" "$diff" | claude -p "Generate the commit message." 2>/dev/null)" || true
+          msg="$(extract_commit_line "$raw")"
+          valid_commit_msg "$msg" || msg=""
         fi
 
         if [[ -z "$msg" ]]; then
-          warn "no AI tool available, enter commit message manually" >&2
+          warn "automatic commit message generation unavailable, enter commit message manually" >&2
           prompt "message: " >&2
           read -r msg
         fi
