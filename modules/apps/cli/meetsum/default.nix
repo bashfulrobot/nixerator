@@ -36,6 +36,13 @@ let
       # AI provider command to execute
       command: "gemini"
 
+      # Additional command-line args passed to the AI command
+      args:
+        - "--model"
+        - "gemini-2.5-pro"
+        - "--approval-mode"
+        - "auto_edit"
+
     # Feature flags
     features:
       # Enable trace mode by default
