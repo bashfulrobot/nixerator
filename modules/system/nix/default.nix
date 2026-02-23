@@ -1,6 +1,8 @@
 _:
 
 {
+  nix.nixPath = [ ];
+
   nix.settings = {
     substituters = [
       "https://hyprland.cachix.org"
