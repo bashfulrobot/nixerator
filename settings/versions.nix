@@ -7,7 +7,7 @@
     meetsum = {
       # Source: https://github.com/bashfulrobot/meetsum/releases
       version = "0.8.1";
-        sha256 = "sha256-sagits3BzuEvfWDS7YKjmjw6D4ttvRBV0BL7Ut88J2Y=";
+        sha256 = "sha256-s9IIo1w9gsDepVw3jy+WU3jWuXEcJUq2M/fqoCzKCUw=";
       repo = "https://github.com/bashfulrobot/meetsum";
     };
     cpx = {
