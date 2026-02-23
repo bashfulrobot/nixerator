@@ -490,10 +490,12 @@ openspec-config-core:
     @openspec config list
 
 [group('helpers')]
-openspec-init-global tools="{{openspec_tools_default}}":
+openspec-init-global tools=openspec_tools_default:
     #!/usr/bin/env bash
     set -euo pipefail
-    openspec init --force --tools "{{tools}}" "$HOME"
+    tools_value="{{tools}}"
+    tools_value="${tools_value#tools=}"
+    openspec init --force --tools "$tools_value" "$HOME"
 
 [group('helpers')]
 openspec-update-global:
@@ -502,11 +504,11 @@ openspec-update-global:
     openspec update --force "$HOME"
 
 [group('helpers')]
-openspec-bootstrap-global tools="{{openspec_tools_default}}":
+openspec-bootstrap-global tools=openspec_tools_default:
     #!/usr/bin/env bash
     set -euo pipefail
     just openspec-config-all
-    just openspec-init-global tools="{{tools}}"
+    just openspec-init-global "{{tools}}"
     just openspec-update-global
     just openspec-status
 
