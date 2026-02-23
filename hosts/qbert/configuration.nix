@@ -25,7 +25,8 @@
   # Voxtype on qbert: keep thread cap + use Vulkan backend (AMD 6800 XT)
   hyprflake.desktop.voxtype = {
     #model = "large-v3-turbo";
-    model = "base.en";
+    #model = "base.en";
+    model = "small.en";
     threads = 16;
     package = inputs.hyprflake.inputs.voxtype.packages.${pkgs.system}.vulkan;
   };
