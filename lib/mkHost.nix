@@ -55,6 +55,10 @@
           };
         };
 
+        # Disable local NixOS option documentation generation to avoid
+        # Determinate Nix warning about options.json referencing the source store path
+        documentation.nixos.enable = inputs.nixpkgs.lib.mkDefault false;
+
         # Keep system generations manageable
         boot.loader.systemd-boot.configurationLimit = inputs.nixpkgs.lib.mkDefault 5;
 
