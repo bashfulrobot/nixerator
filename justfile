@@ -12,6 +12,8 @@ hostname := `hostname`
 host_flake := ".#" + hostname
 trace_log := justfile_directory() + "/rebuild-trace.log"
 timestamp := `date +%Y-%m-%d_%H-%M-%S`
+openspec_tools_default := "claude,codex,github-copilot,gemini"
+openspec_workflows_all_json := "[\"propose\",\"explore\",\"new\",\"continue\",\"apply\",\"ff\",\"sync\",\"archive\",\"bulk-archive\",\"verify\",\"onboard\"]"
 
 # === Help ===
 # Show available recipes
@@ -28,6 +30,10 @@ default:
     @echo "  rebuild-staged [trace=true] - Stage all changes then run rebuild"
     @echo "  log [days=7]               - Show commits from last N days"
     @echo "  lint [target=.]            - Lint specific file/directory"
+    @echo "  openspec-init-global [tools={{openspec_tools_default}}] - Initialize OpenSpec globally"
+    @echo "  openspec-update-global     - Update OpenSpec global tool artifacts"
+    @echo "  openspec-bootstrap-global [tools={{openspec_tools_default}}] - Configure + init + update"
+    @echo "  openspec-status            - Show OpenSpec config and artifact path status"
     @echo "  pkg-search <query>         - Search for packages"
     @echo "  update <input>             - Update specific flake input"
     @echo ""
@@ -444,6 +450,89 @@ inspect:
     @echo "nix eval .#nixosConfigurations.{{hostname}}.config.users.users --json"
     @echo "nix eval .#nixosConfigurations.{{hostname}}.options.services --json"
 
+# === OpenSpec Commands ===
+[group('helpers')]
+openspec-config-path:
+    @openspec config path
+
+[group('helpers')]
+openspec-config-show:
+    @openspec config list
+    @echo ""
+    @openspec config list --json
+
+[group('helpers')]
+openspec-config-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cfg="$(openspec config path)"
+    workflows='{{openspec_workflows_all_json}}'
+    mkdir -p "$(dirname "$cfg")"
+
+    tmp="$(mktemp)"
+    if [[ -f "$cfg" ]] && jq empty "$cfg" >/dev/null 2>&1; then
+      jq --argjson workflows "$workflows" \
+        '.profile = "custom" | .delivery = "both" | .workflows = $workflows' \
+        "$cfg" > "$tmp"
+    else
+      jq --argjson workflows "$workflows" -n \
+        '{featureFlags: {}, profile: "custom", delivery: "both", workflows: $workflows}' \
+        > "$tmp"
+    fi
+
+    mv "$tmp" "$cfg"
+    echo "✅ OpenSpec configured for all workflows"
+    openspec config list
+
+[group('helpers')]
+openspec-config-core:
+    @openspec config profile core
+    @openspec config list
+
+[group('helpers')]
+openspec-init-global tools="{{openspec_tools_default}}":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    openspec init --force --tools "{{tools}}" "$HOME"
+
+[group('helpers')]
+openspec-update-global:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    openspec update --force "$HOME"
+
+[group('helpers')]
+openspec-bootstrap-global tools="{{openspec_tools_default}}":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just openspec-config-all
+    just openspec-init-global tools="{{tools}}"
+    just openspec-update-global
+    just openspec-status
+
+[group('helpers')]
+openspec-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "OpenSpec config:"
+    openspec config list
+    echo ""
+    echo "Expected global artifact paths:"
+    for p in \
+      "$HOME/.claude/commands/opsx" \
+      "$HOME/.claude/skills" \
+      "$HOME/.codex/skills" \
+      "$HOME/.codex/prompts" \
+      "$HOME/.github/prompts" \
+      "$HOME/.gemini/commands/opsx"
+    do
+      if [[ -e "$p" ]]; then
+        echo "  ✅ $p"
+      else
+        echo "  ❌ $p (missing)"
+      fi
+    done
+
 # === Workflow Aliases ===
 alias c := check
 alias d := check-diff
@@ -455,6 +544,10 @@ alias gc := clean
 alias l := log
 alias s := switch
 alias id := init-determinate
+alias os-init := openspec-init-global
+alias os-up := openspec-update-global
+alias os-boot := openspec-bootstrap-global
+alias os-status := openspec-status
 
 # Rebuild and switch (alias for rebuild)
 [group('prod')]
