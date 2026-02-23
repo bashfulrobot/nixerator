@@ -62,7 +62,7 @@ Enable modules via options:
 
 ## Module Categories
 
-```
+```shell
 modules/
 ├── apps/
 │   ├── cli/          # Command-line tools
