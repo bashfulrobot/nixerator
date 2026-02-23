@@ -31,7 +31,7 @@ modules/
 ├── system/               # System services
 │   ├── ssh/              # SSH server configuration
 │   ├── flatpak/          # Flatpak support
-│   └── cachix/           # Binary cache
+│   └── nix/              # Nix daemon settings
 ├── server/               # Server-specific modules
 │   ├── kvm/              # KVM/libvirt virtualization
 │   ├── nfs/              # NFS server
