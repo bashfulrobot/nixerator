@@ -55,9 +55,14 @@
           };
         };
 
-        # Disable local NixOS option documentation generation to avoid
+        # Disable NixOS option documentation generation to avoid
         # Determinate Nix warning about options.json referencing the source store path
-        documentation.nixos.enable = inputs.nixpkgs.lib.mkDefault false;
+        # Keep man pages enabled for usability
+        documentation = {
+          doc.enable = inputs.nixpkgs.lib.mkForce false;
+          info.enable = inputs.nixpkgs.lib.mkForce false;
+          nixos.enable = inputs.nixpkgs.lib.mkForce false;
+        };
 
         # Keep system generations manageable
         boot.loader.systemd-boot.configurationLimit = inputs.nixpkgs.lib.mkDefault 5;
