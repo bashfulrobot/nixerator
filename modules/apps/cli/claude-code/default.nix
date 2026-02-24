@@ -508,6 +508,7 @@ in
           mcpServers = { };
 
           skills.commit = ./skills/commit;
+          skills.humanizer = ./skills/humanizer;
         };
 
         fish = {
