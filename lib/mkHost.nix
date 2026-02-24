@@ -55,15 +55,6 @@
           };
         };
 
-        # Disable NixOS option documentation generation to avoid
-        # Determinate Nix warning about options.json referencing the source store path
-        # Keep man pages enabled for usability
-        documentation = {
-          doc.enable = inputs.nixpkgs.lib.mkForce false;
-          info.enable = inputs.nixpkgs.lib.mkForce false;
-          nixos.enable = inputs.nixpkgs.lib.mkForce false;
-        };
-
         # Keep system generations manageable
         boot.loader.systemd-boot.configurationLimit = inputs.nixpkgs.lib.mkDefault 5;
 
@@ -75,6 +66,9 @@
           };
           users.${globals.user.name} = {
             imports = [ ../hosts/${hostname}/home.nix ] ++ homeManagerModules;
+            # Disable Home Manager manual/manpages generation to avoid
+            # Determinate Nix warning about options.json referencing the source store path
+            manual.manpages.enable = false;
           };
           # Use a backup command that creates timestamped backups and keeps only the last 5
           backupCommand = "${inputs.nixpkgs.legacyPackages.${system}.bash}/bin/bash -c 'if [ -e \"$1\" ]; then mv -f \"$1\" \"$1.backup-$(date +%Y%m%d-%H%M%S)\"; ls -t \"$1\".backup-* 2>/dev/null | tail -n +6 | xargs -r rm -f; fi' --";
