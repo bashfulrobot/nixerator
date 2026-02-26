@@ -140,15 +140,15 @@ in
     stylix.fonts = {
       monospace = {
         name = lib.mkForce "SFMono Nerd Font";
-        package = lib.mkForce inputs.apple-fonts.packages.${pkgs.system}.sf-mono-nerd;
+        package = lib.mkForce config.system.apple-fonts.packages.sf-mono-nerd;
       };
       sansSerif = {
         name = lib.mkForce "SF Pro Display";
-        package = lib.mkForce inputs.apple-fonts.packages.${pkgs.system}.sf-pro;
+        package = lib.mkForce config.system.apple-fonts.packages.sf-pro;
       };
       serif = {
         name = lib.mkForce "New York";
-        package = lib.mkForce inputs.apple-fonts.packages.${pkgs.system}.ny;
+        package = lib.mkForce config.system.apple-fonts.packages.ny;
       };
     };
   };
