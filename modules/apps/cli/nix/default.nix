@@ -27,7 +27,6 @@ in {
       nix-prefetch-github # Get sha256 info for GitHub
       nixd # nix language server
       nixfmt # Nix code formatter
-      nodePackages.node2nix # Node to Nix
       statix # nix linting
       nh # nix helper - rebuilds, etc
       # keep-sorted end
