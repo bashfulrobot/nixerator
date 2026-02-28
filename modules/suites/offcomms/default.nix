@@ -40,6 +40,7 @@ in
       meetsum.enable = true;
       pandoc.enable = true;
       percollate.enable = true;
+      todoist-report.enable = true;
       wkhtmltopdf.enable = true;
     };
 
@@ -47,6 +48,7 @@ in
       discord-ptb
       slack
       todoist-electron
+      fractal
     ];
   };
 }
