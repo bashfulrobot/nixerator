@@ -28,7 +28,7 @@ export TODOIST_API_TOKEN=your-token
 ## Usage
 
 ```bash
-todoist-report <project-name> [--json]
+todoist-report [project-name] [--kong] [--json]
 ```
 
 **Project name matching:**
@@ -109,11 +109,38 @@ Returns structured JSON including the last 5 comments per task with full content
 }
 ```
 
+### --kong flag: all Kong projects at once
+
+```bash
+todoist-report --kong
+```
+
+Matches all Todoist projects whose name starts with "kong" (case-insensitive) and runs the full report pipeline for each. No project-name argument needed. Reports are separated by a visual divider:
+
+```
+Project: Kong API  |  Generated: 2026-02-27
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OVERVIEW
+  ...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Project: Kong Platform  |  Generated: 2026-02-27
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
 ### Pipe to an AI agent
 
 ```bash
 todoist-report "Kong" --json | claude -p "Summarize this project status and flag blockers"
 todoist-report "Kong" --json | jq .
+
+# All Kong projects in one shot — returns a JSON array (not a single object)
+todoist-report --kong --json | jq 'length'
+todoist-report --kong --json | jq '.[0].project'
+todoist-report --kong --json | claude -p "Summarize all Kong project statuses and flag blockers"
 ```
 
 The project name must be an exact match when piping, so the interactive picker is never triggered.
@@ -136,3 +163,4 @@ The Todoist API inverts the GUI priority numbers — P1 in the GUI is the most u
 - Comments in human-readable mode are truncated at 120 characters.
 - The token is never stored in nix — it comes entirely from the environment.
 - Uses the Todoist REST API v1 (`api.todoist.com/api/v1`) with cursor-based pagination.
+- `--kong --json` returns a JSON array; a single-project `--json` returns a single object.
