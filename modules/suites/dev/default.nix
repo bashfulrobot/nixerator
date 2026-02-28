@@ -35,6 +35,7 @@ in
         cue.enable = true;
         gemini-cli.enable = true;
         git.enable = true;
+        fresh-editor.enable = true;
         helix.enable = true;
         lswt.enable = true;
         nix.enable = true;
