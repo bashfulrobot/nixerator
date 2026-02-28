@@ -467,6 +467,9 @@ in
 
   config = lib.mkIf cfg.enable {
 
+    # Enable gcmt conventional commit tool alongside git
+    apps.cli.gcmt.enable = true;
+
     # System-level packages
     environment.systemPackages = with pkgs; [
       gcom
