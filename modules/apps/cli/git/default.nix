@@ -87,70 +87,6 @@ let
         '
       }
 
-      # ── AI commit message generation ─────────────────────────────────────
-      COMMIT_RULES='Generate a single conventional commit message for the following diff.
-      Format: <type>(<scope>): <emoji> <description>
-      Types and emojis: feat:✨ fix:🐛 docs:📝 style:💄 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
-      Rules:
-      - scope is REQUIRED, lowercase, kebab-case module/area name
-      - emoji goes AFTER the colon, before the description
-      - description is imperative mood, lowercase start, no period, under 72 chars total
-      - output ONLY the commit message line, nothing else
-      Examples:
-      feat(auth): ✨ add OAuth2 login flow
-      fix(api): 🐛 resolve race condition in token refresh
-      refactor(core): ♻️ extract validation into pure functions
-
-      Diff:'
-
-      extract_commit_line() {
-        local raw="$1"
-        local clean=""
-        local candidate=""
-
-        clean="$(printf '%s\n' "$raw" \
-          | sed -E 's/\x1B\[[0-9;]*[[:alpha:]]//g' \
-          | sed -E 's/\r$//')"
-
-        candidate="$(printf '%s\n' "$clean" | grep -E '^[a-z]+\([a-z0-9-]+\): [^[:space:]]+ .+$' | head -1)" || true
-        if [[ -z "$candidate" ]]; then
-          candidate="$(printf '%s\n' "$clean" | sed -n '/[^[:space:]]/{s/^[[:space:]]*//;s/[[:space:]]*$//;p;q;}')"
-        fi
-
-        printf '%s\n' "$candidate"
-      }
-
-      valid_commit_msg() {
-        local msg="$1"
-        [[ "$msg" =~ ^[a-z]+\([a-z0-9-]+\):[[:space:]][^[:space:]]+[[:space:]].+$ ]]
-      }
-
-      generate_commit_msg() {
-        local diff="$1"
-        local msg=""
-        local raw=""
-
-        if command -v gemini >/dev/null 2>&1; then
-          raw="$(printf '%s\n%s' "$COMMIT_RULES" "$diff" | gemini -p "Generate the commit message." 2>/dev/null)" || true
-          msg="$(extract_commit_line "$raw")"
-          valid_commit_msg "$msg" || msg=""
-        fi
-
-        if [[ -z "$msg" ]] && command -v claude >/dev/null 2>&1; then
-          raw="$(printf '%s\n%s' "$COMMIT_RULES" "$diff" | claude -p "Generate the commit message." 2>/dev/null)" || true
-          msg="$(extract_commit_line "$raw")"
-          valid_commit_msg "$msg" || msg=""
-        fi
-
-        if [[ -z "$msg" ]]; then
-          warn "automatic commit message generation unavailable, enter commit message manually" >&2
-          prompt "message: " >&2
-          read -r msg
-        fi
-
-        printf '%s\n' "$msg"
-      }
-
       # ── start ────────────────────────────────────────────────────────────
       cmd_start() {
         local use_worktree=false
@@ -286,44 +222,8 @@ let
           fi
           ok "found $ahead commit(s) ahead of $main_branch — skipping to merge"
         else
-          # Generate commit message
-          local diff
-          diff="$(git diff --cached)"
-
-          local msg
-          msg="$(generate_commit_msg "$diff")"
-
-          # Confirm with user
-          echo ""
-          printf '%sproposed commit message:%s\n' "$BOLD" "$NC"
-          printf '  %s%s%s\n\n' "$GREEN" "$msg" "$NC"
-          prompt "[y]es / [e]dit / [r]etry / [q]uit: "
-          read -r choice
-
-          case "$choice" in
-            y|Y|"")
-              ;;
-            e|E)
-              prompt "enter message: "
-              read -r msg
-              [[ -n "$msg" ]] || die "empty message"
-              ;;
-            r|R)
-              msg="$(generate_commit_msg "$diff")"
-              printf '  %s%s%s\n' "$GREEN" "$msg" "$NC"
-              prompt "accept? [y/n]: "
-              read -r yn
-              [[ "$yn" =~ ^[yY] ]] || die "aborted"
-              ;;
-            *)
-              die "aborted"
-              ;;
-          esac
-
-          [[ -n "$msg" ]] || die "empty message"
-          info "committing..."
-          git commit -S -m "$msg"
-          ok "committed"
+          info "launching gcmt for commit..."
+          gcmt
         fi
 
         # Rebase onto latest main for ff-only merge
