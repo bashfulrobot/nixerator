@@ -20,7 +20,6 @@ in
   config = lib.mkIf cfg.enable {
     # Communication applications
     apps.gui = {
-      cameractrls.enable = true;
       insync.enable = true;
       morgen.enable = true;
       obsidian.enable = true;

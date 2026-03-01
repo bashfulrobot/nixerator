@@ -31,7 +31,6 @@ in
       offcomms.enable = true;       # Communications suite
       infrastructure.enable = true; # Infrastructure and cloud tools
       k8s.enable = true;            # Kubernetes tooling
-      media.enable = true;          # Media suite
       kong.enable = true;           # Kong API Gateway suite
       av.enable = true;             # Audio/visual creative suite
       ai.enable = true;             # AI tooling suite

@@ -93,7 +93,7 @@ in {
         }];
         };
 
-        ".vscode/extensions/stylix-theme/themes/stylix.json".text = lib.mkIf (config.stylix.enable or false) (builtins.toJSON {
+        ".vscode/extensions/stylix-theme/themes/stylix.json".text = builtins.toJSON {
         name = "Stylix";
         type = "dark";
         colors = {
@@ -474,7 +474,7 @@ in {
           "comment" = "#${colors.base04}";
           "comment.documentation" = "#${colors.base0C}";
         };
-      });
+      };
 
         # Force VSCode to use Wayland
         ".config/code-flags.conf".text = ''
