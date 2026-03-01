@@ -15,7 +15,7 @@ die()  { printf '%s✖ %s%s\n'  "$RED"    "$*" "$NC" >&2; exit 1; }
 # ── Usage ─────────────────────────────────────────────────────────────────────
 usage() {
   cat <<'EOF'
-Usage: gcmt [--ai claude|gemini]
+Usage: gcmt [--ai claude|gemini] [--push]
 
 Interactive conventional commit tool with gum UI and AI-generated body.
 
@@ -26,12 +26,14 @@ Interactive conventional commit tool with gum UI and AI-generated body.
 
 Options:
   --ai <tool>   AI backend to use for body generation (default: claude)
+  --push        Push to remote after committing
   -h, --help    Show this help
 EOF
 }
 
 # ── Args ──────────────────────────────────────────────────────────────────────
 AI_TOOL="claude"
+DO_PUSH=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -40,6 +42,7 @@ while [[ $# -gt 0 ]]; do
       AI_TOOL="$2"
       shift 2
       ;;
+    --push) DO_PUSH=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown flag: $1" ;;
   esac
@@ -217,7 +220,7 @@ BODY=$(gum write \
   --width 80 \
   --height 10) || BODY=""
 
-# ── Step 7: preview + confirm ────────────────────────────────────────────────
+# ── Step 7: preview ──────────────────────────────────────────────────────────
 printf '\n'
 gum style --bold --underline "─── Commit Preview ───"
 printf '\n'
@@ -227,7 +230,6 @@ if [[ -n "$BODY" ]]; then
   printf '%s\n' "$BODY"
 fi
 printf '\n'
-gum confirm "Create signed commit?" || die "aborted"
 
 # ── Step 8: commit ────────────────────────────────────────────────────────────
 if [[ -n "$BODY" ]]; then
@@ -238,3 +240,10 @@ fi
 
 printf '\n'
 ok "committed: $SUBJECT"
+
+# ── Step 9: push (optional) ───────────────────────────────────────────────────
+if [[ "$DO_PUSH" -eq 1 ]]; then
+  info "Pushing to remote..."
+  git push
+  ok "pushed"
+fi
