@@ -45,6 +45,41 @@ nix flake check --show-trace
 nix flake update
 ```
 
+## Claude Code
+
+### Shell shortcuts
+
+| Command | Description |
+|---------|-------------|
+| `cc <task>` | Inline headless task — expands to `claude -p "<task>"` (unrestricted tools) |
+| `ask <question>` | Read-only Q&A — restricts tools to Read, Bash, Glob, Grep |
+| `ls \| ask "summarize"` | Pipe stdin into `ask` for pipe-friendly queries |
+
+### MCP servers (per-project)
+
+```bash
+# In a project directory — select servers to activate for this session
+mcp-pick
+# Writes .mcp.json (gitignored); claude wrapper offers to remove it on exit
+```
+
+Available servers: `sequential-thinking`, `kubernetes-mcp-server`, `gopls`, `context7` (if key set), `kong-konnect` (if key set).
+
+### Output styles
+
+```
+/output compact    # Minimal responses: code over prose, no preamble/summary
+/output           # Reset to default
+```
+
+### GLM model toggle (requires `enableGLM = true`)
+
+```fish
+glm on      # Route Claude Code through Z.AI (GLM-5 model)
+glm off     # Switch back to Anthropic directly
+glm status  # Show current routing
+```
+
 ## Backrest
 
 ```bash
