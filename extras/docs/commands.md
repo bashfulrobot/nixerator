@@ -72,14 +72,6 @@ Available servers: `sequential-thinking`, `kubernetes-mcp-server`, `gopls`, `con
 /output           # Reset to default
 ```
 
-### GLM model toggle (requires `enableGLM = true`)
-
-```fish
-glm on      # Route Claude Code through Z.AI (GLM-5 model)
-glm off     # Switch back to Anthropic directly
-glm status  # Show current routing
-```
-
 ## Backrest
 
 ```bash

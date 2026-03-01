@@ -20,10 +20,8 @@ modules/
 │   ├── infrastructure/   # Cloud tools
 │   ├── k8s/              # Kubernetes tooling
 │   ├── av/               # Audio/visual creative tooling
-│   ├── media/            # Media applications
 │   ├── kong/             # Kong API Gateway tools
-│   ├── ai/               # AI tooling
-│   └── webapps/          # Web application launchers
+│   └── ai/               # AI tooling
 ├── apps/                 # Individual applications
 │   ├── cli/              # CLI applications
 │   ├── gui/              # GUI applications
@@ -52,7 +50,7 @@ Full desktop environment with all productivity suites:
 archetypes.workstation.enable = true;
 ```
 
-Enables: core, desktop, terminal, browsers, security, dev, offcomms, infrastructure, k8s, media, kong, av, ai
+Enables: core, desktop, terminal, browsers, security, dev, offcomms, infrastructure, k8s, kong, av, ai
 
 ### server
 
@@ -79,11 +77,9 @@ Suites bundle related modules. Enable them individually or via archetypes.
 | offcomms | Communications | Signal, Obsidian |
 | infrastructure | Cloud tools | Various CLI tools |
 | k8s | Kubernetes | kubectl |
-| av | Audio/visual creative tools | Affinity, noisetorch, Jellyfin Desktop |
-| media | Media apps | Spotify (spicetify) |
+| av | Audio/visual creative tools | Affinity, Jellyfin Desktop, Spotify, VLC, mpv |
 | kong | API Gateway | Insomnia, Kong docs |
-| ai | AI tooling | happy, ollama, termly, yepanywhere |
-| webapps | Web launchers | Calendar, Mail, Clari |
+| ai | AI tooling | ollama |
 
 ## Auto-Import System
 

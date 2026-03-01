@@ -38,16 +38,6 @@ Enable specific apps in your configuration:
 }
 ```
 
-### Suite
-
-Enable all web apps at once:
-
-```nix
-{
-  suites.webapps.enable = true;
-}
-```
-
 ## Adding New Apps
 
 1. Enable the web-app-hub module to get the extraction command:
