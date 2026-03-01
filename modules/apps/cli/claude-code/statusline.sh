@@ -46,9 +46,6 @@ else                       bar_color=$'\033[32m'
 fi
 reset=$'\033[0m'
 
-# --- Cost ---
-cost=$(echo "$input" | jq -r '.cost.total_cost_usd // 0' 2>/dev/null | awk '{printf "$%.2f", $1}')
-
 # --- Duration ---
 ms=$(echo "$input" | jq -r '.cost.total_duration_ms // 0' 2>/dev/null | awk '{printf "%.0f", $1}')
 ms="${ms:-0}"
@@ -87,6 +84,32 @@ if [[ -z "$git_line" ]]; then
     if (( staged > 0 ));   then counts=" +${staged}"; fi
     if (( modified > 0 )); then counts="${counts} ~${modified}"; fi
 
+    # Ahead/behind upstream
+    upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null)
+    sync_info=""
+    if [[ -n "$upstream" ]]; then
+      ahead=$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)
+      behind=$(git rev-list --count 'HEAD..@{u}' 2>/dev/null || echo 0)
+      (( ahead > 0 )) && sync_info=" ↑${ahead}"
+      (( behind > 0 )) && sync_info="${sync_info} ↓${behind}"
+    fi
+
+    # Stash count
+    stash_count=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
+    stash_info=""
+    (( stash_count > 0 )) && stash_info=" ≡${stash_count}"
+
+    # Worktree indicator (only in linked worktrees, not main)
+    git_dir=$(git rev-parse --git-dir 2>/dev/null)
+    common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+    wt_info=""
+    if [[ -n "$git_dir" && -n "$common_dir" && "$git_dir" != "$common_dir" ]]; then
+      wt_name=$(basename "$git_dir")
+      wt_info=" [wt:${wt_name}]"
+    fi
+
+    counts="${counts}${sync_info}${stash_info}${wt_info}"
+
     # Try to build clickable OSC 8 URL (SSH -> HTTPS)
     remote_url=$(git remote get-url origin 2>/dev/null || true)
     https_url=""
@@ -117,6 +140,6 @@ else
 fi
 
 # --- Line 2 ---
-printf '%s[%s%s]%s %s%% | %sk/%sk tokens | %s | %s\n' \
+printf '%s[%s%s]%s %s%% | %sk/%sk tokens | %s\n' \
   "$bar_color" "$bar_filled" "$bar_empty" "$reset" \
-  "$pct" "$used_k" "$total_k" "$cost" "$duration"
+  "$pct" "$used_k" "$total_k" "$duration"
