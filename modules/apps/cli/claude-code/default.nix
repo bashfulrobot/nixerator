@@ -52,6 +52,13 @@ let
     value = { text = mkMcpServerJson name cfg; };
   }) mcpServers;
 
+  # Status line script — jq is in PATH via runtimeInputs
+  statusLineScript = pkgs.writeShellApplication {
+    name = "claude-statusline";
+    runtimeInputs = [ pkgs.jq ];
+    text = builtins.readFile ./statusline.sh;
+  };
+
   # Kubernetes MCP setup script
   k8s-mcp-setup = ''
     #!/usr/bin/env fish
@@ -429,6 +436,10 @@ in
     ];
 
     home-manager.users.${globals.user.name} = {
+      home.packages = with pkgs; [
+        libnotify # for notify-send in Stop hook
+      ];
+
       programs = {
         claude-code = {
           enable = true;
@@ -436,56 +447,136 @@ in
 
           # Settings (JSON config)
           settings = {
-            cleanupPeriod = 15;
+            cleanupPeriodDays = 15;
             coAuthor = "";
-            includeCoAuthoredBy = false;
+            remoteControlEnabled = true;
+
+            # Status line — two-line display with model, git, tokens, cost, duration
+            statusLine = {
+              type = "command";
+              command = "${statusLineScript}/bin/claude-statusline";
+            };
 
             # Permissions - auto-approve common Nix and git operations
             permissions.allow = [
-              "Bash(nix flake check:*)"
-              "Bash(statix check:*)"
-              "Bash(echo:*)"
-              "Bash(mkdir:*)"
+              # Nix operations
+              "Bash(nix flake check *)"
+              "Bash(nix build *)"
+              "Bash(nix run *)"
+              "Bash(nix develop *)"
+              "Bash(nix fmt)"
+              "Bash(nix fmt *)"
+              "Bash(statix check *)"
+              "Bash(statix fix *)"
+              "Bash(deadnix *)"
+
+              # Git operations
+              "Bash(git add *)"
+              "Bash(git push)"
+              "Bash(git push *)"
+              "Bash(git commit *)"
+              "Bash(git rm *)"
+              "Bash(git reset *)"
+              "Bash(git status)"
+              "Bash(git status *)"
+              "Bash(git log *)"
+              "Bash(git diff *)"
+              "Bash(git stash *)"
+              "Bash(git pull)"
+              "Bash(git pull *)"
+              "Bash(git fetch *)"
+              "Bash(git branch *)"
+              "Bash(git switch *)"
+              "Bash(git checkout *)"
+
+              # Shell utilities
+              "Bash(echo *)"
+              "Bash(mkdir *)"
+
+              # Web fetching
               "WebFetch(domain:git.sr.ht)"
               "WebFetch(domain:github.com)"
               "WebFetch(domain:githubusercontent.com)"
-              "Bash(git add:*)"
-              "Bash(git push)"
-              "Bash(git commit:*)"
-              "Bash(git rm:*)"
-              "Bash(git reset:*)"
+              "WebFetch(domain:nixos.org)"
+              "WebFetch(domain:search.nixos.org)"
+              "WebFetch(domain:nix-community.github.io)"
             ];
 
-            # Sync git state on session start (handles syncthing drift)
-            hooks.SessionStart = [
-              {
-                matcher = "startup";
-                hooks = [
-                  {
-                    type = "command";
-                    command = builtins.concatStringsSep " " [
-                      "bash"
-                      "-c"
-                      (lib.escapeShellArg ''
-                        git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
-                        branch=$(git rev-parse --abbrev-ref HEAD)
-                        git fetch origin 2>/dev/null || exit 0
-                        local_only=$(git log "origin/$branch..$branch" --oneline 2>/dev/null)
-                        remote_only=$(git log "$branch..origin/$branch" --oneline 2>/dev/null)
-                        if [ -n "$local_only" ] && [ -n "$remote_only" ]; then
-                          echo "[git-sync] Diverged — local and remote both have commits. Resolve manually."
-                        elif [ -n "$remote_only" ]; then
-                          git reset "origin/$branch" >/dev/null 2>&1
-                          echo "[git-sync] Aligned git state with origin/$branch"
-                        elif [ -n "$local_only" ]; then
-                          echo "[git-sync] Unpushed local commits on $branch"
-                        fi
-                      '')
-                    ];
-                  }
-                ];
-              }
-            ];
+            hooks = {
+              # Sync git state on session start (handles syncthing drift)
+              SessionStart = [
+                {
+                  matcher = "startup";
+                  hooks = [
+                    {
+                      type = "command";
+                      command = builtins.concatStringsSep " " [
+                        "bash"
+                        "-c"
+                        (lib.escapeShellArg ''
+                          git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+                          branch=$(git rev-parse --abbrev-ref HEAD)
+                          git fetch origin 2>/dev/null || exit 0
+                          local_only=$(git log "origin/$branch..$branch" --oneline 2>/dev/null)
+                          remote_only=$(git log "$branch..origin/$branch" --oneline 2>/dev/null)
+                          if [ -n "$local_only" ] && [ -n "$remote_only" ]; then
+                            echo "[git-sync] Diverged — local and remote both have commits. Resolve manually."
+                          elif [ -n "$remote_only" ]; then
+                            git reset "origin/$branch" >/dev/null 2>&1
+                            echo "[git-sync] Aligned git state with origin/$branch"
+                          elif [ -n "$local_only" ]; then
+                            echo "[git-sync] Unpushed local commits on $branch"
+                          fi
+                        '')
+                      ];
+                    }
+                  ];
+                }
+              ];
+
+              # Auto-format .nix files after edits (fire-and-forget)
+              PostToolUse = [
+                {
+                  matcher = "Edit|Write|MultiEdit";
+                  hooks = [
+                    {
+                      type = "command";
+                      command = builtins.concatStringsSep " " [
+                        "bash"
+                        "-c"
+                        (lib.escapeShellArg ''
+                          input=$(cat)
+                          file=$(echo "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+                          [[ "$file" == *.nix ]] || exit 0
+                          nix fmt "$file" 2>/dev/null || true
+                        '')
+                      ];
+                      async = true;
+                    }
+                  ];
+                }
+              ];
+
+              # Desktop notification when Claude finishes a response
+              Stop = [
+                {
+                  hooks = [
+                    {
+                      type = "command";
+                      command = builtins.concatStringsSep " " [
+                        "bash"
+                        "-c"
+                        (lib.escapeShellArg ''
+                          input=$(cat)
+                          msg=$(echo "$input" | jq -r '.last_assistant_message // "Done"' 2>/dev/null | head -c 80)
+                          notify-send "Claude Code" "$msg" --icon=terminal 2>/dev/null || true
+                        '')
+                      ];
+                    }
+                  ];
+                }
+              ];
+            };
           };
 
           # Memory file (CLAUDE.md - project rules and context)
@@ -509,6 +600,8 @@ in
 
           skills.commit = ./skills/commit;
           skills.humanizer = ./skills/humanizer;
+
+          outputStyles.compact = ./output-styles/compact.md;
         };
 
         fish = {
@@ -528,6 +621,20 @@ in
                       end
                   end
                   return $exit_code
+                '';
+              };
+
+              # Read-only Q&A — pipe-friendly headless helper
+              ask = {
+                description = "Ask Claude a question (read-only tools, pipe-friendly)";
+                body = ''
+                  set -l prompt (string join " " $argv)
+                  if not isatty stdin
+                    set input (cat)
+                    claude -p "$prompt\n\n$input" --allowedTools "Read,Bash,Glob,Grep"
+                  else
+                    claude -p $prompt --allowedTools "Read,Bash,Glob,Grep"
+                  end
                 '';
               };
             }
