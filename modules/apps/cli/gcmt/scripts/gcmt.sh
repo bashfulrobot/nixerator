@@ -212,7 +212,7 @@ fi
 printf '\n'
 BODY=$(gum write \
   --placeholder "Commit body (bullet points). Leave empty to omit." \
-  --value "$BODY" \
+  --value="$BODY" \
   --header "Review/edit body (ctrl+d to finish, esc to clear):" \
   --width 80 \
   --height 10) || BODY=""
