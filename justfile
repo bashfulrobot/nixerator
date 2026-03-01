@@ -12,7 +12,7 @@ hostname := `hostname`
 host_flake := ".#" + hostname
 trace_log := justfile_directory() + "/rebuild-trace.log"
 timestamp := `date +%Y-%m-%d_%H-%M-%S`
-openspec_tools_default := "claude,codex,github-copilot,gemini"
+openspec_tools_default := "claude,github-copilot,gemini"
 openspec_workflows_all_json := "[\"propose\",\"explore\",\"new\",\"continue\",\"apply\",\"ff\",\"sync\",\"archive\",\"bulk-archive\",\"verify\",\"onboard\"]"
 
 # === Help ===
@@ -525,8 +525,6 @@ openspec-status:
     for p in \
       "$HOME/.claude/commands/opsx" \
       "$HOME/.claude/skills" \
-      "$HOME/.codex/skills" \
-      "$HOME/.codex/prompts" \
       "$HOME/.github/prompts" \
       "$HOME/.gemini/commands/opsx"
     do
