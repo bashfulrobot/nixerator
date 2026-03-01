@@ -25,7 +25,7 @@ default:
     @echo "🔧 Commands with Parameters:"
     @echo "  build [trace=true]         - Add trace=true for detailed debugging"
     @echo "  build-staged [trace=true]  - Stage all changes then run build"
-    @echo "  dev-build [trace=true]     - Stage all changes then run rebuild"
+    @echo "  dev-rebuild [trace=true]   - Stage all, run rebuild, then unstage"
     @echo "  rebuild [trace=true]       - Add trace=true for detailed debugging"
     @echo "  rebuild-staged [trace=true] - Stage all changes then run rebuild"
     @echo "  log [days=7]               - Show commits from last N days"
@@ -427,13 +427,15 @@ rebuild-reboot:
     @sleep 10
     @sudo reboot
 
-# Stage all changes and run rebuild (for quick pre-commit verification)
+# Stage all changes, run rebuild, then unstage (for quick pre-commit verification)
 [group('helpers')]
-dev-build trace="false":
+dev-rebuild trace="false":
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "⚡ Staging all changes and running rebuild..."
-    just rebuild-staged trace="{{trace}}"
+    echo "⚡ Staging all changes for dev rebuild..."
+    git add -A
+    trap 'echo "🔁 Unstaging changes..."; git restore --staged .' EXIT
+    just rebuild trace="{{trace}}"
 
 # Ensure Voxtype models are downloaded after upgrades
 [group('helpers')]
