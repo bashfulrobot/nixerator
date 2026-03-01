@@ -1,4 +1,4 @@
-{ lib, config, ... }:
+{ lib, pkgs, config, ... }:
 
 let
   cfg = config.suites.av;
@@ -8,18 +8,28 @@ in
     suites.av.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable audio/visual suite with creative applications.";
+      description = "Enable audio/visual suite with creative applications and media players.";
     };
   };
 
   config = lib.mkIf cfg.enable {
     apps.gui = {
       affinity.enable = true;
-      noisetorch.enable = true;
+      cameractrls.enable = true;
+    };
+
+    apps.cli = {
+      spotify.enable = true;
     };
 
     services.flatpak.packages = [
       "org.jellyfin.JellyfinDesktop"
+    ];
+
+    environment.systemPackages = with pkgs; [
+      vlc # media player
+      mpv # video player
+      v4l-utils # webcam and video device utilities
     ];
   };
 }

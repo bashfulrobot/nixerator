@@ -27,24 +27,16 @@ in
     # Development CLI applications
     apps = {
       cli = {
-        claude-code = {
-          enable = true;
-          enableGLM = true;
-        };
-        codex.enable = true;
-        cue.enable = true;
-        gemini-cli.enable = true;
+        cue.enable = false;
         git.enable = true;
         fresh-editor.enable = true;
         helix.enable = true;
         lswt.enable = true;
         nix.enable = true;
         nix-search-tv.enable = true;
-        opencode.enable = true;
         shadowenv.enable = true;
       };
       gui = {
-        vscode.enable = true;
         vscode.nautilusIntegration = true;
       };
     };

@@ -17,14 +17,13 @@ in
     };
 
     apps.cli = {
-      happy.enable = true;
+      claude-code.enable = true;
       openspec.enable = true;
+      gemini-cli.enable = true;
       ollama = {
-        enable = true;
+        enable = false;
         loadModels = [ "glm-5:cloud" ];
       };
-      termly.enable = true;
-      yepanywhere.enable = true;
     };
   };
 }
