@@ -2,6 +2,10 @@
 
 Modular NixOS configuration with flakes, home-manager, and Hyprland desktop.
 
+## Status
+
+Ever changing.
+
 ## Quick Start
 
 ### New System Installation
