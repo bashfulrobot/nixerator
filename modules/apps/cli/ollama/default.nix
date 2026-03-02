@@ -1,4 +1,10 @@
-{ globals, lib, pkgs, config, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.ollama;
@@ -9,9 +15,7 @@ let
     vulkan = pkgs.ollama-vulkan;
   };
   selectedPackage =
-    if cfg.acceleration == null
-    then pkgs.ollama
-    else accelerationPackages.${cfg.acceleration};
+    if cfg.acceleration == null then pkgs.ollama else accelerationPackages.${cfg.acceleration};
 in
 {
   options = {
@@ -23,7 +27,14 @@ in
       };
 
       acceleration = lib.mkOption {
-        type = lib.types.nullOr (lib.types.enum [ "cpu" "cuda" "rocm" "vulkan" ]);
+        type = lib.types.nullOr (
+          lib.types.enum [
+            "cpu"
+            "cuda"
+            "rocm"
+            "vulkan"
+          ]
+        );
         default = null;
         description = "Select the Ollama acceleration backend (null uses default package).";
       };
@@ -45,10 +56,6 @@ in
       inherit (cfg) loadModels;
     };
 
-    home-manager.users.${globals.user.name} = {
-      programs.fish.shellAliases = {
-        oglm = "ollama launch claude --model glm-5:cloud";
-      };
-    };
+    home-manager.users.${globals.user.name} = { };
   };
 }
