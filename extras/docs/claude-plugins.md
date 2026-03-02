@@ -22,20 +22,22 @@ Example:
 claude-plugins install @anthropics/claude-plugins-official/code-review
 ```
 
-### Skills (`skills-installer`)
+### Skills (`skills-installer` via npx)
+
+`skills-installer` is a separate npm package, not included in the Nix package.
+Run via `npx` when needed for interactive skill discovery.
 
 Skills install to `~/.claude/skills/` (global) or `./.claude/skills/` (local).
 
-- `skills-installer search [query]` — interactive terminal search/browse
-- `skills-installer install <identifier>` — install a skill
-- `skills-installer install <identifier> --local` — install to current project only
-- `skills-installer install <identifier> --client <name>` — target a specific client
-- `skills-installer list` — show installed skills
+- `npx skills-installer search [query]` — interactive terminal search/browse
+- `npx skills-installer install <identifier>` — install a skill
+- `npx skills-installer install <identifier> --local` — install to current project only
+- `npx skills-installer list` — show installed skills
 
 Example:
 ```
-skills-installer install @anthropics/claude-code/frontend-design
-skills-installer install @anthropics/claude-code/security-guidance --local
+npx skills-installer search frontend
+npx skills-installer install @anthropics/claude-code/frontend-design
 ```
 
 ## Capturing Into NixOS Config
@@ -56,7 +58,7 @@ After installing via CLI, capture what you want to keep:
    useful bits and integrate into agents, skills, or memory as appropriate.
 
 3. **Audit installed state** — `claude-plugins list` and
-   `skills-installer list` show what's currently active. Periodically
+   `npx skills-installer list` show what's currently active. Periodically
    review and pull anything worth keeping into Nix-managed files.
 
 The pattern: discover with CLI, evaluate, then codify into the module.
