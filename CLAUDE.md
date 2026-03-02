@@ -12,3 +12,7 @@
 - `extras/docs/commands.md` — commands.
 - `extras/docs/architecture.md` — architecture & module system.
 - `extras/docs/secrets.md` — secrets setup.
+
+## Tools
+
+- To seach nixpkgs: `nix search nixpkgs PACKAGE-NAM --json`
