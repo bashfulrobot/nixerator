@@ -5,6 +5,7 @@
 - Never commit plaintext secrets; use `secrets/`.
 - Avoid host-specific or machine-local paths; prefer `settings/globals.nix`.
 - Use `nix fmt` and `statix` + `deadnix`.
+- Never run `nixos-rebuild` or `git commit`/`git push` — the user handles rebuilds and commits. After changes, suggest a conventional commit scope and title (e.g., `feat(fish): add zoxide integration`).
 
 ## Docs (open only when needed)
 
