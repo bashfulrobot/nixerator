@@ -15,4 +15,4 @@
 
 ## Tools
 
-- To seach nixpkgs: `nix search nixpkgs PACKAGE-NAM --json`
+- To search nixpkgs unstable: `nix search github:NixOS/nixpkgs/nixos-unstable#PACKAGE-NAME --json`
