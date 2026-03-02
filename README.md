@@ -55,14 +55,15 @@ Enable modules via options:
 
 ## Documentation
 
-- **[Architecture](extras/docs/architecture.md)** - Directory structure and design principles
+- **[Architecture](extras/docs/architecture.md)** - Directory structure, modules, and design principles
 - **[Module Development](extras/docs/module-development.md)** - Creating new modules
+- **[Adding Hosts](extras/docs/adding-hosts.md)** - Adding a new NixOS host
+- **[Hosts Reference](extras/docs/hosts.md)** - Active hosts and their configs
+- **[Commands](extras/docs/commands.md)** - Justfile recipes and common commands
+- **[Secrets](extras/docs/secrets.md)** - git-crypt secrets management
+- **[Bootstrap](extras/docs/bootstrap.txt)** - NixOS installation guide
 - **[VM Development](extras/docs/vm-development.md)** - Development VM setup
 - **[Web Apps](extras/docs/webapps.md)** - Progressive web application modules
-- **[SSH Configuration](extras/docs/ssh.md)** - SSH module and host aliases
-- **[Google Chrome](extras/docs/google-chrome.md)** - Chrome with Dark Reader theme
-- **[Helper Scripts](extras/docs/helpers.md)** - Utility scripts
-- **[Web App Hub](extras/docs/web-app-hub.md)** - PWA creation tool
 
 ## Module Categories
 
