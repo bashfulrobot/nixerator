@@ -1,16 +1,19 @@
-{ globals, lib, pkgs, config, secrets, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  secrets,
+  ...
+}:
 
 let
   cfg = config.apps.cli.claude-code;
-  sequentialThinkingMcpServer = pkgs.callPackage ../mcp-server-sequential-thinking/build { };
   kubernetesMcpServer = pkgs.callPackage ./build { };
   homeDir = globals.user.homeDirectory;
   kubeconfigFile = "${homeDir}/.kube/mcp-viewer.kubeconfig";
   context7ApiKey = (secrets.context7 or { }).apiKey or null;
   mcpServers = {
-    sequential-thinking = {
-      command = "${sequentialThinkingMcpServer}/bin/mcp-server-sequential-thinking";
-    };
     kubernetes-mcp-server = {
       command = "${kubernetesMcpServer}/bin/kubernetes-mcp-server";
       args = [ "--read-only" ];
@@ -24,7 +27,8 @@ let
       command = "${pkgs.gopls}/bin/gopls";
       args = [ "mcp" ];
     };
-  } // lib.optionalAttrs (context7ApiKey != null) {
+  }
+  // lib.optionalAttrs (context7ApiKey != null) {
     context7 = {
       type = "http";
       url = "https://mcp.context7.com/mcp";
@@ -32,7 +36,8 @@ let
         CONTEXT7_API_KEY = context7ApiKey;
       };
     };
-  } // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
+  }
+  // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
     kong-konnect = {
       type = "http";
       url = "https://us.mcp.konghq.com/";
@@ -41,14 +46,18 @@ let
       };
     };
   };
-  mkMcpServerJson = name: cfg: builtins.toJSON {
-    mcpServers = {
-      "${name}" = cfg;
+  mkMcpServerJson =
+    name: cfg:
+    builtins.toJSON {
+      mcpServers = {
+        "${name}" = cfg;
+      };
     };
-  };
   mcpServerFiles = lib.mapAttrs' (name: cfg: {
     name = ".claude/mcp-servers/${name}/.mcp.json";
-    value = { text = mkMcpServerJson name cfg; };
+    value = {
+      text = mkMcpServerJson name cfg;
+    };
   }) mcpServers;
 
   # Status line script — jq is in PATH via runtimeInputs
