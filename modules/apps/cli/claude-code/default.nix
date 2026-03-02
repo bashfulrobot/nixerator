@@ -430,6 +430,7 @@ in
     environment.systemPackages = with pkgs; [
       (writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
       (writeScriptBin "mcp-pick" mcpPick)
+      llm-agents.claude-plugins # Plugin & skills manager
       fzf
       jq
 
