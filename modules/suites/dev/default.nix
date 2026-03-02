@@ -37,6 +37,7 @@ in
         shadowenv.enable = true;
       };
       gui = {
+        vscode.enable = true;
         vscode.nautilusIntegration = true;
       };
     };
