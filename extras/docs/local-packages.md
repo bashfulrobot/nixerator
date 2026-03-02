@@ -4,7 +4,6 @@ Package derivations live next to the modules that consume them (not centralized)
 
 - `modules/apps/gui/helium/build/default.nix`
 - `modules/apps/gui/insomnia/build/default.nix`
-- `modules/apps/cli/mcp-server-sequential-thinking/build/default.nix`
 - `modules/apps/cli/claude-code/build/default.nix`
 
 For npm-based packages, lockfiles are colocated in the same module folder.
