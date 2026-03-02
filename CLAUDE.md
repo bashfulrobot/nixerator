@@ -9,5 +9,5 @@
 ## Docs (open only when needed)
 
 - `extras/docs/commands.md` — commands.
-- `extras/docs/modules.md` — module system.
+- `extras/docs/architecture.md` — architecture & module system.
 - `extras/docs/secrets.md` — secrets setup.
