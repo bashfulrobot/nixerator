@@ -2,15 +2,7 @@
 
 OpenSSH server and client configuration with predefined host aliases.
 
-## Features
-
-- **OpenSSH Server**: Enables system-wide SSH daemon
-- **SSH Client Config**: Preconfigured host aliases for common servers
-- **Key Management**: Automatic key addition to agent for all hosts
-
-## Usage
-
-Enable in your host configuration:
+## Enable
 
 ```nix
 system.ssh.enable = true;
@@ -18,41 +10,18 @@ system.ssh.enable = true;
 
 ## Predefined Hosts
 
-### Personal Infrastructure
-- `remi` - Home server (72.51.28.133)
-- `gigi` - Home server (100.96.21.6)
-- `camino` - Cloud server
+**Personal Infrastructure**: `remi` (72.51.28.133), `gigi` (100.96.21.6), `camino`
 
-### Ubuntu Budgie Servers
-- `ub-ubuntubudgieorg` - Main Ubuntu Budgie server
-- `ub-ubuntubudgieorg-webpub` - Web publishing user
-- `ub-docker-root` - Docker host (dustin user)
-- `ub-docker-admin` - Docker host (docker-admin user)
+**Ubuntu Budgie Servers**: `ub-ubuntubudgieorg`, `ub-ubuntubudgieorg-webpub`, `ub-docker-root`, `ub-docker-admin`
 
-### Services
-- `feral` - Feral hosting server
+**Services**: `feral`
 
-### Git Providers
-- `github.com` - Configured with ed25519 key
-- `bitbucket.org` - Configured with ed25519 key
-- `git.srvrs.co` - Private git server
+**Git Providers**: `github.com`, `bitbucket.org`, `git.srvrs.co` — all ed25519
 
-### Development/Testing
-- `192.168.168.1` - Local KVM/Terraform testing (disables host key checking)
+**Dev/Testing**: `192.168.168.1` — local KVM (host key checking disabled)
 
-## Global Configuration
+## Global Client Settings
 
-All hosts are configured with:
-- `AddKeysToAgent yes` - Automatically add keys to SSH agent
-- `UseKeychain yes` - Use macOS keychain (ignored on Linux)
-- `IdentitiesOnly yes` - Only use explicitly specified keys
+All hosts: `AddKeysToAgent yes`, `UseKeychain yes`, `IdentitiesOnly yes`
 
-## Customization
-
-Edit `modules/system/ssh/default.nix` to add or modify host configurations.
-
-## Security Notes
-
-- The `192.168.168.1` host disables strict host key checking for local development
-- All other hosts use standard SSH security practices
-- Ensure your `~/.ssh/id_ed25519` key is properly secured with a passphrase
+Edit host configs in `modules/system/ssh/default.nix`.

@@ -1,86 +1,63 @@
 # Commands
 
-## Justfile shortcuts
+## Justfile Shortcuts
 
-Use these for most workflows:
+Core recipes (run from repo root):
 
-- `just check` - side-effect-free validation with `nix flake check --show-trace`
-- `just test` - dry-run rebuild (`nixos-rebuild dry-build`, no staging)
-- `just test-staged` - stage all changes, then dry-run rebuild
-- `just build` - dev rebuild of the current host (no staging, add `trace=true` for traces)
-- `just build-staged` - stage all changes, then run `build`
-- `just dev-build` - stage all changes, then production-style `rebuild`
-- `just rebuild` - production rebuild of the current host
-- `just rebuild-staged` - stage all changes, then run `rebuild`
-- `just upgrade` - update flake inputs and rebuild current host
-- `just fmt` - format Nix files via `nix fmt`
-- `just lint` / `just health` - statix and deadnix checks across Nix files
+- `just rebuild` / `just r` — production rebuild of current host
+- `just dev-rebuild` — stage all, rebuild, unstage on exit
+- `just upgrade` / `just up` — update flake inputs, rebuild, download voxtype models
+- `just update <input>` — update a single flake input
+- `just clean` / `just gc` — garbage collect (default 5 days, e.g. `just clean 14`)
+- `just gc-nuclear` — deep cleanup (generations + gc + cache + store optimize)
+- `just sync-git` — smart push/pull
+- `just health` — deadnix + statix checks
+- `just fmt` — format nix files via `nix fmt`
 
-## Rebuilds (manual)
+Reference recipes: `just ref::<recipe>` — run `just ref` to list.
 
-```bash
-# bash/zsh: rebuild current host
-sudo nixos-rebuild switch --flake ".#$(hostname)"
-```
-
-```fish
-# fish: rebuild current host
-set -l host (hostname)
-sudo nixos-rebuild switch --flake ".#$host"
-```
+## Manual Rebuild
 
 ```bash
-# Rebuild specific host
-sudo nixos-rebuild switch --flake .#qbert
+sudo nixos-rebuild switch --flake ".#$(hostname)"    # current host
+sudo nixos-rebuild switch --flake .#qbert             # specific host
 ```
 
-
-## Flake maintenance
+## Flake Maintenance
 
 ```bash
-# Check flake
 nix flake check --show-trace
-
-# Update all inputs
 nix flake update
 ```
 
 ## Claude Code
 
-### Shell shortcuts
+### Shell Shortcuts
 
 | Command | Description |
 |---------|-------------|
-| `cc <task>` | Inline headless task — expands to `claude -p "<task>"` (unrestricted tools) |
-| `ask <question>` | Read-only Q&A — restricts tools to Read, Bash, Glob, Grep |
-| `ls \| ask "summarize"` | Pipe stdin into `ask` for pipe-friendly queries |
+| `cc <task>` | Inline headless task — `claude -p "<task>"` (unrestricted tools) |
+| `ask <question>` | Read-only Q&A — tools restricted to Read, Bash, Glob, Grep |
+| `ls \| ask "summarize"` | Pipe stdin into `ask` |
 
-### MCP servers (per-project)
+### MCP Servers (per-project)
 
 ```bash
-# In a project directory — select servers to activate for this session
-mcp-pick
-# Writes .mcp.json (gitignored); claude wrapper offers to remove it on exit
+mcp-pick    # select servers to activate; writes .mcp.json (gitignored)
 ```
 
-Available servers: `sequential-thinking`, `kubernetes-mcp-server`, `gopls`, `context7` (if key set), `kong-konnect` (if key set).
+Available: `sequential-thinking`, `kubernetes-mcp-server`, `gopls`, `context7`, `kong-konnect`.
 
-### Output styles
+### Output Styles
 
 ```
-/output compact    # Minimal responses: code over prose, no preamble/summary
+/output compact    # Minimal: code over prose, no preamble/summary
 /output           # Reset to default
 ```
 
 ## Backrest
 
 ```bash
-# Launch Backrest and open UI (on workstations)
-backrest-ui
-
-# Manual mode (all hosts)
-backrest
-
-# Stop Backrest when finished
-# Press Ctrl+C in the terminal where backrest is running
+backrest-ui    # launch + open UI (workstations)
+backrest       # manual mode (all hosts); Ctrl+C to stop
 ```

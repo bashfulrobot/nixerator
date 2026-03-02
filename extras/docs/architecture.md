@@ -1,4 +1,4 @@
-# Nixerator Architecture
+# Architecture
 
 Modular NixOS configuration with flakes, home-manager, and auto-imported modules.
 
@@ -6,90 +6,49 @@ Modular NixOS configuration with flakes, home-manager, and auto-imported modules
 
 ```
 nixerator/
-├── flake.nix              # Flake inputs and outputs
-├── flake.lock             # Locked dependency versions
+├── flake.nix / flake.lock
 ├── settings/
-│   ├── globals.nix        # Global settings (user, paths, timezone, editor, etc.)
-│   └── versions.nix       # Version pinning
+│   ├── globals.nix        # User, paths, timezone, editor, etc.
+│   └── versions.nix
 ├── lib/
-│   ├── default.nix        # Library exports
-│   ├── mkHost.nix         # Host builder function
+│   ├── mkHost.nix         # Host builder
 │   └── autoimport.nix     # Auto-import helper
 ├── modules/
-│   ├── default.nix        # Auto-imports all modules
-│   ├── apps/
-│   │   ├── cli/           # CLI applications (module-local packages in build/)
-│   │   │   ├── git/
-│   │   │   ├── helix/
-│   │   │   └── ...
-│   │   ├── gui/           # GUI applications
-│   │   │   ├── google-chrome/
-│   │   │   ├── web-app-hub/
-│   │   │   └── ...
-│   │   └── webapps/       # Web applications (PWAs)
-│   ├── dev/               # Development tools
-│   │   ├── go/
-│   │   └── ...
-│   ├── suites/            # Grouped module collections
-│   │   ├── core/          # Essential system utilities
-│   │   ├── dev/           # Development environment
-│   │   ├── desktop/       # Desktop environment
-│   │   ├── browsers/      # Web browsers
-│   │   ├── webapps/       # All web applications
-│   │   └── ...
-│   └── system/            # System-level configuration
-│       ├── ssh/
-│       ├── apple-fonts/
-│       └── ...
-├── hosts/                 # Per-host configurations
-│   ├── donkeykong/        # Encrypted laptop workstation
-│   │   ├── configuration.nix
-│   │   ├── hardware-configuration.nix
-│   │   ├── disko.nix      # Disk partitioning
-│   │   ├── boot.nix       # LUKS encryption + hibernation
-│   │   └── home.nix       # Home-manager config
-│   ├── qbert/             # Desktop workstation
-│   │   ├── configuration.nix
-│   │   ├── hardware-configuration.nix
-│   │   ├── disko.nix
-│   │   └── home.nix
-│   ├── srv/               # Home server
-│   │   ├── configuration.nix
-│   │   ├── hardware-configuration.nix
-│   │   └── modules.nix
-│   └── nixerator/         # Optional local VM profile files
-│       ├── vm.nix
-│       └── home.nix
-└── extras/
-    ├── docs/              # Documentation
-    └── helpers/           # Utility scripts
+│   ├── archetypes/        # workstation, server
+│   ├── suites/            # Feature bundles (core, dev, desktop, ...)
+│   ├── apps/cli/          # CLI apps (module-local packages in build/)
+│   ├── apps/gui/          # GUI apps
+│   ├── apps/webapps/      # PWAs
+│   ├── system/            # System services (ssh, flatpak, nix)
+│   ├── server/            # Server modules (kvm, nfs, restic)
+│   └── dev/               # Dev environments (go, ...)
+├── hosts/                 # Per-host configs (donkeykong, qbert, srv, nixerator)
+└── extras/                # Docs, helper scripts
 ```
 
-## Key Concepts
+## Auto-Import
 
-### Auto-Import Pattern
+`modules/default.nix` recursively imports all `*.nix` files except those in:
+- `disabled/` — disabled modules
+- `build/` — module-local package derivations
+- `cfg/` — configuration fragments
+- `reference/` — reference docs
 
-Modules are automatically discovered and imported:
+Custom exclusions: edit `defaultExcludes` in `lib/autoimport.nix`. Debug with `tracedAutoImport`.
 
-```nix
-# modules/default.nix
-{ lib }:
-let
-  autoImportLib = import ../lib/autoimport.nix { inherit lib; };
-in
-autoImportLib.simpleAutoImport ./.
-```
+## Namespacing
 
-This recursively imports all `*.nix` files except:
-- `default.nix` itself
-- Files in `disabled/`, `build/`, `cfg/`, `reference/` directories
+- `apps.cli.*` — CLI applications
+- `apps.gui.*` — GUI applications
+- `apps.webapps.*` — Progressive web apps
+- `suites.*` — Module collections
+- `system.*` — System-level settings
+- `dev.*` — Development tools
 
-### Module Structure
-
-Every module follows this pattern:
+## Module Template
 
 ```nix
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, globals, ... }:
 
 let
   cfg = config.apps.cli.APPNAME;
@@ -98,128 +57,75 @@ in
   options.apps.cli.APPNAME.enable = lib.mkEnableOption "APPNAME";
 
   config = lib.mkIf cfg.enable {
-    # Configuration here
+    environment.systemPackages = [ pkgs.APPNAME ];
   };
 }
 ```
 
-### Namespacing
+## Archetypes
 
-Modules are organized by category:
+- `archetypes.workstation.enable = true;` — enables: core, desktop, terminal, browsers, security, dev, offcomms, infrastructure, k8s, kong, av, ai
+- `archetypes.server.enable = true;` — enables: terminal, system.ssh, apps.cli.tailscale
 
-- `apps.cli.*` - Command-line applications
-- `apps.gui.*` - Graphical applications
-- `apps.webapps.*` - Progressive web apps
-- `suites.*` - Module collections
-- `system.*` - System-level settings
-- `dev.*` - Development tools
+## Suites
 
-### Suites
+| Suite | Key Modules |
+|-------|-------------|
+| core | SSH, Flatpak, Tailscale, Backrest + Restic, Web App Hub |
+| desktop | hyprflake integration |
+| terminal | fish, starship, helix, zoxide |
+| browsers | Brave, Chrome |
+| security | 1Password |
+| dev | Claude Code, VS Code, git, helix, Go |
+| offcomms | Signal, Obsidian |
+| infrastructure | Cloud CLI tools |
+| k8s | kubectl |
+| av | Affinity, Jellyfin Desktop, Spotify, VLC, mpv |
+| kong | Insomnia, Kong docs |
+| ai | ollama |
 
-Suites group related modules for easy enablement:
+## Globals
 
-```nix
-# modules/suites/dev/default.nix
-{
-  config = lib.mkIf cfg.enable {
-    apps.cli = {
-      git.enable = true;
-      helix.enable = true;
-      docker.enable = true;
-    };
-    dev.go.enable = true;
-  };
-}
-```
-
-Usage:
-
-```nix
-# In host configuration
-suites.dev.enable = true;  # Enables all dev tools
-```
-
-## Host Configuration
-
-### mkHost Function
-
-Hosts are built using `lib.mkHost`:
-
-```nix
-# flake.nix
-outputs = { self, nixpkgs, ... }@inputs: {
-  nixosConfigurations = {
-    donkeykong = lib.mkHost {
-      hostname = "donkeykong";
-      system = "x86_64-linux";
-      # Additional host-specific settings
-    };
-  };
-};
-```
-
-Active flake host outputs are currently `donkeykong`, `qbert`, and `srv`. The `hosts/nixerator/` directory is reusable VM profile material and is not a standalone `nixosConfigurations` output.
-
-### Configuration Files
-
-Each host has:
-
-1. **configuration.nix** - Main system configuration, module enablement
-2. **hardware-configuration.nix** - Auto-generated hardware settings
-3. **home.nix** - Home-manager user configuration
-4. **disko.nix** (optional) - Declarative disk partitioning
-5. **boot.nix** (optional) - Boot configuration (LUKS, hibernation, etc.)
-
-## Global Settings
-
-`settings/globals.nix` contains shared configuration:
+`settings/globals.nix` — access via `globals.user.name`, `globals.paths.nixerator`, etc.
 
 ```nix
 rec {
-  user = {
-    name = "dustin";
-    fullName = "Dustin Krysak";
-    email = "dustin@bashfulrobot.com";
-    homeDirectory = "/home/dustin";
-  };
-  paths = {
-    devRoot = "${user.homeDirectory}/dev";
-    nixRoot = "${user.homeDirectory}/dev/nix";
-    nixerator = "${user.homeDirectory}/dev/nix/nixerator";
-    hyprflake = "${user.homeDirectory}/dev/nix/hyprflake";
-  };
-  defaults = {
-    stateVersion = "25.11";
-    timeZone = "America/Vancouver";
-    locale = "en_US.UTF-8";
-  };
-  preferences = {
-    editor = "helix";
-    shell = "fish";
-  };
+  user = { name = "dustin"; fullName = "Dustin Krysak"; email = "dustin@bashfulrobot.com"; homeDirectory = "/home/dustin"; };
+  paths = { devRoot = "${user.homeDirectory}/dev"; nixerator = "${user.homeDirectory}/dev/nix/nixerator"; ... };
+  defaults = { stateVersion = "25.11"; timeZone = "America/Vancouver"; locale = "en_US.UTF-8"; };
+  preferences = { editor = "helix"; shell = "fish"; };
 }
 ```
 
-Access in modules via `globals.user.name`, `globals.paths.nixerator`, etc.
-
-## Flake Inputs
-
-External dependencies are managed in `flake.nix`:
+## mkHost
 
 ```nix
-inputs = {
-  nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-  home-manager.url = "github:nix-community/home-manager";
-  hyprflake.url = "github:bashfulrobot/hyprflake";
-  # ...
+# flake.nix
+nixosConfigurations.donkeykong = lib.mkHost {
+  hostname = "donkeykong";
+  system = "x86_64-linux";
 };
+```
+
+Active outputs: `donkeykong`, `qbert`, `srv`. The `hosts/nixerator/` directory is reusable VM profile material, not a standalone output.
+
+## Per-Host File Layout
+
+```
+hosts/<hostname>/
+├── configuration.nix          # Main entry, module imports, archetype
+├── hardware-configuration.nix # Auto-generated
+├── home.nix                   # Home Manager config
+├── modules.nix                # Host-specific enables
+├── boot.nix                   # (optional) Bootloader, LUKS
+└── disko.nix                  # (optional) Declarative partitioning
 ```
 
 ## Design Principles
 
-1. **Modular**: Everything is a module with enable option
-2. **Declarative**: Configuration as code, version controlled
-3. **Composable**: Combine modules via suites or individual enables
-4. **Discoverable**: Auto-import pattern eliminates manual imports
-5. **Portable**: Same configuration works across systems
-6. **Namespaced**: Clear organization by category
+1. **Modular** — everything is a module with `enable` option
+2. **Declarative** — configuration as code, version controlled
+3. **Composable** — combine modules via suites or individual enables
+4. **Discoverable** — auto-import eliminates manual imports
+5. **Portable** — same config works across systems
+6. **Namespaced** — clear organization by category
