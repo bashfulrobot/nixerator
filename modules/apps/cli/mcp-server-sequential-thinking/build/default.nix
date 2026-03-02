@@ -25,7 +25,7 @@ stdenvNoCC.mkDerivation {
 
   npmDeps = fetchNpmDeps {
     src = ./.;
-    hash = "sha256-+iNn23SbnJrWXIHzE4HZiUEkq+k4xLaplEr8Hdz/qmU=";
+    hash = "sha256-JSc2MAUbFcN7h69cOXXYlvbBJ6aMu3l1bMKyzOda3eU=";
   };
 
   unpackPhase = ''
@@ -38,7 +38,7 @@ stdenvNoCC.mkDerivation {
 
   buildPhase = ''
     export HOME="$TMPDIR"
-    npm ci --ignore-scripts --offline --cache "$npmDeps" --no-audit --no-fund
+    npm ci --ignore-scripts --offline --cache "$npmDeps" --omit=dev --no-audit --no-fund
   '';
 
   installPhase = ''
@@ -56,4 +56,3 @@ stdenvNoCC.mkDerivation {
     mainProgram = pname;
   };
 }
-
