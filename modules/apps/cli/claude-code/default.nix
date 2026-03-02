@@ -60,6 +60,119 @@ let
     };
   }) mcpServers;
 
+  # LSP plugins for Claude Code (via ~/.claude/plugins/marketplaces/nix-lsps/)
+  # Source: https://github.com/boostvolt/claude-code-lsps
+  lspPlugins = {
+    bash-language-server = {
+      command = "bash-language-server";
+      args = [ "start" ];
+      extensions = {
+        ".sh" = "shellscript";
+        ".bash" = "shellscript";
+        ".zsh" = "shellscript";
+        ".ksh" = "shellscript";
+      };
+    };
+    gopls = {
+      command = "gopls";
+      extensions = {
+        ".go" = "go";
+      };
+    };
+    lua-language-server = {
+      command = "lua-language-server";
+      extensions = {
+        ".lua" = "lua";
+      };
+    };
+    nixd = {
+      command = "nixd";
+      extensions = {
+        ".nix" = "nix";
+      };
+    };
+    rust-analyzer = {
+      command = "rust-analyzer";
+      extensions = {
+        ".rs" = "rust";
+      };
+    };
+    pyright = {
+      command = "pyright-langserver";
+      args = [ "--stdio" ];
+      extensions = {
+        ".py" = "python";
+        ".pyi" = "python";
+      };
+    };
+    terraform-ls = {
+      command = "terraform-ls";
+      args = [ "serve" ];
+      extensions = {
+        ".tf" = "terraform";
+        ".tfvars" = "terraform-vars";
+      };
+    };
+    yaml-language-server = {
+      command = "yaml-language-server";
+      args = [ "--stdio" ];
+      extensions = {
+        ".yaml" = "yaml";
+        ".yml" = "yaml";
+      };
+    };
+    vtsls = {
+      command = "vtsls";
+      args = [ "--stdio" ];
+      extensions = {
+        ".ts" = "typescript";
+        ".tsx" = "typescriptreact";
+        ".js" = "javascript";
+        ".jsx" = "javascriptreact";
+        ".mjs" = "javascript";
+        ".cjs" = "javascript";
+      };
+    };
+    dart-analyzer = {
+      command = "dart";
+      args = [ "language-server" ];
+      extensions = {
+        ".dart" = "dart";
+      };
+    };
+  };
+  mkLspJson =
+    name: cfg:
+    let
+      langId = builtins.replaceStrings [ "-language-server" "-analyzer" "-ls" ] [ "" "" "" ] name;
+    in
+    builtins.toJSON {
+      "${langId}" = {
+        command = cfg.command;
+        extensionToLanguage = cfg.extensions;
+      }
+      // lib.optionalAttrs (cfg ? args) { inherit (cfg) args; };
+    };
+  mkPluginJson =
+    name:
+    builtins.toJSON {
+      name = name;
+      description = "${name} language server";
+      version = "1.0.0";
+    };
+  lspPluginFiles = lib.foldl' (
+    acc: name:
+    let
+      cfg = lspPlugins.${name};
+      base = ".claude/plugins/marketplaces/nix-lsps/${name}";
+    in
+    acc
+    // {
+      "${base}/.lsp.json".text = mkLspJson name cfg;
+      "${base}/.claude-plugin/plugin.json".text = mkPluginJson name;
+    }
+  ) { } (builtins.attrNames lspPlugins);
+
   # Status line script — jq is in PATH via runtimeInputs
   statusLineScript = pkgs.writeShellApplication {
     name = "claude-statusline";
@@ -434,9 +547,16 @@ in
       fzf
       jq
 
-      # Language servers for Claude Code intelligence
-      gopls # Go language server
-      rust-analyzer # Rust language server
+      # Language servers for Claude Code LSP integration
+      bash-language-server
+      dart
+      gopls
+      lua-language-server
+      pyright
+      rust-analyzer
+      terraform-ls
+      vtsls
+      yaml-language-server
     ];
 
     home-manager.users.${globals.user.name} = {
@@ -750,7 +870,7 @@ in
       };
 
       # Preserve per-server files for mcp-pick workflow compatibility.
-      home.file = mcpServerFiles;
+      home.file = mcpServerFiles // lspPluginFiles;
     };
   };
 }
