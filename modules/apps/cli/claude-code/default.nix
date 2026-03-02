@@ -595,6 +595,7 @@ in
             api = builtins.readFile ./agents/api.md;
             nix = builtins.readFile ./agents/nix.md;
             bash = builtins.readFile ./agents/bash.md;
+            devops = builtins.readFile ./agents/devops.md;
           };
 
           # No global MCP servers — use mcp-pick per-project to avoid
