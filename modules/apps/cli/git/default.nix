@@ -386,13 +386,9 @@ in
           shellAliases = {
             g = "git";
             ga = "git add";
-            gc = "git commit";
-            gco = "git checkout";
-            gst = "git status";
             gp = "git push";
             gpl = "git pull";
             gd = "git diff";
-            gl = "git log";
             lg = "lazygit";
           };
         };

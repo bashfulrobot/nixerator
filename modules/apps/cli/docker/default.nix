@@ -1,4 +1,9 @@
-{ globals, lib, config, ... }:
+{
+  globals,
+  lib,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.docker;
@@ -35,8 +40,7 @@ in
           dc = "docker compose";
           dps = "docker ps";
           di = "docker images";
-          dex = "docker exec -it";
-          dlogs = "docker logs -f";
+          dexe = "docker exec -it";
         };
       };
     };
