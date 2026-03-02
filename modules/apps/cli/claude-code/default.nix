@@ -495,6 +495,84 @@ in
               # Shell utilities
               "Bash(echo *)"
               "Bash(mkdir *)"
+              "Bash(cp *)"
+              "Bash(mv *)"
+              "Bash(touch *)"
+              "Bash(chmod *)"
+
+              # File reading & viewing
+              "Bash(cat *)"
+              "Bash(bat *)"
+              "Bash(head *)"
+              "Bash(tail *)"
+              "Bash(less *)"
+              "Bash(wc *)"
+
+              # File & directory discovery
+              "Bash(ls)"
+              "Bash(ls *)"
+              "Bash(tree *)"
+              "Bash(find *)"
+              "Bash(fd *)"
+              "Bash(file *)"
+              "Bash(stat *)"
+              "Bash(realpath *)"
+              "Bash(readlink *)"
+              "Bash(du *)"
+              "Bash(df *)"
+
+              # Content searching & text processing
+              "Bash(grep *)"
+              "Bash(rg *)"
+              "Bash(ag *)"
+              "Bash(sort *)"
+              "Bash(uniq *)"
+              "Bash(awk *)"
+              "Bash(sed *)"
+              "Bash(tr *)"
+              "Bash(cut *)"
+              "Bash(diff *)"
+              "Bash(jq *)"
+              "Bash(yq *)"
+              "Bash(xargs *)"
+
+              # Environment & system info
+              "Bash(which *)"
+              "Bash(command *)"
+              "Bash(type *)"
+              "Bash(env)"
+              "Bash(env *)"
+              "Bash(uname *)"
+              "Bash(whoami)"
+              "Bash(pwd)"
+              "Bash(date *)"
+              "Bash(id)"
+              "Bash(id *)"
+              "Bash(hostname)"
+              "Bash(test *)"
+              "Bash([ *)"
+
+              # GitHub CLI
+              "Bash(gh *)"
+
+              # Dev toolchains (read/query)
+              "Bash(go *)"
+              "Bash(cargo *)"
+              "Bash(rustc *)"
+              "Bash(npm *)"
+              "Bash(npx *)"
+              "Bash(node *)"
+              "Bash(python *)"
+              "Bash(python3 *)"
+              "Bash(pip *)"
+
+              # Nix introspection
+              "Bash(nix-store *)"
+              "Bash(nix eval *)"
+              "Bash(nix path-info *)"
+              "Bash(nix search *)"
+              "Bash(nix show-derivation *)"
+              "Bash(nixos-option *)"
 
               # Web fetching
               "WebFetch(domain:git.sr.ht)"
@@ -503,6 +581,23 @@ in
               "WebFetch(domain:nixos.org)"
               "WebFetch(domain:search.nixos.org)"
               "WebFetch(domain:nix-community.github.io)"
+              "WebFetch(domain:raw.githubusercontent.com)"
+              "WebFetch(domain:wiki.nixos.org)"
+              "WebFetch(domain:nix.dev)"
+              "WebFetch(domain:discourse.nixos.org)"
+              "WebFetch(domain:mynixos.com)"
+              "WebFetch(domain:hydra.nixos.org)"
+              "WebFetch(domain:doc.rust-lang.org)"
+              "WebFetch(domain:docs.rs)"
+              "WebFetch(domain:crates.io)"
+              "WebFetch(domain:pkg.go.dev)"
+              "WebFetch(domain:developer.mozilla.org)"
+              "WebFetch(domain:docs.python.org)"
+              "WebFetch(domain:nodejs.org)"
+              "WebFetch(domain:docs.konghq.com)"
+              "WebFetch(domain:stackoverflow.com)"
+              "WebFetch(domain:docs.github.com)"
+              "WebFetch(domain:man7.org)"
             ];
 
             hooks = {
