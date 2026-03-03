@@ -2,6 +2,7 @@
   globals,
   lib,
   config,
+  pkgs,
   ...
 }:
 
@@ -31,6 +32,11 @@ in
         };
       };
     };
+
+    # Grant user direct socket access so systemd user services can reach Docker
+    systemd.services.docker.postStart = ''
+      ${pkgs.acl}/bin/setfacl -m u:${globals.user.name}:rw /var/run/docker.sock
+    '';
 
     # Home Manager configuration for docker aliases
     home-manager.users.${globals.user.name} = {
