@@ -63,7 +63,7 @@ build_bar() {
     for ((i=0; i<filled; i++)); do filled_str+="●"; done
     for ((i=0; i<empty; i++)); do empty_str+="○"; done
 
-    printf "${bar_color}${filled_str}${dim}${empty_str}${reset}"
+    printf '%b' "${bar_color}${filled_str}${dim}${empty_str}${reset}"
 }
 
 # ===== Extract data from JSON =====
@@ -79,8 +79,8 @@ cache_create=$(echo "$input" | jq -r '.context_window.current_usage.cache_creati
 cache_read=$(echo "$input" | jq -r '.context_window.current_usage.cache_read_input_tokens // 0')
 current=$(( input_tokens + cache_create + cache_read ))
 
-used_tokens=$(format_tokens $current)
-total_tokens=$(format_tokens $size)
+used_tokens=$(format_tokens "$current")
+total_tokens=$(format_tokens "$size")
 
 if [ "$size" -gt 0 ]; then
     pct_used=$(( current * 100 / size ))
@@ -89,8 +89,8 @@ else
 fi
 pct_remain=$(( 100 - pct_used ))
 
-used_comma=$(format_commas $current)
-remain_comma=$(format_commas $(( size - current )))
+used_comma=$(format_commas "$current")
+remain_comma=$(format_commas "$(( size - current ))")
 
 # Check thinking status
 thinking_on=false
