@@ -28,10 +28,14 @@ let
   hooks = import ./cfg/hooks.nix { inherit lib; };
   fishConfig = import ./cfg/fish.nix;
 
-  # Status line script — jq is in PATH via runtimeInputs
+  # Status line script — jq, curl, gawk in PATH via runtimeInputs
   statusLineScript = pkgs.writeShellApplication {
     name = "claude-statusline";
-    runtimeInputs = [ pkgs.jq ];
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.curl
+      pkgs.gawk
+    ];
     text = builtins.readFile ./statusline.sh;
   };
 
@@ -90,7 +94,7 @@ in
             coAuthor = "";
             remoteControlEnabled = true;
 
-            # Status line — two-line display with model, git, tokens, cost, duration
+            # Status line — three-line display with model/tokens, usage bars, and reset times
             statusLine = {
               type = "command";
               command = "${statusLineScript}/bin/claude-statusline";
