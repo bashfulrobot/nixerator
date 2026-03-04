@@ -4,6 +4,7 @@
   pkgs,
   config,
   secrets,
+  versions,
   ...
 }:
 
@@ -25,7 +26,15 @@ let
   };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
   permissions = import ./cfg/permissions.nix;
-  hooks = import ./cfg/hooks.nix { inherit lib; };
+  baseHooks = import ./cfg/hooks.nix { inherit lib; };
+  gsdConfig = import ./cfg/gsd.nix {
+    inherit pkgs versions;
+    homeDir = globals.user.homeDirectory;
+  };
+  hooks = baseHooks // {
+    SessionStart = baseHooks.SessionStart ++ gsdConfig.hooks.SessionStart;
+    PostToolUse = baseHooks.PostToolUse ++ gsdConfig.hooks.PostToolUse;
+  };
   fishConfig = import ./cfg/fish.nix;
 
   # Status line script — jq, curl, gawk in PATH via runtimeInputs
@@ -79,9 +88,12 @@ in
     ];
 
     home-manager.users.${globals.user.name} = {
-      home.packages = with pkgs; [
-        libnotify # for notify-send in Stop hook
-      ];
+      home.packages =
+        with pkgs;
+        [
+          libnotify # for notify-send in Stop hook
+        ]
+        ++ gsdConfig.packages;
 
       programs = {
         claude-code = {
