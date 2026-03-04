@@ -4,6 +4,12 @@
 
   # CLI tools
   cli = {
+    amber = {
+      # Source: https://github.com/dalance/amber/releases
+      version = "0.6.1";
+      sha256 = "sha256-/PgoqEnmAawgQCcJ759sRwApWlO2qpAHj/bKYGsn+qk=";
+      repo = "https://github.com/dalance/amber";
+    };
     meetsum = {
       # Source: https://github.com/bashfulrobot/meetsum/releases
       version = "0.8.2";
