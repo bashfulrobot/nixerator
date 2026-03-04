@@ -119,7 +119,12 @@ in
           };
 
           # Memory file (CLAUDE.md - project rules and context)
-          memory.text = builtins.readFile ../../../../CLAUDE.md;
+          memory.text = builtins.readFile ../../../../CLAUDE.md + ''
+
+            ## Writing Style
+
+            - Never use em dashes (—) in output. Use commas, periods, semicolons, parentheses, or rewrite the sentence instead.
+          '';
 
           # Agents (subagents for specialized tasks)
           agents = {
