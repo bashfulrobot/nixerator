@@ -27,7 +27,6 @@
       # Source: https://github.com/gsd-build/get-shit-done
       version = "1.22.4";
       sha256 = "sha256-uW4crLjrx6i02AyoKuQb0BIJ6IIPYkmQygz/RA7Qacc=";
-      npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
       repo = "https://github.com/gsd-build/get-shit-done";
     };
   };
