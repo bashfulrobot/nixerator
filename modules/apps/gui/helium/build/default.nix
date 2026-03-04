@@ -1,13 +1,5 @@
-# Local package for Helium browser
-# Chromium-based web browser focused on privacy and ad-blocking
-#
-# TODO: Check for new Helium releases periodically at:
-# https://github.com/imputnet/helium-linux/releases
-#
-# Last updated: 2026-02-15
-# Current version: 0.9.1.1
-#
-# Note: Helium is currently beta software
+# Local package for Helium browser — Chromium-based, privacy-focused
+# Check for updates: just setup::check-updates
 
 {
   lib,

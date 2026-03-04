@@ -8,6 +8,7 @@ set fallback := true
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 mod ref 'extras/ref.just'
+mod setup 'extras/setup.just'
 
 # === Variables ===
 hostname := `hostname`
