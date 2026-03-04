@@ -16,5 +16,12 @@
       sha256 = "sha256-1qxQgWTxDIRabZRyE5vIo+H0ebzGGB+nyyzO2dujlK4=";
       repo = "https://github.com/11happy/cpx";
     };
+    yepanywhere = {
+      # Source: https://github.com/kzahel/yepanywhere
+      version = "0.4.8";
+      sha256 = "sha256-ZOWI7uiU3MdYMLtamWuiSCSdrdXhrVdPIfJkPMHVtYo=";
+      npmDepsHash = "sha256-X+uKkERkbQ9cxHZPag6oqcIs2exg4+ncwPwJAEe+gEc=";
+      repo = "https://github.com/kzahel/yepanywhere";
+    };
   };
 }
