@@ -1,12 +1,5 @@
-# Local override for Insomnia API client
-# This allows running the latest version without waiting for nixpkgs PR review
-#
-# TODO: Check for new Insomnia releases periodically at:
-# https://github.com/Kong/insomnia/releases
-#
-# Last updated: 2026-02-15
-# Current version: 12.3.1
-# Nixpkgs PR: https://github.com/NixOS/nixpkgs/pull/480124
+# Local override for Insomnia API client (ahead of nixpkgs)
+# Check for updates: just setup::check-updates
 
 {
   lib,
