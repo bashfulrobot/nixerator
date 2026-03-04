@@ -68,11 +68,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    openspec = {
-      url = "github:Fission-AI/OpenSpec";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     determinate = {
       url = "https://flakehub.com/f/DeterminateSystems/determinate/*";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -900,26 +900,6 @@
         "type": "github"
       }
     },
-    "openspec": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1772182342,
-        "narHash": "sha256-9Q0iUyZGcDPLdgvnrBN3GumV8g9akV8TFb8bFkD1yYs=",
-        "owner": "Fission-AI",
-        "repo": "OpenSpec",
-        "rev": "afdca0d5dab1aa109cfd8848b2512333ccad60c3",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Fission-AI",
-        "repo": "OpenSpec",
-        "type": "github"
-      }
-    },
     "plugin-loader": {
       "flake": false,
       "locked": {
@@ -945,7 +925,6 @@
         "nixos-hardware": "nixos-hardware",
         "nixos-vscode-server": "nixos-vscode-server",
         "nixpkgs": "nixpkgs_5",
-        "openspec": "openspec",
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
         "waybar-auto-hide": "waybar-auto-hide"
