@@ -7,9 +7,6 @@ default:
 # === Variables ===
 hostname := `hostname`
 host_flake := ".#" + hostname
-openspec_tools_default := "claude,github-copilot,gemini"
-openspec_workflows_all_json := "[\"propose\",\"explore\",\"new\",\"continue\",\"apply\",\"ff\",\"sync\",\"archive\",\"bulk-archive\",\"verify\",\"onboard\"]"
-
 # === Validation ===
 # Full flake validation
 [group('validation')]
@@ -214,86 +211,3 @@ reset-hard:
     @git reset --hard HEAD
     @git clean -fd
     @git pull
-
-# === OpenSpec ===
-[group('openspec')]
-openspec-config-path:
-    @openspec config path
-
-[group('openspec')]
-openspec-config-show:
-    @openspec config list
-    @echo ""
-    @openspec config list --json
-
-[group('openspec')]
-openspec-config-all:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cfg="$(openspec config path)"
-    workflows='{{openspec_workflows_all_json}}'
-    mkdir -p "$(dirname "$cfg")"
-
-    tmp="$(mktemp)"
-    if [[ -f "$cfg" ]] && jq empty "$cfg" >/dev/null 2>&1; then
-      jq --argjson workflows "$workflows" \
-        '.profile = "custom" | .delivery = "both" | .workflows = $workflows' \
-        "$cfg" > "$tmp"
-    else
-      jq --argjson workflows "$workflows" -n \
-        '{featureFlags: {}, profile: "custom", delivery: "both", workflows: $workflows}' \
-        > "$tmp"
-    fi
-
-    mv "$tmp" "$cfg"
-    echo "OpenSpec configured for all workflows"
-    openspec config list
-
-[group('openspec')]
-openspec-config-core:
-    @openspec config profile core
-    @openspec config list
-
-[group('openspec')]
-openspec-init-global tools=openspec_tools_default:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    tools_value="{{tools}}"
-    tools_value="${tools_value#tools=}"
-    openspec init --force --tools "$tools_value" "$HOME"
-
-[group('openspec')]
-openspec-update-global:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    openspec update --force "$HOME"
-
-[group('openspec')]
-openspec-bootstrap-global tools=openspec_tools_default:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    just ref::openspec-config-all
-    just ref::openspec-init-global "{{tools}}"
-    just ref::openspec-update-global
-    just ref::openspec-status
-
-[group('openspec')]
-openspec-status:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "OpenSpec config:"
-    openspec config list
-    echo ""
-    echo "Expected global artifact paths:"
-    for p in \
-      "$HOME/.claude/commands/opsx" \
-      "$HOME/.claude/skills" \
-      "$HOME/.github/prompts" \
-      "$HOME/.gemini/commands/opsx"
-    do
-      if [[ -e "$p" ]]; then
-        echo "  $p"
-      else
-        echo "  $p (missing)"
-      fi
-    done
