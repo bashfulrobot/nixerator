@@ -27,6 +27,7 @@ in
     # Development CLI applications
     apps = {
       cli = {
+        amber.enable = true;
         cue.enable = false;
         git.enable = true;
         fresh-editor.enable = true;
