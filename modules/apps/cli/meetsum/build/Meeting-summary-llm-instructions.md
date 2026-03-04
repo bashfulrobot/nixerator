@@ -114,6 +114,7 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
 - Write from the user's perspective (first person)
 - Avoid overly formal or technical jargon unless necessary
 - Maintain consistency in voice and style
+- **NEVER use em dashes (—) or en dashes (–) anywhere in the output.** Use commas, semicolons, colons, parentheses, or separate sentences instead. This applies to all sections including topic paragraphs, bullet points, titles, and any other text.
 - **Humanizer**: If a `/humanizer` skill or tool is available, run it on the complete summary **before** any post-processing or derivative outputs (e.g., Slack mini summary) are generated. This ensures all downstream outputs share the same humanized text and prevents content drift between versions. The humanizer removes signs of AI-generated writing (e.g., inflated symbolism, promotional language, em dash overuse, AI vocabulary words, excessive conjunctive phrases). If the humanizer is not available, manually apply these principles before outputting: prefer natural phrasing, vary sentence structure, avoid overused AI patterns, and write as a human professional would.
 
 ## Technical Requirements
@@ -164,6 +165,7 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
 - [ ] Content maintains business casual tone
 - [ ] Written from the user's perspective
 - [ ] Output reviewed with humanizer (or manually checked for AI writing patterns) before derivative outputs are generated
+- [ ] No em dashes (—) or en dashes (–) appear anywhere in the output
 - [ ] Slack-compatible markdown formatting
 - [ ] File saved with correct naming convention
 - [ ] Document ends with blank line
