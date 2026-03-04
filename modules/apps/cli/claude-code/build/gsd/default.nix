@@ -8,8 +8,7 @@
 buildNpmPackage rec {
   pname = "get-shit-done-cc";
   inherit (versions.cli.get-shit-done) version;
-  npmDepsHash = "";
-  forceEmptyCache = true;
+  npmDepsHash = "sha256-rV9EJqGz6DplQ5pnY2sBHrugajhbN5Z5RvsMCdBhc+s=";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/${pname}/-/${pname}-${version}.tgz";
