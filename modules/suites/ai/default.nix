@@ -20,6 +20,7 @@ in
       claude-code.enable = true;
       gemini-cli.enable = true;
       happy-coder.enable = true;
+      yepanywhere.enable = true;
       ollama = {
         enable = false;
         loadModels = [ "glm-5:cloud" ];
