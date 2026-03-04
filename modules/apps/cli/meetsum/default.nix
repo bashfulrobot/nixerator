@@ -34,14 +34,15 @@ let
 
     ai:
       # AI provider command to execute
-      command: "gemini"
+      command: "claude"
 
       # Additional command-line args passed to the AI command
       args:
+        - "-p"
         - "--model"
-        - "gemini-2.5-pro"
-        - "--approval-mode"
-        - "auto_edit"
+        - "claude-sonnet-4-6"
+        - "--allowedTools"
+        - "Read,Write,Edit"
 
     # Feature flags
     features:
