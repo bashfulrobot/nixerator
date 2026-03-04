@@ -114,6 +114,7 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
 - Write from the user's perspective (first person)
 - Avoid overly formal or technical jargon unless necessary
 - Maintain consistency in voice and style
+- **Humanizer**: If a `/humanizer` skill or tool is available, run it on the complete summary **before** any post-processing or derivative outputs (e.g., Slack mini summary) are generated. This ensures all downstream outputs share the same humanized text and prevents content drift between versions. The humanizer removes signs of AI-generated writing (e.g., inflated symbolism, promotional language, em dash overuse, AI vocabulary words, excessive conjunctive phrases). If the humanizer is not available, manually apply these principles before outputting: prefer natural phrasing, vary sentence structure, avoid overused AI patterns, and write as a human professional would.
 
 ## Technical Requirements
 - All output must be Slack-compatible markdown
@@ -144,7 +145,8 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
 5. Generate appropriate filename with current date
 6. Structure content according to the specified sections using transcript as source of truth
 7. Apply formatting rules consistently
-8. Output complete markdown file
+8. Run `/humanizer` on the complete summary if available; otherwise manually review for AI writing patterns. **This must happen before any derivative outputs (e.g., Slack mini summary) are generated** to ensure consistent content across all versions
+9. Output complete markdown file
 
 ## Quality Checklist
 - [ ] Title follows exact format with correct date and customer name
@@ -161,6 +163,7 @@ Format: `*_yyyy-mm-dd CUSTOMER CADENCE CALL SUMMARY_*`
 - [ ] Meeting recording link uses placeholder URL
 - [ ] Content maintains business casual tone
 - [ ] Written from the user's perspective
+- [ ] Output reviewed with humanizer (or manually checked for AI writing patterns) before derivative outputs are generated
 - [ ] Slack-compatible markdown formatting
 - [ ] File saved with correct naming convention
 - [ ] Document ends with blank line
