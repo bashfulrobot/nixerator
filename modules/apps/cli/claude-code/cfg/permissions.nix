@@ -111,6 +111,35 @@
   "Bash(nix show-derivation *)"
   "Bash(nixos-option *)"
 
+  # Code search
+  "Bash(amber *)"
+
+  # Process & networking (research)
+  "Bash(curl *)"
+  "Bash(wget *)"
+  "Bash(ping *)"
+  "Bash(dig *)"
+  "Bash(nslookup *)"
+  "Bash(ss *)"
+  "Bash(ip *)"
+
+  # Archives & compression
+  "Bash(tar *)"
+  "Bash(unzip *)"
+  "Bash(gzip *)"
+
+  # Nix additional
+  "Bash(nix flake show *)"
+  "Bash(nix flake metadata *)"
+  "Bash(nix flake info *)"
+  "Bash(nix-env *)"
+  "Bash(nix-channel *)"
+  "Bash(nix-instantiate *)"
+  "Bash(nix repl *)"
+  "Bash(nix registry *)"
+  "Bash(nixos-rebuild dry-build *)"
+  "Bash(nixos-rebuild dry-activate *)"
+
   # Web fetching
   "WebFetch(domain:git.sr.ht)"
   "WebFetch(domain:github.com)"
@@ -135,4 +164,20 @@
   "WebFetch(domain:stackoverflow.com)"
   "WebFetch(domain:docs.github.com)"
   "WebFetch(domain:man7.org)"
+
+  # GitHub (additional)
+  "WebFetch(domain:objects.githubusercontent.com)"
+  "WebFetch(domain:gist.github.com)"
+  "WebFetch(domain:gist.githubusercontent.com)"
+
+  # Research & documentation
+  "WebFetch(domain:anthropic.com)"
+  "WebFetch(domain:docs.anthropic.com)"
+  "WebFetch(domain:code.claude.com)"
+  "WebFetch(domain:npmjs.com)"
+  "WebFetch(domain:pypi.org)"
+  "WebFetch(domain:wiki.archlinux.org)"
+  "WebFetch(domain:en.wikipedia.org)"
+  "WebFetch(domain:hub.docker.com)"
+  "WebFetch(domain:registry.terraform.io)"
 ]

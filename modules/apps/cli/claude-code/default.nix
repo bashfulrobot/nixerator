@@ -128,6 +128,14 @@ in
             ## Docs (open only when needed)
 
             - `~/.claude/docs/tools.md` -- custom CLI tools; check when a task might benefit from an installed tool.
+
+            ## Autonomy
+
+            - In plan mode, use Explore subagents proactively for research. Do not ask for permission to research; just launch agents.
+            - Prefer domain-specialized agents (nix, go, rust, frontend, etc.) over generic exploration when the task clearly falls in one domain.
+            - Use all available research tools freely: Glob, Grep, Read, WebSearch, WebFetch, find, fd, rg, cat, bat, amber, and Bash for exploration. These are pre-approved.
+            - MCP servers are per-project (via mcp-pick). Only reference MCP tools if they appear in the current project's .mcp.json.
+            - Before entering plan mode for any task, ask the user: "Would you like to use GSD for this?" Simple yes/no, asked once at the start of every planning session.
           '';
 
           # Agents (subagents for specialized tasks)
