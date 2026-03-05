@@ -10,6 +10,7 @@ Format: `<type>(<scope>): <emoji> <description>`
 
 ## Rules:
 - No branding/secrets.
+- Never add Co-Authored-By or any AI attribution to commits.
 - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security|deps
 - Scope (REQUIRED for git-cliff): lowercase, kebab-case module name.
 - Emoji: AFTER colon (e.g., `feat(auth): ✨`). Subject: imperative, <72 chars.
