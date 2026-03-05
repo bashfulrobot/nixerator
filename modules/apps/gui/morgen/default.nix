@@ -25,7 +25,11 @@ in
 
     home-manager.users.${globals.user.name} = {
       xdg.configFile."hypr/conf.d/morgen-windowrule.conf".text = ''
-        windowrule = tile, class:^([Mm]orgen)$
+        windowrule {
+            name = morgen-tile
+            match:class = ^([Mm]orgen)$
+            tile = on
+        }
       '';
     };
   };
