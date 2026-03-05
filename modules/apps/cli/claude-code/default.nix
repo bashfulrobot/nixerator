@@ -124,6 +124,10 @@ in
             ## Writing Style
 
             - Never use em dashes (—) in output. Use commas, periods, semicolons, parentheses, or rewrite the sentence instead.
+
+            ## Docs (open only when needed)
+
+            - `~/.claude/docs/tools.md` -- custom CLI tools; check when a task might benefit from an installed tool.
           '';
 
           # Agents (subagents for specialized tasks)
@@ -154,7 +158,13 @@ in
       };
 
       # Preserve per-server files for mcp-pick workflow compatibility.
-      home.file = mcpConfig.files // lspConfig.files;
+      # Place global docs in ~/.claude/docs/ for lazy-loaded context.
+      home.file =
+        mcpConfig.files
+        // lspConfig.files
+        // {
+          ".claude/docs/tools.md".source = ../../../../extras/docs/tools.md;
+        };
     };
   };
 }
