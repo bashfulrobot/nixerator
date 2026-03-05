@@ -1,4 +1,5 @@
 {
+  globals,
   lib,
   pkgs,
   config,
@@ -25,13 +26,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = with pkgs;
-      [ insync ]
-      ++ lib.optionals cfg.nautilusIntegration [ insync-nautilus ];
+    environment.systemPackages =
+      with pkgs;
+      [ insync ] ++ lib.optionals cfg.nautilusIntegration [ insync-nautilus ];
 
-    # Autostart insync via hyprflake's autostart.d pattern
-    hyprflake.desktop.autostartD.execOnce = {
-      "50-insync" = "insync start --no-daemon";
+    # Autostart insync via Hyprland conf.d pattern
+    home-manager.users.${globals.user.name} = {
+      xdg.configFile."hypr/conf.d/insync-autostart.conf".text = ''
+        exec-once = insync start --no-daemon
+      '';
     };
   };
 }
