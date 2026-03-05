@@ -1,4 +1,9 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.suites.av;
@@ -30,6 +35,7 @@ in
       vlc # media player
       mpv # video player
       v4l-utils # webcam and video device utilities
+      go-chromecast # CLI for casting to Chromecast devices
     ];
   };
 }
