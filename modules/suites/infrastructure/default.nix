@@ -1,4 +1,9 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.suites.infrastructure;
@@ -19,17 +24,18 @@ in
     # Infrastructure and cloud tools
     environment.systemPackages = with pkgs; [
       # Cloud utilities
-      cloud-utils          # Cloud management utilities
-      cdrtools             # mkisofs needed for cloud-init
-      aws-iam-authenticator  # AWS IAM authentication tool
-      google-cloud-sdk     # Google Cloud SDK
+      cloud-utils # Cloud management utilities
+      cdrtools # mkisofs needed for cloud-init
+      aws-iam-authenticator # AWS IAM authentication tool
+      google-cloud-sdk # Google Cloud SDK
 
       # Infrastructure as Code
-      terraform            # Infrastructure provisioning
-      libxslt              # XSL transformations (used in terraform scripts)
+      opentofu # Infrastructure provisioning (open-source Terraform fork)
+      terraform # Infrastructure provisioning
+      libxslt # XSL transformations (used in terraform scripts)
 
       # Network utilities
-      wakeonlan            # Wake on LAN utility
+      wakeonlan # Wake on LAN utility
     ];
   };
 }
