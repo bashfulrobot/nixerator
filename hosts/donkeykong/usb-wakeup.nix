@@ -40,8 +40,8 @@ _:
   # Use shallow sleep (freeze/s2idle) for better wake reliability on laptops
   # Shallow sleep keeps more devices powered and is more reliable for problematic laptops
   # Trade-off: slightly higher battery usage during sleep
-  systemd.sleep.extraConfig = ''
-    SuspendState=freeze
-    SuspendMode=
-  '';
+  systemd.sleep.settings.Sleep = {
+    SuspendState = "freeze";
+    SuspendMode = "";
+  };
 }
