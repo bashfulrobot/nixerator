@@ -31,6 +31,7 @@ in
 
       # Infrastructure as Code
       opentofu # Infrastructure provisioning (open-source Terraform fork)
+      pulumi # Infrastructure as Code using general-purpose languages
       terraform # Infrastructure provisioning
       libxslt # XSL transformations (used in terraform scripts)
 
