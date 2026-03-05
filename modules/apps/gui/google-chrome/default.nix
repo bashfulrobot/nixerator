@@ -1,13 +1,26 @@
-{ globals, lib, pkgs, config, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  inputs,
+  ...
+}:
 
 let
   cfg = config.apps.gui.google-chrome;
 
   # Generate Dark Reader configuration with Stylix colors
-  mkDarkReaderConfig = stylixConfig:
+  mkDarkReaderConfig =
+    stylixConfig:
     let
       # Access stylix colors when available
-      inherit (stylixConfig.lib.stylix.colors) base00 base05 base07 base02;
+      inherit (stylixConfig.lib.stylix.colors)
+        base00
+        base05
+        base07
+        base02
+        ;
 
       # Fallback colors if stylix is not configured
       darkBackgroundColor = if stylixConfig.stylix.enable then "#${base00}" else "#181a1b";
@@ -75,19 +88,19 @@ let
         }
       ];
       detectDarkTheme = false;
-      disabledFor = [];
+      disabledFor = [ ];
       enableContextMenus = true;
       enableForPDF = true;
       enableForProtectedPages = false;
       enabled = true;
       enabledByDefault = true;
-      enabledFor = [];
+      enabledFor = [ ];
       fetchNews = true;
       location = {
         latitude = null;
         longitude = null;
       };
-      presets = [];
+      presets = [ ];
       previewNewDesign = false;
       previewNewestDesign = false;
       schemeVersion = 2;
@@ -128,14 +141,19 @@ in
       default = false;
       description = "Enable Google Chrome web browser.";
     };
+    apps.gui.google-chrome.enableDev = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable Google Chrome Dev (unstable) channel.";
+    };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf (cfg.enable || cfg.enableDev) {
 
     # System packages
-    environment.systemPackages = with pkgs; [
-      google-chrome
-    ];
+    environment.systemPackages =
+      lib.optional cfg.enable inputs.browser-previews.packages.${pkgs.system}.google-chrome
+      ++ lib.optional cfg.enableDev inputs.browser-previews.packages.${pkgs.system}.google-chrome-dev;
 
     # Home Manager user configuration
     home-manager.users.${globals.user.name} = {
@@ -153,12 +171,17 @@ in
             --enable-gpu-rasterization
           '';
         in
-        {
-          ".config/chrome-flags.conf".text = waylandFlags;
+        lib.mkMerge [
+          (lib.mkIf cfg.enable {
+            ".config/chrome-flags.conf".text = waylandFlags;
 
-          # Dark Reader settings using Stylix colors
-          ".config/darkreader/settings.json".text = mkDarkReaderConfig config;
-        };
+            # Dark Reader settings using Stylix colors
+            ".config/darkreader/settings.json".text = mkDarkReaderConfig config;
+          })
+          (lib.mkIf cfg.enableDev {
+            ".config/chrome-unstable-flags.conf".text = waylandFlags;
+          })
+        ];
 
     };
 
