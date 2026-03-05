@@ -17,6 +17,7 @@ in
     apps.gui = {
       brave.enable = false;
       google-chrome.enable = true;
+      google-chrome.enableDev = true;
       helium.enable = false;
     };
   };
