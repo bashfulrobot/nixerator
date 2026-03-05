@@ -1,4 +1,11 @@
-{ globals, pkgs, lib, config, inputs, ... }:
+{
+  globals,
+  pkgs,
+  lib,
+  config,
+  inputs,
+  ...
+}:
 
 let
   cfg = config.apps.cli.spotify;
@@ -22,17 +29,19 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [
-      # keep-sorted start case=no numeric=yes
-      curl
-      jq          # for JSON parsing
-      libnotify   # for notify-send
-      # Script runtime dependencies
-      netcat-gnu  # for nc command
-      spicetify-cli  # CLI for customizing Spotify
-      # keep-sorted end
-    ] ++ spotifyScripts;
-
+    environment.systemPackages =
+      with pkgs;
+      [
+        # keep-sorted start case=no numeric=yes
+        curl
+        jq # for JSON parsing
+        libnotify # for notify-send
+        # Script runtime dependencies
+        netcat-gnu # for nc command
+        spicetify-cli # CLI for customizing Spotify
+        # keep-sorted end
+      ]
+      ++ spotifyScripts;
 
     home-manager.users.${globals.user.name} = {
 
@@ -73,6 +82,11 @@ in
 
         # Custom ncspot desktop file with proper window class
         file = {
+          # Hyprland keybind: SUPER+CTRL+S to save currently playing song
+          ".config/hypr/conf.d/ncspot-save.conf".text = ''
+            bind = SUPER CTRL, S, exec, ncspot-save-playing
+          '';
+
           ".local/share/applications/ncspot.desktop".text = ''
             [Desktop Entry]
             Name=ncspot
@@ -89,4 +103,3 @@ in
     };
   };
 }
-
