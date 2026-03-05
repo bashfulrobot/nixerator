@@ -12,8 +12,8 @@
     };
     meetsum = {
       # Source: https://github.com/bashfulrobot/meetsum/releases
-      version = "0.8.2";
-      sha256 = "sha256-j1dBnWUyLJRtN+FPOjSxpWIP8LdI0YG91iJ2bRU+KLs=";
+      version = "0.8.3";
+      sha256 = "sha256-bYSk/mYor/dil/Dz4RDkRfpE0412Ue93NR5D+i73ihQ=";
       repo = "https://github.com/bashfulrobot/meetsum";
     };
     cpx = {
