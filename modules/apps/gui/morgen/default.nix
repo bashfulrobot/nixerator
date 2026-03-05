@@ -1,4 +1,10 @@
-{ lib, pkgs, config, globals, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  ...
+}:
 
 let
   cfg = config.apps.gui.morgen;
@@ -18,13 +24,9 @@ in
     ];
 
     home-manager.users.${globals.user.name} = {
-      wayland.windowManager.hyprland.settings = {
-        windowrule = {
-          name = "morgen-tile";
-          "match:class" = "^([Mm]orgen)$";
-          tile = "on";
-        };
-      };
+      xdg.configFile."hypr/conf.d/morgen-windowrule.conf".text = ''
+        windowrulev2 = tile, class:^([Mm]orgen)$
+      '';
     };
   };
 }
