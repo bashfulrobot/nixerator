@@ -102,7 +102,7 @@ in
             case_sensitive = false;
           };
           prettier = {
-            allowed = true;
+            allowed = false;
           };
           icon_theme = {
             mode = "system";
@@ -115,11 +115,13 @@ in
           session = {
             trust_all_worktrees = true;
           };
+          agent = {
+            enabled = true;
+          };
+          show_inline_completions = false;
+          inline_completion_provider = "none";
           edit_predictions = {
             provider = "none";
-          };
-          agent = {
-            enabled = false;
           };
           features = {
             copilot = false;
