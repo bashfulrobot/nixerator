@@ -46,7 +46,7 @@ ls -l /dev/disk/by-id/ | grep nvme
 ## Step 6: Partition + Format (ERASES ALL DATA)
 sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko -- \
   --mode disko --flake ".#$TARGET_HOST"
-# Enter LUKS password when prompted — remember it!
+# Enter LUKS password when prompted -- remember it!
 
 ## Step 7: Generate Hardware Config
 sudo nixos-generate-config --root /mnt --no-filesystems

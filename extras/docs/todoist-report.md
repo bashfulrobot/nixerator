@@ -27,10 +27,10 @@ todoist-report [project-name] [--kong] [--json]
 
 ### Modes
 
-- **Default** — human-readable report with overview, tasks by section, comments
-- **`--json`** — structured JSON with last 5 comments per task (single object)
-- **`--kong`** — all projects starting with "kong" (no project arg needed)
-- **`--kong --json`** — returns JSON array (not single object)
+- **Default** -- human-readable report with overview, tasks by section, comments
+- **`--json`** -- structured JSON with last 5 comments per task (single object)
+- **`--kong`** -- all projects starting with "kong" (no project arg needed)
+- **`--kong --json`** -- returns JSON array (not single object)
 
 ### Pipe to AI
 
@@ -54,5 +54,5 @@ Exact match required when piping (interactive picker never triggered).
 
 - Progress logged to stderr via `gum log` (stdout clean for piping)
 - Up to 5 recent comments per task, oldest-to-newest; truncated at 120 chars in human mode
-- Token never stored in nix — environment only
+- Token never stored in nix -- environment only
 - Uses Todoist REST API v1 with cursor-based pagination

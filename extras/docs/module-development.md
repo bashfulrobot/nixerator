@@ -5,7 +5,7 @@
 1. Create directory: `modules/apps/cli/APPNAME/`
 2. Create `default.nix` with module pattern (see templates below)
 3. Enable in host or suite: `apps.cli.APPNAME.enable = true;`
-4. Rebuild — no manual imports needed (auto-discovery)
+4. Rebuild  -- no manual imports needed (auto-discovery)
 
 ## Templates
 
@@ -113,6 +113,20 @@ Use `lib.mkOption` for extra config beyond `enable`. See `modules/apps/cli/` for
 | System | `modules/system/<name>/` | `system.<name>` |
 | Server | `modules/server/<name>/` | `server.<name>` |
 | Dev | `modules/dev/<name>/` | `dev.<name>` |
+
+## Hyprland Configuration
+
+Hyprland config (keybinds, window rules, exec-once, env vars) uses the conf.d drop-in pattern:
+
+```nix
+home-manager.users.${globals.user.name} = {
+  xdg.configFile."hypr/conf.d/<name>.conf".text = ''
+    # Hyprland config here
+  '';
+};
+```
+
+Do not use `wayland.windowManager.hyprland.settings`. Window rules must use block syntax (Hyprland 0.53+). See `extras/docs/hyprland-windowrules.md` for syntax reference.
 
 ## Common Patterns
 

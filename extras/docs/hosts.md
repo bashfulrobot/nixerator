@@ -7,8 +7,9 @@ Active `nixosConfigurations` outputs: `donkeykong`, `qbert`, `srv`.
 **Hardware**: Custom desktop, AMD GPU
 **Archetype**: workstation
 
-- bcachefs (disko), AMD GPU with suspend workarounds (`power-management.nix`)
-- USB wakeup, Wake-on-LAN, Syncthing, KVM with network routing
+- ext4 (disko), AMD GPU with suspend workarounds (`power-management.nix`)
+- USB wakeup, Wake-on-LAN, Syncthing, KVM with network routing, whisper-server
+- `reboot-windows.nix` for dual-boot EFI reboot
 - hyprflake: `desktop.idle.suspendTimeout = 0` (AMD suspend bugs)
 
 ## donkeykong (ThinkPad T14 Laptop)
@@ -18,14 +19,14 @@ Active `nixosConfigurations` outputs: `donkeykong`, `qbert`, `srv`.
 
 - LUKS full-disk encryption, disko ext4 partitioning, 32GB swap
 - nixos-hardware: `lenovo-thinkpad-t14-intel-gen6`
-- USB wakeup, Syncthing, KVM with WiFi routing
+- `usb-wakeup.nix`, Syncthing, KVM with WiFi routing
 
 ## nixerator (VM Profile)
 
-Reusable VM profile files — not a standalone `nixosConfigurations` output.
+Reusable VM profile files  -- not a standalone `nixosConfigurations` output.
 
-- `hosts/nixerator/vm.nix` — virtiofs shared-folder setup
-- `hosts/nixerator/home.nix` — Home Manager profile
+- `hosts/nixerator/vm.nix`  -- virtiofs shared-folder setup
+- `hosts/nixerator/home.nix`  -- Home Manager profile
 - Import `vm.nix` into a VM host configuration to enable
 
 ## srv (Home Server)

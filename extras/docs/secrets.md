@@ -65,5 +65,5 @@ git show HEAD:secrets/secrets.json | head -c 50   # binary = encrypted
 
 ## Troubleshooting
 
-- **"No such file or directory"** — repo is locked, run `git-crypt unlock`
-- **"decryption failed: No secret key"** — GPG key not imported or wrong key
+- **"No such file or directory"** -- repo is locked, run `git-crypt unlock`
+- **"decryption failed: No secret key"** -- GPG key not imported or wrong key

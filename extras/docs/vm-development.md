@@ -70,7 +70,7 @@ fileSystems.${globals.paths.nixerator} = {
 
 ## Troubleshooting
 
-- **`mount: no such device`** — virtiofs not configured in XML. Fully shut down VM (`virsh shutdown` / `virsh destroy`), edit XML, restart.
-- **Permission denied** — `sudo chown -R "$CURRENT_USER:$CURRENT_GROUP" "$REPO_PATH"`
-- **Mount gone after reboot** — run `nixos-rebuild switch` at least once with VM host target; ensure `hosts/nixerator/vm.nix` is imported.
-- **Slow performance** — ensure 4GB+ RAM, SSD, verify `ps aux | grep virtiofsd` on host.
+- **`mount: no such device`** -- virtiofs not configured in XML. Fully shut down VM (`virsh shutdown` / `virsh destroy`), edit XML, restart.
+- **Permission denied** -- `sudo chown -R "$CURRENT_USER:$CURRENT_GROUP" "$REPO_PATH"`
+- **Mount gone after reboot** -- run `nixos-rebuild switch` at least once with VM host target; ensure `hosts/nixerator/vm.nix` is imported.
+- **Slow performance** -- ensure 4GB+ RAM, SSD, verify `ps aux | grep virtiofsd` on host.

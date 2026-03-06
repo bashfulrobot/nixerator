@@ -22,7 +22,7 @@ Open the web UI from any device on your local network.
 apps.cli.yepanywhere = {
   enable = true;
   port = 3400;          # default
-  openFirewall = false;  # default — set true for LAN access
+  openFirewall = false;  # default -- set true for LAN access
 };
 ```
 
@@ -75,8 +75,8 @@ systemctl --user disable yepanywhere
 ## Troubleshooting
 
 **Service won't start**: Check logs with `journalctl --user -u yepanywhere -e`. Common issues:
-- Port 3400 already in use — change `port` option
-- Node version too old — module uses nixpkgs nodejs (>= 20)
+- Port 3400 already in use -- change `port` option
+- Node version too old -- module uses nixpkgs nodejs (>= 20)
 
 **Phone can't connect**: Ensure `openFirewall = true` is set and both devices are on the same network.
 

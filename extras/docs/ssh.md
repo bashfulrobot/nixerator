@@ -10,15 +10,13 @@ system.ssh.enable = true;
 
 ## Predefined Hosts
 
-**Personal Infrastructure**: `remi` (72.51.28.133), `gigi` (100.96.21.6), `camino`
+**Remote**: `camino` (64.225.50.102, root), `budgie` (ubuntubudgie.org), `feral` (prometheus.feralhosting.com)
 
-**Ubuntu Budgie Servers**: `ub-ubuntubudgieorg`, `ub-ubuntubudgieorg-webpub`, `ub-docker-root`, `ub-docker-admin`
+**Local Network**: `qbert` (192.168.169.2), `srv` (192.168.168.1), `dk` (192.168.169.3)
 
-**Services**: `feral`
+**Git Providers**: `github.com`, `bitbucket.org`, `git.srvrs.co` (all ed25519)
 
-**Git Providers**: `github.com`, `bitbucket.org`, `git.srvrs.co` — all ed25519
-
-**Dev/Testing**: `192.168.168.1` — local KVM (host key checking disabled)
+**Dev/Testing**: `192.168.168.1` (KVM, host key checking disabled)
 
 ## Global Client Settings
 
