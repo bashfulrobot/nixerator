@@ -77,24 +77,77 @@ in
         ];
         userSettings = {
           auto_update = false;
+          autosave = "on_focus_change";
           base_keymap = "VSCode";
-          # vim_mode = true;
+          buffer_font_family = "SFMono Nerd Font";
+          buffer_font_size = 20.67;
+          colorize_brackets = true;
           cursor_blink = true;
           cursor_shape = "block";
           format_on_save = "on";
           hard_tabs = false;
-          tab_size = 2;
-          relative_line_numbers = true;
+          helix_mode = true;
+          relative_line_numbers = "enabled";
           show_whitespaces = "all";
-          soft_wrap = "none";
-          autosave = "on_focus_change";
-          colorize_brackets = true;
-          project_panel = {
-            auto_reveal_entries = true;
+          show_wrap_guides = true;
+          soft_wrap = "editor_width";
+          tab_size = 2;
+          ui_font_family = "SF Pro Display";
+          ui_font_size = 16.0;
+          use_smartcase_search = true;
+          when_closing_with_no_tabs = "platform_default";
+          wrap_guides = [
+            80
+            120
+          ];
+
+          search = {
+            center_on_match = true;
+            case_sensitive = false;
+          };
+          prettier = {
+            allowed = true;
+          };
+          icon_theme = {
+            mode = "system";
+            light = "Zed (Default)";
+            dark = "Zed (Default)";
+          };
+          agent_servers.claude-acp = {
+            type = "registry";
+          };
+          session = {
+            trust_all_worktrees = true;
+          };
+          edit_predictions = {
+            provider = "none";
+          };
+          agent = {
+            enabled = false;
+          };
+          features = {
+            copilot = false;
+          };
+          telemetry = {
+            diagnostics = false;
+            metrics = false;
+          };
+          theme = {
+            mode = "system";
+            light = "Ayu Dark";
+            dark = "Base16 Catppuccin Mocha";
+          };
+          git = {
+            gutter = true;
+            inline_blame = {
+              enabled = true;
+              show_commit_summary = true;
+            };
           };
           indent_guides = {
             enabled = true;
             coloring = "indent_aware";
+            background_coloring = "indent_aware";
           };
           inlay_hints = {
             enabled = true;
@@ -102,6 +155,9 @@ in
           minimap = {
             show = "auto";
             thumb = "always";
+          };
+          project_panel = {
+            auto_reveal_entries = true;
           };
           tabs = {
             close_position = "right";
@@ -114,30 +170,12 @@ in
             blinking = "on";
             copy_on_select = true;
             cursor_shape = "block";
-            max_scroll_history_lines = 16384;
+            max_scroll_history_lines = 60000;
           };
           title_bar = {
             show_branch_icon = true;
             show_branch_name = true;
             show_project_items = true;
-          };
-          git = {
-            gutter = true;
-            inline_blame = {
-              enabled = true;
-            };
-          };
-          telemetry = {
-            diagnostics = false;
-            metrics = false;
-          };
-          features = {
-            copilot = false;
-            inline_completion_provider = "none";
-          };
-          assistant = {
-            enabled = false;
-            version = "2";
           };
           node = {
             ignore_system_version = true;
@@ -150,10 +188,6 @@ in
               tab_size = 4;
             };
           };
-          wrap_guides = [
-            80
-            120
-          ];
         };
       };
     };
