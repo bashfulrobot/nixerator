@@ -79,8 +79,6 @@ in
           auto_update = false;
           autosave = "on_focus_change";
           base_keymap = "VSCode";
-          buffer_font_family = "SFMono Nerd Font";
-          buffer_font_size = 20.67;
           colorize_brackets = true;
           cursor_blink = true;
           cursor_shape = "block";
@@ -92,8 +90,6 @@ in
           show_wrap_guides = true;
           soft_wrap = "editor_width";
           tab_size = 2;
-          ui_font_family = "SF Pro Display";
-          ui_font_size = 16.0;
           use_smartcase_search = true;
           when_closing_with_no_tabs = "platform_default";
           wrap_guides = [
@@ -131,11 +127,6 @@ in
           telemetry = {
             diagnostics = false;
             metrics = false;
-          };
-          theme = {
-            mode = "system";
-            light = "Ayu Dark";
-            dark = "Base16 Catppuccin Mocha";
           };
           git = {
             gutter = true;
