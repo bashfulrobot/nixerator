@@ -49,8 +49,8 @@ in
       wkhtmltopdf.enable = true;
     };
 
-    # Reference desktops: special workspaces for task manager and office apps
-    system.reference-desktops.enable = true;
+    # Special workspaces for task manager and office apps
+    system.special-workspaces.enable = true;
 
     environment.systemPackages = with pkgs; [
       discord-ptb

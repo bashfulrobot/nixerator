@@ -6,15 +6,15 @@
 }:
 
 let
-  cfg = config.system.reference-desktops;
+  cfg = config.system.special-workspaces;
 in
 {
-  options.system.reference-desktops.enable = lib.mkEnableOption "Hyprland reference desktops (special workspaces)";
+  options.system.special-workspaces.enable = lib.mkEnableOption "Hyprland special workspaces for task and office apps";
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
-      xdg.configFile."hypr/conf.d/reference-desktops.conf".text = ''
-        # Reference Desktops: named special workspaces toggled by shortcut
+      xdg.configFile."hypr/conf.d/special-workspaces.conf".text = ''
+        # Special Workspaces: named special workspaces toggled by shortcut
         # SUPER+W = Work (task manager), SUPER+O = Office (comms/calendar)
 
         # Keybinds: toggle and move-to
