@@ -37,7 +37,7 @@ in
         jq # for JSON parsing
         libnotify # for notify-send
         # Script runtime dependencies
-        netcat-gnu # for nc command
+        netcat-openbsd # for nc -W (OpenBSD netcat required by ncspot IPC)
         spicetify-cli # CLI for customizing Spotify
         # keep-sorted end
       ]
