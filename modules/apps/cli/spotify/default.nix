@@ -11,9 +11,16 @@ let
   cfg = config.apps.cli.spotify;
 
   # Spotify script packages using standard pattern
-  spotifyScripts = with pkgs; [
-    (writeShellScriptBin "ncspot-save-playing" (builtins.readFile ./scripts/ncspot-save-playing.sh))
-  ];
+  ncspot-save-playing = pkgs.writeShellApplication {
+    name = "ncspot-save-playing";
+    runtimeInputs = with pkgs; [
+      netcat-openbsd
+      jq
+      curl
+      libnotify
+    ];
+    text = builtins.readFile ./scripts/ncspot-save-playing.sh;
+  };
 
   # Spicetify packages
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.stdenv.hostPlatform.system};
@@ -29,19 +36,12 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages =
-      with pkgs;
-      [
-        # keep-sorted start case=no numeric=yes
-        curl
-        jq # for JSON parsing
-        libnotify # for notify-send
-        # Script runtime dependencies
-        netcat-openbsd # for nc -W (OpenBSD netcat required by ncspot IPC)
-        spicetify-cli # CLI for customizing Spotify
-        # keep-sorted end
-      ]
-      ++ spotifyScripts;
+    environment.systemPackages = [
+      # keep-sorted start case=no numeric=yes
+      ncspot-save-playing
+      pkgs.spicetify-cli # CLI for customizing Spotify
+      # keep-sorted end
+    ];
 
     home-manager.users.${globals.user.name} = {
 
