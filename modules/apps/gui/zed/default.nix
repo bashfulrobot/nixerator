@@ -117,6 +117,7 @@ in
           };
           agent = {
             enabled = true;
+            default_profile = "plan";
           };
           show_inline_completions = false;
           inline_completion_provider = "none";
