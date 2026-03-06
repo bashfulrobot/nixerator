@@ -28,6 +28,12 @@ in
       typora.nautilusIntegration = true;
     };
 
+    # Web apps for office reference desktop
+    apps.webapps = {
+      mail.enable = true;
+      calendar.enable = true;
+    };
+
     # Voxtype voice-to-text (managed by hyprflake)
     hyprflake.desktop.voxtype = {
       enable = true;
@@ -42,6 +48,9 @@ in
       todoist-report.enable = true;
       wkhtmltopdf.enable = true;
     };
+
+    # Reference desktops: special workspaces for task manager and office apps
+    system.reference-desktops.enable = true;
 
     environment.systemPackages = with pkgs; [
       discord-ptb
