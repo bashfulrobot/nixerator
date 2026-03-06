@@ -1,10 +1,15 @@
 # Module-Local Packages
 
-Package derivations live next to the modules that consume them (not centralized):
+Package derivations live next to the modules that consume them (not centralized). Examples include:
 
+- `modules/apps/cli/amber/build/default.nix`
+- `modules/apps/cli/claude-code/build/default.nix`
+- `modules/apps/cli/cpx/build/default.nix`
+- `modules/apps/cli/lswt/build/default.nix`
+- `modules/apps/cli/meetsum/build/default.nix`
+- `modules/apps/cli/yepanywhere/build/default.nix`
 - `modules/apps/gui/helium/build/default.nix`
 - `modules/apps/gui/insomnia/build/default.nix`
-- `modules/apps/cli/claude-code/build/default.nix`
 
 For npm-based packages, lockfiles are colocated in the same module folder.
 

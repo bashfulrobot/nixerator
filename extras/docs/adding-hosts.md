@@ -101,6 +101,10 @@ sudo nixos-install --flake .#newhostname
 sudo nixos-rebuild switch --flake .#newhostname
 ```
 
+## Server Hosts
+
+Server hosts (using `archetypes.server`) do not auto-import all modules. Unlike workstations, you must manually import each needed module path in `modules.nix` alongside setting the enable option. See `hosts/srv/modules.nix` for an example.
+
 ## Checklist
 
 - [ ] `hosts/newhostname/` directory

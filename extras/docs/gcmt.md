@@ -16,14 +16,14 @@ Default AI backend: `claude`. Falls back gracefully if tool is not in PATH.
 
 ## Workflow
 
-1. **File selection** — fuzzy multi-select picker (staged/unstaged/untracked/renamed). Space to toggle, Enter to confirm. Only selected files are staged.
-2. **Commit type** — choose from 13 conventional types (emoji auto-applied)
-3. **Scope** — required, lowercase kebab-case (e.g. `auth`, `api`, `git`)
-4. **Summary** — pre-filled `type(scope): emoji`, you type the description. Warns if >72 chars.
-5. **AI body** — staged diff sent to AI, returns 3-5 imperative bullet points. Skipped if tool not found.
-6. **Edit body** — review/edit in `gum write`. `ctrl+d` to confirm, `esc` to omit.
-7. **Preview + confirm** — full commit message shown, `gum confirm` before proceeding.
-8. **Signed commit** — `git commit -S` with SSH signing.
+1. **File selection** -- fuzzy multi-select picker (staged/unstaged/untracked/renamed). Space to toggle, Enter to confirm. Only selected files are staged.
+2. **Commit type** -- choose from 13 conventional types (emoji auto-applied)
+3. **Scope** -- required, lowercase kebab-case (e.g. `auth`, `api`, `git`)
+4. **Summary** -- pre-filled `type(scope): emoji`, you type the description. Warns if >72 chars.
+5. **AI body** -- staged diff sent to AI, returns 3-5 imperative bullet points. Skipped if tool not found.
+6. **Edit body** -- review/edit in `gum write`. `ctrl+d` to confirm, `esc` to omit.
+7. **Preview + confirm** -- full commit message shown, `gum confirm` before proceeding.
+8. **Signed commit** -- `git commit -S` with SSH signing.
 
 ## Commit Types
 

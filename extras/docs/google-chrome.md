@@ -4,8 +4,8 @@ Auto-generated Dark Reader settings using Stylix colors, placed at `~/.config/da
 
 ## Color Mapping
 
-- **Dark Background**: base00 — **Dark Text**: base05
-- **Light Background**: base07 — **Light Text**: base02
+- **Dark Background**: base00 -- **Dark Text**: base05
+- **Light Background**: base07 -- **Light Text**: base02
 - Fallback values used if Stylix is not enabled
 
 ## Import into Chrome

@@ -27,7 +27,7 @@ apps.webapps = {
 
 1. Enable Web App Hub: `apps.gui.web-app-hub.enable = true;`
 2. Create web apps in the Web App Hub GUI
-3. Run `extract-webapps` — finds desktop files, copies icons, generates Nix modules
+3. Run `extract-webapps` -- finds desktop files, copies icons, generates Nix modules
 4. Commit the new modules
 
 Icons/logos: <https://brandfetch.com/>

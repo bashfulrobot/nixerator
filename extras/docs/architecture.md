@@ -9,7 +9,7 @@ nixerator/
 ├── flake.nix / flake.lock
 ├── settings/
 │   ├── globals.nix        # User, paths, timezone, editor, etc.
-│   └── versions.nix
+│   └── versions.nix       # Centralized version pins
 ├── lib/
 │   ├── mkHost.nix         # Host builder
 │   └── autoimport.nix     # Auto-import helper
@@ -29,21 +29,21 @@ nixerator/
 ## Auto-Import
 
 `modules/default.nix` recursively imports all `*.nix` files except those in:
-- `disabled/` — disabled modules
-- `build/` — module-local package derivations
-- `cfg/` — configuration fragments
-- `reference/` — reference docs
+- `disabled/` -- disabled modules
+- `build/` -- module-local package derivations
+- `cfg/` -- configuration fragments
+- `reference/` -- reference docs
 
 Custom exclusions: edit `defaultExcludes` in `lib/autoimport.nix`. Debug with `tracedAutoImport`.
 
 ## Namespacing
 
-- `apps.cli.*` — CLI applications
-- `apps.gui.*` — GUI applications
-- `apps.webapps.*` — Progressive web apps
-- `suites.*` — Module collections
-- `system.*` — System-level settings
-- `dev.*` — Development tools
+- `apps.cli.*` -- CLI applications
+- `apps.gui.*` -- GUI applications
+- `apps.webapps.*` -- Progressive web apps
+- `suites.*` -- Module collections
+- `system.*` -- System-level settings
+- `dev.*` -- Development tools
 
 ## Module Template
 
@@ -64,8 +64,8 @@ in
 
 ## Archetypes
 
-- `archetypes.workstation.enable = true;` — enables: core, desktop, terminal, browsers, security, dev, offcomms, infrastructure, k8s, kong, av, ai
-- `archetypes.server.enable = true;` — enables: terminal, system.ssh, apps.cli.tailscale
+- `archetypes.workstation.enable = true;` -- enables: core, desktop, terminal, browsers, security, dev, offcomms, infrastructure, k8s, kong, av, ai
+- `archetypes.server.enable = true;` -- enables: terminal, system.ssh, apps.cli.tailscale
 
 ## Suites
 
@@ -86,7 +86,7 @@ in
 
 ## Globals
 
-`settings/globals.nix` — access via `globals.user.name`, `globals.paths.nixerator`, etc.
+`settings/globals.nix` -- access via `globals.user.name`, `globals.paths.nixerator`, etc.
 
 ```nix
 rec {
@@ -123,9 +123,9 @@ hosts/<hostname>/
 
 ## Design Principles
 
-1. **Modular** — everything is a module with `enable` option
-2. **Declarative** — configuration as code, version controlled
-3. **Composable** — combine modules via suites or individual enables
-4. **Discoverable** — auto-import eliminates manual imports
-5. **Portable** — same config works across systems
-6. **Namespaced** — clear organization by category
+1. **Modular** -- everything is a module with `enable` option
+2. **Declarative** -- configuration as code, version controlled
+3. **Composable** -- combine modules via suites or individual enables
+4. **Discoverable** -- auto-import eliminates manual imports
+5. **Portable** -- same config works across systems
+6. **Namespaced** -- clear organization by category
