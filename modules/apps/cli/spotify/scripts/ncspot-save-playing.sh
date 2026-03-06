@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 NCSPOT_SOCK="/run/user/1000/ncspot/ncspot.sock"
 
 # Get track info before saving (the save command doesn't return track data)
