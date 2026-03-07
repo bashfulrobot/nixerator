@@ -23,27 +23,83 @@ default:
 # === Core Recipes ===
 # Production rebuild of the current host
 rebuild:
-    @echo "Rebuilding..."
-    @sudo nixos-rebuild switch --impure --flake {{host_flake}}
+    #!/usr/bin/env bash
+    set -uo pipefail
+    log="{{rebuild_log}}"
+    rc=0
+    gum spin --spinner dot --title "Rebuilding NixOS configuration..." \
+        -- bash -c 'sudo nixos-rebuild switch --impure --flake {{host_flake}} &> "'"$log"'"' || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        warnings=$(grep -c -E -i 'warning:' "$log" 2>/dev/null || true)
+        if [[ "$warnings" -gt 0 ]]; then
+            gum style --foreground 220 "Rebuild succeeded with $warnings warning(s)"
+            if gum confirm "View warnings in log?"; then
+                kitty --title "Rebuild Log" bash -c "bat --paging=always '$log'" &
+                disown
+            fi
+        else
+            gum style --foreground 82 "Rebuild succeeded"
+        fi
+    else
+        gum style --foreground 196 "Rebuild FAILED (exit $rc)"
+        kitty --title "Rebuild Errors" bash -c "bat --paging=always '$log'" &
+        disown
+        exit "$rc"
+    fi
 
 # Stage all, rebuild, unstage on exit
 dev-rebuild:
     #!/usr/bin/env bash
-    set -euo pipefail
-    echo "Staging all changes for dev rebuild..."
+    set -uo pipefail
+    gum style --foreground 245 "Staging all changes..."
     git add -A
-    trap 'echo "Unstaging changes..."; git restore --staged .' EXIT
+    trap 'git restore --staged .' EXIT
     just rebuild
 
 # Full system upgrade
 upgrade:
     #!/usr/bin/env bash
-    set -euo pipefail
-    echo "Upgrading system..."
+    set -uo pipefail
+    log="{{upgrade_log}}"
     cp flake.lock flake.lock-backup-{{timestamp}}
-    nix flake update
-    sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
-    just ref::voxtype-setup
+    rc=0
+    gum spin --spinner dot --title "Updating flake inputs..." \
+        -- bash -c 'nix flake update &> "'"$log"'"' || rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+        gum style --foreground 196 "Flake update FAILED (exit $rc)"
+        kitty --title "Upgrade Errors" bash -c "bat --paging=always '$log'" &
+        disown
+        exit "$rc"
+    fi
+    gum style --foreground 82 "Flake inputs updated"
+    gum spin --spinner dot --title "Rebuilding with upgrades..." \
+        -- bash -c 'sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+        gum style --foreground 196 "Rebuild FAILED (exit $rc)"
+        kitty --title "Upgrade Errors" bash -c "bat --paging=always '$log'" &
+        disown
+        exit "$rc"
+    fi
+    gum style --foreground 82 "System rebuilt"
+    gum spin --spinner dot --title "Setting up voxtype..." \
+        -- bash -c 'just ref::voxtype-setup &>> "'"$log"'"' || rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+        gum style --foreground 196 "Voxtype setup FAILED (exit $rc)"
+        kitty --title "Upgrade Errors" bash -c "bat --paging=always '$log'" &
+        disown
+        exit "$rc"
+    fi
+    gum style --foreground 82 "Voxtype configured"
+    warnings=$(grep -c -E -i 'warning:' "$log" 2>/dev/null || true)
+    if [[ "$warnings" -gt 0 ]]; then
+        gum style --foreground 220 "Upgrade completed with $warnings warning(s)"
+        if gum confirm "View warnings in log?"; then
+            kitty --title "Upgrade Log" bash -c "bat --paging=always '$log'" &
+            disown
+        fi
+    else
+        gum style --foreground 82 "Upgrade complete"
+    fi
 
 # Update a specific flake input
 update input:
