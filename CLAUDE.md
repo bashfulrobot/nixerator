@@ -5,7 +5,9 @@
 - Never commit plaintext secrets; use `secrets/`.
 - Avoid host-specific or machine-local paths; prefer `settings/globals.nix`.
 - Use `nix fmt` and `statix` + `deadnix`.
-- Never run `nixos-rebuild` or `git commit`/`git push` — the user handles rebuilds and commits. After changes, suggest a conventional commit scope and title (e.g., `feat(fish): add zoxide integration`).
+- Never run `nixos-rebuild` directly or `git commit`/`git push` -- the user handles commits. After changes, suggest a conventional commit scope and title (e.g., `feat(fish): add zoxide integration`).
+- When you need to test a NixOS rebuild during development, run `just quiet-rebuild` (alias `just qr`). This captures all build output to `/tmp/nixerator-rebuild.log` and keeps your context clean. On failure, spawn a Nix subagent to read the log, diagnose the error, and propose a fix. Do not read the log in the main context.
+- Never run upgrades on your own. Upgrades depend on upstream repos (e.g., hyprflake) being pushed first, so they are always user-initiated. If the user asks you to run an upgrade, use `just quiet-upgrade` (alias `just qu`). Same log-and-subagent pattern with `/tmp/nixerator-upgrade.log`.
 
 ## Docs (open only when needed)
 
