@@ -26,8 +26,23 @@ rec {
 
   # Editor and shell preferences
   preferences = {
-    editor = "helix";  # Package name in nixpkgs
+    editor = "helix"; # Package name in nixpkgs
     shell = "fish";
+  };
+
+  # Remote editing (Zed SSH)
+  remoteEdit = {
+    user = user.name;
+    host = tailscale.qbert;
+    projects = [
+      "${user.homeDirectory}/dev/nix/nixerator"
+      "${user.homeDirectory}/dev/nix/hyprflake"
+      "${user.homeDirectory}/dev/go/meetsum"
+      "${user.homeDirectory}/dev/go/mcp-tool-proxy"
+      "${user.homeDirectory}/dev/kong/lab"
+      "${user.homeDirectory}/dev/kong/scratch"
+      "${user.homeDirectory}/dev/infra"
+    ];
   };
 
   # Tailscale IPs

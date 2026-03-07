@@ -184,6 +184,25 @@ in
           };
         };
       };
+      programs.fish.functions = {
+        re = {
+          description = "Remote edit: open Zed on a remote project via SSH";
+          body = ''
+            set -l project
+            if test (count $argv) -gt 0
+              set project $argv[1]
+            else
+              set project (printf '%s\n' ${
+                lib.concatMapStringsSep " " (p: "'${p}'") globals.remoteEdit.projects
+              } | fzf --header="Select remote project")
+            end
+            if test -z "$project"
+              return 1
+            end
+            zed "ssh://${globals.remoteEdit.user}@${globals.remoteEdit.host}/$project"
+          '';
+        };
+      };
     };
   };
 }
