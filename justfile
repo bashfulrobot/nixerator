@@ -143,7 +143,66 @@ fmt:
     @echo "Formatting nix files..."
     @nix fmt
 
+# === Quiet Recipes ===
+rebuild_log := "/tmp/nixerator-rebuild.log"
+upgrade_log := "/tmp/nixerator-upgrade.log"
+
+# Quiet rebuild -- captures output, shows only errors on failure
+quiet-rebuild:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    echo "Rebuilding (quiet mode)..."
+    git add -A
+    trap 'git restore --staged .' EXIT
+    rc=0
+    sudo nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        echo "Rebuild succeeded. Full log: {{rebuild_log}}"
+    else
+        filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{rebuild_log}} | head -80)
+        {
+            echo "=== FILTERED ERRORS/WARNINGS ==="
+            echo "$filtered"
+            echo ""
+            echo "=== FULL BUILD LOG ==="
+            cat {{rebuild_log}}
+        } > {{rebuild_log}}.tmp
+        mv {{rebuild_log}}.tmp {{rebuild_log}}
+        echo "Rebuild FAILED (exit $rc). Use a Nix subagent to diagnose {{rebuild_log}} and fix the issue."
+        exit "$rc"
+    fi
+
+# Quiet upgrade -- captures output, shows only errors on failure
+quiet-upgrade:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    echo "Upgrading (quiet mode)..."
+    cp flake.lock flake.lock-backup-{{timestamp}}
+    rc=0
+    {
+        nix flake update
+        sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
+        just ref::voxtype-setup
+    } &> {{upgrade_log}} || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        echo "Upgrade succeeded. Full log: {{upgrade_log}}"
+    else
+        filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{upgrade_log}} | head -80)
+        {
+            echo "=== FILTERED ERRORS/WARNINGS ==="
+            echo "$filtered"
+            echo ""
+            echo "=== FULL BUILD LOG ==="
+            cat {{upgrade_log}}
+        } > {{upgrade_log}}.tmp
+        mv {{upgrade_log}}.tmp {{upgrade_log}}
+        echo "Upgrade FAILED (exit $rc). Use a Nix subagent to diagnose {{upgrade_log}} and fix the issue."
+        exit "$rc"
+    fi
+
 # === Aliases ===
 alias r := rebuild
 alias up := upgrade
 alias gc := clean
+alias qr := quiet-rebuild
+alias qu := quiet-upgrade
