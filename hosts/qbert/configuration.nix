@@ -1,15 +1,21 @@
-{ hostname, globals, inputs, pkgs, ... }:
+{
+  hostname,
+  globals,
+  inputs,
+  pkgs,
+  ...
+}:
 
 {
   # Import hardware configuration
   imports = [
-    ./hardware-configuration.nix  # Hardware-specific settings (generated with --no-filesystems)
-    ./disko.nix                   # Disko declarative disk partitioning
-    ./boot.nix                    # Bootloader with bcachefs support
-    ./gpu.nix                     # AMD GPU configuration
-    ./power-management.nix        # Power management workarounds for AMD GPU suspend and USB wakeup
-    ./reboot-windows.nix          # Desktop entry for rebooting to Windows
-    ./modules.nix                 # Module configuration
+    ./hardware-configuration.nix # Hardware-specific settings (generated with --no-filesystems)
+    ./disko.nix # Disko declarative disk partitioning
+    ./boot.nix # Bootloader with bcachefs support
+    ./gpu.nix # AMD GPU configuration
+    ./power-management.nix # Power management workarounds for AMD GPU suspend and USB wakeup
+    ./reboot-windows.nix # Desktop entry for rebooting to Windows
+    ./modules.nix # Module configuration
     # Auto-import all modules
     ../../modules
   ];
@@ -28,7 +34,7 @@
     #model = "base.en";
     model = "small.en";
     threads = 16;
-    package = inputs.hyprflake.inputs.voxtype.packages.${pkgs.system}.vulkan;
+    package = inputs.hyprflake.inputs.voxtype.packages.${pkgs.stdenv.hostPlatform.system}.vulkan;
   };
 
   # Enable archetypes
