@@ -1,8 +1,14 @@
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 let
   cfg = config.system.apple-fonts;
-  appleFontsPkgs = inputs.apple-fonts.packages.${pkgs.system};
+  appleFontsPkgs = inputs.apple-fonts.packages.${pkgs.stdenv.hostPlatform.system};
 
   # Fix undmg linker ordering: libraries must come after object files
   fixedUndmg = pkgs.undmg.overrideAttrs (old: {
@@ -13,11 +19,13 @@ let
     '';
   });
 
-  fixFont = pkg: pkg.overrideAttrs (old: {
-    buildInputs = map
-      (dep: if dep ? pname && dep.pname == "undmg" then fixedUndmg else dep)
-      (old.buildInputs or []);
-  });
+  fixFont =
+    pkg:
+    pkg.overrideAttrs (old: {
+      buildInputs = map (dep: if dep ? pname && dep.pname == "undmg" then fixedUndmg else dep) (
+        old.buildInputs or [ ]
+      );
+    });
 in
 {
   options = {

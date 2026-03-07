@@ -152,8 +152,11 @@ in
 
     # System packages
     environment.systemPackages =
-      lib.optional cfg.enable inputs.browser-previews.packages.${pkgs.system}.google-chrome
-      ++ lib.optional cfg.enableDev inputs.browser-previews.packages.${pkgs.system}.google-chrome-dev;
+      lib.optional cfg.enable
+        inputs.browser-previews.packages.${pkgs.stdenv.hostPlatform.system}.google-chrome
+      ++
+        lib.optional cfg.enableDev
+          inputs.browser-previews.packages.${pkgs.stdenv.hostPlatform.system}.google-chrome-dev;
 
     # Home Manager user configuration
     home-manager.users.${globals.user.name} = {
