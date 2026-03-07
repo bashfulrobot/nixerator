@@ -34,16 +34,14 @@ rebuild:
         if [[ "$warnings" -gt 0 ]]; then
             gum style --foreground 220 "Rebuild succeeded with $warnings warning(s)"
             if gum confirm "View warnings in log?"; then
-                kitty --title "Rebuild Log" bash -c "bat --paging=always '$log'" &
-                disown
+                bat --paging=always "$log"
             fi
         else
             gum style --foreground 82 "Rebuild succeeded"
         fi
     else
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
-        kitty --title "Rebuild Errors" bash -c "bat --paging=always '$log'" &
-        disown
+        bat --paging=always "$log"
         exit "$rc"
     fi
 
@@ -67,8 +65,7 @@ upgrade:
         -- bash -c 'nix flake update &> "'"$log"'"' || rc=$?
     if [[ "$rc" -ne 0 ]]; then
         gum style --foreground 196 "Flake update FAILED (exit $rc)"
-        kitty --title "Upgrade Errors" bash -c "bat --paging=always '$log'" &
-        disown
+        bat --paging=always "$log"
         exit "$rc"
     fi
     gum style --foreground 82 "Flake inputs updated"
@@ -76,8 +73,7 @@ upgrade:
         -- bash -c 'sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
     if [[ "$rc" -ne 0 ]]; then
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
-        kitty --title "Upgrade Errors" bash -c "bat --paging=always '$log'" &
-        disown
+        bat --paging=always "$log"
         exit "$rc"
     fi
     gum style --foreground 82 "System rebuilt"
@@ -85,8 +81,7 @@ upgrade:
         -- bash -c 'just ref::voxtype-setup &>> "'"$log"'"' || rc=$?
     if [[ "$rc" -ne 0 ]]; then
         gum style --foreground 196 "Voxtype setup FAILED (exit $rc)"
-        kitty --title "Upgrade Errors" bash -c "bat --paging=always '$log'" &
-        disown
+        bat --paging=always "$log"
         exit "$rc"
     fi
     gum style --foreground 82 "Voxtype configured"
@@ -94,8 +89,7 @@ upgrade:
     if [[ "$warnings" -gt 0 ]]; then
         gum style --foreground 220 "Upgrade completed with $warnings warning(s)"
         if gum confirm "View warnings in log?"; then
-            kitty --title "Upgrade Log" bash -c "bat --paging=always '$log'" &
-            disown
+            bat --paging=always "$log"
         fi
     else
         gum style --foreground 82 "Upgrade complete"
