@@ -30,7 +30,7 @@ in
           yaml-language-server
 
           # Formatters and linters
-          nixfmt-rfc-style
+          nixfmt
           statix
         ];
         extensions = [

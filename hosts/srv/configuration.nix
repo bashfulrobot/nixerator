@@ -1,11 +1,16 @@
-{ hostname, globals, pkgs, ... }:
+{
+  hostname,
+  globals,
+  pkgs,
+  ...
+}:
 
 {
   # Import hardware configuration
   imports = [
-    ./hardware-configuration.nix  # Hardware-specific settings
-    ./boot.nix                    # Bootloader configuration
-    ./modules.nix                 # Module configuration
+    ./hardware-configuration.nix # Hardware-specific settings
+    ./boot.nix # Bootloader configuration
+    ./modules.nix # Module configuration
   ];
 
   # Networking
@@ -15,19 +20,27 @@
     # Static IP configuration
     useDHCP = false;
 
-    nameservers = [ "1.1.1.1" "9.9.9.9" ];
+    nameservers = [
+      "1.1.1.1"
+      "9.9.9.9"
+    ];
 
     hosts = {
-      "192.168.168.1" = ["srv" "srv.goat-cloud.ts.net"];
-      "127.0.0.1" = ["localhost"];
+      "192.168.168.1" = [
+        "srv"
+        "srv.goat-cloud.ts.net"
+      ];
+      "127.0.0.1" = [ "localhost" ];
     };
 
     interfaces.enp3s0 = {
       useDHCP = false;
-      ipv4.addresses = [{
-        address = "192.168.168.1";
-        prefixLength = 23;
-      }];
+      ipv4.addresses = [
+        {
+          address = "192.168.168.1";
+          prefixLength = 23;
+        }
+      ];
     };
 
     defaultGateway = {
@@ -45,11 +58,18 @@
     isNormalUser = true;
     description = globals.user.fullName;
     group = globals.user.name;
-    extraGroups = [ "docker" "wheel" "kvm" "qemu-libvirtd" "libvirtd" "networkmanager" ];
+    extraGroups = [
+      "docker"
+      "wheel"
+      "kvm"
+      "qemu-libvirtd"
+      "libvirtd"
+      "networkmanager"
+    ];
     shell = pkgs.${globals.preferences.shell};
   };
 
-  users.groups.${globals.user.name} = {};
+  users.groups.${globals.user.name} = { };
 
   # System packages
   environment.systemPackages = with pkgs; [
@@ -66,7 +86,7 @@
     gnumake
     gnupg
     just
-    nixfmt-rfc-style
+    nixfmt
     pass
     pinentry-tty
     ripgrep
