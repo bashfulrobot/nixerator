@@ -7,7 +7,7 @@ _:
     host.donkeykong = true;
   };
 
-  apps.cli.ollama.acceleration = "vulkan";
+  # apps.cli.ollama.acceleration = "vulkan";
 
   # Server modules
   server = {

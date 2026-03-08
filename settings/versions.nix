@@ -39,15 +39,6 @@
       hash = "sha256-+XqoMGVAxUEY3v/fdlogqe8q2CoyCLK5e6Itp0P/NcE=";
     };
 
-    yepanywhere = {
-      source = "npm";
-      repo = "kzahel/yepanywhere";
-      npmPkg = "yepanywhere";
-      version = "0.4.9";
-      hash = "sha256-8fe/9BXccPexsgWJC3VYlUIwFuEqdGdCzC8No49ndC4=";
-      npmDepsHash = "sha256-X+uKkERkbQ9cxHZPag6oqcIs2exg4+ncwPwJAEe+gEc=";
-    };
-
     get-shit-done = {
       source = "npm";
       repo = "gsd-build/get-shit-done";

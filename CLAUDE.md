@@ -42,7 +42,6 @@ Open these lazily when a relevant topic comes up. Do not read them all upfront.
 - `extras/docs/gcmt.md` -- interactive conventional commit tool with AI bodies
 - `extras/docs/claude-plugins.md` -- Claude Code plugin/skills manager
 - `extras/docs/todoist-report.md` -- Todoist API query tool for project status
-- `extras/docs/yepanywhere.md` -- mobile supervision for Claude Code
 
 ## Tools
 

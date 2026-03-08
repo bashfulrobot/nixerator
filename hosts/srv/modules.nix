@@ -22,7 +22,7 @@
     helix.enable = true;
     starship.enable = true;
     tailscale.enable = true;
-    vscode-server.enable = true;
+    vscode-server.enable = false;
   };
 
   # System modules
@@ -89,4 +89,3 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 }
-
