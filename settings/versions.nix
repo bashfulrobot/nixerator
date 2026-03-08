@@ -89,7 +89,7 @@
       version = "12.4.0";
       tagPrefix = "core@";
       platformHashes = {
-        x86_64-linux = "";
+        x86_64-linux = "sha256-QHa+BEGDIYsOxE49bL9bXmeYRKewx1P3FQ5bi3iz92w=";
         aarch64-darwin = "";
         x86_64-darwin = "";
       };
