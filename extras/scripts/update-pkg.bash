@@ -114,18 +114,18 @@ find_package() {
 
 update_version() {
     local pkg_name="$1" new_version="$2"
-    sed -i "/$pkg_name/,/};/ s/version = \"[^\"]*\"/version = \"$new_version\"/" "$VERSIONS_FILE"
+    sed -i "/[[:space:]]$pkg_name = {/,/^[[:space:]]*};/ s|version = \"[^\"]*\"|version = \"$new_version\"|" "$VERSIONS_FILE"
 }
 
 update_hash() {
     local pkg_name="$1" new_hash="$2"
     # Anchor to line start (with whitespace) to avoid matching vendorHash/npmDepsHash
-    sed -i "/$pkg_name/,/^    };/ s/^\([[:space:]]*\)hash = \"[^\"]*\"/\1hash = \"$new_hash\"/" "$VERSIONS_FILE"
+    sed -i "/[[:space:]]$pkg_name = {/,/^[[:space:]]*};/ s|^\([[:space:]]*\)hash = \"[^\"]*\"|\1hash = \"$new_hash\"|" "$VERSIONS_FILE"
 }
 
 update_rev() {
     local pkg_name="$1" new_rev="$2"
-    sed -i "/$pkg_name/,/};/ s/rev = \"[^\"]*\"/rev = \"$new_rev\"/" "$VERSIONS_FILE"
+    sed -i "/[[:space:]]$pkg_name = {/,/^[[:space:]]*};/ s|rev = \"[^\"]*\"|rev = \"$new_rev\"|" "$VERSIONS_FILE"
 }
 
 # --- Source-type update handlers ---
@@ -164,7 +164,7 @@ update_github_release() {
     has_platform_hashes=$(echo "$pkg_json" | jq 'has("platformHashes")' 2>/dev/null) || true
     if [[ "$has_platform_hashes" == "true" ]]; then
         # Clear all platform hashes -- Nix will report the correct ones on rebuild
-        sed -i "/$name/,/};/ s/= \"sha256-[^\"]*\"/= \"\"/" "$VERSIONS_FILE"
+        sed -i "/[[:space:]]$name = {/,/^[[:space:]]*};/ s|= \"sha256-[^\"]*\"|= \"\"|" "$VERSIONS_FILE"
         warn "$name: version updated to $latest, platform hashes cleared -- rebuild to get correct hashes per platform"
     else
         update_hash "$name" ""
@@ -289,6 +289,8 @@ update_single() {
         err "Package '$name' not found in versions.nix"
         exit 1
     }
+
+    pkg_json=$(echo "$versions_json" | jq --arg c "$category" --arg p "$name" '.[$c][$p]')
 
     local source
     source=$(echo "$pkg_json" | jq -r '.source')
