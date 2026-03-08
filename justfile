@@ -39,17 +39,9 @@ rebuild:
         else
             gum style --foreground 82 "Rebuild succeeded"
         fi
-        # Show cached package update report if recent (< 24h)
-        if [[ -f /tmp/nixerator-pkg-status.json ]]; then
-            age=$(( $(date +%s) - $(stat -c %Y /tmp/nixerator-pkg-status.json) ))
-            if [[ "$age" -lt 86400 ]]; then
-                updates=$(jq '[.[] | select(.status == "update-available")] | length' /tmp/nixerator-pkg-status.json 2>/dev/null || echo 0)
-                if [[ "$updates" -gt 0 ]]; then
-                    echo ""
-                    gum style --foreground 220 "$updates package update(s) available (run 'just setup::check-updates' for details)"
-                fi
-            fi
-        fi
+        # Run package update check in background, show results when done
+        echo ""
+        bash extras/scripts/check-pkg-updates.bash 2>/dev/null || true
     else
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
         bat --paging=always "$log"
@@ -105,17 +97,9 @@ upgrade:
     else
         gum style --foreground 82 "Upgrade complete"
     fi
-    # Show cached package update report if recent (< 24h)
-    if [[ -f /tmp/nixerator-pkg-status.json ]]; then
-        age=$(( $(date +%s) - $(stat -c %Y /tmp/nixerator-pkg-status.json) ))
-        if [[ "$age" -lt 86400 ]]; then
-            updates=$(jq '[.[] | select(.status == "update-available")] | length' /tmp/nixerator-pkg-status.json 2>/dev/null || echo 0)
-            if [[ "$updates" -gt 0 ]]; then
-                echo ""
-                gum style --foreground 220 "$updates package update(s) available (run 'just setup::check-updates' for details)"
-            fi
-        fi
-    fi
+    # Run package update check after successful upgrade
+    echo ""
+    bash extras/scripts/check-pkg-updates.bash 2>/dev/null || true
 
 # Update a specific flake input
 update input:
