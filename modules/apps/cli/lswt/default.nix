@@ -1,8 +1,14 @@
-{ pkgs, config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  versions,
+  ...
+}:
 
 let
   cfg = config.apps.cli.lswt;
-  lswt = pkgs.callPackage ./build { };
+  lswt = pkgs.callPackage ./build { inherit versions; };
 in
 {
   options = {

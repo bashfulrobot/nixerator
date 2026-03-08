@@ -8,7 +8,7 @@ pkgs.stdenv.mkDerivation {
   name = "amber";
   src = pkgs.fetchurl {
     url = "https://github.com/dalance/amber/releases/download/v${versions.cli.amber.version}/amber-v${versions.cli.amber.version}-x86_64-lnx.zip";
-    inherit (versions.cli.amber) sha256;
+    inherit (versions.cli.amber) hash;
   };
 
   nativeBuildInputs = [ pkgs.unzip ];

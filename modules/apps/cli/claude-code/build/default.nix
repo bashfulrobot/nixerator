@@ -2,17 +2,19 @@
   lib,
   stdenvNoCC,
   fetchurl,
+  versions,
 }:
 let
   pname = "kubernetes-mcp-server";
-  version = "0.0.57";
+  v = versions.cli.kubernetes-mcp-server;
+  inherit (v) version;
 in
 stdenvNoCC.mkDerivation {
   inherit pname version;
 
   src = fetchurl {
     url = "https://registry.npmjs.org/kubernetes-mcp-server-linux-amd64/-/kubernetes-mcp-server-linux-amd64-${version}.tgz";
-    hash = "sha256-csF1HhRFqccBcu+jCkRSIhxNJhhO6jMBISL81RMlLBc=";
+    inherit (v) hash;
   };
 
   unpackPhase = ''
@@ -32,4 +34,3 @@ stdenvNoCC.mkDerivation {
     mainProgram = pname;
   };
 }
-

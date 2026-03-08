@@ -1,8 +1,14 @@
-{ pkgs, config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  versions,
+  ...
+}:
 
 let
   cfg = config.apps.cli.restic;
-  lazyrestic = pkgs.callPackage ./build/lazyrestic.nix { };
+  lazyrestic = pkgs.callPackage ./build/lazyrestic.nix { inherit versions; };
   backrestUi = pkgs.writeShellScriptBin "backrest-ui" ''
     #!/usr/bin/env bash
     set -euo pipefail

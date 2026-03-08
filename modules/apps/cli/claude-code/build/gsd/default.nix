@@ -7,12 +7,11 @@
 
 buildNpmPackage rec {
   pname = "get-shit-done-cc";
-  inherit (versions.cli.get-shit-done) version;
-  npmDepsHash = "sha256-15I2dWDgJAdG1edG0e9QUvnyp3PxmZ04jTUKqTUXk1U=";
+  inherit (versions.cli.get-shit-done) version npmDepsHash;
 
   src = fetchurl {
     url = "https://registry.npmjs.org/${pname}/-/${pname}-${version}.tgz";
-    inherit (versions.cli.get-shit-done) sha256;
+    inherit (versions.cli.get-shit-done) hash;
   };
 
   sourceRoot = "package";

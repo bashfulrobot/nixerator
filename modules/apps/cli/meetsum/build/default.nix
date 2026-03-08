@@ -1,10 +1,14 @@
-{ lib, pkgs, versions, ... }:
+{
+  lib,
+  pkgs,
+  versions,
+  ...
+}:
 pkgs.stdenv.mkDerivation {
   name = "meetsum";
   src = pkgs.fetchurl {
-    url =
-      "https://github.com/bashfulrobot/meetsum/releases/download/v${versions.cli.meetsum.version}/meetsum-linux-amd64";
-    inherit (versions.cli.meetsum) sha256;
+    url = "https://github.com/bashfulrobot/meetsum/releases/download/v${versions.cli.meetsum.version}/meetsum-linux-amd64";
+    inherit (versions.cli.meetsum) hash;
   };
 
   nativeBuildInputs = [ pkgs.autoPatchelfHook ];
@@ -23,8 +27,7 @@ pkgs.stdenv.mkDerivation {
   '';
 
   meta = with lib; {
-    description =
-      "AI-powered meeting summarizer - https://github.com/bashfulrobot/meetsum.";
+    description = "AI-powered meeting summarizer - https://github.com/bashfulrobot/meetsum.";
     maintainers = [ bashfulrobot ];
   };
 }
