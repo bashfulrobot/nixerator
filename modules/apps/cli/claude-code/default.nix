@@ -31,6 +31,7 @@ let
     inherit pkgs versions;
     homeDir = globals.user.homeDirectory;
   };
+  superpowersConfig = import ./cfg/superpowers.nix { inherit lib pkgs versions; };
   hooks = baseHooks // {
     SessionStart = baseHooks.SessionStart ++ gsdConfig.hooks.SessionStart;
     PostToolUse = baseHooks.PostToolUse ++ gsdConfig.hooks.PostToolUse;
@@ -150,14 +151,20 @@ in
             bash = builtins.readFile ./agents/bash.md;
             devops = builtins.readFile ./agents/devops.md;
             eleventy = builtins.readFile ./agents/eleventy.md;
-          };
+          }
+          // superpowersConfig.agents;
 
           # No global MCP servers — use mcp-pick per-project to avoid
           # bloating every conversation with unused tool schemas.
           mcpServers = { };
 
-          skills.commit = ./skills/commit;
-          skills.humanizer = ./skills/humanizer;
+          skills = {
+            commit = ./skills/commit;
+            humanizer = ./skills/humanizer;
+          }
+          // superpowersConfig.skills;
+
+          commands = superpowersConfig.commands;
 
           outputStyles.compact = ./output-styles/compact.md;
         };

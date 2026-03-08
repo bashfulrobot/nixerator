@@ -35,5 +35,11 @@
       sha256 = "sha256-uW4crLjrx6i02AyoKuQb0BIJ6IIPYkmQygz/RA7Qacc=";
       repo = "https://github.com/gsd-build/get-shit-done";
     };
+    superpowers = {
+      # Source: https://github.com/obra/superpowers
+      rev = "e4a2375cb705ca5800f0833528ce36a3faf9017a";
+      hash = "sha256-AeICtdAfWRp0oCgQqd8LdrEWWtKNqUNWdvn0CGL18fA=";
+      repo = "https://github.com/obra/superpowers";
+    };
   };
 }
