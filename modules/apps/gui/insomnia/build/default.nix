@@ -1,5 +1,5 @@
 # Local override for Insomnia API client (ahead of nixpkgs)
-# Check for updates: just setup::check-updates
+# Version managed in settings/versions.nix
 
 {
   lib,
@@ -7,25 +7,27 @@
   fetchurl,
   appimageTools,
   undmg,
+  versions,
 }:
 let
   pname = "insomnia";
-  version = "12.3.1";
+  v = versions.gui.insomnia;
+  inherit (v) version;
 
   src =
     fetchurl
       {
         aarch64-darwin = {
           url = "https://github.com/Kong/insomnia/releases/download/core%40${version}/Insomnia.Core-${version}.dmg";
-          hash = "sha256-eKHZjZ8nVRIC28LJlokWop0xHGYyYcUS6ehzu5I/8CE=";
+          hash = v.platformHashes.aarch64-darwin;
         };
         x86_64-darwin = {
           url = "https://github.com/Kong/insomnia/releases/download/core%40${version}/Insomnia.Core-${version}.dmg";
-          hash = "sha256-eKHZjZ8nVRIC28LJlokWop0xHGYyYcUS6ehzu5I/8CE=";
+          hash = v.platformHashes.x86_64-darwin;
         };
         x86_64-linux = {
           url = "https://github.com/Kong/insomnia/releases/download/core%40${version}/Insomnia.Core-${version}.AppImage";
-          hash = "sha256-Bcja3z/QKdJ6NNvrRjSPPUsuqy53JveAiJ8jYrwg2uY=";
+          hash = v.platformHashes.x86_64-linux;
         };
       }
       .${stdenv.system} or (throw "Unsupported system: ${stdenv.system}");

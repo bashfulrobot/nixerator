@@ -10,7 +10,7 @@
 
 let
   cfg = config.apps.cli.claude-code;
-  kubernetesMcpServer = pkgs.callPackage ./build { };
+  kubernetesMcpServer = pkgs.callPackage ./build { inherit versions; };
   homeDir = globals.user.homeDirectory;
   kubeconfigFile = "${homeDir}/.kube/mcp-viewer.kubeconfig";
 

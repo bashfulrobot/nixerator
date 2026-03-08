@@ -12,7 +12,7 @@ buildNpmPackage rec {
 
   src = fetchurl {
     url = "https://registry.npmjs.org/${pname}/-/${pname}-${version}.tgz";
-    inherit (versions.cli.yepanywhere) sha256;
+    inherit (versions.cli.yepanywhere) hash;
   };
 
   sourceRoot = "package";

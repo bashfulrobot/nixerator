@@ -4,15 +4,21 @@
 # This allows running the latest version before nixpkgs PR is merged
 #
 # Release URL: https://github.com/Kong/insomnia/releases
-# Current local version: 12.3.1 (see ./build/default.nix)
+# Version managed in settings/versions.nix
 # Nixpkgs version: 11.6.0 (as of 2026-01-14)
 # Pending PR: https://github.com/NixOS/nixpkgs/pull/480124
 
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  versions,
+  ...
+}:
 
 let
   cfg = config.apps.gui.insomnia;
-  insomniaPackage = pkgs.callPackage ./build { };
+  insomniaPackage = pkgs.callPackage ./build { inherit versions; };
 in
 {
   options = {

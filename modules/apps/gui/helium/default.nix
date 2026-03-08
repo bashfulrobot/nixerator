@@ -5,14 +5,21 @@
 #
 # TODO: Version bump reminder - Check for new releases monthly
 # Release URL: https://github.com/imputnet/helium-linux/releases
-# Current local version: 0.9.1.1 (see ./build/default.nix)
+# Version managed in settings/versions.nix
 # Note: Helium is currently in beta
 
-{ lib, pkgs, config, globals, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  versions,
+  ...
+}:
 
 let
   cfg = config.apps.gui.helium;
-  heliumPackage = pkgs.callPackage ./build { };
+  heliumPackage = pkgs.callPackage ./build { inherit versions; };
 in
 {
   options = {
@@ -38,20 +45,22 @@ in
     # Home manager configuration
     home-manager.users.${globals.user.name} = {
       # 1Password native messaging host for Helium
-      home.file.".config/net.imput.helium/NativeMessagingHosts/com.1password.1password.json".text = builtins.toJSON {
-        name = "com.1password.1password";
-        description = "1Password BrowserSupport";
-        path = "/run/wrappers/bin/1Password-BrowserSupport";
-        type = "stdio";
-        allowed_origins = [
-          "chrome-extension://hjlinigoblmkhjejkmbegnoaljkphmgo/"
-          "chrome-extension://bkpbhnjcbehoklfkljkkbbmipaphipgl/"
-          "chrome-extension://gejiddohjgogedgjnonbofjigllpkmbf/"
-          "chrome-extension://khgocmkkpikpnmmkgmdnfckapcdkgfaf/"
-          "chrome-extension://aeblfdkhhhdcdjpifhhbdiojplfjncoa/"
-          "chrome-extension://dppgmdbiimibapkepcbdbmkaabgiofem/"
-        ];
-      };
+      home.file.".config/net.imput.helium/NativeMessagingHosts/com.1password.1password.json".text =
+        builtins.toJSON
+          {
+            name = "com.1password.1password";
+            description = "1Password BrowserSupport";
+            path = "/run/wrappers/bin/1Password-BrowserSupport";
+            type = "stdio";
+            allowed_origins = [
+              "chrome-extension://hjlinigoblmkhjejkmbegnoaljkphmgo/"
+              "chrome-extension://bkpbhnjcbehoklfkljkkbbmipaphipgl/"
+              "chrome-extension://gejiddohjgogedgjnonbofjigllpkmbf/"
+              "chrome-extension://khgocmkkpikpnmmkgmdnfckapcdkgfaf/"
+              "chrome-extension://aeblfdkhhhdcdjpifhhbdiojplfjncoa/"
+              "chrome-extension://dppgmdbiimibapkepcbdbmkaabgiofem/"
+            ];
+          };
     };
   };
 }

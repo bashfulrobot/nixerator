@@ -1,18 +1,20 @@
 # Local package for Helium browser — Chromium-based, privacy-focused
-# Check for updates: just setup::check-updates
+# Version managed in settings/versions.nix
 
 {
   lib,
   fetchurl,
   appimageTools,
+  versions,
 }:
 let
   pname = "helium";
-  version = "0.9.1.1";
+  v = versions.gui.helium;
+  inherit (v) version;
 
   src = fetchurl {
     url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-${version}-x86_64.AppImage";
-    hash = "sha256-0Kw8Ko41Gdz4xLn62riYAny99Hd0s7/75h8bz4LUuCE=";
+    inherit (v) hash;
   };
 
   meta = {

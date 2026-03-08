@@ -3,11 +3,13 @@
   lib,
   config,
   pkgs,
+  versions,
   ...
 }:
 
 let
   cfg = config.apps.cli.zoxide;
+  zfV = versions.fish-plugins.zoxide-fish;
 in
 {
   options = {
@@ -38,8 +40,8 @@ in
           src = pkgs.fetchFromGitHub {
             owner = "icezyclon";
             repo = "zoxide.fish";
-            rev = "3.0";
-            hash = "sha256-OjrX0d8VjDMxiI5JlJPyu/scTs/fS/f5ehVyhAA/KDM=";
+            rev = zfV.version;
+            inherit (zfV) hash;
           };
         }
       ];

@@ -1,10 +1,14 @@
-{ lib, pkgs, versions, ... }:
+{
+  lib,
+  pkgs,
+  versions,
+  ...
+}:
 pkgs.stdenv.mkDerivation {
   name = "cpx";
   src = pkgs.fetchurl {
-    url =
-      "https://github.com/11happy/cpx/releases/download/v${versions.cli.cpx.version}/cpx-linux-x86_64-musl.tar.gz";
-    inherit (versions.cli.cpx) sha256;
+    url = "https://github.com/11happy/cpx/releases/download/v${versions.cli.cpx.version}/cpx-linux-x86_64-musl.tar.gz";
+    inherit (versions.cli.cpx) hash;
   };
 
   dontBuild = true;
@@ -18,8 +22,7 @@ pkgs.stdenv.mkDerivation {
   '';
 
   meta = with lib; {
-    description =
-      "Fast, Rust-based cp replacement with progress bars and resume capability - https://github.com/11happy/cpx";
+    description = "Fast, Rust-based cp replacement with progress bars and resume capability - https://github.com/11happy/cpx";
     maintainers = [ ];
   };
 }

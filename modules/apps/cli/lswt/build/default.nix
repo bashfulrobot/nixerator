@@ -1,21 +1,26 @@
-{ lib
-, stdenv
-, fetchFromSourcehut
-, pkg-config
-, wayland
-, wayland-scanner
-, wayland-protocols
+{
+  lib,
+  stdenv,
+  fetchFromSourcehut,
+  pkg-config,
+  wayland,
+  wayland-scanner,
+  wayland-protocols,
+  versions,
 }:
 
+let
+  v = versions.cli.lswt;
+in
 stdenv.mkDerivation rec {
   pname = "lswt";
-  version = "2.0.0";
+  inherit (v) version;
 
   src = fetchFromSourcehut {
     owner = "~leon_plickat";
     repo = pname;
     rev = "v${version}";
-    hash = "sha256-8jP6I2zsDt57STtuq4F9mcsckrjvaCE5lavqKTjhNT0=";
+    inherit (v) hash;
   };
 
   nativeBuildInputs = [

@@ -1,17 +1,24 @@
-{ lib, buildGoModule, fetchFromGitHub }:
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  versions,
+}:
 
+let
+  v = versions.cli.lazyrestic;
+in
 buildGoModule rec {
   pname = "lazyrestic";
-  version = "unstable-2025-12-30";
+  inherit (v) version;
 
   src = fetchFromGitHub {
     owner = "craigderington";
     repo = "lazyrestic";
-    rev = "b59e26f06da7b35f587b97cf0804b0e66b78f1e1";
-    hash = "sha256-Uezahy0f1/3wnuYQscXgpb0iFXWTvP0I1V5TPcmrV3A=";
+    inherit (v) rev hash;
   };
 
-  vendorHash = "sha256-MIq04ecsWq2DEbt6myCm4VqQYqjlAmTScDv0OXm9XV4=";
+  inherit (v) vendorHash;
 
   # Skip tests due to filesystem-specific test dependencies
   doCheck = false;
