@@ -26,15 +26,18 @@ let
   };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
   permissions = import ./cfg/permissions.nix;
-  baseHooks = import ./cfg/hooks.nix { inherit lib; };
+  globalHooks = import ./cfg/hooks-global.nix { inherit lib; };
+  nixeratorHooks = import ./cfg/hooks-nixerator.nix { inherit lib; };
   gsdConfig = import ./cfg/gsd.nix {
     inherit pkgs versions;
     homeDir = globals.user.homeDirectory;
   };
   superpowersConfig = import ./cfg/superpowers.nix { inherit lib pkgs versions; };
-  hooks = baseHooks // {
-    SessionStart = baseHooks.SessionStart ++ gsdConfig.hooks.SessionStart;
-    PostToolUse = baseHooks.PostToolUse ++ gsdConfig.hooks.PostToolUse;
+  hooks = {
+    SessionStart = globalHooks.SessionStart ++ (gsdConfig.hooks.SessionStart or [ ]);
+    PostToolUse =
+      globalHooks.PostToolUse ++ nixeratorHooks.PostToolUse ++ (gsdConfig.hooks.PostToolUse or [ ]);
+    Stop = globalHooks.Stop;
   };
   fishConfig = import ./cfg/fish.nix;
 
@@ -161,6 +164,7 @@ in
           skills = {
             commit = ./skills/commit;
             humanizer = ./skills/humanizer;
+            branch-status = ./skills/branch-status;
           }
           // superpowersConfig.skills;
 

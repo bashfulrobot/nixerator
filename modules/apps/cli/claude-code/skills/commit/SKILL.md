@@ -42,9 +42,10 @@ feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:�
 ## Process:
 1. Parse $ARGUMENTS flags.
 2. Inspect changes: `git status && git diff --cached`.
-3. Stage all changes: `git add -A`.
-4. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
-5. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
-6. If --tag: `git tag -s v<version> -m "Release v<version>"`
-7. Always push: `git push && git push --tags` (if tagged).
-8. If --release: `gh release create v<version> --notes-from-tag`.
+3. Check branch: detect default branch with `default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'); default_branch="${default_branch:-main}"`. If on default branch, note: "Committing to $default_branch. If this should be on a feature branch, abort and create one first."
+4. Stage all changes: `git add -A`.
+5. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
+6. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
+7. If --tag: `git tag -s v<version> -m "Release v<version>"`
+8. Always push: `git push && git push --tags` (if tagged).
+9. If --release: `gh release create v<version> --notes-from-tag`.

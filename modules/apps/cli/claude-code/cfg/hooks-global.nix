@@ -1,5 +1,12 @@
 { lib }:
 
+let
+  # Detect default branch dynamically (works with main, master, develop, trunk, etc.)
+  detectDefaultBranch = ''
+    default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
+    default_branch="''${default_branch:-main}"
+  '';
+in
 {
   # Sync git state on session start (handles syncthing drift)
   SessionStart = [
@@ -18,12 +25,55 @@
               local_only=$(git log "origin/$branch..$branch" --oneline 2>/dev/null)
               remote_only=$(git log "$branch..origin/$branch" --oneline 2>/dev/null)
               if [ -n "$local_only" ] && [ -n "$remote_only" ]; then
-                echo "[git-sync] Diverged — local and remote both have commits. Resolve manually."
+                echo "[git-sync] Diverged -- local and remote both have commits. Resolve manually."
               elif [ -n "$remote_only" ]; then
                 git reset "origin/$branch" >/dev/null 2>&1
                 echo "[git-sync] Aligned git state with origin/$branch"
               elif [ -n "$local_only" ]; then
                 echo "[git-sync] Unpushed local commits on $branch"
+              fi
+            '')
+          ];
+        }
+      ];
+    }
+
+    # Branch awareness on session start
+    {
+      matcher = "startup";
+      hooks = [
+        {
+          type = "command";
+          command = builtins.concatStringsSep " " [
+            "bash"
+            "-c"
+            (lib.escapeShellArg ''
+              git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+              ${detectDefaultBranch}
+              branch=$(git rev-parse --abbrev-ref HEAD)
+              feature_branches=$(git branch --list --no-color | grep -v '^\*' | grep -vE "^\s*$default_branch$" | sed 's/^  //' || true)
+
+              if [[ "$branch" == "$default_branch" ]]; then
+                if [[ -n "$feature_branches" ]]; then
+                  echo "[branch] On $default_branch. Feature branches available:"
+                  echo "$feature_branches" | while read -r b; do echo "  - $b"; done
+                  echo "Consider switching if one is relevant to your task."
+                else
+                  echo "[branch] On $default_branch. For non-trivial work, consider creating a feature branch."
+                fi
+              else
+                msg="[branch] On $branch."
+                counts=$(git rev-list --left-right --count "$default_branch...$branch" 2>/dev/null || true)
+                if [[ -n "$counts" ]]; then
+                  behind=$(echo "$counts" | awk '{print $1}')
+                  ahead=$(echo "$counts" | awk '{print $2}')
+                  msg="$msg Ahead: $ahead, behind: $behind vs $default_branch."
+                fi
+                uncommitted=$(git status --porcelain 2>/dev/null | wc -l)
+                if [[ "$uncommitted" -gt 0 ]]; then
+                  msg="$msg Uncommitted changes: $uncommitted files."
+                fi
+                echo "$msg"
               fi
             '')
           ];
@@ -54,7 +104,31 @@
       ];
     }
 
-    # Enforce safe bash commands
+    # Edit-on-default-branch warning (once per session)
+    {
+      matcher = "Edit|Write|MultiEdit";
+      hooks = [
+        {
+          type = "command";
+          command = builtins.concatStringsSep " " [
+            "bash"
+            "-c"
+            (lib.escapeShellArg ''
+              git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+              ${detectDefaultBranch}
+              branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+              [[ "$branch" == "$default_branch" ]] || exit 0
+              flag="/tmp/claude-branch-warned.$PPID"
+              [[ -f "$flag" ]] && exit 0
+              touch "$flag"
+              echo "[branch] You're editing on $default_branch. For non-trivial changes, consider a feature branch."
+            '')
+          ];
+        }
+      ];
+    }
+
+    # Enforce safe bash commands (global git guards)
     {
       matcher = "Bash";
       hooks = [
@@ -68,15 +142,15 @@
               cmd=$(echo "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
               [[ -n "$cmd" ]] || exit 0
 
-              # Block nixos-rebuild (must use just qr / just qu)
-              if echo "$cmd" | grep -qE '(^|\s|;|&&|\|)nixos-rebuild(\s|$)'; then
-                echo "[bash-guard] ERROR: Do not run nixos-rebuild directly. Fix: use 'just qr' (quiet-rebuild) or 'just qu' (quiet-upgrade) instead."
-                exit 1
-              fi
-
               # Warn on git commit and git push (user normally handles these, but may request via /command)
               if echo "$cmd" | grep -qE '(^|\s|;|&&|\|)git\s+(commit|push)(\s|$)'; then
-                echo "[bash-guard] WARNING: git commit/push detected. Only do this if the user explicitly asked. Do not commit or push on your own initiative."
+                ${detectDefaultBranch}
+                warn="[bash-guard] WARNING: git commit/push detected. Only do this if the user explicitly asked. Do not commit or push on your own initiative."
+                current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+                if [[ "$current_branch" == "$default_branch" ]]; then
+                  warn="$warn\n[bash-guard] NOTE: You are committing to $default_branch. If this is non-trivial work, consider a feature branch first."
+                fi
+                echo -e "$warn"
               fi
 
               # Block --no-verify and --force on git commands (allow --force-with-lease)
@@ -91,19 +165,13 @@
                   exit 1
                 fi
               fi
-
-              # Block direct nix-collect-garbage (use just recipes)
-              if echo "$cmd" | grep -qE '(^|\s|;|&&|\|)nix-collect-garbage(\s|$)'; then
-                echo "[bash-guard] ERROR: Do not run nix-collect-garbage directly. Fix: use the appropriate just recipe instead."
-                exit 1
-              fi
             '')
           ];
         }
       ];
     }
 
-    # Enforce nix file content rules (synchronous checks)
+    # Warn on plaintext secrets in .nix files
     {
       matcher = "Edit|Write|MultiEdit";
       hooks = [
@@ -118,35 +186,11 @@
               [[ "$file" == *.nix ]] || exit 0
 
               # Skip files inside secrets/ directory
-              is_secrets=false
-              if [[ "$file" == */secrets/* ]]; then
-                is_secrets=true
-              fi
+              [[ "$file" != */secrets/* ]] || exit 0
 
-              # Hardcoded username detection (outside secrets/)
-              if [[ "$is_secrets" == false ]] && [[ -f "$file" ]]; then
-                if grep -qE '/home/dustin|home-manager\.users\.dustin' "$file"; then
-                  echo "[nix-content] ERROR: Hardcoded username detected in $file. Fix: use globals.user.name or globals.user.homeDirectory from settings/globals.nix instead."
-                  exit 1
-                fi
-              fi
-
-              # Plaintext secret patterns (outside secrets/)
-              if [[ "$is_secrets" == false ]] && [[ -f "$file" ]]; then
+              if [[ -f "$file" ]]; then
                 if grep -qEi '(password|apiKey|token|secret)\s*=\s*"[^"]+' "$file"; then
                   echo "[nix-content] WARNING: Possible plaintext secret in $file. Use agenix secrets in secrets/ directory instead of inline secret values."
-                fi
-              fi
-
-              # Hyprland deprecated syntax
-              if [[ "$file" == *hypr* ]] && [[ -f "$file" ]]; then
-                if grep -qE 'windowrulev2' "$file"; then
-                  echo "[nix-content] ERROR: Deprecated 'windowrulev2' found in $file. Fix: use block syntax 'windowrule {' (Hyprland 0.53+). See extras/docs/hyprland-windowrules.md."
-                  exit 1
-                fi
-                if grep -qE '^\s*windowrule\s*=' "$file"; then
-                  echo "[nix-content] ERROR: Single-line 'windowrule =' found in $file. Fix: use block syntax 'windowrule {' (Hyprland 0.53+). See extras/docs/hyprland-windowrules.md."
-                  exit 1
                 fi
               fi
             '')
@@ -190,63 +234,6 @@
             '')
           ];
           async = true;
-        }
-      ];
-    }
-
-    # Enforce module structure conventions
-    {
-      matcher = "Edit|Write|MultiEdit";
-      hooks = [
-        {
-          type = "command";
-          command = builtins.concatStringsSep " " [
-            "bash"
-            "-c"
-            (lib.escapeShellArg ''
-              input=$(cat)
-              file=$(echo "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
-              [[ "$file" == *.nix ]] || exit 0
-              [[ -f "$file" ]] || exit 0
-
-              # Check version literals in build/default.nix files
-              if [[ "$file" == */build/default.nix ]]; then
-                if grep -qE '^\s*version\s*=\s*"' "$file"; then
-                  echo "[module-structure] ERROR: Hardcoded version literal in $file. Fix: versions should come from the 'versions' parameter (settings/versions.nix)."
-                  exit 1
-                fi
-              fi
-
-              # Only check module default.nix files under modules/
-              if [[ "$file" != */modules/*/default.nix ]]; then
-                exit 0
-              fi
-
-              # Skip if file has no options block (not a module definition)
-              if ! grep -q 'options\.' "$file"; then
-                exit 0
-              fi
-
-              # Extract expected namespace from path: modules/<cat>/<subcat>/<name>/default.nix
-              mod_path=$(echo "$file" | sed -n 's|.*/modules/\(.*\)/default\.nix|\1|p')
-              if [[ -z "$mod_path" ]]; then
-                exit 0
-              fi
-              # Convert path separators to dots for namespace
-              namespace=$(echo "$mod_path" | tr '/' '.')
-
-              # Check enable option matches path
-              if ! grep -q "options\.''${namespace}\.enable" "$file"; then
-                echo "[module-structure] ERROR: Module at $file defines options but is missing 'options.''${namespace}.enable'. Fix: add 'options.''${namespace}.enable = lib.mkEnableOption \"...\";'."
-                exit 1
-              fi
-
-              # Check config is wrapped in mkIf
-              if ! grep -qE '(lib\.mkIf|mkIf)' "$file"; then
-                echo "[module-structure] WARNING: Module at $file defines options but config is not wrapped in mkIf. Consider using 'config = lib.mkIf cfg.enable { ... };'."
-              fi
-            '')
-          ];
         }
       ];
     }
