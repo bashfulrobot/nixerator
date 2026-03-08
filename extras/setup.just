@@ -56,12 +56,12 @@ k8s-mcp:
 
 # === Version Updates ===
 
-# Check for and apply GSD version updates from npm
-[group('update')]
-update-gsd:
-    @bash modules/apps/cli/claude-code/cfg/scripts/update-gsd.bash
-
-# Check all locally-built packages for new releases
+# Check all pinned packages for new releases (caches results)
 [group('update')]
 check-updates:
-    @bash extras/scripts/check-pkg-updates.bash
+    @bash scripts/check-pkg-updates.bash
+
+# Update a specific package (prefetch + write to versions.nix)
+[group('update')]
+update-pkg *args:
+    @bash scripts/update-pkg.bash {{args}}
