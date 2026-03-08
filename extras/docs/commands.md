@@ -16,6 +16,17 @@ Core recipes (run from repo root):
 
 Reference recipes: `just ref <recipe>` -- run `just ref` to list.
 
+## Version Management
+
+All pinned package versions are centralized in `settings/versions.nix`.
+
+- `just setup::check-updates` -- check all packages for updates (caches to `/tmp/nixerator-pkg-status.json`)
+- `just setup::update-pkg <name>` -- prefetch and write new version+hash for one package
+- `just setup::update-pkg --all` -- update all release-tracked packages
+- `just setup::update-pkg --all --include-commits` -- also update commit-pinned packages
+
+Non-quiet rebuild recipes show a summary of available updates after a successful rebuild (if cached results exist and are less than 24 hours old).
+
 ## Manual Rebuild
 
 ```bash
