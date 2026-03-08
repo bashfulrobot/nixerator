@@ -34,17 +34,17 @@
     cpx = {
       source = "github-release";
       repo = "11happy/cpx";
-      version = "0.1.3";
+      version = "0.1.4";
       tagPrefix = "v";
-      hash = "sha256-1qxQgWTxDIRabZRyE5vIo+H0ebzGGB+nyyzO2dujlK4=";
+      hash = "sha256-+XqoMGVAxUEY3v/fdlogqe8q2CoyCLK5e6Itp0P/NcE=";
     };
 
     yepanywhere = {
       source = "npm";
       repo = "kzahel/yepanywhere";
       npmPkg = "yepanywhere";
-      version = "0.4.8";
-      hash = "sha256-ZOWI7uiU3MdYMLtamWuiSCSdrdXhrVdPIfJkPMHVtYo=";
+      version = "0.4.9";
+      hash = "sha256-8fe/9BXccPexsgWJC3VYlUIwFuEqdGdCzC8No49ndC4=";
       npmDepsHash = "sha256-X+uKkERkbQ9cxHZPag6oqcIs2exg4+ncwPwJAEe+gEc=";
     };
 
@@ -68,8 +68,8 @@
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
-      version = "0.0.57";
-      hash = "sha256-csF1HhRFqccBcu+jCkRSIhxNJhhO6jMBISL81RMlLBc=";
+      version = "0.0.58";
+      hash = "sha256-4gei7GdwUhREKATFBam+lYWotb6qwnJfIpoVoaFmYDQ=";
       npmPkg = "kubernetes-mcp-server-linux-amd64";
     };
 
@@ -95,21 +95,21 @@
     insomnia = {
       source = "github-release";
       repo = "Kong/insomnia";
-      version = "12.3.1";
+      version = "12.4.0";
       tagPrefix = "core@";
       platformHashes = {
-        x86_64-linux = "sha256-Bcja3z/QKdJ6NNvrRjSPPUsuqy53JveAiJ8jYrwg2uY=";
-        aarch64-darwin = "sha256-eKHZjZ8nVRIC28LJlokWop0xHGYyYcUS6ehzu5I/8CE=";
-        x86_64-darwin = "sha256-eKHZjZ8nVRIC28LJlokWop0xHGYyYcUS6ehzu5I/8CE=";
+        x86_64-linux = "";
+        aarch64-darwin = "";
+        x86_64-darwin = "";
       };
     };
 
     helium = {
       source = "github-release";
       repo = "imputnet/helium-linux";
-      version = "0.9.1.1";
+      version = "0.9.4.1";
       tagPrefix = "";
-      hash = "sha256-0Kw8Ko41Gdz4xLn62riYAny99Hd0s7/75h8bz4LUuCE=";
+      hash = "";
     };
   };
 
