@@ -30,7 +30,6 @@ in
         amber.enable = true;
         cue.enable = false;
         git.enable = true;
-        fresh-editor.enable = true;
         helix.enable = true;
         lswt.enable = true;
         nix.enable = true;
@@ -38,7 +37,7 @@ in
         shadowenv.enable = true;
       };
       gui = {
-        vscode.enable = true;
+        vscode.enable = false;
         vscode.nautilusIntegration = true;
         zed.enable = true;
       };

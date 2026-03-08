@@ -21,7 +21,7 @@ in
     # Communication applications
     apps.gui = {
       insync.enable = true;
-      morgen.enable = true;
+      morgen.enable = false;
       obsidian.enable = true;
       signal.enable = true;
       typora.enable = true;
