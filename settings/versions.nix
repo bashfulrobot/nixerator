@@ -64,6 +64,15 @@
       npmPkg = "kubernetes-mcp-server-linux-amd64";
     };
 
+    termly = {
+      source = "npm";
+      repo = "termly-dev/cli";
+      npmPkg = "@termly-dev/cli";
+      version = "1.9.0";
+      hash = "sha256-lQkgolx5ih2H3qs1l6y30bz2+Spnn6+yUMabioySFHI=";
+      npmDepsHash = "sha256-CWnaaJ9BOXQ8La/4UAltritxq1kDRAA6+WoPcUDaF50=";
+    };
+
     lswt = {
       source = "sourcehut";
       repo = "~leon_plickat/lswt";
