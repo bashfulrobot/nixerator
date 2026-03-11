@@ -82,6 +82,15 @@
       vendorHash = "sha256-/6DyRRvfyShQUSFmpmuSxrd1bhBh6Km8kaMutA4xrH4=";
     };
 
+    plannotator = {
+      source = "github-release";
+      repo = "backnotprop/plannotator";
+      version = "0.11.4";
+      tagPrefix = "v";
+      hash = "sha256-J/Jp7lM85Yl8VXV+UynOdFmc6m45vAV6lDYc0Xl40yA=";
+      pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
+    };
+
     lazyrestic = {
       source = "github-commit";
       repo = "craigderington/lazyrestic";
