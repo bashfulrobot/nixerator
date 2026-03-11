@@ -164,6 +164,7 @@ in
             humanizer = ./skills/humanizer;
             branch-status = ./skills/branch-status;
             github-issue = ./skills/github-issue;
+            csat = ./skills/csat;
           };
 
           outputStyles.compact = ./output-styles/compact.md;

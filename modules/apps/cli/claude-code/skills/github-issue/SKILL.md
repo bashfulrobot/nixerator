@@ -50,17 +50,21 @@ This skill has two phases. On invocation, detect which phase applies.
 
 #### Step 1 — Plan (read-only)
 
-Enter plan mode (`EnterPlanMode`) before any edits. While in plan mode:
+**Interactive mode only:** Enter plan mode (`EnterPlanMode`) before any edits.
+
+**Autonomous mode:** Do NOT use `EnterPlanMode` or `ExitPlanMode`. Perform all research inline (read files, search patterns, fetch issue details) without entering plan mode, then proceed directly to execution.
+
+While planning (in plan mode for interactive, inline for autonomous):
 
 1. Fetch issue details: `gh issue view <number>`
 2. Detect default branch: `default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'); default_branch="${default_branch:-main}"`
 3. Research the codebase: read relevant files, search for patterns, understand the affected areas.
 4. Produce a concrete plan: list every file to create/modify, describe each change, and note the commit structure (single or atomic splits).
-5. In **interactive** mode, present the plan and wait for user approval before proceeding. In **autonomous** mode, proceed immediately.
+5. In **interactive** mode, present the plan and wait for user approval before proceeding. In **autonomous** mode, proceed immediately to Step 2 without any pause.
 
 #### Step 2 — Execute
 
-Exit plan mode (`ExitPlanMode`) and begin editing.
+**Interactive mode only:** Exit plan mode (`ExitPlanMode`) before editing. **Autonomous mode:** Already outside plan mode, just start editing.
 
 1. Create branch from default branch: `fix/<slug>` or `feat/<slug>` based on issue content (kebab-case from title). Checkout the new branch.
 2. Implement the fix or feature following the plan. Edit files, run builds as needed.
