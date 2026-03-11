@@ -21,6 +21,9 @@ in
     # Enable Docker
     apps.cli.docker.enable = true;
 
+    # JWT tools
+    apps.cli.jwtx.enable = true;
+
     # Infrastructure and cloud tools
     environment.systemPackages = with pkgs; [
       # Cloud utilities
