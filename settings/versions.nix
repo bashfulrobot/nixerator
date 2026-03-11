@@ -73,6 +73,15 @@
       hash = "sha256-8jP6I2zsDt57STtuq4F9mcsckrjvaCE5lavqKTjhNT0=";
     };
 
+    jwtx = {
+      source = "github-release";
+      repo = "gurleensethi/jwtx";
+      version = "0.5.0";
+      tagPrefix = "";
+      hash = "sha256-DtgZRrF5s0SMEZnMYp5a8zkDptYbB6h0ihuP8PpGgWY=";
+      vendorHash = "sha256-/6DyRRvfyShQUSFmpmuSxrd1bhBh6Km8kaMutA4xrH4=";
+    };
+
     lazyrestic = {
       source = "github-commit";
       repo = "craigderington/lazyrestic";
