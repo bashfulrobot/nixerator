@@ -163,7 +163,6 @@ in
             commit = ./skills/commit;
             humanizer = ./skills/humanizer;
             branch-status = ./skills/branch-status;
-            github-issue = ./skills/github-issue;
             csat = ./skills/csat;
           };
 

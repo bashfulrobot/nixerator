@@ -58,5 +58,10 @@ in
       github-issue-cmd
       hack-cmd
     ];
+
+    home-manager.users.${globals.user.name} = {
+      home.file.".claude/skills/github-issue/SKILL.md".text =
+        builtins.readFile ./skills/github-issue/SKILL.md;
+    };
   };
 }
