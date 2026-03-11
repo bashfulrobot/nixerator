@@ -163,6 +163,7 @@ in
             commit = ./skills/commit;
             humanizer = ./skills/humanizer;
             branch-status = ./skills/branch-status;
+            github-issue = ./skills/github-issue;
           };
 
           outputStyles.compact = ./output-styles/compact.md;
