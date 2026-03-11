@@ -9,8 +9,8 @@
 
 - [ ] **WT-01**: Script creates worktree with proper branch naming (`fix/<slug>`, `feat/<slug>`, `hack/<slug>` based on context)
 - [ ] **WT-02**: Script detects and offers to clean orphaned worktrees on startup
-- [ ] **WT-03**: Script registers trap cleanup handler immediately after `git worktree add`
-- [ ] **WT-04**: State file writes are atomic (write to tmpfile, then `mv`)
+- [x] **WT-03**: Script registers trap cleanup handler immediately after `git worktree add`
+- [x] **WT-04**: State file writes are atomic (write to tmpfile, then `mv`)
 - [ ] **WT-05**: Cleanup sequences as worktree remove, then prune, then branch delete
 - [ ] **WT-06**: Re-invocation with same issue number or description resumes from state file
 - [ ] **WT-07**: Script errors if worktree already exists for same issue/description (with option to resume)
@@ -33,18 +33,18 @@
 
 ### Safety
 
-- [ ] **SF-01**: Always uses `git push -u origin <branch>` on first push
-- [ ] **SF-02**: Never pushes to main/master directly; validates current branch before push
-- [ ] **SF-03**: Guards against dirty working tree before worktree creation
-- [ ] **SF-04**: All gum prompts handle exit code 1 (No) and 130 (Ctrl+C) without silent death under `set -e`
-- [ ] **SF-05**: git-crypt auto-unlock in new worktrees with key verification via `git crypt status`
+- [x] **SF-01**: Always uses `git push -u origin <branch>` on first push
+- [x] **SF-02**: Never pushes to main/master directly; validates current branch before push
+- [x] **SF-03**: Guards against dirty working tree before worktree creation
+- [x] **SF-04**: All gum prompts handle exit code 1 (No) and 130 (Ctrl+C) without silent death under `set -e`
+- [x] **SF-05**: git-crypt auto-unlock in new worktrees with key verification via `git crypt status`
 
 ### Nix Packaging
 
-- [ ] **NX-01**: New module at `modules/apps/cli/worktree-flow/` with `apps.cli.worktree-flow.enable` option
-- [ ] **NX-02**: Both commands packaged via `pkgs.writeShellApplication` with explicit `runtimeInputs`
-- [ ] **NX-03**: Shared functions in `lib.sh` concatenated at build time via Nix string interpolation
-- [ ] **NX-04**: Scripts stored in `modules/apps/cli/worktree-flow/scripts/`
+- [x] **NX-01**: New module at `modules/apps/cli/worktree-flow/` with `apps.cli.worktree-flow.enable` option
+- [x] **NX-02**: Both commands packaged via `pkgs.writeShellApplication` with explicit `runtimeInputs`
+- [x] **NX-03**: Shared functions in `lib.sh` concatenated at build time via Nix string interpolation
+- [x] **NX-04**: Scripts stored in `modules/apps/cli/worktree-flow/scripts/`
 
 ### Post-merge Cleanup
 
@@ -79,8 +79,8 @@
 |-------------|-------|--------|
 | WT-01 | Phase 2 | Pending |
 | WT-02 | Phase 2 | Pending |
-| WT-03 | Phase 1 | Pending |
-| WT-04 | Phase 1 | Pending |
+| WT-03 | Phase 1 | Complete |
+| WT-04 | Phase 1 | Complete |
 | WT-05 | Phase 2 | Pending |
 | WT-06 | Phase 2 | Pending |
 | WT-07 | Phase 2 | Pending |
@@ -94,15 +94,15 @@
 | RF-03 | Phase 3 | Pending |
 | RF-04 | Phase 3 | Pending |
 | RF-05 | Phase 3 | Pending |
-| SF-01 | Phase 1 | Pending |
-| SF-02 | Phase 1 | Pending |
-| SF-03 | Phase 1 | Pending |
-| SF-04 | Phase 1 | Pending |
-| SF-05 | Phase 1 | Pending |
-| NX-01 | Phase 1 | Pending |
-| NX-02 | Phase 1 | Pending |
-| NX-03 | Phase 1 | Pending |
-| NX-04 | Phase 1 | Pending |
+| SF-01 | Phase 1 | Complete |
+| SF-02 | Phase 1 | Complete |
+| SF-03 | Phase 1 | Complete |
+| SF-04 | Phase 1 | Complete |
+| SF-05 | Phase 1 | Complete |
+| NX-01 | Phase 1 | Complete |
+| NX-02 | Phase 1 | Complete |
+| NX-03 | Phase 1 | Complete |
+| NX-04 | Phase 1 | Complete |
 | PM-01 | Phase 2 | Pending |
 | PM-02 | Phase 2 | Pending |
 | PM-03 | Phase 2 | Pending |
