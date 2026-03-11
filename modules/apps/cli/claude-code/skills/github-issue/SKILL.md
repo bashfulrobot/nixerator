@@ -2,7 +2,7 @@
 name: github-issue
 description: Work a GitHub issue end-to-end: branch, implement, commit, PR, then post-merge cleanup.
 argument-hint: "[--auto] <issue-number>"
-allowed-tools: ["Bash", "Read", "Write", "Edit", "Grep", "Glob", "Agent", "AskUserQuestion"]
+allowed-tools: ["Bash", "Read", "Write", "Edit", "Grep", "Glob", "Agent", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode"]
 ---
 
 ## Commit conventions
@@ -23,6 +23,16 @@ Type to emoji: feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ t
 - **Interactive** (default): Pauses for user input when the issue number is missing. Asks the user to pick from open issues.
 - **Autonomous** (`--auto`): Requires an issue number. Skips all confirmation prompts. Implements, commits, pushes, and creates the PR without stopping. Still does not merge (user merges). If no issue number is provided with `--auto`, error out immediately.
 
+### Autonomous mode rules
+
+When `--auto` is active, these rules are absolute:
+
+- **NEVER** use `AskUserQuestion`. Do not ask the user anything. Make your best judgment call on every decision.
+- **NEVER** pause, stop, or wait for user input at any point.
+- If the implementation approach is ambiguous, pick the simplest reasonable approach and proceed.
+- If you encounter an error during build/test, attempt to fix it up to 3 times, then proceed with the PR anyway and note the issue in the PR body.
+- Do not ask "should I...?" or "would you like...?" -- just do it.
+
 ## Workflow
 
 This skill has two phases. On invocation, detect which phase applies.
@@ -38,15 +48,27 @@ This skill has two phases. On invocation, detect which phase applies.
 
 ### Phase 1: Implement and PR
 
+#### Step 1 — Plan (read-only)
+
+Enter plan mode (`EnterPlanMode`) before any edits. While in plan mode:
+
 1. Fetch issue details: `gh issue view <number>`
 2. Detect default branch: `default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'); default_branch="${default_branch:-main}"`
-3. Create branch from default branch: `fix/<slug>` or `feat/<slug>` based on issue content (kebab-case from title). Checkout the new branch.
-4. Implement the fix or feature. Research the codebase, edit files, run builds as needed.
-5. Stage and commit following the commit conventions above:
+3. Research the codebase: read relevant files, search for patterns, understand the affected areas.
+4. Produce a concrete plan: list every file to create/modify, describe each change, and note the commit structure (single or atomic splits).
+5. In **interactive** mode, present the plan and wait for user approval before proceeding. In **autonomous** mode, proceed immediately.
+
+#### Step 2 — Execute
+
+Exit plan mode (`ExitPlanMode`) and begin editing.
+
+1. Create branch from default branch: `fix/<slug>` or `feat/<slug>` based on issue content (kebab-case from title). Checkout the new branch.
+2. Implement the fix or feature following the plan. Edit files, run builds as needed.
+3. Stage and commit following the commit conventions above:
    - Include `Closes #<number>` in the commit body.
    - Split into atomic commits if changes span unrelated areas.
-6. Push branch: `git push -u origin <branch>`
-7. Create PR via `gh pr create`:
+4. Push branch: `git push -u origin <branch>`
+5. Create PR via `gh pr create`:
    - Title: short, <70 chars.
    - Body format:
      ```
@@ -58,8 +80,8 @@ This skill has two phases. On invocation, detect which phase applies.
 
      Closes #<number>
      ```
-8. Comment on the issue linking the PR: `gh issue comment <number> --body "PR #<pr-number> opened to address this."`
-9. Output the PR URL. Tell the user to review and merge. Do not merge.
+6. Comment on the issue linking the PR: `gh issue comment <number> --body "PR #<pr-number> opened to address this."`
+7. Output the PR URL. Tell the user to review and merge. Do not merge.
    - **Interactive**: **STOP** here and wait for the user.
    - **Autonomous**: Proceed directly to a brief summary of what was done, then finish. The user will re-invoke with the same issue number for Phase 2 cleanup after merging.
 
