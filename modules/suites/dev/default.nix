@@ -35,6 +35,7 @@ in
         nix.enable = true;
         nix-search-tv.enable = true;
         shadowenv.enable = true;
+        worktree-flow.enable = true;
       };
       gui = {
         vscode.enable = false;
