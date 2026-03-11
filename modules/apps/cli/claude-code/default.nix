@@ -165,7 +165,6 @@ in
             commit = ./skills/commit;
             humanizer = ./skills/humanizer;
             branch-status = ./skills/branch-status;
-            meetsum = ./skills/meetsum;
           }
           // superpowersConfig.skills;
 
