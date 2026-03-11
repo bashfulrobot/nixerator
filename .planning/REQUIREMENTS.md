@@ -17,11 +17,11 @@
 
 ### Claude Integration
 
-- [ ] **CL-01**: Shell script owns all lifecycle (worktree create, state write, push, PR, cleanup); Claude owns only implementation
-- [ ] **CL-02**: State file written before Claude launch, updated by querying git/gh after Claude exits
-- [ ] **CL-03**: All git fetch/setup operations complete before launching Claude
-- [ ] **CL-04**: Simplified SKILL.md contains only commit conventions and PR body format, no lifecycle instructions
-- [ ] **CL-05**: Claude session ID tracked in state file for `--resume` on re-invocation
+- [x] **CL-01**: Shell script owns all lifecycle (worktree create, state write, push, PR, cleanup); Claude owns only implementation
+- [x] **CL-02**: State file written before Claude launch, updated by querying git/gh after Claude exits
+- [x] **CL-03**: All git fetch/setup operations complete before launching Claude
+- [x] **CL-04**: Simplified SKILL.md contains only commit conventions and PR body format, no lifecycle instructions
+- [x] **CL-05**: Claude session ID tracked in state file for `--resume` on re-invocation
 
 ### Review Flows
 
@@ -84,11 +84,11 @@
 | WT-05 | Phase 2 | Pending |
 | WT-06 | Phase 2 | Pending |
 | WT-07 | Phase 2 | Pending |
-| CL-01 | Phase 1 | Pending |
-| CL-02 | Phase 1 | Pending |
-| CL-03 | Phase 1 | Pending |
-| CL-04 | Phase 1 | Pending |
-| CL-05 | Phase 1 | Pending |
+| CL-01 | Phase 1 | Complete |
+| CL-02 | Phase 1 | Complete |
+| CL-03 | Phase 1 | Complete |
+| CL-04 | Phase 1 | Complete |
+| CL-05 | Phase 1 | Complete |
 | RF-01 | Phase 2 | Pending |
 | RF-02 | Phase 2 | Pending |
 | RF-03 | Phase 3 | Pending |
