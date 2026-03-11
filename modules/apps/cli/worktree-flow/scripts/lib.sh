@@ -15,7 +15,7 @@ die()  { printf '%s✖ %s%s\n'  "$RED"    "$*" "$NC" >&2; exit 1; }
 # ── Section headers ───────────────────────────────────────────────────────────
 section() {
   printf '\n'
-  gum style --bold --foreground 6 "-- $* --"
+  gum style --bold --foreground="6" -- "-- $* --"
   printf '\n'
 }
 
