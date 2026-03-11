@@ -48,14 +48,6 @@
       npmDepsHash = "sha256-15I2dWDgJAdG1edG0e9QUvnyp3PxmZ04jTUKqTUXk1U=";
     };
 
-    superpowers = {
-      source = "github-commit";
-      repo = "obra/superpowers";
-      version = "unstable-2025-03-01";
-      rev = "e4a2375cb705ca5800f0833528ce36a3faf9017a";
-      hash = "sha256-AeICtdAfWRp0oCgQqd8LdrEWWtKNqUNWdvn0CGL18fA=";
-    };
-
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
