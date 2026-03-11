@@ -12,7 +12,7 @@ Build two CLI commands (`github-issue` and `hack`) packaged as a NixOS module th
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Nix module scaffold, lib.sh shared functions, safety primitives, Claude integration contract
+- [x] **Phase 1: Foundation** - Nix module scaffold, lib.sh shared functions, safety primitives, Claude integration contract (completed 2026-03-11)
 - [ ] **Phase 2: github-issue Workflow** - Full github-issue command with worktree lifecycle, PR creation, and post-merge cleanup
 - [ ] **Phase 3: hack Workflow** - Full hack command with gum diff review, local merge, and both-command integration validation
 
@@ -63,6 +63,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/2 | In Progress|  |
+| 1. Foundation | 2/2 | Complete   | 2026-03-11 |
 | 2. github-issue Workflow | 0/TBD | Not started | - |
 | 3. hack Workflow | 0/TBD | Not started | - |

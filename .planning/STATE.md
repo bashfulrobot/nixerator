@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-foundation-01-PLAN.md
-last_updated: "2026-03-11T14:50:10.779Z"
+stopped_at: Completed 01-foundation-02-PLAN.md
+last_updated: "2026-03-11T15:01:26.673Z"
 last_activity: 2026-03-11 -- Roadmap created
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 15 | 2 tasks | 5 files |
+| Phase 01-foundation P02 | 10 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,8 @@ Recent decisions affecting current work:
 - Local merge for hack, GitHub PR for github-issue: different review needs
 - State file in worktree root: survives context compression, enables resume from any step
 - [Phase 01-foundation]: Enabled worktree-flow in suites/dev for all workstations; lib.sh inlined via builtins.readFile; globals arg included for Phase 2 home.file; gnused in runtimeInputs for forward-compatibility
+- [Phase 01-foundation]: SKILL.md owned by worktree-flow module, not claude-code: deployed via home.file builtins.readFile
+- [Phase 01-foundation]: SKILL.md scope limited to commit conventions and PR body format; shell owns lifecycle per CL-01
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-11T14:50:10.777Z
-Stopped at: Completed 01-foundation-01-PLAN.md
+Last session: 2026-03-11T15:01:26.670Z
+Stopped at: Completed 01-foundation-02-PLAN.md
 Resume file: None
