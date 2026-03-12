@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-github-issue-workflow-01-PLAN.md
-last_updated: "2026-03-12T04:07:07.554Z"
+stopped_at: Completed 02-github-issue-workflow-02-PLAN.md
+last_updated: "2026-03-12T04:13:56.074Z"
 last_activity: 2026-03-11 -- Roadmap created
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-foundation P01 | 15 | 2 tasks | 5 files |
 | Phase 01-foundation P02 | 10 | 2 tasks | 6 files |
 | Phase 02-github-issue-workflow P01 | 1 | 2 tasks | 2 files |
+| Phase 02-github-issue-workflow P02 | 4 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: SKILL.md owned by worktree-flow module, not claude-code: deployed via home.file builtins.readFile
 - [Phase 01-foundation]: SKILL.md scope limited to commit conventions and PR body format; shell owns lifecycle per CL-01
 - [Phase 02-github-issue-workflow]: Combined push+PR into phase_push_and_pr to avoid partial-state window; existing worktree uses die placeholder deferred to Plan 02
+- [Phase 02-github-issue-workflow]: phase_resume uses numeric start index to avoid bash ;;&  fall-through pitfalls for reliable sequential phase execution
+- [Phase 02-github-issue-workflow]: Always set _WT_CLEANUP_PATH= before intentional git worktree remove to prevent EXIT trap double-remove
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T04:07:07.551Z
-Stopped at: Completed 02-github-issue-workflow-01-PLAN.md
+Last session: 2026-03-12T04:13:56.071Z
+Stopped at: Completed 02-github-issue-workflow-02-PLAN.md
 Resume file: None
