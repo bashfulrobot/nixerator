@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A NixOS module providing two CLI commands (`github-issue` and `hack`) that wrap Claude Code in isolated git worktrees. Each command creates a worktree, launches Claude inside it for implementation work, handles review/merge, and cleans up. Packaged via `writeShellApplication` with gum for interactive UI.
+A NixOS module providing two CLI commands (`github-issue` and `hack`) that wrap Claude Code in isolated git worktrees. Each command creates a worktree, launches Claude inside it for implementation work, handles review/merge, and cleans up. Packaged via `writeShellApplication` with gum for interactive UI. Includes resume support, orphan detection, and post-merge cleanup.
 
 ## Core Value
 
@@ -12,35 +12,44 @@ Every Claude Code session gets full git isolation so parallel work never collide
 
 ### Validated
 
-(None yet -- ship to validate)
+- v1.0: Worktree lifecycle (WT-01..07) -- worktree creation, branch naming, cleanup, resume, orphan detection
+- v1.0: Claude integration (CL-01..05) -- shell owns lifecycle, state tracking, session resume
+- v1.0: Review flows (RF-01..05) -- github-issue PR creation, hack diff review + local merge
+- v1.0: Safety (SF-01..05) -- push guards, dirty tree check, gum prompt safety, git-crypt unlock
+- v1.0: Nix packaging (NX-01..04) -- module scaffold, writeShellApplication, lib.sh sharing
+- v1.0: Post-merge cleanup (PM-01..04) -- merged PR detection, branch/worktree cleanup, resolution comments
 
 ### Active
 
-- [ ] `github-issue` command: takes an issue number, creates worktree, launches Claude to implement, commits, pushes, creates PR via `gh`, cleans up after merge
-- [ ] `hack` command: takes a description, creates worktree, launches Claude to implement, commits, presents gum-driven diff review in terminal, merges locally on approval, cleans up
-- [ ] Both commands packaged as `writeShellApplication` in a new NixOS module at `modules/apps/cli/worktree-flow/`
-- [ ] State file (`.github-issue-state.json` or similar) written in worktree for recovery if context drifts or session is interrupted
-- [ ] gum-powered interactive UI for phase detection, diff review, merge confirmation, and cleanup prompts
-- [ ] Worktree isolation via `git worktree add` with proper branch naming (`fix/<slug>`, `feat/<slug>`)
-- [ ] Safe push with `-u` flag to prevent accidental pushes to main
-- [ ] SKILL.md for `github-issue` simplified to only contain implementation instructions (commit conventions, PR format), no lifecycle management
-- [ ] Parallel safety: multiple terminals running different issues/hacks never see each other's changes
+(None -- define with `/gsd:new-milestone`)
 
 ### Out of Scope
 
-- Manual (no-AI) worktree mode -- `hack` always launches Claude
-- Claude Code's `EnterWorktree`/`ExitWorktree` tools -- using manual `git worktree add` via bash for full control over naming and state
-- Merge on GitHub for ad-hoc flow -- `hack` reviews and merges locally in terminal
-- Auto-merge for issue flow -- user always merges PRs on GitHub
+- Manual (no-AI) worktree mode -- hack always launches Claude; use gcom for manual worktrees
+- Claude Code EnterWorktree/ExitWorktree -- manual git worktree add gives full control over naming and state
+- Auto-merge for github-issue -- user always merges PRs on GitHub
+- GitHub review for hack flow -- hack reviews and merges locally in terminal
 
 ## Context
 
-- Nixerator is a NixOS flake with auto-importing modules under `modules/`
-- Existing `gcmt` module demonstrates the `writeShellApplication` + gum pattern (runtimeInputs, script in `./scripts/`)
-- Existing `gcom` tool in the git module already has worktree support with git-crypt unlocking -- can reference its patterns
-- Current `github-issue` SKILL.md handles everything (branching, implementation, PR) in a single AI prompt, which causes context drift and no isolation
-- Blog reference (mejba.me) confirms: always `git push -u`, task independence is critical for parallel work, worktrees share `.git` so they're lightweight
-- Claude Code skills live in `modules/apps/cli/claude-code/skills/`
+Shipped v1.0 with 1,078 LOC (shell + nix + markdown).
+Tech stack: Bash (writeShellApplication), gum, gh, jq, git-crypt, NixOS/home-manager.
+30 requirements satisfied across 3 phases, 5 plans.
+5 tech debt items identified in audit (duplicated functions, dead code, shared SKILL.md).
+
+## Key Decisions
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Manual `git worktree add` over `EnterWorktree` | Full control over branch naming, worktree path, and state file location | Good |
+| New standalone module, not in claude-code | Separation of concerns; worktree flow is its own tool | Good |
+| gum for interactive UI | Already a dependency (gcmt uses it), rich terminal UI | Good |
+| Local merge for `hack`, GitHub PR for `github-issue` | Different review needs: quick ad-hoc vs collaborative issue work | Good |
+| State file in worktree root | Survives context compression, enables resume from any step | Good |
+| lib.sh inlined via builtins.readFile | Each command gets its own copy at build time; avoids runtime path issues | Good |
+| SKILL.md owned by worktree-flow module | Self-contained; deployed via home.file builtins.readFile | Good |
+| Numeric start index for phase_resume | Avoids bash ;;& fall-through pitfalls for reliable sequential phase execution | Good |
+| Combined push+PR into single phase | Avoids partial-state window where push succeeds but PR fails | Good |
 
 ## Constraints
 
@@ -51,15 +60,5 @@ Every Claude Code session gets full git isolation so parallel work never collide
 - **Git safety**: Never force push, always use `-u` on first push, never push to main/master directly
 - **Nix conventions**: `nix fmt`, `statix`, `deadnix` before committing
 
-## Key Decisions
-
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Manual `git worktree add` over `EnterWorktree` | Full control over branch naming, worktree path, and state file location | -- Pending |
-| New standalone module, not in claude-code | Separation of concerns; worktree flow is its own tool | -- Pending |
-| gum for interactive UI | Already a dependency (gcmt uses it), rich terminal UI | -- Pending |
-| Local merge for `hack`, GitHub PR for `github-issue` | Different review needs: quick ad-hoc vs collaborative issue work | -- Pending |
-| State file in worktree root | Survives context compression, enables resume from any step | -- Pending |
-
 ---
-*Last updated: 2026-03-11 after initialization*
+*Last updated: 2026-03-12 after v1.0 milestone*

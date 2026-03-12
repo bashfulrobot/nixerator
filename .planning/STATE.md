@@ -1,55 +1,48 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: planning
-stopped_at: Completed 03-hack-workflow-01-PLAN.md
-last_updated: "2026-03-12T06:54:11.769Z"
-last_activity: 2026-03-11 -- Roadmap created
+milestone_name: Worktree Flow
+status: completed
+stopped_at: Milestone v1.0 complete
+last_updated: "2026-03-12T07:15:00.000Z"
+last_activity: 2026-03-12 -- Milestone v1.0 shipped
 progress:
   total_phases: 3
   completed_phases: 3
   total_plans: 5
   completed_plans: 5
-  percent: 0
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-11)
+See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** Every Claude Code session gets full git isolation so parallel work never collides, and deterministic shell logic handles the worktree lifecycle so the AI never drifts.
-**Current focus:** Phase 1 - Foundation
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 1 of 3 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-11 -- Roadmap created
+Phase: 3 of 3 (complete)
+Plan: 5 of 5
+Status: Milestone v1.0 shipped
+Last activity: 2026-03-12 -- Milestone v1.0 shipped
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [##########] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 5
+- Timeline: 1 day (2026-03-11 -> 2026-03-12)
+- Total commits: 32
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| - | - | - | - |
-
-**Recent Trend:**
-- Last 5 plans: -
-- Trend: -
-
-*Updated after each plan completion*
+| Phase | Plans | Tasks | Files |
+|-------|-------|-------|-------|
 | Phase 01-foundation P01 | 15 | 2 tasks | 5 files |
 | Phase 01-foundation P02 | 10 | 2 tasks | 6 files |
 | Phase 02-github-issue-workflow P01 | 1 | 2 tasks | 2 files |
@@ -60,35 +53,18 @@ Progress: [░░░░░░░░░░] 0%
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- Manual `git worktree add` over EnterWorktree: full control over branch naming and state file location
-- New standalone module, not in claude-code: separation of concerns
-- gum for interactive UI: already a dependency in gcmt
-- Local merge for hack, GitHub PR for github-issue: different review needs
-- State file in worktree root: survives context compression, enables resume from any step
-- [Phase 01-foundation]: Enabled worktree-flow in suites/dev for all workstations; lib.sh inlined via builtins.readFile; globals arg included for Phase 2 home.file; gnused in runtimeInputs for forward-compatibility
-- [Phase 01-foundation]: SKILL.md owned by worktree-flow module, not claude-code: deployed via home.file builtins.readFile
-- [Phase 01-foundation]: SKILL.md scope limited to commit conventions and PR body format; shell owns lifecycle per CL-01
-- [Phase 02-github-issue-workflow]: Combined push+PR into phase_push_and_pr to avoid partial-state window; existing worktree uses die placeholder deferred to Plan 02
-- [Phase 02-github-issue-workflow]: phase_resume uses numeric start index to avoid bash ;;&  fall-through pitfalls for reliable sequential phase execution
-- [Phase 02-github-issue-workflow]: Always set _WT_CLEANUP_PATH= before intentional git worktree remove to prevent EXIT trap double-remove
-- [Phase 03-hack-workflow]: Reused github-issue SKILL.md for hack workflow per locked decision
-- [Phase 03-hack-workflow]: phase_resume numeric start index; diff_review start=2 so resume always re-shows diff
+See PROJECT.md Key Decisions table for full history.
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- Verify `claude` binary is findable at runtime inside writeShellApplication PATH isolation (may need pkgs.claude-code in runtimeInputs)
-- Confirm gnused necessity vs POSIX sed for slug generation before publishing module
-- Decide SKILL.md deployment path: worktree-flow home.file (preferred, self-contained) vs claude-code module skills mechanism
+None (milestone complete).
 
 ## Session Continuity
 
-Last session: 2026-03-12T06:51:17.486Z
-Stopped at: Completed 03-hack-workflow-01-PLAN.md
+Last session: 2026-03-12
+Stopped at: Milestone v1.0 complete
 Resume file: None
