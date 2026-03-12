@@ -232,6 +232,86 @@ phase_claude_exited() {
   set_phase "pushing" "$wt_path"
 }
 
+remove_worktree() {
+  local wt_path="$1"
+  _WT_CLEANUP_PATH=""
+  local branch
+  branch="$(read_state_field branch "$wt_path" 2>/dev/null || echo "")"
+  git worktree remove --force "$wt_path" 2>/dev/null || true
+  git worktree prune 2>/dev/null || true
+  if [[ -n "$branch" ]]; then
+    git branch -D "$branch" 2>/dev/null || true
+  fi
+  ok "worktree removed"
+}
+
+phase_resume() {
+  local issue_number="$1" wt_path="$2" current_phase="$3"
+  register_cleanup "$wt_path"
+
+  local start=0
+  case "$current_phase" in
+    setup)          start=1 ;;
+    claude_running) start=1 ;;
+    claude_exited)  start=2 ;;
+    pushing)        start=3 ;;
+    pr_created)
+      ok "PR already created: $(read_state_field pr_url "$wt_path")"
+      return ;;
+    *) die "unknown phase: $current_phase" ;;
+  esac
+
+  if [[ $start -le 1 ]]; then phase_claude_running "$wt_path"; fi
+  if [[ $start -le 2 ]]; then phase_claude_exited "$wt_path"; fi
+  if [[ $start -le 3 ]]; then phase_push_and_pr "$issue_number" "$wt_path"; fi
+
+  # Disable cleanup trap on successful resume completion
+  _WT_CLEANUP_PATH=""
+  ok "done! PR created for issue #${issue_number}"
+}
+
+handle_existing_worktree() {
+  local issue_number="$1" wt_path="$2"
+
+  if [[ ! -f "${wt_path}/.worktree-state.json" ]]; then
+    die "worktree exists but no state file found at ${wt_path}/.worktree-state.json"
+  fi
+
+  local phase branch pr_url
+  phase="$(read_state_field phase "$wt_path")"
+  branch="$(read_state_field branch "$wt_path")"
+  pr_url="$(read_state_field pr_url "$wt_path")"
+
+  # PM-01: detect merged PR
+  if [[ "$phase" == "pr_created" ]] && [[ -n "$pr_url" ]]; then
+    local pr_state
+    pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")"
+    if [[ "$pr_state" == "MERGED" ]]; then
+      phase_cleanup "$issue_number" "$wt_path"
+      return
+    fi
+  fi
+
+  info "Issue #${issue_number}: phase ${phase}, branch ${branch}"
+
+  local choice
+  choice="$(gum choose "Resume" "Remove & restart" "Abort" || die "aborted")"
+
+  case "$choice" in
+    "Resume")
+      phase_resume "$issue_number" "$wt_path" "$phase"
+      ;;
+    "Remove & restart")
+      remove_worktree "$wt_path"
+      main "$issue_number"
+      ;;
+    "Abort")
+      info "aborted"
+      exit 0
+      ;;
+  esac
+}
+
 phase_push_and_pr() {
   local issue_number="$1"
   local wt_path="$2"
@@ -286,9 +366,10 @@ main() {
   # Pre-flight
   assert_clean_tree
 
-  # Existing worktree check (resume support coming in Plan 02)
+  # Existing worktree check
   if [[ -d "$WT_PATH" ]]; then
-    die "worktree already exists at ${WT_PATH} (resume support coming in next plan)"
+    handle_existing_worktree "$ISSUE_NUMBER" "$WT_PATH"
+    exit 0
   fi
 
   phase_setup "$ISSUE_NUMBER" "$WT_PATH"
