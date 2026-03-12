@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Nix module scaffold, lib.sh shared functions, safety primitives, Claude integration contract (completed 2026-03-11)
 - [x] **Phase 2: github-issue Workflow** - Full github-issue command with worktree lifecycle, PR creation, and post-merge cleanup (completed 2026-03-12)
-- [ ] **Phase 3: hack Workflow** - Full hack command with gum diff review, local merge, and both-command integration validation
+- [x] **Phase 3: hack Workflow** - Full hack command with gum diff review, local merge, and both-command integration validation (completed 2026-03-12)
 
 ## Phase Details
 
@@ -72,4 +72,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-11 |
 | 2. github-issue Workflow | 2/2 | Complete   | 2026-03-12 |
-| 3. hack Workflow | 0/1 | Not started | - |
+| 3. hack Workflow | 1/1 | Complete   | 2026-03-12 |

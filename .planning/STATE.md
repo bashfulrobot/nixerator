@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-12T05:19:36.569Z"
+stopped_at: Completed 03-hack-workflow-01-PLAN.md
+last_updated: "2026-03-12T06:51:17.489Z"
 last_activity: 2026-03-11 -- Roadmap created
 progress:
   total_phases: 3
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 3
+  total_plans: 5
+  completed_plans: 5
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-foundation P02 | 10 | 2 tasks | 6 files |
 | Phase 02-github-issue-workflow P01 | 1 | 2 tasks | 2 files |
 | Phase 02-github-issue-workflow P02 | 4 | 2 tasks | 1 files |
+| Phase 03-hack-workflow P01 | 12 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Recent decisions affecting current work:
 - [Phase 02-github-issue-workflow]: Combined push+PR into phase_push_and_pr to avoid partial-state window; existing worktree uses die placeholder deferred to Plan 02
 - [Phase 02-github-issue-workflow]: phase_resume uses numeric start index to avoid bash ;;&  fall-through pitfalls for reliable sequential phase execution
 - [Phase 02-github-issue-workflow]: Always set _WT_CLEANUP_PATH= before intentional git worktree remove to prevent EXIT trap double-remove
+- [Phase 03-hack-workflow]: Reused github-issue SKILL.md for hack workflow per locked decision
+- [Phase 03-hack-workflow]: phase_resume numeric start index; diff_review start=2 so resume always re-shows diff
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T05:19:36.566Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-hack-workflow/03-CONTEXT.md
+Last session: 2026-03-12T06:51:17.486Z
+Stopped at: Completed 03-hack-workflow-01-PLAN.md
+Resume file: None
