@@ -31,8 +31,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Nix module scaffold, lib.sh shared primitives, stub commands
-- [ ] 01-02-PLAN.md -- SKILL.md deployment, Claude integration contract demonstration
+- [x] 01-01-PLAN.md -- Nix module scaffold, lib.sh shared primitives, stub commands
+- [x] 01-02-PLAN.md -- SKILL.md deployment, Claude integration contract demonstration
 
 ### Phase 2: github-issue Workflow
 **Goal**: Users can run `github-issue <number>` and get a complete isolated Claude session that ends with a PR on GitHub and cleans up after merge
@@ -44,7 +44,11 @@ Plans:
   3. Re-invoking `github-issue 42` after interruption resumes from the last recorded phase without re-running completed steps
   4. Re-invoking `github-issue 42` after the PR is merged detects the merged state, switches to default branch, pulls, deletes branches, removes the worktree, and comments resolution on issue and PR
   5. Starting `github-issue 42` when a worktree for issue 42 already exists offers the user a choice to resume or remove, not silent failure
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md -- Core happy-path workflow: worktree creation, Claude launch, push, PR creation, issue comment
+- [ ] 02-02-PLAN.md -- Resume/re-invocation handling, orphan detection, post-merge cleanup
 
 ### Phase 3: hack Workflow
 **Goal**: Users can run `hack "<description>"` and get an isolated Claude session with an interactive diff review that merges locally on approval
@@ -64,5 +68,5 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-11 |
-| 2. github-issue Workflow | 0/TBD | Not started | - |
+| 2. github-issue Workflow | 0/2 | Not started | - |
 | 3. hack Workflow | 0/TBD | Not started | - |
