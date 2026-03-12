@@ -26,9 +26,7 @@ in
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
-      # Uses home.file directly (matching what programs.claude-code.skills
-      # does internally for directory paths) because fetchFromGitHub returns
-      # a derivation, not a Nix path literal that lib.types.path requires.
+      # Uses home.file to symlink the fetched skill directory into ~/.claude/skills/.
       home.file.".claude/skills/stop-slop" = {
         source = stop-slop-src;
         recursive = true;
