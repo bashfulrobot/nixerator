@@ -21,6 +21,7 @@ let
       coreutils
       gnused
       findutils
+      llm-agents.claude-code
     ];
     text = ''
       ${libSh}
