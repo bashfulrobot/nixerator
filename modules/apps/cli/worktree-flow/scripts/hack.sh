@@ -309,9 +309,32 @@ phase_claude_exited() {
   local commit_count
   commit_count="$(git -C "$wt_path" rev-list --count "${default_br}..${branch}")"
   if [[ "$commit_count" -eq 0 ]]; then
-    warn "no commits on branch -- nothing to push"
-    warn "tip: commit your changes in Claude before exiting"
-    exit 0
+    # Check for uncommitted work in the worktree
+    local dirty
+    dirty="$(git -C "$wt_path" status --porcelain)"
+    if [[ -n "$dirty" ]]; then
+      warn "uncommitted changes detected in worktree"
+      local choice
+      choice="$(gum choose --header "No commits yet, but changes exist:" \
+        "Resume Claude" "Exit (keep worktree)" || die "aborted")"
+      case "$choice" in
+        "Resume Claude")
+          phase_claude_running "$wt_path"
+          phase_claude_exited "$wt_path"
+          return
+          ;;
+        "Exit (keep worktree)")
+          info "worktree preserved at ${wt_path}"
+          info "tip: run 'hack' to resume later"
+          exit 0
+          ;;
+      esac
+    else
+      warn "no commits on branch -- nothing to push"
+      info "worktree preserved at ${wt_path}"
+      info "tip: run 'hack' to resume later"
+      exit 0
+    fi
   fi
 
   ok "${commit_count} commit(s) detected"
