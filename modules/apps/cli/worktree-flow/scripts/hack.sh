@@ -155,12 +155,16 @@ phase_setup() {
 
   info "creating worktree..."
   mkdir -p "$(dirname "$wt_path")"
-  git worktree add "$wt_path" -b "$branch_name"
+  git worktree add --no-checkout "$wt_path" -b "$branch_name"
   ok "worktree created at ${wt_path}"
 
   register_cleanup "$wt_path"
 
   unlock_git_crypt "$wt_path"
+
+  info "checking out files..."
+  git -C "$wt_path" checkout
+  ok "checkout complete"
 
   info "writing state file..."
   create_hack_state "$branch_name" "$wt_path" "$description"
