@@ -48,16 +48,18 @@ safe_push() {
 
 unlock_git_crypt() {
   local wt_path="$1"
-  local key_dir="$HOME/.ssh/git-crypt"
 
-  if [[ ! -d "$key_dir" ]]; then
+  # Derive repo name from remote URL (e.g., "nixerator" from github.com:user/nixerator.git)
+  local repo_name
+  repo_name="$(git -C "$wt_path" remote get-url origin 2>/dev/null | sed 's|.*/||; s|\.git$||')"
+
+  if [[ -z "$repo_name" ]]; then
     return 0
   fi
 
-  local key
-  key="$(find "$key_dir" -maxdepth 1 -type f | head -1)"
+  local key="$HOME/.ssh/${repo_name}-git-crypt-key"
 
-  if [[ -z "$key" ]]; then
+  if [[ ! -f "$key" ]]; then
     return 0
   fi
 
