@@ -169,52 +169,49 @@ phase_claude_running() {
     warn "SKILL.md not found at ${skill_path}"
   fi
 
-  local prompt
-  prompt="$(printf 'You are working on a GitHub issue in worktree %s on branch %s.\n\n%s\n\nIssue:\n%s' \
-    "$wt_path" "$branch" "$skill_content" "$issue_body")"
+  local system_prompt
+  system_prompt="$(printf 'You are working on a GitHub issue in worktree %s on branch %s.\n\n%s' \
+    "$wt_path" "$branch" "$skill_content")"
+
+  local task_prompt
+  task_prompt="$(printf 'Implement this GitHub issue:\n\n%s' "$issue_body")"
 
   # Check for existing session_id (resume path)
   local session_id
   session_id="$(read_state_field session_id "$wt_path")"
 
-  local resume_flags=""
-  if [[ -n "$session_id" ]]; then
-    resume_flags="--resume $session_id"
-    info "resuming session: ${session_id}"
-  fi
-
   info "launching claude..."
 
-  # Launch claude in subshell: unset CLAUDECODE to prevent nested session refusal
-  (
-    cd "$wt_path"
-    unset CLAUDECODE
-    # shellcheck disable=SC2086
-    claude --dangerously-skip-permissions \
-      --output-format stream-json \
-      -p "$prompt" \
-      $resume_flags \
-      2>/dev/null \
-    | tee /dev/stderr \
-    | jq -r 'select(.type == "system") | .session_id // .sessionId // empty' \
-    | head -1 > "/tmp/wf-session-id-$$"
-  ) || true
-
-  # Write captured session_id to state
-  local captured_id
-  captured_id="$(cat "/tmp/wf-session-id-$$" 2>/dev/null || echo "")"
-  rm -f "/tmp/wf-session-id-$$"
-
-  if [[ -n "$captured_id" ]]; then
+  if [[ -n "$session_id" ]]; then
+    # Resume existing session
+    info "resuming session: ${session_id}"
+    (
+      cd "$wt_path"
+      unset CLAUDECODE
+      claude --dangerously-skip-permissions \
+        --resume "$session_id"
+    ) || true
+  else
+    # New session: pre-generate ID so we can store it before launch
+    session_id="$(uuidgen)"
     local current updated timestamp
     current="$(cat "${wt_path}/.worktree-state.json")"
     timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     updated="$(printf '%s' "$current" | jq \
-      --arg sid "$captured_id" \
+      --arg sid "$session_id" \
       --arg t "$timestamp" \
       '.session_id = $sid | .updated_at = $t')"
     write_state "$updated" "$wt_path"
-    ok "session id captured"
+    ok "session id: ${session_id}"
+
+    (
+      cd "$wt_path"
+      unset CLAUDECODE
+      claude --dangerously-skip-permissions \
+        --system-prompt "$system_prompt" \
+        --session-id "$session_id" \
+        "$task_prompt"
+    ) || true
   fi
 
   set_phase "claude_exited" "$wt_path"
