@@ -232,6 +232,71 @@ phase_claude_exited() {
   set_phase "pushing" "$wt_path"
 }
 
+check_orphan_worktrees() {
+  local wt_base
+  wt_base="$(worktree_base)"
+  [[ -d "$wt_base" ]] || return 0
+
+  local found_orphan=0
+  while IFS= read -r -d '' wt_dir; do
+    if [[ ! -f "${wt_dir}/.worktree-state.json" ]]; then
+      warn "orphan worktree (no state file): $wt_dir"
+      found_orphan=1
+    fi
+  done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
+
+  if [[ $found_orphan -eq 1 ]]; then
+    if gum confirm "Remove orphan worktrees?"; then
+      while IFS= read -r -d '' wt_dir; do
+        if [[ ! -f "${wt_dir}/.worktree-state.json" ]]; then
+          git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir"
+        fi
+      done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
+      git worktree prune 2>/dev/null || true
+      ok "orphan worktrees cleaned"
+    fi
+  fi
+}
+
+phase_cleanup() {
+  local issue_number="$1" wt_path="$2"
+
+  section "Post-merge Cleanup"
+
+  local branch pr_url pr_number default_br
+  branch="$(read_state_field branch "$wt_path")"
+  pr_url="$(read_state_field pr_url "$wt_path")"
+  pr_number="$(printf '%s' "$pr_url" | grep -oE '[0-9]+$')"
+  default_br="$(default_branch)"
+
+  # PM-02: switch to default branch and pull (must leave worktree dir first)
+  cd "$(git rev-parse --show-toplevel)" || die "cannot cd to repo root"
+  git checkout "$default_br"
+  git pull origin "$default_br"
+  ok "switched to $default_br and pulled"
+
+  # Disable cleanup trap before intentional removal (Pitfall 5)
+  _WT_CLEANUP_PATH=""
+
+  # PM-03 / WT-05: worktree remove, then prune, then branch delete
+  git worktree remove --force "$wt_path" 2>/dev/null || true
+  git worktree prune 2>/dev/null || true
+  ok "worktree removed"
+
+  # PM-02: delete local and remote branches
+  git branch -d "$branch" 2>/dev/null || git branch -D "$branch" 2>/dev/null || true
+  git push origin --delete "$branch" 2>/dev/null || true
+  ok "branches cleaned up"
+
+  # PM-04: comment on issue and PR with resolution summary
+  local resolution_msg="Resolved via #${pr_number}. Branch and worktree cleaned up."
+  gh issue comment "$issue_number" --body "$resolution_msg" 2>/dev/null || true
+  gh pr comment "$pr_url" --body "$resolution_msg" 2>/dev/null || true
+  ok "resolution comments posted"
+
+  ok "cleanup complete for issue #${issue_number}"
+}
+
 remove_worktree() {
   local wt_path="$1"
   _WT_CLEANUP_PATH=""
@@ -365,6 +430,7 @@ main() {
 
   # Pre-flight
   assert_clean_tree
+  check_orphan_worktrees
 
   # Existing worktree check
   if [[ -d "$WT_PATH" ]]; then
