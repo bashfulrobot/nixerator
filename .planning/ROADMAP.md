@@ -47,8 +47,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Core happy-path workflow: worktree creation, Claude launch, push, PR creation, issue comment
-- [ ] 02-02-PLAN.md -- Resume/re-invocation handling, orphan detection, post-merge cleanup
+- [x] 02-01-PLAN.md -- Core happy-path workflow: worktree creation, Claude launch, push, PR creation, issue comment
+- [x] 02-02-PLAN.md -- Resume/re-invocation handling, orphan detection, post-merge cleanup
 
 ### Phase 3: hack Workflow
 **Goal**: Users can run `hack "<description>"` and get an isolated Claude session with an interactive diff review that merges locally on approval
@@ -58,7 +58,10 @@ Plans:
   1. Running `hack "add rate limiting"` creates a worktree at `../.worktrees/hack-<slug>/`, launches Claude, and opens the diff in `gum pager` after Claude exits
   2. Selecting approve in the gum confirm prompt fast-forward merges the branch to the default branch and removes the worktree; selecting reject abandons the merge and leaves the worktree for inspection
   3. Ctrl+C during any gum prompt triggers the EXIT trap, cleans up the worktree, and exits without leaving orphaned state
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 03-01-PLAN.md -- Full hack workflow: worktree creation, Claude launch, diff review, local merge, resume handling
 
 ## Progress
 
@@ -69,4 +72,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-11 |
 | 2. github-issue Workflow | 2/2 | Complete   | 2026-03-12 |
-| 3. hack Workflow | 0/TBD | Not started | - |
+| 3. hack Workflow | 0/1 | Not started | - |
