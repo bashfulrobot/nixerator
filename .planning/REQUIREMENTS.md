@@ -27,9 +27,9 @@
 
 - [x] **RF-01**: github-issue flow pushes branch and creates PR via `gh pr create` with Summary/Test plan body format
 - [x] **RF-02**: github-issue flow comments on issue linking the PR
-- [ ] **RF-03**: hack flow presents diff via gum pager for review
-- [ ] **RF-04**: hack flow prompts approve/reject via gum confirm
-- [ ] **RF-05**: hack flow merges to default branch locally on approval (fast-forward only)
+- [x] **RF-03**: hack flow presents diff via gum pager for review
+- [x] **RF-04**: hack flow prompts approve/reject via gum confirm
+- [x] **RF-05**: hack flow merges to default branch locally on approval (fast-forward only)
 
 ### Safety
 
@@ -91,9 +91,9 @@
 | CL-05 | Phase 1 | Complete |
 | RF-01 | Phase 2 | Complete |
 | RF-02 | Phase 2 | Complete |
-| RF-03 | Phase 3 | Pending |
-| RF-04 | Phase 3 | Pending |
-| RF-05 | Phase 3 | Pending |
+| RF-03 | Phase 3 | Complete |
+| RF-04 | Phase 3 | Complete |
+| RF-05 | Phase 3 | Complete |
 | SF-01 | Phase 1 | Complete |
 | SF-02 | Phase 1 | Complete |
 | SF-03 | Phase 1 | Complete |
