@@ -8,12 +8,12 @@
 ### Worktree Lifecycle
 
 - [x] **WT-01**: Script creates worktree with proper branch naming (`fix/<slug>`, `feat/<slug>`, `hack/<slug>` based on context)
-- [ ] **WT-02**: Script detects and offers to clean orphaned worktrees on startup
+- [x] **WT-02**: Script detects and offers to clean orphaned worktrees on startup
 - [x] **WT-03**: Script registers trap cleanup handler immediately after `git worktree add`
 - [x] **WT-04**: State file writes are atomic (write to tmpfile, then `mv`)
-- [ ] **WT-05**: Cleanup sequences as worktree remove, then prune, then branch delete
-- [ ] **WT-06**: Re-invocation with same issue number or description resumes from state file
-- [ ] **WT-07**: Script errors if worktree already exists for same issue/description (with option to resume)
+- [x] **WT-05**: Cleanup sequences as worktree remove, then prune, then branch delete
+- [x] **WT-06**: Re-invocation with same issue number or description resumes from state file
+- [x] **WT-07**: Script errors if worktree already exists for same issue/description (with option to resume)
 
 ### Claude Integration
 
@@ -48,10 +48,10 @@
 
 ### Post-merge Cleanup
 
-- [ ] **PM-01**: github-issue detects merged PR on re-invocation and enters cleanup phase
-- [ ] **PM-02**: Cleanup switches to default branch, pulls, deletes local and remote branches
-- [ ] **PM-03**: Cleanup removes worktree directory and prunes
-- [ ] **PM-04**: Cleanup comments on issue and PR with resolution summary
+- [x] **PM-01**: github-issue detects merged PR on re-invocation and enters cleanup phase
+- [x] **PM-02**: Cleanup switches to default branch, pulls, deletes local and remote branches
+- [x] **PM-03**: Cleanup removes worktree directory and prunes
+- [x] **PM-04**: Cleanup comments on issue and PR with resolution summary
 
 ## v2 Requirements
 
@@ -78,12 +78,12 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | WT-01 | Phase 2 | Complete |
-| WT-02 | Phase 2 | Pending |
+| WT-02 | Phase 2 | Complete |
 | WT-03 | Phase 1 | Complete |
 | WT-04 | Phase 1 | Complete |
-| WT-05 | Phase 2 | Pending |
-| WT-06 | Phase 2 | Pending |
-| WT-07 | Phase 2 | Pending |
+| WT-05 | Phase 2 | Complete |
+| WT-06 | Phase 2 | Complete |
+| WT-07 | Phase 2 | Complete |
 | CL-01 | Phase 1 | Complete |
 | CL-02 | Phase 1 | Complete |
 | CL-03 | Phase 1 | Complete |
@@ -103,10 +103,10 @@
 | NX-02 | Phase 1 | Complete |
 | NX-03 | Phase 1 | Complete |
 | NX-04 | Phase 1 | Complete |
-| PM-01 | Phase 2 | Pending |
-| PM-02 | Phase 2 | Pending |
-| PM-03 | Phase 2 | Pending |
-| PM-04 | Phase 2 | Pending |
+| PM-01 | Phase 2 | Complete |
+| PM-02 | Phase 2 | Complete |
+| PM-03 | Phase 2 | Complete |
+| PM-04 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 30 total
