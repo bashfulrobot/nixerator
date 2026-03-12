@@ -19,6 +19,7 @@ let
       gh
       jq
       coreutils
+      util-linux
       gnused
       findutils
       llm-agents.claude-code
@@ -38,6 +39,7 @@ let
       gh
       jq
       coreutils
+      util-linux
       gnused
       findutils
       llm-agents.claude-code
