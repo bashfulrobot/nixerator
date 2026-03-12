@@ -49,6 +49,26 @@ let
       ${builtins.readFile ./scripts/hack.sh}
     '';
   };
+
+  dependabot-cmd = pkgs.writeShellApplication {
+    name = "dependabot";
+    runtimeInputs = with pkgs; [
+      git
+      git-crypt
+      gum
+      gh
+      jq
+      coreutils
+      util-linux
+      gnused
+      findutils
+      llm-agents.claude-code
+    ];
+    text = ''
+      ${libSh}
+      ${builtins.readFile ./scripts/dependabot.sh}
+    '';
+  };
 in
 {
   options.apps.cli.worktree-flow.enable = lib.mkOption {
@@ -61,11 +81,14 @@ in
     environment.systemPackages = [
       github-issue-cmd
       hack-cmd
+      dependabot-cmd
     ];
 
     home-manager.users.${globals.user.name} = {
       home.file.".claude/skills/github-issue/SKILL.md".text =
         builtins.readFile ./skills/github-issue/SKILL.md;
+      home.file.".claude/skills/dependabot/SKILL.md".text =
+        builtins.readFile ./skills/dependabot/SKILL.md;
     };
   };
 }
