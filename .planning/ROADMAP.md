@@ -68,5 +68,5 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-11 |
-| 2. github-issue Workflow | 0/2 | Not started | - |
+| 2. github-issue Workflow | 1/2 | In Progress|  |
 | 3. hack Workflow | 0/TBD | Not started | - |
