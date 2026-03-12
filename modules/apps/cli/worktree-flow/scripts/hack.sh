@@ -1,23 +1,15 @@
 # hack: AI-powered worktree workflow for quick tasks
 
 if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
-  info "Usage: hack \"<description>\""
-  info "Creates an isolated git worktree and launches Claude for a quick task."
+  info "Usage: hack [\"<description>\"]"
+  info "Creates an isolated git worktree, launches Claude, and opens a PR."
   info ""
   info "Workflow:"
-  info "  1. Creates a worktree at ../.worktrees/hack-<slug>/"
-  info "  2. Launches Claude Code in the worktree"
-  info "  3. Shows diff via gum pager for review"
-  info "  4. On approve: fast-forward merges to default branch and removes worktree"
-  info "  5. On reject: preserves worktree and prints resume command"
+  info "  hack \"<description>\"  -- new worktree + Claude session + PR"
+  info "  hack \"<description>\"  -- resume existing worktree (if slug matches)"
+  info "  hack                  -- pick from active hack worktrees"
   exit 0
 fi
-
-if [[ $# -lt 1 ]]; then
-  die "usage: hack \"<description>\""
-fi
-
-DESCRIPTION="$1"
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 
@@ -34,11 +26,12 @@ create_hack_state() {
     --arg branch      "$branch" \
     --arg wt_path     "$wt_path" \
     --arg session_id  "" \
+    --arg pr_url      "" \
     --arg description "$description" \
     --arg started_at  "$timestamp" \
     --arg updated_at  "$timestamp" \
     '{type: $type, phase: $phase, branch: $branch, wt_path: $wt_path,
-      session_id: $session_id, description: $description,
+      session_id: $session_id, pr_url: $pr_url, description: $description,
       started_at: $started_at, updated_at: $updated_at}')"
   write_state "$json" "$wt_path"
 }
@@ -72,15 +65,86 @@ check_orphan_worktrees() {
 remove_worktree() {
   local wt_path="$1"
   _WT_CLEANUP_PATH=""
-  local branch
+  local branch pr_url
   branch="$(read_state_field branch "$wt_path" 2>/dev/null || echo "")"
+  pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
+
+  # Close PR if one exists
+  if [[ -n "$pr_url" ]]; then
+    gh pr close "$pr_url" 2>/dev/null || true
+  fi
+
   git worktree remove --force "$wt_path" 2>/dev/null || true
   git worktree prune 2>/dev/null || true
   if [[ -n "$branch" ]]; then
     git branch -D "$branch" 2>/dev/null || true
+    git push origin --delete "$branch" 2>/dev/null || true
   fi
   ok "worktree removed"
 }
+
+# ── Worktree picker (no-arg mode) ───────────────────────────────────────────
+
+pick_worktree() {
+  local wt_base
+  wt_base="$(worktree_base)"
+
+  if [[ ! -d "$wt_base" ]]; then
+    die "usage: hack \"<description>\""
+  fi
+
+  # Collect hack worktrees with state files
+  local -a descriptions=()
+  local -a paths=()
+  while IFS= read -r -d '' wt_dir; do
+    local state_file="${wt_dir}/.worktree-state.json"
+    if [[ -f "$state_file" ]]; then
+      local wt_type
+      wt_type="$(jq -r '.type' "$state_file")"
+      if [[ "$wt_type" == "hack" ]]; then
+        local desc phase pr_url
+        desc="$(jq -r '.description' "$state_file")"
+        phase="$(jq -r '.phase' "$state_file")"
+        pr_url="$(jq -r '.pr_url // ""' "$state_file")"
+        local label="${desc} [${phase}]"
+        if [[ -n "$pr_url" ]]; then
+          label="${desc} [${phase}] ${pr_url}"
+        fi
+        descriptions+=("$label")
+        paths+=("$wt_dir")
+      fi
+    fi
+  done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -name 'hack-*' -print0 2>/dev/null)
+
+  if [[ ${#descriptions[@]} -eq 0 ]]; then
+    die "no active hack worktrees. usage: hack \"<description>\""
+  fi
+
+  if [[ ${#descriptions[@]} -eq 1 ]]; then
+    # Single worktree: go directly
+    local desc
+    desc="$(jq -r '.description' "${paths[0]}/.worktree-state.json")"
+    handle_existing_worktree "$desc" "${paths[0]}"
+    return
+  fi
+
+  # Multiple: let user pick
+  local choice
+  choice="$(printf '%s\n' "${descriptions[@]}" | gum choose --header "Active hacks:" || die "aborted")"
+
+  # Find matching path
+  local i
+  for i in "${!descriptions[@]}"; do
+    if [[ "${descriptions[$i]}" == "$choice" ]]; then
+      local desc
+      desc="$(jq -r '.description' "${paths[$i]}/.worktree-state.json")"
+      handle_existing_worktree "$desc" "${paths[$i]}"
+      return
+    fi
+  done
+}
+
+# ── Existing worktree handling ───────────────────────────────────────────────
 
 handle_existing_worktree() {
   local description="$1"
@@ -90,22 +154,42 @@ handle_existing_worktree() {
     die "worktree exists but no state file found at ${wt_path}/.worktree-state.json"
   fi
 
-  local phase branch
+  local phase branch pr_url
   phase="$(read_state_field phase "$wt_path")"
   branch="$(read_state_field branch "$wt_path")"
+  pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
+
+  # Check if PR was merged
+  if [[ "$phase" == "pr_created" ]] && [[ -n "$pr_url" ]]; then
+    local pr_state
+    pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")"
+    if [[ "$pr_state" == "MERGED" ]]; then
+      phase_cleanup "$wt_path"
+      return
+    fi
+  fi
 
   info "hack: phase ${phase}, branch ${branch}"
+  if [[ -n "$pr_url" ]]; then
+    info "PR: ${pr_url}"
+  fi
 
   local choice
-  choice="$(gum choose "Resume" "Remove & restart" "Abort" || die "aborted")"
+  choice="$(gum choose "Resume Claude" "Check PR" "Remove" "Abort" || die "aborted")"
 
   case "$choice" in
-    "Resume")
-      phase_resume "$description" "$wt_path" "$phase"
+    "Resume Claude")
+      phase_resume "$wt_path"
       ;;
-    "Remove & restart")
+    "Check PR")
+      if [[ -z "$pr_url" ]]; then
+        warn "no PR created yet"
+      else
+        gh pr view "$pr_url" --web 2>/dev/null || info "PR: ${pr_url}"
+      fi
+      ;;
+    "Remove")
       remove_worktree "$wt_path"
-      main "$description"
       ;;
     "Abort")
       info "aborted"
@@ -115,30 +199,11 @@ handle_existing_worktree() {
 }
 
 phase_resume() {
-  local description="$1"
-  local wt_path="$2"
-  local current_phase="$3"
+  local wt_path="$1"
 
-  local start=0
-  case "$current_phase" in
-    setup)          start=1 ;;
-    claude_running) start=1 ;;
-    claude_exited)  start=2 ;;
-    diff_review)    start=2 ;;
-    merged|cleanup_done)
-      ok "already merged"
-      return ;;
-    *) die "unknown phase: $current_phase" ;;
-  esac
-
-  register_cleanup "$wt_path"
-
-  if [[ $start -le 1 ]]; then phase_claude_running "$wt_path"; fi
-  if [[ $start -le 2 ]]; then phase_claude_exited "$wt_path"; fi
-  phase_diff_review "$wt_path"
-
-  # Disable cleanup trap on successful resume completion
-  _WT_CLEANUP_PATH=""
+  phase_claude_running "$wt_path"
+  phase_claude_exited "$wt_path"
+  phase_push_updates "$wt_path"
 }
 
 # ── Phase functions ───────────────────────────────────────────────────────────
@@ -243,74 +308,113 @@ phase_claude_exited() {
 
   section "Checking Changes"
 
-  # Exclude .worktree-state.json from porcelain check (it's always present and untracked)
-  local porcelain
-  porcelain="$(git -C "$wt_path" status --porcelain | grep -v '^?? \.worktree-state\.json$' || true)"
-  if git -C "$wt_path" diff --quiet HEAD && [[ -z "$porcelain" ]]; then
-    warn "no changes detected -- nothing to review"
+  local default_br branch
+  default_br="$(default_branch)"
+  branch="$(read_state_field branch "$wt_path")"
+
+  # Check for committed changes on this branch vs default branch
+  local commit_count
+  commit_count="$(git -C "$wt_path" rev-list --count "${default_br}..${branch}")"
+  if [[ "$commit_count" -eq 0 ]]; then
+    warn "no commits on branch -- nothing to push"
+    warn "tip: commit your changes in Claude before exiting"
     exit 0
   fi
 
-  ok "changes detected"
-  set_phase "diff_review" "$wt_path"
+  ok "${commit_count} commit(s) detected"
+  set_phase "pushing" "$wt_path"
 }
 
-phase_diff_review() {
+phase_push_and_pr() {
   local wt_path="$1"
 
-  section "Diff Review"
+  section "Pushing and Creating PR"
 
-  local branch description default_br
+  local branch description
   branch="$(read_state_field branch "$wt_path")"
   description="$(read_state_field description "$wt_path")"
-  default_br="$(default_branch)"
 
-  info "showing diff against ${default_br}..."
-  git -C "$wt_path" diff --color=always "${default_br}...${branch}" | gum pager
+  info "pushing branch ${branch}..."
+  (cd "$wt_path" && safe_push "$branch")
+  ok "branch pushed"
 
-  if gum confirm "Merge to ${default_br}?"; then
-    phase_merge "$wt_path" "$branch" "$default_br"
-  else
-    # Reject path: preserve worktree, print resume hint, exit cleanly
-    _WT_CLEANUP_PATH=""
-    warn "merge rejected -- worktree preserved at ${wt_path}"
-    info "resume: hack \"${description}\""
-    exit 0
-  fi
+  local pr_body
+  pr_body="$(printf '## Summary\n- %s\n\n## Test plan\n- [ ] Manual verification of changes\n- [ ] CI passes' \
+    "$description")"
+
+  info "creating PR..."
+  local pr_url
+  pr_url="$(cd "$wt_path" && gh pr create \
+    --title "$description" \
+    --body "$pr_body" \
+    --head "$branch")"
+  ok "PR created: ${pr_url}"
+
+  # Write pr_url to state
+  local current updated timestamp
+  current="$(cat "${wt_path}/.worktree-state.json")"
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  updated="$(printf '%s' "$current" | jq \
+    --arg url "$pr_url" \
+    --arg t "$timestamp" \
+    '.pr_url = $url | .updated_at = $t')"
+  write_state "$updated" "$wt_path"
+
+  set_phase "pr_created" "$wt_path"
 }
 
-phase_merge() {
+phase_push_updates() {
   local wt_path="$1"
-  local branch="$2"
-  local default_br="$3"
 
-  section "Merging"
+  section "Pushing Updates"
 
-  local repo_root
-  repo_root="$(git -C "$wt_path" rev-parse --show-toplevel)"
+  local branch pr_url
+  branch="$(read_state_field branch "$wt_path")"
+  pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
 
-  cd "$repo_root"
+  if [[ -z "$pr_url" ]]; then
+    # No PR yet, create one
+    phase_push_and_pr "$wt_path"
+    return
+  fi
+
+  info "pushing updates to ${branch}..."
+  (cd "$wt_path" && git push origin "$branch")
+  ok "updates pushed to PR: ${pr_url}"
+
+  set_phase "pr_created" "$wt_path"
+}
+
+phase_cleanup() {
+  local wt_path="$1"
+
+  section "Post-merge Cleanup"
+
+  local branch pr_url default_br
+  branch="$(read_state_field branch "$wt_path")"
+  pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
+  default_br="$(default_branch)"
+
+  # Switch to default branch and pull
+  cd "$(git rev-parse --show-toplevel)" || die "cannot cd to repo root"
   git checkout "$default_br"
+  git pull origin "$default_br"
+  ok "switched to ${default_br} and pulled"
 
   # Disable cleanup trap before intentional removal
   _WT_CLEANUP_PATH=""
 
-  if ! git merge --ff-only "$branch"; then
-    warn "fast-forward merge failed"
-    warn "worktree preserved at ${wt_path} for manual resolution"
-    exit 1
-  fi
-  ok "merged"
-
-  # WT-05 cleanup: remove worktree, prune, delete branch
+  # Remove worktree
   git worktree remove --force "$wt_path" 2>/dev/null || true
   git worktree prune 2>/dev/null || true
   ok "worktree removed"
 
+  # Delete branches
   git branch -d "$branch" 2>/dev/null || git branch -D "$branch" 2>/dev/null || true
-  ok "branch deleted"
+  git push origin --delete "$branch" 2>/dev/null || true
+  ok "branches cleaned up"
 
-  set_phase "cleanup_done" "$wt_path" 2>/dev/null || true
+  ok "cleanup complete"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -333,11 +437,17 @@ main() {
   phase_setup "$description" "$slug" "$wt_path"
   phase_claude_running "$wt_path"
   phase_claude_exited "$wt_path"
-  phase_diff_review "$wt_path"
+  phase_push_and_pr "$wt_path"
 
-  # Approve path completes inline via phase_merge; cleanup already done
   _WT_CLEANUP_PATH=""
   ok "done!"
 }
 
-main "$DESCRIPTION"
+# ── Entry point ──────────────────────────────────────────────────────────────
+
+if [[ $# -lt 1 ]]; then
+  pick_worktree
+else
+  DESCRIPTION="$1"
+  main "$DESCRIPTION"
+fi
