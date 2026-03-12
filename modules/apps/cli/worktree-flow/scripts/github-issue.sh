@@ -40,10 +40,10 @@ derive_branch_type() {
       *documentation*|*docs*) branch_type="docs"; break ;;
       *refactor*)       branch_type="refactor"; break ;;
       *testing*|*test*) branch_type="test";     break ;;
+      *dependenc*|*deps*) branch_type="deps";   break ;;
       *ci*)             branch_type="ci";       break ;;
       *chore*)          branch_type="chore";    break ;;
       *revert*)         branch_type="revert";   break ;;
-      *dependenc*|*deps*) branch_type="deps";   break ;;
     esac
   done < <(printf '%s' "$labels_json" | jq -r '.[].name')
 
@@ -142,6 +142,10 @@ phase_setup() {
   create_issue_state "$branch_name" "$wt_path" "$issue_number" "$issue_title" "$issue_body"
   ok "state file written"
 
+  # Disable cleanup trap before launching Claude -- worktree must survive
+  # interruption so the user can resume later
+  _WT_CLEANUP_PATH=""
+
   set_phase "claude_running" "$wt_path"
   ok "setup complete"
 }
@@ -222,8 +226,11 @@ phase_claude_exited() {
 
   section "Checking Changes"
 
-  # Check if Claude made any changes (exit 0 = no changes, exit 1 = changes exist)
-  if git -C "$wt_path" diff --quiet HEAD; then
+  # Check if Claude made any changes (staged, unstaged, or untracked)
+  # Exclude .worktree-state.json from porcelain check (it's always present and untracked)
+  local porcelain
+  porcelain="$(git -C "$wt_path" status --porcelain | grep -v '^?? \.worktree-state\.json$' || true)"
+  if git -C "$wt_path" diff --quiet HEAD && [[ -z "$porcelain" ]]; then
     warn "no changes detected -- nothing to push"
     exit 0
   fi
