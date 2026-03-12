@@ -17,6 +17,7 @@ in
     };
 
     apps.cli = {
+      clay.enable = true;
       claude-code.enable = true;
       gemini-cli.enable = true;
       termly = {
