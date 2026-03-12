@@ -160,11 +160,7 @@ phase_setup() {
 
   register_cleanup "$wt_path"
 
-  unlock_git_crypt "$wt_path"
-
-  info "checking out files..."
-  git -C "$wt_path" checkout
-  ok "checkout complete"
+  checkout_and_unlock "$wt_path"
 
   info "writing state file..."
   create_hack_state "$branch_name" "$wt_path" "$description"

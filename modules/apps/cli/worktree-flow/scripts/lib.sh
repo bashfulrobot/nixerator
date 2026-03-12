@@ -43,30 +43,37 @@ safe_push() {
   git push -u origin "$1"
 }
 
-# ── git-crypt auto-unlock ─────────────────────────────────────────────────────
-# SF-05: Finds first key automatically -- no interactive picker
+# ── Worktree checkout + git-crypt unlock ──────────────────────────────────────
+# Expects worktree created with --no-checkout. Handles git-crypt repos by
+# bypassing the smudge filter during checkout, then unlocking to decrypt.
 
-unlock_git_crypt() {
+checkout_and_unlock() {
   local wt_path="$1"
 
-  # Derive repo name from remote URL (e.g., "nixerator" from github.com:user/nixerator.git)
+  # Derive repo name from remote URL to find git-crypt key
   local repo_name
   repo_name="$(git -C "$wt_path" remote get-url origin 2>/dev/null | sed 's|.*/||; s|\.git$||')"
-
-  if [[ -z "$repo_name" ]]; then
-    return 0
-  fi
-
   local key="$HOME/.ssh/${repo_name}-git-crypt-key"
 
-  if [[ ! -f "$key" ]]; then
-    return 0
-  fi
+  if [[ -n "$repo_name" ]] && [[ -f "$key" ]]; then
+    # git-crypt repo: bypass smudge filter, checkout encrypted blobs, then unlock
+    info "checking out files (pre-decrypt)..."
+    git -C "$wt_path" config filter.git-crypt.smudge cat
+    git -C "$wt_path" config filter.git-crypt.clean cat
+    git -C "$wt_path" config filter.git-crypt.required false
+    git -C "$wt_path" checkout
+    ok "checkout complete"
 
-  info "unlocking git-crypt..."
-  git -C "$wt_path" crypt unlock "$key"
-  git -C "$wt_path" crypt status >/dev/null 2>&1 || die "git-crypt unlock verification failed"
-  ok "git-crypt unlocked"
+    info "unlocking git-crypt..."
+    git -C "$wt_path" crypt unlock "$key"
+    git -C "$wt_path" crypt status >/dev/null 2>&1 || die "git-crypt unlock verification failed"
+    ok "git-crypt unlocked"
+  else
+    # No git-crypt: plain checkout
+    info "checking out files..."
+    git -C "$wt_path" checkout
+    ok "checkout complete"
+  fi
 }
 
 # ── Default branch detection ──────────────────────────────────────────────────
