@@ -65,20 +65,13 @@ check_orphan_worktrees() {
 remove_worktree() {
   local wt_path="$1"
   _WT_CLEANUP_PATH=""
-  local branch pr_url
+  local branch
   branch="$(read_state_field branch "$wt_path" 2>/dev/null || echo "")"
-  pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
-
-  # Close PR if one exists
-  if [[ -n "$pr_url" ]]; then
-    gh pr close "$pr_url" 2>/dev/null || true
-  fi
 
   git worktree remove --force "$wt_path" 2>/dev/null || true
   git worktree prune 2>/dev/null || true
   if [[ -n "$branch" ]]; then
     git branch -D "$branch" 2>/dev/null || true
-    git push origin --delete "$branch" 2>/dev/null || true
   fi
   ok "worktree removed"
 }
