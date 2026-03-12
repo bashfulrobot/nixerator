@@ -7,7 +7,7 @@
 
 ### Worktree Lifecycle
 
-- [ ] **WT-01**: Script creates worktree with proper branch naming (`fix/<slug>`, `feat/<slug>`, `hack/<slug>` based on context)
+- [x] **WT-01**: Script creates worktree with proper branch naming (`fix/<slug>`, `feat/<slug>`, `hack/<slug>` based on context)
 - [ ] **WT-02**: Script detects and offers to clean orphaned worktrees on startup
 - [x] **WT-03**: Script registers trap cleanup handler immediately after `git worktree add`
 - [x] **WT-04**: State file writes are atomic (write to tmpfile, then `mv`)
@@ -25,8 +25,8 @@
 
 ### Review Flows
 
-- [ ] **RF-01**: github-issue flow pushes branch and creates PR via `gh pr create` with Summary/Test plan body format
-- [ ] **RF-02**: github-issue flow comments on issue linking the PR
+- [x] **RF-01**: github-issue flow pushes branch and creates PR via `gh pr create` with Summary/Test plan body format
+- [x] **RF-02**: github-issue flow comments on issue linking the PR
 - [ ] **RF-03**: hack flow presents diff via gum pager for review
 - [ ] **RF-04**: hack flow prompts approve/reject via gum confirm
 - [ ] **RF-05**: hack flow merges to default branch locally on approval (fast-forward only)
@@ -77,7 +77,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WT-01 | Phase 2 | Pending |
+| WT-01 | Phase 2 | Complete |
 | WT-02 | Phase 2 | Pending |
 | WT-03 | Phase 1 | Complete |
 | WT-04 | Phase 1 | Complete |
@@ -89,8 +89,8 @@
 | CL-03 | Phase 1 | Complete |
 | CL-04 | Phase 1 | Complete |
 | CL-05 | Phase 1 | Complete |
-| RF-01 | Phase 2 | Pending |
-| RF-02 | Phase 2 | Pending |
+| RF-01 | Phase 2 | Complete |
+| RF-02 | Phase 2 | Complete |
 | RF-03 | Phase 3 | Pending |
 | RF-04 | Phase 3 | Pending |
 | RF-05 | Phase 3 | Pending |
