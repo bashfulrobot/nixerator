@@ -44,8 +44,8 @@ safe_push() {
 }
 
 # ── Worktree checkout + git-crypt unlock ──────────────────────────────────────
-# Expects worktree created with --no-checkout. Handles git-crypt repos by
-# bypassing the smudge filter during checkout, then unlocking to decrypt.
+# Expects worktree created with --no-checkout. For git-crypt repos:
+# bypass smudge -> checkout encrypted blobs -> unlock to decrypt.
 
 checkout_and_unlock() {
   local wt_path="$1"
@@ -56,7 +56,9 @@ checkout_and_unlock() {
   local key="$HOME/.ssh/${repo_name}-git-crypt-key"
 
   if [[ -n "$repo_name" ]] && [[ -f "$key" ]]; then
-    # git-crypt repo: bypass smudge filter, checkout encrypted blobs, then unlock
+    # Worktree inherits main repo's git-crypt smudge filter.
+    # Override with pass-through so checkout doesn't attempt decryption
+    # (worktree has no git-crypt keys installed yet).
     info "checking out files (pre-decrypt)..."
     git -C "$wt_path" config filter.git-crypt.smudge cat
     git -C "$wt_path" config filter.git-crypt.clean cat
@@ -64,9 +66,12 @@ checkout_and_unlock() {
     git -C "$wt_path" checkout
     ok "checkout complete"
 
+    # Unlock git-crypt: installs key, restores proper filters,
+    # re-checksout encrypted files through the real smudge filter.
+    # Must cd into worktree -- git-crypt has no -C flag and
+    # "git -C <path> crypt" doesn't reliably pass context.
     info "unlocking git-crypt..."
-    git -C "$wt_path" crypt unlock "$key"
-    git -C "$wt_path" crypt status >/dev/null 2>&1 || die "git-crypt unlock verification failed"
+    (cd "$wt_path" && git-crypt unlock "$key")
     ok "git-crypt unlocked"
   else
     # No git-crypt: plain checkout
