@@ -45,7 +45,7 @@
       npmPkg = "get-shit-done-cc";
       version = "1.22.4";
       hash = "sha256-uW4crLjrx6i02AyoKuQb0BIJ6IIPYkmQygz/RA7Qacc=";
-      npmDepsHash = "sha256-15I2dWDgJAdG1edG0e9QUvnyp3PxmZ04jTUKqTUXk1U=";
+      npmDepsHash = "sha256-m8KXnbOZxNeOJPKmaf5Pmoy1GoFOzMhJ3BBuYk9t6ro=";
     };
 
     kubernetes-mcp-server = {
