@@ -83,7 +83,18 @@ checkout_and_unlock() {
 
 # ── Default branch detection ──────────────────────────────────────────────────
 default_branch() {
-  git symbolic-ref refs/remotes/origin/HEAD | sed 's|refs/remotes/origin/||'
+  local ref
+  ref="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null)" || {
+    # Fallback: try common default branch names
+    for candidate in main master; do
+      if git show-ref --verify --quiet "refs/remotes/origin/${candidate}"; then
+        printf '%s' "$candidate"
+        return
+      fi
+    done
+    die "cannot detect default branch -- run: git remote set-head origin --auto"
+  }
+  printf '%s' "${ref#refs/remotes/origin/}"
 }
 
 # ── Atomic state file I/O (WT-04) ─────────────────────────────────────────────
@@ -165,7 +176,7 @@ register_cleanup() {
 }
 
 # ── Slug generation ───────────────────────────────────────────────────────────
-# Uses coreutils (tr, sed) -- POSIX-compatible, no GNU extensions required
+# Uses coreutils (tr, sed) + bash case conversion (${var,,})
 slugify() {
   local input="$1"
   local lower="${input,,}"
@@ -303,6 +314,33 @@ sweep_merged_worktrees() {
     git worktree prune 2>/dev/null || true
     ok "swept ${cleaned} merged worktree(s)"
   fi
+}
+
+# ── Signal-safe Claude launcher ──────────────────────────────────────────────
+# Runs Claude in a subshell while protecting the parent script from SIGINT.
+# Without this, Ctrl+C or /exit in Claude propagates SIGINT to the parent,
+# killing it before post-Claude phases (push, PR creation) can run.
+#
+# Uses `trap : INT` (no-op command) so the parent survives SIGINT while
+# child processes still receive default signal handling. `trap '' INT` would
+# cause children to inherit the ignore — that's NOT what we want.
+#
+# Args: $1=wt_path, remaining args passed to claude
+run_claude() {
+  local wt_path="$1"
+  shift
+
+  # Protect parent from SIGINT/SIGTERM while Claude runs
+  trap : INT TERM
+
+  (
+    cd "$wt_path"
+    unset CLAUDECODE
+    claude "$@"
+  ) || true
+
+  # Restore signal handling
+  trap cleanup EXIT INT TERM
 }
 
 # ── gum confirm usage pattern (SF-04) ────────────────────────────────────────
