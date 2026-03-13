@@ -45,7 +45,7 @@
       npmPkg = "get-shit-done-cc";
       version = "1.22.4";
       hash = "sha256-uW4crLjrx6i02AyoKuQb0BIJ6IIPYkmQygz/RA7Qacc=";
-      npmDepsHash = "sha256-m8KXnbOZxNeOJPKmaf5Pmoy1GoFOzMhJ3BBuYk9t6ro=";
+      npmDepsHash = "sha256-15I2dWDgJAdG1edG0e9QUvnyp3PxmZ04jTUKqTUXk1U=";
     };
 
     kubernetes-mcp-server = {
@@ -62,7 +62,7 @@
       npmPkg = "claude-relay";
       version = "2.9.0";
       hash = "sha256-SoyBwln0RPD8V4iI9KFiTrkemube5UBN+iULPwisI9M=";
-      npmDepsHash = "sha256-yiUuTxkImczwdtLxlkNIghsNPesStSEhJxsbCXLh8Sw=";
+      npmDepsHash = "sha256-u//nipYZpINh8KR64T1knbV2JpWfhtPdF8oGMrfRxig=";
     };
 
     termly = {

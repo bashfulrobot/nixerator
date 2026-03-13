@@ -2,7 +2,6 @@
   lib,
   buildNpmPackage,
   fetchurl,
-  jq,
   versions,
 }:
 
@@ -19,8 +18,6 @@ buildNpmPackage rec {
 
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
-    ${lib.getExe jq} '.overrides = {"nodemailer": "^7.0.11"}' package.json > package.json.tmp
-    mv package.json.tmp package.json
   '';
 
   dontNpmBuild = true;
