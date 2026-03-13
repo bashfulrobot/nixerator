@@ -242,6 +242,20 @@ remove_worktree() {
   ok "worktree removed"
 }
 
+# ── Swept path tracking ─────────────────────────────────────────────────────
+# Tracks worktree paths cleaned by sweep so callers can detect when their
+# target worktree was just removed (prevents re-creating it as a new worktree).
+_SWEPT_PATHS=()
+
+was_swept() {
+  local target="$1"
+  local p
+  for p in "${_SWEPT_PATHS[@]}"; do
+    [[ "$p" == "$target" ]] && return 0
+  done
+  return 1
+}
+
 # ── Auto-sweep merged/closed worktrees ───────────────────────────────────────
 # Scans all worktrees with state files, checks PR status via gh, and cleans up
 # any whose PR has been merged or closed. Runs on every invocation so stale
@@ -295,6 +309,9 @@ sweep_merged_worktrees() {
           -X PATCH -f state=dismissed -f dismissed_reason=fix_started \
           -f dismissed_comment="Fixed via PR" 2>/dev/null || true
       fi
+
+      # Track this path before removal so callers know it was swept
+      _SWEPT_PATHS+=("$wt_dir")
 
       # Remove worktree
       git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir"
