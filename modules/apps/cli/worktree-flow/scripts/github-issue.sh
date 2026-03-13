@@ -101,61 +101,105 @@ create_issue_state() {
 pick_worktree() {
   sweep_merged_worktrees "issue-"
 
+  # Check for existing issue worktrees
   local wt_base
   wt_base="$(worktree_base)"
 
-  if [[ ! -d "$wt_base" ]]; then
-    die "usage: github-issue <issue-number>"
-  fi
+  local -a wt_descriptions=()
+  local -a wt_paths=()
+  local -a wt_issue_numbers=()
 
-  # Collect issue worktrees with state files
-  local -a descriptions=()
-  local -a paths=()
-  local -a issue_numbers=()
   local state_file wt_type title phase pr_url issue_num label review_status
-  while IFS= read -r -d '' wt_dir; do
-    state_file="${wt_dir}/.worktree-state.json"
-    if [[ -f "$state_file" ]]; then
-      wt_type="$(jq -r '.type' "$state_file")"
-      if [[ "$wt_type" == "issue" ]]; then
-        issue_num="$(jq -r '.issue_number' "$state_file")"
-        title="$(jq -r '.issue_title' "$state_file")"
-        phase="$(jq -r '.phase' "$state_file")"
-        pr_url="$(jq -r '.pr_url // ""' "$state_file")"
-        label="#${issue_num}: ${title} [${phase}]"
-        if [[ -n "$pr_url" ]]; then
-          label="#${issue_num}: ${title} [${phase}] ${pr_url}"
-          review_status="$(gh pr view "$pr_url" --json reviewDecision --jq '.reviewDecision' 2>/dev/null)" || review_status=""
-          if [[ -n "$review_status" ]] && [[ "$review_status" != "null" ]]; then
-            label="${label} (${review_status,,})"
+  if [[ -d "$wt_base" ]]; then
+    while IFS= read -r -d '' wt_dir; do
+      state_file="${wt_dir}/.worktree-state.json"
+      if [[ -f "$state_file" ]]; then
+        wt_type="$(jq -r '.type' "$state_file")"
+        if [[ "$wt_type" == "issue" ]]; then
+          issue_num="$(jq -r '.issue_number' "$state_file")"
+          title="$(jq -r '.issue_title' "$state_file")"
+          phase="$(jq -r '.phase' "$state_file")"
+          pr_url="$(jq -r '.pr_url // ""' "$state_file")"
+          label="#${issue_num}: ${title} [${phase}]"
+          if [[ -n "$pr_url" ]]; then
+            label="#${issue_num}: ${title} [${phase}] ${pr_url}"
+            review_status="$(gh pr view "$pr_url" --json reviewDecision --jq '.reviewDecision' 2>/dev/null)" || review_status=""
+            if [[ -n "$review_status" ]] && [[ "$review_status" != "null" ]]; then
+              label="${label} (${review_status,,})"
+            fi
           fi
+          wt_descriptions+=("$label")
+          wt_paths+=("$wt_dir")
+          wt_issue_numbers+=("$issue_num")
         fi
-        descriptions+=("$label")
-        paths+=("$wt_dir")
-        issue_numbers+=("$issue_num")
       fi
-    fi
-  done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -name 'issue-*' -print0 2>/dev/null)
-
-  if [[ ${#descriptions[@]} -eq 0 ]]; then
-    die "no active issue worktrees. usage: github-issue <issue-number>"
+    done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -name 'issue-*' -print0 2>/dev/null)
   fi
 
-  if [[ ${#descriptions[@]} -eq 1 ]]; then
-    # Single worktree: go directly
-    handle_existing_worktree "${issue_numbers[0]}" "${paths[0]}"
-    return
-  fi
+  # Fetch open issues from GitHub (oldest 10)
+  info "fetching open issues..."
+  local issues_json
+  issues_json="$(gh issue list --state open --limit 10 --json number,title,labels --jq 'sort_by(.number) | .[:10]' 2>/dev/null || echo '[]')"
 
-  # Multiple: let user pick
-  local choice
-  choice="$(printf '%s\n' "${descriptions[@]}" | gum choose --header "Active issues:" || die "aborted")"
+  # Build combined menu
+  local -a menu_items=()
+  local -a menu_types=()  # "worktree" or "issue"
+  local -a menu_ids=()    # wt index or issue number
 
-  # Find matching path
+  # Add existing worktrees first
   local i
-  for i in "${!descriptions[@]}"; do
-    if [[ "${descriptions[$i]}" == "$choice" ]]; then
-      handle_existing_worktree "${issue_numbers[$i]}" "${paths[$i]}"
+  for i in "${!wt_descriptions[@]}"; do
+    menu_items+=("[active] ${wt_descriptions[$i]}")
+    menu_types+=("worktree")
+    menu_ids+=("$i")
+  done
+
+  # Add open issues (skip any that already have worktrees)
+  local num skip j issue_title issue_labels
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    num="$(printf '%s' "$line" | jq -r '.number')"
+    issue_title="$(printf '%s' "$line" | jq -r '.title')"
+    issue_labels="$(printf '%s' "$line" | jq -r '[.labels[].name] | join(", ")')"
+
+    # Skip if worktree already exists for this issue
+    skip=0
+    for j in "${!wt_issue_numbers[@]}"; do
+      if [[ "${wt_issue_numbers[$j]}" == "$num" ]]; then
+        skip=1
+        break
+      fi
+    done
+    if [[ $skip -eq 1 ]]; then
+      continue
+    fi
+
+    local issue_label="#${num}: ${issue_title}"
+    if [[ -n "$issue_labels" ]]; then
+      issue_label="${issue_label} [${issue_labels}]"
+    fi
+    menu_items+=("$issue_label")
+    menu_types+=("issue")
+    menu_ids+=("$num")
+  done < <(printf '%s' "$issues_json" | jq -c '.[]')
+
+  if [[ ${#menu_items[@]} -eq 0 ]]; then
+    ok "no open issues and no active worktrees"
+    exit 0
+  fi
+
+  local choice
+  choice="$(printf '%s\n' "${menu_items[@]}" | gum choose --header "GitHub issues:" || die "aborted")"
+
+  # Find matching selection
+  for i in "${!menu_items[@]}"; do
+    if [[ "${menu_items[$i]}" == "$choice" ]]; then
+      if [[ "${menu_types[$i]}" == "worktree" ]]; then
+        local idx="${menu_ids[$i]}"
+        handle_existing_worktree "${wt_issue_numbers[$idx]}" "${wt_paths[$idx]}"
+      else
+        main "${menu_ids[$i]}"
+      fi
       return
     fi
   done
