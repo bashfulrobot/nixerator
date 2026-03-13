@@ -23,8 +23,10 @@ let
         language = "auto";
         vosk_model_size = "small";
         whisper_model_size = cfg.whisperModelSize;
+        whisper_cpp_model_size = cfg.whisperModelSize;
         vad_sensitivity = 3;
         silence_timeout = 2.0;
+        voice_commands_enabled = null;
       };
       audio = {
         device_index = null;
@@ -32,6 +34,7 @@ let
       };
       shortcuts = {
         toggle_recognition = "ctrl+ctrl";
+        mode = "push_to_talk";
       };
       ui = {
         start_minimized = true;
