@@ -125,6 +125,13 @@ handle_existing_worktree() {
       phase_cleanup "$wt_path"
       return
     fi
+  else
+    if is_branch_merged "$branch"; then
+      info "branch merged (no PR in state file) -- cleaning up"
+      backfill_pr_url "$branch" "$wt_path"
+      phase_cleanup "$wt_path"
+      return
+    fi
   fi
 
   info "hack: phase ${phase}, branch ${branch}"

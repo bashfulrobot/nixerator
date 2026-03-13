@@ -104,6 +104,52 @@ default_branch() {
   printf '%s' "${ref#refs/remotes/origin/}"
 }
 
+# ── Merged branch detection ──────────────────────────────────────────────────
+# Checks if a branch has been merged, even when pr_url is missing from state.
+# Primary: gh pr list --head (finds merged PRs for branch).
+# Fallback: git branch -r --merged (offline check against default branch).
+# Returns 0 if merged, 1 otherwise. Non-fatal on gh failure.
+is_branch_merged() {
+  local branch="$1"
+
+  # Primary: check via GitHub API
+  local merged_count
+  merged_count="$(gh pr list --head "$branch" --state merged --json number --jq 'length' 2>/dev/null)" || merged_count=""
+  if [[ -n "$merged_count" ]] && [[ "$merged_count" -gt 0 ]]; then
+    return 0
+  fi
+
+  # Fallback: check if branch is merged into default branch (works offline)
+  local default_br
+  default_br="$(default_branch)"
+  if git branch -r --merged "origin/${default_br}" 2>/dev/null | grep -qE "origin/${branch//\//\\/}\$"; then
+    return 0
+  fi
+
+  return 1
+}
+
+# Discover and backfill pr_url from a merged PR for a branch.
+# Args: $1=branch, $2=wt_path
+backfill_pr_url() {
+  local branch="$1"
+  local wt_path="$2"
+
+  local pr_url
+  pr_url="$(gh pr list --head "$branch" --state merged --json url --jq '.[0].url' 2>/dev/null)" || pr_url=""
+  if [[ -n "$pr_url" ]] && [[ "$pr_url" != "null" ]]; then
+    local current updated timestamp
+    current="$(cat "${wt_path}/.worktree-state.json")"
+    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    updated="$(printf '%s' "$current" | jq \
+      --arg url "$pr_url" \
+      --arg t "$timestamp" \
+      '.pr_url = $url | .updated_at = $t')"
+    write_state "$updated" "$wt_path"
+    ok "backfilled PR URL: ${pr_url}"
+  fi
+}
+
 # ── Atomic state file I/O (WT-04) ─────────────────────────────────────────────
 
 # Write JSON string atomically to .worktree-state.json
@@ -279,12 +325,19 @@ sweep_merged_worktrees() {
     [[ -f "$state_file" ]] || continue
 
     pr_url="$(jq -r '.pr_url // ""' "$state_file")"
-    [[ -n "$pr_url" ]] || continue
+    branch="$(jq -r '.branch' "$state_file")"
 
-    pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null)" || {
-      warn "could not check PR status for $(basename "$wt_dir"), skipping"
+    if [[ -n "$pr_url" ]]; then
+      pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null)" || {
+        warn "could not check PR status for $(basename "$wt_dir"), skipping"
+        continue
+      }
+    elif is_branch_merged "$branch"; then
+      pr_state="MERGED"
+    else
       continue
-    }
+    fi
+
     if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_state" == "CLOSED" ]]; then
       # Read all state BEFORE removing worktree (state file lives inside it)
       wt_type="$(jq -r '.type' "$state_file")"
