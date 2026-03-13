@@ -23,11 +23,22 @@ in
         installRemoteServer = true;
         extraPackages = with pkgs; [
           # Language servers
+          ansible-language-server
+          bash-language-server
+          dockerfile-language-server-nodejs
+          docker-compose-language-service
+          fish-lsp
           gopls
           golangci-lint-langserver
+          helm-ls
           markdown-oxide
           marksman
+          nil
           nixd
+          rust-analyzer
+          taplo
+          terraform-ls
+          vscode-langservers-extracted # JSON/HTML/CSS/ESLint
           yaml-language-server
 
           # Formatters and linters
@@ -178,9 +189,49 @@ in
             npm_path = "${pkgs.nodejs_22}/bin/npm";
           };
           lsp = {
+            nil = {
+              binary = {
+                path = "${pkgs.nil}/bin/nil";
+              };
+            };
+            nixd = {
+              binary = {
+                path = "${pkgs.nixd}/bin/nixd";
+              };
+            };
+            rust-analyzer = {
+              binary = {
+                path = "${pkgs.rust-analyzer}/bin/rust-analyzer";
+              };
+            };
+            terraform-ls = {
+              binary = {
+                path = "${pkgs.terraform-ls}/bin/terraform-ls";
+              };
+            };
+            gopls = {
+              binary = {
+                path = "${pkgs.gopls}/bin/gopls";
+              };
+            };
+            taplo = {
+              binary = {
+                path = "${pkgs.taplo}/bin/taplo";
+              };
+            };
+            yaml-language-server = {
+              binary = {
+                path = "${pkgs.yaml-language-server}/bin/yaml-language-server";
+              };
+            };
             markdown-oxide = {
               binary = {
                 path = "${pkgs.markdown-oxide}/bin/markdown-oxide";
+              };
+            };
+            helm-ls = {
+              binary = {
+                path = "${pkgs.helm-ls}/bin/helm_ls";
               };
             };
           };
