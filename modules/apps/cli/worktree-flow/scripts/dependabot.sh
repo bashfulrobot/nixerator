@@ -469,9 +469,14 @@ phase_push_and_pr() {
     pr_title="${pr_title:0:69}..."
   fi
 
+  # Build summary from alert context + commit messages
+  local default_br commit_log
+  default_br="$(default_branch)"
+  commit_log="$(git -C "$wt_path" log --format='- %s' "${default_br}..${branch}")"
+
   local pr_body
-  pr_body="$(printf '## Summary\n- Fixes Dependabot alert #%s\n- Package: %s\n- %s\n\n## Test plan\n- [ ] Build succeeds\n- [ ] CI passes' \
-    "$alert_number" "$package_name" "$advisory_summary")"
+  pr_body="$(printf '## Summary\nFixes Dependabot alert #%s\n- Package: %s\n- %s\n\n%s' \
+    "$alert_number" "$package_name" "$advisory_summary" "$commit_log")"
 
   info "creating PR..."
   local pr_url

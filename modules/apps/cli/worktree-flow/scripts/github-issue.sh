@@ -430,10 +430,12 @@ phase_push_and_pr() {
   (cd "$wt_path" && safe_push "$branch")
   ok "branch pushed"
 
-  # Build PR body
-  local pr_body
-  pr_body="$(printf '## Summary\n- Implements #%s: %s\n\n## Test plan\n- [ ] Manual verification of changes\n- [ ] CI passes' \
-    "$issue_number" "$issue_title")"
+  # Build summary from issue reference + commit messages
+  local default_br commit_log pr_body
+  default_br="$(default_branch)"
+  commit_log="$(git -C "$wt_path" log --format='- %s' "${default_br}..${branch}")"
+  pr_body="$(printf '## Summary\nCloses #%s: %s\n\n%s' \
+    "$issue_number" "$issue_title" "$commit_log")"
 
   info "creating PR..."
   local pr_url

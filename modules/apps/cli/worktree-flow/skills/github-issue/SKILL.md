@@ -23,7 +23,4 @@ When creating a PR, use this body structure:
 ```
 ## Summary
 <1-3 bullet points describing what changed and why>
-
-## Test plan
-- [ ] <manual or automated verification steps>
 ```
