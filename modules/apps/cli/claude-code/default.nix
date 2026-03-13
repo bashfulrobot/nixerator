@@ -109,7 +109,9 @@ in
         $DRY_RUN_CMD mkdir -p "$claude_home/output-styles"
 
         # settings.json -- substitute statusline store path
+        # Remove first in case it's a stale symlink into the nix store (read-only)
         if [ -z "$DRY_RUN_CMD" ]; then
+          rm -f "$claude_home/settings.json"
           ${pkgs.gnused}/bin/sed \
             's|@STATUSLINE_COMMAND@|${statusLineScript}/bin/claude-statusline|g' \
             "${configDir}/settings.json" > "$claude_home/settings.json"
@@ -118,11 +120,9 @@ in
           $DRY_RUN_CMD "would substitute @STATUSLINE_COMMAND@ in settings.json"
         fi
 
-        # CLAUDE.md
-        $DRY_RUN_CMD cp --no-preserve=mode "${configDir}/CLAUDE.md" "$claude_home/CLAUDE.md"
-
-        # Agents
+        # Agents -- remove stale symlinks before copying
         for agent in "${configDir}"/agents/*.md; do
+          $DRY_RUN_CMD rm -f "$claude_home/agents/$(basename "$agent")"
           $DRY_RUN_CMD cp --no-preserve=mode "$agent" "$claude_home/agents/$(basename "$agent")"
         done
 
@@ -130,11 +130,16 @@ in
         for skill_dir in "${configDir}"/skills/*/; do
           skill_name="$(basename "$skill_dir")"
           $DRY_RUN_CMD mkdir -p "$claude_home/skills/$skill_name"
+          # Remove stale symlinks in the skill directory
+          for skill_file in "$skill_dir"*; do
+            $DRY_RUN_CMD rm -f "$claude_home/skills/$skill_name/$(basename "$skill_file")"
+          done
           $DRY_RUN_CMD cp --no-preserve=mode -r "$skill_dir"* "$claude_home/skills/$skill_name/"
         done
 
-        # Output styles
+        # Output styles -- remove stale symlinks before copying
         for style in "${configDir}"/output-styles/*; do
+          $DRY_RUN_CMD rm -f "$claude_home/output-styles/$(basename "$style")"
           $DRY_RUN_CMD cp --no-preserve=mode "$style" "$claude_home/output-styles/$(basename "$style")"
         done
       '';
