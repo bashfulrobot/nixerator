@@ -1,5 +1,6 @@
 {
   globals,
+  inputs,
   lib,
   pkgs,
   config,
@@ -89,23 +90,17 @@ in
       home.packages =
         with pkgs;
         [
+          llm-agents.claude-code
           libnotify # for notify-send in Stop hook
         ]
         ++ gsdConfig.packages;
 
-      programs = {
-        claude-code = {
-          enable = true;
-          package = pkgs.llm-agents.claude-code;
-        };
-
-        fish = fishConfig;
-      };
+      programs.fish = fishConfig;
 
       # Copy config files as writable copies via activation script.
       # This replaces programs.claude-code.{settings,memory,agents,skills,outputStyles}
       # so that Claude Code can modify its own config at runtime.
-      home.activation.claudeCodeConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      home.activation.claudeCodeConfig = inputs.home-manager.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         claude_home="${homeDir}/.claude"
 
         # Create directories
