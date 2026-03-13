@@ -325,12 +325,9 @@ phase_claude_running() {
     # Resume existing session
     info "resuming session: ${session_id}"
     warn "resuming previous session -- if context seems stale, exit and re-run with a fresh session"
-    (
-      cd "$wt_path"
-      unset CLAUDECODE
-      claude --dangerously-skip-permissions \
-        --resume "$session_id"
-    ) || true
+    run_claude "$wt_path" \
+      --dangerously-skip-permissions \
+      --resume "$session_id"
   else
     # New session: pre-generate ID so we can store it before launch
     session_id="$(uuidgen)"
@@ -344,14 +341,11 @@ phase_claude_running() {
     write_state "$updated" "$wt_path"
     ok "session id: ${session_id}"
 
-    (
-      cd "$wt_path"
-      unset CLAUDECODE
-      claude --dangerously-skip-permissions \
-        --system-prompt "$system_prompt" \
-        --session-id "$session_id" \
-        "$task_prompt"
-    ) || true
+    run_claude "$wt_path" \
+      --dangerously-skip-permissions \
+      --system-prompt "$system_prompt" \
+      --session-id "$session_id" \
+      "$task_prompt"
   fi
 
   set_phase "claude_exited" "$wt_path"
