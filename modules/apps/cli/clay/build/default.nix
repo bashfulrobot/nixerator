@@ -2,6 +2,8 @@
   lib,
   buildNpmPackage,
   fetchurl,
+  makeWrapper,
+  nodejs,
   versions,
 }:
 
@@ -10,7 +12,7 @@ buildNpmPackage rec {
   inherit (versions.cli.clay) version npmDepsHash;
 
   src = fetchurl {
-    url = "https://registry.npmjs.org/claude-relay/-/claude-relay-${version}.tgz";
+    url = "https://registry.npmjs.org/clay-server/-/clay-server-${version}.tgz";
     inherit (versions.cli.clay) hash;
   };
 
@@ -21,12 +23,32 @@ buildNpmPackage rec {
   '';
 
   dontNpmBuild = true;
+  dontNpmInstall = true;
+
+  nativeBuildInputs = [ makeWrapper ];
+
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p "$out/lib/node_modules/clay-server"
+    cp -r . "$out/lib/node_modules/clay-server"
+
+    mkdir -p "$out/bin"
+    makeWrapper "${nodejs}/bin/node" "$out/bin/clay-server" \
+      --add-flags "$out/lib/node_modules/clay-server/bin/cli.js"
+    makeWrapper "${nodejs}/bin/node" "$out/bin/clay-dev" \
+      --add-flags "$out/lib/node_modules/clay-server/bin/cli.js"
+    makeWrapper "${nodejs}/bin/node" "$out/bin/claude-relay" \
+      --add-flags "$out/lib/node_modules/clay-server/bin/claude-relay.js"
+
+    runHook postInstall
+  '';
 
   meta = with lib; {
     description = "Web UI for Claude Code with remote access and push notifications";
     homepage = "https://github.com/chadbyte/clay";
     license = licenses.mit;
     platforms = platforms.linux;
-    mainProgram = "claude-relay";
+    mainProgram = "clay-server";
   };
 }
