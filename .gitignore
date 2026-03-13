@@ -5,6 +5,10 @@ flake.lock-backup-*
 result
 result-*
 
+# Worktree state files
+.worktree-state.json
+.dependabot-alert.json
+
 # MCP config (project-level)
 .mcp.json
 
