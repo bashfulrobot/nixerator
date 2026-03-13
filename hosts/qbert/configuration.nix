@@ -28,9 +28,6 @@
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
   i18n.defaultLocale = globals.defaults.locale;
 
-  # Vocalinux on qbert: larger whisper model (AMD 6800 XT has plenty of headroom)
-  apps.gui.vocalinux.whisperModelSize = "small";
-
   # Voxtype on qbert: keep thread cap + use Vulkan backend (AMD 6800 XT)
   hyprflake.desktop.voxtype = {
     #model = "large-v3-turbo";
