@@ -62,7 +62,7 @@
       npmPkg = "claude-relay";
       version = "2.9.0";
       hash = "sha256-SoyBwln0RPD8V4iI9KFiTrkemube5UBN+iULPwisI9M=";
-      npmDepsHash = "sha256-u//nipYZpINh8KR64T1knbV2JpWfhtPdF8oGMrfRxig=";
+      npmDepsHash = "sha256-HaY2w7bOnTZwGnCPl/Q8jovPR32/CDHuiL3IT4j5qpI=";
     };
 
     termly = {
