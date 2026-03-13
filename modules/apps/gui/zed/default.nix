@@ -25,6 +25,7 @@ in
           # Language servers
           gopls
           golangci-lint-langserver
+          markdown-oxide
           marksman
           nixd
           yaml-language-server
@@ -175,6 +176,13 @@ in
             ignore_system_version = true;
             path = "${pkgs.nodejs_22}/bin/node";
             npm_path = "${pkgs.nodejs_22}/bin/npm";
+          };
+          lsp = {
+            markdown-oxide = {
+              binary = {
+                path = "${pkgs.markdown-oxide}/bin/markdown-oxide";
+              };
+            };
           };
           languages = {
             Go = {
