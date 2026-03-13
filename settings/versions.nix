@@ -139,6 +139,15 @@
       tagPrefix = "";
       hash = "";
     };
+
+    vocalinux = {
+      source = "github-release";
+      repo = "jatinkrmalik/vocalinux";
+      version = "0.8.0-beta";
+      tagPrefix = "v";
+      hash = "sha256-MR2rKO5RNjuuUHn3eQ6sAdGMd2QfWKJodI7nYL1pkPA=";
+      modelHash = "sha256-CIoPZ/krX+UW2w7c84W3oc1n4zc9BBS/fc8rVYUthuY=";
+    };
   };
 
   fish-plugins = {
