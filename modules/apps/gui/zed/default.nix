@@ -84,7 +84,7 @@ in
           cursor_shape = "block";
           format_on_save = "on";
           hard_tabs = false;
-          helix_mode = true;
+          helix_mode = false;
           relative_line_numbers = "enabled";
           show_whitespaces = "all";
           show_wrap_guides = true;
