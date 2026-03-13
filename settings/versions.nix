@@ -59,10 +59,10 @@
     clay = {
       source = "npm";
       repo = "chadbyte/clay";
-      npmPkg = "claude-relay";
-      version = "2.9.0";
-      hash = "sha256-SoyBwln0RPD8V4iI9KFiTrkemube5UBN+iULPwisI9M=";
-      npmDepsHash = "sha256-u//nipYZpINh8KR64T1knbV2JpWfhtPdF8oGMrfRxig=";
+      npmPkg = "clay-server";
+      version = "2.9.2";
+      hash = "sha256-/3x60L9lys3SWdOVG9k4YGyZ5Km6EHxprKVD3IbEkF4=";
+      npmDepsHash = "sha256-TrzeDrR0+D7BZpkRFvcXv8eW1z+VwvG/6KwY4dh5Z+I=";
     };
 
     termly = {
