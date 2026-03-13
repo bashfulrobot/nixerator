@@ -180,6 +180,131 @@ worktree_base() {
   printf '%s' "$(git rev-parse --show-toplevel)/../.worktrees"
 }
 
+# ── Orphan worktree detection ────────────────────────────────────────────────
+# Warns about worktree dirs with no state file and offers to remove them.
+check_orphan_worktrees() {
+  local wt_base
+  wt_base="$(worktree_base)"
+  [[ -d "$wt_base" ]] || return 0
+
+  local found_orphan=0
+  while IFS= read -r -d '' wt_dir; do
+    if [[ ! -f "${wt_dir}/.worktree-state.json" ]]; then
+      warn "orphan worktree (no state file): $wt_dir"
+      found_orphan=1
+    fi
+  done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
+
+  if [[ $found_orphan -eq 1 ]]; then
+    if gum confirm "Remove orphan worktrees?"; then
+      while IFS= read -r -d '' wt_dir; do
+        if [[ ! -f "${wt_dir}/.worktree-state.json" ]]; then
+          git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir"
+        fi
+      done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
+      git worktree prune 2>/dev/null || true
+      ok "orphan worktrees cleaned"
+    fi
+  fi
+}
+
+# ── Worktree removal ────────────────────────────────────────────────────────
+remove_worktree() {
+  local wt_path="$1"
+  _WT_CLEANUP_PATH=""
+  local branch
+  branch="$(read_state_field branch "$wt_path" 2>/dev/null || echo "")"
+
+  git worktree remove --force "$wt_path" 2>/dev/null || true
+  git worktree prune 2>/dev/null || true
+  if [[ -n "$branch" ]]; then
+    git branch -D "$branch" 2>/dev/null || true
+    git push origin --delete "$branch" 2>/dev/null || true
+  fi
+  ok "worktree removed"
+}
+
+# ── Auto-sweep merged/closed worktrees ───────────────────────────────────────
+# Scans all worktrees with state files, checks PR status via gh, and cleans up
+# any whose PR has been merged or closed. Runs on every invocation so stale
+# worktrees don't accumulate.
+# Args: $1=dir_prefix (e.g. "issue-" or "hack-"), defaults to scanning all.
+sweep_merged_worktrees() {
+  local dir_prefix="${1:-}"
+  local wt_base
+  wt_base="$(worktree_base)"
+  [[ -d "$wt_base" ]] || return 0
+
+  local name_filter="*"
+  if [[ -n "$dir_prefix" ]]; then
+    name_filter="${dir_prefix}*"
+  fi
+
+  local cleaned=0
+  local state_file pr_url pr_state wt_type branch issue_num alert_num pr_number
+  while IFS= read -r -d '' wt_dir; do
+    state_file="${wt_dir}/.worktree-state.json"
+    [[ -f "$state_file" ]] || continue
+
+    pr_url="$(jq -r '.pr_url // ""' "$state_file")"
+    [[ -n "$pr_url" ]] || continue
+
+    pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null)" || {
+      warn "could not check PR status for $(basename "$wt_dir"), skipping"
+      continue
+    }
+    if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_state" == "CLOSED" ]]; then
+      # Read all state BEFORE removing worktree (state file lives inside it)
+      wt_type="$(jq -r '.type' "$state_file")"
+      branch="$(jq -r '.branch' "$state_file")"
+      pr_number="${pr_url##*/}"
+      issue_num=""
+      alert_num=""
+
+      if [[ "$wt_type" == "issue" ]]; then
+        issue_num="$(jq -r '.issue_number' "$state_file")"
+        info "issue #${issue_num}: PR ${pr_state,,}, cleaning up..."
+      elif [[ "$wt_type" == "dependabot" ]]; then
+        alert_num="$(jq -r '.alert_number' "$state_file")"
+        info "alert #${alert_num}: PR ${pr_state,,}, cleaning up..."
+      else
+        info "$(basename "$wt_dir"): PR ${pr_state,,}, cleaning up..."
+      fi
+
+      # Dismiss dependabot alert (before worktree removal destroys state file)
+      if [[ "$wt_type" == "dependabot" ]] && [[ -n "$alert_num" ]] && [[ "$alert_num" != "null" ]]; then
+        gh api "repos/{owner}/{repo}/dependabot/alerts/${alert_num}" \
+          -X PATCH -f state=dismissed -f dismissed_reason=fix_started \
+          -f dismissed_comment="Fixed via PR" 2>/dev/null || true
+      fi
+
+      # Remove worktree
+      git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir"
+
+      # Delete local and remote branches
+      git branch -D "$branch" 2>/dev/null || true
+      git push origin --delete "$branch" 2>/dev/null || true
+
+      # Post resolution comment and close issue (issue worktrees only, merged PRs)
+      if [[ "$wt_type" == "issue" ]] && [[ -n "$pr_number" ]] && [[ -n "$issue_num" ]]; then
+        gh issue comment "$issue_num" \
+          --body "Resolved via #${pr_number}. Branch and worktree cleaned up." 2>/dev/null || true
+        if [[ "$pr_state" == "MERGED" ]]; then
+          gh issue close "$issue_num" 2>/dev/null || true
+        fi
+      fi
+
+      ok "cleaned up $(basename "$wt_dir")"
+      cleaned=$((cleaned + 1))
+    fi
+  done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -name "$name_filter" -print0 2>/dev/null)
+
+  if [[ $cleaned -gt 0 ]]; then
+    git worktree prune 2>/dev/null || true
+    ok "swept ${cleaned} merged worktree(s)"
+  fi
+}
+
 # ── gum confirm usage pattern (SF-04) ────────────────────────────────────────
 # IMPORTANT: Always wrap gum confirm in an if statement -- never use bare.
 # Correct:   if gum confirm "Do the thing?"; then ...; else ...; fi

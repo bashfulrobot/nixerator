@@ -94,49 +94,13 @@ create_issue_state() {
   write_state "$json" "$wt_path"
 }
 
-check_orphan_worktrees() {
-  local wt_base
-  wt_base="$(worktree_base)"
-  [[ -d "$wt_base" ]] || return 0
 
-  local found_orphan=0
-  while IFS= read -r -d '' wt_dir; do
-    if [[ ! -f "${wt_dir}/.worktree-state.json" ]]; then
-      warn "orphan worktree (no state file): $wt_dir"
-      found_orphan=1
-    fi
-  done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
-
-  if [[ $found_orphan -eq 1 ]]; then
-    if gum confirm "Remove orphan worktrees?"; then
-      while IFS= read -r -d '' wt_dir; do
-        if [[ ! -f "${wt_dir}/.worktree-state.json" ]]; then
-          git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir"
-        fi
-      done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
-      git worktree prune 2>/dev/null || true
-      ok "orphan worktrees cleaned"
-    fi
-  fi
-}
-
-remove_worktree() {
-  local wt_path="$1"
-  _WT_CLEANUP_PATH=""
-  local branch
-  branch="$(read_state_field branch "$wt_path" 2>/dev/null || echo "")"
-
-  git worktree remove --force "$wt_path" 2>/dev/null || true
-  git worktree prune 2>/dev/null || true
-  if [[ -n "$branch" ]]; then
-    git branch -D "$branch" 2>/dev/null || true
-  fi
-  ok "worktree removed"
-}
 
 # ── Worktree picker (no-arg mode) ───────────────────────────────────────────
 
 pick_worktree() {
+  sweep_merged_worktrees "issue-"
+
   local wt_base
   wt_base="$(worktree_base)"
 
@@ -148,20 +112,23 @@ pick_worktree() {
   local -a descriptions=()
   local -a paths=()
   local -a issue_numbers=()
+  local state_file wt_type title phase pr_url issue_num label review_status
   while IFS= read -r -d '' wt_dir; do
-    local state_file="${wt_dir}/.worktree-state.json"
+    state_file="${wt_dir}/.worktree-state.json"
     if [[ -f "$state_file" ]]; then
-      local wt_type
       wt_type="$(jq -r '.type' "$state_file")"
       if [[ "$wt_type" == "issue" ]]; then
-        local title phase pr_url issue_num
         issue_num="$(jq -r '.issue_number' "$state_file")"
         title="$(jq -r '.issue_title' "$state_file")"
         phase="$(jq -r '.phase' "$state_file")"
         pr_url="$(jq -r '.pr_url // ""' "$state_file")"
-        local label="#${issue_num}: ${title} [${phase}]"
+        label="#${issue_num}: ${title} [${phase}]"
         if [[ -n "$pr_url" ]]; then
           label="#${issue_num}: ${title} [${phase}] ${pr_url}"
+          review_status="$(gh pr view "$pr_url" --json reviewDecision --jq '.reviewDecision' 2>/dev/null)" || review_status=""
+          if [[ -n "$review_status" ]] && [[ "$review_status" != "null" ]]; then
+            label="${label} (${review_status,,})"
+          fi
         fi
         descriptions+=("$label")
         paths+=("$wt_dir")
@@ -223,8 +190,17 @@ handle_existing_worktree() {
     info "PR: ${pr_url}"
   fi
 
+  # Build adaptive menu based on phase
+  local -a menu_opts=("Resume Claude")
+  if [[ "$phase" == "pr_created" ]]; then
+    menu_opts+=("Check PR")
+  elif [[ "$phase" == "pushing" ]] || [[ "$phase" == "claude_exited" ]]; then
+    menu_opts+=("Retry Push+PR")
+  fi
+  menu_opts+=("Remove" "Abort")
+
   local choice
-  choice="$(gum choose "Resume Claude" "Check PR" "Remove" "Abort" || die "aborted")"
+  choice="$(gum choose "${menu_opts[@]}" || die "aborted")"
 
   case "$choice" in
     "Resume Claude")
@@ -237,8 +213,17 @@ handle_existing_worktree() {
         gh pr view "$pr_url" --web 2>/dev/null || info "PR: ${pr_url}"
       fi
       ;;
+    "Retry Push+PR")
+      local state_issue_num
+      state_issue_num="$(read_state_field issue_number "$wt_path")"
+      phase_push_and_pr "$state_issue_num" "$wt_path"
+      ;;
     "Remove")
-      remove_worktree "$wt_path"
+      if gum confirm "Remove worktree and delete branches? This cannot be undone."; then
+        remove_worktree "$wt_path"
+      else
+        info "aborted"
+      fi
       ;;
     "Abort")
       info "aborted"
@@ -251,6 +236,7 @@ phase_resume() {
   local issue_number="$1"
   local wt_path="$2"
 
+  _RESUME_DEPTH=0
   phase_claude_running "$wt_path"
   phase_claude_exited "$wt_path"
   phase_push_updates "$issue_number" "$wt_path"
@@ -338,6 +324,7 @@ phase_claude_running() {
   if [[ -n "$session_id" ]]; then
     # Resume existing session
     info "resuming session: ${session_id}"
+    warn "resuming previous session -- if context seems stale, exit and re-run with a fresh session"
     (
       cd "$wt_path"
       unset CLAUDECODE
@@ -373,6 +360,13 @@ phase_claude_running() {
 
 phase_claude_exited() {
   local wt_path="$1"
+
+  _RESUME_DEPTH=$(( ${_RESUME_DEPTH:-0} + 1 ))
+  if [[ $_RESUME_DEPTH -gt 5 ]]; then
+    warn "resumed 5 times without committing -- exiting to avoid deep recursion"
+    info "worktree preserved, run the command again to resume"
+    exit 0
+  fi
 
   section "Checking Changes"
 
@@ -512,15 +506,16 @@ phase_cleanup() {
   ok "worktree removed"
 
   # Delete local and remote branches
-  git branch -d "$branch" 2>/dev/null || git branch -D "$branch" 2>/dev/null || true
+  git branch -D "$branch" 2>/dev/null || true
   git push origin --delete "$branch" 2>/dev/null || true
   ok "branches cleaned up"
 
-  # Comment on issue with resolution summary
+  # Comment on issue with resolution summary and close it
   if [[ -n "$pr_number" ]]; then
     local resolution_msg="Resolved via #${pr_number}. Branch and worktree cleaned up."
     gh issue comment "$issue_number" --body "$resolution_msg" 2>/dev/null || true
-    ok "resolution comment posted"
+    gh issue close "$issue_number" 2>/dev/null || true
+    ok "resolution comment posted and issue closed"
   fi
 
   ok "cleanup complete for issue #${issue_number}"
@@ -534,15 +529,19 @@ main() {
   wt_path="$(worktree_base)/issue-${issue_number}"
 
   # Pre-flight
-  assert_clean_tree
+  sweep_merged_worktrees "issue-"
   check_orphan_worktrees
 
-  # Existing worktree check
+  # Existing worktree check (no clean tree needed for resume)
   if [[ -d "$wt_path" ]]; then
     handle_existing_worktree "$issue_number" "$wt_path"
     exit 0
   fi
 
+  # Clean tree required only for new worktree creation
+  assert_clean_tree
+
+  _RESUME_DEPTH=0
   phase_setup "$issue_number" "$wt_path"
   phase_claude_running "$wt_path"
   phase_claude_exited "$wt_path"

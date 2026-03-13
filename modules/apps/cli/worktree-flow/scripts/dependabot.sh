@@ -52,49 +52,11 @@ create_dependabot_state() {
   write_state "$json" "$wt_path"
 }
 
-check_orphan_worktrees() {
-  local wt_base
-  wt_base="$(worktree_base)"
-  [[ -d "$wt_base" ]] || return 0
-
-  local found_orphan=0
-  while IFS= read -r -d '' wt_dir; do
-    if [[ ! -f "${wt_dir}/.worktree-state.json" ]]; then
-      warn "orphan worktree (no state file): $wt_dir"
-      found_orphan=1
-    fi
-  done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
-
-  if [[ $found_orphan -eq 1 ]]; then
-    if gum confirm "Remove orphan worktrees?"; then
-      while IFS= read -r -d '' wt_dir; do
-        if [[ ! -f "${wt_dir}/.worktree-state.json" ]]; then
-          git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir"
-        fi
-      done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
-      git worktree prune 2>/dev/null || true
-      ok "orphan worktrees cleaned"
-    fi
-  fi
-}
-
-remove_worktree() {
-  local wt_path="$1"
-  _WT_CLEANUP_PATH=""
-  local branch
-  branch="$(read_state_field branch "$wt_path" 2>/dev/null || echo "")"
-
-  git worktree remove --force "$wt_path" 2>/dev/null || true
-  git worktree prune 2>/dev/null || true
-  if [[ -n "$branch" ]]; then
-    git branch -D "$branch" 2>/dev/null || true
-  fi
-  ok "worktree removed"
-}
-
 # ── Alert picker (no-arg mode) ───────────────────────────────────────────────
 
 pick_alert() {
+  sweep_merged_worktrees "dependabot-"
+
   # Check for existing dependabot worktrees first
   local wt_base
   wt_base="$(worktree_base)"
@@ -103,22 +65,25 @@ pick_alert() {
   local -a wt_paths=()
   local -a wt_alert_numbers=()
 
+  local state_file wt_type pkg phase pr_url alert_num summary label review_status
   if [[ -d "$wt_base" ]]; then
     while IFS= read -r -d '' wt_dir; do
-      local state_file="${wt_dir}/.worktree-state.json"
+      state_file="${wt_dir}/.worktree-state.json"
       if [[ -f "$state_file" ]]; then
-        local wt_type
         wt_type="$(jq -r '.type' "$state_file")"
         if [[ "$wt_type" == "dependabot" ]]; then
-          local pkg phase pr_url alert_num summary
           alert_num="$(jq -r '.alert_number' "$state_file")"
           pkg="$(jq -r '.package_name' "$state_file")"
           summary="$(jq -r '.advisory_summary' "$state_file")"
           phase="$(jq -r '.phase' "$state_file")"
           pr_url="$(jq -r '.pr_url // ""' "$state_file")"
-          local label="#${alert_num} ${pkg}: ${summary} [${phase}]"
+          label="#${alert_num} ${pkg}: ${summary} [${phase}]"
           if [[ -n "$pr_url" ]]; then
             label="#${alert_num} ${pkg}: ${summary} [${phase}] ${pr_url}"
+            review_status="$(gh pr view "$pr_url" --json reviewDecision --jq '.reviewDecision' 2>/dev/null)" || review_status=""
+            if [[ -n "$review_status" ]] && [[ "$review_status" != "null" ]]; then
+              label="${label} (${review_status,,})"
+            fi
           fi
           wt_descriptions+=("$label")
           wt_paths+=("$wt_dir")
@@ -150,17 +115,16 @@ pick_alert() {
   done
 
   # Add open alerts (skip any that already have worktrees)
+  local num severity skip j
   if [[ "$alert_count" -gt 0 ]]; then
     while IFS= read -r line; do
-      local num pkg severity summary
       num="$(printf '%s' "$line" | jq -r '.number')"
       pkg="$(printf '%s' "$line" | jq -r '.dependency.package.name')"
       severity="$(printf '%s' "$line" | jq -r '.security_advisory.severity')"
       summary="$(printf '%s' "$line" | jq -r '.security_advisory.summary')"
 
       # Skip if worktree already exists for this alert
-      local skip=0
-      local j
+      skip=0
       for j in "${!wt_alert_numbers[@]}"; do
         if [[ "${wt_alert_numbers[$j]}" == "$num" ]]; then
           skip=1
@@ -229,8 +193,17 @@ handle_existing_worktree() {
     info "PR: ${pr_url}"
   fi
 
+  # Build adaptive menu based on phase
+  local -a menu_opts=("Resume Claude")
+  if [[ "$phase" == "pr_created" ]]; then
+    menu_opts+=("Check PR")
+  elif [[ "$phase" == "pushing" ]] || [[ "$phase" == "claude_exited" ]]; then
+    menu_opts+=("Retry Push+PR")
+  fi
+  menu_opts+=("Remove" "Abort")
+
   local choice
-  choice="$(gum choose "Resume Claude" "Check PR" "Remove" "Abort" || die "aborted")"
+  choice="$(gum choose "${menu_opts[@]}" || die "aborted")"
 
   case "$choice" in
     "Resume Claude")
@@ -243,8 +216,17 @@ handle_existing_worktree() {
         gh pr view "$pr_url" --web 2>/dev/null || info "PR: ${pr_url}"
       fi
       ;;
+    "Retry Push+PR")
+      local state_alert_num
+      state_alert_num="$(read_state_field alert_number "$wt_path")"
+      phase_push_and_pr "$state_alert_num" "$wt_path"
+      ;;
     "Remove")
-      remove_worktree "$wt_path"
+      if gum confirm "Remove worktree and delete branches? This cannot be undone."; then
+        remove_worktree "$wt_path"
+      else
+        info "aborted"
+      fi
       ;;
     "Abort")
       info "aborted"
@@ -257,6 +239,7 @@ phase_resume() {
   local alert_number="$1"
   local wt_path="$2"
 
+  _RESUME_DEPTH=0
   phase_claude_running "$wt_path"
   phase_claude_exited "$wt_path"
   phase_push_updates "$alert_number" "$wt_path"
@@ -369,6 +352,7 @@ phase_claude_running() {
   if [[ -n "$session_id" ]]; then
     # Resume existing session
     info "resuming session: ${session_id}"
+    warn "resuming previous session -- if context seems stale, exit and re-run with a fresh session"
     (
       cd "$wt_path"
       unset CLAUDECODE
@@ -404,6 +388,13 @@ phase_claude_running() {
 
 phase_claude_exited() {
   local wt_path="$1"
+
+  _RESUME_DEPTH=$(( ${_RESUME_DEPTH:-0} + 1 ))
+  if [[ $_RESUME_DEPTH -gt 5 ]]; then
+    warn "resumed 5 times without committing -- exiting to avoid deep recursion"
+    info "worktree preserved, run the command again to resume"
+    exit 0
+  fi
 
   section "Checking Changes"
 
@@ -547,9 +538,14 @@ phase_cleanup() {
   ok "worktree removed"
 
   # Delete local and remote branches
-  git branch -d "$branch" 2>/dev/null || git branch -D "$branch" 2>/dev/null || true
+  git branch -D "$branch" 2>/dev/null || true
   git push origin --delete "$branch" 2>/dev/null || true
   ok "branches cleaned up"
+
+  # Dismiss the Dependabot alert
+  gh api "repos/{owner}/{repo}/dependabot/alerts/${alert_number}" \
+    -X PATCH -f state=dismissed -f dismissed_reason=fix_started \
+    -f dismissed_comment="Fixed via PR" 2>/dev/null || true
 
   ok "cleanup complete for alert #${alert_number}"
 }
@@ -571,15 +567,19 @@ main() {
   local wt_path
   wt_path="$(worktree_base)/dependabot-${alert_number}-${pkg_slug}"
 
-  assert_clean_tree
+  sweep_merged_worktrees "dependabot-"
   check_orphan_worktrees
 
-  # Existing worktree check
+  # Existing worktree check (no clean tree needed for resume)
   if [[ -d "$wt_path" ]]; then
     handle_existing_worktree "$alert_number" "$wt_path"
     exit 0
   fi
 
+  # Clean tree required only for new worktree creation
+  assert_clean_tree
+
+  _RESUME_DEPTH=0
   phase_setup "$alert_number" "$wt_path"
   phase_claude_running "$wt_path"
   phase_claude_exited "$wt_path"
