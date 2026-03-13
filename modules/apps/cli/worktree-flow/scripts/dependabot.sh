@@ -178,8 +178,8 @@ handle_existing_worktree() {
   pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
   package_name="$(read_state_field package_name "$wt_path")"
 
-  # Detect merged/closed PR
-  if [[ "$phase" == "pr_created" ]] && [[ -n "$pr_url" ]]; then
+  # Detect merged/closed PR (regardless of local phase)
+  if [[ -n "$pr_url" ]]; then
     local pr_state
     pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")"
     if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_state" == "CLOSED" ]]; then
