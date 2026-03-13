@@ -35,6 +35,7 @@ in
           ];
         };
       };
+      openspec.enable = true;
       plannotator.enable = true;
       stop-slop.enable = true;
       ollama = {

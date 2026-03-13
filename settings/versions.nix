@@ -91,6 +91,15 @@
       vendorHash = "sha256-/6DyRRvfyShQUSFmpmuSxrd1bhBh6Km8kaMutA4xrH4=";
     };
 
+    openspec = {
+      source = "npm";
+      repo = "Fission-AI/OpenSpec";
+      npmPkg = "@fission-ai/openspec";
+      version = "1.2.0";
+      hash = "sha256-Ks7alGk/HbCw0uo8dQoqQYc36rMNAm0dBmYplFzemLo=";
+      npmDepsHash = "sha256-HKLE4ZQ1xZe4GMm2eRQrcyEoShJdteqW++wLmv0Ersw=";
+    };
+
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
