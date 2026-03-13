@@ -341,7 +341,7 @@ phase_push_and_pr() {
   # Build summary from commit messages on the branch
   local default_br commit_log
   default_br="$(default_branch)"
-  commit_log="$(git -C "$wt_path" log --format='- %s' "${default_br}..${branch}")"
+  commit_log="$(git -C "$wt_path" log --format='- %s%n%w(0,2,2)%b' "${default_br}..${branch}")"
 
   local pr_body
   pr_body="$(printf '## Summary\n%s' "$commit_log")"
@@ -430,6 +430,7 @@ main() {
   local wt_path
   wt_path="$(worktree_base)/hack-${slug}"
 
+  fetch_remote
   sweep_merged_worktrees "hack-"
   check_orphan_worktrees
 

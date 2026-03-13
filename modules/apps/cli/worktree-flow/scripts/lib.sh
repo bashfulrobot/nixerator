@@ -19,6 +19,13 @@ section() {
   printf '\n'
 }
 
+# ── Remote sync ───────────────────────────────────────────────────────────────
+
+fetch_remote() {
+  info "fetching latest from remote..."
+  git fetch origin --prune 2>/dev/null || warn "fetch failed (offline?)"
+}
+
 # ── Safety guards ─────────────────────────────────────────────────────────────
 
 # SF-01: Block pushes to main/master
