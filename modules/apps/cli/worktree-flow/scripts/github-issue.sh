@@ -421,7 +421,7 @@ phase_push_and_pr() {
   # Build summary from issue reference + commit messages
   local default_br commit_log pr_body
   default_br="$(default_branch)"
-  commit_log="$(git -C "$wt_path" log --format='- %s' "${default_br}..${branch}")"
+  commit_log="$(git -C "$wt_path" log --format='- %s%n%w(0,2,2)%b' "${default_br}..${branch}")"
   pr_body="$(printf '## Summary\nCloses #%s: %s\n\n%s' \
     "$issue_number" "$issue_title" "$commit_log")"
 
@@ -523,6 +523,7 @@ main() {
   wt_path="$(worktree_base)/issue-${issue_number}"
 
   # Pre-flight
+  fetch_remote
   sweep_merged_worktrees "issue-"
   check_orphan_worktrees
 

@@ -457,7 +457,7 @@ phase_push_and_pr() {
   # Build summary from alert context + commit messages
   local default_br commit_log
   default_br="$(default_branch)"
-  commit_log="$(git -C "$wt_path" log --format='- %s' "${default_br}..${branch}")"
+  commit_log="$(git -C "$wt_path" log --format='- %s%n%w(0,2,2)%b' "${default_br}..${branch}")"
 
   local pr_body
   pr_body="$(printf '## Summary\nFixes Dependabot alert #%s\n- Package: %s\n- %s\n\n%s' \
@@ -561,6 +561,7 @@ main() {
   local wt_path
   wt_path="$(worktree_base)/dependabot-${alert_number}-${pkg_slug}"
 
+  fetch_remote
   sweep_merged_worktrees "dependabot-"
   check_orphan_worktrees
 
