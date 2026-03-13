@@ -220,9 +220,9 @@ handle_existing_worktree() {
   pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
 
   # Detect merged/closed PR (regardless of local phase)
+  local pr_state=""
   if [[ -n "$pr_url" ]]; then
-    local pr_state
-    pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")"
+    pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null)" || pr_state=""
     if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_state" == "CLOSED" ]]; then
       phase_cleanup "$issue_number" "$wt_path"
       return
@@ -235,7 +235,14 @@ handle_existing_worktree() {
   fi
 
   # Build adaptive menu based on phase
-  local -a menu_opts=("Resume Claude")
+  local -a menu_opts=()
+  if [[ -n "$pr_url" ]] && [[ -z "$pr_state" ]]; then
+    # PR exists but status check failed -- don't offer Resume Claude
+    warn "could not verify PR status -- not launching Claude"
+    menu_opts+=("Clean up (assume merged)")
+  else
+    menu_opts+=("Resume Claude")
+  fi
   if [[ "$phase" == "pr_created" ]]; then
     menu_opts+=("Check PR")
   elif [[ "$phase" == "pushing" ]] || [[ "$phase" == "claude_exited" ]]; then
@@ -247,6 +254,9 @@ handle_existing_worktree() {
   choice="$(gum choose "${menu_opts[@]}" || die "aborted")"
 
   case "$choice" in
+    "Clean up (assume merged)")
+      phase_cleanup "$issue_number" "$wt_path"
+      ;;
     "Resume Claude")
       phase_resume "$issue_number" "$wt_path"
       ;;
@@ -570,6 +580,12 @@ main() {
   fetch_remote
   sweep_merged_worktrees "issue-"
   check_orphan_worktrees
+
+  # If sweep just cleaned up this exact worktree, we're done
+  if was_swept "$wt_path"; then
+    ok "worktree cleaned up (PR merged/closed) -- nothing to do"
+    exit 0
+  fi
 
   # Existing worktree check (no clean tree needed for resume)
   if [[ -d "$wt_path" ]]; then
