@@ -26,6 +26,7 @@ in
       signal.enable = true;
       typora.enable = true;
       typora.nautilusIntegration = true;
+      vocalinux.enable = true;
       wayscriber.enable = true;
     };
 
