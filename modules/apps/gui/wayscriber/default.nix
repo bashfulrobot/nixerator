@@ -2,6 +2,7 @@
   lib,
   config,
   inputs,
+  globals,
   ...
 }:
 
@@ -21,5 +22,12 @@ in
     environment.systemPackages = [
       inputs.wayscriber.packages.x86_64-linux.default
     ];
+
+    home-manager.users.${globals.user.name} = {
+      xdg.configFile."hypr/conf.d/wayscriber.conf".text = ''
+        exec-once = wayscriber --daemon
+        bind = SUPER, D, exec, pkill -SIGUSR1 wayscriber
+      '';
+    };
   };
 }

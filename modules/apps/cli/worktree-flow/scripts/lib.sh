@@ -105,16 +105,18 @@ default_branch() {
 }
 
 # ── Merged branch detection ──────────────────────────────────────────────────
-# Checks if a branch has been merged, even when pr_url is missing from state.
+# Canonical check: has a branch's PR been merged?
+# This is the authoritative trigger for automatic cleanup.
 # Primary: gh pr list --head (finds merged PRs for branch).
 # Fallback: git branch -r --merged (offline check against default branch).
 # Returns 0 if merged, 1 otherwise. Non-fatal on gh failure.
 is_branch_merged() {
   local branch="$1"
 
-  # Primary: check via GitHub API
+  # Primary: check for merged PRs via GitHub API
   local merged_count
-  merged_count="$(gh pr list --head "$branch" --state merged --json number --jq 'length' 2>/dev/null)" || merged_count=""
+  merged_count="$(gh pr list --head "$branch" --state merged --json number \
+    --jq 'length' 2>/dev/null)" || merged_count=""
   if [[ -n "$merged_count" ]] && [[ "$merged_count" -gt 0 ]]; then
     return 0
   fi
@@ -130,13 +132,22 @@ is_branch_merged() {
 }
 
 # Discover and backfill pr_url from a merged PR for a branch.
+# Safe to call when pr_url is already populated (no-ops).
 # Args: $1=branch, $2=wt_path
 backfill_pr_url() {
   local branch="$1"
   local wt_path="$2"
 
+  # Skip if pr_url is already set
+  local existing_url
+  existing_url="$(jq -r '.pr_url // ""' "${wt_path}/.worktree-state.json")"
+  if [[ -n "$existing_url" ]]; then
+    return 0
+  fi
+
   local pr_url
-  pr_url="$(gh pr list --head "$branch" --state merged --json url --jq '.[0].url' 2>/dev/null)" || pr_url=""
+  pr_url="$(gh pr list --head "$branch" --state merged --json url \
+    --jq '.[0].url' 2>/dev/null)" || pr_url=""
   if [[ -n "$pr_url" ]] && [[ "$pr_url" != "null" ]]; then
     local current updated timestamp
     current="$(cat "${wt_path}/.worktree-state.json")"
@@ -302,10 +313,11 @@ was_swept() {
   return 1
 }
 
-# ── Auto-sweep merged/closed worktrees ───────────────────────────────────────
+# ── Auto-sweep merged worktrees ────────────────────────────────────────────
 # Scans all worktrees with state files, checks PR status via gh, and cleans up
-# any whose PR has been merged or closed. Runs on every invocation so stale
-# worktrees don't accumulate.
+# any whose PR has been merged. Closed (non-merged) PRs are left for the user
+# to handle interactively. Runs on every invocation so stale worktrees don't
+# accumulate.
 # Args: $1=dir_prefix (e.g. "issue-" or "hack-"), defaults to scanning all.
 sweep_merged_worktrees() {
   local dir_prefix="${1:-}"
@@ -326,19 +338,23 @@ sweep_merged_worktrees() {
 
     pr_url="$(jq -r '.pr_url // ""' "$state_file")"
     branch="$(jq -r '.branch' "$state_file")"
+    pr_state=""
 
+    # Fast path: check known PR URL
     if [[ -n "$pr_url" ]]; then
-      pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null)" || {
-        warn "could not check PR status for $(basename "$wt_dir"), skipping"
-        continue
-      }
-    elif is_branch_merged "$branch"; then
-      pr_state="MERGED"
-    else
-      continue
+      pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null)" || pr_state=""
     fi
 
-    if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_state" == "CLOSED" ]]; then
+    # Fallback: check branch merge status (covers PRs created outside workflow)
+    if [[ "$pr_state" != "MERGED" ]]; then
+      if is_branch_merged "$branch"; then
+        pr_state="MERGED"
+      else
+        continue
+      fi
+    fi
+
+    if [[ "$pr_state" == "MERGED" ]]; then
       # Read all state BEFORE removing worktree (state file lives inside it)
       wt_type="$(jq -r '.type' "$state_file")"
       branch="$(jq -r '.branch' "$state_file")"
