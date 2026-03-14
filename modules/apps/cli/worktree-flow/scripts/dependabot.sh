@@ -182,17 +182,19 @@ handle_existing_worktree() {
   local pr_state=""
   if [[ -n "$pr_url" ]]; then
     pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null)" || pr_state=""
-    if [[ "$pr_state" == "MERGED" ]] || [[ "$pr_state" == "CLOSED" ]]; then
-      phase_cleanup "$alert_number" "$wt_path"
-      return
-    fi
-  else
+  fi
+  # Fallback: check branch merge status (covers PRs created outside workflow)
+  if [[ "$pr_state" != "MERGED" ]]; then
     if is_branch_merged "$branch"; then
-      info "branch merged (no PR in state file) -- cleaning up"
-      backfill_pr_url "$branch" "$wt_path"
-      phase_cleanup "$alert_number" "$wt_path"
-      return
+      pr_state="MERGED"
     fi
+  fi
+
+  # Merged PR → auto-cleanup
+  if [[ "$pr_state" == "MERGED" ]]; then
+    backfill_pr_url "$branch" "$wt_path"
+    phase_cleanup "$alert_number" "$wt_path"
+    return
   fi
 
   info "Alert #${alert_number} (${package_name}): phase ${phase}, branch ${branch}"
@@ -200,15 +202,11 @@ handle_existing_worktree() {
     info "PR: ${pr_url}"
   fi
 
-  # Build adaptive menu based on phase
-  local -a menu_opts=()
-  if [[ -n "$pr_url" ]] && [[ -z "$pr_state" ]]; then
-    # PR exists but status check failed -- don't offer Resume Claude
-    warn "could not verify PR status -- not launching Claude"
-    menu_opts+=("Clean up (assume merged)")
-  else
-    menu_opts+=("Resume Claude")
+  # Build menu -- closed PR warns, but full options always available
+  if [[ "$pr_state" == "CLOSED" ]]; then
+    warn "PR was closed without merging"
   fi
+  local -a menu_opts=("Resume Claude" "Clean up")
   if [[ "$phase" == "pr_created" ]]; then
     menu_opts+=("Check PR")
   elif [[ "$phase" == "pushing" ]] || [[ "$phase" == "claude_exited" ]]; then
@@ -220,7 +218,7 @@ handle_existing_worktree() {
   choice="$(gum choose "${menu_opts[@]}" || die "aborted")"
 
   case "$choice" in
-    "Clean up (assume merged)")
+    "Clean up")
       phase_cleanup "$alert_number" "$wt_path"
       ;;
     "Resume Claude")
