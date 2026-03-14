@@ -60,9 +60,9 @@
       source = "npm";
       repo = "chadbyte/clay";
       npmPkg = "clay-server";
-      version = "2.9.2";
-      hash = "sha256-/3x60L9lys3SWdOVG9k4YGyZ5Km6EHxprKVD3IbEkF4=";
-      npmDepsHash = "sha256-TrzeDrR0+D7BZpkRFvcXv8eW1z+VwvG/6KwY4dh5Z+I=";
+      version = "2.9.3";
+      hash = "sha256-4WEBk43UNQV9JrpW4z6rkbpiDyw8M4Nh4Zz4yyIzwFg=";
+      npmDepsHash = "sha256-7Vr1lVq4GtlqQKZTVtnkZfgGS28wcK/sdOpJsJ1yHho=";
     };
 
     termly = {
@@ -103,9 +103,9 @@
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
-      version = "0.11.4";
+      version = "0.12.0";
       tagPrefix = "v";
-      hash = "sha256-J/Jp7lM85Yl8VXV+UynOdFmc6m45vAV6lDYc0Xl40yA=";
+      hash = "sha256-CvDHSF7AXUAIvPWgnxGErKqXkeADf2/BA/tV17UQihk=";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
@@ -135,7 +135,7 @@
     helium = {
       source = "github-release";
       repo = "imputnet/helium-linux";
-      version = "0.9.4.1";
+      version = "0.10.5.1";
       tagPrefix = "";
       hash = "";
     };
