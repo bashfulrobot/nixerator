@@ -26,7 +26,7 @@ in
     home-manager.users.${globals.user.name} = {
       xdg.configFile."hypr/conf.d/wayscriber.conf".text = ''
         exec-once = wayscriber --daemon
-        bind = SUPER, D, exec, pkill -SIGUSR1 wayscriber
+        bind = SUPER, A, exec, pkill -SIGUSR1 wayscriber
       '';
     };
   };
