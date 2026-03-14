@@ -27,7 +27,7 @@ let
 
       # Read installed plugin keys (handle missing file)
       if [[ -f "$installed_file" ]]; then
-        mapfile -t installed < <(jq -r '.[].key // empty' "$installed_file")
+        mapfile -t installed < <(jq -r '.plugins | keys[]' "$installed_file")
       else
         installed=()
       fi
@@ -56,9 +56,9 @@ let
         done
       fi
 
-      # Update all existing plugins
-      echo "[sync-plugins] Updating all plugins..."
-      claude-plugins update
+      if [[ ''${#missing[@]} -eq 0 ]]; then
+        echo "[sync-plugins] All plugins already installed."
+      fi
 
       echo "[sync-plugins] Done."
     '';
