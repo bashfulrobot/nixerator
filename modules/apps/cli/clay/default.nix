@@ -22,7 +22,7 @@ in
       description = "Port for the Clay server.";
     };
 
-    service.enable = lib.mkEnableOption "Clay persistent server (systemd user service)";
+    service.enable = lib.mkEnableOption "Clay persistent server (Hyprland exec-once)";
   };
 
   config = lib.mkIf cfg.enable (
@@ -43,25 +43,13 @@ in
 
       (lib.mkIf cfg.service.enable {
         home-manager.users.${globals.user.name} = {
-          systemd.user.services.clay-server = {
-            Unit = {
-              Description = "Clay web UI for Claude Code";
-              After = [ "network.target" ];
-            };
-            Service = {
-              Type = "forking";
-              Environment = "PATH=${pkgs.mkcert}/bin";
-              ExecStart =
-                "${clay}/bin/clay-server --headless --yes --no-update -p ${toString cfg.port}"
+          xdg.configFile."hypr/conf.d/clay-server.conf".text =
+            let
+              args =
+                "--headless --yes --no-update -p ${toString cfg.port}"
                 + lib.optionalString (secrets.clay.pin or null != null) " --pin ${secrets.clay.pin}";
-              ExecStop = "${clay}/bin/clay-server --shutdown";
-              Restart = "on-failure";
-              RestartSec = 10;
-            };
-            Install = {
-              WantedBy = [ "default.target" ];
-            };
-          };
+            in
+            "exec-once = ${clay}/bin/clay-server ${args}";
         };
       })
     ]
