@@ -207,6 +207,12 @@ upgrade_log := "/tmp/nixerator-upgrade.log"
 quiet-rebuild:
     #!/usr/bin/env bash
     set -uo pipefail
+
+    # Pre-rebuild guard: warn about uncommitted plugin changes
+    if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
+        echo "⚠ Uncommitted plugin changes from a previous sync. Commit or discard before rebuilding."
+    fi
+
     echo "Rebuilding (quiet mode)..."
     git add -A
     trap 'git restore --staged .' EXIT
@@ -214,6 +220,24 @@ quiet-rebuild:
     sudo nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Rebuild succeeded. Full log: {{rebuild_log}}"
+
+        # Post-rebuild: sync plugins, capture state, check for changes
+        echo "Syncing plugins..."
+        claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
+
+        echo "Capturing Claude Code config..."
+        fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
+
+        if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
+            commit_msg='fix(claude-code): update captured plugin state'
+            echo ""
+            echo "════════════════════════════════════════════════════════════"
+            echo "  Plugin config changed! Commit with:"
+            echo "  git add modules/apps/cli/claude-code/config/plugins/ && git commit -m \"$commit_msg\""
+            echo "════════════════════════════════════════════════════════════"
+            echo "$commit_msg" | wl-copy 2>/dev/null || true
+            notify-send "Nixerator" "Plugin config changed — commit suggested" 2>/dev/null || true
+        fi
     else
         filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{rebuild_log}} | head -80)
         {

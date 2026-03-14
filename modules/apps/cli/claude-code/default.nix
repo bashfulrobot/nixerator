@@ -29,6 +29,10 @@ let
   gsdConfig = import ./cfg/gsd.nix {
     inherit pkgs versions;
   };
+  pluginsConfig = import ./cfg/plugins.nix {
+    inherit pkgs;
+    desiredPlugins = cfg.plugins;
+  };
   fishConfig = import ./cfg/fish.nix {
     inherit globals statusLineScript;
   };
@@ -62,6 +66,11 @@ in
         default = false;
         description = "Enable claude-code CLI tool with custom configuration.";
       };
+      plugins = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Plugin identifiers to install (e.g., 'ralph-loop@claude-plugins-official').";
+      };
     };
   };
 
@@ -93,7 +102,8 @@ in
           llm-agents.claude-code
           libnotify # for notify-send in Stop hook
         ]
-        ++ gsdConfig.packages;
+        ++ gsdConfig.packages
+        ++ pluginsConfig.packages;
 
       programs.fish = fishConfig;
 
