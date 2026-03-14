@@ -1,133 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 15,
-  "coAuthor": "",
-  "hooks": {
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\nnix fmt \"$file\" 2>/dev/null || true\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "Edit|Write|MultiEdit"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0\ndefault_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed '\\''s|refs/remotes/origin/||'\\'')\ndefault_branch=\"${default_branch:-main}\"\n\nbranch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)\n[[ \"$branch\" == \"$default_branch\" ]] || exit 0\nflag=\"/tmp/claude-branch-warned.$PPID\"\n[[ -f \"$flag\" ]] && exit 0\ntouch \"$flag\"\necho \"[branch] You'\\''re editing on $default_branch. For non-trivial changes, consider a feature branch.\"\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "Edit|Write|MultiEdit"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'input=$(cat)\ncmd=$(echo \"$input\" | jq -r '\\''.tool_input.command // empty'\\'' 2>/dev/null)\n[[ -n \"$cmd\" ]] || exit 0\n\n# Warn on git commit and git push (user normally handles these, but may request via /command)\nif echo \"$cmd\" | grep -qE '\\''(^|\\s|;|&&|\\|)git\\s+(commit|push)(\\s|$)'\\''; then\n  default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed '\\''s|refs/remotes/origin/||'\\'')\ndefault_branch=\"${default_branch:-main}\"\n\n  warn=\"[bash-guard] WARNING: git commit/push detected. Only do this if the user explicitly asked. Do not commit or push on your own initiative.\"\n  current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)\n  if [[ \"$current_branch\" == \"$default_branch\" ]]; then\n    warn=\"$warn\\n[bash-guard] NOTE: You are committing to $default_branch. If this is non-trivial work, consider a feature branch first.\"\n  fi\n  echo -e \"$warn\"\nfi\n\n# Block --no-verify and --force on git commands (allow --force-with-lease)\nif echo \"$cmd\" | grep -qE '\\''(^|\\s|;|&&|\\|)git\\s'\\''; then\n  if echo \"$cmd\" | grep -qE '\\''\\-\\-no-verify'\\''; then\n    echo \"[bash-guard] ERROR: Do not use --no-verify on git commands. Fix: fix the underlying hook issue instead of bypassing it.\"\n    exit 1\n  fi\n  # Match --force but not --force-with-lease\n  if echo \"$cmd\" | grep -qP '\\''\\-\\-force(?!-with-lease)(\\s|$)'\\'' || echo \"$cmd\" | grep -qE '\\''\\s-f(\\s|$)'\\''; then\n    echo \"[bash-guard] ERROR: Do not use --force on git commands. Fix: use --force-with-lease if you must force push.\"\n    exit 1\n  fi\nfi\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n\n# Skip files inside secrets/ directory\n[[ \"$file\" != */secrets/* ]] || exit 0\n\nif [[ -f \"$file\" ]]; then\n  if grep -qEi '\\''(password|apiKey|token|secret)\\s*=\\s*\"[^\"]+'\\'' \"$file\"; then\n    echo \"[nix-content] WARNING: Possible plaintext secret in $file. Use agenix secrets in secrets/ directory instead of inline secret values.\"\n  fi\nfi\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "Edit|Write|MultiEdit"
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n[[ -f \"$file\" ]] || exit 0\n\nwarnings=\"\"\nstatix_out=$(statix check \"$file\" 2>/dev/null) && true\nif [[ -n \"$statix_out\" ]]; then\n  warnings=\"[nix-lint] statix warnings in $file:\\n$statix_out\"\nfi\n\ndeadnix_out=$(deadnix \"$file\" 2>/dev/null) && true\nif [[ -n \"$deadnix_out\" ]]; then\n  if [[ -n \"$warnings\" ]]; then\n    warnings=\"$warnings\\n\"\n  fi\n  warnings=\"$warnings[nix-lint] deadnix warnings in $file:\\n$deadnix_out\"\nfi\n\nif [[ -n \"$warnings\" ]]; then\n  echo -e \"$warnings\"\nfi\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "Edit|Write|MultiEdit"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'input=$(cat)\ncmd=$(echo \"$input\" | jq -r '\\''.tool_input.command // empty'\\'' 2>/dev/null)\n[[ -n \"$cmd\" ]] || exit 0\n\n# Block nixos-rebuild (must use just qr / just qu)\nif echo \"$cmd\" | grep -qE '\\''(^|\\s|;|&&|\\|)nixos-rebuild(\\s|$)'\\''; then\n  echo \"[bash-guard] ERROR: Do not run nixos-rebuild directly. Fix: use '\\''just qr'\\'' (quiet-rebuild) or '\\''just qu'\\'' (quiet-upgrade) instead.\"\n  exit 1\nfi\n\n# Block direct nix-collect-garbage (use just recipes)\nif echo \"$cmd\" | grep -qE '\\''(^|\\s|;|&&|\\|)nix-collect-garbage(\\s|$)'\\''; then\n  echo \"[bash-guard] ERROR: Do not run nix-collect-garbage directly. Fix: use the appropriate just recipe instead.\"\n  exit 1\nfi\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n\n# Skip files inside secrets/ directory\nis_secrets=false\nif [[ \"$file\" == */secrets/* ]]; then\n  is_secrets=true\nfi\n\n# Hardcoded username detection (outside secrets/)\nif [[ \"$is_secrets\" == false ]] && [[ -f \"$file\" ]]; then\n  if grep -qE '\\''/home/dustin|home-manager\\.users\\.dustin'\\'' \"$file\"; then\n    echo \"[nix-content] ERROR: Hardcoded username detected in $file. Fix: use globals.user.name or globals.user.homeDirectory from settings/globals.nix instead.\"\n    exit 1\n  fi\nfi\n\n# Hyprland deprecated syntax\nif [[ \"$file\" == *hypr* ]] && [[ -f \"$file\" ]]; then\n  if grep -qE '\\''windowrulev2'\\'' \"$file\"; then\n    echo \"[nix-content] ERROR: Deprecated '\\''windowrulev2'\\'' found in $file. Fix: use block syntax '\\''windowrule {'\\'' (Hyprland 0.53+). See extras/docs/hyprland-windowrules.md.\"\n    exit 1\n  fi\n  if grep -qE '\\''^\\s*windowrule\\s*='\\'' \"$file\"; then\n    echo \"[nix-content] ERROR: Single-line '\\''windowrule ='\\'' found in $file. Fix: use block syntax '\\''windowrule {'\\'' (Hyprland 0.53+). See extras/docs/hyprland-windowrules.md.\"\n    exit 1\n  fi\nfi\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "Edit|Write|MultiEdit"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n[[ -f \"$file\" ]] || exit 0\n\n# Check version literals in build/default.nix files\nif [[ \"$file\" == */build/default.nix ]]; then\n  if grep -qE '\\''^\\s*version\\s*=\\s*\"'\\'' \"$file\"; then\n    echo \"[module-structure] ERROR: Hardcoded version literal in $file. Fix: versions should come from the '\\''versions'\\'' parameter (settings/versions.nix).\"\n    exit 1\n  fi\nfi\n\n# Only check module default.nix files under modules/\nif [[ \"$file\" != */modules/*/default.nix ]]; then\n  exit 0\nfi\n\n# Skip if file has no options block (not a module definition)\nif ! grep -q '\\''options\\.'\\'' \"$file\"; then\n  exit 0\nfi\n\n# Extract expected namespace from path: modules/<cat>/<subcat>/<name>/default.nix\nmod_path=$(echo \"$file\" | sed -n '\\''s|.*/modules/\\(.*\\)/default\\.nix|\\1|p'\\'')\nif [[ -z \"$mod_path\" ]]; then\n  exit 0\nfi\n# Convert path separators to dots for namespace\nnamespace=$(echo \"$mod_path\" | tr '\\''/'\\'' '\\''.'\\'')\n\n# Check enable option matches path\nif ! grep -q \"options\\.${namespace}\\.enable\" \"$file\"; then\n  echo \"[module-structure] ERROR: Module at $file defines options but is missing '\\''options.${namespace}.enable'\\''. Fix: add '\\''options.${namespace}.enable = lib.mkEnableOption \\\"...\\\";'\\''.\"\n  exit 1\nfi\n\n# Check config is wrapped in mkIf\nif ! grep -qE '\\''(lib\\.mkIf|mkIf)'\\'' \"$file\"; then\n  echo \"[module-structure] WARNING: Module at $file defines options but config is not wrapped in mkIf. Consider using '\\''config = lib.mkIf cfg.enable { ... };'\\''.\"\nfi\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "Edit|Write|MultiEdit"
-      },
-      {
-        "hooks": [
-          {
-            "command": "node /home/dustin/.claude/hooks/gsd-context-monitor.js",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0\nbranch=$(git rev-parse --abbrev-ref HEAD)\ngit fetch origin 2>/dev/null || exit 0\nlocal_only=$(git log \"origin/$branch..$branch\" --oneline 2>/dev/null)\nremote_only=$(git log \"$branch..origin/$branch\" --oneline 2>/dev/null)\nif [ -n \"$local_only\" ] && [ -n \"$remote_only\" ]; then\n  echo \"[git-sync] Diverged -- local and remote both have commits. Resolve manually.\"\nelif [ -n \"$remote_only\" ]; then\n  git reset \"origin/$branch\" >/dev/null 2>&1\n  echo \"[git-sync] Aligned git state with origin/$branch\"\nelif [ -n \"$local_only\" ]; then\n  echo \"[git-sync] Unpushed local commits on $branch\"\nfi\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "startup"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0\ndefault_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed '\\''s|refs/remotes/origin/||'\\'')\ndefault_branch=\"${default_branch:-main}\"\n\nbranch=$(git rev-parse --abbrev-ref HEAD)\nfeature_branches=$(git branch --list --no-color | grep -v '\\''^\\*'\\'' | grep -vE \"^\\s*$default_branch$\" | sed '\\''s/^  //'\\'' || true)\n\nif [[ \"$branch\" == \"$default_branch\" ]]; then\n  if [[ -n \"$feature_branches\" ]]; then\n    echo \"[branch] On $default_branch. Feature branches available:\"\n    echo \"$feature_branches\" | while read -r b; do echo \"  - $b\"; done\n    echo \"Consider switching if one is relevant to your task.\"\n  else\n    echo \"[branch] On $default_branch. For non-trivial work, consider creating a feature branch.\"\n  fi\nelse\n  msg=\"[branch] On $branch.\"\n  counts=$(git rev-list --left-right --count \"$default_branch...$branch\" 2>/dev/null || true)\n  if [[ -n \"$counts\" ]]; then\n    behind=$(echo \"$counts\" | awk '\\''{print $1}'\\'')\n    ahead=$(echo \"$counts\" | awk '\\''{print $2}'\\'')\n    msg=\"$msg Ahead: $ahead, behind: $behind vs $default_branch.\"\n  fi\n  uncommitted=$(git status --porcelain 2>/dev/null | wc -l)\n  if [[ \"$uncommitted\" -gt 0 ]]; then\n    msg=\"$msg Uncommitted changes: $uncommitted files.\"\n  fi\n  echo \"$msg\"\nfi\n'",
-            "type": "command"
-          }
-        ],
-        "matcher": "startup"
-      },
-      {
-        "hooks": [
-          {
-            "command": "node /home/dustin/.claude/hooks/gsd-check-update.js",
-            "type": "command"
-          }
-        ],
-        "matcher": "startup"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "command": "bash -c 'input=$(cat)\nmsg=$(echo \"$input\" | jq -r '\\''.last_assistant_message // \"Done\"'\\'' 2>/dev/null | head -c 80)\nnotify-send \"Claude Code\" \"$msg\" --icon=terminal 2>/dev/null || true\n'",
-            "type": "command"
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(nix flake check *)",
@@ -280,9 +153,140 @@
       "WebFetch(domain:registry.terraform.io)"
     ]
   },
-  "remoteControlEnabled": true,
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\nnix fmt \"$file\" 2>/dev/null || true\n'",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0\ndefault_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed '\\''s|refs/remotes/origin/||'\\'')\ndefault_branch=\"${default_branch:-main}\"\n\nbranch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)\n[[ \"$branch\" == \"$default_branch\" ]] || exit 0\nflag=\"/tmp/claude-branch-warned.$PPID\"\n[[ -f \"$flag\" ]] && exit 0\ntouch \"$flag\"\necho \"[branch] You'\\''re editing on $default_branch. For non-trivial changes, consider a feature branch.\"\n'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\ncmd=$(echo \"$input\" | jq -r '\\''.tool_input.command // empty'\\'' 2>/dev/null)\n[[ -n \"$cmd\" ]] || exit 0\n\n# Warn on git commit and git push (user normally handles these, but may request via /command)\nif echo \"$cmd\" | grep -qE '\\''(^|\\s|;|&&|\\|)git\\s+(commit|push)(\\s|$)'\\''; then\n  default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed '\\''s|refs/remotes/origin/||'\\'')\ndefault_branch=\"${default_branch:-main}\"\n\n  warn=\"[bash-guard] WARNING: git commit/push detected. Only do this if the user explicitly asked. Do not commit or push on your own initiative.\"\n  current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)\n  if [[ \"$current_branch\" == \"$default_branch\" ]]; then\n    warn=\"$warn\\n[bash-guard] NOTE: You are committing to $default_branch. If this is non-trivial work, consider a feature branch first.\"\n  fi\n  echo -e \"$warn\"\nfi\n\n# Block --no-verify and --force on git commands (allow --force-with-lease)\nif echo \"$cmd\" | grep -qE '\\''(^|\\s|;|&&|\\|)git\\s'\\''; then\n  if echo \"$cmd\" | grep -qE '\\''\\-\\-no-verify'\\''; then\n    echo \"[bash-guard] ERROR: Do not use --no-verify on git commands. Fix: fix the underlying hook issue instead of bypassing it.\"\n    exit 1\n  fi\n  # Match --force but not --force-with-lease\n  if echo \"$cmd\" | grep -qP '\\''\\-\\-force(?!-with-lease)(\\s|$)'\\'' || echo \"$cmd\" | grep -qE '\\''\\s-f(\\s|$)'\\''; then\n    echo \"[bash-guard] ERROR: Do not use --force on git commands. Fix: use --force-with-lease if you must force push.\"\n    exit 1\n  fi\nfi\n'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n\n# Skip files inside secrets/ directory\n[[ \"$file\" != */secrets/* ]] || exit 0\n\nif [[ -f \"$file\" ]]; then\n  if grep -qEi '\\''(password|apiKey|token|secret)\\s*=\\s*\"[^\"]+'\\'' \"$file\"; then\n    echo \"[nix-content] WARNING: Possible plaintext secret in $file. Use agenix secrets in secrets/ directory instead of inline secret values.\"\n  fi\nfi\n'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n[[ -f \"$file\" ]] || exit 0\n\nwarnings=\"\"\nstatix_out=$(statix check \"$file\" 2>/dev/null) && true\nif [[ -n \"$statix_out\" ]]; then\n  warnings=\"[nix-lint] statix warnings in $file:\\n$statix_out\"\nfi\n\ndeadnix_out=$(deadnix \"$file\" 2>/dev/null) && true\nif [[ -n \"$deadnix_out\" ]]; then\n  if [[ -n \"$warnings\" ]]; then\n    warnings=\"$warnings\\n\"\n  fi\n  warnings=\"$warnings[nix-lint] deadnix warnings in $file:\\n$deadnix_out\"\nfi\n\nif [[ -n \"$warnings\" ]]; then\n  echo -e \"$warnings\"\nfi\n'",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\ncmd=$(echo \"$input\" | jq -r '\\''.tool_input.command // empty'\\'' 2>/dev/null)\n[[ -n \"$cmd\" ]] || exit 0\n\n# Block nixos-rebuild (must use just qr / just qu)\nif echo \"$cmd\" | grep -qE '\\''(^|\\s|;|&&|\\|)nixos-rebuild(\\s|$)'\\''; then\n  echo \"[bash-guard] ERROR: Do not run nixos-rebuild directly. Fix: use '\\''just qr'\\'' (quiet-rebuild) or '\\''just qu'\\'' (quiet-upgrade) instead.\"\n  exit 1\nfi\n\n# Block direct nix-collect-garbage (use just recipes)\nif echo \"$cmd\" | grep -qE '\\''(^|\\s|;|&&|\\|)nix-collect-garbage(\\s|$)'\\''; then\n  echo \"[bash-guard] ERROR: Do not run nix-collect-garbage directly. Fix: use the appropriate just recipe instead.\"\n  exit 1\nfi\n'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n\n# Skip files inside secrets/ directory\nis_secrets=false\nif [[ \"$file\" == */secrets/* ]]; then\n  is_secrets=true\nfi\n\n# Hardcoded username detection (outside secrets/)\nif [[ \"$is_secrets\" == false ]] && [[ -f \"$file\" ]]; then\n  if grep -qE '\\''/home/dustin|home-manager\\.users\\.dustin'\\'' \"$file\"; then\n    echo \"[nix-content] ERROR: Hardcoded username detected in $file. Fix: use globals.user.name or globals.user.homeDirectory from settings/globals.nix instead.\"\n    exit 1\n  fi\nfi\n\n# Hyprland deprecated syntax\nif [[ \"$file\" == *hypr* ]] && [[ -f \"$file\" ]]; then\n  if grep -qE '\\''windowrulev2'\\'' \"$file\"; then\n    echo \"[nix-content] ERROR: Deprecated '\\''windowrulev2'\\'' found in $file. Fix: use block syntax '\\''windowrule {'\\'' (Hyprland 0.53+). See extras/docs/hyprland-windowrules.md.\"\n    exit 1\n  fi\n  if grep -qE '\\''^\\s*windowrule\\s*='\\'' \"$file\"; then\n    echo \"[nix-content] ERROR: Single-line '\\''windowrule ='\\'' found in $file. Fix: use block syntax '\\''windowrule {'\\'' (Hyprland 0.53+). See extras/docs/hyprland-windowrules.md.\"\n    exit 1\n  fi\nfi\n'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n[[ -f \"$file\" ]] || exit 0\n\n# Check version literals in build/default.nix files\nif [[ \"$file\" == */build/default.nix ]]; then\n  if grep -qE '\\''^\\s*version\\s*=\\s*\"'\\'' \"$file\"; then\n    echo \"[module-structure] ERROR: Hardcoded version literal in $file. Fix: versions should come from the '\\''versions'\\'' parameter (settings/versions.nix).\"\n    exit 1\n  fi\nfi\n\n# Only check module default.nix files under modules/\nif [[ \"$file\" != */modules/*/default.nix ]]; then\n  exit 0\nfi\n\n# Skip if file has no options block (not a module definition)\nif ! grep -q '\\''options\\.'\\'' \"$file\"; then\n  exit 0\nfi\n\n# Extract expected namespace from path: modules/<cat>/<subcat>/<name>/default.nix\nmod_path=$(echo \"$file\" | sed -n '\\''s|.*/modules/\\(.*\\)/default\\.nix|\\1|p'\\'')\nif [[ -z \"$mod_path\" ]]; then\n  exit 0\nfi\n# Convert path separators to dots for namespace\nnamespace=$(echo \"$mod_path\" | tr '\\''/'\\'' '\\''.'\\'')\n\n# Check enable option matches path\nif ! grep -q \"options\\.${namespace}\\.enable\" \"$file\"; then\n  echo \"[module-structure] ERROR: Module at $file defines options but is missing '\\''options.${namespace}.enable'\\''. Fix: add '\\''options.${namespace}.enable = lib.mkEnableOption \\\"...\\\";'\\''.\"\n  exit 1\nfi\n\n# Check config is wrapped in mkIf\nif ! grep -qE '\\''(lib\\.mkIf|mkIf)'\\'' \"$file\"; then\n  echo \"[module-structure] WARNING: Module at $file defines options but config is not wrapped in mkIf. Consider using '\\''config = lib.mkIf cfg.enable { ... };'\\''.\"\nfi\n'"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/dustin/.claude/hooks/gsd-context-monitor.js"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0\nbranch=$(git rev-parse --abbrev-ref HEAD)\ngit fetch origin 2>/dev/null || exit 0\nlocal_only=$(git log \"origin/$branch..$branch\" --oneline 2>/dev/null)\nremote_only=$(git log \"$branch..origin/$branch\" --oneline 2>/dev/null)\nif [ -n \"$local_only\" ] && [ -n \"$remote_only\" ]; then\n  echo \"[git-sync] Diverged -- local and remote both have commits. Resolve manually.\"\nelif [ -n \"$remote_only\" ]; then\n  git reset \"origin/$branch\" >/dev/null 2>&1\n  echo \"[git-sync] Aligned git state with origin/$branch\"\nelif [ -n \"$local_only\" ]; then\n  echo \"[git-sync] Unpushed local commits on $branch\"\nfi\n'"
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0\ndefault_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed '\\''s|refs/remotes/origin/||'\\'')\ndefault_branch=\"${default_branch:-main}\"\n\nbranch=$(git rev-parse --abbrev-ref HEAD)\nfeature_branches=$(git branch --list --no-color | grep -v '\\''^\\*'\\'' | grep -vE \"^\\s*$default_branch$\" | sed '\\''s/^  //'\\'' || true)\n\nif [[ \"$branch\" == \"$default_branch\" ]]; then\n  if [[ -n \"$feature_branches\" ]]; then\n    echo \"[branch] On $default_branch. Feature branches available:\"\n    echo \"$feature_branches\" | while read -r b; do echo \"  - $b\"; done\n    echo \"Consider switching if one is relevant to your task.\"\n  else\n    echo \"[branch] On $default_branch. For non-trivial work, consider creating a feature branch.\"\n  fi\nelse\n  msg=\"[branch] On $branch.\"\n  counts=$(git rev-list --left-right --count \"$default_branch...$branch\" 2>/dev/null || true)\n  if [[ -n \"$counts\" ]]; then\n    behind=$(echo \"$counts\" | awk '\\''{print $1}'\\'')\n    ahead=$(echo \"$counts\" | awk '\\''{print $2}'\\'')\n    msg=\"$msg Ahead: $ahead, behind: $behind vs $default_branch.\"\n  fi\n  uncommitted=$(git status --porcelain 2>/dev/null | wc -l)\n  if [[ \"$uncommitted\" -gt 0 ]]; then\n    msg=\"$msg Uncommitted changes: $uncommitted files.\"\n  fi\n  echo \"$msg\"\nfi\n'"
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/dustin/.claude/hooks/gsd-check-update.js"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\nmsg=$(echo \"$input\" | jq -r '\\''.last_assistant_message // \"Done\"'\\'' 2>/dev/null | head -c 80)\nnotify-send \"Claude Code\" \"$msg\" --icon=terminal 2>/dev/null || true\n'"
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
-    "command": "@STATUSLINE_COMMAND@",
-    "type": "command"
-  }
+    "type": "command",
+    "command": "@STATUSLINE_COMMAND@"
+  },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true
+  },
+  "coAuthor": "",
+  "remoteControlEnabled": true
 }
