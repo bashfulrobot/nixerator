@@ -21,6 +21,7 @@ in
     # Communication applications
     apps.gui = {
       insync.enable = true;
+      localsend.enable = true;
       morgen.enable = false;
       obsidian.enable = true;
       signal.enable = true;
