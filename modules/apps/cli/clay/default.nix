@@ -47,6 +47,7 @@ in
             };
             Service = {
               Type = "forking";
+              Environment = "PATH=${pkgs.mkcert}/bin";
               ExecStart =
                 "${clay}/bin/clay-server --headless --yes --no-update -p ${toString cfg.port}"
                 + lib.optionalString (secrets.clay.pin or null != null) " --pin ${secrets.clay.pin}";
