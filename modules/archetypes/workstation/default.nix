@@ -20,20 +20,23 @@ in
       "kernel.sched_autogroup_enabled" = 1; # Better desktop responsiveness
     };
 
+    # FHS compatibility
+    system.compat.enable = true;
+
     # Enable workstation suites
     suites = {
-      core.enable = true;           # Core system infrastructure
-      desktop.enable = true;        # Desktop environment (Hyprland)
-      terminal.enable = true;       # Terminal suite
-      browsers.enable = true;       # Browser suite
-      security.enable = true;       # Security suite
-      dev.enable = true;            # Development suite
-      offcomms.enable = true;       # Communications suite
+      core.enable = true; # Core system infrastructure
+      desktop.enable = true; # Desktop environment (Hyprland)
+      terminal.enable = true; # Terminal suite
+      browsers.enable = true; # Browser suite
+      security.enable = true; # Security suite
+      dev.enable = true; # Development suite
+      offcomms.enable = true; # Communications suite
       infrastructure.enable = true; # Infrastructure and cloud tools
-      k8s.enable = true;            # Kubernetes tooling
-      kong.enable = true;           # Kong API Gateway suite
-      av.enable = true;             # Audio/visual creative suite
-      ai.enable = true;             # AI tooling suite
+      k8s.enable = true; # Kubernetes tooling
+      kong.enable = true; # Kong API Gateway suite
+      av.enable = true; # Audio/visual creative suite
+      ai.enable = true; # AI tooling suite
     };
   };
 }
