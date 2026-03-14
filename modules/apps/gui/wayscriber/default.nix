@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   config,
   inputs,
   globals,
@@ -8,6 +9,15 @@
 
 let
   cfg = config.apps.gui.wayscriber;
+  wayscriber-pkg = inputs.wayscriber.packages.x86_64-linux.default;
+
+  toggleScript = pkgs.writeShellScript "wayscriber-toggle" ''
+    if ${pkgs.procps}/bin/pgrep -x wayscriber > /dev/null; then
+      ${pkgs.procps}/bin/pkill -x wayscriber
+    else
+      ${wayscriber-pkg}/bin/wayscriber --active --no-resume-session &
+    fi
+  '';
 in
 {
   options = {
@@ -20,13 +30,18 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
-      inputs.wayscriber.packages.x86_64-linux.default
+      wayscriber-pkg
     ];
 
     home-manager.users.${globals.user.name} = {
+      xdg.configFile."wayscriber/config.toml".text = ''
+        [keybindings]
+        select_step_marker_tool = ["S"]
+        reset_step_markers = ["Ctrl+Shift+R"]
+      '';
+
       xdg.configFile."hypr/conf.d/wayscriber.conf".text = ''
-        exec-once = wayscriber --daemon
-        bind = SUPER, A, exec, pkill -SIGUSR1 wayscriber
+        bind = SUPER, A, exec, ${toggleScript}
       '';
     };
   };
