@@ -11,6 +11,8 @@ buildNpmPackage rec {
   pname = "clay";
   inherit (versions.cli.clay) version npmDepsHash;
 
+  npmDepsFetcherVersion = 2;
+
   src = fetchurl {
     url = "https://registry.npmjs.org/clay-server/-/clay-server-${version}.tgz";
     inherit (versions.cli.clay) hash;
