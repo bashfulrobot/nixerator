@@ -13,6 +13,7 @@ all:
     @echo "Running all post-rebuild setup..."
     @just setup::gsd
     @just setup::voxtype
+    @just setup::sync-plugins
     @echo ""
     @echo "All setup complete!"
 
@@ -27,6 +28,12 @@ gsd:
 voxtype:
     @echo "Ensuring Voxtype models are downloaded..."
     @voxtype setup --download
+
+# Sync Claude Code plugins with declared Nix config
+[group('setup')]
+sync-plugins:
+    @echo "Syncing Claude Code plugins..."
+    @claude-sync-plugins
 
 # === One-Time Setup (run once after first deploy) ===
 
