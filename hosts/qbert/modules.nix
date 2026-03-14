@@ -2,6 +2,8 @@ _:
 
 {
   # Apps
+  apps.cli.clay.service.enable = true;
+
   apps.cli.syncthing = {
     enable = true;
     host.qbert = true;
