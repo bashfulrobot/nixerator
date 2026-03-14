@@ -28,7 +28,10 @@ in
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
       {
-        networking.firewall.allowedTCPPorts = [ cfg.port ];
+        networking.firewall.allowedTCPPorts = [
+          cfg.port
+          (cfg.port + 1) # clay onboarding/PIN auth port
+        ];
 
         home-manager.users.${globals.user.name} = {
           home.packages = [
