@@ -1,0 +1,18 @@
+{
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/claude-plugins-official",
+    "lastUpdated": "2026-03-14T06:51:56.477Z"
+  },
+  "claude-code-lsps": {
+    "source": {
+      "source": "git",
+      "url": "https://github.com/boostvolt/claude-code-lsps.git"
+    },
+    "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/claude-code-lsps",
+    "lastUpdated": "2026-03-02T18:27:00.523Z"
+  }
+}

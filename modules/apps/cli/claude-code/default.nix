@@ -142,6 +142,54 @@ in
           $DRY_RUN_CMD rm -f "$claude_home/output-styles/$(basename "$style")"
           $DRY_RUN_CMD cp --no-preserve=mode "$style" "$claude_home/output-styles/$(basename "$style")"
         done
+
+        # Plugins -- deploy captured plugin config and cache
+        plugins_src="${configDir}/plugins"
+        if [ -d "$plugins_src" ]; then
+          $DRY_RUN_CMD mkdir -p "$claude_home/plugins"
+
+          # installed_plugins.json -- substitute @HOME_DIR@ placeholder
+          if [ -f "$plugins_src/installed_plugins.json" ]; then
+            if [ -z "$DRY_RUN_CMD" ]; then
+              rm -f "$claude_home/plugins/installed_plugins.json"
+              ${pkgs.gnused}/bin/sed 's|@HOME_DIR@|${homeDir}|g' \
+                "$plugins_src/installed_plugins.json" > "$claude_home/plugins/installed_plugins.json"
+              chmod 644 "$claude_home/plugins/installed_plugins.json"
+            fi
+          fi
+
+          # known_marketplaces.json -- substitute @HOME_DIR@ placeholder
+          if [ -f "$plugins_src/known_marketplaces.json" ]; then
+            if [ -z "$DRY_RUN_CMD" ]; then
+              rm -f "$claude_home/plugins/known_marketplaces.json"
+              ${pkgs.gnused}/bin/sed 's|@HOME_DIR@|${homeDir}|g' \
+                "$plugins_src/known_marketplaces.json" > "$claude_home/plugins/known_marketplaces.json"
+              chmod 644 "$claude_home/plugins/known_marketplaces.json"
+            fi
+          fi
+
+          # blocklist.json -- plain copy
+          if [ -f "$plugins_src/blocklist.json" ]; then
+            $DRY_RUN_CMD rm -f "$claude_home/plugins/blocklist.json"
+            $DRY_RUN_CMD cp --no-preserve=mode "$plugins_src/blocklist.json" "$claude_home/plugins/blocklist.json"
+          fi
+
+          # Plugin cache -- copy dirs that don't already exist (don't clobber runtime updates)
+          if [ -d "$plugins_src/cache" ]; then
+            if [ -z "$DRY_RUN_CMD" ]; then
+              find "$plugins_src/cache" -mindepth 3 -maxdepth 3 -type d | while read -r version_dir; do
+                rel_path="''${version_dir#"$plugins_src/"}"
+                target_dir="$claude_home/plugins/$rel_path"
+                if [ ! -d "$target_dir" ]; then
+                  mkdir -p "$target_dir"
+                  cp -r --no-preserve=mode,ownership "$version_dir/." "$target_dir/"
+                  # Ensure hook scripts are executable
+                  find "$target_dir" \( -name '*.sh' -o -name '*.py' \) -exec chmod +x {} +
+                fi
+              done
+            fi
+          fi
+        fi
       '';
 
       # Preserve per-server files for mcp-pick workflow compatibility.
