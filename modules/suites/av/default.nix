@@ -32,6 +32,7 @@ in
     ];
 
     environment.systemPackages = with pkgs; [
+      inkscape # vector graphics editor
       vlc # media player
       mpv # video player
       v4l-utils # webcam and video device utilities
