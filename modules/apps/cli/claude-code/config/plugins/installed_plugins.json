@@ -150,6 +150,16 @@
         "lastUpdated": "2026-03-14T19:45:42.612Z",
         "gitCommitSha": "d5c15b861cd23e3102215c26020368ad5134dc47"
       }
+    ],
+    "rust-analyzer-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/rust-analyzer-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-03-16T16:19:33.928Z",
+        "lastUpdated": "2026-03-16T16:19:33.928Z",
+        "gitCommitSha": "d5c15b861cd23e3102215c26020368ad5134dc47"
+      }
     ]
   }
 }
