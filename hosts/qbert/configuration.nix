@@ -23,6 +23,9 @@
   # Networking
   networking.hostName = hostname;
   networking.interfaces.enp34s0.wakeOnLan.enable = true;
+  networking.firewall.allowedTCPPorts = [
+    5173 # Upsight UI previews
+  ];
 
   # Localization (from globals)
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
