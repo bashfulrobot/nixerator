@@ -285,7 +285,8 @@
   },
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true
+    "ralph-loop@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true
   },
   "coAuthor": "",
   "remoteControlEnabled": true
