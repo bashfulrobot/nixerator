@@ -18,22 +18,32 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Communication applications
-    apps.gui = {
-      insync.enable = true;
-      localsend.enable = true;
-      morgen.enable = false;
-      obsidian.enable = true;
-      signal.enable = true;
-      typora.enable = true;
-      typora.nautilusIntegration = true;
-      wayscriber.enable = true;
-    };
+    apps = {
+      # Communication applications
+      gui = {
+        insync.enable = true;
+        localsend.enable = true;
+        morgen.enable = false;
+        obsidian.enable = true;
+        signal.enable = true;
+        typora.enable = true;
+        typora.nautilusIntegration = true;
+        wayscriber.enable = true;
+      };
 
-    # Web apps for office reference desktop
-    apps.webapps = {
-      mail.enable = true;
-      calendar.enable = true;
+      # Web apps for office reference desktop
+      webapps = {
+        mail.enable = true;
+        calendar.enable = true;
+      };
+
+      cli = {
+        meetsum.enable = true;
+        pandoc.enable = true;
+        percollate.enable = true;
+        todoist-report.enable = true;
+        wkhtmltopdf.enable = true;
+      };
     };
 
     # Voxtype voice-to-text (managed by hyprflake)
@@ -41,14 +51,6 @@ in
       enable = true;
       hotkey = "SCROLLLOCK";
       model = lib.mkDefault "base.en";
-    };
-
-    apps.cli = {
-      meetsum.enable = true;
-      pandoc.enable = true;
-      percollate.enable = true;
-      todoist-report.enable = true;
-      wkhtmltopdf.enable = true;
     };
 
     # Special workspaces for task manager and office apps

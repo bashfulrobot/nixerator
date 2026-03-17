@@ -1,4 +1,10 @@
-{ lib, pkgs, config, inputs, globals, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  ...
+}:
 
 let
   cfg = config.suites.desktop;
@@ -61,7 +67,7 @@ in
         # Keyboard layout and variant
         keyboard = {
           layout = lib.mkDefault "us";
-          variant = lib.mkDefault "";  # examples: "colemak", "dvorak", "altgr-intl"
+          variant = lib.mkDefault ""; # examples: "colemak", "dvorak", "altgr-intl"
         };
 
         # Waybar auto-hide configuration
@@ -71,9 +77,9 @@ in
         # Idle management configuration (hypridle)
         # Controls screen locking, display power management, and suspend timeouts
         idle = {
-          lockTimeout = lib.mkDefault 300;     # Lock screen after 5 minutes
-          dpmsTimeout = lib.mkDefault 360;     # Turn off display after 6 minutes
-          suspendTimeout = lib.mkDefault 600;  # Suspend after 10 minutes (set to 0 to disable)
+          lockTimeout = lib.mkDefault 300; # Lock screen after 5 minutes
+          dpmsTimeout = lib.mkDefault 360; # Turn off display after 6 minutes
+          suspendTimeout = lib.mkDefault 600; # Suspend after 10 minutes (set to 0 to disable)
         };
       };
 
@@ -104,7 +110,7 @@ in
             handlePowerKey = lib.mkDefault "poweroff";
             handleLidSwitch = lib.mkDefault "suspend";
             handleLidSwitchDocked = lib.mkDefault "ignore";
-            idleAction = lib.mkDefault "ignore";  # Handled by hypridle
+            idleAction = lib.mkDefault "ignore"; # Handled by hypridle
             idleActionSec = lib.mkDefault 0;
           };
 
