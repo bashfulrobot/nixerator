@@ -250,6 +250,14 @@
         ]
       },
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'log_dir=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/intent-logs\"\n[[ -d \"$log_dir\" ]] || exit 0\nfind \"$log_dir\" -name '\\''*.jsonl'\\'' -mtime +15 -delete 2>/dev/null || true\n'"
+          }
+        ]
+      },
+      {
         "matcher": "startup",
         "hooks": [
           {
@@ -264,6 +272,16 @@
           {
             "type": "command",
             "command": "node /home/dustin/.claude/hooks/gsd-check-update.js"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat)\nsession_id=$(echo \"$input\" | jq -r '\\''.session_id // empty'\\'' 2>/dev/null)\nprompt=$(echo \"$input\" | jq -r '\\''.prompt // empty'\\'' 2>/dev/null)\n[[ -n \"$session_id\" ]] || exit 0\n[[ -n \"$prompt\" ]] || exit 0\n\nlog_dir=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/intent-logs\"\nmkdir -p \"$log_dir\"\njq -nc --arg ts \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \\\n        --arg prompt \"$prompt\" \\\n        '\\''{ timestamp: $ts, prompt: $prompt }'\\'' \\\n  >> \"$log_dir/$session_id.jsonl\"\n'"
           }
         ]
       }

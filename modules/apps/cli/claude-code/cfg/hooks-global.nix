@@ -38,6 +38,24 @@ in
       ];
     }
 
+    # Clean up intent logs older than cleanupPeriodDays (15)
+    {
+      hooks = [
+        {
+          type = "command";
+          command = builtins.concatStringsSep " " [
+            "bash"
+            "-c"
+            (lib.escapeShellArg ''
+              log_dir="''${CLAUDE_CONFIG_DIR:-$HOME/.claude}/intent-logs"
+              [[ -d "$log_dir" ]] || exit 0
+              find "$log_dir" -name '*.jsonl' -mtime +15 -delete 2>/dev/null || true
+            '')
+          ];
+        }
+      ];
+    }
+
     # Branch awareness on session start
     {
       matcher = "startup";
@@ -234,6 +252,35 @@ in
             '')
           ];
           async = true;
+        }
+      ];
+    }
+  ];
+
+  # Log user prompts to per-session intent log for commit context
+  UserPromptSubmit = [
+    {
+      hooks = [
+        {
+          type = "command";
+          command = builtins.concatStringsSep " " [
+            "bash"
+            "-c"
+            (lib.escapeShellArg ''
+              input=$(cat)
+              session_id=$(echo "$input" | jq -r '.session_id // empty' 2>/dev/null)
+              prompt=$(echo "$input" | jq -r '.prompt // empty' 2>/dev/null)
+              [[ -n "$session_id" ]] || exit 0
+              [[ -n "$prompt" ]] || exit 0
+
+              log_dir="''${CLAUDE_CONFIG_DIR:-$HOME/.claude}/intent-logs"
+              mkdir -p "$log_dir"
+              jq -nc --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                      --arg prompt "$prompt" \
+                      '{timestamp: $ts, prompt: $prompt}' \
+                >> "$log_dir/$session_id.jsonl"
+            '')
+          ];
         }
       ];
     }
