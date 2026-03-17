@@ -42,6 +42,7 @@ if [[ -e "$output" ]]; then
   esac
 fi
 tmp="$(mktemp)"
+trap 'rm -f "${tmp:-}" "${tmp2:-}"' EXIT
 echo '{"mcpServers":{}}' > "$tmp"
 
 while IFS= read -r name; do

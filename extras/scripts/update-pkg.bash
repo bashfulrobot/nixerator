@@ -114,7 +114,7 @@ find_package() {
 
 update_version() {
     local pkg_name="$1" new_version="$2"
-    sed -i "/[[:space:]]$pkg_name = {/,/^[[:space:]]*};/ s|version = \"[^\"]*\"|version = \"$new_version\"|" "$VERSIONS_FILE"
+    sed -i "/[[:space:]]$pkg_name = {/,/^[[:space:]]*};/ s|^\([[:space:]]*\)version = \"[^\"]*\"|\1version = \"$new_version\"|" "$VERSIONS_FILE"
 }
 
 update_hash() {
@@ -125,7 +125,7 @@ update_hash() {
 
 update_rev() {
     local pkg_name="$1" new_rev="$2"
-    sed -i "/[[:space:]]$pkg_name = {/,/^[[:space:]]*};/ s|rev = \"[^\"]*\"|rev = \"$new_rev\"|" "$VERSIONS_FILE"
+    sed -i "/[[:space:]]$pkg_name = {/,/^[[:space:]]*};/ s|^\([[:space:]]*\)rev = \"[^\"]*\"|\1rev = \"$new_rev\"|" "$VERSIONS_FILE"
 }
 
 # --- Source-type update handlers ---
