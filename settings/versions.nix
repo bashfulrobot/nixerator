@@ -12,6 +12,7 @@
   #   vendorHash  - Go module vendor hash (Go packages only)
   #   npmDepsHash - hash of npm dependency tree (npm packages only)
   #   npmPkg      - npm registry package name when it differs from the key
+  #   pasteHash   - SRI hash of an auxiliary paste/clipboard asset (e.g. plannotator)
   #   platformHashes - per-platform SRI hashes (e.g. insomnia AppImage vs DMG)
 
   cli = {
@@ -43,8 +44,8 @@
       source = "npm";
       repo = "gsd-build/get-shit-done";
       npmPkg = "get-shit-done-cc";
-      version = "1.22.4";
-      hash = "sha256-uW4crLjrx6i02AyoKuQb0BIJ6IIPYkmQygz/RA7Qacc=";
+      version = "1.25.1";
+      hash = "sha256-ELA60LSZYwL99Mr0jHablThLdQwdceNdihh+TaBg4tA=";
       npmDepsHash = "sha256-15I2dWDgJAdG1edG0e9QUvnyp3PxmZ04jTUKqTUXk1U=";
     };
 
@@ -60,8 +61,8 @@
       source = "npm";
       repo = "chadbyte/clay";
       npmPkg = "clay-server";
-      version = "2.9.3";
-      hash = "sha256-4WEBk43UNQV9JrpW4z6rkbpiDyw8M4Nh4Zz4yyIzwFg=";
+      version = "2.10.0";
+      hash = "sha256-2cyvPjcgZPvNKTExA2c0xxNCOe1oGfyOLjj1g8osovI=";
       npmDepsHash = "sha256-7Vr1lVq4GtlqQKZTVtnkZfgGS28wcK/sdOpJsJ1yHho=";
     };
 
@@ -103,9 +104,9 @@
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
-      version = "0.12.0";
+      version = "0.13.1";
       tagPrefix = "v";
-      hash = "sha256-CvDHSF7AXUAIvPWgnxGErKqXkeADf2/BA/tV17UQihk=";
+      hash = "";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
@@ -127,8 +128,8 @@
       tagPrefix = "core@";
       platformHashes = {
         x86_64-linux = "sha256-QHa+BEGDIYsOxE49bL9bXmeYRKewx1P3FQ5bi3iz92w=";
-        aarch64-darwin = "";
-        x86_64-darwin = "";
+        aarch64-darwin = ""; # placeholder -- no darwin builds currently used
+        x86_64-darwin = ""; # placeholder -- no darwin builds currently used
       };
     };
 
@@ -137,7 +138,7 @@
       repo = "imputnet/helium-linux";
       version = "0.10.5.1";
       tagPrefix = "";
-      hash = "";
+      hash = ""; # placeholder -- populate when apps.gui.helium.enable = true
     };
   };
 
