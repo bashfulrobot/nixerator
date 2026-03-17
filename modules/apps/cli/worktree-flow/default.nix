@@ -85,11 +85,11 @@ in
     ];
 
     home-manager.users.${globals.user.name} = {
-      home.file.".claude/skills/github-issue/SKILL.md".text =
-        builtins.readFile ./skills/github-issue/SKILL.md;
-      home.file.".claude/skills/hack/SKILL.md".text = builtins.readFile ./skills/hack/SKILL.md;
-      home.file.".claude/skills/dependabot/SKILL.md".text =
-        builtins.readFile ./skills/dependabot/SKILL.md;
+      home.file = {
+        ".claude/skills/github-issue/SKILL.md".text = builtins.readFile ./skills/github-issue/SKILL.md;
+        ".claude/skills/hack/SKILL.md".text = builtins.readFile ./skills/hack/SKILL.md;
+        ".claude/skills/dependabot/SKILL.md".text = builtins.readFile ./skills/dependabot/SKILL.md;
+      };
     };
   };
 }
