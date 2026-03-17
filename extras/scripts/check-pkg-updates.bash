@@ -36,7 +36,8 @@ add_result() {
     local name="$1" category="$2" current="$3" latest="$4" status="$5" detail="$6"
     results=$(echo "$results" | jq --arg n "$name" --arg c "$category" \
         --arg cur "$current" --arg lat "$latest" --arg s "$status" --arg d "$detail" \
-        '. + [{name: $n, category: $c, current: $cur, latest: $lat, status: $s, detail: $d}]')
+        '. + [{name: $n, category: $c, current: $cur, latest: $lat, status: $s, detail: $d}]') \
+        || { err "jq failed while adding result for $name"; exit 1; }
 }
 
 # --- Source-type checkers ---
