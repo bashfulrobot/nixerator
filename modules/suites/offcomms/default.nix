@@ -35,6 +35,7 @@ in
       webapps = {
         mail.enable = true;
         calendar.enable = true;
+        slack.enable = true;
       };
 
       cli = {
@@ -58,7 +59,6 @@ in
 
     environment.systemPackages = with pkgs; [
       discord-ptb
-      slack
       todoist-electron
       fractal
     ];
