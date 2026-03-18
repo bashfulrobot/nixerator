@@ -22,7 +22,8 @@ let
   escapedUrl = builtins.replaceStrings [ "%" ] [ "%%" ] url;
   execLine =
     ''${browser} --no-first-run --app="${escapedUrl}" --class=${wmClass} --name=${wmClass}''
-    + lib.optionalString (extraArgs != "") " ${extraArgs}";
+    + lib.optionalString (extraArgs != "") " ${extraArgs}"
+    + " %u";
 in
 {
   options.apps.webapps.${name}.enable = lib.mkEnableOption "${displayName} web app";
