@@ -36,6 +36,7 @@ in
         mail.enable = true;
         calendar.enable = true;
         slack.enable = true;
+        zoom.enable = true;
       };
 
       cli = {
