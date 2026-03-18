@@ -80,7 +80,6 @@
 
     zed-editor = {
       url = "github:zed-industries/zed";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     wayscriber = {
