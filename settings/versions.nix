@@ -44,16 +44,16 @@
       source = "npm";
       repo = "gsd-build/get-shit-done";
       npmPkg = "get-shit-done-cc";
-      version = "1.25.1";
-      hash = "sha256-ELA60LSZYwL99Mr0jHablThLdQwdceNdihh+TaBg4tA=";
+      version = "1.26.0";
+      hash = "sha256-Uo1O1xPEfLMWvWHpP51NrJyPkDiKvgomI3n0SkhkJkY=";
       npmDepsHash = "sha256-15I2dWDgJAdG1edG0e9QUvnyp3PxmZ04jTUKqTUXk1U=";
     };
 
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
-      version = "0.0.58";
-      hash = "sha256-4gei7GdwUhREKATFBam+lYWotb6qwnJfIpoVoaFmYDQ=";
+      version = "0.0.59";
+      hash = "sha256-i9x3rZusmPFugDE3xprvIKbB1naTUAVqJbGkWUANaEA=";
       npmPkg = "kubernetes-mcp-server-linux-amd64";
     };
 
@@ -61,8 +61,8 @@
       source = "npm";
       repo = "chadbyte/clay";
       npmPkg = "clay-server";
-      version = "2.10.0";
-      hash = "sha256-2cyvPjcgZPvNKTExA2c0xxNCOe1oGfyOLjj1g8osovI=";
+      version = "2.11.0";
+      hash = "sha256-zfYCgEb3bbn6AbZAbQODLtFGP4yDTXRskE52yKWHvhw=";
       npmDepsHash = "sha256-7Vr1lVq4GtlqQKZTVtnkZfgGS28wcK/sdOpJsJ1yHho=";
     };
 
@@ -104,9 +104,9 @@
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
-      version = "0.13.1";
+      version = "0.14.0";
       tagPrefix = "v";
-      hash = "sha256-6HAiAP9HHBCUgO7gmqaq81gTt+UAItUnEYxaEY8+IdA=";
+      hash = "sha256-kc9943oZqegyHJ1o1hYlrOM9dbmQeLJ8lx98lNpZGv4=";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
