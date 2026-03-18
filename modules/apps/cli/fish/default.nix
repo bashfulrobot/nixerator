@@ -1,4 +1,9 @@
-{ globals, lib, config, ... }:
+{
+  globals,
+  lib,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.fish;
@@ -83,6 +88,25 @@ in
               echo "✓ Activated talosconfig: $(basename $selected)"
             else
               echo "No selection made"
+            end
+          '';
+
+          copy = ''
+            if test (count $argv) -gt 0
+              if not test -f "$argv[1]"
+                echo "Error: $argv[1] is not a file"
+                return 1
+              end
+              wl-copy < "$argv[1]"
+              echo "✓ Copied: $argv[1]"
+            else
+              set -l selected (fzf --prompt="Copy file: " --height=40% --border --preview="head -50 {}")
+              if test -n "$selected"
+                wl-copy < "$selected"
+                echo "✓ Copied: $selected"
+              else
+                echo "No selection made"
+              end
             end
           '';
 
