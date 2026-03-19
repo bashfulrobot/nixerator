@@ -307,5 +307,6 @@
     "rust-analyzer-lsp@claude-plugins-official": true
   },
   "coAuthor": "",
-  "remoteControlEnabled": true
+  "remoteControlEnabled": true,
+  "skipDangerousModePermissionPrompt": true
 }
