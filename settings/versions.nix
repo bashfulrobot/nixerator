@@ -32,6 +32,14 @@
       hash = "sha256-bYSk/mYor/dil/Dz4RDkRfpE0412Ue93NR5D+i73ihQ=";
     };
 
+    gws = {
+      source = "github-release";
+      repo = "googleworkspace/cli";
+      version = "0.18.1";
+      tagPrefix = "v";
+      hash = "sha256-aHdq8Eqgxbz5dWZ8nzcYU4fMbEv2a0/XZqzNAy4yVjk=";
+    };
+
     cpx = {
       source = "github-release";
       repo = "11happy/cpx";
