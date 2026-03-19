@@ -21,6 +21,7 @@ in
     apps.gui = {
       affinity.enable = true;
       cameractrls.enable = true;
+      comics.enable = true;
     };
 
     apps.cli = {

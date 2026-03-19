@@ -121,6 +121,15 @@
   };
 
   gui = {
+    comics-downloader = {
+      source = "github-release";
+      repo = "Girbons/comics-downloader";
+      version = "0.33.9";
+      tagPrefix = "v";
+      hash = "sha256-/Y7m7D7l2j42eErkD5+YNw01w/hJ3k3K4JEDKmCPw0w=";
+      vendorHash = "sha256-aVDe+SFszKQPXeOdkh9l7iO0yfdIcVQp+rXqkDUY92U=";
+    };
+
     insomnia = {
       source = "github-release";
       repo = "Kong/insomnia";
