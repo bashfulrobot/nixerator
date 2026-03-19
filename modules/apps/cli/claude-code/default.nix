@@ -140,11 +140,9 @@ in
           # Skills (copy directories recursively, only Nix-managed ones)
           for skill_dir in "${configDir}"/skills/*/; do
             skill_name="$(basename "$skill_dir")"
+            # Clean and recreate to handle subdirectories (e.g. references/)
+            $DRY_RUN_CMD rm -rf "$claude_home/skills/$skill_name"
             $DRY_RUN_CMD mkdir -p "$claude_home/skills/$skill_name"
-            # Remove stale symlinks in the skill directory
-            for skill_file in "$skill_dir"*; do
-              $DRY_RUN_CMD rm -f "$claude_home/skills/$skill_name/$(basename "$skill_file")"
-            done
             $DRY_RUN_CMD cp --no-preserve=mode -r "$skill_dir"* "$claude_home/skills/$skill_name/"
           done
 
