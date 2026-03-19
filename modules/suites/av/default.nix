@@ -21,7 +21,6 @@ in
     apps.gui = {
       affinity.enable = true;
       cameractrls.enable = true;
-      comics.enable = true;
     };
 
     apps.cli = {
@@ -34,7 +33,6 @@ in
 
     environment.systemPackages = with pkgs; [
       inkscape # vector graphics editor
-      losslesscut-bin # lossless video/audio cutting and merging
       vlc # media player
       mpv # video player
       v4l-utils # webcam and video device utilities
