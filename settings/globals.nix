@@ -28,7 +28,7 @@ rec {
   preferences = {
     editor = "helix"; # Package name in nixpkgs
     shell = "fish";
-    browser = "google-chrome-unstable";
+    browser = "google-chrome";
   };
 
   # Remote editing (Zed SSH)
