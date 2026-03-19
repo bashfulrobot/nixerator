@@ -2,24 +2,22 @@
   config,
   lib,
   pkgs,
-  inputs,
   globals,
   ...
 }:
 let
   cfg = config.apps.gui.zed;
-  system = "x86_64-linux";
 in
 {
   options = {
-    apps.gui.zed.enable = lib.mkEnableOption "the Zed editor (from upstream flake)";
+    apps.gui.zed.enable = lib.mkEnableOption "the Zed editor";
   };
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
       programs.zed-editor = {
         enable = true;
-        package = inputs.zed-editor.packages.${system}.default;
+        package = pkgs.zed-editor;
         installRemoteServer = true;
         extraPackages = with pkgs; [
           # Language servers
