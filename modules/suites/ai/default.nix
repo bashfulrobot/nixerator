@@ -54,6 +54,7 @@ in
           ];
         };
       };
+      llmfit.enable = true;
       openspec.enable = true;
       plannotator.enable = true;
       stop-slop.enable = true;
