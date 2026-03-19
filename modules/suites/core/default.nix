@@ -29,6 +29,7 @@ in
       cli = {
         tailscale.enable = true;
         cpx.enable = true;
+        gws.enable = true;
         restic.enable = true;
       };
       gui.web-app-hub.enable = true;
