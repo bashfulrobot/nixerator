@@ -31,6 +31,10 @@ let
         callbackPort = 3118;
       };
     };
+    todoist = {
+      type = "http";
+      url = "https://ai.todoist.net/mcp";
+    };
   }
   // lib.optionalAttrs (context7ApiKey != null) {
     context7 = {

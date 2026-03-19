@@ -57,7 +57,7 @@ nix flake update
 mcp-pick    # select servers to activate; writes .mcp.json (gitignored)
 ```
 
-Available: `kubernetes-mcp-server`, `gopls`, `context7`, `kong-konnect`.
+Available: `kubernetes-mcp-server`, `gopls`, `context7`, `kong-konnect`, `slack`, `todoist`.
 
 ### Output Styles
 
