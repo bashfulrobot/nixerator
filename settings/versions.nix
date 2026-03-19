@@ -110,6 +110,14 @@
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
+    gurk = {
+      source = "github-release";
+      repo = "boxdot/gurk-rs";
+      version = "0.9.0";
+      tagPrefix = "v";
+      hash = "sha256-ZTT1wJvNuYjd1QYjw5lVC2C+MZNu0NBmeEi5eOO+f5c=";
+    };
+
     lazyrestic = {
       source = "github-commit";
       repo = "craigderington/lazyrestic";
