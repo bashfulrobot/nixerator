@@ -82,11 +82,6 @@
     #   url = "github:zed-industries/zed";
     # };
 
-    llmfit = {
-      url = "github:AlexsJones/llmfit";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     wayscriber = {
       url = "github:devmobasa/wayscriber";
       inputs.nixpkgs.follows = "nixpkgs";
