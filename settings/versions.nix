@@ -114,7 +114,7 @@
       repo = "backnotprop/plannotator";
       version = "0.14.2";
       tagPrefix = "v";
-      hash = "";
+      hash = "sha256-DsGu6zUtquJjqPUzlKp7SdeBIdaV0O9pfFQtZ9NBVB8=";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
