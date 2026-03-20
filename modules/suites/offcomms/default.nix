@@ -44,6 +44,7 @@ in
         meetsum.enable = true;
         pandoc.enable = true;
         percollate.enable = true;
+        slack-token-refresh.enable = true;
         slack-tracker.enable = true;
         todoist-report.enable = true;
         wkhtmltopdf.enable = true;
