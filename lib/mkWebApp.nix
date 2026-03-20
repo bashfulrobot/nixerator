@@ -21,7 +21,7 @@ let
   # Escape % as %% for desktop entry field code validation
   escapedUrl = builtins.replaceStrings [ "%" ] [ "%%" ] url;
   execLine =
-    ''${browser} --no-first-run --app="${escapedUrl}" --class=${wmClass} --name=${wmClass}''
+    ''${browser} --no-first-run --app="${escapedUrl}" --class=${wmClass} --name=${wmClass} --wayland-text-input-version=3''
     + lib.optionalString (extraArgs != "") " ${extraArgs}"
     + " %u";
 in
