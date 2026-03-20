@@ -40,15 +40,6 @@
       hash = "sha256-58xElaYWrNL+kzg/xVwFRDlL2ga39tY6NikDBTvLO6Q=";
     };
 
-    salesforce-cli = {
-      source = "github-release";
-      repo = "salesforcecli/cli";
-      version = "2.129.2";
-      tagPrefix = "";
-      shortRev = "693b340";
-      hash = "sha256-Q6dRRGDLX4oofVacd30hkxARdoqwItw0ukLvvyLtAtE=";
-    };
-
     cpx = {
       source = "github-release";
       repo = "11happy/cpx";
