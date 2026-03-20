@@ -69,8 +69,8 @@
       source = "npm";
       repo = "chadbyte/clay";
       npmPkg = "clay-server";
-      version = "2.11.0";
-      hash = "sha256-zfYCgEb3bbn6AbZAbQODLtFGP4yDTXRskE52yKWHvhw=";
+      version = "2.12.0";
+      hash = "sha256-5XZPqZKJQDS4xLCpkc+CBdBCJd7qw8HPKuPDauPNl0k=";
       npmDepsHash = "sha256-7Vr1lVq4GtlqQKZTVtnkZfgGS28wcK/sdOpJsJ1yHho=";
     };
 
@@ -112,9 +112,9 @@
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
-      version = "0.14.0";
+      version = "0.14.2";
       tagPrefix = "v";
-      hash = "sha256-kc9943oZqegyHJ1o1hYlrOM9dbmQeLJ8lx98lNpZGv4=";
+      hash = "";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
