@@ -50,9 +50,12 @@ refresh_manual() {
   gum style --foreground 240 "Follow these steps in Chrome DevTools on your Slack tab:"
   gum style ""
   gum style "1. Open Chrome DevTools (F12) on app.slack.com"
-  gum style "2. Console tab → paste the JS snippet below → copy the xoxc- token"
-  gum style --foreground 220 '   JSON.parse(localStorage.localConfig_v2).teams[JSON.parse(localStorage.localConfig_v2).lastActiveTeamId].token'
+  gum style "2. Console tab → paste these two lines → copy the xoxc- token from the yellow warning"
+  gum style --foreground 220 '   var c = JSON.parse(localStorage.localConfig_v2);'
+  gum style --foreground 220 '   console.warn("TOKEN:", c.teams[c.lastActiveTeamId].token);'
   gum style "3. Application tab → Cookies → app.slack.com → copy the 'd' cookie value (xoxd-)"
+  gum style ""
+  gum style --foreground 240 "Alt: Network tab → filter 'api/' → check Authorization header for xoxc- token"
   gum style ""
 
   local xoxc xoxd url
