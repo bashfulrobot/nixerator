@@ -56,6 +56,9 @@ in
         yq-go # YAML processor
         hugo # Static site generator
         envsubst # Environment variable substitution
+        sqlite # SQLite CLI client and library
+        litecli # User-friendly SQLite CLI with autocomplete and syntax highlighting
+        sqlite-utils # CLI tool for manipulating SQLite databases
       ]
       ++ [
         pkgs.${globals.preferences.editor} # User's preferred editor
