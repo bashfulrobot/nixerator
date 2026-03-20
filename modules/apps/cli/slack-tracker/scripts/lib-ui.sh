@@ -42,39 +42,41 @@ choose_period() {
   esac
 }
 
+# apply_tags <file> <tags_json>
+# Modifies file in-place
 apply_tags() {
-  local messages_json="$1" tags_json="$2"
+  local file="$1" tags_json="$2"
   if [[ "$tags_json" == "{}" || "$tags_json" == "null" ]]; then
-    printf '%s' "$messages_json"
     return
   fi
 
-  printf '%s' "$messages_json" | jq --argjson tags "$tags_json" '
+  jq --argjson tags "$tags_json" '
     [.[] | . as $msg |
       .tags = ([
         $tags | to_entries[] |
         select(.value | any(. as $kw | $msg.text | ascii_downcase | contains($kw | ascii_downcase)))
       ] | map(.key))
-    ]'
+    ]' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
+# apply_highlights <file> <highlights_json>
+# Modifies file in-place
 apply_highlights() {
-  local messages_json="$1" highlights_json="$2"
+  local file="$1" highlights_json="$2"
   if [[ "$highlights_json" == "[]" || "$highlights_json" == "null" ]]; then
-    printf '%s' "$messages_json"
     return
   fi
 
-  printf '%s' "$messages_json" | jq --argjson hl "$highlights_json" '
+  jq --argjson hl "$highlights_json" '
     [.[] | . as $msg |
       .highlights = ([
         $hl[] | select(. as $kw | $msg.text | ascii_downcase | contains($kw | ascii_downcase))
       ])
-    ]'
+    ]' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
 display_results_interactive() {
-  local messages_json="$1"
+  local file="$1"
 
   while IFS= read -r msg; do
     local channel date msg_type text tags_str highlights
@@ -111,34 +113,33 @@ display_results_interactive() {
     printf '%s\n' "$header"
     printf '  %s\n' "$display_text"
     printf '  %s\n\n' "$type_label"
-  done < <(printf '%s' "$messages_json" | jq -c '.[]')
+  done < <(jq -c '.[]' "$file")
 }
 
 display_results_list() {
-  local messages_json="$1"
+  local file="$1"
   # Tab-separated: date, channel, type, tags, permalink, preview (with **highlights**)
-  printf '%s' "$messages_json" | jq -r '.[] |
+  jq -r '.[] |
     (.highlights // []) as $hl |
     (.text | gsub("\n"; " ") | .[0:100]) as $preview |
     (reduce $hl[] as $word ($preview; gsub("(?i)\($word)"; "**\($word)**"))) as $highlighted_preview |
     [.date, .channel, .type,
      (.tags | join(",")),
      .permalink,
-     $highlighted_preview] | @tsv'
+     $highlighted_preview] | @tsv' "$file"
 }
 
 display_results_json() {
-  local messages_json="$1"
-  printf '%s' "$messages_json" | jq '.'
+  local file="$1"
+  jq '.' "$file"
 }
 
 filter_by_tag_interactive() {
-  local messages_json="$1"
+  local file="$1"
   local unique_tags
-  unique_tags="$(printf '%s' "$messages_json" | jq -r '[.[].tags[]] | unique | .[]')"
+  unique_tags="$(jq -r '[.[].tags[]] | unique | .[]' "$file")"
 
   if [[ -z "$unique_tags" ]]; then
-    printf '%s' "$messages_json"
     return
   fi
 
@@ -146,19 +147,18 @@ filter_by_tag_interactive() {
   selected_tag="$(printf '%s\n%s' "All" "$unique_tags" | gum filter --header "Filter by tag (or All):" --placeholder "type to search...")"
 
   if [[ "$selected_tag" == "All" || -z "$selected_tag" ]]; then
-    printf '%s' "$messages_json"
     return
   fi
 
-  printf '%s' "$messages_json" | jq --arg tag "$selected_tag" '[.[] | select(.tags | index($tag))]'
+  jq --arg tag "$selected_tag" '[.[] | select(.tags | index($tag))]' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
 select_messages_to_open() {
-  local messages_json="$1"
+  local file="$1"
   # Include index in display for reliable mapping, format: "[idx] date  channel  preview"
   local options
-  options="$(printf '%s' "$messages_json" | jq -r 'to_entries[] |
-    "[\(.key)] \(.value.date)  \(.value.channel)  \(.value.text | gsub("\n"; " ") | .[0:70])"')"
+  options="$(jq -r 'to_entries[] |
+    "[\(.key)] \(.value.date)  \(.value.channel)  \(.value.text | gsub("\n"; " ") | .[0:70])"' "$file")"
 
   if [[ -z "$options" ]]; then
     return 1
@@ -175,7 +175,7 @@ select_messages_to_open() {
   while IFS= read -r line; do
     local idx
     idx="$(printf '%s' "$line" | grep -oE '^\[[0-9]+\]' | tr -d '[]')"
-    printf '%s' "$messages_json" | jq -r ".[$idx].permalink"
+    jq -r ".[$idx].permalink" "$file"
   done <<< "$selected"
 }
 
