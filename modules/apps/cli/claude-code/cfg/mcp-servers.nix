@@ -35,6 +35,14 @@ let
       type = "http";
       url = "https://ai.todoist.net/mcp";
     };
+    # Chrome DevTools for coding agents — browser automation, debugging, screenshots
+    chrome-devtools = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "chrome-devtools-mcp@latest"
+      ];
+    };
   }
   // lib.optionalAttrs (context7ApiKey != null) {
     context7 = {
