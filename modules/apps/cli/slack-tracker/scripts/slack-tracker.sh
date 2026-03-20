@@ -26,7 +26,8 @@ EOF
 
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/slack-tracker"
 CONFIG_FILE="${CONFIG_DIR}/config.json"
-CREDENTIALS_FILE="${CONFIG_DIR}/credentials.json"
+# Shared credential location — written by slack-token-refresh, read by all Slack tools
+CREDENTIALS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/slack/credentials.json"
 
 ensure_config_dir() {
   mkdir -p "$CONFIG_DIR"
@@ -37,7 +38,7 @@ ensure_config() {
   if [[ ! -f "$CONFIG_FILE" ]]; then
     cat > "$CONFIG_FILE" <<'DEFAULTCFG'
 {
-  "default_workspace": "",
+  "default_workspace": "kongstrong",
   "default_period": "2w",
   "highlights": [],
   "tags": {}
@@ -83,7 +84,7 @@ get_credentials() {
 
 save_credentials() {
   local workspace="$1" xoxc="$2" xoxd="$3" url="$4"
-  ensure_config_dir
+  mkdir -p "$(dirname "$CREDENTIALS_FILE")"
   local now
   now="$(date -Iseconds)"
   if [[ ! -f "$CREDENTIALS_FILE" ]]; then
@@ -103,6 +104,15 @@ save_credentials() {
 }
 
 WORKSPACE_OVERRIDE=""
+
+# Global temp files for data pipeline (cleaned up on exit)
+_RAW_FILE=""
+_CLASSIFIED_FILE=""
+_cleanup_temp_files() {
+  [[ -n "$_RAW_FILE" ]] && rm -f "$_RAW_FILE"
+  [[ -n "$_CLASSIFIED_FILE" ]] && rm -f "$_CLASSIFIED_FILE"
+}
+trap _cleanup_temp_files EXIT
 
 main() {
   load_config
@@ -208,16 +218,19 @@ cmd_search() {
     merged_highlights="$(printf '%s' "$merged_highlights" | jq --argjson extra "$extra_json" '. + $extra | unique')"
   fi
 
+  # Temp files for data pipeline (cleaned up via global EXIT trap)
+  _RAW_FILE="$(mktemp)"
+  _CLASSIFIED_FILE="$(mktemp)"
+
   # Search
   gum log --level info "Searching for unanswered messages since ${after_date}..." >&2
-  local raw_messages
-  raw_messages="$(search_my_messages "$after_date")" || {
+  if ! search_my_messages "$after_date" "$_RAW_FILE"; then
     gum log --level error "Search failed" >&2
     exit 1
-  }
+  fi
 
   local raw_count
-  raw_count="$(printf '%s' "$raw_messages" | jq 'length')"
+  raw_count="$(jq 'length' "$_RAW_FILE")"
   if [[ "$raw_count" -eq 0 ]]; then
     gum style --foreground 240 "No messages found in the last ${period}."
     exit 0
@@ -226,24 +239,23 @@ cmd_search() {
   gum log --level info "Found ${raw_count} messages. Checking threads..." >&2
 
   # Classify
-  local classified
-  classified="$(classify_messages "$raw_messages")"
+  classify_messages "$_RAW_FILE" "$_CLASSIFIED_FILE"
 
   local result_count
-  result_count="$(printf '%s' "$classified" | jq 'length')"
+  result_count="$(jq 'length' "$_CLASSIFIED_FILE")"
   if [[ "$result_count" -eq 0 ]]; then
     gum style --foreground 240 "No unanswered messages found in the last ${period}."
     exit 0
   fi
 
   # Apply tags and highlights
-  classified="$(apply_tags "$classified" "$TAGS_JSON")"
-  classified="$(apply_highlights "$classified" "$merged_highlights")"
+  apply_tags "$_CLASSIFIED_FILE" "$TAGS_JSON"
+  apply_highlights "$_CLASSIFIED_FILE" "$merged_highlights"
 
   # Apply tag filter
   if [[ -n "$tag_filter" ]]; then
-    classified="$(printf '%s' "$classified" | jq --arg tag "$tag_filter" '[.[] | select(.tags | index($tag))]')"
-    result_count="$(printf '%s' "$classified" | jq 'length')"
+    jq --arg tag "$tag_filter" '[.[] | select(.tags | index($tag))]' "$_CLASSIFIED_FILE" > "${_CLASSIFIED_FILE}.tmp" && mv "${_CLASSIFIED_FILE}.tmp" "$_CLASSIFIED_FILE"
+    result_count="$(jq 'length' "$_CLASSIFIED_FILE")"
     if [[ "$result_count" -eq 0 ]]; then
       gum style --foreground 240 "No messages matching tag '${tag_filter}'."
       exit 0
@@ -252,12 +264,12 @@ cmd_search() {
 
   # Output
   if [[ "$json_mode" == "true" ]]; then
-    display_results_json "$classified"
+    display_results_json "$_CLASSIFIED_FILE"
     return
   fi
 
   if [[ "$list_mode" == "true" ]]; then
-    display_results_list "$classified"
+    display_results_list "$_CLASSIFIED_FILE"
     return
   fi
 
@@ -267,18 +279,18 @@ cmd_search() {
 
   # Optional tag filter (interactive)
   if [[ -z "$tag_filter" ]]; then
-    classified="$(filter_by_tag_interactive "$classified")"
-    result_count="$(printf '%s' "$classified" | jq 'length')"
+    filter_by_tag_interactive "$_CLASSIFIED_FILE"
+    result_count="$(jq 'length' "$_CLASSIFIED_FILE")"
   fi
 
-  display_results_interactive "$classified"
+  display_results_interactive "$_CLASSIFIED_FILE"
 
   # Open in browser
   if [[ "$open_all" == "true" ]]; then
-    printf '%s' "$classified" | jq -r '.[].permalink' | open_in_browser
+    jq -r '.[].permalink' "$_CLASSIFIED_FILE" | open_in_browser
   else
     if gum confirm "Open selected messages in browser?"; then
-      select_messages_to_open "$classified" | open_in_browser
+      select_messages_to_open "$_CLASSIFIED_FILE" | open_in_browser
     fi
   fi
 }

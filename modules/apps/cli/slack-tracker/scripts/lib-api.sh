@@ -4,6 +4,7 @@
 SLACK_XOXC="${SLACK_XOXC:-}"
 SLACK_XOXD="${SLACK_XOXD:-}"
 MY_USER_ID=""
+MY_USERNAME=""
 
 slack_api() {
   local endpoint="$1"
@@ -76,14 +77,18 @@ get_my_user_id() {
   local response
   response="$(slack_api "auth.test")" || return 1
   MY_USER_ID="$(printf '%s' "$response" | jq -r '.user_id')"
+  MY_USERNAME="$(printf '%s' "$response" | jq -r '.user')"
 }
 
+# search_my_messages <after_date> <output_file>
+# Writes JSON array of messages to output_file
 search_my_messages() {
-  local after_date="$1"
-  local query="from:@me after:${after_date}"
+  local after_date="$1" out_file="$2"
+  local query="from:${MY_USERNAME} after:${after_date}"
   local page=1
-  local all_matches="[]"
   local total=0
+
+  printf '[]' > "$out_file"
 
   while true; do
     local response
@@ -92,14 +97,16 @@ search_my_messages() {
     if [[ $page -eq 1 ]]; then
       total="$(printf '%s' "$response" | jq '.messages.total // 0')"
       if [[ "$total" -eq 0 ]]; then
-        printf '[]'
         return 0
       fi
     fi
 
-    local matches
-    matches="$(printf '%s' "$response" | jq '.messages.matches // []')"
-    all_matches="$(printf '%s' "$all_matches" | jq --argjson m "$matches" '. + $m')"
+    # Append matches to file via jq slurp
+    local tmp_page
+    tmp_page="$(mktemp)"
+    printf '%s' "$response" | jq '.messages.matches // []' > "$tmp_page"
+    jq -s '.[0] + .[1]' "$out_file" "$tmp_page" > "${out_file}.tmp" && mv "${out_file}.tmp" "$out_file"
+    rm -f "$tmp_page"
 
     local page_count
     page_count="$(printf '%s' "$response" | jq '.messages.paging.pages // 1')"
@@ -108,8 +115,6 @@ search_my_messages() {
     fi
     ((page++))
   done
-
-  printf '%s' "$all_matches"
 }
 
 get_thread_last_reply_user() {
@@ -124,15 +129,18 @@ get_thread_last_reply_user() {
   printf '%s' "$last_user"
 }
 
+# classify_messages <input_file> <output_file>
+# Reads messages JSON from input_file, writes classified results to output_file
 classify_messages() {
-  local messages_json="$1"
+  local in_file="$1" out_file="$2"
   local total
-  total="$(printf '%s' "$messages_json" | jq 'length')"
-  local results="[]"
+  total="$(jq 'length' "$in_file")"
+
+  printf '[]' > "$out_file"
   local count=0
 
   while IFS= read -r msg; do
-    ((count++))
+    ((count++)) || true
     printf '\r  Checking message %d/%d...' "$count" "$total" >&2
 
     local channel channel_id text ts permalink reply_count
@@ -159,19 +167,20 @@ classify_messages() {
     if [[ -n "$msg_type" ]]; then
       local date_str
       date_str="$(date -d "@${ts%.*}" +%Y-%m-%d 2>/dev/null || echo "unknown")"
-      local entry
-      entry="$(jq -n \
+      local tmp_entry
+      tmp_entry="$(mktemp)"
+      jq -n \
         --arg channel "#${channel}" \
         --arg channel_id "$channel_id" \
         --arg text "$text" \
         --arg date "$date_str" \
         --arg permalink "$permalink" \
         --arg type "$msg_type" \
-        '{channel: $channel, channel_id: $channel_id, text: $text, date: $date, permalink: $permalink, type: $type, tags: [], highlights: []}')"
-      results="$(printf '%s' "$results" | jq --argjson e "$entry" '. + [$e]')"
+        '[{channel: $channel, channel_id: $channel_id, text: $text, date: $date, permalink: $permalink, type: $type, tags: [], highlights: []}]' > "$tmp_entry"
+      jq -s '.[0] + .[1]' "$out_file" "$tmp_entry" > "${out_file}.tmp" && mv "${out_file}.tmp" "$out_file"
+      rm -f "$tmp_entry"
     fi
-  done < <(printf '%s' "$messages_json" | jq -c '.[]')
+  done < <(jq -c '.[]' "$in_file")
 
   printf '\r%*s\r' 40 '' >&2  # Clear progress line
-  printf '%s' "$results"
 }
