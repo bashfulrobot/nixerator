@@ -37,7 +37,7 @@
       repo = "googleworkspace/cli";
       version = "0.18.1";
       tagPrefix = "v";
-      hash = "sha256-aHdq8Eqgxbz5dWZ8nzcYU4fMbEv2a0/XZqzNAy4yVjk=";
+      hash = "sha256-58xElaYWrNL+kzg/xVwFRDlL2ga39tY6NikDBTvLO6Q=";
     };
 
     cpx = {
