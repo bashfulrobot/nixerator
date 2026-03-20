@@ -7,6 +7,14 @@
     "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/claude-plugins-official",
     "lastUpdated": "2026-03-17T21:35:20.100Z"
   },
+  "superpowers-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "obra/superpowers-marketplace"
+    },
+    "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/superpowers-marketplace",
+    "lastUpdated": "2026-03-20T07:24:46.472Z"
+  },
   "claude-code-lsps": {
     "source": {
       "source": "git",

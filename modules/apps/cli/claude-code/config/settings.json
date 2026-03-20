@@ -304,9 +304,10 @@
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
   },
+  "skipDangerousModePermissionPrompt": true,
   "coAuthor": "",
-  "remoteControlEnabled": true,
-  "skipDangerousModePermissionPrompt": true
+  "remoteControlEnabled": true
 }
