@@ -17,6 +17,7 @@ in
       # Kong CLI applications
       cli = {
         kong-docs-offline.enable = true;
+        salesforce-cli.enable = true;
       };
 
       # Kong GUI applications
