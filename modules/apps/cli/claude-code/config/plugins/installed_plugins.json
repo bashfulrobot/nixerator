@@ -170,6 +170,26 @@
         "lastUpdated": "2026-03-20T07:25:46.359Z",
         "gitCommitSha": "8ea39819eed74fe2a0338e71789f06b30e953041"
       }
+    ],
+    "kotlin-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/kotlin-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-03-20T20:27:12.874Z",
+        "lastUpdated": "2026-03-20T20:27:12.874Z",
+        "gitCommitSha": "d53f6ca4cdb000c671dfdc1c181b021e97c25505"
+      }
+    ],
+    "code-simplifier@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/code-simplifier/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-03-20T20:27:51.376Z",
+        "lastUpdated": "2026-03-20T20:27:51.376Z",
+        "gitCommitSha": "d53f6ca4cdb000c671dfdc1c181b021e97c25505"
+      }
     ]
   }
 }
