@@ -58,6 +58,7 @@ in
       openspec.enable = true;
       plannotator.enable = true;
       stop-slop.enable = true;
+      superpowers.enable = true;
       ollama = {
         enable = false;
         loadModels = [ "glm-5:cloud" ];
