@@ -16,6 +16,14 @@ pkgs.stdenv.mkDerivation {
     inherit (v) hash;
   };
 
+  nativeBuildInputs = with pkgs; [
+    autoPatchelfHook
+  ];
+
+  buildInputs = with pkgs; [
+    stdenv.cc.cc.lib
+  ];
+
   dontBuild = true;
 
   sourceRoot = "sf";
