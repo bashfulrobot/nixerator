@@ -47,7 +47,7 @@ slack_api() {
       fi
       # Read Retry-After from HTTP headers
       local retry_after
-      retry_after="$(grep -i 'Retry-After' "$header_file" | tr -d '\r' | awk '{print $2}')"
+      retry_after="$(grep -m1 -oi 'Retry-After: *[0-9]*' "$header_file" | grep -o '[0-9]*')"
       retry_after="${retry_after:-5}"
       rm -f "$header_file"
       gum log --level warn "Rate limited. Waiting ${retry_after}s (attempt ${retries}/${max_retries})..." >&2
@@ -117,16 +117,36 @@ search_my_messages() {
   done
 }
 
-get_thread_last_reply_user() {
+get_thread_info() {
   local channel_id="$1" thread_ts="$2"
   local response
-  # Fetch all replies (no limit) — conversations.replies is a GET endpoint
+  # Fetch all replies — conversations.replies is a GET endpoint
   response="$(slack_api "conversations.replies?channel=${channel_id}&ts=${thread_ts}")" || return 1
 
-  # Get the last message in the thread (first element is the parent, so last is most recent reply)
-  local last_user
+  # messages[0] is the parent; length > 1 means replies exist
+  local reply_count last_user
+  reply_count="$(printf '%s' "$response" | jq '.messages | length')"
   last_user="$(printf '%s' "$response" | jq -r '.messages | last | .user // ""')"
-  printf '%s' "$last_user"
+  printf '%s %s' "$reply_count" "$last_user"
+}
+
+# Thread classification cache — avoids re-checking messages across runs.
+# Cache format: one "channel_id:ts=result" per line
+# result is "answered", "unanswered", or "no_thread"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/slack-tracker"
+CACHE_FILE="${CACHE_DIR}/thread-cache"
+
+_cache_lookup() {
+  local key="$1"
+  if [[ -f "$CACHE_FILE" ]]; then
+    grep -m1 "^${key}=" "$CACHE_FILE" 2>/dev/null | cut -d= -f2 || true
+  fi
+}
+
+_cache_store() {
+  local key="$1" value="$2"
+  mkdir -p "$CACHE_DIR"
+  printf '%s=%s\n' "$key" "$value" >> "$CACHE_FILE"
 }
 
 # classify_messages <input_file> <output_file>
@@ -137,29 +157,53 @@ classify_messages() {
   total="$(jq 'length' "$in_file")"
 
   printf '[]' > "$out_file"
-  local count=0
+  local count=0 cached=0 api_calls=0
 
   while IFS= read -r msg; do
     ((count++)) || true
-    printf '\r  Checking message %d/%d...' "$count" "$total" >&2
+    printf '\r  Checking message %d/%d (cached: %d)...' "$count" "$total" "$cached" >&2
 
-    local channel channel_id text ts permalink reply_count
+    local channel channel_id text ts permalink
     channel="$(printf '%s' "$msg" | jq -r '.channel.name // "unknown"')"
     channel_id="$(printf '%s' "$msg" | jq -r '.channel.id // ""')"
     text="$(printf '%s' "$msg" | jq -r '.text // ""')"
     ts="$(printf '%s' "$msg" | jq -r '.ts // ""')"
     permalink="$(printf '%s' "$msg" | jq -r '.permalink // ""')"
-    reply_count="$(printf '%s' "$msg" | jq -r '(.reply_count // 0) | tonumber')"
 
+    local cache_key="${channel_id}:${ts}"
     local msg_type=""
 
-    if [[ "$reply_count" -eq 0 ]]; then
-      msg_type="no_reply"
+    # Check cache first
+    local cached_result
+    cached_result="$(_cache_lookup "$cache_key")"
+    if [[ -n "$cached_result" ]]; then
+      ((cached++)) || true
+      if [[ "$cached_result" == "unanswered" ]]; then
+        msg_type="last_commenter"
+      fi
     else
-      local last_user
-      if last_user="$(get_thread_last_reply_user "$channel_id" "$ts")"; then
-        if [[ "$last_user" == "$MY_USER_ID" ]]; then
+      # Throttle to stay under Slack's Tier 3 rate limit (~50 req/min)
+      if [[ "$api_calls" -gt 0 ]]; then
+        sleep 1.2
+      fi
+      ((api_calls++)) || true
+
+      # Fetch thread info from conversations.replies (search results don't
+      # include reliable reply_count). Skip unthreaded messages — they may
+      # have been answered informally in-channel.
+      local thread_info
+      if thread_info="$(get_thread_info "$channel_id" "$ts")"; then
+        local reply_count last_user
+        reply_count="${thread_info%% *}"
+        last_user="${thread_info#* }"
+        # reply_count > 1 means replies exist (messages[0] is the parent)
+        if [[ "$reply_count" -gt 1 && "$last_user" == "$MY_USER_ID" ]]; then
           msg_type="last_commenter"
+          _cache_store "$cache_key" "unanswered"
+        elif [[ "$reply_count" -gt 1 ]]; then
+          _cache_store "$cache_key" "answered"
+        else
+          _cache_store "$cache_key" "no_thread"
         fi
       fi
     fi
