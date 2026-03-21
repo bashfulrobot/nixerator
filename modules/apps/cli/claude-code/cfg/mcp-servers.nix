@@ -35,6 +35,15 @@ let
       type = "http";
       url = "https://ai.todoist.net/mcp";
     };
+    # On-device search engine for notes, transcripts, docs (BM25 + vector + LLM re-ranking)
+    qmd = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "@tobilu/qmd"
+        "mcp"
+      ];
+    };
     # Chrome DevTools for coding agents — browser automation, debugging, screenshots
     chrome-devtools = {
       command = "${pkgs.nodejs}/bin/npx";
