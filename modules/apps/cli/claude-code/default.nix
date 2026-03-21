@@ -33,6 +33,10 @@ let
     inherit pkgs;
     desiredPlugins = cfg.plugins;
   };
+  reapConfig = import ./cfg/reap.nix {
+    inherit pkgs versions;
+    homeDir = globals.user.homeDirectory;
+  };
   fishConfig = import ./cfg/fish.nix {
     inherit globals statusLineScript;
   };
@@ -106,7 +110,8 @@ in
             libnotify # for notify-send in Stop hook
           ]
           ++ gsdConfig.packages
-          ++ pluginsConfig.packages;
+          ++ pluginsConfig.packages
+          ++ reapConfig.packages;
 
         # Copy config files as writable copies via activation script.
         # This replaces programs.claude-code.{settings,memory,agents,skills,outputStyles}
@@ -151,6 +156,9 @@ in
             $DRY_RUN_CMD rm -f "$claude_home/output-styles/$(basename "$style")"
             $DRY_RUN_CMD cp --no-preserve=mode "$style" "$claude_home/output-styles/$(basename "$style")"
           done
+
+          # REAP -- deploy slash commands to ~/.reap/commands/
+          ${reapConfig.activation}
 
           # Plugins -- deploy captured plugin config and cache
           plugins_src="${configDir}/plugins"
