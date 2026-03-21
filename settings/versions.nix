@@ -109,6 +109,15 @@
       vendorHash = "sha256-/6DyRRvfyShQUSFmpmuSxrd1bhBh6Km8kaMutA4xrH4=";
     };
 
+    reap = {
+      source = "npm";
+      repo = "c-d-cc/reap";
+      npmPkg = "@c-d-cc/reap";
+      version = "0.12.0";
+      hash = "sha256-nxJ1dCxNKVD5G9LNC4Jm5t4+ZGoL67cfTWL7s4cwmDI=";
+      npmDepsHash = "sha256-3WBC0C6hE/4WKLycaO0fvkuOP+wT4hj44kM7Rj+ld2U=";
+    };
+
     openspec = {
       source = "npm";
       repo = "Fission-AI/OpenSpec";
