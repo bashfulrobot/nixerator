@@ -157,6 +157,18 @@ in
             $DRY_RUN_CMD cp --no-preserve=mode "$style" "$claude_home/output-styles/$(basename "$style")"
           done
 
+          # OpenTabs MCP -- bridge runtime secret into mcp-pick directory
+          opentabs_auth="${homeDir}/.opentabs/extension/auth.json"
+          opentabs_mcp_dir="$claude_home/mcp-servers/opentabs"
+          if [ -f "$opentabs_auth" ]; then
+            $DRY_RUN_CMD mkdir -p "$opentabs_mcp_dir"
+            if [ -z "$DRY_RUN_CMD" ]; then
+              secret="$(${pkgs.jq}/bin/jq -r '.secret' "$opentabs_auth")"
+              printf '{"mcpServers":{"opentabs":{"type":"http","url":"http://127.0.0.1:9515/mcp","headers":{"Authorization":"Bearer %s"}}}}\n' "$secret" > "$opentabs_mcp_dir/.mcp.json"
+              chmod 600 "$opentabs_mcp_dir/.mcp.json"
+            fi
+          fi
+
           # REAP -- deploy slash commands to ~/.reap/commands/
           ${reapConfig.activation}
 
