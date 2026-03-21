@@ -179,27 +179,37 @@ select_messages_to_open() {
   done <<< "$selected"
 }
 
-open_in_browser() {
-  local -a urls=()
-  while IFS= read -r url; do
-    [[ -z "$url" ]] && continue
-    urls+=("$url")
-  done
+walk_threads() {
+  local file="$1"
+  local total
+  total="$(jq 'length' "$file")"
+  local i=0
 
-  if [[ ${#urls[@]} -eq 0 ]]; then
-    return
-  fi
+  while IFS= read -r entry; do
+    ((i++)) || true
+    local channel date text permalink
+    channel="$(printf '%s' "$entry" | jq -r '.channel')"
+    date="$(printf '%s' "$entry" | jq -r '.date')"
+    text="$(printf '%s' "$entry" | jq -r '.text')"
+    permalink="$(printf '%s' "$entry" | jq -r '.permalink')"
 
-  gum log --level info "Opening ${#urls[@]} message(s) in browser..." >&2
+    # Truncate text for display
+    local preview
+    preview="$(printf '%s' "$text" | head -c 120)"
+    [[ ${#text} -gt 120 ]] && preview="${preview}..."
 
-  # Try batch Chrome open first
-  if google-chrome "${urls[@]}" 2>/dev/null; then
-    return 0
-  fi
+    printf '\n'
+    gum style --foreground 33 --bold "[${i}/${total}] ${channel} — ${date}"
+    gum style --foreground 240 "$preview"
 
-  # Fallback: xdg-open one at a time
-  for url in "${urls[@]}"; do
-    xdg-open "$url" 2>/dev/null
-    sleep 0.2
-  done
+    google-chrome "$permalink" &>/dev/null &
+    disown
+    sleep 0.5
+
+    if [[ "$i" -lt "$total" ]]; then
+      gum confirm "Next thread?" || break
+    else
+      gum style --foreground 240 "Done."
+    fi
+  done < <(jq -c '.[]' "$file")
 }

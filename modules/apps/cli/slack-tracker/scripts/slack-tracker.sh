@@ -5,7 +5,7 @@ usage() {
 Usage: slack-tracker [command] [options]
 
 Commands:
-  search     Search for unanswered messages (default)
+  search     Search for unanswered threads (default)
   refresh    Refresh workspace tokens
 
 Search options:
@@ -13,7 +13,7 @@ Search options:
   --workspace <name>      Override default workspace
   --tag <name>            Filter results to a specific tag
   --highlight <words>     Additional highlight words (comma-separated)
-  --open-all              Open all results in browser tabs
+  --dry-run               Show message count only, skip thread checks
   --list                  Non-interactive tab-separated output
   --json                  Non-interactive JSON output
   --verbose               Print API details to stderr
@@ -147,7 +147,7 @@ main() {
 }
 
 cmd_search() {
-  local period="" workspace="" tag_filter="" extra_highlights="" open_all=false list_mode=false json_mode=false
+  local period="" workspace="" tag_filter="" extra_highlights="" list_mode=false json_mode=false dry_run=false
 
   workspace="${WORKSPACE_OVERRIDE:-$DEFAULT_WORKSPACE}"
 
@@ -157,7 +157,7 @@ cmd_search() {
       --workspace)  workspace="$2"; shift 2 ;;
       --tag)        tag_filter="$2"; shift 2 ;;
       --highlight)  extra_highlights="$2"; shift 2 ;;
-      --open-all)   open_all=true; shift ;;
+      --dry-run)    dry_run=true; shift ;;
       --list)       list_mode=true; shift ;;
       --json)       json_mode=true; shift ;;
       -h|--help)    usage; exit 0 ;;
@@ -223,7 +223,7 @@ cmd_search() {
   _CLASSIFIED_FILE="$(mktemp)"
 
   # Search
-  gum log --level info "Searching for unanswered messages since ${after_date}..." >&2
+  gum log --level info "Searching for unanswered threads since ${after_date}..." >&2
   if ! search_my_messages "$after_date" "$_RAW_FILE"; then
     gum log --level error "Search failed" >&2
     exit 1
@@ -232,11 +232,18 @@ cmd_search() {
   local raw_count
   raw_count="$(jq 'length' "$_RAW_FILE")"
   if [[ "$raw_count" -eq 0 ]]; then
-    gum style --foreground 240 "No messages found in the last ${period}."
+    gum style --foreground 240 "No threaded messages found in the last ${period}."
     exit 0
   fi
 
-  gum log --level info "Found ${raw_count} messages. Checking threads..." >&2
+  gum log --level info "Found ${raw_count} messages." >&2
+
+  if [[ "$dry_run" == "true" ]]; then
+    gum style --bold "${raw_count} messages from the last ${period} to classify."
+    return
+  fi
+
+  gum log --level info "Checking threads..." >&2
 
   # Classify
   classify_messages "$_RAW_FILE" "$_CLASSIFIED_FILE"
@@ -244,7 +251,7 @@ cmd_search() {
   local result_count
   result_count="$(jq 'length' "$_CLASSIFIED_FILE")"
   if [[ "$result_count" -eq 0 ]]; then
-    gum style --foreground 240 "No unanswered messages found in the last ${period}."
+    gum style --foreground 240 "No unanswered threads found in the last ${period}."
     exit 0
   fi
 
@@ -273,26 +280,11 @@ cmd_search() {
     return
   fi
 
-  # Interactive mode
-  gum style --bold "Found ${result_count} unanswered messages (last ${period})"
+  # Interactive mode — walk through threads one at a time
+  gum style --bold "Found ${result_count} unanswered threads (last ${period})"
   printf '\n'
 
-  # Optional tag filter (interactive)
-  if [[ -z "$tag_filter" ]]; then
-    filter_by_tag_interactive "$_CLASSIFIED_FILE"
-    result_count="$(jq 'length' "$_CLASSIFIED_FILE")"
-  fi
-
-  display_results_interactive "$_CLASSIFIED_FILE"
-
-  # Open in browser
-  if [[ "$open_all" == "true" ]]; then
-    jq -r '.[].permalink' "$_CLASSIFIED_FILE" | open_in_browser
-  else
-    if gum confirm "Open selected messages in browser?"; then
-      select_messages_to_open "$_CLASSIFIED_FILE" | open_in_browser
-    fi
-  fi
+  walk_threads "$_CLASSIFIED_FILE"
 }
 
 cmd_refresh() {
