@@ -18,6 +18,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Terminal emulator
+    apps.gui = {
+      ghostty.enable = true;
+    };
+
     # Shell and prompt
     apps.cli = {
       fish.enable = true;
