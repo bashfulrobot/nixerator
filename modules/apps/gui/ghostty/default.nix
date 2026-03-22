@@ -22,6 +22,8 @@ in
         installBatSyntax = true;
         settings = {
           window-decoration = false;
+          window-padding-x = 20;
+          window-padding-y = 20;
         };
       };
     };
