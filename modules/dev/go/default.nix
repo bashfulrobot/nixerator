@@ -24,6 +24,9 @@ in
       go
       clang
       llvm
+      gotools # goimports, gorename, etc.
+      golangci-lint # standard linter
+      delve # debugger
     ];
 
     # Set clang as the default C/C++ compiler for CGO
@@ -37,7 +40,11 @@ in
       home.sessionVariables = {
         CC = "clang";
         CXX = "clang++";
+        GOPATH = "$HOME/go";
+        GOBIN = "$HOME/go/bin";
       };
+
+      home.sessionPath = [ "$HOME/go/bin" ];
     };
   };
 }
