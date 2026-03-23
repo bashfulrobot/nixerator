@@ -88,7 +88,12 @@
             # Copy files and dirs, but skip any symlinks inside
             for f in $source_dir/*
               if not test -L "$f"
-                cp -r "$f" "$config_dir/skills/$skill_name/"(basename $f)
+                set -l dest "$config_dir/skills/$skill_name/"(basename $f)
+                # Remove existing dest dir first to prevent cp -r nesting
+                if test -d "$f"; and test -d "$dest"
+                  rm -rf "$dest"
+                end
+                cp -r "$f" "$dest"
                 echo "    $skill_name/"(basename $f)
               end
             end
