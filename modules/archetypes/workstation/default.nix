@@ -20,6 +20,13 @@ in
       "kernel.sched_autogroup_enabled" = 1; # Better desktop responsiveness
     };
 
+    # Compressed in-RAM swap — faster than disk, extends usable RAM
+    zramSwap = {
+      enable = true;
+      algorithm = "zstd";
+      memoryPercent = 50;
+    };
+
     # FHS compatibility
     system.compat.enable = true;
 
