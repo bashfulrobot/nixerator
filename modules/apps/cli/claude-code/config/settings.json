@@ -241,6 +241,15 @@
     ],
     "SessionStart": [
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      },
+      {
         "matcher": "startup",
         "hooks": [
           {
@@ -281,7 +290,27 @@
         "hooks": [
           {
             "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "bash -c 'input=$(cat)\nsession_id=$(echo \"$input\" | jq -r '\\''.session_id // empty'\\'' 2>/dev/null)\nprompt=$(echo \"$input\" | jq -r '\\''.prompt // empty'\\'' 2>/dev/null)\n[[ -n \"$session_id\" ]] || exit 0\n[[ -n \"$prompt\" ]] || exit 0\n\nlog_dir=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/intent-logs\"\nmkdir -p \"$log_dir\"\njq -nc --arg ts \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \\\n        --arg prompt \"$prompt\" \\\n        '\\''{ timestamp: $ts, prompt: $prompt }'\\'' \\\n  >> \"$log_dir/$session_id.jsonl\"\n'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
           }
         ]
       }
@@ -291,7 +320,82 @@
         "hooks": [
           {
             "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "bash -c 'input=$(cat)\nmsg=$(echo \"$input\" | jq -r '\\''.last_assistant_message // \"Done\"'\\'' 2>/dev/null | head -c 80)\nnotify-send \"Claude Code\" \"$msg\" --icon=terminal 2>/dev/null || true\n'"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh"
           }
         ]
       }
