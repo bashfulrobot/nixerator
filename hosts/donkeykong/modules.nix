@@ -2,6 +2,8 @@ _:
 
 {
   # Apps
+  apps.webapps.scratch.enable = true;
+
   apps.cli.syncthing = {
     enable = true;
     host.donkeykong = true;
