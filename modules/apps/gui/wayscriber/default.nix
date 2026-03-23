@@ -9,7 +9,7 @@
 
 let
   cfg = config.apps.gui.wayscriber;
-  wayscriber-pkg = inputs.wayscriber.packages.x86_64-linux.default;
+  wayscriber-pkg = inputs.wayscriber.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
   toggleScript = pkgs.writeShellScript "wayscriber-toggle" ''
     if ${pkgs.procps}/bin/pgrep -x wayscriber > /dev/null; then
