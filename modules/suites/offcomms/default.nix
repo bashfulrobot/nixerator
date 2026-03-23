@@ -41,6 +41,7 @@ in
 
       cli = {
         gurk.enable = true;
+        localsend-rs.enable = true;
         meetsum.enable = true;
         pandoc.enable = true;
         percollate.enable = true;
