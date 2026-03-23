@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   config,
   inputs,
   globals,
@@ -8,7 +9,15 @@
 
 let
   cfg = config.apps.cli.llmfit;
-  llmfit-pkg = inputs.llmfit.packages.x86_64-linux.default;
+  # Override with corrected Cargo.lock (upstream is missing arboard dependency)
+  llmfit-pkg = inputs.llmfit.packages.x86_64-linux.default.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      cp ${./Cargo.lock} Cargo.lock
+    '';
+    cargoDeps = pkgs.rustPlatform.importCargoLock {
+      lockFile = ./Cargo.lock;
+    };
+  });
 in
 {
   options.apps.cli.llmfit = {
