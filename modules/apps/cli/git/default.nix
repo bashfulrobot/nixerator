@@ -408,7 +408,15 @@ in
             push.default = "simple";
             merge.ff = "only";
             rebase.autoStash = true;
+            rebase.updateRefs = true;
             branch.autoSetupRebase = "always";
+            branch.sort = "-committerdate";
+            rerere.enabled = true;
+            fetch.prune = true;
+            push.autoSetupRemote = true;
+            push.followTags = true;
+            diff.algorithm = "histogram";
+            core.excludesFile = "~/.config/git/ignore";
 
             # SSH signing configuration
             commit.gpgsign = true;
@@ -458,6 +466,11 @@ in
             aliases = {
               co = "pr checkout";
               pv = "pr view";
+              prs = "pr list";
+              mine = "pr list --author @me";
+              rv = "pr review";
+              run = "run list";
+              rw = "run watch";
             };
           };
         };
@@ -466,6 +479,15 @@ in
       # Create allowed_signers file for SSH signing
       home.file.".config/git/allowed_signers".text = ''
         ${globals.user.email} ${globals.git.gitPubSigningKey}
+      '';
+
+      home.file.".config/git/ignore".text = ''
+        .direnv/
+        .DS_Store
+        *.swp
+        .helix/
+        result
+        result-*
       '';
 
     };
