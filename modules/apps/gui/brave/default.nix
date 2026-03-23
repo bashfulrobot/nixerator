@@ -1,4 +1,10 @@
-{ globals, lib, pkgs, config, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.gui.brave;
@@ -39,20 +45,22 @@ in
           ".config/brave-flags.conf".text = waylandFlags;
 
           # 1Password native messaging host for Brave
-          ".config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.1password.1password.json".text = builtins.toJSON {
-            name = "com.1password.1password";
-            description = "1Password BrowserSupport";
-            path = "/run/wrappers/bin/1Password-BrowserSupport";
-            type = "stdio";
-            allowed_origins = [
-              "chrome-extension://hjlinigoblmkhjejkmbegnoaljkphmgo/"
-              "chrome-extension://bkpbhnjcbehoklfkljkkbbmipaphipgl/"
-              "chrome-extension://gejiddohjgogedgjnonbofjigllpkmbf/"
-              "chrome-extension://khgocmkkpikpnmmkgmdnfckapcdkgfaf/"
-              "chrome-extension://aeblfdkhhhdcdjpifhhbdiojplfjncoa/"
-              "chrome-extension://dppgmdbiimibapkepcbdbmkaabgiofem/"
-            ];
-          };
+          ".config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.1password.1password.json".text =
+            builtins.toJSON
+              {
+                name = "com.1password.1password";
+                description = "1Password BrowserSupport";
+                path = "/run/wrappers/bin/1Password-BrowserSupport";
+                type = "stdio";
+                allowed_origins = [
+                  "chrome-extension://hjlinigoblmkhjejkmbegnoaljkphmgo/"
+                  "chrome-extension://bkpbhnjcbehoklfkljkkbbmipaphipgl/"
+                  "chrome-extension://gejiddohjgogedgjnonbofjigllpkmbf/"
+                  "chrome-extension://khgocmkkpikpnmmkgmdnfckapcdkgfaf/"
+                  "chrome-extension://aeblfdkhhhdcdjpifhhbdiojplfjncoa/"
+                  "chrome-extension://dppgmdbiimibapkepcbdbmkaabgiofem/"
+                ];
+              };
         };
 
     };

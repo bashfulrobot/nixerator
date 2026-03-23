@@ -148,17 +148,17 @@ else
     exit 1
   elif [[ "$match_count" -gt 1 ]]; then
     selected_name="$(
-      printf '%s' "$project_matches" \
-        | jq -r '.[].name' \
-        | gum filter --header "Multiple projects match — select one:" --placeholder "type to search..."
+      printf '%s' "$project_matches" |
+        jq -r '.[].name' |
+        gum filter --header "Multiple projects match — select one:" --placeholder "type to search..."
     )"
     if [[ -z "$selected_name" ]]; then
       gum log --level error "No project selected." >&2
       exit 1
     fi
     project_matches="$(
-      printf '%s' "$project_matches" \
-        | jq --arg name "$selected_name" '[.[] | select(.name == $name)]'
+      printf '%s' "$project_matches" |
+        jq --arg name "$selected_name" '[.[] | select(.name == $name)]'
     )"
   fi
 fi
@@ -237,7 +237,7 @@ report_project() {
         latest_comment: $latest_comment,
         recent_comments: $recent_comments,
         comment_count: $comment_count
-      }' > "${proj_work_dir}/task_${task_idx}.json"
+      }' >"${proj_work_dir}/task_${task_idx}.json"
 
     task_idx=$((task_idx + 1))
   done < <(printf '%s' "$tasks_json" | jq -c '.[]')
@@ -408,7 +408,7 @@ while IFS= read -r proj_json; do
   mkdir -p "$proj_dir"
 
   if [[ "$JSON_MODE" == "true" ]]; then
-    report_project "$pid" "$pname" "$proj_dir" > "${work_dir}/proj_${proj_idx}.json"
+    report_project "$pid" "$pname" "$proj_dir" >"${work_dir}/proj_${proj_idx}.json"
   else
     if [[ "$proj_idx" -gt 0 ]]; then
       printf '\n%s\n\n' "$SEPARATOR"

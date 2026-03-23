@@ -4,16 +4,17 @@
 
 The canonical spacing unit is **12px**. Use multiples or halves:
 
-| Context | Spacing |
-|---------|---------|
-| Window edge to content | 12px |
-| Between controls and labels | 12px |
-| Between groups/sections | 24px (2x) |
-| Between related items in a group | 6px (0.5x) |
-| Padding inside cards/containers | 12px |
-| Indentation for subordinate items | 12px |
+| Context                           | Spacing    |
+| --------------------------------- | ---------- |
+| Window edge to content            | 12px       |
+| Between controls and labels       | 12px       |
+| Between groups/sections           | 24px (2x)  |
+| Between related items in a group  | 6px (0.5x) |
+| Padding inside cards/containers   | 12px       |
+| Indentation for subordinate items | 12px       |
 
 In Compose, define these as constants:
+
 ```kotlin
 object HigSpacing {
     val unit = 12.dp
@@ -27,19 +28,20 @@ object HigSpacing {
 
 GNOME HIG type styles mapped to Material 3:
 
-| HIG Style | Material 3 | Usage |
-|-----------|------------|-------|
-| `large-title` | `displayLarge` | Greeters, splash (rare) |
-| `title-1` | `headlineLarge` | Major section headers |
-| `title-2` | `headlineMedium` | Subsection headers |
-| `title-3` | `titleLarge` | Card titles, dialog titles |
-| `title-4` | `titleMedium` | Group headers |
-| `heading` | `titleSmall` | Window titles, bold labels |
-| `body` | `bodyLarge` | Default text |
-| `caption-heading` | `labelLarge` | Bold sub-labels |
-| `caption` | `bodySmall` | Secondary text, timestamps |
+| HIG Style         | Material 3       | Usage                      |
+| ----------------- | ---------------- | -------------------------- |
+| `large-title`     | `displayLarge`   | Greeters, splash (rare)    |
+| `title-1`         | `headlineLarge`  | Major section headers      |
+| `title-2`         | `headlineMedium` | Subsection headers         |
+| `title-3`         | `titleLarge`     | Card titles, dialog titles |
+| `title-4`         | `titleMedium`    | Group headers              |
+| `heading`         | `titleSmall`     | Window titles, bold labels |
+| `body`            | `bodyLarge`      | Default text               |
+| `caption-heading` | `labelLarge`     | Bold sub-labels            |
+| `caption`         | `bodySmall`      | Secondary text, timestamps |
 
 Rules:
+
 - Never use italic or oblique styles
 - Never use ALL CAPS (use sentence case everywhere)
 - System font only -- do not bundle custom fonts
@@ -50,6 +52,7 @@ Rules:
 ### Sidebar Navigation (primary)
 
 For apps with 3-7 top-level areas:
+
 - Sidebar is always visible on desktop widths (>800px)
 - Collapses to hamburger menu on narrow windows
 - Active item highlighted with a subtle background tint
@@ -60,6 +63,7 @@ For apps with 3-7 top-level areas:
 ### Header Bar
 
 Every window has a header bar:
+
 - Window title centered or left-aligned
 - Primary action buttons on the right (1-2 max)
 - Back button on the left when navigating into detail views
@@ -77,12 +81,12 @@ Every window has a header bar:
 
 ### Buttons
 
-| Type | When to use |
-|------|-------------|
-| Suggested (filled accent) | Primary action per view (one only) |
-| Default (outlined) | Secondary actions |
-| Flat (ghost) | Tertiary, navigation, toolbar actions |
-| Destructive (filled red) | Delete, remove -- always with undo |
+| Type                      | When to use                           |
+| ------------------------- | ------------------------------------- |
+| Suggested (filled accent) | Primary action per view (one only)    |
+| Default (outlined)        | Secondary actions                     |
+| Flat (ghost)              | Tertiary, navigation, toolbar actions |
+| Destructive (filled red)  | Delete, remove -- always with undo    |
 
 ### Cards
 
@@ -131,6 +135,7 @@ object Breakpoints {
 ## Unicode Typography
 
 Always use proper typographic characters:
+
 - Quotes: `"` `"` (U+201C, U+201D) not `"`
 - Apostrophe: `'` (U+2019) not `'`
 - Ellipsis: `...` (U+2026) not three dots

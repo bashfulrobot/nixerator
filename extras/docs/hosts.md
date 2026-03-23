@@ -23,10 +23,10 @@ Active `nixosConfigurations` outputs: `donkeykong`, `qbert`, `srv`.
 
 ## nixerator (VM Profile)
 
-Reusable VM profile files  -- not a standalone `nixosConfigurations` output.
+Reusable VM profile files -- not a standalone `nixosConfigurations` output.
 
-- `hosts/nixerator/vm.nix`  -- virtiofs shared-folder setup
-- `hosts/nixerator/home.nix`  -- Home Manager profile
+- `hosts/nixerator/vm.nix` -- virtiofs shared-folder setup
+- `hosts/nixerator/home.nix` -- Home Manager profile
 - Import `vm.nix` into a VM host configuration to enable
 
 ## srv (Home Server)

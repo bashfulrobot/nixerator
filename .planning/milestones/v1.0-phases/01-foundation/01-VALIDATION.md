@@ -15,13 +15,13 @@ created: 2026-03-11
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | None -- Nix module; validation is `nixos-rebuild switch` success |
-| **Config file** | N/A |
-| **Quick run command** | `just quiet-rebuild` |
-| **Full suite command** | `just quiet-rebuild` |
-| **Estimated runtime** | ~60 seconds |
+| Property               | Value                                                            |
+| ---------------------- | ---------------------------------------------------------------- |
+| **Framework**          | None -- Nix module; validation is `nixos-rebuild switch` success |
+| **Config file**        | N/A                                                              |
+| **Quick run command**  | `just quiet-rebuild`                                             |
+| **Full suite command** | `just quiet-rebuild`                                             |
+| **Estimated runtime**  | ~60 seconds                                                      |
 
 ---
 
@@ -36,19 +36,19 @@ created: 2026-03-11
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 01-01-01 | 01 | 1 | NX-01 | smoke | `nixos-rebuild switch` (zero errors) | Wave 0 | pending |
-| 01-01-02 | 01 | 1 | NX-02 | smoke | `which github-issue && which hack` post-rebuild | Wave 0 | pending |
-| 01-01-03 | 01 | 1 | NX-03 | smoke | `github-issue --help && hack --help` (zero exit) | Wave 0 | pending |
-| 01-01-04 | 01 | 1 | NX-04 | manual | `ls modules/apps/cli/worktree-flow/scripts/` | Wave 0 | pending |
-| 01-01-05 | 01 | 1 | SF-04 | static | `grep -n 'gum confirm' scripts/lib.sh` -- no bare usage | Wave 0 | pending |
-| 01-01-06 | 01 | 1 | WT-04 | static | `grep -n 'mktemp' scripts/lib.sh` -- verify mv follows | Wave 0 | pending |
-| 01-01-07 | 01 | 1 | SF-05 | static | `grep -n 'crypt status' scripts/lib.sh` | Wave 0 | pending |
-| 01-01-08 | 01 | 1 | SF-02 | static | `grep -n 'main\|master' scripts/lib.sh` -- assert_not_main | Wave 0 | pending |
-| 01-01-09 | 01 | 1 | CL-04 | smoke | `ls ~/.claude/skills/github-issue/SKILL.md` post-rebuild | Wave 0 | pending |
+| Task ID  | Plan | Wave | Requirement | Test Type | Automated Command                                          | File Exists | Status  |
+| -------- | ---- | ---- | ----------- | --------- | ---------------------------------------------------------- | ----------- | ------- |
+| 01-01-01 | 01   | 1    | NX-01       | smoke     | `nixos-rebuild switch` (zero errors)                       | Wave 0      | pending |
+| 01-01-02 | 01   | 1    | NX-02       | smoke     | `which github-issue && which hack` post-rebuild            | Wave 0      | pending |
+| 01-01-03 | 01   | 1    | NX-03       | smoke     | `github-issue --help && hack --help` (zero exit)           | Wave 0      | pending |
+| 01-01-04 | 01   | 1    | NX-04       | manual    | `ls modules/apps/cli/worktree-flow/scripts/`               | Wave 0      | pending |
+| 01-01-05 | 01   | 1    | SF-04       | static    | `grep -n 'gum confirm' scripts/lib.sh` -- no bare usage    | Wave 0      | pending |
+| 01-01-06 | 01   | 1    | WT-04       | static    | `grep -n 'mktemp' scripts/lib.sh` -- verify mv follows     | Wave 0      | pending |
+| 01-01-07 | 01   | 1    | SF-05       | static    | `grep -n 'crypt status' scripts/lib.sh`                    | Wave 0      | pending |
+| 01-01-08 | 01   | 1    | SF-02       | static    | `grep -n 'main\|master' scripts/lib.sh` -- assert_not_main | Wave 0      | pending |
+| 01-01-09 | 01   | 1    | CL-04       | smoke     | `ls ~/.claude/skills/github-issue/SKILL.md` post-rebuild   | Wave 0      | pending |
 
-*Status: pending / green / red / flaky*
+_Status: pending / green / red / flaky_
 
 ---
 
@@ -57,15 +57,15 @@ created: 2026-03-11
 - [ ] `modules/apps/cli/worktree-flow/default.nix` -- module skeleton
 - [ ] `modules/apps/cli/worktree-flow/scripts/lib.sh` -- shared primitives
 
-*Existing infrastructure covers remaining requirements via `just quiet-rebuild`.*
+_Existing infrastructure covers remaining requirements via `just quiet-rebuild`._
 
 ---
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| Scripts dir structure | NX-04 | File layout verification | `ls modules/apps/cli/worktree-flow/scripts/` |
+| Behavior              | Requirement | Why Manual               | Test Instructions                            |
+| --------------------- | ----------- | ------------------------ | -------------------------------------------- |
+| Scripts dir structure | NX-04       | File layout verification | `ls modules/apps/cli/worktree-flow/scripts/` |
 
 ---
 

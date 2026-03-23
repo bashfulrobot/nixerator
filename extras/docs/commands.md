@@ -45,11 +45,11 @@ nix flake update
 
 ### Shell Shortcuts
 
-| Command | Description |
-|---------|-------------|
-| `cc <task>` | Inline headless task -- `claude -p "<task>"` (unrestricted tools) |
-| `ask <question>` | Read-only Q&A -- tools restricted to Read, Bash, Glob, Grep |
-| `ls \| ask "summarize"` | Pipe stdin into `ask` |
+| Command                 | Description                                                       |
+| ----------------------- | ----------------------------------------------------------------- |
+| `cc <task>`             | Inline headless task -- `claude -p "<task>"` (unrestricted tools) |
+| `ask <question>`        | Read-only Q&A -- tools restricted to Read, Bash, Glob, Grep       |
+| `ls \| ask "summarize"` | Pipe stdin into `ask`                                             |
 
 ### MCP Servers (per-project)
 

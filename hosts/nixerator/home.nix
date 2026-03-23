@@ -1,4 +1,9 @@
-{ pkgs, lib, globals, ... }:
+{
+  pkgs,
+  lib,
+  globals,
+  ...
+}:
 
 {
   # Home Manager configuration
@@ -32,9 +37,9 @@
     # Let Home Manager install and manage itself
     home-manager.enable = true;
 
-  # Git configuration is now handled by modules/cli/git
+    # Git configuration is now handled by modules/cli/git
 
-  # Bash configuration
+    # Bash configuration
     bash = {
       enable = true;
       enableCompletion = true;

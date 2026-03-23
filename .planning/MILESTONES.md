@@ -5,6 +5,7 @@
 **Phases completed:** 3 phases, 5 plans, 0 tasks
 
 **Key accomplishments:**
+
 - NixOS module with writeShellApplication packaging, lib.sh shared primitives, and safety guards
 - SKILL.md deployment via home.file with simplified Claude integration contract (shell owns lifecycle)
 - Full github-issue workflow: worktree creation, Claude launch, push, PR creation, issue comment
@@ -12,4 +13,3 @@
 - Full hack workflow with gum diff review, local ff-merge, and worktree preservation on reject
 
 ---
-

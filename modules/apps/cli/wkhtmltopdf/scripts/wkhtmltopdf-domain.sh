@@ -164,10 +164,10 @@ if [[ ${#page_urls[@]} -eq 0 ]]; then
 fi
 
 urls_file="$output_dir/urls.txt"
-: > "$urls_file"
+: >"$urls_file"
 
 for url in "${page_urls[@]}"; do
-  printf '%s\n' "$url" >> "$urls_file"
+  printf '%s\n' "$url" >>"$urls_file"
 
 done
 

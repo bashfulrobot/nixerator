@@ -29,6 +29,7 @@ nixerator/
 ## Auto-Import
 
 `modules/default.nix` recursively imports all `*.nix` files except those in:
+
 - `disabled/` -- disabled modules
 - `build/` -- module-local package derivations
 - `cfg/` -- configuration fragments
@@ -69,20 +70,20 @@ in
 
 ## Suites
 
-| Suite | Key Modules |
-|-------|-------------|
-| core | SSH, Flatpak, Tailscale, Backrest + Restic, Web App Hub |
-| desktop | hyprflake integration |
-| terminal | fish, starship, helix, zoxide |
-| browsers | Brave, Chrome |
-| security | 1Password |
-| dev | Claude Code, VS Code, git, helix, Go |
-| offcomms | Signal, Obsidian |
-| infrastructure | Cloud CLI tools |
-| k8s | kubectl |
-| av | Affinity, Jellyfin Desktop, Spotify, VLC, mpv |
-| kong | Insomnia, Kong docs |
-| ai | ollama |
+| Suite          | Key Modules                                             |
+| -------------- | ------------------------------------------------------- |
+| core           | SSH, Flatpak, Tailscale, Backrest + Restic, Web App Hub |
+| desktop        | hyprflake integration                                   |
+| terminal       | fish, starship, helix, zoxide                           |
+| browsers       | Brave, Chrome                                           |
+| security       | 1Password                                               |
+| dev            | Claude Code, VS Code, git, helix, Go                    |
+| offcomms       | Signal, Obsidian                                        |
+| infrastructure | Cloud CLI tools                                         |
+| k8s            | kubectl                                                 |
+| av             | Affinity, Jellyfin Desktop, Spotify, VLC, mpv           |
+| kong           | Insomnia, Kong docs                                     |
+| ai             | ollama                                                  |
 
 ## Globals
 

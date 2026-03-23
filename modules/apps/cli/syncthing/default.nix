@@ -1,4 +1,11 @@
-{ globals, lib, pkgs, config, secrets, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  secrets,
+  ...
+}:
 
 let
   cfg = config.apps.cli.syncthing;
@@ -14,8 +21,8 @@ let
   staggeredVersioning = {
     type = "staggered";
     params = {
-      cleanInterval = "3600";    # 1 hour in seconds
-      maxAge = "7776000";         # 90 days in seconds
+      cleanInterval = "3600"; # 1 hour in seconds
+      maxAge = "7776000"; # 90 days in seconds
     };
   };
 

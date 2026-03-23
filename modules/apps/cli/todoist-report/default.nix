@@ -1,10 +1,19 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.todoist-report;
   todoistReport = pkgs.writeShellApplication {
     name = "todoist-report";
-    runtimeInputs = with pkgs; [ curl gum jq ];
+    runtimeInputs = with pkgs; [
+      curl
+      gum
+      jq
+    ];
     text = builtins.readFile ./scripts/todoist-report.sh;
   };
 in

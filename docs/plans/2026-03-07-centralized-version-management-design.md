@@ -69,11 +69,11 @@ Replaces the existing `update-gsd.bash`.
 
 ### Justfile Recipes
 
-| Recipe | Description |
-|---|---|
-| `just check-updates` | Run check script, cache results, print report |
-| `just update-pkg <name>` | Prefetch and write new version for one package |
-| `just update-pkg --all` | Update all available (release-based by default) |
+| Recipe                   | Description                                     |
+| ------------------------ | ----------------------------------------------- |
+| `just check-updates`     | Run check script, cache results, print report   |
+| `just update-pkg <name>` | Prefetch and write new version for one package  |
+| `just update-pkg --all`  | Update all available (release-based by default) |
 
 ### Rebuild Integration
 

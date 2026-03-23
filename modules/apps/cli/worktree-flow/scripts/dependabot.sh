@@ -30,19 +30,19 @@ create_dependabot_state() {
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   local json
   json="$(jq -n \
-    --arg type             "dependabot" \
-    --arg phase            "setup" \
-    --arg branch           "$branch" \
-    --arg wt_path          "$wt_path" \
-    --arg session_id       "" \
-    --arg pr_url           "" \
-    --arg alert_number     "$alert_number" \
-    --arg package_name     "$package_name" \
-    --arg manifest_path    "$manifest_path" \
-    --arg patched_version  "$patched_version" \
+    --arg type "dependabot" \
+    --arg phase "setup" \
+    --arg branch "$branch" \
+    --arg wt_path "$wt_path" \
+    --arg session_id "" \
+    --arg pr_url "" \
+    --arg alert_number "$alert_number" \
+    --arg package_name "$package_name" \
+    --arg manifest_path "$manifest_path" \
+    --arg patched_version "$patched_version" \
     --arg advisory_summary "$advisory_summary" \
-    --arg started_at       "$timestamp" \
-    --arg updated_at       "$timestamp" \
+    --arg started_at "$timestamp" \
+    --arg updated_at "$timestamp" \
     '{type: $type, phase: $phase, branch: $branch, wt_path: $wt_path,
       session_id: $session_id, pr_url: $pr_url,
       alert_number: $alert_number, package_name: $package_name,
@@ -103,8 +103,8 @@ pick_alert() {
 
   # Build combined menu
   local -a menu_items=()
-  local -a menu_types=()  # "worktree" or "alert"
-  local -a menu_ids=()    # wt index or alert number
+  local -a menu_types=() # "worktree" or "alert"
+  local -a menu_ids=()   # wt index or alert number
 
   # Add existing worktrees first
   local i
@@ -305,7 +305,7 @@ phase_setup() {
   ok "state file written"
 
   # Store full alert JSON for Claude's context
-  printf '%s' "$alert_json" | jq '.' > "${wt_path}/.dependabot-alert.json"
+  printf '%s' "$alert_json" | jq '.' >"${wt_path}/.dependabot-alert.json"
   ok "alert context saved"
 
   # Disable cleanup trap -- worktree must survive interruption so user can resume
@@ -398,7 +398,7 @@ phase_claude_running() {
 phase_claude_exited() {
   local wt_path="$1"
 
-  _RESUME_DEPTH=$(( ${_RESUME_DEPTH:-0} + 1 ))
+  _RESUME_DEPTH=$((${_RESUME_DEPTH:-0} + 1))
   if [[ $_RESUME_DEPTH -gt 5 ]]; then
     warn "resumed 5 times without committing -- exiting to avoid deep recursion"
     info "worktree preserved, run the command again to resume"

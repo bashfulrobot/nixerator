@@ -27,15 +27,15 @@ Default AI backend: `claude`. Falls back gracefully if tool is not in PATH.
 
 ## Commit Types
 
-| Type | Emoji | Type | Emoji |
-|------|-------|------|-------|
-| `feat` | ✨ | `perf` | ⚡ |
-| `fix` | 🐛 | `test` | ✅ |
-| `docs` | 📝 | `build` | 👷 |
-| `style` | 🎨 | `ci` | 💚 |
-| `refactor` | ♻️ | `chore` | 🔧 |
-| `revert` | ⏪ | `security` | 🔒 |
-| `deps` | ⬆️ | | |
+| Type       | Emoji | Type       | Emoji |
+| ---------- | ----- | ---------- | ----- |
+| `feat`     | ✨    | `perf`     | ⚡    |
+| `fix`      | 🐛    | `test`     | ✅    |
+| `docs`     | 📝    | `build`    | 👷    |
+| `style`    | 🎨    | `ci`       | 💚    |
+| `refactor` | ♻️    | `chore`    | 🔧    |
+| `revert`   | ⏪    | `security` | 🔒    |
+| `deps`     | ⬆️    |            |       |
 
 ## Format Rules
 

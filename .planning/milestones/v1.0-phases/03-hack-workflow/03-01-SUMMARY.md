@@ -33,11 +33,11 @@ key-files:
 key-decisions:
   - "Reused github-issue SKILL.md for hack workflow per locked decision (same skill, different prompt structure)"
   - "phase_resume uses numeric start index; diff_review start=2 so resume always re-shows diff"
-  - "Reject path sets _WT_CLEANUP_PATH=\"\" then exits 0 to preserve worktree"
+  - 'Reject path sets _WT_CLEANUP_PATH="" then exits 0 to preserve worktree'
   - "phase_merge runs git merge --ff-only from repo root to avoid working in deleted worktree"
 
 patterns-established:
-  - "Reject/abandon path: _WT_CLEANUP_PATH=\"\" then exit 0 (preserve worktree)"
+  - 'Reject/abandon path: _WT_CLEANUP_PATH="" then exit 0 (preserve worktree)'
   - "All phase functions accept wt_path as first arg for stateless resumability"
 
 requirements-completed: [RF-03, RF-04, RF-05]
@@ -85,7 +85,7 @@ Each task was committed atomically:
 
 - Used the same github-issue SKILL.md for hack workflow (per prior locked decision); prompt format adapted to "Task: {description}" instead of issue body
 - phase_resume numeric start index: diff_review maps to start=2 so resume always re-shows diff before approve/reject
-- Reject path clears _WT_CLEANUP_PATH before exit to preserve worktree for future resume
+- Reject path clears \_WT_CLEANUP_PATH before exit to preserve worktree for future resume
 - phase_merge runs from repo root (git rev-parse --show-toplevel) per anti-pattern guidance
 
 ## Deviations from Plan

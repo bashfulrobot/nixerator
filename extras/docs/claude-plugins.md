@@ -18,6 +18,7 @@ Plugins install to `~/.claude/plugins/marketplaces/`.
 - `claude-plugins disable <name>` -- disable without removing
 
 Example:
+
 ```
 claude-plugins install @anthropics/claude-plugins-official/code-review
 ```
@@ -35,6 +36,7 @@ Skills install to `~/.claude/skills/` (global) or `./.claude/skills/` (local).
 - `npx skills-installer list` -- show installed skills
 
 Example:
+
 ```
 npx skills-installer search frontend
 npx skills-installer install @anthropics/claude-code/frontend-design

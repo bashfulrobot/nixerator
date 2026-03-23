@@ -1,19 +1,27 @@
-{ globals, lib, pkgs, config, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.nix-search-tv;
 
-  configFile = pkgs.writeText "nix-search-tv-config.json" (builtins.toJSON {
-    indexes = [
-      "nixpkgs"
-      "home-manager"
-      "nur"
-      "nixos"
-      "darwin"
-    ];
-    update_interval = "24h";
-    enable_waiting_message = true;
-  });
+  configFile = pkgs.writeText "nix-search-tv-config.json" (
+    builtins.toJSON {
+      indexes = [
+        "nixpkgs"
+        "home-manager"
+        "nur"
+        "nixos"
+        "darwin"
+      ];
+      update_interval = "24h";
+      enable_waiting_message = true;
+    }
+  );
 in
 {
   options = {

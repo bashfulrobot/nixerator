@@ -36,7 +36,7 @@ ensure_config_dir() {
 ensure_config() {
   ensure_config_dir
   if [[ ! -f "$CONFIG_FILE" ]]; then
-    cat > "$CONFIG_FILE" <<'DEFAULTCFG'
+    cat >"$CONFIG_FILE" <<'DEFAULTCFG'
 {
   "default_workspace": "kongstrong",
   "default_period": "2w",
@@ -88,7 +88,7 @@ save_credentials() {
   local now
   now="$(date -Iseconds)"
   if [[ ! -f "$CREDENTIALS_FILE" ]]; then
-    printf '{"workspaces":{}}\n' > "$CREDENTIALS_FILE"
+    printf '{"workspaces":{}}\n' >"$CREDENTIALS_FILE"
   fi
   local updated
   updated="$(jq \
@@ -99,7 +99,7 @@ save_credentials() {
     --arg now "$now" \
     '.workspaces[$ws] = {xoxc: $xoxc, xoxd: $xoxd, url: $url, updated: $now}' \
     "$CREDENTIALS_FILE")"
-  printf '%s\n' "$updated" > "$CREDENTIALS_FILE"
+  printf '%s\n' "$updated" >"$CREDENTIALS_FILE"
   chmod 600 "$CREDENTIALS_FILE"
 }
 
@@ -133,15 +133,25 @@ main() {
 
   if [[ $# -gt 0 ]]; then
     case "$1" in
-      search|refresh) command="$1"; shift ;;
-      -h|--help) usage; exit 0 ;;
+      search | refresh)
+        command="$1"
+        shift
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
       -*) ;; # flags handled by subcommand
-      *) printf 'Unknown command: %s\n' "$1" >&2; usage >&2; exit 1 ;;
+      *)
+        printf 'Unknown command: %s\n' "$1" >&2
+        usage >&2
+        exit 1
+        ;;
     esac
   fi
 
   case "$command" in
-    search)  cmd_search "$@" ;;
+    search) cmd_search "$@" ;;
     refresh) cmd_refresh "$@" ;;
   esac
 }
@@ -153,15 +163,42 @@ cmd_search() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --period)     period="$2"; shift 2 ;;
-      --workspace)  workspace="$2"; shift 2 ;;
-      --tag)        tag_filter="$2"; shift 2 ;;
-      --highlight)  extra_highlights="$2"; shift 2 ;;
-      --dry-run)    dry_run=true; shift ;;
-      --list)       list_mode=true; shift ;;
-      --json)       json_mode=true; shift ;;
-      -h|--help)    usage; exit 0 ;;
-      *)            printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
+      --period)
+        period="$2"
+        shift 2
+        ;;
+      --workspace)
+        workspace="$2"
+        shift 2
+        ;;
+      --tag)
+        tag_filter="$2"
+        shift 2
+        ;;
+      --highlight)
+        extra_highlights="$2"
+        shift 2
+        ;;
+      --dry-run)
+        dry_run=true
+        shift
+        ;;
+      --list)
+        list_mode=true
+        shift
+        ;;
+      --json)
+        json_mode=true
+        shift
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        printf 'Unknown option: %s\n' "$1" >&2
+        exit 1
+        ;;
     esac
   done
 
@@ -261,7 +298,7 @@ cmd_search() {
 
   # Apply tag filter
   if [[ -n "$tag_filter" ]]; then
-    jq --arg tag "$tag_filter" '[.[] | select(.tags | index($tag))]' "$_CLASSIFIED_FILE" > "${_CLASSIFIED_FILE}.tmp" && mv "${_CLASSIFIED_FILE}.tmp" "$_CLASSIFIED_FILE"
+    jq --arg tag "$tag_filter" '[.[] | select(.tags | index($tag))]' "$_CLASSIFIED_FILE" >"${_CLASSIFIED_FILE}.tmp" && mv "${_CLASSIFIED_FILE}.tmp" "$_CLASSIFIED_FILE"
     result_count="$(jq 'length' "$_CLASSIFIED_FILE")"
     if [[ "$result_count" -eq 0 ]]; then
       gum style --foreground 240 "No messages matching tag '${tag_filter}'."
@@ -293,9 +330,18 @@ cmd_refresh() {
   # Parse refresh-specific flags
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --workspace) workspace="$2"; shift 2 ;;
-      -h|--help) usage; exit 0 ;;
-      *) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
+      --workspace)
+        workspace="$2"
+        shift 2
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        printf 'Unknown option: %s\n' "$1" >&2
+        exit 1
+        ;;
     esac
   done
 

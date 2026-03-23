@@ -1,4 +1,10 @@
-{ lib, pkgs, config, globals, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  ...
+}:
 
 let
   cfg = config.apps.gui.web-app-hub;
@@ -7,7 +13,11 @@ let
   extract-webapps = pkgs.writeShellApplication {
     name = "extract-webapps";
 
-    runtimeInputs = with pkgs; [ coreutils gnugrep gnused ];
+    runtimeInputs = with pkgs; [
+      coreutils
+      gnugrep
+      gnused
+    ];
 
     text = ''
       # Extract web-app-hub apps into Nix modules

@@ -15,7 +15,7 @@ in
   config = lib.mkIf cfg.enable {
     # Enable server suites
     suites = {
-      terminal.enable = true;    # Terminal suite
+      terminal.enable = true; # Terminal suite
     };
 
     # Core system services for servers

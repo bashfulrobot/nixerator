@@ -1,11 +1,11 @@
 #!/usr/bin/env fish
 
 set -l KUBECONFIG_FILE "@KUBECONFIG_FILE@"
-set -l NAMESPACE "mcp"
-set -l SERVICE_ACCOUNT "mcp-viewer"
-set -l CONTEXT_NAME "mcp-viewer-context"
-set -l CLUSTER_NAME "mcp-viewer-cluster"
-set -l TOKEN_DURATION "24h"
+set -l NAMESPACE mcp
+set -l SERVICE_ACCOUNT mcp-viewer
+set -l CONTEXT_NAME mcp-viewer-context
+set -l CLUSTER_NAME mcp-viewer-cluster
+set -l TOKEN_DURATION 24h
 
 function show_help
     echo "k8s-mcp-setup - Configure Kubernetes MCP Server for Claude Code"
@@ -109,7 +109,7 @@ function generate_kubeconfig
     else
         # CA is inline, write to temp file
         set -l TEMP_CA (mktemp)
-        echo $CA_DATA | base64 -d > $TEMP_CA
+        echo $CA_DATA | base64 -d >$TEMP_CA
         kubectl config --kubeconfig="$KUBECONFIG_FILE" set-cluster $CLUSTER_NAME \
             --server="$API_SERVER" \
             --certificate-authority="$TEMP_CA" \
@@ -165,36 +165,52 @@ function check_status
     # Check namespace
     echo -n "Namespace '$NAMESPACE': "
     if kubectl get namespace $NAMESPACE &>/dev/null
-        set_color green; echo "OK"; set_color normal
+        set_color green
+        echo OK
+        set_color normal
     else
-        set_color red; echo "NOT FOUND"; set_color normal
+        set_color red
+        echo "NOT FOUND"
+        set_color normal
         set all_ok false
     end
 
     # Check service account
     echo -n "Service account '$SERVICE_ACCOUNT': "
     if kubectl get serviceaccount $SERVICE_ACCOUNT -n $NAMESPACE &>/dev/null
-        set_color green; echo "OK"; set_color normal
+        set_color green
+        echo OK
+        set_color normal
     else
-        set_color red; echo "NOT FOUND"; set_color normal
+        set_color red
+        echo "NOT FOUND"
+        set_color normal
         set all_ok false
     end
 
     # Check cluster role binding
     echo -n "Cluster role binding 'mcp-viewer-crb': "
     if kubectl get clusterrolebinding mcp-viewer-crb &>/dev/null
-        set_color green; echo "OK"; set_color normal
+        set_color green
+        echo OK
+        set_color normal
     else
-        set_color red; echo "NOT FOUND"; set_color normal
+        set_color red
+        echo "NOT FOUND"
+        set_color normal
         set all_ok false
     end
 
     # Check kubeconfig file
     echo -n "Kubeconfig file: "
     if test -f $KUBECONFIG_FILE
-        set_color green; echo "OK ($KUBECONFIG_FILE)"; set_color normal
+        set_color green
+        echo "OK ($KUBECONFIG_FILE)"
+        set_color normal
     else
-        set_color red; echo "NOT FOUND"; set_color normal
+        set_color red
+        echo "NOT FOUND"
+        set_color normal
         set all_ok false
     end
 
@@ -202,9 +218,13 @@ function check_status
     if test -f $KUBECONFIG_FILE
         echo -n "Cluster connectivity (via MCP kubeconfig): "
         if kubectl --kubeconfig="$KUBECONFIG_FILE" get pods -A &>/dev/null
-            set_color green; echo "OK"; set_color normal
+            set_color green
+            echo OK
+            set_color normal
         else
-            set_color yellow; echo "FAILED (token may be expired, try 'k8s-mcp-setup renew')"; set_color normal
+            set_color yellow
+            echo "FAILED (token may be expired, try 'k8s-mcp-setup renew')"
+            set_color normal
             set all_ok false
         end
     end

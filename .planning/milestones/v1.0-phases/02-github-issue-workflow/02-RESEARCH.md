@@ -5,60 +5,69 @@
 **Confidence:** HIGH
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
 
 **Branch Naming**
+
 - Type derived from GitHub issue labels via `gh` API: map common labels to gcmt types (bug->fix, enhancement->feat, documentation->docs, etc.)
 - Supported branch types (matching gcmt): feat, fix, docs, refactor, test, ci, chore, revert, deps
 - Fallback when no label matches: prompt user with `gum choose` from the 9 types
 - Slug format: `<type>/<number>-<short-title>` (e.g., `feat/42-rate-limiting`), title slugified and truncated to ~50 chars total
 
 **Resume and Re-invocation**
+
 - When worktree already exists: show compact one-liner state summary (e.g., "Issue #42: phase claude_exited, branch feat/42-rate-limiting"), then `gum choose`: Resume / Remove & restart / Abort
 - Resume skips to next incomplete phase (idempotent phase progression)
 - Claude resume: try `--resume <session_id>` from state file first, fall back to fresh session if unavailable/expired
 - State display is compact, not verbose dump
 
 **PR Creation**
+
 - PR title: use GitHub issue title as-is
 - PR status: created as ready for review (not draft)
 - PR body: uses SKILL.md Summary/Test plan template format
 - After PR creation: auto-comment on the issue with PR link via `gh issue comment` (RF-02)
 
 **Post-merge Cleanup**
+
 - Merge detection: query PR state via `gh pr view --json state` using pr_url from state file
 - Cleanup shows each step with ok/info messages (matches existing terminal style)
 - Resolution comment on issue/PR: short one-liner (e.g., "Resolved via #<pr-number>. Branch and worktree cleaned up.")
 - Idempotent cleanup: skip missing pieces (e.g., worktree already deleted), still clean branches and post comments
 
 ### Claude's Discretion
+
 - Label-to-type mapping details (which labels map to which types beyond the obvious ones)
 - Exact `gh api` queries for issue metadata and PR state
 - How to extract/format the Summary/Test plan body from Claude's commits
 - Orphan worktree detection implementation (WT-02)
 
 ### Deferred Ideas (OUT OF SCOPE)
+
 None -- discussion stayed within phase scope
 </user_constraints>
 
 <phase_requirements>
+
 ## Phase Requirements
 
-| ID | Description | Research Support |
-|----|-------------|-----------------|
-| WT-01 | Script creates worktree with proper branch naming (`fix/<slug>`, `feat/<slug>`, etc.) | `gh issue view --json labels,title` verified; label mapping and gum choose fallback documented |
-| WT-02 | Script detects and offers to clean orphaned worktrees on startup | `git worktree list --porcelain` output format confirmed; pattern documented |
-| WT-05 | Cleanup sequences as worktree remove, then prune, then branch delete | `git worktree remove`, `git worktree prune`, `git branch -d`, `git push origin --delete` patterns verified |
-| WT-06 | Re-invocation with same issue number resumes from state file | State file read pattern established; phase dispatch logic documented |
-| WT-07 | Script errors if worktree already exists (with option to resume) | `gum choose` pattern for Resume/Remove/Abort documented; set -e safe |
-| RF-01 | github-issue flow pushes branch and creates PR via `gh pr create` | `gh pr create --title --body --head` flags verified against gh 2.87.3 |
-| RF-02 | github-issue flow comments on issue linking the PR | `gh issue comment <number> --body` flag verified |
-| PM-01 | github-issue detects merged PR on re-invocation and enters cleanup phase | `gh pr view <url> --json state` returns `MERGED`/`OPEN`/`CLOSED`; documented |
-| PM-02 | Cleanup switches to default branch, pulls, deletes local and remote branches | git checkout/pull pattern; `git branch -d` + `git push origin --delete` documented |
-| PM-03 | Cleanup removes worktree directory and prunes | `git worktree remove --force` + `git worktree prune` sequence documented |
-| PM-04 | Cleanup comments on issue and PR with resolution summary | `gh issue comment` and `gh pr comment` flags verified |
+| ID    | Description                                                                           | Research Support                                                                                           |
+| ----- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| WT-01 | Script creates worktree with proper branch naming (`fix/<slug>`, `feat/<slug>`, etc.) | `gh issue view --json labels,title` verified; label mapping and gum choose fallback documented             |
+| WT-02 | Script detects and offers to clean orphaned worktrees on startup                      | `git worktree list --porcelain` output format confirmed; pattern documented                                |
+| WT-05 | Cleanup sequences as worktree remove, then prune, then branch delete                  | `git worktree remove`, `git worktree prune`, `git branch -d`, `git push origin --delete` patterns verified |
+| WT-06 | Re-invocation with same issue number resumes from state file                          | State file read pattern established; phase dispatch logic documented                                       |
+| WT-07 | Script errors if worktree already exists (with option to resume)                      | `gum choose` pattern for Resume/Remove/Abort documented; set -e safe                                       |
+| RF-01 | github-issue flow pushes branch and creates PR via `gh pr create`                     | `gh pr create --title --body --head` flags verified against gh 2.87.3                                      |
+| RF-02 | github-issue flow comments on issue linking the PR                                    | `gh issue comment <number> --body` flag verified                                                           |
+| PM-01 | github-issue detects merged PR on re-invocation and enters cleanup phase              | `gh pr view <url> --json state` returns `MERGED`/`OPEN`/`CLOSED`; documented                               |
+| PM-02 | Cleanup switches to default branch, pulls, deletes local and remote branches          | git checkout/pull pattern; `git branch -d` + `git push origin --delete` documented                         |
+| PM-03 | Cleanup removes worktree directory and prunes                                         | `git worktree remove --force` + `git worktree prune` sequence documented                                   |
+| PM-04 | Cleanup comments on issue and PR with resolution summary                              | `gh issue comment` and `gh pr comment` flags verified                                                      |
+
 </phase_requirements>
 
 ## Summary
@@ -74,14 +83,15 @@ The critical new capability in Phase 2 is the `CLAUDECODE` environment variable 
 ## Standard Stack
 
 ### Core
-| Library | Version | Purpose | Why Standard |
-|---------|---------|---------|--------------|
-| pkgs.gh | nixpkgs (2.87.3) | Issue metadata, PR create, issue/PR comments, PR state | Already in runtimeInputs from Phase 1 |
-| pkgs.llm-agents.claude-code | 2.1.72 (current) | Launch Claude session in worktree | Must be added to runtimeInputs for Phase 2 |
-| pkgs.jq | nixpkgs | Parse gh JSON output, state file read/write | Already in runtimeInputs from Phase 1 |
-| pkgs.gum | nixpkgs | `gum choose` for branch type picker and resume/remove/abort prompt | Already in runtimeInputs from Phase 1 |
-| pkgs.git | nixpkgs | Worktree create, branch ops, push, checkout | Already in runtimeInputs from Phase 1 |
-| pkgs.coreutils | nixpkgs | mktemp for atomic writes | Already in runtimeInputs from Phase 1 |
+
+| Library                     | Version          | Purpose                                                            | Why Standard                               |
+| --------------------------- | ---------------- | ------------------------------------------------------------------ | ------------------------------------------ |
+| pkgs.gh                     | nixpkgs (2.87.3) | Issue metadata, PR create, issue/PR comments, PR state             | Already in runtimeInputs from Phase 1      |
+| pkgs.llm-agents.claude-code | 2.1.72 (current) | Launch Claude session in worktree                                  | Must be added to runtimeInputs for Phase 2 |
+| pkgs.jq                     | nixpkgs          | Parse gh JSON output, state file read/write                        | Already in runtimeInputs from Phase 1      |
+| pkgs.gum                    | nixpkgs          | `gum choose` for branch type picker and resume/remove/abort prompt | Already in runtimeInputs from Phase 1      |
+| pkgs.git                    | nixpkgs          | Worktree create, branch ops, push, checkout                        | Already in runtimeInputs from Phase 1      |
+| pkgs.coreutils              | nixpkgs          | mktemp for atomic writes                                           | Already in runtimeInputs from Phase 1      |
 
 ### runtimeInputs addition for Phase 2
 
@@ -102,11 +112,12 @@ runtimeInputs = with pkgs; [
 ```
 
 ### Alternatives Considered
-| Instead of | Could Use | Tradeoff |
-|------------|-----------|----------|
-| `gum choose` for branch type picker | `select` shell builtin | gum is already a dep, provides better UX with arrow keys |
-| `gh pr view --json state` for merge detection | `gh pr view <url>` and parse text | `--json state` gives clean machine-readable `MERGED`/`OPEN`/`CLOSED` |
-| Inline PR body with heredoc | `gh pr create --body-file -` from stdin | `--body` flag with `$'...'` quoting works; heredoc more readable for multi-line |
+
+| Instead of                                    | Could Use                               | Tradeoff                                                                        |
+| --------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------- |
+| `gum choose` for branch type picker           | `select` shell builtin                  | gum is already a dep, provides better UX with arrow keys                        |
+| `gh pr view --json state` for merge detection | `gh pr view <url>` and parse text       | `--json state` gives clean machine-readable `MERGED`/`OPEN`/`CLOSED`            |
+| Inline PR body with heredoc                   | `gh pr create --body-file -` from stdin | `--body` flag with `$'...'` quoting works; heredoc more readable for multi-line |
 
 ## Architecture Patterns
 
@@ -475,56 +486,63 @@ check_orphan_worktrees() {
 
 ## Don't Hand-Roll
 
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
-| Issue metadata fetch | curl + GitHub API | `gh issue view --json title,labels` | Handles auth, repo detection, JSON output |
-| PR creation | git push + curl GitHub API | `gh pr create --title --body` | Handles auth, base branch detection, returns PR URL |
-| PR state query | git ls-remote + guess | `gh pr view <url> --json state` | Returns clean `MERGED`/`OPEN`/`CLOSED` string |
-| Issue/PR comments | curl GitHub API | `gh issue comment`, `gh pr comment --body` | Handles auth, idiomatic |
-| Branch type picker | printf + read | `gum choose` | Arrow key navigation, consistent with rest of UI |
-| Session ID extraction | custom protocol | jq `.session_id` on stream-json events | claude emits structured JSON events |
+| Problem               | Don't Build                | Use Instead                                | Why                                                 |
+| --------------------- | -------------------------- | ------------------------------------------ | --------------------------------------------------- |
+| Issue metadata fetch  | curl + GitHub API          | `gh issue view --json title,labels`        | Handles auth, repo detection, JSON output           |
+| PR creation           | git push + curl GitHub API | `gh pr create --title --body`              | Handles auth, base branch detection, returns PR URL |
+| PR state query        | git ls-remote + guess      | `gh pr view <url> --json state`            | Returns clean `MERGED`/`OPEN`/`CLOSED` string       |
+| Issue/PR comments     | curl GitHub API            | `gh issue comment`, `gh pr comment --body` | Handles auth, idiomatic                             |
+| Branch type picker    | printf + read              | `gum choose`                               | Arrow key navigation, consistent with rest of UI    |
+| Session ID extraction | custom protocol            | jq `.session_id` on stream-json events     | claude emits structured JSON events                 |
 
 **Key insight:** All GitHub operations go through `gh`. No direct API calls. The `gh` binary handles authentication, repository detection, and error formatting consistently.
 
 ## Common Pitfalls
 
 ### Pitfall 1: Nested Claude Session Refusal (CLAUDECODE env var)
+
 **What goes wrong:** When `github-issue` is invoked from within a Claude session (during development), `claude` refuses to launch with "Claude Code cannot be launched inside another Claude Code session."
 **Why it happens:** Claude sets `CLAUDECODE=1` in its own environment, and the child process inherits it.
 **How to avoid:** Always `unset CLAUDECODE` in the subshell before launching claude. Use `( unset CLAUDECODE; cd "$wt_path"; claude ... )` subshell pattern.
 **Warning signs:** Script hangs or immediately exits at the Claude launch phase. Error message mentions "Nested sessions share runtime resources."
 
 ### Pitfall 2: `gh pr create` Prompts When --title or --body Missing
+
 **What goes wrong:** Without `--title` and `--body`, `gh pr create` enters interactive mode and hangs in non-interactive contexts.
 **Why it happens:** gh detects a TTY and opens an editor.
 **How to avoid:** Always pass both `--title` and `--body` explicitly. Use `--body-file -` to pipe from stdin if body is complex.
 **Warning signs:** Script hangs at the PR creation phase.
 
 ### Pitfall 3: gum choose exit codes under set -e
+
 **What goes wrong:** `gum choose` exits 130 on Ctrl+C. Under `set -e`, this kills the script without running cleanup.
 **Why it happens:** set -e treats any non-zero exit as fatal.
 **How to avoid:** `choice="$(gum choose "A" "B" "C")" || die "aborted"`. The `|| die` handles non-zero without set -e propagating.
 **Warning signs:** Script silently exits when user presses Ctrl+C during a gum choose prompt.
 
 ### Pitfall 4: State File Missing pr_url Field on Resume
+
 **What goes wrong:** If script is interrupted after PR creation but before writing pr_url to state file, resume cannot find the PR for merge detection.
 **Why it happens:** State update after `gh pr create` is a separate atomic write; if the process is killed between them, state is stale.
 **How to avoid:** Set phase and write pr_url in the same jq pipeline before commenting on the issue. PR creation is the critical checkpoint.
 **Warning signs:** Re-invocation always goes to pushing phase even though PR exists.
 
 ### Pitfall 5: Cleanup Trap Running on Intentional Cleanup
+
 **What goes wrong:** The `cleanup()` trap registered in setup calls `git worktree remove --force` on exit. During `phase_cleanup()`, we intentionally remove the worktree, but then EXIT fires the trap again and tries to remove the already-removed worktree.
 **Why it happens:** The trap is registered unconditionally on EXIT.
 **How to avoid:** Before intentional cleanup, set `_WT_CLEANUP_PATH=""` to disable the trap (the `cleanup()` function checks `if [[ -n "$_WT_CLEANUP_PATH" ]]`).
 **Warning signs:** Spurious "worktree not found" error message during cleanup.
 
 ### Pitfall 6: safe_push Branch Guard from Wrong Directory
+
 **What goes wrong:** `safe_push` calls `git rev-parse --abbrev-ref HEAD`. If the current directory is the main repo (not the worktree), HEAD is main/master and the branch guard fires.
 **Why it happens:** git commands use the CWD's git context by default.
 **How to avoid:** Always `cd "$wt_path"` before calling `safe_push`, or use `git -C "$wt_path" push -u origin "$branch"` directly.
 **Warning signs:** "refusing to operate on protected branch 'main'" error during push phase even when the worktree is on a feature branch.
 
 ### Pitfall 7: Issue with No Labels Requires gum choose
+
 **What goes wrong:** If issue has no labels, `jq '.[].name'` returns empty. The case statement falls through to the gum fallback. If not handled, empty case match may silently proceed.
 **Why it happens:** New issues often have no labels.
 **How to avoid:** The case default `*` matcher should always include the gum choose fallback. Test the empty-labels path specifically.
@@ -533,6 +551,7 @@ check_orphan_worktrees() {
 ## Code Examples
 
 ### Issue metadata fetch
+
 ```bash
 # Source: gh 2.87.3, verified JSON fields
 ISSUE_JSON="$(gh issue view "$ISSUE_NUMBER" --json title,labels,body)"
@@ -542,6 +561,7 @@ ISSUE_BODY="$(printf '%s' "$ISSUE_JSON" | jq -r '.body')"
 ```
 
 ### PR state check for merge detection
+
 ```bash
 # Source: gh 2.87.3 -- .state returns MERGED, OPEN, or CLOSED
 PR_STATE="$(gh pr view "$PR_URL" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")"
@@ -551,6 +571,7 @@ fi
 ```
 
 ### Remote branch deletion
+
 ```bash
 # Delete local branch (force if not merged per git's check)
 git -C "$(git rev-parse --show-toplevel)" branch -d "$BRANCH" 2>/dev/null \
@@ -561,6 +582,7 @@ git push origin --delete "$BRANCH" 2>/dev/null || true
 ```
 
 ### State file with pr_url field
+
 ```bash
 # Add pr_url field to existing state atomically
 update_state_pr_url() {
@@ -578,6 +600,7 @@ update_state_pr_url() {
 ```
 
 ### Initial state with issue-specific fields
+
 ```bash
 # Extend create_state for issue type (add issue_number, issue_title, issue_body)
 create_issue_state() {
@@ -607,13 +630,14 @@ create_issue_state() {
 
 ## State of the Art
 
-| Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|--------------|--------|
-| Stub with echo annotations | Full workflow implementation | Phase 2 | Actual worktree creation, Claude launch, PR, cleanup |
-| No claude invocation | `claude --dangerously-skip-permissions -p <prompt>` | Phase 2 | Real isolated Claude sessions |
-| State schema without pr_url | State schema extended with pr_url, issue_number, issue_title, issue_body | Phase 2 | Enables merge detection and resume from any phase |
+| Old Approach                | Current Approach                                                         | When Changed | Impact                                               |
+| --------------------------- | ------------------------------------------------------------------------ | ------------ | ---------------------------------------------------- |
+| Stub with echo annotations  | Full workflow implementation                                             | Phase 2      | Actual worktree creation, Claude launch, PR, cleanup |
+| No claude invocation        | `claude --dangerously-skip-permissions -p <prompt>`                      | Phase 2      | Real isolated Claude sessions                        |
+| State schema without pr_url | State schema extended with pr_url, issue_number, issue_title, issue_body | Phase 2      | Enables merge detection and resume from any phase    |
 
 **Deprecated/outdated:**
+
 - The Phase 1 stub's echo-only annotations: replaced entirely by real implementation.
 
 ## Open Questions
@@ -636,42 +660,47 @@ create_issue_state() {
 ## Validation Architecture
 
 ### Test Framework
-| Property | Value |
-|----------|-------|
-| Framework | None -- Nix module; validation is rebuild success + manual smoke tests |
-| Config file | N/A |
-| Quick run command | `just quiet-rebuild` |
-| Full suite command | `just quiet-rebuild` + manual invocation of `github-issue --help` |
+
+| Property           | Value                                                                  |
+| ------------------ | ---------------------------------------------------------------------- |
+| Framework          | None -- Nix module; validation is rebuild success + manual smoke tests |
+| Config file        | N/A                                                                    |
+| Quick run command  | `just quiet-rebuild`                                                   |
+| Full suite command | `just quiet-rebuild` + manual invocation of `github-issue --help`      |
 
 ### Phase Requirements to Test Map
-| Req ID | Behavior | Test Type | Automated Command | File Exists? |
-|--------|----------|-----------|-------------------|-------------|
-| WT-01 | `github-issue 42` creates worktree with correct branch name | smoke | Manual: run on a real repo, verify `git worktree list` | Wave 0 |
-| WT-02 | Orphan worktrees detected on startup | smoke | Manual: create orphan, re-run, verify prompt | Wave 0 |
-| WT-05 | Cleanup removes worktree, prunes, deletes branches | smoke | Manual: post-merge re-invocation | Wave 0 |
-| WT-06 | Re-invocation resumes from last phase | smoke | Manual: kill during claude_running, re-invoke | Wave 0 |
-| WT-07 | Existing worktree offers Resume/Remove/Abort | smoke | Manual: invoke twice, verify gum choose appears | Wave 0 |
-| RF-01 | Branch pushed and PR created | smoke | `gh pr list` after script run | Wave 0 |
-| RF-02 | Issue comment with PR link | smoke | `gh issue view <number> --comments` | Wave 0 |
-| PM-01 | Merged PR detected on re-invocation | smoke | Manual: merge PR, re-invoke | Wave 0 |
-| PM-02 | Default branch switched, pulled, local+remote branches deleted | smoke | `git branch -a` after cleanup | Wave 0 |
-| PM-03 | Worktree removed and pruned | smoke | `git worktree list` after cleanup | Wave 0 |
-| PM-04 | Resolution comment on issue and PR | smoke | `gh issue view` and `gh pr view --comments` | Wave 0 |
+
+| Req ID | Behavior                                                       | Test Type | Automated Command                                      | File Exists? |
+| ------ | -------------------------------------------------------------- | --------- | ------------------------------------------------------ | ------------ |
+| WT-01  | `github-issue 42` creates worktree with correct branch name    | smoke     | Manual: run on a real repo, verify `git worktree list` | Wave 0       |
+| WT-02  | Orphan worktrees detected on startup                           | smoke     | Manual: create orphan, re-run, verify prompt           | Wave 0       |
+| WT-05  | Cleanup removes worktree, prunes, deletes branches             | smoke     | Manual: post-merge re-invocation                       | Wave 0       |
+| WT-06  | Re-invocation resumes from last phase                          | smoke     | Manual: kill during claude_running, re-invoke          | Wave 0       |
+| WT-07  | Existing worktree offers Resume/Remove/Abort                   | smoke     | Manual: invoke twice, verify gum choose appears        | Wave 0       |
+| RF-01  | Branch pushed and PR created                                   | smoke     | `gh pr list` after script run                          | Wave 0       |
+| RF-02  | Issue comment with PR link                                     | smoke     | `gh issue view <number> --comments`                    | Wave 0       |
+| PM-01  | Merged PR detected on re-invocation                            | smoke     | Manual: merge PR, re-invoke                            | Wave 0       |
+| PM-02  | Default branch switched, pulled, local+remote branches deleted | smoke     | `git branch -a` after cleanup                          | Wave 0       |
+| PM-03  | Worktree removed and pruned                                    | smoke     | `git worktree list` after cleanup                      | Wave 0       |
+| PM-04  | Resolution comment on issue and PR                             | smoke     | `gh issue view` and `gh pr view --comments`            | Wave 0       |
 
 ### Sampling Rate
+
 - **Per task commit:** `just quiet-rebuild` (verifies Nix syntax and shellcheck)
 - **Per wave merge:** `just quiet-rebuild` + `github-issue --help` exits 0
 - **Phase gate:** Full smoke test against a real test repo
 
 ### Wave 0 Gaps
+
 - [ ] `modules/apps/cli/worktree-flow/scripts/github-issue.sh` -- replace stub with full implementation
 - [ ] `modules/apps/cli/worktree-flow/default.nix` -- add `pkgs.llm-agents.claude-code` to runtimeInputs
 
-*(No new test framework needed -- rebuild is the automated gate)*
+_(No new test framework needed -- rebuild is the automated gate)_
 
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/lib.sh` -- verified state file schema, existing helpers
 - `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/github-issue.sh` -- current stub to be replaced
 - `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/default.nix` -- existing runtimeInputs, confirmed `pkgs.llm-agents.claude-code` as attribute path
@@ -686,15 +715,18 @@ create_issue_state() {
 - `git worktree list --porcelain` -- confirmed output format for orphan detection
 
 ### Secondary (MEDIUM confidence)
+
 - Empirical: `CLAUDECODE=1` env var refusal message observed during research -- "Claude Code cannot be launched inside another Claude Code session"
 - `~/.claude/projects/*/...jsonl` -- `session_id` field confirmed in event objects (snake_case)
 
 ### Tertiary (LOW confidence)
+
 - stream-json event envelope field name for session_id (snake_case vs camelCase) -- not directly testable in nested session context; implement defensively
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH -- all tools verified against installed versions
 - Architecture: HIGH -- patterns derived directly from lib.sh primitives already built in Phase 1
 - gh CLI flags: HIGH -- verified against installed gh 2.87.3

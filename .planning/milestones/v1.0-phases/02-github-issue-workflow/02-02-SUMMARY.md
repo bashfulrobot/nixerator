@@ -38,7 +38,7 @@ key-decisions:
   - "Resolution comment uses short one-liner format (Resolved via #N. Branch and worktree cleaned up.) matching CONTEXT.md decision"
 
 patterns-established:
-  - "Always set _WT_CLEANUP_PATH=\"\" before any intentional git worktree remove to prevent EXIT trap double-remove"
+  - 'Always set _WT_CLEANUP_PATH="" before any intentional git worktree remove to prevent EXIT trap double-remove'
   - "Cleanup order: worktree remove -> prune -> branch delete (WT-05 sequence)"
   - "Use if gum confirm pattern (not gum confirm && ...) for SF-04 compliance under set -e"
 
@@ -105,5 +105,6 @@ None - no external service configuration required.
 - The `_WT_CLEANUP_PATH=""` pattern is now established; hack.sh should follow the same convention for intentional cleanup
 
 ---
-*Phase: 02-github-issue-workflow*
-*Completed: 2026-03-12*
+
+_Phase: 02-github-issue-workflow_
+_Completed: 2026-03-12_

@@ -5,7 +5,7 @@
 1. Create directory: `modules/apps/cli/APPNAME/`
 2. Create `default.nix` with module pattern (see templates below)
 3. Enable in host or suite: `apps.cli.APPNAME.enable = true;`
-4. Rebuild  -- no manual imports needed (auto-discovery)
+4. Rebuild -- no manual imports needed (auto-discovery)
 
 ## Templates
 
@@ -104,15 +104,15 @@ Use `lib.mkOption` for extra config beyond `enable`. See `modules/apps/cli/` for
 
 ## Categories
 
-| Type | Path | Option prefix |
-|------|------|---------------|
-| CLI App | `modules/apps/cli/<name>/` | `apps.cli.<name>` |
-| GUI App | `modules/apps/gui/<name>/` | `apps.gui.<name>` |
+| Type    | Path                           | Option prefix         |
+| ------- | ------------------------------ | --------------------- |
+| CLI App | `modules/apps/cli/<name>/`     | `apps.cli.<name>`     |
+| GUI App | `modules/apps/gui/<name>/`     | `apps.gui.<name>`     |
 | Web App | `modules/apps/webapps/<name>/` | `apps.webapps.<name>` |
-| Suite | `modules/suites/<name>/` | `suites.<name>` |
-| System | `modules/system/<name>/` | `system.<name>` |
-| Server | `modules/server/<name>/` | `server.<name>` |
-| Dev | `modules/dev/<name>/` | `dev.<name>` |
+| Suite   | `modules/suites/<name>/`       | `suites.<name>`       |
+| System  | `modules/system/<name>/`       | `system.<name>`       |
+| Server  | `modules/server/<name>/`       | `server.<name>`       |
+| Dev     | `modules/dev/<name>/`          | `dev.<name>`          |
 
 ## Hyprland Configuration
 

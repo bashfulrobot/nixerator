@@ -27,20 +27,20 @@ echo -e "${YELLOW}Setting up git-crypt for nixerator repository...${NC}\n"
 echo -e "${GREEN}✓${NC} Required tools loaded via nix-shell"
 
 # Check if we're in a git repository
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    echo -e "${RED}Error: Not in a git repository${NC}"
-    exit 1
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo -e "${RED}Error: Not in a git repository${NC}"
+  exit 1
 fi
 echo -e "${GREEN}✓${NC} In git repository"
 
 # Check if the key exists
 if [[ ! -f "$KEY_PATH" ]]; then
-    echo -e "${RED}Error: git-crypt key not found at $KEY_PATH${NC}"
-    echo ""
-    echo "Please copy the key to this location first:"
-    echo "  scp source-machine:~/.ssh/nixerator-git-crypt-key ~/.ssh/"
-    echo "  chmod 600 ~/.ssh/nixerator-git-crypt-key"
-    exit 1
+  echo -e "${RED}Error: git-crypt key not found at $KEY_PATH${NC}"
+  echo ""
+  echo "Please copy the key to this location first:"
+  echo "  scp source-machine:~/.ssh/nixerator-git-crypt-key ~/.ssh/"
+  echo "  chmod 600 ~/.ssh/nixerator-git-crypt-key"
+  exit 1
 fi
 echo -e "${GREEN}✓${NC} git-crypt key found at $KEY_PATH"
 
@@ -49,33 +49,33 @@ KEY_PERMS=$(stat -c %a "$KEY_PATH" 2>/dev/null || stat -f %A "$KEY_PATH" 2>/dev/
 KEY_OWNER=$(stat -c %U "$KEY_PATH" 2>/dev/null || stat -f %Su "$KEY_PATH" 2>/dev/null)
 
 if [[ "$KEY_OWNER" != "$USER" ]]; then
-    echo -e "${YELLOW}Warning: Key owned by $KEY_OWNER, should be $USER${NC}"
-    echo "Fixing ownership..."
-    sudo chown "$USER:$(id -gn)" "$KEY_PATH"
-    echo -e "${GREEN}✓${NC} Key ownership fixed"
+  echo -e "${YELLOW}Warning: Key owned by $KEY_OWNER, should be $USER${NC}"
+  echo "Fixing ownership..."
+  sudo chown "$USER:$(id -gn)" "$KEY_PATH"
+  echo -e "${GREEN}✓${NC} Key ownership fixed"
 fi
 
 if [[ "$KEY_PERMS" != "600" ]]; then
-    echo -e "${YELLOW}Warning: Key permissions are $KEY_PERMS, should be 600${NC}"
-    echo "Fixing permissions..."
-    chmod 600 "$KEY_PATH"
-    echo -e "${GREEN}✓${NC} Key permissions fixed"
+  echo -e "${YELLOW}Warning: Key permissions are $KEY_PERMS, should be 600${NC}"
+  echo "Fixing permissions..."
+  chmod 600 "$KEY_PATH"
+  echo -e "${GREEN}✓${NC} Key permissions fixed"
 fi
 
 # Check if repository is already unlocked
 if git-crypt status 2>&1 | grep -q "already unlocked"; then
-    echo -e "${GREEN}✓${NC} Repository is already unlocked"
-    echo -e "\n${GREEN}Success!${NC} git-crypt is configured and working"
-    exit 0
+  echo -e "${GREEN}✓${NC} Repository is already unlocked"
+  echo -e "\n${GREEN}Success!${NC} git-crypt is configured and working"
+  exit 0
 fi
 
 # Unlock the repository
 echo "Unlocking repository with git-crypt..."
 if git-crypt unlock "$KEY_PATH"; then
-    echo -e "${GREEN}✓${NC} Repository unlocked successfully"
+  echo -e "${GREEN}✓${NC} Repository unlocked successfully"
 else
-    echo -e "${RED}Error: Failed to unlock repository${NC}"
-    exit 1
+  echo -e "${RED}Error: Failed to unlock repository${NC}"
+  exit 1
 fi
 
 # Verify encrypted files are readable

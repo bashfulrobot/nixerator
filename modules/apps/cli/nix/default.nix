@@ -1,7 +1,15 @@
-{ pkgs, config, lib, globals, ... }:
-let cfg = config.apps.cli.nix;
+{
+  pkgs,
+  config,
+  lib,
+  globals,
+  ...
+}:
+let
+  cfg = config.apps.cli.nix;
 
-in {
+in
+{
   options = {
     apps.cli.nix.enable = lib.mkOption {
       type = lib.types.bool;

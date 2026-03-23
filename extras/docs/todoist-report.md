@@ -44,11 +44,11 @@ Exact match required when piping (interactive picker never triggered).
 ## Priority Mapping
 
 | GUI | API value | Report label |
-|-----|-----------|--------------|
+| --- | --------- | ------------ |
 | P1  | 4         | `[URGENT]`   |
 | P2  | 3         | `[HIGH]`     |
 | P3  | 2         | `[MEDIUM]`   |
-| P4  | 1         | *(none)*     |
+| P4  | 1         | _(none)_     |
 
 ## Notes
 

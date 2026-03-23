@@ -28,16 +28,17 @@ replaced or reduced to a pointer, or removed entirely once the shell script take
 
 ## Component Boundaries
 
-| Component | Responsibility | Inputs | Outputs |
-|-----------|---------------|--------|---------|
-| `default.nix` | Nix packaging; wires runtimeInputs; declares `apps.cli.worktree-flow.enable` | lib, pkgs, config | system packages: `github-issue`, `hack` |
-| `lib.sh` | Shared shell functions; sourced (not executed) | sourced by both scripts | functions in scope |
-| `github-issue.sh` | Issue worktree lifecycle: create, delegate to Claude, push, PR, cleanup | issue number, flags | worktree, state file, PR on GitHub |
-| `hack.sh` | Ad-hoc worktree lifecycle: create, delegate to Claude, diff review, local merge | description, flags | worktree, state file, merged commit |
-| `SKILL.md` | Claude's implementation instructions only: commit format, PR body format | read by Claude at session start | Claude behavior inside the worktree |
-| `.worktree-state.json` | Runtime state file written in worktree root; enables resume on interrupt | written by shell scripts | read by shell scripts on re-invocation |
+| Component              | Responsibility                                                                  | Inputs                          | Outputs                                 |
+| ---------------------- | ------------------------------------------------------------------------------- | ------------------------------- | --------------------------------------- |
+| `default.nix`          | Nix packaging; wires runtimeInputs; declares `apps.cli.worktree-flow.enable`    | lib, pkgs, config               | system packages: `github-issue`, `hack` |
+| `lib.sh`               | Shared shell functions; sourced (not executed)                                  | sourced by both scripts         | functions in scope                      |
+| `github-issue.sh`      | Issue worktree lifecycle: create, delegate to Claude, push, PR, cleanup         | issue number, flags             | worktree, state file, PR on GitHub      |
+| `hack.sh`              | Ad-hoc worktree lifecycle: create, delegate to Claude, diff review, local merge | description, flags              | worktree, state file, merged commit     |
+| `SKILL.md`             | Claude's implementation instructions only: commit format, PR body format        | read by Claude at session start | Claude behavior inside the worktree     |
+| `.worktree-state.json` | Runtime state file written in worktree root; enables resume on interrupt        | written by shell scripts        | read by shell scripts on re-invocation  |
 
 **What `lib.sh` owns (shared across both scripts):**
+
 - Color/output helpers (`info`, `ok`, `warn`, `die`)
 - `require_git_repo` guard
 - `default_branch` detection (mirrors gcom pattern: symbolic-ref, then fallback to main)
@@ -49,6 +50,7 @@ replaced or reduced to a pointer, or removed entirely once the shell script take
 - `worktree_cleanup` (removes worktree dir and deletes local branch)
 
 **What each script owns exclusively:**
+
 - `github-issue.sh`: `gh issue view`, `gh pr create`, `gh issue comment`, phase detection logic
 - `hack.sh`: gum diff review loop (`gum pager < diff`), local merge via `git merge --ff-only`, no GitHub interaction
 
@@ -239,11 +241,11 @@ worktree-flow module can deploy it directly via `home.file`.
 
 ## Worktree Naming and Location
 
-| Workflow | Branch name | Worktree path |
-|----------|-------------|---------------|
-| `github-issue 42` | `fix/<slug-from-issue-title>` or `feat/<slug>` | `<repo-parent>/.worktrees/issue-42/` |
-| `github-issue 42` (if issue title not usable) | `fix/issue-42` | `<repo-parent>/.worktrees/issue-42/` |
-| `hack "add dark mode"` | `hack/add-dark-mode` | `<repo-parent>/.worktrees/hack-add-dark-mode/` |
+| Workflow                                      | Branch name                                    | Worktree path                                  |
+| --------------------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `github-issue 42`                             | `fix/<slug-from-issue-title>` or `feat/<slug>` | `<repo-parent>/.worktrees/issue-42/`           |
+| `github-issue 42` (if issue title not usable) | `fix/issue-42`                                 | `<repo-parent>/.worktrees/issue-42/`           |
+| `hack "add dark mode"`                        | `hack/add-dark-mode`                           | `<repo-parent>/.worktrees/hack-add-dark-mode/` |
 
 The `<repo-parent>` is always `$(git rev-parse --show-toplevel)/..`. This puts worktrees
 as siblings to the repo, not inside it, avoiding `.gitignore` complexity and nested-git
@@ -283,6 +285,7 @@ Dependencies flow upward. Build lower items first.
 ## Anti-Patterns to Avoid
 
 ### Anti-Pattern 1: Source lib.sh at runtime via path
+
 **What:** Using `source /nix/store/.../lib.sh` or a relative `source ./lib.sh` at runtime.
 **Why bad:** Nix store paths are not stable across generations. `writeShellApplication`
 does not expose script paths as environment variables. The build-time concatenation
@@ -290,12 +293,14 @@ does not expose script paths as environment variables. The build-time concatenat
 **Instead:** Concatenate at build time in `default.nix`.
 
 ### Anti-Pattern 2: Claude writes the state file
+
 **What:** SKILL.md instructs Claude to write `.worktree-state.json`.
 **Why bad:** Introduces a fragile structured-output contract with the AI. If Claude's format
 drifts or it skips the write, the shell script breaks silently.
 **Instead:** Shell script writes and reads state. Claude only produces commits and git operations.
 
 ### Anti-Pattern 3: Inline scripts in default.nix (gcom style)
+
 **What:** Putting the full `github-issue` and `hack` scripts inline in the Nix file.
 **Why bad:** These scripts are long (150-300 lines each). Inline embedding loses syntax
 highlighting, shellcheck linting, and editor support. The `gcmt` pattern (external files
@@ -303,6 +308,7 @@ via `builtins.readFile`) is cleaner for scripts of this size.
 **Instead:** External files in `scripts/`, concatenated at build time.
 
 ### Anti-Pattern 4: Letting Claude manage the worktree lifecycle
+
 **What:** SKILL.md contains `git worktree add`, branch creation, cleanup instructions.
 **Why bad:** This is the current state that causes context drift and no isolation. The shell
 script must own the worktree lifecycle entirely.
@@ -310,6 +316,7 @@ script must own the worktree lifecycle entirely.
 commit conventions and PR body format.
 
 ### Anti-Pattern 5: Using `--auto` mode from existing SKILL.md
+
 **What:** Carrying over the `--auto` mode distinction into the new skill.
 **Why bad:** The new architecture eliminates the need: the shell script handles the lifecycle
 deterministically. Claude always runs headlessly (`-p`) inside the worktree. There is no
@@ -324,12 +331,12 @@ via gum, not inside Claude's conversation loop.
 This is a local developer tool. Scalability concerns are about parallel terminal sessions,
 not load.
 
-| Concern | Handling |
-|---------|----------|
-| Two terminals, same issue number | Worktree path collision: `git worktree add` fails if path exists. Script detects this and resumes from state file. |
-| Interrupted session | State file persists in worktree. Re-invocation detects existing worktree, reads phase, resumes from last checkpoint. |
-| Multiple repos simultaneously | Worktree paths are scoped under each repo's parent directory. No cross-repo collisions. |
-| Very long slug names | `slug_from_string` truncates to 40 chars to keep branch names under git's practical limit. |
+| Concern                          | Handling                                                                                                             |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Two terminals, same issue number | Worktree path collision: `git worktree add` fails if path exists. Script detects this and resumes from state file.   |
+| Interrupted session              | State file persists in worktree. Re-invocation detects existing worktree, reads phase, resumes from last checkpoint. |
+| Multiple repos simultaneously    | Worktree paths are scoped under each repo's parent directory. No cross-repo collisions.                              |
+| Very long slug names             | `slug_from_string` truncates to 40 chars to keep branch names under git's practical limit.                           |
 
 ---
 

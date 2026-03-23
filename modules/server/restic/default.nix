@@ -1,4 +1,9 @@
-{ pkgs, config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 let
   cfg = config.server.restic;
 
@@ -82,7 +87,8 @@ let
     end
   '';
 
-in {
+in
+{
 
   options = {
     server.restic = {

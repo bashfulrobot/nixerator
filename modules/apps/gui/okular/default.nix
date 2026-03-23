@@ -2,7 +2,13 @@
 # Go to Settings -> Configure Okular... -> Annotations -> Add -> Select Type: Stamp -> Choose symbol file from your file system using the file picker button.
 # The signature.png and initials.png files will be available in ~/.kde/share/icons/
 
-{ lib, pkgs, config, globals, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  ...
+}:
 
 let
   cfg = config.apps.gui.okular;

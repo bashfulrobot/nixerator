@@ -10,12 +10,12 @@ Control termly sessions from your iPhone over Tailscale. The trigger server runs
 
 ## API Reference
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/directories` | List available project directories |
-| GET | `/status` | Check if termly is running and where |
-| POST | `/start?dir=<index or name>` | Start termly in a directory |
-| POST | `/stop` | Stop the running termly session |
+| Method | Path                         | Description                          |
+| ------ | ---------------------------- | ------------------------------------ |
+| GET    | `/directories`               | List available project directories   |
+| GET    | `/status`                    | Check if termly is running and where |
+| POST   | `/start?dir=<index or name>` | Start termly in a directory          |
+| POST   | `/stop`                      | Stop the running termly session      |
 
 The `dir` parameter accepts either a numeric index (from `/directories`) or a directory basename like `nixerator`.
 
@@ -29,15 +29,15 @@ This shortcut fetches available directories, lets you pick one, then starts a se
 
 1. **URL** -- type `http://100.74.137.95:9735/directories`
 2. **Get Contents of URL** -- leave defaults (GET)
-3. **Get Dictionary Value** -- key: `directories`, from: *Contents of URL*
-4. **Repeat with Each** -- select *Dictionary Value* as the input
-   - Inside the loop, add **Get Dictionary Value** -- key: `name`, from: *Repeat Item*
+3. **Get Dictionary Value** -- key: `directories`, from: _Contents of URL_
+4. **Repeat with Each** -- select _Dictionary Value_ as the input
+   - Inside the loop, add **Get Dictionary Value** -- key: `name`, from: _Repeat Item_
    - Add **Add to Variable** -- variable name: `dirNames`
 5. After the loop, add **Choose from List** -- select the `dirNames` variable
-6. **URL** -- type `http://100.74.137.95:9735/start?dir=` then tap the variable button and insert *Chosen Item*
+6. **URL** -- type `http://100.74.137.95:9735/start?dir=` then tap the variable button and insert _Chosen Item_
 7. **Get Contents of URL** -- tap the action, change Method to **POST**
-8. **Get Dictionary Value** -- key: `directory`, from: *Contents of URL*
-9. **Show Notification** -- title: "Termly started", body: tap variable button and insert *Dictionary Value*
+8. **Get Dictionary Value** -- key: `directory`, from: _Contents of URL_
+9. **Show Notification** -- title: "Termly started", body: tap variable button and insert _Dictionary Value_
 
 **Simpler alternative** if you always use the same projects:
 
@@ -51,8 +51,8 @@ This shortcut fetches available directories, lets you pick one, then starts a se
 
 1. **URL** -- type `http://100.74.137.95:9735/stop`
 2. **Get Contents of URL** -- method: **POST**
-3. **Get Dictionary Value** -- key: `was_running`, from: *Contents of URL*
-4. **If** -- *Dictionary Value* **is** `true`
+3. **Get Dictionary Value** -- key: `was_running`, from: _Contents of URL_
+4. **If** -- _Dictionary Value_ **is** `true`
    - **Show Notification**: "Termly stopped"
 5. **Otherwise**
    - **Show Notification**: "Termly was not running"
@@ -61,16 +61,16 @@ This shortcut fetches available directories, lets you pick one, then starts a se
 
 1. **URL** -- type `http://100.74.137.95:9735/status`
 2. **Get Contents of URL** -- leave defaults (GET)
-3. **Get Dictionary Value** -- key: `running`, from: *Contents of URL*
-4. **If** -- *Dictionary Value* **is** `true`
-   - **Get Dictionary Value** -- key: `directory`, from: the *Contents of URL* step (not the If block)
-   - **Show Notification**: "Termly running in " + *Dictionary Value*
+3. **Get Dictionary Value** -- key: `running`, from: _Contents of URL_
+4. **If** -- _Dictionary Value_ **is** `true`
+   - **Get Dictionary Value** -- key: `directory`, from: the _Contents of URL_ step (not the If block)
+   - **Show Notification**: "Termly running in " + _Dictionary Value_
 5. **Otherwise**
    - **Show Notification**: "Termly is not running"
 
 ## Tips
 
-- Add shortcuts to your Home Screen: long-press the shortcut, tap *Add to Home Screen*
+- Add shortcuts to your Home Screen: long-press the shortcut, tap _Add to Home Screen_
 - Siri works too: name the shortcut "Start Termly" and say "Hey Siri, Start Termly"
 - If a session is already running, `/start` returns a 409 conflict. Stop first, then start in the new directory.
 
@@ -83,9 +83,9 @@ If you run termly-trigger on more than one machine, either:
 
 Tailscale IPs:
 
-| Host | IP |
-|------|-----|
-| qbert | 100.74.137.95 |
+| Host       | IP              |
+| ---------- | --------------- |
+| qbert      | 100.74.137.95   |
 | donkeykong | 100.117.210.113 |
 
 ## Troubleshooting

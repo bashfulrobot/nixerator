@@ -13,6 +13,7 @@
 ### Task 1: Expand versions.nix with all packages and self-describing metadata
 
 **Files:**
+
 - Modify: `settings/versions.nix`
 
 **Step 1: Rewrite versions.nix with the new schema**
@@ -163,6 +164,7 @@ Suggested: `feat(versions): expand versions.nix with all packages and self-descr
 ### Task 2: Migrate insomnia build to use versions.nix
 
 **Files:**
+
 - Modify: `modules/apps/gui/insomnia/build/default.nix`
 
 **Step 1: Update the function signature and let-block**
@@ -225,6 +227,7 @@ Suggested: `refactor(insomnia): read version from versions.nix`
 ### Task 3: Migrate helium build to use versions.nix
 
 **Files:**
+
 - Modify: `modules/apps/gui/helium/build/default.nix`
 
 **Step 1: Update the function signature and let-block**
@@ -265,6 +268,7 @@ Suggested: `refactor(helium): read version from versions.nix`
 ### Task 4: Migrate kubernetes-mcp-server build to use versions.nix
 
 **Files:**
+
 - Modify: `modules/apps/cli/claude-code/build/default.nix`
 
 **Step 1: Update the file**
@@ -321,6 +325,7 @@ Suggested: `refactor(kubernetes-mcp-server): read version from versions.nix`
 ### Task 5: Migrate lswt build to use versions.nix
 
 **Files:**
+
 - Modify: `modules/apps/cli/lswt/build/default.nix`
 
 **Step 1: Update the file**
@@ -388,6 +393,7 @@ Suggested: `refactor(lswt): read version from versions.nix`
 ### Task 6: Migrate lazyrestic build to use versions.nix
 
 **Files:**
+
 - Modify: `modules/apps/cli/restic/build/lazyrestic.nix`
 
 **Step 1: Update the file**
@@ -443,6 +449,7 @@ Suggested: `refactor(lazyrestic): read rev and hashes from versions.nix`
 ### Task 7: Migrate zoxide.fish plugin to use versions.nix
 
 **Files:**
+
 - Modify: `modules/apps/cli/zoxide/default.nix`
 
 **Step 1: Update the fish plugin block**
@@ -517,6 +524,7 @@ Suggested: `refactor(zoxide): read fish plugin version from versions.nix`
 ### Task 8: Migrate GSD npmDepsHash to versions.nix
 
 **Files:**
+
 - Modify: `modules/apps/cli/claude-code/build/gsd/default.nix`
 
 **Step 1: Update the file to read npmDepsHash from versions**
@@ -573,6 +581,7 @@ Suggested: `refactor(gsd): read npmDepsHash from versions.nix`
 ### Task 9: Update existing build files for renamed hash key
 
 **Files:**
+
 - Modify: `modules/apps/cli/amber/build/default.nix`
 - Modify: `modules/apps/cli/cpx/build/default.nix`
 - Modify: `modules/apps/cli/meetsum/build/default.nix`
@@ -633,6 +642,7 @@ Suggested: `refactor(versions): rename sha256 to hash in all build files`
 ### Task 10: Update superpowers.nix for renamed hash key
 
 **Files:**
+
 - Modify: `modules/apps/cli/claude-code/cfg/superpowers.nix`
 
 **Step 1: Verify it already uses versions.nix**
@@ -657,6 +667,7 @@ Expected: Rebuild succeeds. If it fails, spawn a Nix subagent to diagnose `/tmp/
 ### Task 12: Create the nix-to-json helper
 
 **Files:**
+
 - Create: `extras/scripts/nix-to-json.nix`
 
 **Step 1: Write the helper**
@@ -685,6 +696,7 @@ Suggested: `feat(versions): add nix-to-json helper for bash tooling`
 ### Task 13: Rewrite check-pkg-updates.bash as data-driven
 
 **Files:**
+
 - Modify: `extras/scripts/check-pkg-updates.bash`
 
 **Step 1: Rewrite the script**
@@ -907,6 +919,7 @@ Suggested: `feat(versions): rewrite update checker as data-driven from versions.
 ### Task 14: Create update-pkg.bash
 
 **Files:**
+
 - Create: `extras/scripts/update-pkg.bash`
 
 **Step 1: Write the script**
@@ -1200,6 +1213,7 @@ Suggested: `feat(versions): add update-pkg script for automated prefetch and upd
 ### Task 15: Update justfile and setup.just with new recipes
 
 **Files:**
+
 - Modify: `justfile` (add cache report to non-quiet rebuild recipes)
 - Modify: `extras/setup.just` (update recipes to point to new scripts, remove update-gsd)
 
@@ -1260,6 +1274,7 @@ Suggested: `feat(versions): add update recipes and post-rebuild report to justfi
 ### Task 16: Delete the old update-gsd.bash script
 
 **Files:**
+
 - Delete: `modules/apps/cli/claude-code/cfg/scripts/update-gsd.bash`
 
 **Step 1: Remove the file**
@@ -1285,12 +1300,13 @@ Suggested: `chore(gsd): remove update-gsd.bash, replaced by update-pkg`
 ### Task 17: Update documentation
 
 **Files:**
+
 - Modify: `extras/docs/local-packages.md`
 - Modify: `extras/docs/commands.md`
 
 **Step 1: Rewrite local-packages.md**
 
-```markdown
+````markdown
 # Module-Local Packages
 
 Package derivations live next to the modules that consume them:
@@ -1334,7 +1350,9 @@ just setup::update-pkg --all       # update all release-tracked packages
 just setup::update-pkg --all --include-commits   # also update commit-pinned packages
 just qr                            # rebuild to verify
 ```
-```
+````
+
+````
 
 **Step 2: Add new recipes to commands.md**
 
@@ -1351,7 +1369,7 @@ All pinned package versions are centralized in `settings/versions.nix`.
 - `just setup::update-pkg --all --include-commits` -- also update commit-pinned packages
 
 Non-quiet rebuild recipes show a summary of available updates after a successful rebuild (if cached results exist and are less than 24 hours old).
-```
+````
 
 **Step 3: Commit**
 

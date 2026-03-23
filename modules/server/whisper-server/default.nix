@@ -1,4 +1,10 @@
-{ pkgs, config, lib, globals, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  globals,
+  ...
+}:
 let
   cfg = config.server.whisper-server;
 
