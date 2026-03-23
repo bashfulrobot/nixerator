@@ -25,7 +25,7 @@ in
           window-padding-x = 20;
           window-padding-y = 20;
           keybind = [
-            "scroll_lock=unbind"
+            "scroll_lock=ignore"
           ];
         };
       };
