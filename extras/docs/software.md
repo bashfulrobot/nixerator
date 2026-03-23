@@ -135,7 +135,7 @@ Modules that exist but are currently disabled (set to `false` or commented out i
 
 All version-pinned packages managed in `settings/versions.nix`:
 
-**CLI:** amber, clay, cpx, gurk, gws, jwtx, kubernetes-mcp-server, localsend-rs, lswt, meetsum, plannotator, reap, salesforce-cli
+**CLI:** amber, clay, cpx, gurk, gws, jwtx, kubernetes-mcp-server, lswt, meetsum, plannotator, reap, salesforce-cli
 
 **GUI:** comics-downloader, helium, insomnia
 
