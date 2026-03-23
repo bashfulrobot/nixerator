@@ -39,20 +39,7 @@ rebuild:
         else
             gum style --foreground 82 "Rebuild succeeded"
         fi
-        # Post-rebuild: sync plugins, capture state, check for changes
-        gum spin --spinner dot --title "Syncing plugins..." \
-            -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
-        gum spin --spinner dot --title "Capturing Claude Code config..." \
-            -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
-
-        if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
-            commit_msg='fix(claude-code): update captured plugin state'
-            echo ""
-            gum style --foreground 220 --bold "Plugin config changed! Commit with:"
-            echo "  git add modules/apps/cli/claude-code/config/plugins/ && git commit -m \"$commit_msg\""
-            echo "$commit_msg" | wl-copy 2>/dev/null || true
-            notify-send "Nixerator" "Plugin config changed — commit suggested" 2>/dev/null || true
-        fi
+        just post-rebuild interactive
 
         # Run package update check in background, show results when done
         echo ""
@@ -112,20 +99,7 @@ upgrade:
     else
         gum style --foreground 82 "Upgrade complete"
     fi
-    # Post-rebuild: sync plugins, capture state, check for changes
-    gum spin --spinner dot --title "Syncing plugins..." \
-        -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
-    gum spin --spinner dot --title "Capturing Claude Code config..." \
-        -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
-
-    if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
-        commit_msg='fix(claude-code): update captured plugin state'
-        echo ""
-        gum style --foreground 220 --bold "Plugin config changed! Commit with:"
-        echo "  git add modules/apps/cli/claude-code/config/plugins/ && git commit -m \"$commit_msg\""
-        echo "$commit_msg" | wl-copy 2>/dev/null || true
-        notify-send "Nixerator" "Plugin config changed — commit suggested" 2>/dev/null || true
-    fi
+    just post-rebuild interactive
 
     # Run package update check after successful upgrade
     echo ""
@@ -229,9 +203,46 @@ fmt:
     @echo "Formatting nix files..."
     @nix fmt
 
-# === Quiet Recipes ===
+# === Shared Helpers ===
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
+
+# Post-rebuild: sync plugins, capture config, check for changes
+# mode: "interactive" (gum spin) or "quiet" (plain echo)
+[private]
+post-rebuild mode="quiet":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    if [[ "{{mode}}" == "interactive" ]]; then
+        gum spin --spinner dot --title "Syncing plugins..." \
+            -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
+        gum spin --spinner dot --title "Capturing Claude Code config..." \
+            -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
+    else
+        echo "Syncing plugins..."
+        claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
+        echo "Capturing Claude Code config..."
+        fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
+    fi
+
+    if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
+        commit_msg='fix(claude-code): update captured plugin state'
+        echo ""
+        if [[ "{{mode}}" == "interactive" ]]; then
+            gum style --foreground 220 --bold "Plugin config changed! Commit with:"
+        else
+            echo "════════════════════════════════════════════════════════════"
+            echo "  Plugin config changed! Commit with:"
+        fi
+        echo "  git add modules/apps/cli/claude-code/config/plugins/ && git commit -m \"$commit_msg\""
+        if [[ "{{mode}}" != "interactive" ]]; then
+            echo "════════════════════════════════════════════════════════════"
+        fi
+        echo "$commit_msg" | wl-copy 2>/dev/null || true
+        notify-send "Nixerator" "Plugin config changed — commit suggested" 2>/dev/null || true
+    fi
+
+# === Quiet Recipes ===
 
 # Quiet rebuild -- captures output, shows only errors on failure
 quiet-rebuild:
@@ -251,23 +262,7 @@ quiet-rebuild:
     if [[ "$rc" -eq 0 ]]; then
         echo "Rebuild succeeded. Full log: {{rebuild_log}}"
 
-        # Post-rebuild: sync plugins, capture state, check for changes
-        echo "Syncing plugins..."
-        claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
-
-        echo "Capturing Claude Code config..."
-        fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
-
-        if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
-            commit_msg='fix(claude-code): update captured plugin state'
-            echo ""
-            echo "════════════════════════════════════════════════════════════"
-            echo "  Plugin config changed! Commit with:"
-            echo "  git add modules/apps/cli/claude-code/config/plugins/ && git commit -m \"$commit_msg\""
-            echo "════════════════════════════════════════════════════════════"
-            echo "$commit_msg" | wl-copy 2>/dev/null || true
-            notify-send "Nixerator" "Plugin config changed — commit suggested" 2>/dev/null || true
-        fi
+        just post-rebuild quiet
     else
         filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{rebuild_log}} | head -80)
         {
@@ -297,23 +292,7 @@ quiet-upgrade:
     if [[ "$rc" -eq 0 ]]; then
         echo "Upgrade succeeded. Full log: {{upgrade_log}}"
 
-        # Post-rebuild: sync plugins, capture state, check for changes
-        echo "Syncing plugins..."
-        claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
-
-        echo "Capturing Claude Code config..."
-        fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
-
-        if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
-            commit_msg='fix(claude-code): update captured plugin state'
-            echo ""
-            echo "════════════════════════════════════════════════════════════"
-            echo "  Plugin config changed! Commit with:"
-            echo "  git add modules/apps/cli/claude-code/config/plugins/ && git commit -m \"$commit_msg\""
-            echo "════════════════════════════════════════════════════════════"
-            echo "$commit_msg" | wl-copy 2>/dev/null || true
-            notify-send "Nixerator" "Plugin config changed — commit suggested" 2>/dev/null || true
-        fi
+        just post-rebuild quiet
     else
         filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{upgrade_log}} | head -80)
         {
