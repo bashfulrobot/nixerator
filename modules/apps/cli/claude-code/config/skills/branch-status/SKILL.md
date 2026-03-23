@@ -57,13 +57,16 @@ fi
 2. Provide a summary with recommendations:
 
 **If on default branch with uncommitted changes:**
+
 - Suggest creating a feature branch retroactively: `git switch -c feat/<name>` (uncommitted changes carry over)
 
 **If on default branch, clean:**
+
 - Note that the default branch is fine for quick one-liner fixes
 - For larger work, suggest `git switch -c feat/<name>`
 
 **If on a feature branch:**
+
 - If behind default branch: suggest rebasing with `git rebase <default_branch>`
 - If unpushed commits exist: suggest pushing
 - If clean and up to date: suggest it may be ready to merge

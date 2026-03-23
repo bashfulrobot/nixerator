@@ -37,12 +37,14 @@ feature_name/
 ```
 
 **Component structure:**
+
 - Components own a `StateFlow<FeatureState>` that the UI collects
 - Components receive dependencies via constructor injection (Koin wires them)
 - Navigation lives in components, not in Compose -- this makes navigation testable without UI
 - Use `ChildStack` for linear navigation, `ChildSlot` for dialogs/overlays, `ChildPanels` for master-detail
 
 **State management:**
+
 - Immutable state data classes -- never expose `MutableStateFlow` to UI
 - Unidirectional data flow: UI emits intents -> Component processes -> new state emitted
 - Use `stateIn(scope, SharingStarted.WhileSubscribed(5000), initialState)` for flows from repositories
@@ -73,6 +75,7 @@ Use constructor injection everywhere. The `AppModule` service locator pattern (a
 ### SQLDelight 2.x with Encryption
 
 **Driver setup with sqlite-mc for encryption at rest:**
+
 ```kotlin
 // Use sqlite-mc driver for encrypted SQLite
 val driver = JdbcSqliteDriver(
@@ -84,6 +87,7 @@ val driver = JdbcSqliteDriver(
 ```
 
 **Essential PRAGMAs** (set immediately after opening):
+
 ```sql
 PRAGMA journal_mode=WAL;
 PRAGMA synchronous=NORMAL;
@@ -92,12 +96,14 @@ PRAGMA busy_timeout=5000;
 ```
 
 **Migration strategy:**
+
 - Use `.sqm` migration files alongside `.sq` schema files
 - Always run `./gradlew verifySqlDelightMigration` in CI
 - Back up the database before running destructive migrations
 - For schema changes that drop data, use create-copy-drop-rename pattern
 
 **Repository pattern:**
+
 - One repository per domain aggregate (not per table)
 - All database operations on `Dispatchers.IO`
 - Return `Flow<List<T>>` for observable queries via `asFlow().mapToList(Dispatchers.IO)`
@@ -118,10 +124,10 @@ PRAGMA busy_timeout=5000;
 
 Use `java-keyring` for cross-platform OS keyring access:
 
-| Platform | Backend |
-|----------|---------|
-| Linux | Secret Service (libsecret / GNOME Keyring) |
-| macOS | Keychain Services |
+| Platform | Backend                                    |
+| -------- | ------------------------------------------ |
+| Linux    | Secret Service (libsecret / GNOME Keyring) |
+| macOS    | Keychain Services                          |
 
 ```kotlin
 // Behind an expect/actual interface
@@ -150,6 +156,7 @@ The database encryption key lives in the OS keyring, generated on first launch. 
 Default to **GNOME HIG** as the design language since it produces clean, accessible interfaces that also look acceptable on macOS. Apply macOS-specific overrides where they matter most:
 
 **Always platform-specific:**
+
 - Menu bar (macOS native `MenuBar` composable; Linux uses in-window header bar actions)
 - Keyboard shortcuts (Cmd on macOS, Ctrl on Linux)
 - Window chrome and title bar behavior
@@ -157,6 +164,7 @@ Default to **GNOME HIG** as the design language since it produces clean, accessi
 - System theme detection (dbus on Linux, `defaults read` on macOS)
 
 **Follow GNOME HIG everywhere:**
+
 - 12px base spacing unit
 - Flat/ghost button styling for navigation
 - Header bar pattern (title + primary actions at top)
@@ -214,15 +222,16 @@ Modifier
 
 ### Strategy
 
-| Layer | Tool | What to test |
-|-------|------|--------------|
-| Components/ViewModels | Kotlin Test + Turbine | State transitions, business logic |
-| Repositories | Kotlin Test + in-memory SQLite | Query correctness, transactions |
-| Migrations | `verifySqlDelightMigration` + custom tests | Schema evolution, data preservation |
-| UI | `createComposeRule` (JUnit4) | User interactions, navigation, rendering |
-| Config | Kotlin Test + temp directories | Atomic writes, error recovery, migration |
+| Layer                 | Tool                                       | What to test                             |
+| --------------------- | ------------------------------------------ | ---------------------------------------- |
+| Components/ViewModels | Kotlin Test + Turbine                      | State transitions, business logic        |
+| Repositories          | Kotlin Test + in-memory SQLite             | Query correctness, transactions          |
+| Migrations            | `verifySqlDelightMigration` + custom tests | Schema evolution, data preservation      |
+| UI                    | `createComposeRule` (JUnit4)               | User interactions, navigation, rendering |
+| Config                | Kotlin Test + temp directories             | Atomic writes, error recovery, migration |
 
 **ViewModel/Component testing with Turbine:**
+
 ```kotlin
 @Test
 fun loadAccounts() = runTest {
@@ -236,6 +245,7 @@ fun loadAccounts() = runTest {
 ```
 
 **UI testing:**
+
 ```kotlin
 @get:Rule val rule = createComposeRule()
 
@@ -248,6 +258,7 @@ fun clickAccountOpensDetail() {
 ```
 
 **What to always test:**
+
 - Database migrations (every single one, with real data fixtures)
 - Config file handling (corrupt files, missing files, permission errors)
 - Concurrent access (file locks, multi-threaded repo access)
@@ -291,6 +302,7 @@ Run `./gradlew suggestModules` and declare only needed JDK modules to reduce bun
 ### Nix Packaging
 
 For Nix flake packaging of Compose Desktop apps:
+
 - Build an UberJar via Gradle, then wrap with `makeWrapper`
 - Include runtime dependencies: JDK 21, Mesa/libGL, fontconfig, GTK3 (for file dialogs), Wayland libs
 - Use `JAVA_HOME` and `LD_LIBRARY_PATH` in the wrapper
@@ -316,20 +328,20 @@ For Nix flake packaging of Compose Desktop apps:
 
 ## Key Dependencies
 
-| Library | Purpose |
-|---------|---------|
-| `org.jetbrains.compose` | Compose Multiplatform |
-| `compose.material3` | Material Design 3 |
-| `app.cash.sqldelight` | Type-safe SQL with code gen |
-| `io.toxicity.sqlite:sqlite-mc` | Encrypted SQLite driver |
-| `com.arkivanov.decompose` | Navigation + lifecycle |
-| `io.insert-koin:koin-compose` | Dependency injection |
-| `com.github.javakeyring:java-keyring` | OS keyring access |
-| `app.cash.turbine` | Flow testing |
-| `io.coil-kt.coil3:coil-compose` | Image loading + caching |
-| `com.akuleshov7:ktoml-core` | TOML config parsing |
-| `kotlinx-coroutines-core` | Async runtime |
-| `kotlinx-coroutines-swing` | Compose Desktop dispatcher |
+| Library                               | Purpose                     |
+| ------------------------------------- | --------------------------- |
+| `org.jetbrains.compose`               | Compose Multiplatform       |
+| `compose.material3`                   | Material Design 3           |
+| `app.cash.sqldelight`                 | Type-safe SQL with code gen |
+| `io.toxicity.sqlite:sqlite-mc`        | Encrypted SQLite driver     |
+| `com.arkivanov.decompose`             | Navigation + lifecycle      |
+| `io.insert-koin:koin-compose`         | Dependency injection        |
+| `com.github.javakeyring:java-keyring` | OS keyring access           |
+| `app.cash.turbine`                    | Flow testing                |
+| `io.coil-kt.coil3:coil-compose`       | Image loading + caching     |
+| `com.akuleshov7:ktoml-core`           | TOML config parsing         |
+| `kotlinx-coroutines-core`             | Async runtime               |
+| `kotlinx-coroutines-swing`            | Compose Desktop dispatcher  |
 
 ## Reference Files
 
