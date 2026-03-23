@@ -3,8 +3,20 @@
 # with customizable exclusion patterns
 { lib }:
 
-with lib;
 let
+  inherit (lib)
+    mapAttrs
+    collect
+    isString
+    mapAttrsRecursive
+    concatStringsSep
+    filter
+    any
+    hasInfix
+    hasSuffix
+    map
+    ;
+
   # Default exclusions that apply to all directories
   defaultExcludes = [
     "disabled"
