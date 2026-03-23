@@ -11,6 +11,11 @@ pkgs.stdenv.mkDerivation {
     inherit (versions.cli.gws) hash;
   };
 
+  nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+  buildInputs = [
+    pkgs.stdenv.cc.cc.lib
+  ];
+
   dontBuild = true;
 
   sourceRoot = "gws-x86_64-unknown-linux-gnu";
