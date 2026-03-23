@@ -42,6 +42,11 @@ in
       programs = {
         k9s = {
           enable = true;
+          settings.k9s = {
+            ui.skin = "transparent";
+            liveViewAutoRefresh = true;
+            refreshRate = 2;
+          };
         };
 
         fish = {

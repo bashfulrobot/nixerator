@@ -122,6 +122,17 @@ in
             min_time = 500;
             format = "took [$duration]($style) ";
           };
+          kubernetes = {
+            disabled = false;
+            format = "[$symbol$context( \\($namespace\\))]($style) ";
+            symbol = "⎈ ";
+            style = "bold blue";
+          };
+          hostname = {
+            ssh_only = true;
+            format = "[@$hostname]($style) ";
+            style = "bold dimmed white";
+          };
           gcloud.disabled = true;
           aws.disabled = true;
         };

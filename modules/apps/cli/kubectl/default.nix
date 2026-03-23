@@ -31,6 +31,8 @@ in
     # Home Manager configuration for kubectl aliases
     # kubecolor is a wrapper that colorizes kubectl output
     home-manager.users.${globals.user.name} = {
+      home.sessionVariables.KUBECOLOR_PRESET = "dark";
+
       programs.fish = {
         shellAliases = {
           k = "kubecolor";
