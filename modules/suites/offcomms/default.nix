@@ -66,6 +66,7 @@ in
       discord-ptb
       todoist-electron
       fractal
+      signal-cli
     ];
   };
 }
