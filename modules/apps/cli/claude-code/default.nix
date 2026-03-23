@@ -124,6 +124,10 @@ in
           $DRY_RUN_CMD mkdir -p "$claude_home/skills"
           $DRY_RUN_CMD mkdir -p "$claude_home/output-styles"
 
+          # CLAUDE.md -- global instructions
+          $DRY_RUN_CMD rm -f "$claude_home/CLAUDE.md"
+          $DRY_RUN_CMD cp --no-preserve=mode "${configDir}/CLAUDE.md" "$claude_home/CLAUDE.md"
+
           # settings.json -- substitute statusline store path
           # Remove first in case it's a stale symlink into the nix store (read-only)
           if [ -z "$DRY_RUN_CMD" ]; then
