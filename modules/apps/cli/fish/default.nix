@@ -34,22 +34,22 @@ in
           set fish_greeting
         '';
 
-        # Shell aliases
+        # Shell aliases (for programmatic/script-facing use)
         shellAliases = {
-          gs = "git status";
           mdr = "glow -p";
           ni = "nix run 'nixpkgs#nix-index' --extra-experimental-features 'nix-command flakes'";
           nix-info = "nix-info --markdown --sandbox --host-os";
+          bt-toggle = "rfkill toggle bluetooth; rfkill list bluetooth | grep -q 'Soft blocked: yes'; and echo 'Bluetooth: OFF'; or echo 'Bluetooth: ON'";
+        };
 
-          # Directory navigation
+        # Abbreviations expand in-place (visible before execution, editable)
+        shellAbbrs = {
+          gs = "git status";
           gon = "cd ${globals.paths.nixerator}";
           goh = "cd ${globals.paths.hyprflake}";
-
-          # NixOS operations
           upgrade = "cd ${globals.paths.nixerator} && just upgrade";
           rebuild = "cd ${globals.paths.nixerator} && just rebuild";
           gsp = "just sync-git";
-          bt-toggle = "rfkill toggle bluetooth; rfkill list bluetooth | grep -q 'Soft blocked: yes'; and echo 'Bluetooth: OFF'; or echo 'Bluetooth: ON'";
         };
 
         # Custom functions
@@ -109,6 +109,10 @@ in
                 echo "No selection made"
               end
             end
+          '';
+
+          mkcd = ''
+            mkdir -p $argv[1]; and cd $argv[1]
           '';
 
           kns = ''
