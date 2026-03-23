@@ -404,9 +404,11 @@ in
               signingkey = "~/.ssh/id_ed25519.pub";
             };
             init.defaultBranch = "main";
-            pull.rebase = false;
+            pull.rebase = true;
             push.default = "simple";
             merge.ff = "only";
+            rebase.autoStash = true;
+            branch.autoSetupRebase = "always";
 
             # SSH signing configuration
             commit.gpgsign = true;
