@@ -16,7 +16,7 @@ in
     apps = {
       # Kong CLI applications
       cli = {
-        kong-docs-offline.enable = true;
+        # kong-docs-offline: removed
         salesforce-cli.enable = true;
       };
 

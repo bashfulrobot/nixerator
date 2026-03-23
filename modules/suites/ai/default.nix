@@ -39,23 +39,9 @@ in
         ];
       };
       gemini-cli.enable = true;
-      termly = {
-        enable = true;
-        remote = {
-          enable = true;
-          directories = [
-            "/home/dustin/dev/nix/nixerator"
-            "/home/dustin/dev/nix/hyprflake"
-            "/home/dustin/dev/go/meetsum"
-            "/home/dustin/dev/go/mcp-tool-proxy"
-            "/home/dustin/dev/kong/lab"
-            "/home/dustin/dev/kong/scratch"
-            "/home/dustin/dev/infra"
-          ];
-        };
-      };
-      llmfit.enable = true;
-      openspec.enable = true;
+      # termly: disabled
+      # llmfit: removed
+      # openspec: disabled
       plannotator.enable = true;
       stop-slop.enable = true;
       superpowers.enable = true;

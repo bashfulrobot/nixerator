@@ -2,13 +2,11 @@
   pkgs,
   config,
   lib,
-  versions,
   ...
 }:
 
 let
   cfg = config.apps.cli.restic;
-  lazyrestic = pkgs.callPackage ./build/lazyrestic.nix { inherit versions; };
   backrestUi = pkgs.writeShellScriptBin "backrest-ui" ''
     #!/usr/bin/env bash
     set -euo pipefail
@@ -47,7 +45,7 @@ in
     apps.cli.restic.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable restic backup tools including restic, backrest, autorestic, and lazyrestic TUI.";
+      description = "Enable restic backup tools including restic, backrest, and autorestic.";
     };
   };
 
@@ -56,7 +54,6 @@ in
       pkgs.restic
       pkgs.backrest
       pkgs.autorestic
-      lazyrestic
       backrestUi
     ];
   };

@@ -230,15 +230,6 @@
           }
         ]
       },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /home/dustin/.claude/hooks/gsd-context-monitor.js"
-          }
-        ]
-      }
     ],
     "SessionStart": [
       {
@@ -276,15 +267,6 @@
           }
         ]
       },
-      {
-        "matcher": "startup",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /home/dustin/.claude/hooks/gsd-check-update.js"
-          }
-        ]
-      }
     ],
     "UserPromptSubmit": [
       {

@@ -19,7 +19,7 @@ in
 
   config = lib.mkIf cfg.enable {
     apps.gui = {
-      affinity.enable = true;
+      # affinity: removed
       cameractrls.enable = true;
       comics.enable = true;
     };
