@@ -150,7 +150,7 @@
       };
 
       # Formatter for `nix fmt`
-      formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt;
+      formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
 
       # Expose lib, globals, and versions for use in other flakes
       inherit lib globals versions;
