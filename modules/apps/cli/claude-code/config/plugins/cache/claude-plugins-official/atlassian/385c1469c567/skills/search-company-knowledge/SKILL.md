@@ -6,7 +6,6 @@ description: "Search across company knowledge bases (Confluence, Jira, internal 
 # Search Company Knowledge
 
 ## Keywords
-
 find information, search company knowledge, look up, what is, explain, company docs, internal documentation, Confluence search, Jira search, our documentation, internal knowledge, knowledge base, search for, tell me about, get information about, company systems, terminology, find everything about, what do we know about, deployment, authentication, infrastructure, processes, procedures, how to, how does, our systems, our processes, internal systems, company processes, technical documentation, engineering docs, architecture, configuration, search our docs, search internal docs, find in our docs
 
 ## Overview
@@ -26,13 +25,11 @@ Follow this 5-step process to provide comprehensive, well-cited answers:
 Extract the core search terms from the user's question.
 
 **Examples:**
-
 - User: "Find everything about Stratus minions" → Search: "Stratus minions"
 - User: "What do we know about the billing system?" → Search: "billing system"
 - User: "Explain our deployment process" → Search: "deployment process"
 
 **Consider:**
-
 - Main topic or concept
 - Any specific system/component names
 - Technical terms or jargon
@@ -54,14 +51,12 @@ search(
 )
 ```
 
-**When to use:**
-
+**When to use:** 
 - Default approach for most queries
 - When you don't know which system has the information
 - Fastest way to get results from multiple sources
 
 **Example:**
-
 ```
 search(
   cloudId="...",
@@ -83,13 +78,11 @@ searchConfluenceUsingCql(
 ```
 
 **When to use:**
-
 - User specifically mentions "in Confluence" or "in our docs"
 - Cross-system search returns too many Jira results
 - Looking for documentation rather than tickets
 
 **Example CQL patterns:**
-
 ```
 text ~ "Stratus minions"
 text ~ "authentication" AND type = page
@@ -108,13 +101,11 @@ searchJiraIssuesUsingJql(
 ```
 
 **When to use:**
-
 - User mentions "tickets", "issues", or "bugs"
 - Looking for historical problems or implementation details
 - Cross-system search returns mostly documentation
 
 **Example JQL patterns:**
-
 ```
 text ~ "Stratus minions"
 summary ~ "authentication" AND type = Bug
@@ -150,7 +141,6 @@ getConfluencePage(
 **Returns:** Full page content in Markdown format
 
 **When to fetch:**
-
 - Search result snippet is too brief
 - Need complete context
 - Page seems to be the primary documentation
@@ -169,7 +159,6 @@ getJiraIssue(
 **Returns:** Full issue details including description, comments, status
 
 **When to fetch:**
-
 - Need to understand a reported bug or issue
 - Search result doesn't show full context
 - Issue contains important implementation notes
@@ -177,7 +166,6 @@ getJiraIssue(
 #### Prioritization
 
 **Fetch in this order:**
-
 1. **Official documentation pages** (Confluence pages with "guide", "documentation", "overview" in title)
 2. **Recent/relevant issues** (Jira tickets that are relevant and recent)
 3. **Additional context** (related pages mentioned in initial results)
@@ -217,17 +205,15 @@ Combine information from multiple sources into a coherent answer.
 #### Synthesis Patterns
 
 **Pattern 1: Multiple sources agree**
-
 ```
 Stratus minions are background worker processes that handle async tasks.
 
-According to the Confluence documentation, they process jobs from the queue and
-can be scaled horizontally. This is confirmed by several Jira tickets (PROJ-145,
+According to the Confluence documentation, they process jobs from the queue and 
+can be scaled horizontally. This is confirmed by several Jira tickets (PROJ-145, 
 PROJ-203) which discuss minion configuration and scaling strategies.
 ```
 
 **Pattern 2: Sources provide different aspects**
-
 ```
 The billing system has two main components:
 
@@ -243,12 +229,11 @@ The billing system has two main components:
 ```
 
 **Pattern 3: Conflicting information**
-
 ```
 There is conflicting information about the authentication timeout:
 
 - **Official Documentation** (Confluence) states: 30-minute session timeout
-- **Implementation Reality** (Jira PROJ-456, filed Oct 2023): Actual timeout is
+- **Implementation Reality** (Jira PROJ-456, filed Oct 2023): Actual timeout is 
   15 minutes due to load balancer configuration
 - **Status:** Engineering team aware, fix planned but no timeline yet
 
@@ -256,7 +241,6 @@ Current behavior: Expect 15-minute timeout despite docs saying 30 minutes.
 ```
 
 **Pattern 4: Incomplete information**
-
 ```
 Based on available documentation:
 
@@ -278,13 +262,11 @@ Always include links to source materials so users can explore further.
 #### Citation Format
 
 **For Confluence pages:**
-
 ```
 **Source:** [Page Title](https://yoursite.atlassian.net/wiki/spaces/SPACE/pages/123456)
 ```
 
 **For Jira issues:**
-
 ```
 **Related Tickets:**
 - [PROJ-123](https://yoursite.atlassian.net/browse/PROJ-123) - Brief description
@@ -292,7 +274,6 @@ Always include links to source materials so users can explore further.
 ```
 
 **Complete citation section:**
-
 ```
 ## Sources
 
@@ -315,14 +296,12 @@ Always include links to source materials so users can explore further.
 ### Effective Search Terms
 
 **Do:**
-
 - ✅ Use specific technical terms: "OAuth authentication flow"
 - ✅ Include system names: "Stratus minions"
 - ✅ Use acronyms if they're common: "API rate limiting"
 - ✅ Try variations if first search fails: "deploy process" → "deployment pipeline"
 
 **Don't:**
-
 - ❌ Be too generic: "how things work"
 - ❌ Use full sentences: Use key terms instead
 - ❌ Include filler words: "the", "our", "about"
@@ -330,21 +309,18 @@ Always include links to source materials so users can explore further.
 ### Search Result Quality
 
 **Good results:**
-
 - Recent documentation (< 1 year old)
 - Official/canonical pages (titled "Guide", "Documentation", "Overview")
 - Multiple sources confirming same information
 - Detailed implementation notes
 
 **Questionable results:**
-
 - Very old tickets (> 2 years, may be outdated)
 - Duplicate or conflicting information
 - Draft pages or work-in-progress docs
 - Personal pages (may not be official)
 
 **When results are poor:**
-
 - Try different search terms
 - Expand search to include related concepts
 - Search for specific error messages or codes
@@ -403,7 +379,7 @@ I found documentation about [topic], but note that it's from [date] and may be o
 
 [Provide the information anyway]
 
-You may want to verify this is still current, especially if it's from more than
+You may want to verify this is still current, especially if it's from more than 
 a year ago.
 ```
 
@@ -412,7 +388,7 @@ a year ago.
 If search returns inaccessible content:
 
 ```
-Search results mention [topic] in the following locations, but I don't have
+Search results mention [topic] in the following locations, but I don't have 
 access to view the full content:
 - Confluence page: [title] (Space: [SPACE])
 - Jira issue: PROJ-123
@@ -429,7 +405,6 @@ You may need to access these directly or check your permissions.
 **User:** "What are Stratus minions?"
 
 **Process:**
-
 1. Search: `search(cloudId="...", query="Stratus minions")`
 2. Find: Confluence page "Stratus Architecture" + 3 Jira tickets
 3. Fetch: Get full Confluence page content
@@ -437,9 +412,8 @@ You may need to access these directly or check your permissions.
 5. Cite: Provide links to all sources
 
 **Answer:**
-
 ```
-Stratus minions are background worker processes that handle asynchronous task
+Stratus minions are background worker processes that handle asynchronous task 
 processing in the Stratus system.
 
 **Key Characteristics:**
@@ -449,7 +423,7 @@ processing in the Stratus system.
 - Handle tasks like email sending, report generation, and data processing
 
 **Architecture:**
-According to the Stratus Architecture documentation, minions follow a
+According to the Stratus Architecture documentation, minions follow a 
 worker-queue pattern where:
 1. Web application enqueues tasks
 2. Minions poll the queue for work
@@ -457,7 +431,7 @@ worker-queue pattern where:
 4. Results are stored in the database
 
 **Implementation Notes:**
-From Jira ticket PROJ-203, the current deployment runs 5 minion instances,
+From Jira ticket PROJ-203, the current deployment runs 5 minion instances, 
 with plans to scale to 10 for handling increased load.
 
 ## Sources
@@ -470,14 +444,12 @@ with plans to scale to 10 for handling increased load.
 **User:** "How long is our session timeout?"
 
 **Process:**
-
 1. Search across Confluence and Jira
 2. Find: Docs say 30 min, but ticket reports actual timeout is 15 min
 3. Fetch both sources for complete context
 4. Clearly note the discrepancy
 
 **Answer:**
-
 ```
 There is a discrepancy between documented and actual behavior:
 
@@ -485,11 +457,11 @@ There is a discrepancy between documented and actual behavior:
 Session timeout is configured for 30 minutes of inactivity.
 
 **Actual Behavior** (PROJ-456, reported Oct 2023):
-Users are being logged out after 15 minutes due to a load balancer configuration
+Users are being logged out after 15 minutes due to a load balancer configuration 
 that overrides the application setting.
 
 **Current Status:**
-The engineering team is aware of this issue. The load balancer timeout needs to
+The engineering team is aware of this issue. The load balancer timeout needs to 
 be adjusted to match the application setting. No fix timeline has been set.
 
 **Recommendation:** Plan for 15-minute timeout until this is resolved.
@@ -504,13 +476,11 @@ be adjusted to match the application setting. No fix timeline has been set.
 **User:** "Explain our deployment process"
 
 **Process:**
-
 1. Search finds some information but not complete
 2. Synthesize what is available
 3. Note gaps in documentation
 
 **Answer:**
-
 ```
 Based on available documentation, here's what I found about the deployment process:
 
@@ -544,7 +514,6 @@ Would you like me to search for more specific aspects of deployment?
 ## Tips for High-Quality Answers
 
 ### Do:
-
 ✅ Always search before answering (don't rely on general knowledge)
 ✅ Cite all sources with links
 ✅ Note discrepancies explicitly
@@ -554,7 +523,6 @@ Would you like me to search for more specific aspects of deployment?
 ✅ Link to related documentation
 
 ### Don't:
-
 ❌ Assume general knowledge applies to this company
 ❌ Make up information if search returns nothing
 ❌ Ignore conflicting information
@@ -575,7 +543,6 @@ This skill is for **internal company knowledge only**. Do NOT use for:
 ❌ Current events or news
 
 **Examples of what NOT to use this skill for:**
-
 - "What is machine learning?" (general knowledge)
 - "How does React work?" (external documentation)
 - "What's the weather?" (not knowledge search)
@@ -588,14 +555,12 @@ This skill is for **internal company knowledge only**. Do NOT use for:
 **Primary tool:** `search(cloudId, query)` - Use this first, always
 
 **Follow-up tools:**
-
 - `getConfluencePage(cloudId, pageId, contentFormat)` - Get full page content
 - `getJiraIssue(cloudId, issueIdOrKey)` - Get full issue details
 - `searchConfluenceUsingCql(cloudId, cql)` - Targeted Confluence search
 - `searchJiraIssuesUsingJql(cloudId, jql)` - Targeted Jira search
 
 **Answer structure:**
-
 1. Direct answer
 2. Detailed explanation
 3. Source attribution
@@ -603,7 +568,6 @@ This skill is for **internal company knowledge only**. Do NOT use for:
 5. Citations with links
 
 **Remember:**
-
 - Parallel search > Sequential search
 - Synthesize, don't just list
 - Always cite sources

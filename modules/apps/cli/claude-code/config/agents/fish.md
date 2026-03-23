@@ -100,17 +100,16 @@ end
 
 Use the `string` builtin instead of external tools:
 
-| Instead of                   | Use                                |
-| ---------------------------- | ---------------------------------- |
-| `grep -q pattern`            | `string match -q '*pattern*' $str` |
-| `sed 's/old/new/g'`          | `string replace -a old new $str`   |
-| `tr '[:upper:]' '[:lower:]'` | `string lower $str`                |
-| `cut -d',' -f1`              | `string split -f1 ',' $str`        |
-| `basename $path`             | `string replace -r '.*/' '' $path` |
-| `expr $a + $b`               | `math "$a + $b"`                   |
+| Instead of | Use |
+|---|---|
+| `grep -q pattern` | `string match -q '*pattern*' $str` |
+| `sed 's/old/new/g'` | `string replace -a old new $str` |
+| `tr '[:upper:]' '[:lower:]'` | `string lower $str` |
+| `cut -d',' -f1` | `string split -f1 ',' $str` |
+| `basename $path` | `string replace -r '.*/' '' $path` |
+| `expr $a + $b` | `math "$a + $b"` |
 
 Regex captures with named groups create local variables automatically:
-
 ```fish
 string match -rq '(?<major>\d+)\.(?<minor>\d+)' $version
 echo "$major.$minor"

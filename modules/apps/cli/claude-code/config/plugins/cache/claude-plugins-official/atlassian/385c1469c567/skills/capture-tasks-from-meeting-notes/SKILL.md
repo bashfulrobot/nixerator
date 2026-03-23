@@ -6,7 +6,6 @@ description: "Analyze meeting notes to find action items and create Jira tasks f
 # Capture Tasks from Meeting Notes
 
 ## Keywords
-
 meeting notes, action items, create tasks, create tickets, extract tasks, parse notes, analyze notes, assigned work, assignees, from meeting, post-meeting, capture tasks, generate tasks, turn into tasks, convert to tasks, action item, to-do, task list, follow-up, assigned to, create Jira tasks, create Jira tickets, meeting action items, extract action items, find action items, analyze meeting
 
 ## Overview
@@ -38,7 +37,6 @@ getConfluencePage(
 ```
 
 **URL patterns:**
-
 - `https://[site].atlassian.net/wiki/spaces/[SPACE]/pages/[PAGE_ID]/[title]`
 - Extract PAGE_ID from the numeric portion
 - Get cloudId from site name or use `getAccessibleAtlassianResources`
@@ -46,7 +44,6 @@ getConfluencePage(
 #### Option B: Pasted Text
 
 If user pastes meeting notes directly:
-
 - Use the text as-is
 - No fetching needed
 
@@ -63,14 +60,12 @@ Scan the notes for action items with assignees.
 #### Common Patterns
 
 **Pattern 1: @mention format** (highest priority)
-
 ```
 @Sarah to create user stories for chat feature
 @Mike will update architecture doc
 ```
 
 **Pattern 2: Name + action verb**
-
 ```
 Sarah to create user stories
 Mike will update architecture doc
@@ -78,21 +73,18 @@ Lisa should review the mockups
 ```
 
 **Pattern 3: Action: Name - Task**
-
 ```
 Action: Sarah - create user stories
 Action Item: Mike - update architecture
 ```
 
 **Pattern 4: TODO with assignee**
-
 ```
 TODO: Create user stories (Sarah)
 TODO: Update docs - Mike
 ```
 
 **Pattern 5: Bullet with name**
-
 ```
 - Sarah: create user stories
 - Mike - update architecture
@@ -122,7 +114,6 @@ TODO: Update docs - Mike
 #### Example Parsing
 
 **Input:**
-
 ```
 # Product Planning - Dec 3
 
@@ -133,7 +124,6 @@ Action Items:
 ```
 
 **Parsed:**
-
 ```
 1. Assignee: Sarah
    Task: Create user stories for chat feature
@@ -185,7 +175,6 @@ lookupJiraAccountId(
 ```
 
 **The search string can be:**
-
 - Full name: "Sarah Johnson"
 - First name: "Sarah"
 - Last name: "Johnson"
@@ -194,14 +183,12 @@ lookupJiraAccountId(
 #### Handle Results
 
 **Scenario A: Exact Match (1 result)**
-
 ```
 ✅ Found: Sarah Johnson (sarah.johnson@company.com)
 → Use accountId from result
 ```
 
 **Scenario B: No Match (0 results)**
-
 ```
 ⚠️ Couldn't find user "Sarah" in Jira.
 
@@ -214,7 +201,6 @@ Which would you prefer?
 ```
 
 **Scenario C: Multiple Matches (2+ results)**
-
 ```
 ⚠️ Found multiple users named "Sarah":
 1. Sarah Johnson (sarah.johnson@company.com)
@@ -260,7 +246,6 @@ Would you like me to:
 #### Wait for Confirmation
 
 Do NOT create tasks until user confirms. Options:
-
 - "Yes, create all" → proceed
 - "Skip task 3" → create all except #3
 - "Change assignee for task 2" → ask for new assignee
@@ -284,7 +269,6 @@ getJiraProjectIssueTypesMetadata(
 ```
 
 **Choose the appropriate issue type:**
-
 - Use "Task" if available (most common)
 - Use "Story" for user-facing features
 - Use "Bug" if it's a defect
@@ -306,7 +290,6 @@ createJiraIssue(
 #### Task Summary Format
 
 Use action verbs and be specific:
-
 - ✅ "Create user stories for chat feature"
 - ✅ "Update architecture documentation"
 - ✅ "Review and approve design mockups"
@@ -326,12 +309,10 @@ Use action verbs and be specific:
 **Source:** [Link to Confluence meeting notes if available]
 
 **Original Note:**
-
 > [Exact quote from meeting notes]
 ```
 
 **Example:**
-
 ```markdown
 **Action Item from Meeting Notes**
 
@@ -344,7 +325,6 @@ Discussed Q1 roadmap priorities and new feature requirements
 **Source:** https://yoursite.atlassian.net/wiki/spaces/TEAM/pages/12345
 
 **Original Note:**
-
 > @Sarah to create user stories for chat feature
 ```
 
@@ -355,7 +335,6 @@ Discussed Q1 roadmap priorities and new feature requirements
 After all tasks are created, present a comprehensive summary.
 
 **Format:**
-
 ```
 ✅ Created [N] tasks in [PROJECT]:
 
@@ -391,7 +370,6 @@ After all tasks are created, present a comprehensive summary.
 ```
 
 **Parsed:**
-
 - Assignee: john/sarah/mike
 - Task: update documentation / create the report / review PR #123
 
@@ -407,7 +385,6 @@ Lisa needs to test the feature
 ```
 
 **Parsed:**
-
 - Assignee: name before action verb
 - Task: text after "to/will/should/needs to"
 
@@ -422,7 +399,6 @@ AI: Mike - review PR #123
 ```
 
 **Parsed:**
-
 - Assignee: name after "Action:" and before "-"
 - Task: text after "-"
 
@@ -437,7 +413,6 @@ TODO: Create report - Sarah
 ```
 
 **Parsed:**
-
 - Assignee: name in parentheses or after ":"
 - Task: text between TODO and assignee
 
@@ -452,7 +427,6 @@ TODO: Create report - Sarah
 ```
 
 **Parsed:**
-
 - Assignee: name before ":" or "-" or action verb
 - Task: remaining text
 
@@ -509,7 +483,7 @@ If the same person is mentioned different ways:
 ```
 Notes mention: @sarah, Sarah, Sarah J.
 
-These likely refer to the same person. I'll look up "Sarah" once and use
+These likely refer to the same person. I'll look up "Sarah" once and use 
 that account ID for all three mentions. Is that correct?
 ```
 
@@ -554,19 +528,17 @@ Which would you prefer?
 ## Tips for High-Quality Results
 
 ### Do:
-
 ✅ Use consistent @mention format in notes  
 ✅ Include full names when possible  
 ✅ Be specific in action item descriptions  
 ✅ Add context (why/what/when)  
-✅ Review parsed tasks before confirming
+✅ Review parsed tasks before confirming  
 
 ### Don't:
-
 ❌ Mix multiple tasks for one person in one bullet  
 ❌ Use ambiguous names (just "John" if you have 5 Johns)  
 ❌ Skip action verbs (unclear what to do)  
-❌ Forget to specify project
+❌ Forget to specify project  
 
 ### Best Meeting Notes Format
 
@@ -595,7 +567,7 @@ This skill is for **converting meeting action items to Jira tasks only**.
 ❌ Finding meeting notes (use search skill)  
 ❌ Creating calendar events  
 ❌ Sending meeting notes via email  
-❌ General note-taking
+❌ General note-taking  
 
 **Use only when:** Meeting notes exist and action items need to become Jira tasks.
 
@@ -606,7 +578,6 @@ This skill is for **converting meeting action items to Jira tasks only**.
 ### Example 1: Simple @Mentions
 
 **Input:**
-
 ```
 Team Sync - Dec 3, 2025
 
@@ -617,7 +588,6 @@ Action Items:
 ```
 
 **Process:**
-
 1. Parse → 3 action items found
 2. Project → "PROJ"
 3. Lookup → Sarah (123), Mike (456), Lisa (789)
@@ -625,16 +595,15 @@ Action Items:
 5. Create → PROJ-100, PROJ-101, PROJ-102
 
 **Output:**
-
 ```
 ✅ Created 3 tasks in PROJ:
 
 1. PROJ-100 - Create user stories for chat feature
    Assigned to: Sarah Johnson
-
+   
 2. PROJ-101 - Update the architecture doc
    Assigned to: Mike Chen
-
+   
 3. PROJ-102 - Review design mockups
    Assigned to: Lisa Park
 ```
@@ -644,7 +613,6 @@ Action Items:
 ### Example 2: Mixed Formats
 
 **Input:**
-
 ```
 Product Review Meeting
 
@@ -658,7 +626,6 @@ Follow-ups:
 ```
 
 **Process:**
-
 1. Parse → Found 4 items (3 with assignees, 1 without)
 2. Ask → "Found 3 with assignees, 1 without. Create all or only assigned?"
 3. User → "All, make the last one unassigned"
@@ -669,7 +636,6 @@ Follow-ups:
 ### Example 3: Name Lookup Issue
 
 **Input:**
-
 ```
 Sprint Planning
 
@@ -679,7 +645,6 @@ Action Items:
 ```
 
 **Process:**
-
 1. Parse → 2 action items
 2. Lookup "John" → Found 3 Johns!
 3. Ask → "Which John? (John Smith, John Doe, John Wilson)"
@@ -692,10 +657,9 @@ Action Items:
 
 **Primary tool:** `getConfluencePage` (if URL) or use pasted text  
 **Account lookup:** `lookupJiraAccountId(searchString)`  
-**Task creation:** `createJiraIssue` with `assignee_account_id`
+**Task creation:** `createJiraIssue` with `assignee_account_id`  
 
 **Action patterns to look for:**
-
 - `@Name to/will/should X`
 - `Name to/will/should X`
 - `Action: Name - X`
@@ -703,14 +667,12 @@ Action Items:
 - `Name: X`
 
 **Always:**
-
 - Present parsed tasks before creating
 - Handle name lookup failures gracefully
 - Include context in task descriptions
 - Provide summary with links
 
 **Remember:**
-
 - Human-in-loop is critical (show before creating)
 - Name lookup can fail (have fallback)
 - Be flexible with pattern matching
