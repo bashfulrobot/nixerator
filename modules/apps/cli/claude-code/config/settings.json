@@ -96,6 +96,7 @@
       "Bash(nix show-derivation *)",
       "Bash(nixos-option *)",
       "Bash(amber *)",
+      "Bash(sudo tailscale file cp *)",
       "Bash(curl *)",
       "Bash(wget *)",
       "Bash(ping *)",
