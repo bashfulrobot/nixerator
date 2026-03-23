@@ -144,6 +144,15 @@
       hash = "sha256-ZTT1wJvNuYjd1QYjw5lVC2C+MZNu0NBmeEi5eOO+f5c=";
     };
 
+    localsend-rs = {
+      source = "github-commit";
+      repo = "CrossCopy/localsend-rs";
+      version = "0.1.2";
+      rev = "2243d3185cd7f853d11b78cf694a89729706c646";
+      hash = "sha256-PSrl9GPYrBuXkittLl57oG5gS/MOMyUKWPtzwREa8QA=";
+      cargoHash = "sha256-mIvt4bPsC/lzoftpyku6WjvVCd2k9N/pL3wWjvc+R00=";
+    };
+
     lazyrestic = {
       source = "github-commit";
       repo = "craigderington/lazyrestic";
