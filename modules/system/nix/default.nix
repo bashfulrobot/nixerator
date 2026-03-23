@@ -10,6 +10,10 @@ in
     nixPath = [ ];
 
     settings = {
+      # 4 jobs × 2 cores = 8 threads (half of 16), keeps desktop responsive
+      max-jobs = 4;
+      cores = 2;
+
       substituters = [
         "https://hyprland.cachix.org"
         "https://cache.numtide.com"
