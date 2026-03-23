@@ -15,7 +15,7 @@ in
   config = lib.mkIf cfg.enable {
     # Browser applications
     apps.gui = {
-      brave.enable = false;
+      # brave: disabled
       google-chrome.enable = true;
       # google-chrome.enableDev = true;
       helium.enable = false;

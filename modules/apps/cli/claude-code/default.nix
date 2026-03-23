@@ -26,9 +26,6 @@ let
       ;
   };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
-  gsdConfig = import ./cfg/gsd.nix {
-    inherit pkgs versions;
-  };
   pluginsConfig = import ./cfg/plugins.nix {
     inherit pkgs;
     desiredPlugins = cfg.plugins;
@@ -109,7 +106,6 @@ in
             llm-agents.claude-code
             libnotify # for notify-send in Stop hook
           ]
-          ++ gsdConfig.packages
           ++ pluginsConfig.packages
           ++ reapConfig.packages;
 

@@ -28,7 +28,7 @@ in
     apps = {
       cli = {
         amber.enable = true;
-        cue.enable = false;
+        # cue: removed
         git.enable = true;
         helix.enable = true;
         lswt.enable = true;

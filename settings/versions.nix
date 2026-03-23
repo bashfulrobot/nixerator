@@ -57,15 +57,6 @@
       hash = "sha256-+XqoMGVAxUEY3v/fdlogqe8q2CoyCLK5e6Itp0P/NcE=";
     };
 
-    get-shit-done = {
-      source = "npm";
-      repo = "gsd-build/get-shit-done";
-      npmPkg = "get-shit-done-cc";
-      version = "1.26.0";
-      hash = "sha256-Uo1O1xPEfLMWvWHpP51NrJyPkDiKvgomI3n0SkhkJkY=";
-      npmDepsHash = "sha256-15I2dWDgJAdG1edG0e9QUvnyp3PxmZ04jTUKqTUXk1U=";
-    };
-
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
@@ -81,15 +72,6 @@
       version = "2.12.0";
       hash = "sha256-5XZPqZKJQDS4xLCpkc+CBdBCJd7qw8HPKuPDauPNl0k=";
       npmDepsHash = "sha256-7Vr1lVq4GtlqQKZTVtnkZfgGS28wcK/sdOpJsJ1yHho=";
-    };
-
-    termly = {
-      source = "npm";
-      repo = "termly-dev/cli";
-      npmPkg = "@termly-dev/cli";
-      version = "1.9.0";
-      hash = "sha256-lQkgolx5ih2H3qs1l6y30bz2+Spnn6+yUMabioySFHI=";
-      npmDepsHash = "sha256-CWnaaJ9BOXQ8La/4UAltritxq1kDRAA6+WoPcUDaF50=";
     };
 
     lswt = {
@@ -118,15 +100,6 @@
       npmDepsHash = "sha256-3WBC0C6hE/4WKLycaO0fvkuOP+wT4hj44kM7Rj+ld2U=";
     };
 
-    openspec = {
-      source = "npm";
-      repo = "Fission-AI/OpenSpec";
-      npmPkg = "@fission-ai/openspec";
-      version = "1.2.0";
-      hash = "sha256-Ks7alGk/HbCw0uo8dQoqQYc36rMNAm0dBmYplFzemLo=";
-      npmDepsHash = "sha256-HKLE4ZQ1xZe4GMm2eRQrcyEoShJdteqW++wLmv0Ersw=";
-    };
-
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
@@ -153,14 +126,6 @@
       cargoHash = "sha256-mIvt4bPsC/lzoftpyku6WjvVCd2k9N/pL3wWjvc+R00=";
     };
 
-    lazyrestic = {
-      source = "github-commit";
-      repo = "craigderington/lazyrestic";
-      version = "unstable-2025-12-30";
-      rev = "b59e26f06da7b35f587b97cf0804b0e66b78f1e1";
-      hash = "sha256-Uezahy0f1/3wnuYQscXgpb0iFXWTvP0I1V5TPcmrV3A=";
-      vendorHash = "sha256-MIq04ecsWq2DEbt6myCm4VqQYqjlAmTScDv0OXm9XV4=";
-    };
   };
 
   gui = {

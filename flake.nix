@@ -53,11 +53,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    affinity-nix = {
-      url = "github:mrshmllow/affinity-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     apple-fonts = {
       url = "github:Lyndeno/apple-fonts.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -81,11 +76,6 @@
     # zed-editor = {
     #   url = "github:zed-industries/zed";
     # };
-
-    llmfit = {
-      url = "github:AlexsJones/llmfit";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
 
     wayscriber = {
       url = "github:devmobasa/wayscriber";
