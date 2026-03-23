@@ -18,28 +18,69 @@ jobs:
         with:
           flakehub: false
 
+      - name: Detect encrypted nix files
+        run: |
+          encrypted=()
+          while IFS= read -r f; do
+            if head -c 10 "$f" | LC_ALL=C grep -q 'GITCRYPT'; then
+              encrypted+=("$f")
+            fi
+          done < <(find . -name '*.nix' -not -path './.git/*' -not -path './secrets/*')
+          printf '%s\n' "${encrypted[@]}" > /tmp/encrypted-nix-files.txt
+          if [[ ${#encrypted[@]} -gt 0 ]]; then
+            echo "Encrypted nix files (will be skipped):"
+            cat /tmp/encrypted-nix-files.txt
+          else
+            echo "No encrypted nix files found"
+          fi
+
       - name: Format nix
-        run: nix fmt .
+        run: |
+          nix_files=$(find . -name '*.nix' -not -path './.git/*' -not -path './secrets/*')
+          if [[ -s /tmp/encrypted-nix-files.txt ]]; then
+            while IFS= read -r skip; do
+              nix_files=$(echo "$nix_files" | grep -vF "$skip")
+            done < /tmp/encrypted-nix-files.txt
+          fi
+          if [[ -n "$nix_files" ]]; then
+            echo "$nix_files" | xargs nix run nixpkgs#nixfmt-tree --
+          fi
 
       - name: Fix nix lint issues
-        run: nix run nixpkgs#statix -- fix .
+        run: |
+          args=()
+          if [[ -s /tmp/encrypted-nix-files.txt ]]; then
+            while IFS= read -r skip; do
+              args+=(--ignore "$skip")
+            done < /tmp/encrypted-nix-files.txt
+          fi
+          nix run nixpkgs#statix -- fix . "${args[@]}"
 
       - name: Remove dead nix code
-        run: nix run nixpkgs#deadnix -- --edit .
+        run: |
+          nix_files=$(find . -name '*.nix' -not -path './.git/*' -not -path './secrets/*')
+          if [[ -s /tmp/encrypted-nix-files.txt ]]; then
+            while IFS= read -r skip; do
+              nix_files=$(echo "$nix_files" | grep -vF "$skip")
+            done < /tmp/encrypted-nix-files.txt
+          fi
+          if [[ -n "$nix_files" ]]; then
+            echo "$nix_files" | xargs nix run nixpkgs#deadnix -- --edit
+          fi
 
       - name: Format shell scripts
-        run: nix run nixpkgs#shfmt -- -w -i 2 -ci $(find . -name '*.sh' -not -path './.git/*')
+        run: nix run nixpkgs#shfmt -- -w -i 2 -ci $(find . -name '*.sh' -not -path './.git/*' -not -path './secrets/*')
         continue-on-error: true
 
       - name: Lint shell scripts
-        run: nix run nixpkgs#shellcheck -- $(find . -name '*.sh' -not -path './.git/*') || true
+        run: nix run nixpkgs#shellcheck -- $(find . -name '*.sh' -not -path './.git/*' -not -path './secrets/*') || true
 
       - name: Format fish scripts
-        run: find . -name '*.fish' -not -path './.git/*' -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \;
+        run: find . -name '*.fish' -not -path './.git/*' -not -path './secrets/*' -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \;
         continue-on-error: true
 
       - name: Format YAML, JSON, and Markdown
-        run: nix run nixpkgs#nodePackages.prettier -- --write '**/*.{yml,yaml,json,md}' --no-error-on-unmatched-pattern
+        run: nix run nixpkgs#nodePackages.prettier -- --write '**/*.{yml,yaml,json,md}' --ignore-path <(echo 'secrets/') --no-error-on-unmatched-pattern
         continue-on-error: true
 
       - name: Commit and push changes
