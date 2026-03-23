@@ -22,6 +22,7 @@ The highest risks are operational: orphaned worktrees from partial failures, sil
 The stack is entirely in-codebase or already in nixpkgs. No new dependencies need to be evaluated. `writeShellApplication` (nixpkgs built-in) provides automatic shellcheck, bash strict mode, and PATH isolation, making it the correct packaging primitive. Scripts must live in external files (`./scripts/name.sh` via `builtins.readFile`) rather than inline Nix strings; these scripts are 150-300 lines each and inline embedding defeats editor support and shellcheck integration.
 
 **Core technologies:**
+
 - `writeShellApplication`: script packaging -- strict mode, shellcheck, PATH isolation, already the pattern in gcmt and git modules
 - `bash`: script language -- writeShellApplication targets bash explicitly; set -euo pipefail is automatic
 - `gum 0.17.0`: interactive terminal UI -- confirm, choose, spin, log, pager, style; already a runtimeInput in gcmt, no new dependency
@@ -33,6 +34,7 @@ The stack is entirely in-codebase or already in nixpkgs. No new dependencies nee
 ### Expected Features
 
 **Must have (table stakes):**
+
 - Deterministic worktree creation with `fix/<slug>` or `feat/<slug>` branch naming from issue title
 - Worktree placed as sibling to repo (`../.worktrees/`) to keep main repo `git status` clean
 - State file written before Claude launches -- if write fails, abort; no state means no recovery
@@ -42,6 +44,7 @@ The stack is entirely in-codebase or already in nixpkgs. No new dependencies nee
 - Git repo guard and default branch detection at startup
 
 **Should have (differentiators):**
+
 - Two distinct review flows in one module: `github-issue` via GitHub PR, `hack` via local gum diff review
 - State file resume from any phase -- re-invoke after interrupted session, tool reads phase and continues
 - Orphaned worktree detection on startup -- warn if prior worktree for same issue/slug exists; offer adopt or remove
@@ -49,11 +52,13 @@ The stack is entirely in-codebase or already in nixpkgs. No new dependencies nee
 - Shell owns the lifecycle entirely -- Claude only commits; shell reads observable git/gh state after Claude exits
 
 **Defer to v2+:**
+
 - Rich diff paging (delta/difftastic integration) -- raw `git diff` piped to `gum pager` is sufficient for v1
 - Orphaned worktree scan across all open worktrees -- `git worktree list` warning can come later
 - Rebase conflict resolution in `hack` merge path -- abort with clear message for v1; user resolves manually
 
 **Anti-features (never build):**
+
 - Manual (no-AI) worktree mode -- `gcom -w` already covers this
 - Auto-merge for `github-issue` -- removes the human review gate
 - Config file (`.worktreerc`, YAML) -- hardcode sensible defaults; behavior should be obvious from code
@@ -64,6 +69,7 @@ The stack is entirely in-codebase or already in nixpkgs. No new dependencies nee
 The module uses four components with clear ownership boundaries: `default.nix` for Nix packaging, `lib.sh` for shared functions concatenated at build time, and two script files (`github-issue.sh`, `hack.sh`) that source lib functions. SKILL.md lives in the worktree-flow module (not in `claude-code/skills/`) because its lifecycle is owned here. The state file (`.worktree-state.json`) is strictly shell-to-shell; Claude never reads or writes it. Claude communicates results through commits and exit codes only.
 
 **Major components:**
+
 1. `default.nix` -- Nix packaging; wires runtimeInputs; concatenates lib.sh into each writeShellApplication; deploys SKILL.md via home.file
 2. `lib.sh` -- shared functions: guards, default-branch detection, slug generation, worktree path builder, state_write/state_read, launch_claude, worktree_cleanup
 3. `github-issue.sh` -- full issue lifecycle: worktree creation, Claude launch, push, PR creation via gh, issue comment, post-merge cleanup on re-invocation
@@ -128,6 +134,7 @@ Based on the dependency graph in FEATURES.md and the build order in ARCHITECTURE
 ### Research Flags
 
 Phases with standard patterns (skip research-phase, all patterns verified):
+
 - **Phase 1:** writeShellApplication + lib.sh concatenation pattern is fully documented in the codebase (gcmt reference). No new research needed.
 - **Phase 2:** All gh commands and git worktree operations verified against official docs and nixpkgs. No new research needed.
 - **Phase 3:** hack is a subset of Phase 2 patterns; no new research needed.
@@ -139,12 +146,12 @@ No phases require `/gsd:research-phase`. All research questions were resolved du
 
 ## Confidence Assessment
 
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Stack | HIGH | All components verified against in-codebase patterns (gcmt, gcom, todoist-report) and official docs. Zero speculative choices. |
-| Features | HIGH | PROJECT.md and current SKILL.md are authoritative; gap analysis against ecosystem tools is well-supported by multiple corroborating sources. |
-| Architecture | HIGH | Derived entirely from direct codebase analysis. lib.sh concatenation pattern, state file contract, and Claude invocation approach are all confirmed idioms. |
-| Pitfalls | HIGH | Critical pitfalls backed by official issue trackers (gh CLI, git-crypt, Claude Code, gum) and in-codebase reference implementations (gcom cleanup patterns). |
+| Area         | Confidence | Notes                                                                                                                                                        |
+| ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Stack        | HIGH       | All components verified against in-codebase patterns (gcmt, gcom, todoist-report) and official docs. Zero speculative choices.                               |
+| Features     | HIGH       | PROJECT.md and current SKILL.md are authoritative; gap analysis against ecosystem tools is well-supported by multiple corroborating sources.                 |
+| Architecture | HIGH       | Derived entirely from direct codebase analysis. lib.sh concatenation pattern, state file contract, and Claude invocation approach are all confirmed idioms.  |
+| Pitfalls     | HIGH       | Critical pitfalls backed by official issue trackers (gh CLI, git-crypt, Claude Code, gum) and in-codebase reference implementations (gcom cleanup patterns). |
 
 **Overall confidence:** HIGH
 
@@ -187,5 +194,6 @@ No phases require `/gsd:research-phase`. All research questions were resolved du
 - [claudefa.st worktree guide](https://claudefa.st/blog/guide/development/worktree-guide) -- parallel sessions design
 
 ---
-*Research completed: 2026-03-11*
-*Ready for roadmap: yes*
+
+_Research completed: 2026-03-11_
+_Ready for roadmap: yes_

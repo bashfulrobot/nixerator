@@ -67,7 +67,7 @@ completed: 2026-03-11
 - Created simplified SKILL.md with only commit conventions and PR body format (removed verbose lifecycle instructions that shell now owns)
 - Deployed SKILL.md via worktree-flow home.file to ~/.claude/skills/github-issue/SKILL.md
 - Removed old github-issue skill from claude-code module (SKILL.md now owned by worktree-flow)
-- Updated github-issue.sh and hack.sh stubs to announce all 5 lifecycle phases with CL-* annotations
+- Updated github-issue.sh and hack.sh stubs to announce all 5 lifecycle phases with CL-\* annotations
 - Fixed pre-existing bug in section() where gum style parsed leading dashes in text as flags
 
 ## Task Commits
@@ -96,6 +96,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Fixed gum style section() failing on text with leading dashes**
+
 - **Found during:** Task 2 (stub command testing)
 - **Issue:** `section "Pre-flight checks"` showed gum help page because `gum style --bold --foreground 6 "-- Pre-flight checks --"` treated the leading `--` in the text as an end-of-flags marker
 - **Fix:** Changed call to `gum style --bold --foreground="6" -- "-- $* --"` using explicit `--` separator to delimit flags from text
@@ -124,5 +125,6 @@ None - no external service configuration required.
 - Remaining blocker from STATE.md still open: verify `claude` binary is findable at runtime inside writeShellApplication PATH isolation
 
 ---
-*Phase: 01-foundation*
-*Completed: 2026-03-11*
+
+_Phase: 01-foundation_
+_Completed: 2026-03-11_

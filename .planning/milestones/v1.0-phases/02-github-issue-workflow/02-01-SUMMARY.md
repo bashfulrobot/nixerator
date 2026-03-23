@@ -105,5 +105,6 @@ None - no external service configuration required.
 - The `die` placeholder for existing-worktree detection is the explicit entry point Plan 02 will replace
 
 ---
-*Phase: 02-github-issue-workflow*
-*Completed: 2026-03-12*
+
+_Phase: 02-github-issue-workflow_
+_Completed: 2026-03-12_

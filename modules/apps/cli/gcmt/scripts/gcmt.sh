@@ -7,10 +7,13 @@ YELLOW=$'\033[1;33m'
 CYAN=$'\033[0;36m'
 NC=$'\033[0m'
 
-info() { printf '%s▸ %s%s\n'  "$CYAN"   "$*" "$NC";        }
-ok()   { printf '%s✔ %s%s\n'  "$GREEN"  "$*" "$NC";        }
-warn() { printf '%s⚠ %s%s\n'  "$YELLOW" "$*" "$NC";        }
-die()  { printf '%s✖ %s%s\n'  "$RED"    "$*" "$NC" >&2; exit 1; }
+info() { printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"; }
+ok() { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
+warn() { printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC"; }
+die() {
+  printf '%s✖ %s%s\n' "$RED" "$*" "$NC" >&2
+  exit 1
+}
 
 # ── Usage ─────────────────────────────────────────────────────────────────────
 usage() {
@@ -42,14 +45,20 @@ while [[ $# -gt 0 ]]; do
       AI_TOOL="$2"
       shift 2
       ;;
-    --push) DO_PUSH=1; shift ;;
-    -h|--help) usage; exit 0 ;;
+    --push)
+      DO_PUSH=1
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
     *) die "unknown flag: $1" ;;
   esac
 done
 
 case "$AI_TOOL" in
-  claude|gemini) ;;
+  claude | gemini) ;;
   *) die "unsupported AI tool: $AI_TOOL (choose claude or gemini)" ;;
 esac
 
@@ -59,20 +68,20 @@ git rev-parse --git-dir >/dev/null 2>&1 || die "not inside a git repository"
 # ── Type → emoji ──────────────────────────────────────────────────────────────
 get_emoji() {
   case "$1" in
-    feat)     printf '✨' ;;
-    fix)      printf '🐛' ;;
-    docs)     printf '📝' ;;
-    style)    printf '🎨' ;;
-    refactor) printf '♻️'  ;;
-    perf)     printf '⚡' ;;
-    test)     printf '✅' ;;
-    build)    printf '👷' ;;
-    ci)       printf '💚' ;;
-    chore)    printf '🔧' ;;
-    revert)   printf '⏪' ;;
+    feat) printf '✨' ;;
+    fix) printf '🐛' ;;
+    docs) printf '📝' ;;
+    style) printf '🎨' ;;
+    refactor) printf '♻️' ;;
+    perf) printf '⚡' ;;
+    test) printf '✅' ;;
+    build) printf '👷' ;;
+    ci) printf '💚' ;;
+    chore) printf '🔧' ;;
+    revert) printf '⏪' ;;
     security) printf '🔒' ;;
-    deps)     printf '⬆️'  ;;
-    *)        printf ''   ;;
+    deps) printf '⬆️' ;;
+    *) printf '' ;;
   esac
 }
 
@@ -89,8 +98,8 @@ while IFS= read -r line; do
   # Renames: "old -> new" — grab the new name
   file=$(printf '%s' "$raw" | sed 's/.*-> //')
 
-  x="${xy:0:1}"   # index
-  y="${xy:1:1}"   # worktree
+  x="${xy:0:1}" # index
+  y="${xy:1:1}" # worktree
 
   if [[ "$xy" == "??" ]]; then
     label="[new]     "
@@ -110,15 +119,15 @@ done < <(git status --porcelain)
 if [[ -z "$FILE_LIST" ]]; then
   die "nothing to commit — working tree is clean"
 fi
-FILE_LIST="${FILE_LIST%$'\n'}"   # strip trailing newline
+FILE_LIST="${FILE_LIST%$'\n'}" # strip trailing newline
 
-SELECTED=$(printf '%s' "$FILE_LIST" \
-  | gum choose \
-      --no-limit \
-      --header "Select files to include (space=toggle, enter=confirm):" \
-      --cursor "▶ " \
-      --selected-prefix "✓ " \
-      --unselected-prefix "  ") || die "aborted"
+SELECTED=$(printf '%s' "$FILE_LIST" |
+  gum choose \
+    --no-limit \
+    --header "Select files to include (space=toggle, enter=confirm):" \
+    --cursor "▶ " \
+    --selected-prefix "✓ " \
+    --unselected-prefix "  ") || die "aborted"
 
 [[ -n "$SELECTED" ]] || die "no files selected — aborted"
 
@@ -133,7 +142,7 @@ while IFS= read -r entry; do
   # Strip "[label] " prefix
   file=$(printf '%s' "$entry" | sed 's/^\[[^]]*\][[:space:]]*//')
   git add -- "$file"
-done <<< "$SELECTED"
+done <<<"$SELECTED"
 
 git diff --cached --quiet && die "nothing staged after selection — aborted"
 
@@ -141,7 +150,7 @@ git diff --cached --quiet && die "nothing staged after selection — aborted"
 printf '\n'
 TYPE=$(gum choose \
   "feat" "fix" "docs" "style" "refactor" \
-  "perf" "test" "build" "ci"  "chore"   \
+  "perf" "test" "build" "ci" "chore" \
   "revert" "security" "deps" \
   --header "Select commit type:") || die "aborted"
 

@@ -83,6 +83,7 @@ home.activation.claudeConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
 ```
 
 This means:
+
 - Files are real, writable copies (not symlinks)
 - Claude Code can modify them freely between rebuilds
 - Every `nixos-rebuild switch` resets to the canonical Nix version
@@ -157,19 +158,19 @@ claude-capture() {
 
 ## What stays in Nix vs. what moves to config/
 
-| Currently in Nix                      | New location              |
-|---------------------------------------|---------------------------|
-| `programs.claude-code.settings`       | `config/settings.json`    |
-| `programs.claude-code.memory.text`    | `config/CLAUDE.md`        |
-| `programs.claude-code.agents`         | `config/agents/*.md`      |
-| `programs.claude-code.skills`         | `config/skills/*/`        |
-| `programs.claude-code.outputStyles`   | `config/output-styles/`   |
-| `programs.claude-code.mcpServers`     | stays empty / not needed  |
-| `programs.claude-code.package`        | stays in Nix              |
-| `programs.claude-code.enable`         | stays in Nix              |
-| hooks (cfg/hooks-*.nix)              | embedded in settings.json |
-| permissions (cfg/permissions.nix)    | embedded in settings.json |
-| statusLine script                    | stays in Nix (binary ref) |
+| Currently in Nix                    | New location              |
+| ----------------------------------- | ------------------------- |
+| `programs.claude-code.settings`     | `config/settings.json`    |
+| `programs.claude-code.memory.text`  | `config/CLAUDE.md`        |
+| `programs.claude-code.agents`       | `config/agents/*.md`      |
+| `programs.claude-code.skills`       | `config/skills/*/`        |
+| `programs.claude-code.outputStyles` | `config/output-styles/`   |
+| `programs.claude-code.mcpServers`   | stays empty / not needed  |
+| `programs.claude-code.package`      | stays in Nix              |
+| `programs.claude-code.enable`       | stays in Nix              |
+| hooks (cfg/hooks-\*.nix)            | embedded in settings.json |
+| permissions (cfg/permissions.nix)   | embedded in settings.json |
+| statusLine script                   | stays in Nix (binary ref) |
 
 ## Open Questions
 

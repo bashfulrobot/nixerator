@@ -7,7 +7,13 @@ git-crypt encrypted secrets in `secrets/secrets.json`, auto-decrypted with GPG k
 ```json
 {
   "restic": {
-    "srv": { "restic_repository": "s3:...", "restic_password": "...", "b2_account_id": "...", "b2_account_key": "...", "region": "us-west-000" }
+    "srv": {
+      "restic_repository": "s3:...",
+      "restic_password": "...",
+      "b2_account_id": "...",
+      "b2_account_key": "...",
+      "region": "us-west-000"
+    }
   },
   "kong": { "kongKonnectPAT": "..." }
 }

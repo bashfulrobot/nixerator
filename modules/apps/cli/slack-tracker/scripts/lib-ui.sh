@@ -29,10 +29,10 @@ choose_period() {
     "Custom")"
 
   case "$choice" in
-    "1 week")   echo "1w" ;;
-    "2 weeks")  echo "2w" ;;
-    "3 weeks")  echo "3w" ;;
-    "1 month")  echo "1m" ;;
+    "1 week") echo "1w" ;;
+    "2 weeks") echo "2w" ;;
+    "3 weeks") echo "3w" ;;
+    "1 month") echo "1m" ;;
     "2 months") echo "2m" ;;
     "3 months") echo "3m" ;;
     "Custom")
@@ -56,7 +56,7 @@ apply_tags() {
         $tags | to_entries[] |
         select(.value | any(. as $kw | $msg.text | ascii_downcase | contains($kw | ascii_downcase)))
       ] | map(.key))
-    ]' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+    ]' "$file" >"${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
 # apply_highlights <file> <highlights_json>
@@ -72,7 +72,7 @@ apply_highlights() {
       .highlights = ([
         $hl[] | select(. as $kw | $msg.text | ascii_downcase | contains($kw | ascii_downcase))
       ])
-    ]' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+    ]' "$file" >"${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
 display_results_interactive() {
@@ -105,7 +105,7 @@ display_results_interactive() {
       local styled
       styled="$(gum style --foreground 46 "${word}")"
       display_text="$(printf '%s' "$display_text" | sed "s/${word}/${styled}/gi" 2>/dev/null || printf '%s' "$display_text")"
-    done <<< "$highlights"
+    done <<<"$highlights"
 
     # Format: channel  date  [tags]
     local header
@@ -150,7 +150,7 @@ filter_by_tag_interactive() {
     return
   fi
 
-  jq --arg tag "$selected_tag" '[.[] | select(.tags | index($tag))]' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+  jq --arg tag "$selected_tag" '[.[] | select(.tags | index($tag))]' "$file" >"${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
 select_messages_to_open() {
@@ -176,7 +176,7 @@ select_messages_to_open() {
     local idx
     idx="$(printf '%s' "$line" | grep -oE '^\[[0-9]+\]' | tr -d '[]')"
     jq -r ".[$idx].permalink" "$file"
-  done <<< "$selected"
+  done <<<"$selected"
 }
 
 walk_threads() {

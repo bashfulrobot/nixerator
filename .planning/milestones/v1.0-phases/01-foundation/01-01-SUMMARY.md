@@ -43,7 +43,8 @@ patterns-established:
   - "Safety pattern: assert_not_main/assert_clean_tree always called before destructive git operations"
   - "State pattern: atomic JSON state file in worktree root, read/write via jq"
 
-requirements-completed: [NX-01, NX-02, NX-03, NX-04, SF-01, SF-02, SF-03, SF-04, SF-05, WT-03, WT-04]
+requirements-completed:
+  [NX-01, NX-02, NX-03, NX-04, SF-01, SF-02, SF-03, SF-04, SF-05, WT-03, WT-04]
 
 # Metrics
 duration: 15min
@@ -63,6 +64,7 @@ completed: 2026-03-11
 - **Files modified:** 5 (4 created, 1 modified)
 
 ## Accomplishments
+
 - lib.sh with 9 function groups ready for Phases 2 and 3 to build on
 - Both `github-issue` and `hack` live at `/run/current-system/sw/bin/` and respond to --help
 - All safety patterns implemented and shellcheck-clean via writeShellApplication's built-in checker
@@ -78,6 +80,7 @@ Each task was committed atomically:
 **Plan metadata:** (docs commit follows)
 
 ## Files Created/Modified
+
 - `modules/apps/cli/worktree-flow/scripts/lib.sh` - All shared primitives: colors, section headers, safety guards, git-crypt unlock, default branch detection, atomic state I/O, trap cleanup handler, slug generation, worktree path helper
 - `modules/apps/cli/worktree-flow/default.nix` - Module with enable option, inlines lib.sh into both writeShellApplication derivations, runtimeInputs: git/git-crypt/gum/gh/jq/coreutils/gnused/findutils
 - `modules/apps/cli/worktree-flow/scripts/github-issue.sh` - Stub that validates lib.sh loads correctly, supports --help
@@ -85,6 +88,7 @@ Each task was committed atomically:
 - `modules/suites/dev/default.nix` - Added `worktree-flow.enable = true` so all workstations get the module
 
 ## Decisions Made
+
 - Enabled in `suites/dev` (not per-host): worktree-flow is a universal developer workflow tool, same blast radius as `git.enable = true`
 - `globals` arg kept in module function args even though Plan 01 doesn't use it; needed in Plan 02 for `home.file` SKILL.md deployment
 - gnused in runtimeInputs: kept for forward-compatibility (Phase 2 may need GNU sed extensions); current slugify is POSIX-safe
@@ -102,14 +106,16 @@ None.
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - All 9 function groups from lib.sh are available in both commands
 - Static checks pass: mktemp atomic write, assert_not_main branch guard, crypt status verification, no bare gum confirm
 - Plan 02 can add full github-issue workflow logic on top of this scaffold
 - Plan 03 can add full hack workflow logic
 
 ---
-*Phase: 01-foundation*
-*Completed: 2026-03-11*
+
+_Phase: 01-foundation_
+_Completed: 2026-03-11_
 
 ## Self-Check: PASSED
 

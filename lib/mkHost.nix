@@ -2,81 +2,105 @@
 
 {
   # Function to create a host configuration with home-manager integration
-  mkHost = {
-    globals,
-    versions,
-    hostname,
-    system,
-    stateVersion ? globals.defaults.stateVersion,
-    extraModules ? [],
-    homeManagerModules ? [],
-    useDeterminate ? false,
-  }: inputs.nixpkgs.lib.nixosSystem {
-    inherit system;
+  mkHost =
+    {
+      globals,
+      versions,
+      hostname,
+      system,
+      stateVersion ? globals.defaults.stateVersion,
+      extraModules ? [ ],
+      homeManagerModules ? [ ],
+      useDeterminate ? false,
+    }:
+    inputs.nixpkgs.lib.nixosSystem {
+      inherit system;
 
-    specialArgs = {
-      inherit inputs hostname globals versions secrets;
+      specialArgs = {
+        inherit
+          inputs
+          hostname
+          globals
+          versions
+          secrets
+          ;
+      };
+
+      modules = [
+        # Host-specific configuration
+        ../hosts/${hostname}/configuration.nix
+
+        # Home Manager integration
+        inputs.home-manager.nixosModules.home-manager
+        {
+          # Allow unfree packages (e.g., Google Chrome)
+          nixpkgs.config.allowUnfree = true;
+
+          # Apply custom package overlays
+          nixpkgs.overlays = [
+            # llm-agents packages (exposes pkgs.llm-agents.<name>)
+            inputs.llm-agents.overlays.default
+          ];
+
+          # Nix settings - Determinate Nix manages these automatically when enabled
+          nix =
+            if useDeterminate then
+              {
+                # Determinate Nix handles flakes, GC, and optimization automatically
+              }
+            else
+              {
+                # Standard Nix configuration for non-Determinate hosts
+                settings.experimental-features = [
+                  "nix-command"
+                  "flakes"
+                ];
+
+                # Automatic garbage collection
+                gc = {
+                  automatic = true;
+                  dates = "weekly";
+                  options = "--delete-older-than 14d";
+                };
+
+                # Optimize store automatically
+                optimise = {
+                  automatic = true;
+                  dates = [ "weekly" ];
+                };
+              };
+
+          # Keep system generations manageable
+          boot.loader.systemd-boot.configurationLimit = inputs.nixpkgs.lib.mkDefault 5;
+
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            extraSpecialArgs = {
+              inherit
+                inputs
+                hostname
+                globals
+                versions
+                secrets
+                ;
+            };
+            users.${globals.user.name} = {
+              imports = [ ../hosts/${hostname}/home.nix ] ++ homeManagerModules;
+              # Disable Home Manager manual/manpages generation to avoid
+              # Determinate Nix warning about options.json referencing the source store path
+              manual.manpages.enable = false;
+            };
+            # Use a backup command that creates timestamped backups and keeps only the last 5
+            backupCommand = "${
+              inputs.nixpkgs.legacyPackages.${system}.bash
+            }/bin/bash -c 'if [ -e \"$1\" ]; then mv -f \"$1\" \"$1.backup-$(date +%Y%m%d-%H%M%S)\"; ls -t \"$1\".backup-* 2>/dev/null | tail -n +6 | xargs -r rm -f; fi' --";
+          };
+
+          # System state version
+          system.stateVersion = stateVersion;
+        }
+      ]
+      ++ extraModules;
     };
-
-    modules = [
-      # Host-specific configuration
-      ../hosts/${hostname}/configuration.nix
-
-      # Home Manager integration
-      inputs.home-manager.nixosModules.home-manager
-      {
-        # Allow unfree packages (e.g., Google Chrome)
-        nixpkgs.config.allowUnfree = true;
-
-        # Apply custom package overlays
-        nixpkgs.overlays = [
-          # llm-agents packages (exposes pkgs.llm-agents.<name>)
-          inputs.llm-agents.overlays.default
-        ];
-
-        # Nix settings - Determinate Nix manages these automatically when enabled
-        nix = if useDeterminate then {
-          # Determinate Nix handles flakes, GC, and optimization automatically
-        } else {
-          # Standard Nix configuration for non-Determinate hosts
-          settings.experimental-features = [ "nix-command" "flakes" ];
-
-          # Automatic garbage collection
-          gc = {
-            automatic = true;
-            dates = "weekly";
-            options = "--delete-older-than 14d";
-          };
-
-          # Optimize store automatically
-          optimise = {
-            automatic = true;
-            dates = [ "weekly" ];
-          };
-        };
-
-        # Keep system generations manageable
-        boot.loader.systemd-boot.configurationLimit = inputs.nixpkgs.lib.mkDefault 5;
-
-        home-manager = {
-          useGlobalPkgs = true;
-          useUserPackages = true;
-          extraSpecialArgs = {
-            inherit inputs hostname globals versions secrets;
-          };
-          users.${globals.user.name} = {
-            imports = [ ../hosts/${hostname}/home.nix ] ++ homeManagerModules;
-            # Disable Home Manager manual/manpages generation to avoid
-            # Determinate Nix warning about options.json referencing the source store path
-            manual.manpages.enable = false;
-          };
-          # Use a backup command that creates timestamped backups and keeps only the last 5
-          backupCommand = "${inputs.nixpkgs.legacyPackages.${system}.bash}/bin/bash -c 'if [ -e \"$1\" ]; then mv -f \"$1\" \"$1.backup-$(date +%Y%m%d-%H%M%S)\"; ls -t \"$1\".backup-* 2>/dev/null | tail -n +6 | xargs -r rm -f; fi' --";
-        };
-
-        # System state version
-        system.stateVersion = stateVersion;
-      }
-    ] ++ extraModules;
-  };
 }

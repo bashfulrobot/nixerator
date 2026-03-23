@@ -5,6 +5,7 @@
 Format: `<type>(<scope>): <emoji> <description>`
 
 Rules:
+
 - Type: use `security` for vulnerability fixes, `deps` for version bumps
 - Scope (REQUIRED): lowercase, kebab-case module name (e.g., `clay`, `nodemailer`)
 - Emoji: single emoji after colon+space
@@ -14,6 +15,7 @@ Rules:
 - Include CVE/GHSA ID in commit body
 
 Examples:
+
 - `security(clay): :lock: fix nodemailer addressparser DoS (CVE-2025-14874)`
 - `deps(clay): :arrow_up: bump esbuild to 0.25.1`
 

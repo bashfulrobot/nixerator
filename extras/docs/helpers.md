@@ -40,6 +40,7 @@ cd nixerator
 Checks that git-crypt is installed and the key exists with correct permissions (600). Then unlocks the repository and verifies encrypted files are readable.
 
 **Troubleshooting**:
-- Key not found  -- copy from source machine to `~/.ssh/nixerator-git-crypt-key`
-- Slow first run  -- nix-shell downloading packages (cached after)
-- Files still binary  -- `git-crypt unlock ~/.ssh/nixerator-git-crypt-key` manually
+
+- Key not found -- copy from source machine to `~/.ssh/nixerator-git-crypt-key`
+- Slow first run -- nix-shell downloading packages (cached after)
+- Files still binary -- `git-crypt unlock ~/.ssh/nixerator-git-crypt-key` manually

@@ -35,14 +35,14 @@ MenuBar {
 
 ### Required Menus
 
-| Menu | Contents |
-|------|----------|
-| App (automatic) | About, Preferences (Cmd+,), Quit (Cmd+Q) |
-| File | New, Open, Close, Save (if applicable) |
-| Edit | Undo, Redo, Cut, Copy, Paste, Select All |
-| View | App-specific view toggles, sidebar toggle |
-| Window | Minimize, Zoom, full screen |
-| Help | Search, documentation links |
+| Menu            | Contents                                  |
+| --------------- | ----------------------------------------- |
+| App (automatic) | About, Preferences (Cmd+,), Quit (Cmd+Q)  |
+| File            | New, Open, Close, Save (if applicable)    |
+| Edit            | Undo, Redo, Cut, Copy, Paste, Select All  |
+| View            | App-specific view toggles, sidebar toggle |
+| Window          | Minimize, Zoom, full screen               |
+| Help            | Search, documentation links               |
 
 App-specific menus go between Edit and Window.
 
@@ -60,19 +60,19 @@ val primaryModifier = if (isMacOS) Key.MetaLeft else Key.CtrlLeft
 
 ### Standard Shortcuts
 
-| Action | macOS | Linux |
-|--------|-------|-------|
-| Copy | Cmd+C | Ctrl+C |
-| Paste | Cmd+V | Ctrl+V |
-| Cut | Cmd+X | Ctrl+X |
-| Undo | Cmd+Z | Ctrl+Z |
-| Redo | Cmd+Shift+Z | Ctrl+Shift+Z |
-| Save | Cmd+S | Ctrl+S |
-| Find | Cmd+F | Ctrl+F |
-| Settings | Cmd+, | (in-app navigation) |
-| Quit | Cmd+Q | Ctrl+Q |
-| New Window | Cmd+N | Ctrl+N |
-| Close Window | Cmd+W | Ctrl+W |
+| Action       | macOS       | Linux               |
+| ------------ | ----------- | ------------------- |
+| Copy         | Cmd+C       | Ctrl+C              |
+| Paste        | Cmd+V       | Ctrl+V              |
+| Cut          | Cmd+X       | Ctrl+X              |
+| Undo         | Cmd+Z       | Ctrl+Z              |
+| Redo         | Cmd+Shift+Z | Ctrl+Shift+Z        |
+| Save         | Cmd+S       | Ctrl+S              |
+| Find         | Cmd+F       | Ctrl+F              |
+| Settings     | Cmd+,       | (in-app navigation) |
+| Quit         | Cmd+Q       | Ctrl+Q              |
+| New Window   | Cmd+N       | Ctrl+N              |
+| Close Window | Cmd+W       | Ctrl+W              |
 
 Every menu item that performs an action should have a keyboard shortcut.
 

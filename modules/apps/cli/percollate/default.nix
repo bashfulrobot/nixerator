@@ -1,4 +1,10 @@
-{ lib, pkgs, config, globals, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  ...
+}:
 
 let
   cfg = config.apps.cli.percollate;

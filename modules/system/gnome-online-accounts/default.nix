@@ -58,8 +58,20 @@ in
         icon = "gnome-online-accounts";
         terminal = false;
         type = "Application";
-        categories = [ "Settings" "GNOME" "GTK" ];
-        keywords = [ "google" "drive" "cloud" "accounts" "online" "microsoft" "onedrive" ];
+        categories = [
+          "Settings"
+          "GNOME"
+          "GTK"
+        ];
+        keywords = [
+          "google"
+          "drive"
+          "cloud"
+          "accounts"
+          "online"
+          "microsoft"
+          "onedrive"
+        ];
       })
     ];
   };

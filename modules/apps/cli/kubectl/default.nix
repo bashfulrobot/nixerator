@@ -1,4 +1,10 @@
-{ globals, lib, pkgs, config, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.kubectl;
@@ -14,12 +20,12 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
-      kubectl              # Kubernetes command-line tool
-      kubecolor            # Colorize kubectl output
-      kubelogin            # Azure/OIDC login
-      kubelogin-oidc       # OIDC authentication for kubectl
-      krew                 # kubectl plugin manager
-      ktop                 # K8s top command
+      kubectl # Kubernetes command-line tool
+      kubecolor # Colorize kubectl output
+      kubelogin # Azure/OIDC login
+      kubelogin-oidc # OIDC authentication for kubectl
+      krew # kubectl plugin manager
+      ktop # K8s top command
     ];
 
     # Home Manager configuration for kubectl aliases

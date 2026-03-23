@@ -16,7 +16,7 @@
 
 let
   cfg = config.apps.webapps.${name};
-  browser = globals.preferences.browser;
+  inherit (globals.preferences) browser;
   desktopName = "${name}-webapp";
   # Escape % as %% for desktop entry field code validation
   escapedUrl = builtins.replaceStrings [ "%" ] [ "%%" ] url;

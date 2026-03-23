@@ -53,6 +53,7 @@ Default workspace is configured in `config.json` (single source of truth for all
 ### `slack-tracker refresh [--workspace name]` -- Three-Tier Cascade
 
 **Tier 1 -- CDP auto-extract:**
+
 - Check if `localhost:9222` is reachable (curl, short timeout)
 - Query `http://localhost:9222/json` for available pages
 - Find a page whose URL contains `app.slack.com` or the workspace URL
@@ -60,12 +61,15 @@ Default workspace is configured in `config.json` (single source of truth for all
 - Connect to the page's WebSocket via `websocat` or curl-based CDP
 - `Runtime.evaluate` with JS expression:
   ```javascript
-  JSON.parse(localStorage.localConfig_v2).teams[JSON.parse(localStorage.localConfig_v2).lastActiveTeamId].token
+  JSON.parse(localStorage.localConfig_v2).teams[
+    JSON.parse(localStorage.localConfig_v2).lastActiveTeamId
+  ].token;
   ```
 - `Network.enable` then `Network.getCookies` with domain `.slack.com` to extract the `d` cookie (xoxd- value)
 - Validate via `auth.test`, write to credentials file
 
 **Tier 2 -- Offer to launch Chrome with debug port:**
+
 - `gum confirm "Launch Chrome with remote debugging to auto-extract tokens?"`
 - If yes: `google-chrome --remote-debugging-port=9222 https://app.slack.com` in background
 - Gum spinner polling `http://localhost:9222/json` for CDP readiness (~15s timeout)
@@ -74,6 +78,7 @@ Default workspace is configured in `config.json` (single source of truth for all
 - Validate, write
 
 **Tier 3 -- Manual guide fallback:**
+
 - Print concise step-by-step instructions with gum styling (sourced from `docs/manual-token-guide.md`)
 - `gum input --placeholder "Paste your xoxc- token"`
 - `gum input --placeholder "Paste your xoxd- cookie"` (masked)
@@ -106,6 +111,7 @@ Every run begins with `auth.test`. If it fails, print the error reason and promp
 ### Period Parsing
 
 `--period <N><unit>` where unit is `d` (days), `w` (weeks), `m` (months):
+
 - Convert to days: `d` = N, `w` = N*7, `m` = N*30
 - Compute start date: `date -d "<days> days ago" +%Y-%m-%d`
 - Pass to Slack search as `after:YYYY-MM-DD`
@@ -193,11 +199,13 @@ Running `slack-tracker` with no arguments is equivalent to `slack-tracker search
 ### Non-Interactive Modes
 
 **`--list`:**
+
 - Tab-separated: `date\tchannel\ttype\ttags\tpermalink\tpreview`
 - No gum, no color
 - Highlights rendered as `**word**`
 
 **`--json`:**
+
 - Outputs the internal JSON data structure directly
 - Useful for piping to `jq` or other tools
 

@@ -14,20 +14,21 @@
 
 ### File Structure
 
-| File | Responsibility |
-|------|---------------|
-| `modules/apps/cli/slack-tracker/default.nix` | NixOS module: mkEnableOption, writeShellApplication, runtimeInputs, inlines all scripts |
-| `modules/apps/cli/slack-tracker/scripts/slack-tracker.sh` | Main entrypoint: arg parsing, config loading, command dispatch |
-| `modules/apps/cli/slack-tracker/scripts/lib-token.sh` | Token management: CDP extract, Chrome launch, manual paste, auth.test validation |
-| `modules/apps/cli/slack-tracker/scripts/lib-api.sh` | Slack API: search.messages, conversations.replies, pagination, rate limiting |
-| `modules/apps/cli/slack-tracker/scripts/lib-ui.sh` | TUI: gum period chooser, results display, highlighting, tagging, multi-select, browser open |
-| `modules/apps/cli/slack-tracker/docs/manual-token-guide.md` | Step-by-step Chrome DevTools token extraction guide |
+| File                                                        | Responsibility                                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `modules/apps/cli/slack-tracker/default.nix`                | NixOS module: mkEnableOption, writeShellApplication, runtimeInputs, inlines all scripts     |
+| `modules/apps/cli/slack-tracker/scripts/slack-tracker.sh`   | Main entrypoint: arg parsing, config loading, command dispatch                              |
+| `modules/apps/cli/slack-tracker/scripts/lib-token.sh`       | Token management: CDP extract, Chrome launch, manual paste, auth.test validation            |
+| `modules/apps/cli/slack-tracker/scripts/lib-api.sh`         | Slack API: search.messages, conversations.replies, pagination, rate limiting                |
+| `modules/apps/cli/slack-tracker/scripts/lib-ui.sh`          | TUI: gum period chooser, results display, highlighting, tagging, multi-select, browser open |
+| `modules/apps/cli/slack-tracker/docs/manual-token-guide.md` | Step-by-step Chrome DevTools token extraction guide                                         |
 
 ---
 
 ### Task 1: Nix Module Skeleton
 
 **Files:**
+
 - Create: `modules/apps/cli/slack-tracker/default.nix`
 
 - [ ] **Step 1: Create the module directory structure**
@@ -42,24 +43,28 @@ mkdir -p modules/apps/cli/slack-tracker/docs
 Create empty placeholder files so the module can reference them:
 
 `modules/apps/cli/slack-tracker/scripts/lib-token.sh`:
+
 ```bash
 # lib-token.sh — credential management
 # Sourced (inlined) by writeShellApplication, not executed directly
 ```
 
 `modules/apps/cli/slack-tracker/scripts/lib-api.sh`:
+
 ```bash
 # lib-api.sh — Slack API calls
 # Sourced (inlined) by writeShellApplication, not executed directly
 ```
 
 `modules/apps/cli/slack-tracker/scripts/lib-ui.sh`:
+
 ```bash
 # lib-ui.sh — gum TUI interactions
 # Sourced (inlined) by writeShellApplication, not executed directly
 ```
 
 `modules/apps/cli/slack-tracker/scripts/slack-tracker.sh`:
+
 ```bash
 # slack-tracker.sh — main entrypoint
 
@@ -119,6 +124,7 @@ main "$@"
 - [ ] **Step 3: Create default.nix**
 
 `modules/apps/cli/slack-tracker/default.nix`:
+
 ```nix
 { lib, pkgs, config, ... }:
 
@@ -189,6 +195,7 @@ feat(slack-tracker): scaffold module with CLI skeleton
 ### Task 2: Config & Credentials File Management
 
 **Files:**
+
 - Modify: `modules/apps/cli/slack-tracker/scripts/slack-tracker.sh`
 
 - [ ] **Step 1: Add config directory and file initialization to slack-tracker.sh**
@@ -288,6 +295,7 @@ just qr
 ```
 
 Then run:
+
 ```bash
 rm -rf ~/.config/slack-tracker
 slack-tracker
@@ -306,6 +314,7 @@ feat(slack-tracker): add config and credentials file management
 ### Task 3: Token Refresh -- Manual Flow (Tier 3)
 
 **Files:**
+
 - Modify: `modules/apps/cli/slack-tracker/scripts/lib-token.sh`
 - Modify: `modules/apps/cli/slack-tracker/scripts/slack-tracker.sh`
 - Create: `modules/apps/cli/slack-tracker/docs/manual-token-guide.md`
@@ -313,7 +322,8 @@ feat(slack-tracker): add config and credentials file management
 - [ ] **Step 1: Write the manual token guide**
 
 `modules/apps/cli/slack-tracker/docs/manual-token-guide.md`:
-```markdown
+
+````markdown
 # Manual Slack Token Extraction (Chrome)
 
 ## Get the xoxc- token
@@ -324,8 +334,11 @@ feat(slack-tracker): add config and credentials file management
 4. Paste this and press Enter:
 
    ```javascript
-   JSON.parse(localStorage.localConfig_v2).teams[JSON.parse(localStorage.localConfig_v2).lastActiveTeamId].token
+   JSON.parse(localStorage.localConfig_v2).teams[
+     JSON.parse(localStorage.localConfig_v2).lastActiveTeamId
+   ].token;
    ```
+````
 
 5. Copy the `xoxc-...` value (without quotes)
 
@@ -339,7 +352,8 @@ feat(slack-tracker): add config and credentials file management
 ## Workspace URL
 
 Your workspace URL looks like: `https://yourteam.slack.com`
-```
+
+````
 
 - [ ] **Step 2: Implement auth_test and manual refresh in lib-token.sh**
 
@@ -437,7 +451,7 @@ refresh_manual() {
     return 1
   fi
 }
-```
+````
 
 - [ ] **Step 3: Wire up cmd_refresh in slack-tracker.sh**
 
@@ -516,6 +530,7 @@ feat(slack-tracker): add manual token refresh with auth.test validation
 > **Note:** Full WebSocket-based CDP extraction is impractical in pure bash (requires `websocat` or similar). This implementation uses a pragmatic approach: if an existing xoxd cookie is on file, it scrapes the xoxc token from Slack's page source using the cookie. For truly fresh setups, Tiers 1 & 2 will fall through to Tier 3 (manual). This is acceptable since manual entry is fast and tokens last weeks/months.
 
 **Files:**
+
 - Modify: `modules/apps/cli/slack-tracker/scripts/lib-token.sh`
 
 - [ ] **Step 1: Implement CDP helper functions**
@@ -661,6 +676,7 @@ refresh_launch_chrome() {
 - [ ] **Step 2: Test CDP flow**
 
 Test with Chrome running with `--remote-debugging-port=9222`:
+
 ```bash
 just qr && slack-tracker refresh --workspace myworkspace
 ```
@@ -678,6 +694,7 @@ feat(slack-tracker): add CDP and Chrome-launch token extraction tiers
 ### Task 5: Slack API -- Search & Classify Messages
 
 **Files:**
+
 - Modify: `modules/apps/cli/slack-tracker/scripts/lib-api.sh`
 
 - [ ] **Step 1: Implement API call helpers**
@@ -893,6 +910,7 @@ feat(slack-tracker): implement Slack API search and thread classification
 ### Task 6: UI -- Period Selection, Results Display, Browser Opening
 
 **Files:**
+
 - Modify: `modules/apps/cli/slack-tracker/scripts/lib-ui.sh`
 
 - [ ] **Step 1: Implement period parsing and selection**
@@ -1135,6 +1153,7 @@ feat(slack-tracker): implement TUI with period selection, results display, and b
 ### Task 7: Wire Everything Together in Main Entrypoint
 
 **Files:**
+
 - Modify: `modules/apps/cli/slack-tracker/scripts/slack-tracker.sh`
 
 - [ ] **Step 1: Implement cmd_search with full argument parsing**
@@ -1334,11 +1353,13 @@ just qr
 ```
 
 Test interactive:
+
 ```bash
 slack-tracker --period 1w
 ```
 
 Test non-interactive:
+
 ```bash
 slack-tracker --list --period 2w --workspace myworkspace
 slack-tracker --json --period 1w --workspace myworkspace
@@ -1355,6 +1376,7 @@ feat(slack-tracker): wire up search command with full interactive flow
 ### Task 8: Final Polish & Docs
 
 **Files:**
+
 - All scripts (minor fixes from testing)
 
 - [ ] **Step 1: Test the complete refresh cascade**

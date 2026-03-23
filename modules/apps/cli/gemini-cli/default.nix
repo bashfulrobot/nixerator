@@ -1,4 +1,10 @@
-{ lib, pkgs, config, globals, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  ...
+}:
 let
   cfg = config.apps.cli.gemini-cli;
 
@@ -33,58 +39,58 @@ let
   '';
 
   gcommitScript = ''
-    #!/usr/bin/env bash
-    set -euo pipefail
+        #!/usr/bin/env bash
+        set -euo pipefail
 
-    custom_prompt=""
-    while [[ $# -gt 0 ]]; do
-      case "$1" in
-        -p|--prompt)
-          if [[ $# -lt 2 ]]; then
-            echo "Missing value for $1" >&2
-            exit 1
-          fi
-          custom_prompt="$2"
-          shift 2
-          ;;
-        *)
-          echo "Unsupported argument: $1" >&2
-          echo "Use --prompt/-p for non-interactive mode." >&2
+        custom_prompt=""
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            -p|--prompt)
+              if [[ $# -lt 2 ]]; then
+                echo "Missing value for $1" >&2
+                exit 1
+              fi
+              custom_prompt="$2"
+              shift 2
+              ;;
+            *)
+              echo "Unsupported argument: $1" >&2
+              echo "Use --prompt/-p for non-interactive mode." >&2
+              exit 1
+              ;;
+          esac
+        done
+
+        git add -A
+
+        diff=$(git diff --staged)
+        if [[ -z "$diff" ]]; then
+          echo "No changes to commit." >&2
           exit 1
-          ;;
-      esac
-    done
+        fi
 
-    git add -A
+        recent=$(git log --oneline -5 2>/dev/null || true)
+        base_prompt=$(cat <<'EOF'
+    Write a concise Conventional Commit message for the staged diff below. Output ONLY the commit message, nothing else.
 
-    diff=$(git diff --staged)
-    if [[ -z "$diff" ]]; then
-      echo "No changes to commit." >&2
-      exit 1
-    fi
+    ${commit-guidelines}
+    EOF
+    )
 
-    recent=$(git log --oneline -5 2>/dev/null || true)
-    base_prompt=$(cat <<'EOF'
-Write a concise Conventional Commit message for the staged diff below. Output ONLY the commit message, nothing else.
+        if [[ -n "$custom_prompt" ]]; then
+          prompt=$(printf "%s\n\n%s\n\nRecent commits (match this style):\n%s\n\nDiff:\n%s\n" "$custom_prompt" "$base_prompt" "$recent" "$diff")
+        else
+          prompt=$(printf "%s\n\nRecent commits (match this style):\n%s\n\nDiff:\n%s\n" "$base_prompt" "$recent" "$diff")
+        fi
 
-${commit-guidelines}
-EOF
-)
+        msg=$(gemini -y --prompt "$prompt")
 
-    if [[ -n "$custom_prompt" ]]; then
-      prompt=$(printf "%s\n\n%s\n\nRecent commits (match this style):\n%s\n\nDiff:\n%s\n" "$custom_prompt" "$base_prompt" "$recent" "$diff")
-    else
-      prompt=$(printf "%s\n\nRecent commits (match this style):\n%s\n\nDiff:\n%s\n" "$base_prompt" "$recent" "$diff")
-    fi
+        if [[ -z "$msg" ]]; then
+          echo "Failed to generate commit message." >&2
+          exit 1
+        fi
 
-    msg=$(gemini -y --prompt "$prompt")
-
-    if [[ -z "$msg" ]]; then
-      echo "Failed to generate commit message." >&2
-      exit 1
-    fi
-
-    git commit -S -m "$msg"
+        git commit -S -m "$msg"
   '';
 
   commit-prompt = ''

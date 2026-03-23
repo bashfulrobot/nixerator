@@ -88,7 +88,7 @@ search_my_messages() {
   local page=1
   local total=0
 
-  printf '[]' > "$out_file"
+  printf '[]' >"$out_file"
 
   while true; do
     local response
@@ -104,8 +104,8 @@ search_my_messages() {
     # Append matches to file via jq slurp
     local tmp_page
     tmp_page="$(mktemp)"
-    printf '%s' "$response" | jq '.messages.matches // []' > "$tmp_page"
-    jq -s '.[0] + .[1]' "$out_file" "$tmp_page" > "${out_file}.tmp" && mv "${out_file}.tmp" "$out_file"
+    printf '%s' "$response" | jq '.messages.matches // []' >"$tmp_page"
+    jq -s '.[0] + .[1]' "$out_file" "$tmp_page" >"${out_file}.tmp" && mv "${out_file}.tmp" "$out_file"
     rm -f "$tmp_page"
 
     local page_count
@@ -146,7 +146,7 @@ _cache_lookup() {
 _cache_store() {
   local key="$1" value="$2"
   mkdir -p "$CACHE_DIR"
-  printf '%s=%s\n' "$key" "$value" >> "$CACHE_FILE"
+  printf '%s=%s\n' "$key" "$value" >>"$CACHE_FILE"
 }
 
 # classify_messages <input_file> <output_file>
@@ -156,7 +156,7 @@ classify_messages() {
   local total
   total="$(jq 'length' "$in_file")"
 
-  printf '[]' > "$out_file"
+  printf '[]' >"$out_file"
   local count=0 cached=0 api_calls=0
 
   while IFS= read -r msg; do
@@ -220,11 +220,11 @@ classify_messages() {
         --arg date "$date_str" \
         --arg permalink "$permalink" \
         --arg type "$msg_type" \
-        '[{channel: $channel, channel_id: $channel_id, text: $text, date: $date, permalink: $permalink, type: $type, tags: [], highlights: []}]' > "$tmp_entry"
-      jq -s '.[0] + .[1]' "$out_file" "$tmp_entry" > "${out_file}.tmp" && mv "${out_file}.tmp" "$out_file"
+        '[{channel: $channel, channel_id: $channel_id, text: $text, date: $date, permalink: $permalink, type: $type, tags: [], highlights: []}]' >"$tmp_entry"
+      jq -s '.[0] + .[1]' "$out_file" "$tmp_entry" >"${out_file}.tmp" && mv "${out_file}.tmp" "$out_file"
       rm -f "$tmp_entry"
     fi
   done < <(jq -c '.[]' "$in_file")
 
-  printf '\r%*s\r' 40 '' >&2  # Clear progress line
+  printf '\r%*s\r' 40 '' >&2 # Clear progress line
 }

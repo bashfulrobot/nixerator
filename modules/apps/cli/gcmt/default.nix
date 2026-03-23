@@ -1,10 +1,19 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.gcmt;
   gcmt = pkgs.writeShellApplication {
     name = "gcmt";
-    runtimeInputs = with pkgs; [ git gum coreutils ];
+    runtimeInputs = with pkgs; [
+      git
+      gum
+      coreutils
+    ];
     text = builtins.readFile ./scripts/gcmt.sh;
   };
 in

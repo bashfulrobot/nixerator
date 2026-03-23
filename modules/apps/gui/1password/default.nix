@@ -1,4 +1,10 @@
-{ globals, lib, pkgs, config, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.gui.one-password;

@@ -1,4 +1,10 @@
-{ globals, lib, pkgs, config, ... }:
+{
+  globals,
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.cli.helix;
@@ -17,7 +23,9 @@ in
       helix
     ];
 
-    environment.variables = { EDITOR = "hx"; };
+    environment.variables = {
+      EDITOR = "hx";
+    };
 
     security.sudo.extraConfig = ''
       Defaults env_keep += "EDITOR"
@@ -69,7 +77,10 @@ in
               name = "nix";
               auto-format = true;
               formatter.command = "${pkgs.nixfmt}/bin/nixfmt";
-              language-servers = [ "nixd" "statix" ];
+              language-servers = [
+                "nixd"
+                "statix"
+              ];
             }
             {
               name = "toml";
@@ -77,7 +88,10 @@ in
             }
             {
               name = "yaml";
-              language-servers = [ "yaml" "scls" ];
+              language-servers = [
+                "yaml"
+                "scls"
+              ];
             }
           ];
 

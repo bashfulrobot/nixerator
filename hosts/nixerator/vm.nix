@@ -26,8 +26,8 @@
 
   # Additional VM utilities
   environment.systemPackages = with pkgs; [
-    spice-vdagent  # Spice agent for better display/clipboard
-    qemu-utils     # QEMU utilities for VM management
+    spice-vdagent # Spice agent for better display/clipboard
+    qemu-utils # QEMU utilities for VM management
   ];
 
   # Enable automatic login for VM testing (optional - remove for security)

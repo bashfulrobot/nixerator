@@ -104,10 +104,10 @@ actual class PlatformSecureStorage : SecureStorage {
 
 ### Platform Backends
 
-| Platform | Backend | Daemon Required |
-|----------|---------|-----------------|
-| Linux | libsecret (GNOME Keyring or KWallet) | `gnome-keyring-daemon` or `kwalletd5` |
-| macOS | Keychain Services | Built-in |
+| Platform | Backend                              | Daemon Required                       |
+| -------- | ------------------------------------ | ------------------------------------- |
+| Linux    | libsecret (GNOME Keyring or KWallet) | `gnome-keyring-daemon` or `kwalletd5` |
+| macOS    | Keychain Services                    | Built-in                              |
 
 On Linux, if no keyring daemon is running (e.g., headless or minimal WM), fall back to a file-based encrypted store with a user-provided passphrase. Log a warning that security is reduced.
 
@@ -128,6 +128,7 @@ val process = ProcessBuilder(listOf("claude", "--print"))
 ```
 
 Rules:
+
 - Always use `ProcessBuilder` with a `List<String>` of arguments
 - Never pass user input through a shell (no `sh -c "..."`)
 - Set timeouts on process execution (5 minutes is a reasonable max for AI tools)

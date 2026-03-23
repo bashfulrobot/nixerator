@@ -7,10 +7,13 @@ YELLOW=$'\033[1;33m'
 CYAN=$'\033[0;36m'
 NC=$'\033[0m'
 
-info() { printf '%s▸ %s%s\n'  "$CYAN"   "$*" "$NC";        }
-ok()   { printf '%s✔ %s%s\n'  "$GREEN"  "$*" "$NC";        }
-warn() { printf '%s⚠ %s%s\n'  "$YELLOW" "$*" "$NC";        }
-die()  { printf '%s✖ %s%s\n'  "$RED"    "$*" "$NC" >&2; exit 1; }
+info() { printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"; }
+ok() { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
+warn() { printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC"; }
+die() {
+  printf '%s✖ %s%s\n' "$RED" "$*" "$NC" >&2
+  exit 1
+}
 
 # ── Section headers ───────────────────────────────────────────────────────────
 section() {
@@ -170,7 +173,7 @@ write_state() {
   local wt_path="$2"
   local tmpfile
   tmpfile="$(mktemp "${wt_path}/.worktree-state.XXXXXX")"
-  printf '%s\n' "$json" > "$tmpfile"
+  printf '%s\n' "$json" >"$tmpfile"
   mv "$tmpfile" "${wt_path}/.worktree-state.json"
 }
 
@@ -183,15 +186,16 @@ create_state() {
   local timestamp
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   local json
-  json="$(jq -n \
-    --arg type       "$type" \
-    --arg phase      "setup" \
-    --arg branch     "$branch" \
-    --arg wt_path    "$wt_path" \
-    --arg session_id "" \
-    --arg started_at "$timestamp" \
-    --arg updated_at "$timestamp" \
-    '{type: $type, phase: $phase, branch: $branch, wt_path: $wt_path, session_id: $session_id, started_at: $started_at, updated_at: $updated_at}'
+  json="$(
+    jq -n \
+      --arg type "$type" \
+      --arg phase "setup" \
+      --arg branch "$branch" \
+      --arg wt_path "$wt_path" \
+      --arg session_id "" \
+      --arg started_at "$timestamp" \
+      --arg updated_at "$timestamp" \
+      '{type: $type, phase: $phase, branch: $branch, wt_path: $wt_path, session_id: $session_id, started_at: $started_at, updated_at: $updated_at}'
   )"
   write_state "$json" "$wt_path"
 }
@@ -244,10 +248,10 @@ register_cleanup() {
 slugify() {
   local input="$1"
   local lower="${input,,}"
-  printf '%s' "$lower" \
-    | tr -cs 'a-z0-9' '-' \
-    | sed 's/^-*//;s/-*$//' \
-    | cut -c1-50
+  printf '%s' "$lower" |
+    tr -cs 'a-z0-9' '-' |
+    sed 's/^-*//;s/-*$//' |
+    cut -c1-50
 }
 
 # ── Worktree path helper ──────────────────────────────────────────────────────

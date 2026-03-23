@@ -27,15 +27,42 @@ derive_branch_type() {
     [[ -z "$label" ]] && continue
     local lower="${label,,}"
     case "$lower" in
-      *bug*)            branch_type="fix";      break ;;
-      *enhancement*|*feature*) branch_type="feat"; break ;;
-      *documentation*|*docs*) branch_type="docs"; break ;;
-      *refactor*)       branch_type="refactor"; break ;;
-      *testing*|*test*) branch_type="test";     break ;;
-      *dependenc*|*deps*) branch_type="deps";   break ;;
-      *ci*)             branch_type="ci";       break ;;
-      *chore*)          branch_type="chore";    break ;;
-      *revert*)         branch_type="revert";   break ;;
+      *bug*)
+        branch_type="fix"
+        break
+        ;;
+      *enhancement* | *feature*)
+        branch_type="feat"
+        break
+        ;;
+      *documentation* | *docs*)
+        branch_type="docs"
+        break
+        ;;
+      *refactor*)
+        branch_type="refactor"
+        break
+        ;;
+      *testing* | *test*)
+        branch_type="test"
+        break
+        ;;
+      *dependenc* | *deps*)
+        branch_type="deps"
+        break
+        ;;
+      *ci*)
+        branch_type="ci"
+        break
+        ;;
+      *chore*)
+        branch_type="chore"
+        break
+        ;;
+      *revert*)
+        branch_type="revert"
+        break
+        ;;
     esac
   done < <(printf '%s' "$labels_json" | jq -r '.[].name')
 
@@ -44,8 +71,8 @@ derive_branch_type() {
   else
     # Fallback: prompt user
     gum choose --header "Branch type:" \
-      "feat" "fix" "docs" "refactor" "test" "ci" "chore" "revert" "deps" \
-      || die "aborted"
+      "feat" "fix" "docs" "refactor" "test" "ci" "chore" "revert" "deps" ||
+      die "aborted"
   fi
 }
 
@@ -56,13 +83,13 @@ build_branch_name() {
   local slug
   slug="$(slugify "$title")"
   # Prefix is "<type>/<number>-", keep total under ~50 chars
-  local prefix_len=$(( ${#branch_type} + 1 + ${#issue_number} + 1 ))
-  local max_slug=$(( 50 - prefix_len ))
+  local prefix_len=$((${#branch_type} + 1 + ${#issue_number} + 1))
+  local max_slug=$((50 - prefix_len))
   if [[ $max_slug -lt 5 ]]; then
     max_slug=5
   fi
   slug="${slug:0:$max_slug}"
-  slug="${slug%-}"  # trim trailing dash from truncation
+  slug="${slug%-}" # trim trailing dash from truncation
   printf '%s/%s-%s' "$branch_type" "$issue_number" "$slug"
 }
 
@@ -76,25 +103,23 @@ create_issue_state() {
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   local json
   json="$(jq -n \
-    --arg type         "issue" \
-    --arg phase        "setup" \
-    --arg branch       "$branch" \
-    --arg wt_path      "$wt_path" \
-    --arg session_id   "" \
-    --arg pr_url       "" \
+    --arg type "issue" \
+    --arg phase "setup" \
+    --arg branch "$branch" \
+    --arg wt_path "$wt_path" \
+    --arg session_id "" \
+    --arg pr_url "" \
     --arg issue_number "$issue_number" \
-    --arg issue_title  "$issue_title" \
-    --arg issue_body   "$issue_body" \
-    --arg started_at   "$timestamp" \
-    --arg updated_at   "$timestamp" \
+    --arg issue_title "$issue_title" \
+    --arg issue_body "$issue_body" \
+    --arg started_at "$timestamp" \
+    --arg updated_at "$timestamp" \
     '{type: $type, phase: $phase, branch: $branch, wt_path: $wt_path,
       session_id: $session_id, pr_url: $pr_url,
       issue_number: $issue_number, issue_title: $issue_title, issue_body: $issue_body,
       started_at: $started_at, updated_at: $updated_at}')"
   write_state "$json" "$wt_path"
 }
-
-
 
 # ── Worktree picker (no-arg mode) ───────────────────────────────────────────
 
@@ -143,8 +168,8 @@ pick_worktree() {
 
   # Build combined menu
   local -a menu_items=()
-  local -a menu_types=()  # "worktree" or "issue"
-  local -a menu_ids=()    # wt index or issue number
+  local -a menu_types=() # "worktree" or "issue"
+  local -a menu_ids=()   # wt index or issue number
 
   # Add existing worktrees first
   local i
@@ -414,7 +439,7 @@ phase_claude_running() {
 phase_claude_exited() {
   local wt_path="$1"
 
-  _RESUME_DEPTH=$(( ${_RESUME_DEPTH:-0} + 1 ))
+  _RESUME_DEPTH=$((${_RESUME_DEPTH:-0} + 1))
   if [[ $_RESUME_DEPTH -gt 5 ]]; then
     warn "resumed 5 times without committing -- exiting to avoid deep recursion"
     info "worktree preserved, run the command again to resume"

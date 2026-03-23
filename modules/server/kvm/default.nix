@@ -1,8 +1,15 @@
-{ globals, pkgs, config, lib, ... }:
+{
+  globals,
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 let
   cfg = config.server.kvm;
 
-in {
+in
+{
 
   options = {
     server.kvm = {
@@ -27,13 +34,21 @@ in {
 
         internalInterfaces = lib.mkOption {
           type = lib.types.listOf lib.types.str;
-          default = [ "virbr1" "virbr2" "virbr3" "virbr4" "virbr5" "virbr6" "virbr7" ];
+          default = [
+            "virbr1"
+            "virbr2"
+            "virbr3"
+            "virbr4"
+            "virbr5"
+            "virbr6"
+            "virbr7"
+          ];
           description = "List of KVM bridge interfaces for internal networks.";
         };
 
         proxyArpInterfaces = lib.mkOption {
           type = lib.types.listOf lib.types.str;
-          default = [];
+          default = [ ];
           description = "List of interfaces to enable proxy ARP on.";
         };
       };
@@ -58,13 +73,28 @@ in {
     ];
 
     # Add user to libvirtd group
-    users.users."${globals.user.name}".extraGroups =
-      [ "libvirtd" "qemu" "kvm" "qemu-libvirtd" "lxd" ];
+    users.users."${globals.user.name}".extraGroups = [
+      "libvirtd"
+      "qemu"
+      "kvm"
+      "qemu-libvirtd"
+      "lxd"
+    ];
 
     virtualisation = {
       libvirtd = {
         enable = true;
-        allowedBridges = [ "virbr0" "br0" "virbr1" "virbr2" "virbr3" "virbr4" "virbr5" "virbr6" "virbr7" ];
+        allowedBridges = [
+          "virbr0"
+          "br0"
+          "virbr1"
+          "virbr2"
+          "virbr3"
+          "virbr4"
+          "virbr5"
+          "virbr6"
+          "virbr7"
+        ];
         onBoot = "start";
         onShutdown = "suspend";
         # https://github.com/tompreston/qemu-ovmf-swtpm
@@ -80,18 +110,23 @@ in {
     };
 
     # Optional routing configuration
-    boot.kernel.sysctl = lib.mkIf cfg.routing.enable ({
-      # Enable IP forwarding
-      "net.ipv4.ip_forward" = 1;
-      # controls whether packets traversing a Linux bridge will be passed through iptables' FORWARD chain. When set to 1 (enabled), it allows iptables rules to affect bridged (as opposed to just routed) traffic.
-      "net.bridge.bridge-nf-call-iptables" = 1;
-      "net.ipv4.conf.all.forwarding" = 1;
-      "net.ipv6.conf.all.forwarding" = 1;
-      "net.ipv4.conf.all.proxy_arp" = lib.mkIf (cfg.routing.proxyArpInterfaces != []) 1;
-    } // lib.listToAttrs (map (iface: {
-      name = "net.ipv4.conf.${iface}.proxy_arp";
-      value = 1;
-    }) cfg.routing.proxyArpInterfaces));
+    boot.kernel.sysctl = lib.mkIf cfg.routing.enable (
+      {
+        # Enable IP forwarding
+        "net.ipv4.ip_forward" = 1;
+        # controls whether packets traversing a Linux bridge will be passed through iptables' FORWARD chain. When set to 1 (enabled), it allows iptables rules to affect bridged (as opposed to just routed) traffic.
+        "net.bridge.bridge-nf-call-iptables" = 1;
+        "net.ipv4.conf.all.forwarding" = 1;
+        "net.ipv6.conf.all.forwarding" = 1;
+        "net.ipv4.conf.all.proxy_arp" = lib.mkIf (cfg.routing.proxyArpInterfaces != [ ]) 1;
+      }
+      // lib.listToAttrs (
+        map (iface: {
+          name = "net.ipv4.conf.${iface}.proxy_arp";
+          value = 1;
+        }) cfg.routing.proxyArpInterfaces
+      )
+    );
 
     networking = lib.mkIf cfg.routing.enable {
       nat = {
@@ -118,4 +153,3 @@ in {
 
   };
 }
-

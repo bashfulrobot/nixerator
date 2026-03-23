@@ -21,15 +21,15 @@ create_hack_state() {
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   local json
   json="$(jq -n \
-    --arg type        "hack" \
-    --arg phase       "setup" \
-    --arg branch      "$branch" \
-    --arg wt_path     "$wt_path" \
-    --arg session_id  "" \
-    --arg pr_url      "" \
+    --arg type "hack" \
+    --arg phase "setup" \
+    --arg branch "$branch" \
+    --arg wt_path "$wt_path" \
+    --arg session_id "" \
+    --arg pr_url "" \
     --arg description "$description" \
-    --arg started_at  "$timestamp" \
-    --arg updated_at  "$timestamp" \
+    --arg started_at "$timestamp" \
+    --arg updated_at "$timestamp" \
     '{type: $type, phase: $phase, branch: $branch, wt_path: $wt_path,
       session_id: $session_id, pr_url: $pr_url, description: $description,
       started_at: $started_at, updated_at: $updated_at}')"
@@ -291,7 +291,7 @@ phase_claude_running() {
 phase_claude_exited() {
   local wt_path="$1"
 
-  _RESUME_DEPTH=$(( ${_RESUME_DEPTH:-0} + 1 ))
+  _RESUME_DEPTH=$((${_RESUME_DEPTH:-0} + 1))
   if [[ $_RESUME_DEPTH -gt 5 ]]; then
     warn "resumed 5 times without committing -- exiting to avoid deep recursion"
     info "worktree preserved, run the command again to resume"

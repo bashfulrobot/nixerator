@@ -17,8 +17,8 @@
 
 ## Progress
 
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 1. Foundation | v1.0 | 2/2 | Complete | 2026-03-11 |
-| 2. github-issue Workflow | v1.0 | 2/2 | Complete | 2026-03-12 |
-| 3. hack Workflow | v1.0 | 1/1 | Complete | 2026-03-12 |
+| Phase                    | Milestone | Plans Complete | Status   | Completed  |
+| ------------------------ | --------- | -------------- | -------- | ---------- |
+| 1. Foundation            | v1.0      | 2/2            | Complete | 2026-03-11 |
+| 2. github-issue Workflow | v1.0      | 2/2            | Complete | 2026-03-12 |
+| 3. hack Workflow         | v1.0      | 1/1            | Complete | 2026-03-12 |

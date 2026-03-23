@@ -10,7 +10,7 @@
       efi.canTouchEfiVariables = true;
       systemd-boot = {
         enable = true;
-        consoleMode = "max";  # Ensure Windows and other OSes are found in boot menu
+        consoleMode = "max"; # Ensure Windows and other OSes are found in boot menu
         netbootxyz.enable = false;
       };
     };
@@ -30,6 +30,11 @@
     kernelPackages = pkgs.linuxPackages_zen;
 
     # Additional kernel modules for USB and Bluetooth
-    kernelModules = [ "usb" "xhci_hcd" "btusb" "bluetooth" ];
+    kernelModules = [
+      "usb"
+      "xhci_hcd"
+      "btusb"
+      "bluetooth"
+    ];
   };
 }

@@ -18,7 +18,7 @@
         # The device will be set up by disko
         # This just enables kernel support and prompts for password
         preLVM = true;
-        allowDiscards = true;  # Important for SSD TRIM support
+        allowDiscards = true; # Important for SSD TRIM support
       };
 
       # NixOS will auto-detect required kernel modules for LUKS/LVM

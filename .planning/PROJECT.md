@@ -39,17 +39,17 @@ Tech stack: Bash (writeShellApplication), gum, gh, jq, git-crypt, NixOS/home-man
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Manual `git worktree add` over `EnterWorktree` | Full control over branch naming, worktree path, and state file location | Good |
-| New standalone module, not in claude-code | Separation of concerns; worktree flow is its own tool | Good |
-| gum for interactive UI | Already a dependency (gcmt uses it), rich terminal UI | Good |
-| Local merge for `hack`, GitHub PR for `github-issue` | Different review needs: quick ad-hoc vs collaborative issue work | Good |
-| State file in worktree root | Survives context compression, enables resume from any step | Good |
-| lib.sh inlined via builtins.readFile | Each command gets its own copy at build time; avoids runtime path issues | Good |
-| SKILL.md owned by worktree-flow module | Self-contained; deployed via home.file builtins.readFile | Good |
-| Numeric start index for phase_resume | Avoids bash ;;& fall-through pitfalls for reliable sequential phase execution | Good |
-| Combined push+PR into single phase | Avoids partial-state window where push succeeds but PR fails | Good |
+| Decision                                             | Rationale                                                                     | Outcome |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- | ------- |
+| Manual `git worktree add` over `EnterWorktree`       | Full control over branch naming, worktree path, and state file location       | Good    |
+| New standalone module, not in claude-code            | Separation of concerns; worktree flow is its own tool                         | Good    |
+| gum for interactive UI                               | Already a dependency (gcmt uses it), rich terminal UI                         | Good    |
+| Local merge for `hack`, GitHub PR for `github-issue` | Different review needs: quick ad-hoc vs collaborative issue work              | Good    |
+| State file in worktree root                          | Survives context compression, enables resume from any step                    | Good    |
+| lib.sh inlined via builtins.readFile                 | Each command gets its own copy at build time; avoids runtime path issues      | Good    |
+| SKILL.md owned by worktree-flow module               | Self-contained; deployed via home.file builtins.readFile                      | Good    |
+| Numeric start index for phase_resume                 | Avoids bash ;;& fall-through pitfalls for reliable sequential phase execution | Good    |
+| Combined push+PR into single phase                   | Avoids partial-state window where push succeeds but PR fails                  | Good    |
 
 ## Constraints
 
@@ -61,4 +61,5 @@ Tech stack: Bash (writeShellApplication), gum, gh, jq, git-crypt, NixOS/home-man
 - **Nix conventions**: `nix fmt`, `statix`, `deadnix` before committing
 
 ---
-*Last updated: 2026-03-12 after v1.0 milestone*
+
+_Last updated: 2026-03-12 after v1.0 milestone_

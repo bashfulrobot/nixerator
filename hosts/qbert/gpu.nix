@@ -12,7 +12,7 @@
     # Enable graphics hardware acceleration
     graphics = {
       enable = true;
-      enable32Bit = true;  # Required for 32-bit applications and games
+      enable32Bit = true; # Required for 32-bit applications and games
     };
 
     # Load AMDGPU driver early for proper resolution during boot

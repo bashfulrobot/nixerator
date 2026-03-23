@@ -3,7 +3,7 @@
 # Output the learning mode instructions as additionalContext
 # This combines the unshipped Learning output style with explanatory functionality
 
-cat << 'EOF'
+cat <<'EOF'
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",

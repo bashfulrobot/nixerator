@@ -1,4 +1,10 @@
-{ globals, lib, config, pkgs, ... }:
+{
+  globals,
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.apps.cli.pandoc;
@@ -15,17 +21,19 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
       pandoc
-      (texliveSmall.withPackages (ps: with ps; [
-        # Core LaTeX packages for pandoc PDF generation
-        collection-fontsrecommended
-        collection-latexrecommended
-        fancyvrb
-        booktabs
-        etoolbox
-        mdwtools
-        footmisc
-        xcolor
-      ]))
+      (texliveSmall.withPackages (
+        ps: with ps; [
+          # Core LaTeX packages for pandoc PDF generation
+          collection-fontsrecommended
+          collection-latexrecommended
+          fancyvrb
+          booktabs
+          etoolbox
+          mdwtools
+          footmisc
+          xcolor
+        ]
+      ))
     ];
 
     # Fish function for markdown to PDF conversion

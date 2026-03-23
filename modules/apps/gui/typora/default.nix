@@ -1,4 +1,10 @@
-{ pkgs, config, lib, globals, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  globals,
+  ...
+}:
 
 let
   cfg = config.apps.gui.typora;
@@ -19,11 +25,14 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [
-      typora
-    ] ++ lib.optionals cfg.nautilusIntegration [
-      nautilus-python
-    ];
+    environment.systemPackages =
+      with pkgs;
+      [
+        typora
+      ]
+      ++ lib.optionals cfg.nautilusIntegration [
+        nautilus-python
+      ];
 
     home-manager.users.${globals.user.name} = {
       home.file = lib.mkIf cfg.nautilusIntegration {

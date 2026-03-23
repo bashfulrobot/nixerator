@@ -1,4 +1,10 @@
-{ lib, config, pkgs, globals, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  globals,
+  ...
+}:
 
 let
   cfg = config.dev.go;

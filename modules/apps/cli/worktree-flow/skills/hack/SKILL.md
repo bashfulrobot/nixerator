@@ -5,6 +5,7 @@
 Format: `<type>(<scope>): <emoji> <description>`
 
 Rules:
+
 - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert
 - Scope (REQUIRED): lowercase, kebab-case module name
 - Emoji: single emoji after colon+space
@@ -13,6 +14,7 @@ Rules:
 - Do NOT add Co-Authored-By lines
 
 Examples:
+
 - `feat(fish): :sparkles: add zoxide integration`
 - `refactor(nix): :recycle: simplify module imports`
 

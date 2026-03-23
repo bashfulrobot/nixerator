@@ -5,48 +5,57 @@
 **Confidence:** HIGH
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
 
 **Reject behavior**
+
 - On reject: always preserve the worktree, never offer to delete
 - Print the worktree path and a resume hint: "Run `hack \"<description>\"` again to review"
 - No re-launch prompt on reject; user decides when to come back
 
 **Resume and re-invocation**
+
 - Match existing worktrees by slug: `hack "add rate limiting"` finds `hack-add-rate-limiting` worktree
 - Same pattern as github-issue: show state summary, gum choose Resume/Remove/Abort
 - On resume from diff_review phase: always show the diff again before approve/reject (user may have forgotten)
 
 **Approve and cleanup**
+
 - After approval: auto-delete worktree silently (no confirmation prompt)
 - Delete the hack branch after successful merge (clean slate, matches github-issue cleanup)
 - Fast-forward merge only; no force merge or rebase
 
 **Claude prompt**
+
 - Pass SKILL.md (commit conventions) + description string in the `-p` prompt
 - Same SKILL.md as github-issue (consistent commit style across both commands)
 - Let Claude discover CLAUDE.md naturally (it reads it automatically)
 - Single argument only: the description string. No --file or extra flags
 
 ### Claude's Discretion
+
 - Merge failure handling (what to do when fast-forward fails)
 - Diff presentation details (coloring, format passed to gum pager)
 - Exact prompt wording and structure
 
 ### Deferred Ideas (OUT OF SCOPE)
+
 None -- discussion stayed within phase scope
 </user_constraints>
 
 <phase_requirements>
+
 ## Phase Requirements
 
-| ID | Description | Research Support |
-|----|-------------|-----------------|
-| RF-03 | hack flow presents diff via gum pager for review | `gum pager` accepts content via stdin or positional arg; `git diff --color=always` produces color-compatible output; documented below |
-| RF-04 | hack flow prompts approve/reject via gum confirm | `gum confirm` exit codes: 0=Yes, 1=No, 130=Ctrl+C; all three must be handled under `set -e` |
-| RF-05 | hack flow merges to default branch locally on approval (fast-forward only) | `git merge --ff-only <branch>` verified in git 2.53.0; must be run from repo root, not worktree |
+| ID    | Description                                                                | Research Support                                                                                                                      |
+| ----- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| RF-03 | hack flow presents diff via gum pager for review                           | `gum pager` accepts content via stdin or positional arg; `git diff --color=always` produces color-compatible output; documented below |
+| RF-04 | hack flow prompts approve/reject via gum confirm                           | `gum confirm` exit codes: 0=Yes, 1=No, 130=Ctrl+C; all three must be handled under `set -e`                                           |
+| RF-05 | hack flow merges to default branch locally on approval (fast-forward only) | `git merge --ff-only <branch>` verified in git 2.53.0; must be run from repo root, not worktree                                       |
+
 </phase_requirements>
 
 ## Summary
@@ -62,13 +71,14 @@ The three new behaviors unique to this phase (RF-03, RF-04, RF-05) each have wel
 ## Standard Stack
 
 ### Core
-| Library | Version | Purpose | Why Standard |
-|---------|---------|---------|--------------|
-| pkgs.gum | nixpkgs | `gum pager` for diff display, `gum confirm` for approve/reject, `gum choose` for resume menu | Already in runtimeInputs |
-| pkgs.git | nixpkgs (2.53.0) | `git diff`, `git merge --ff-only`, `git worktree remove`, `git branch -d` | Already in runtimeInputs |
-| pkgs.llm-agents.claude-code | current | `claude -p` launch in worktree | Must be added to hack-cmd runtimeInputs (currently missing) |
-| pkgs.jq | nixpkgs | State file read/write | Already in runtimeInputs |
-| pkgs.coreutils | nixpkgs | `mktemp` for atomic writes | Already in runtimeInputs |
+
+| Library                     | Version          | Purpose                                                                                      | Why Standard                                                |
+| --------------------------- | ---------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| pkgs.gum                    | nixpkgs          | `gum pager` for diff display, `gum confirm` for approve/reject, `gum choose` for resume menu | Already in runtimeInputs                                    |
+| pkgs.git                    | nixpkgs (2.53.0) | `git diff`, `git merge --ff-only`, `git worktree remove`, `git branch -d`                    | Already in runtimeInputs                                    |
+| pkgs.llm-agents.claude-code | current          | `claude -p` launch in worktree                                                               | Must be added to hack-cmd runtimeInputs (currently missing) |
+| pkgs.jq                     | nixpkgs          | State file read/write                                                                        | Already in runtimeInputs                                    |
+| pkgs.coreutils              | nixpkgs          | `mktemp` for atomic writes                                                                   | Already in runtimeInputs                                    |
 
 ### runtimeInputs change for Phase 3
 
@@ -93,11 +103,12 @@ hack-cmd = pkgs.writeShellApplication {
 ```
 
 ### Alternatives Considered
-| Instead of | Could Use | Tradeoff |
-|------------|-----------|----------|
-| `gum pager` for diff | `less` | gum pager is already a dep; consistent with rest of UI; no need for `less` in runtimeInputs |
+
+| Instead of                   | Could Use                  | Tradeoff                                                                                                         |
+| ---------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `gum pager` for diff         | `less`                     | gum pager is already a dep; consistent with rest of UI; no need for `less` in runtimeInputs                      |
 | `git diff <base>...<branch>` | `git diff <base> <branch>` | Three-dot form shows all commits on branch since divergence from base; correct for showing "what Claude changed" |
-| `git merge --ff-only` | `git rebase` | ff-only preserves linear history; matches stated requirement RF-05; rebase rewrites commits (not desired) |
+| `git merge --ff-only`        | `git rebase`               | ff-only preserves linear history; matches stated requirement RF-05; rebase rewrites commits (not desired)        |
 
 ## Architecture Patterns
 
@@ -217,6 +228,7 @@ phase_diff_review() {
 **Critical:** Under `set -e`, a bare `gum confirm` that exits 1 (No) kills the script. Must use `if` form or explicit exit code capture.
 
 **Verified exit codes:**
+
 - `gum confirm` exits 0 for Yes (affirmative)
 - `gum confirm` exits 1 for No (negative, from --negative button)
 - `gum confirm` exits 130 for Ctrl+C (SIGINT caught by gum)
@@ -377,48 +389,54 @@ phase_resume() {
 
 ## Don't Hand-Roll
 
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
-| Diff display with paging | Custom less invocation, custom scroll logic | `git diff ... \| gum pager` | gum pager is already in runtimeInputs; handles ANSI colors, keyboard nav |
-| Approve/Reject prompt | `read` + echo + case statement | `gum confirm` | Already a dep; handles keyboard, consistent UI, returns clean exit codes |
-| Merge fast-forward detection | git log comparison, ref parsing | `git merge --ff-only` (non-zero on failure) | Single command; git handles all edge cases including empty merges |
-| State field reads | grep + awk on JSON | `read_state_field` from lib.sh | Already implemented; atomic, tested |
+| Problem                      | Don't Build                                 | Use Instead                                 | Why                                                                      |
+| ---------------------------- | ------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------ |
+| Diff display with paging     | Custom less invocation, custom scroll logic | `git diff ... \| gum pager`                 | gum pager is already in runtimeInputs; handles ANSI colors, keyboard nav |
+| Approve/Reject prompt        | `read` + echo + case statement              | `gum confirm`                               | Already a dep; handles keyboard, consistent UI, returns clean exit codes |
+| Merge fast-forward detection | git log comparison, ref parsing             | `git merge --ff-only` (non-zero on failure) | Single command; git handles all edge cases including empty merges        |
+| State field reads            | grep + awk on JSON                          | `read_state_field` from lib.sh              | Already implemented; atomic, tested                                      |
 
 **Key insight:** All interactive prompts go through `gum`. All git operations go through standard git commands. The script is pure orchestration -- no custom protocol logic.
 
 ## Common Pitfalls
 
 ### Pitfall 1: gum confirm preserving worktree on reject
+
 **What goes wrong:** On reject, `gum confirm` exits 1. Script hits `else` branch and calls `exit 0`. EXIT trap fires and removes the worktree the user wanted to keep.
 **Why it happens:** `register_cleanup` was called during setup and sets `_WT_CLEANUP_PATH`. The cleanup function removes the worktree on any EXIT.
 **How to avoid:** In the reject branch, set `_WT_CLEANUP_PATH=""` BEFORE calling `exit 0`. This disables the cleanup trap for this exit.
 **Warning signs:** Worktree directory missing after running `hack` and selecting No.
 
 ### Pitfall 2: git merge from wrong directory
+
 **What goes wrong:** `git merge --ff-only hack/slug` runs from the worktree directory. This merges into the worktree's own branch, not main. Or git refuses because HEAD is already on the hack branch.
 **Why it happens:** git commands use CWD's git context.
 **How to avoid:** Always `cd "$(git -C "$wt_path" rev-parse --show-toplevel)"` before the merge sequence.
 **Warning signs:** "Already up to date" message when merge should have applied commits.
 
 ### Pitfall 3: gum confirm exit 130 (Ctrl+C) not handled as reject
+
 **What goes wrong:** Ctrl+C during gum confirm sends SIGINT, gum exits 130. Under `set -e` with bare call, script dies without cleanup. With `if` form, 130 falls into `else` -- which is correct (treat as reject, preserve worktree).
 **Why it happens:** SIGINT is a separate exit code from explicit No.
 **How to avoid:** The `if gum confirm ...; then ... else ...; fi` pattern naturally handles all non-zero exits including 130 as the reject case. This is the correct behavior.
 **Warning signs:** Ctrl+C during confirm prompt either kills script abruptly (bare call) or (with if form) correctly preserves worktree.
 
 ### Pitfall 4: Diff shows nothing (no commits yet)
+
 **What goes wrong:** `git diff main...hack/slug` shows empty output if Claude made no commits. gum pager shows blank screen.
 **Why it happens:** `phase_claude_exited` checks for changes before advancing, but only checks working tree status. If Claude committed nothing and left no staged/unstaged changes, phase_claude_exited exits early. However if Claude committed only (no uncommitted changes), the diff check passes but diff output is the commits.
 **How to avoid:** `phase_claude_exited` already handles the no-changes case. No special handling needed in diff_review for empty diff -- if we reach diff_review, there are commits.
 **Warning signs:** Blank gum pager screen. This means phase_claude_exited logic has a gap.
 
 ### Pitfall 5: Resume from diff_review shows stale diff
+
 **What goes wrong:** User resumed, saw diff once, ctrl+C'd, resumes again. On second resume, diff_review runs from `start=2` (claude_exited phase), which calls `phase_claude_exited` again then `phase_diff_review`. This is correct and re-shows the diff.
 **Why it happens:** The locked decision says "always show diff again on resume from diff_review."
 **How to avoid:** Map `diff_review` to `start=2` in phase_resume, not `start=3`. This ensures phase_claude_exited runs (checks for changes again) then diff_review runs (shows diff again).
 **Warning signs:** Resume skips directly to merge prompt without showing diff.
 
 ### Pitfall 6: Fast-forward fails after reject+edit cycle
+
 **What goes wrong:** User rejects, edits the worktree manually, pushes, or the default branch advances. Fast-forward is no longer possible.
 **Why it happens:** The hack branch and default branch have diverged.
 **How to avoid:** This is Claude's Discretion per CONTEXT.md. Recommended: print a clear error, preserve the worktree, suggest manual resolution steps (`git rebase` or `git merge` in the worktree).
@@ -429,6 +447,7 @@ phase_resume() {
 Verified patterns from official sources and the installed toolchain:
 
 ### Diff to gum pager
+
 ```bash
 # Source: gum pager --help (installed), git 2.53.0
 # --color=always: force ANSI even when stdout is not a TTY
@@ -438,6 +457,7 @@ git -C "$wt_path" diff --color=always "${default_br}...${branch}" \
 ```
 
 ### gum confirm pattern (all exit codes handled)
+
 ```bash
 # Source: gum confirm --help (installed); SF-04 pattern from lib.sh
 # Exit 0: Yes. Exit 1: No. Exit 130: Ctrl+C (also treated as No/preserve).
@@ -455,6 +475,7 @@ fi
 ```
 
 ### git merge ff-only with failure handling
+
 ```bash
 # Source: git 2.53.0 --help verified
 local repo_root
@@ -469,6 +490,7 @@ fi
 ```
 
 ### Claude prompt for hack workflow
+
 ```bash
 # Source: CONTEXT.md locked decisions; SKILL.md at ~/.claude/skills/github-issue/SKILL.md
 local skill_path="$HOME/.claude/skills/github-issue/SKILL.md"
@@ -482,6 +504,7 @@ prompt="$(printf 'You are working in worktree %s on branch %s.\n\nTask: %s\n\n%s
 ```
 
 ### handle_existing_worktree adapted for hack
+
 ```bash
 # Identical pattern to github-issue.sh but uses description field
 handle_existing_worktree() {
@@ -509,14 +532,15 @@ handle_existing_worktree() {
 
 ## State of the Art
 
-| Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|--------------|--------|
-| Stub with echo annotations | Full workflow: worktree, Claude, diff review, local merge | Phase 3 | Functional end-to-end hack command |
-| hack-cmd missing claude-code | `llm-agents.claude-code` added to runtimeInputs | Phase 3 | Claude launch works |
-| No diff review | `git diff ... \| gum pager` + `gum confirm` | Phase 3 | RF-03 and RF-04 satisfied |
-| No local merge | `git merge --ff-only` from repo root | Phase 3 | RF-05 satisfied |
+| Old Approach                 | Current Approach                                          | When Changed | Impact                             |
+| ---------------------------- | --------------------------------------------------------- | ------------ | ---------------------------------- |
+| Stub with echo annotations   | Full workflow: worktree, Claude, diff review, local merge | Phase 3      | Functional end-to-end hack command |
+| hack-cmd missing claude-code | `llm-agents.claude-code` added to runtimeInputs           | Phase 3      | Claude launch works                |
+| No diff review               | `git diff ... \| gum pager` + `gum confirm`               | Phase 3      | RF-03 and RF-04 satisfied          |
+| No local merge               | `git merge --ff-only` from repo root                      | Phase 3      | RF-05 satisfied                    |
 
 **Deprecated/outdated:**
+
 - The stub hack.sh: replaced entirely by the full implementation.
 
 ## Open Questions
@@ -539,34 +563,39 @@ handle_existing_worktree() {
 ## Validation Architecture
 
 ### Test Framework
-| Property | Value |
-|----------|-------|
-| Framework | None -- Nix module; validation is rebuild success + manual smoke tests |
-| Config file | N/A |
-| Quick run command | `just quiet-rebuild` |
-| Full suite command | `just quiet-rebuild` + `hack --help` exits 0 |
+
+| Property           | Value                                                                  |
+| ------------------ | ---------------------------------------------------------------------- |
+| Framework          | None -- Nix module; validation is rebuild success + manual smoke tests |
+| Config file        | N/A                                                                    |
+| Quick run command  | `just quiet-rebuild`                                                   |
+| Full suite command | `just quiet-rebuild` + `hack --help` exits 0                           |
 
 ### Phase Requirements to Test Map
-| Req ID | Behavior | Test Type | Automated Command | File Exists? |
-|--------|----------|-----------|-------------------|-------------|
-| RF-03 | `hack "desc"` shows diff in gum pager after Claude exits | smoke | Manual: run in test repo, verify pager appears | Wave 0 |
-| RF-04 | Approve/reject prompt appears; reject preserves worktree | smoke | Manual: select No, verify worktree dir survives | Wave 0 |
-| RF-05 | Approve fast-forward merges to default branch | smoke | Manual: select Yes, verify `git log` on default branch | Wave 0 |
+
+| Req ID | Behavior                                                 | Test Type | Automated Command                                      | File Exists? |
+| ------ | -------------------------------------------------------- | --------- | ------------------------------------------------------ | ------------ |
+| RF-03  | `hack "desc"` shows diff in gum pager after Claude exits | smoke     | Manual: run in test repo, verify pager appears         | Wave 0       |
+| RF-04  | Approve/reject prompt appears; reject preserves worktree | smoke     | Manual: select No, verify worktree dir survives        | Wave 0       |
+| RF-05  | Approve fast-forward merges to default branch            | smoke     | Manual: select Yes, verify `git log` on default branch | Wave 0       |
 
 ### Sampling Rate
+
 - **Per task commit:** `just quiet-rebuild` (Nix syntax + shellcheck via writeShellApplication)
 - **Per wave merge:** `just quiet-rebuild` + `hack --help` exits 0
 - **Phase gate:** Manual smoke test -- run `hack "test task"` in a clean test repo, exercise both approve and reject paths
 
 ### Wave 0 Gaps
+
 - [ ] `modules/apps/cli/worktree-flow/scripts/hack.sh` -- replace stub with full implementation
 - [ ] `modules/apps/cli/worktree-flow/default.nix` -- add `llm-agents.claude-code` to hack-cmd runtimeInputs
 
-*(No new test framework needed -- rebuild is the automated gate)*
+_(No new test framework needed -- rebuild is the automated gate)_
 
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/lib.sh` -- verified all shared primitives available for reuse
 - `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/github-issue.sh` -- full reference implementation; patterns directly applicable
 - `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/hack.sh` -- current stub to be replaced
@@ -578,15 +607,18 @@ handle_existing_worktree() {
 - `.planning/phases/03-hack-workflow/03-CONTEXT.md` -- locked decisions verified
 
 ### Secondary (MEDIUM confidence)
+
 - Phase 2 RESEARCH.md patterns -- `CLAUDECODE` pitfall, gum exit codes, `_WT_CLEANUP_PATH` pattern all verified empirically in Phase 2
 - `gum pager` ANSI rendering -- expected to work based on Bubble Tea framework behavior; not directly tested
 
 ### Tertiary (LOW confidence)
+
 - gum pager rendering of `--color=always` ANSI codes -- assumed compatible; validate during smoke test
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH -- all tools verified against installed versions; only change is adding claude-code to runtimeInputs
 - Architecture: HIGH -- direct adaptation of github-issue.sh with well-understood phase swap
 - gum pager/confirm behavior: HIGH -- verified against installed gum via --help flags and exit code docs

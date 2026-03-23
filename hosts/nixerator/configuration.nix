@@ -5,8 +5,8 @@
   # You'll need to generate this with: nixos-generate-config --show-hardware-config > hosts/nixerator/hardware-configuration.nix
   imports = [
     ./hardware-configuration.nix
-    ./boot.nix  # Bootloader configuration (update based on your system)
-    ./vm.nix    # VM-specific configuration (comment out for bare metal)
+    ./boot.nix # Bootloader configuration (update based on your system)
+    ./vm.nix # VM-specific configuration (comment out for bare metal)
 
     # Auto-import all modules
     ../../modules

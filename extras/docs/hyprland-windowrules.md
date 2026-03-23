@@ -22,24 +22,24 @@ windowrule {
 
 **Common match fields:**
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| `match:class` | Window class (regex) | `^([Mm]orgen)$` |
-| `match:title` | Window title (regex) | `^Settings$` |
-| `match:xwayland` | XWayland window | `true` |
-| `match:float` | Floating state | `false` |
-| `match:workspace` | Workspace match | `w[tv1]` |
+| Field             | Description          | Example         |
+| ----------------- | -------------------- | --------------- |
+| `match:class`     | Window class (regex) | `^([Mm]orgen)$` |
+| `match:title`     | Window title (regex) | `^Settings$`    |
+| `match:xwayland`  | XWayland window      | `true`          |
+| `match:float`     | Floating state       | `false`         |
+| `match:workspace` | Workspace match      | `w[tv1]`        |
 
 **Common rule fields:**
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| `tile` | Force tiling | `on` |
-| `float` | Force floating | `on` |
-| `opacity` | Window opacity | `0.9 0.8` |
-| `move` | Position | `20 monitor_h-120` |
-| `size` | Window size | `800 600` |
-| `suppress_event` | Suppress events | `maximize` |
+| Field            | Description     | Example            |
+| ---------------- | --------------- | ------------------ |
+| `tile`           | Force tiling    | `on`               |
+| `float`          | Force floating  | `on`               |
+| `opacity`        | Window opacity  | `0.9 0.8`          |
+| `move`           | Position        | `20 monitor_h-120` |
+| `size`           | Window size     | `800 600`          |
+| `suppress_event` | Suppress events | `maximize`         |
 
 ## conf.d Pattern
 

@@ -1,4 +1,9 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.apps.gui.obsidian;
@@ -23,4 +28,3 @@ in
     ];
   };
 }
-
