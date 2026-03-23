@@ -229,7 +229,7 @@
             "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n[[ -f \"$file\" ]] || exit 0\n\n# Check version literals in build/default.nix files\nif [[ \"$file\" == */build/default.nix ]]; then\n  if grep -qE '\\''^\\s*version\\s*=\\s*\"'\\'' \"$file\"; then\n    echo \"[module-structure] ERROR: Hardcoded version literal in $file. Fix: versions should come from the '\\''versions'\\'' parameter (settings/versions.nix).\"\n    exit 1\n  fi\nfi\n\n# Only check module default.nix files under modules/\nif [[ \"$file\" != */modules/*/default.nix ]]; then\n  exit 0\nfi\n\n# Skip if file has no options block (not a module definition)\nif ! grep -q '\\''options\\.'\\'' \"$file\"; then\n  exit 0\nfi\n\n# Extract expected namespace from path: modules/<cat>/<subcat>/<name>/default.nix\nmod_path=$(echo \"$file\" | sed -n '\\''s|.*/modules/\\(.*\\)/default\\.nix|\\1|p'\\'')\nif [[ -z \"$mod_path\" ]]; then\n  exit 0\nfi\n# Convert path separators to dots for namespace\nnamespace=$(echo \"$mod_path\" | tr '\\''/'\\'' '\\''.'\\'')\n\n# Check enable option matches path\nif ! grep -q \"options\\.${namespace}\\.enable\" \"$file\"; then\n  echo \"[module-structure] ERROR: Module at $file defines options but is missing '\\''options.${namespace}.enable'\\''. Fix: add '\\''options.${namespace}.enable = lib.mkEnableOption \\\"...\\\";'\\''.\"\n  exit 1\nfi\n\n# Check config is wrapped in mkIf\nif ! grep -qE '\\''(lib\\.mkIf|mkIf)'\\'' \"$file\"; then\n  echo \"[module-structure] WARNING: Module at $file defines options but config is not wrapped in mkIf. Consider using '\\''config = lib.mkIf cfg.enable { ... };'\\''.\"\nfi\n'"
           }
         ]
-      },
+      }
     ],
     "SessionStart": [
       {
@@ -266,7 +266,7 @@
             "command": "bash -c 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0\ndefault_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed '\\''s|refs/remotes/origin/||'\\'')\ndefault_branch=\"${default_branch:-main}\"\n\nbranch=$(git rev-parse --abbrev-ref HEAD)\nfeature_branches=$(git branch --list --no-color | grep -v '\\''^\\*'\\'' | grep -vE \"^\\s*$default_branch$\" | sed '\\''s/^  //'\\'' || true)\n\nif [[ \"$branch\" == \"$default_branch\" ]]; then\n  if [[ -n \"$feature_branches\" ]]; then\n    echo \"[branch] On $default_branch. Feature branches available:\"\n    echo \"$feature_branches\" | while read -r b; do echo \"  - $b\"; done\n    echo \"Consider switching if one is relevant to your task.\"\n  else\n    echo \"[branch] On $default_branch. For non-trivial work, consider creating a feature branch.\"\n  fi\nelse\n  msg=\"[branch] On $branch.\"\n  counts=$(git rev-list --left-right --count \"$default_branch...$branch\" 2>/dev/null || true)\n  if [[ -n \"$counts\" ]]; then\n    behind=$(echo \"$counts\" | awk '\\''{print $1}'\\'')\n    ahead=$(echo \"$counts\" | awk '\\''{print $2}'\\'')\n    msg=\"$msg Ahead: $ahead, behind: $behind vs $default_branch.\"\n  fi\n  uncommitted=$(git status --porcelain 2>/dev/null | wc -l)\n  if [[ \"$uncommitted\" -gt 0 ]]; then\n    msg=\"$msg Uncommitted changes: $uncommitted files.\"\n  fi\n  echo \"$msg\"\nfi\n'"
           }
         ]
-      },
+      }
     ],
     "UserPromptSubmit": [
       {

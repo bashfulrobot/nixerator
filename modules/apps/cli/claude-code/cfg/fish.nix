@@ -85,10 +85,10 @@
           set -l skill_name (basename $skill_dir)
           set -l source_dir "$claude_dir/skills/$skill_name"
           if test -d "$source_dir"; and not test -L "$source_dir"
-            # Copy files, but skip any symlinks inside
+            # Copy files and dirs, but skip any symlinks inside
             for f in $source_dir/*
               if not test -L "$f"
-                cp "$f" "$config_dir/skills/$skill_name/"(basename $f)
+                cp -r "$f" "$config_dir/skills/$skill_name/"(basename $f)
                 echo "    $skill_name/"(basename $f)
               end
             end
