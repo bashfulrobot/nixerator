@@ -64,6 +64,9 @@ in
 
       # Desktop configuration - Desktop environment behavior
       desktop = {
+        # Use ghostty as the default terminal (overrides hyprflake's kitty default)
+        terminal.package = pkgs.ghostty;
+
         # Keyboard layout and variant
         keyboard = {
           layout = lib.mkDefault "us";
