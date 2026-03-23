@@ -41,7 +41,6 @@ in
       gemini-cli.enable = true;
       # termly: disabled
       # llmfit: removed
-      # openspec: disabled
       plannotator.enable = true;
       stop-slop.enable = true;
       superpowers.enable = true;
