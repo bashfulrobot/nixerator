@@ -55,12 +55,31 @@ in
           {
             editor = {
               line-number = "relative";
+              bufferline = "multiple";
+              soft-wrap.enable = true;
+              indent-guides.render = true;
               lsp.display-messages = true;
 
               cursor-shape = {
                 normal = "block";
                 insert = "bar";
                 select = "underline";
+              };
+
+              statusline = {
+                left = [
+                  "mode"
+                  "spinner"
+                  "file-name"
+                  "file-modification-indicator"
+                ];
+                center = [ "diagnostics" ];
+                right = [
+                  "selections"
+                  "position"
+                  "file-type"
+                  "file-encoding"
+                ];
               };
             };
           }
@@ -81,6 +100,11 @@ in
                 "nixd"
                 "statix"
               ];
+            }
+            {
+              name = "go";
+              auto-format = true;
+              language-servers = [ "gopls" ];
             }
             {
               name = "toml";
