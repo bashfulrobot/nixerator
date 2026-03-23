@@ -5,6 +5,7 @@ This reference provides examples of effective task breakdowns for different type
 ## Principles of Good Breakdowns
 
 **DO:**
+
 - Create tasks that are independently testable
 - Group related frontend/backend work logically
 - Include explicit testing and documentation tasks
@@ -12,6 +13,7 @@ This reference provides examples of effective task breakdowns for different type
 - Size tasks for 1-3 days of work typically
 
 **DON'T:**
+
 - Create overly granular tasks (e.g., "Write one function")
 - Make tasks too large (e.g., "Build entire feature")
 - Duplicate work across multiple tickets
@@ -20,6 +22,7 @@ This reference provides examples of effective task breakdowns for different type
 ## Example 1: New Feature - User Notifications System
 
 ### Spec Summary
+
 Add email and in-app notifications for user actions (comments, mentions, updates).
 
 ### Good Breakdown (8 tasks)
@@ -67,6 +70,7 @@ Add email and in-app notifications for user actions (comments, mentions, updates
    - Update user documentation
 
 ### Why This Works
+
 - Each task is independently completable
 - Clear separation between backend, frontend, and integration
 - Testing is explicit
@@ -77,6 +81,7 @@ Add email and in-app notifications for user actions (comments, mentions, updates
 ## Example 2: Bug Fix - Payment Processing Errors
 
 ### Spec Summary
+
 Users report intermittent payment failures. Investigation shows timeout issues with payment gateway and inadequate error handling.
 
 ### Good Breakdown (5 tasks)
@@ -109,6 +114,7 @@ Users report intermittent payment failures. Investigation shows timeout issues w
    - Document troubleshooting procedures
 
 ### Why This Works
+
 - Starts with investigation (important for bugs)
 - Addresses root cause and symptoms
 - Includes monitoring to prevent recurrence
@@ -119,6 +125,7 @@ Users report intermittent payment failures. Investigation shows timeout issues w
 ## Example 3: Infrastructure - Migration to New Database
 
 ### Spec Summary
+
 Migrate from PostgreSQL 12 to PostgreSQL 15, update queries to use new features, ensure zero downtime.
 
 ### Good Breakdown (7 tasks)
@@ -162,6 +169,7 @@ Migrate from PostgreSQL 12 to PostgreSQL 15, update queries to use new features,
    - Document lessons learned
 
 ### Why This Works
+
 - Emphasizes planning and validation
 - Includes explicit dry-run
 - Risk mitigation with rollback planning
@@ -172,6 +180,7 @@ Migrate from PostgreSQL 12 to PostgreSQL 15, update queries to use new features,
 ## Example 4: API Development - Public REST API
 
 ### Spec Summary
+
 Create public REST API for third-party integrations. Include authentication, rate limiting, and documentation.
 
 ### Good Breakdown (9 tasks)
@@ -224,6 +233,7 @@ Create public REST API for third-party integrations. Include authentication, rat
    - Document common integration patterns
 
 ### Why This Works
+
 - Separates authentication and rate limiting (critical infrastructure)
 - Groups endpoints by resource type
 - Documentation is a first-class task
@@ -234,6 +244,7 @@ Create public REST API for third-party integrations. Include authentication, rat
 ## Example 5: Frontend Redesign - Dashboard Modernization
 
 ### Spec Summary
+
 Redesign main dashboard with modern UI framework, improve performance, maintain feature parity.
 
 ### Good Breakdown (8 tasks)
@@ -281,6 +292,7 @@ Redesign main dashboard with modern UI framework, improve performance, maintain 
    - Plan gradual rollout strategy
 
 ### Why This Works
+
 - Foundation first (component library)
 - Groups by feature area (analytics, tables)
 - Performance and mobile are explicit tasks
@@ -291,37 +303,49 @@ Redesign main dashboard with modern UI framework, improve performance, maintain 
 ## Anti-Patterns to Avoid
 
 ### Too Granular
+
 ❌ **Bad:**
+
 - "Create User model"
-- "Create User controller"  
+- "Create User controller"
 - "Create User view"
 - "Write User tests"
 - "Update User documentation"
 
 ✅ **Better:**
+
 - "Implement User management feature (model, controller, views, tests)"
 
 ### Too Vague
+
 ❌ **Bad:**
+
 - "Do backend work"
 - "Fix frontend issues"
 - "Update database"
 
 ✅ **Better:**
+
 - "Implement user authentication API endpoints"
 - "Resolve navigation menu rendering bugs"
 - "Add indexes to orders table for query performance"
 
 ### Missing Testing
+
 ❌ **Bad:**
+
 - Only feature implementation tasks, no testing mentioned
 
 ✅ **Better:**
+
 - Include explicit testing tasks or ensure testing is part of each feature task
 
 ### No Clear Ownership
+
 ❌ **Bad:**
+
 - Tasks that require both frontend and backend work without clear boundaries
 
 ✅ **Better:**
+
 - Split into "Backend API for X" and "Frontend UI for X" when different people work on each

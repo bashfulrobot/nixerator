@@ -6,11 +6,14 @@ CYAN=$'\033[0;36m'
 BOLD=$'\033[1m'
 NC=$'\033[0m'
 
-info()    { printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"; }
-ok()      { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
-warn()    { printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC"; }
-die()     { printf '%s✖ %s%s\n' "$RED" "$*" "$NC" >&2; exit 1; }
-prompt()  { printf '%s%s%s' "$BOLD" "$*" "$NC"; }
+info() { printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"; }
+ok() { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
+warn() { printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC"; }
+die() {
+  printf '%s✖ %s%s\n' "$RED" "$*" "$NC" >&2
+  exit 1
+}
+prompt() { printf '%s%s%s' "$BOLD" "$*" "$NC"; }
 
 # ── Helpers ──────────────────────────────────────────────────────────
 require_git_repo() {
@@ -68,9 +71,15 @@ cmd_start() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -w|--worktree) use_worktree=true; shift ;;
-      -*)           die "unknown flag: $1" ;;
-      *)            branch_name="$1"; shift ;;
+      -w | --worktree)
+        use_worktree=true
+        shift
+        ;;
+      -*) die "unknown flag: $1" ;;
+      *)
+        branch_name="$1"
+        shift
+        ;;
     esac
   done
 
@@ -152,9 +161,12 @@ cmd_finish() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --squash) squash=true; shift ;;
-      -*)       die "unknown flag: $1" ;;
-      *)        die "unexpected argument: $1" ;;
+      --squash)
+        squash=true
+        shift
+        ;;
+      -*) die "unknown flag: $1" ;;
+      *) die "unexpected argument: $1" ;;
     esac
   done
 
@@ -320,8 +332,8 @@ command="$1"
 shift
 
 case "$command" in
-  start)  cmd_start "$@" ;;
+  start) cmd_start "$@" ;;
   finish) cmd_finish "$@" ;;
-  -h|--help|help) usage ;;
+  -h | --help | help) usage ;;
   *) die "unknown command: $command" ;;
 esac
