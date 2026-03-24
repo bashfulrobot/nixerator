@@ -24,13 +24,13 @@ cp "$REPO_ROOT/.opencode/plugins/superpowers.js" "$HOME/.config/opencode/superpo
 # Register plugin via symlink
 mkdir -p "$HOME/.config/opencode/plugins"
 ln -sf "$HOME/.config/opencode/superpowers/.opencode/plugins/superpowers.js" \
-       "$HOME/.config/opencode/plugins/superpowers.js"
+  "$HOME/.config/opencode/plugins/superpowers.js"
 
 # Create test skills in different locations for testing
 
 # Personal test skill
 mkdir -p "$HOME/.config/opencode/skills/personal-test"
-cat > "$HOME/.config/opencode/skills/personal-test/SKILL.md" <<'EOF'
+cat >"$HOME/.config/opencode/skills/personal-test/SKILL.md" <<'EOF'
 ---
 name: personal-test
 description: Test personal skill for verification
@@ -44,7 +44,7 @@ EOF
 
 # Create a project directory for project-level skill tests
 mkdir -p "$TEST_HOME/test-project/.opencode/skills/project-test"
-cat > "$TEST_HOME/test-project/.opencode/skills/project-test/SKILL.md" <<'EOF'
+cat >"$TEST_HOME/test-project/.opencode/skills/project-test/SKILL.md" <<'EOF'
 ---
 name: project-test
 description: Test project skill for verification
@@ -63,9 +63,9 @@ echo "Test project at: $TEST_HOME/test-project"
 
 # Helper function for cleanup (call from tests or trap)
 cleanup_test_env() {
-    if [ -n "${TEST_HOME:-}" ] && [ -d "$TEST_HOME" ]; then
-        rm -rf "$TEST_HOME"
-    fi
+  if [ -n "${TEST_HOME:-}" ] && [ -d "$TEST_HOME" ]; then
+    rm -rf "$TEST_HOME"
+  fi
 }
 
 # Export for use in tests
