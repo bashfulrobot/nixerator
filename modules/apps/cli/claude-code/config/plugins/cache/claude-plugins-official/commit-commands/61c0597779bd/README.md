@@ -13,7 +13,6 @@ The Commit Commands Plugin automates common git operations, reducing context swi
 Creates a git commit with an automatically generated commit message based on staged and unstaged changes.
 
 **What it does:**
-
 1. Analyzes current git status
 2. Reviews both staged and unstaged changes
 3. Examines recent commit messages to match your repository's style
@@ -22,13 +21,11 @@ Creates a git commit with an automatically generated commit message based on sta
 6. Creates the commit
 
 **Usage:**
-
 ```bash
 /commit
 ```
 
 **Example workflow:**
-
 ```bash
 # Make some changes to your code
 # Then simply run:
@@ -42,7 +39,6 @@ Creates a git commit with an automatically generated commit message based on sta
 ```
 
 **Features:**
-
 - Automatically drafts commit messages that match your repo's style
 - Follows conventional commit practices
 - Avoids committing files with secrets (.env, credentials.json)
@@ -53,7 +49,6 @@ Creates a git commit with an automatically generated commit message based on sta
 Complete workflow command that commits, pushes, and creates a pull request in one step.
 
 **What it does:**
-
 1. Creates a new branch (if currently on main)
 2. Stages and commits changes with an appropriate message
 3. Pushes the branch to origin
@@ -61,13 +56,11 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 5. Provides the PR URL
 
 **Usage:**
-
 ```bash
 /commit-push-pr
 ```
 
 **Example workflow:**
-
 ```bash
 # Make your changes
 # Then run:
@@ -82,7 +75,6 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 ```
 
 **Features:**
-
 - Analyzes all commits in the branch (not just the latest)
 - Creates comprehensive PR descriptions with:
   - Summary of changes (1-3 bullet points)
@@ -92,7 +84,6 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 - Uses GitHub CLI (`gh`) for PR creation
 
 **Requirements:**
-
 - GitHub CLI (`gh`) must be installed and authenticated
 - Repository must have a remote named `origin`
 
@@ -101,20 +92,17 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 Cleans up local branches that have been deleted from the remote repository.
 
 **What it does:**
-
 1. Lists all local branches to identify [gone] status
 2. Identifies and removes worktrees associated with [gone] branches
 3. Deletes all branches marked as [gone]
 4. Provides feedback on removed branches
 
 **Usage:**
-
 ```bash
 /clean_gone
 ```
 
 **Example workflow:**
-
 ```bash
 # After PRs are merged and remote branches are deleted
 /clean_gone
@@ -127,14 +115,12 @@ Cleans up local branches that have been deleted from the remote repository.
 ```
 
 **Features:**
-
 - Handles both regular branches and worktree branches
 - Safely removes worktrees before deleting branches
 - Shows clear feedback about what was removed
 - Reports if no cleanup was needed
 
 **When to use:**
-
 - After merging and deleting remote branches
 - When your local branch list is cluttered with stale branches
 - During regular repository maintenance
@@ -146,14 +132,12 @@ This plugin is included in the Claude Code repository. The commands are automati
 ## Best Practices
 
 ### Using `/commit`
-
 - Review the staged changes before committing
 - Let Claude analyze your changes and match your repo's commit style
 - Trust the automated message, but verify it's accurate
 - Use for routine commits during development
 
 ### Using `/commit-push-pr`
-
 - Use when you're ready to create a PR
 - Ensure all your changes are complete and tested
 - Claude will analyze the full branch history for the PR description
@@ -161,7 +145,6 @@ This plugin is included in the Claude Code repository. The commands are automati
 - Use when you want to minimize context switching
 
 ### Using `/clean_gone`
-
 - Run periodically to keep your branch list clean
 - Especially useful after merging multiple PRs
 - Safe to run - only removes branches already deleted remotely
@@ -170,7 +153,6 @@ This plugin is included in the Claude Code repository. The commands are automati
 ## Workflow Integration
 
 ### Quick commit workflow:
-
 ```bash
 # Write code
 /commit
@@ -178,7 +160,6 @@ This plugin is included in the Claude Code repository. The commands are automati
 ```
 
 ### Feature branch workflow:
-
 ```bash
 # Develop feature across multiple commits
 /commit  # First commit
@@ -189,7 +170,6 @@ This plugin is included in the Claude Code repository. The commands are automati
 ```
 
 ### Maintenance workflow:
-
 ```bash
 # After several PRs are merged
 /clean_gone
@@ -209,7 +189,6 @@ This plugin is included in the Claude Code repository. The commands are automati
 **Issue**: No changes to commit
 
 **Solution**:
-
 - Ensure you have unstaged or staged changes
 - Run `git status` to verify changes exist
 
@@ -218,7 +197,6 @@ This plugin is included in the Claude Code repository. The commands are automati
 **Issue**: `gh pr create` command fails
 
 **Solution**:
-
 - Install GitHub CLI: `brew install gh` (macOS) or see [GitHub CLI installation](https://cli.github.com/)
 - Authenticate: `gh auth login`
 - Ensure repository has a GitHub remote
@@ -228,7 +206,6 @@ This plugin is included in the Claude Code repository. The commands are automati
 **Issue**: No branches marked as [gone]
 
 **Solution**:
-
 - Run `git fetch --prune` to update remote tracking
 - Branches must be deleted from the remote to show as [gone]
 
