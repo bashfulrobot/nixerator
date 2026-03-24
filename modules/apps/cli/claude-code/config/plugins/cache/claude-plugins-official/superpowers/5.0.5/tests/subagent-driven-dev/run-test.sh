@@ -78,7 +78,7 @@ claude -p "$PROMPT" \
   --dangerously-skip-permissions \
   --output-format stream-json \
   --verbose \
-  > "$LOG_FILE" 2>&1 || true
+  >"$LOG_FILE" 2>&1 || true
 
 # Extract final stats
 echo ""
@@ -88,7 +88,7 @@ echo "Claude log: $LOG_FILE"
 echo ""
 
 # Show token usage if available
-if command -v jq &> /dev/null; then
+if command -v jq &>/dev/null; then
   echo ">>> Token usage:"
   # Extract usage from the last message with usage info
   jq -s '[.[] | select(.type == "result")] | last | .usage' "$LOG_FILE" 2>/dev/null || echo "(could not parse usage)"
