@@ -2,6 +2,7 @@
   lib,
   buildNpmPackage,
   fetchurl,
+  jq,
   versions,
 }:
 
@@ -18,6 +19,10 @@ buildNpmPackage rec {
 
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
+    # v0.15.14 added a preinstall script that blocks non-global installs
+    rm -f scripts/preinstall.cjs
+    ${lib.getExe jq} 'del(.scripts.preinstall)' package.json > package.json.tmp
+    mv package.json.tmp package.json
   '';
 
   dontNpmBuild = true;
