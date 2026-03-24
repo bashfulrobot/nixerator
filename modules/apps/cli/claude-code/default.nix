@@ -203,21 +203,7 @@ in
               $DRY_RUN_CMD cp --no-preserve=mode "$plugins_src/blocklist.json" "$claude_home/plugins/blocklist.json"
             fi
 
-            # Plugin cache -- copy dirs that don't already exist (don't clobber runtime updates)
-            if [ -d "$plugins_src/cache" ]; then
-              if [ -z "$DRY_RUN_CMD" ]; then
-                find "$plugins_src/cache" -mindepth 3 -maxdepth 3 -type d | while read -r version_dir; do
-                  rel_path="''${version_dir#"$plugins_src/"}"
-                  target_dir="$claude_home/plugins/$rel_path"
-                  if [ ! -d "$target_dir" ]; then
-                    mkdir -p "$target_dir"
-                    cp -r --no-preserve=mode,ownership "$version_dir/." "$target_dir/"
-                    # Ensure hook scripts are executable
-                    find "$target_dir" \( -name '*.sh' -o -name '*.py' \) -exec chmod +x {} +
-                  fi
-                done
-              fi
-            fi
+            # Plugin cache not tracked in git -- Claude Code auto-downloads from installed_plugins.json
           fi
         '';
 
