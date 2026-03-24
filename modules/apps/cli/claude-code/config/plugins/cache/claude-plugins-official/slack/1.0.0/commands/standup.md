@@ -14,6 +14,7 @@ description: Generate a standup update based on your recent Slack activity
 4. For messages in threads, use `slack_read_thread` to get the full context so you can accurately describe what the user contributed.
 
 5. Format the standup as:
+
    ```
    *Standup for <display name> — <today's date>*
 
