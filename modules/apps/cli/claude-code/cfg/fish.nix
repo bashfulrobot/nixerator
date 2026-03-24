@@ -135,20 +135,7 @@
             echo "    blocklist.json"
           end
 
-          # Cache -- only active versions from installed_plugins.json
-          rm -rf "$plugins_config/cache"
-          set -l install_paths (jq -r '.plugins | to_entries[] | .value[0].installPath' "$plugins_dir/installed_plugins.json")
-          for install_path in $install_paths
-            if test -d "$install_path"
-              # Extract relative path: cache/marketplace/plugin/version
-              set -l rel_path (string replace "$plugins_dir/" "" "$install_path")
-              set -l target "$plugins_config/$rel_path"
-              mkdir -p "$target"
-              # Copy contents including hidden dirs (.claude-plugin), exclude __pycache__
-              rsync -a --exclude='__pycache__' "$install_path/" "$target/"
-              echo "    $rel_path"
-            end
-          end
+          # Cache is not tracked in git -- plugins auto-download from installed_plugins.json
         end
 
         echo ""
