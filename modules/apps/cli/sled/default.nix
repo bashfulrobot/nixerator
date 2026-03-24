@@ -78,7 +78,15 @@ let
     # 0007: agent title
     col_exists agents title      || d1 --command "ALTER TABLE agents ADD COLUMN title TEXT;"
 
-    # Start sled (wrangler dev on the configured port, bound to all interfaces)
+    # Start server-client (local agent manager on port 8788)
+    cd "$STATE_DIR/server-client"
+    node "${sled}/lib/sled/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs" \
+      src/local-agent-manager.ts &
+    AGENT_MGR_PID=$!
+    trap 'kill $AGENT_MGR_PID 2>/dev/null' EXIT
+
+    # Start sled app (wrangler dev on the configured port, bound to all interfaces)
+    cd "$STATE_DIR/app"
     exec wrangler dev \
       --port ${toString cfg.port} \
       --ip 0.0.0.0 \
