@@ -13,8 +13,8 @@ COMPLETION_PROMISE="null"
 # Parse options and positional arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    -h | --help)
-      cat <<'HELP_EOF'
+    -h|--help)
+      cat << 'HELP_EOF'
 Ralph Loop - Interactive self-referential development loop
 
 USAGE:
@@ -137,7 +137,7 @@ else
   COMPLETION_PROMISE_YAML="null"
 fi
 
-cat >.claude/ralph-loop.local.md <<EOF
+cat > .claude/ralph-loop.local.md <<EOF
 ---
 active: true
 iteration: 1
