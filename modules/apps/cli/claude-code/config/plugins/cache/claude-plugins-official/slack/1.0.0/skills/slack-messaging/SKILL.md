@@ -14,19 +14,19 @@ Apply this skill whenever composing, drafting, or helping the user write a Slack
 
 Slack uses its own markup syntax called **mrkdwn**, which differs from standard Markdown. Always use mrkdwn when composing Slack messages:
 
-| Format          | Syntax                | Notes                            |
-| --------------- | --------------------- | -------------------------------- |
-| Bold            | `*text*`              | Single asterisks, NOT double     |
-| Italic          | `_text_`              | Underscores                      |
-| Strikethrough   | `~text~`              | Tildes                           |
-| Code (inline)   | `` `code` ``          | Backticks                        |
-| Code block      | ` ```code``` `        | Triple backticks                 |
-| Quote           | `> text`              | Angle bracket                    |
-| Link            | `<url\|display text>` | Pipe-separated in angle brackets |
-| User mention    | `<@U123456>`          | User ID in angle brackets        |
-| Channel mention | `<#C123456>`          | Channel ID in angle brackets     |
-| Bulleted list   | `- item` or `• item`  | Dash or bullet character         |
-| Numbered list   | `1. item`             | Number followed by period        |
+| Format | Syntax | Notes |
+|--------|--------|-------|
+| Bold | `*text*` | Single asterisks, NOT double |
+| Italic | `_text_` | Underscores |
+| Strikethrough | `~text~` | Tildes |
+| Code (inline) | `` `code` `` | Backticks |
+| Code block | `` ```code``` `` | Triple backticks |
+| Quote | `> text` | Angle bracket |
+| Link | `<url\|display text>` | Pipe-separated in angle brackets |
+| User mention | `<@U123456>` | User ID in angle brackets |
+| Channel mention | `<#C123456>` | Channel ID in angle brackets |
+| Bulleted list | `- item` or `• item` | Dash or bullet character |
+| Numbered list | `1. item` | Number followed by period |
 
 ### Common Mistakes to Avoid
 

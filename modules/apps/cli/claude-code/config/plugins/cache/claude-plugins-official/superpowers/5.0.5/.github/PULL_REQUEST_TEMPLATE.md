@@ -5,7 +5,6 @@ of human involvement will be closed without review.
 -->
 
 ## What problem are you trying to solve?
-
 <!-- Describe the specific problem you encountered. If this was a session
      issue, include: what you were doing, what went wrong, the model's
      exact failure mode, and ideally a transcript or session log.
@@ -14,11 +13,9 @@ of human involvement will be closed without review.
      failed? What was the user experience that motivated this? -->
 
 ## What does this PR change?
-
 <!-- 1-3 sentences. What, not why — the "why" belongs above. -->
 
 ## Is this change appropriate for the core library?
-
 <!-- Superpowers core contains general-purpose skills and infrastructure
      that benefit all users. Ask yourself:
 
@@ -32,18 +29,15 @@ of human involvement will be closed without review.
      See the plugin development docs for how to publish it separately. -->
 
 ## What alternatives did you consider?
-
 <!-- What other approaches did you try or evaluate before landing on this
      one? Why were they worse? If you didn't consider alternatives, say so
      — but know that's a red flag. -->
 
 ## Does this PR contain multiple unrelated changes?
-
 <!-- If yes: stop. Split it into separate PRs. Bundled PRs will be closed.
      If you believe the changes are related, explain the dependency. -->
 
 ## Existing PRs
-
 - [ ] I have reviewed all open AND closed PRs for duplicates or prior art
 - Related PRs: <!-- #number, #number, or "none found" -->
 
@@ -53,11 +47,10 @@ of human involvement will be closed without review.
 ## Environment tested
 
 | Harness (e.g. Claude Code, Cursor) | Harness version | Model | Model version/ID |
-| ---------------------------------- | --------------- | ----- | ---------------- |
-|                                    |                 |       |                  |
+|-------------------------------------|-----------------|-------|------------------|
+|                                     |                 |       |                  |
 
 ## Evaluation
-
 - What was the initial prompt you (or your human partner) used to start
   the session that led to this change?
 - How many eval sessions did you run AFTER making the change?
@@ -79,7 +72,6 @@ of human involvement will be closed without review.
      eval methodology and results. These are not prose — they are code. -->
 
 ## Human review
-
 - [ ] A human has reviewed the COMPLETE proposed diff before submission
 
 <!--
