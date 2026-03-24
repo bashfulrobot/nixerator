@@ -37,11 +37,14 @@ buildNpmPackage rec {
 
     mkdir -p "$out/bin"
     makeWrapper "${nodejs}/bin/node" "$out/bin/clay-server" \
-      --add-flags "$out/lib/node_modules/clay-server/bin/cli.js"
+      --add-flags "$out/lib/node_modules/clay-server/bin/cli.js" \
+      --prefix PATH : "${nodejs}/bin"
     makeWrapper "${nodejs}/bin/node" "$out/bin/clay-dev" \
-      --add-flags "$out/lib/node_modules/clay-server/bin/cli.js"
+      --add-flags "$out/lib/node_modules/clay-server/bin/cli.js" \
+      --prefix PATH : "${nodejs}/bin"
     makeWrapper "${nodejs}/bin/node" "$out/bin/claude-relay" \
-      --add-flags "$out/lib/node_modules/clay-server/bin/claude-relay.js"
+      --add-flags "$out/lib/node_modules/clay-server/bin/claude-relay.js" \
+      --prefix PATH : "${nodejs}/bin"
 
     runHook postInstall
   '';
