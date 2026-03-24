@@ -11,16 +11,14 @@ Common patterns found in meeting notes and how to parse them.
 **Format:** `@Name [action verb] [task]`
 
 **Examples:**
-
 ```
 @john to update documentation
-@sarah will create the report
+@sarah will create the report  
 @mike should review PR #123
 @lisa needs to test the feature
 ```
 
 **Parsing:**
-
 - Assignee: Text immediately after @
 - Task: Everything after action verb (to/will/should/needs to)
 - Confidence: Very High (explicit assignment)
@@ -32,7 +30,6 @@ Common patterns found in meeting notes and how to parse them.
 **Format:** `Name [action verb] [task]`
 
 **Examples:**
-
 ```
 John to update documentation
 Sarah will create the report
@@ -41,13 +38,11 @@ Lisa needs to test the feature
 ```
 
 **Parsing:**
-
 - Assignee: First word(s) before action verb
 - Task: Everything after action verb
 - Confidence: High (clear structure)
 
 **Action verbs to detect:**
-
 - to, will, should, needs to, must, has to, is to, going to
 
 ---
@@ -57,7 +52,6 @@ Lisa needs to test the feature
 **Format:** `Action: Name - [task]` or `AI: Name - [task]`
 
 **Examples:**
-
 ```
 Action: John - update documentation
 Action Item: Sarah - create the report
@@ -66,13 +60,11 @@ Task: Lisa - test the feature
 ```
 
 **Parsing:**
-
 - Assignee: Between "Action:" and "-"
 - Task: After "-"
 - Confidence: High (structured format)
 
 **Variants:**
-
 - Action:
 - Action Item:
 - AI:
@@ -86,7 +78,6 @@ Task: Lisa - test the feature
 **Format:** `TODO: [task] (Name)` or `TODO: [task] - Name`
 
 **Examples:**
-
 ```
 TODO: Update documentation (John)
 TODO: Create report - Sarah
@@ -95,13 +86,11 @@ TODO: Create report - Sarah
 ```
 
 **Parsing:**
-
 - Assignee: In parentheses or after "-"
 - Task: Between TODO and assignee
 - Confidence: Medium (format varies)
 
 **Markers to detect:**
-
 - TODO:
 - [ ]
 - - [ ]
@@ -115,7 +104,6 @@ TODO: Create report - Sarah
 **Format:** `Name: [task]` or `Name - [task]`
 
 **Examples:**
-
 ```
 John: update documentation
 Sarah - create the report
@@ -124,13 +112,11 @@ Lisa - test the feature
 ```
 
 **Parsing:**
-
 - Assignee: Before ":" or "-"
 - Task: After ":" or "-"
 - Confidence: Medium (could be other uses of colons/dashes)
 
 **Detection:**
-
 - Look for name-like word before ":" or "-"
 - Followed by action verb or imperative
 - Usually in bulleted lists
@@ -144,14 +130,12 @@ Lisa - test the feature
 **Format:** `Name1 and Name2 to [task]`
 
 **Examples:**
-
 ```
 John and Sarah to update documentation
 Mike, Lisa to review PR
 ```
 
 **Handling:**
-
 - Create separate tasks for each person
 - OR create one task, ask user who should be assigned
 - Include both names in description
@@ -163,14 +147,12 @@ Mike, Lisa to review PR
 **Format:** `Name to [task] if [condition]`
 
 **Examples:**
-
 ```
 John to update docs if approved
 Sarah will create report pending review
 ```
 
 **Handling:**
-
 - Include condition in task description
 - Note that it's conditional
 - User can adjust later
@@ -182,7 +164,6 @@ Sarah will create report pending review
 **Format:** `Name to [task] by [date]`
 
 **Examples:**
-
 ```
 John to update docs by EOD
 Sarah will finish report by Friday
@@ -190,7 +171,6 @@ Mike to review before next meeting
 ```
 
 **Handling:**
-
 - Extract deadline and add to task description
 - Could use due date field if available
 - Include urgency in task
@@ -202,7 +182,6 @@ Mike to review before next meeting
 ### Discussion Notes
 
 **Not an action item:**
-
 ```
 John mentioned the documentation needs updating
 Sarah suggested we create a report
@@ -216,7 +195,6 @@ Mike talked about reviewing the code
 ### General Statements
 
 **Not an action item:**
-
 ```
 Documentation needs to be updated
 Someone should create a report
@@ -230,7 +208,6 @@ The code requires review
 ### Past Actions
 
 **Not an action item:**
-
 ```
 John updated the documentation
 Sarah created the report
@@ -246,7 +223,6 @@ Mike reviewed the code
 ### Meeting Metadata
 
 **Look for:**
-
 ```
 # [Meeting Title] - [Date]
 Meeting: [Title]
@@ -255,7 +231,6 @@ Subject: [Title]
 ```
 
 **Extract:**
-
 - Meeting title
 - Date
 - Attendees (if listed)
@@ -265,7 +240,6 @@ Subject: [Title]
 ### Related Information
 
 **Look for:**
-
 ```
 Related to: [project/epic/initiative]
 Context: [background info]
@@ -273,7 +247,6 @@ Decision: [relevant decision]
 ```
 
 **Include in task:**
-
 - Links to related work
 - Background context
 - Relevant decisions
@@ -285,7 +258,6 @@ Decision: [relevant decision]
 ### Full Names
 
 **Preferred:**
-
 ```
 @Sarah Johnson to create report
 Sarah Johnson will create report
@@ -298,7 +270,6 @@ Sarah Johnson will create report
 ### First Name Only
 
 **Common:**
-
 ```
 @Sarah to create report
 Sarah will create report
@@ -311,7 +282,6 @@ Sarah will create report
 ### Nicknames or Short Forms
 
 **Handle carefully:**
-
 ```
 @SJ to create report
 Sara (no h) will create report
@@ -326,7 +296,6 @@ Sara (no h) will create report
 ### Urgent/High Priority
 
 **Detect:**
-
 ```
 URGENT: John to update docs
 HIGH PRIORITY: Sarah to create report
@@ -334,7 +303,6 @@ ASAP: Mike to review code
 ```
 
 **Handling:**
-
 - Note priority in task description
 - Could set priority field
 - Highlight in presentation
@@ -344,7 +312,6 @@ ASAP: Mike to review code
 ### Low Priority
 
 **Detect:**
-
 ```
 If time: John to update docs
 Nice to have: Sarah create report
@@ -352,7 +319,6 @@ Eventually: Mike review code
 ```
 
 **Handling:**
-
 - Note as lower priority
 - Could defer creation
 - User can decide
@@ -364,25 +330,21 @@ Eventually: Mike review code
 When parsing, assign confidence:
 
 **High Confidence (90%+):**
-
 - @Mentions with clear action
 - "Name to do X" format
 - "Action: Name - X" format
 
 **Medium Confidence (60-90%):**
-
 - Name: task format
 - TODO with name
 - Name without action verb but clear task
 
 **Low Confidence (<60%):**
-
 - Ambiguous wording
 - No clear assignee
 - Could be discussion not action
 
 **Handling:**
-
 - Present all to user
 - Flag low-confidence items
 - Let user confirm or skip
@@ -399,7 +361,6 @@ Team to provide feedback
 ```
 
 **Handling:**
-
 - Ask user who specifically
 - OR create one task unassigned
 - Note it's for the whole team
@@ -414,7 +375,6 @@ Mike might review the code
 ```
 
 **Handling:**
-
 - Flag as optional
 - Ask user if should create
 - Include "optional" in description
@@ -428,7 +388,6 @@ John will ask Sarah to create the report
 ```
 
 **Handling:**
-
 - Assign to Sarah (the actual doer)
 - Note John is requestor
 - Include context
@@ -460,31 +419,26 @@ Use these to validate pattern matching:
 ## Regular Expression Examples
 
 **@Mention pattern:**
-
 ```regex
 @(\w+)\s+(to|will|should)\s+(.+)
 ```
 
 **Name + action verb:**
-
 ```regex
 ([A-Z][\w\s]+?)\s+(to|will|should)\s+(.+)
 ```
 
 **Action format:**
-
 ```regex
 Action:\s*([A-Z][\w\s]+?)\s*-\s*(.+)
 ```
 
 **TODO format:**
-
 ```regex
 TODO:\s*(.+)\s*\((\w+)\)
 ```
 
 **Note:** These patterns use `[A-Z][\w\s]+?` to match names flexibly:
-
 - Starts with a capital letter
 - Matches one or more word characters or spaces
 - Non-greedy (`+?`) to stop at action verbs
