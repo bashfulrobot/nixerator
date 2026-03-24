@@ -52,11 +52,31 @@ let
     done
 
     # Run migrations using system wrangler (npm workerd binary is not NixOS-compatible)
+    # Mirrors app/scripts/run-migrations.sh with all ALTER TABLE steps
     cd "$STATE_DIR/app"
-    wrangler d1 execute sled --local \
-      --file=migrations/0001_init.sql 2>/dev/null || true
-    wrangler d1 execute sled --local \
-      --file=migrations/0005_default_user.sql 2>/dev/null || true
+    d1() { wrangler d1 execute sled --local "$@" 2>/dev/null || true; }
+    col_exists() {
+      wrangler d1 execute sled --local \
+        --command "SELECT 1 FROM pragma_table_info('$1') WHERE name='$2' LIMIT 1;" \
+        --json 2>/dev/null | grep -q '"results":\[{' && return 0 || return 1
+    }
+
+    # 0001: base schema
+    d1 --file=migrations/0001_init.sql
+    # 0002: Claude support
+    col_exists agents type       || d1 --command "ALTER TABLE agents ADD COLUMN type TEXT DEFAULT 'gemini';"
+    col_exists users anthropic_api_key || d1 --command "ALTER TABLE users ADD COLUMN anthropic_api_key TEXT;"
+    # 0003: yolo mode
+    col_exists agents yolo       || d1 --command "ALTER TABLE agents ADD COLUMN yolo INTEGER DEFAULT 0;"
+    # 0004: workdir
+    col_exists agents workdir    || d1 --command "ALTER TABLE agents ADD COLUMN workdir TEXT;"
+    # 0005: default user/session
+    d1 --file=migrations/0005_default_user.sql
+    # 0006: voice selection
+    col_exists agents voice      || d1 --command "ALTER TABLE agents ADD COLUMN voice TEXT;"
+    col_exists users default_voice || d1 --command "ALTER TABLE users ADD COLUMN default_voice TEXT;"
+    # 0007: agent title
+    col_exists agents title      || d1 --command "ALTER TABLE agents ADD COLUMN title TEXT;"
 
     # Start sled (wrangler dev on the configured port, bound to all interfaces)
     exec wrangler dev \
