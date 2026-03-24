@@ -49,7 +49,7 @@ stdenv.mkDerivation (finalAttrs: {
           pnpm_10
         ]
       }" \
-      --add-flags "$out/lib/sled/node_modules/.bin/wrangler" \
+      --add-flags "$out/lib/sled/app/node_modules/.bin/wrangler" \
       --add-flags "dev" \
       --chdir "$out/lib/sled/app"
 

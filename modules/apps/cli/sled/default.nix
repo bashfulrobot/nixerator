@@ -16,6 +16,14 @@ let
 
   startScript = pkgs.writeShellScript "sled-start" ''
     set -euo pipefail
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.nodejs
+        pkgs.pnpm_10
+        pkgs.wrangler
+      ]
+    }:$PATH"
 
     STATE_DIR="${stateDir}"
     mkdir -p "$STATE_DIR"
@@ -31,10 +39,10 @@ let
       chmod -R u+w "$STATE_DIR/server-client"
     fi
 
-    # Symlink node_modules from the Nix store
+    # Symlink node_modules from the Nix store (per-workspace)
     ln -sfn "${sled}/lib/sled/node_modules" "$STATE_DIR/node_modules"
-    ln -sfn "${sled}/lib/sled/node_modules" "$STATE_DIR/app/node_modules"
-    ln -sfn "${sled}/lib/sled/node_modules" "$STATE_DIR/server-client/node_modules"
+    ln -sfn "${sled}/lib/sled/app/node_modules" "$STATE_DIR/app/node_modules"
+    ln -sfn "${sled}/lib/sled/server-client/node_modules" "$STATE_DIR/server-client/node_modules"
 
     # Copy root config files
     for f in package.json pnpm-workspace.yaml pnpm-lock.yaml; do
@@ -43,15 +51,15 @@ let
       fi
     done
 
-    # Run migrations
+    # Run migrations using system wrangler (npm workerd binary is not NixOS-compatible)
     cd "$STATE_DIR/app"
-    ${sled}/lib/sled/node_modules/.bin/wrangler d1 execute sled --local \
+    wrangler d1 execute sled --local \
       --file=migrations/0001_init.sql 2>/dev/null || true
-    ${sled}/lib/sled/node_modules/.bin/wrangler d1 execute sled --local \
+    wrangler d1 execute sled --local \
       --file=migrations/0005_default_user.sql 2>/dev/null || true
 
     # Start sled (wrangler dev on the configured port, bound to all interfaces)
-    exec ${sled}/lib/sled/node_modules/.bin/wrangler dev \
+    exec wrangler dev \
       --port ${toString cfg.port} \
       --ip 0.0.0.0 \
       src/index.tsx
@@ -115,7 +123,6 @@ in
           ExecStart = toString startScript;
           Restart = "on-failure";
           RestartSec = 5;
-          WorkingDirectory = stateDir;
         };
         Install = {
           WantedBy = [ "default.target" ];
