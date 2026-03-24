@@ -569,11 +569,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1774297346,
-        "narHash": "sha256-VPAe8tOup5DM9J3l0R8O28poH+3tVKroaXtNhSpOxcQ=",
+        "lastModified": 1774310719,
+        "narHash": "sha256-RZSu5T5Whx9IcTd8bmgxnznJRSJDuaqGk7kIqt4bSlM=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "7f8e1b8d1e27ad7f8ce4fba7f61d940979a0ffbd",
+        "rev": "fba9316b4d830fc6a6f7ca1ebf408c3ca43981cb",
         "type": "github"
       },
       "original": {
@@ -609,11 +609,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1774286543,
-        "narHash": "sha256-p/uG7RgY9JfE7YUgDHZ1FlHONpoPuPIb+PwOEdcPBRE=",
+        "lastModified": 1774303484,
+        "narHash": "sha256-a2kUZqdicWHVxLnp4cF2xfs9buHPe1sb2HmPX69/NMA=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "94da705b8baa5c78d39e8c092bccfbe3a015b8de",
+        "rev": "72015d9d2db9fd69af3f12806ca9071fdb65d53d",
         "type": "github"
       },
       "original": {
@@ -1295,11 +1295,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773236838,
-        "narHash": "sha256-O3lUhuF1mSymij52VXVALB1L+ubMK5DDkIPibfu9Yuo=",
+        "lastModified": 1774060065,
+        "narHash": "sha256-lQHjHv4g+wKF2TIRyfzJbOdP2BYQiXFytkYU+I5eZ4g=",
         "owner": "peteonrails",
         "repo": "voxtype",
-        "rev": "97e87a30d6f41393867fdeadc4af41453acd614b",
+        "rev": "d2e8a269ea6dc5316830a53e6344799480d8997f",
         "type": "github"
       },
       "original": {
