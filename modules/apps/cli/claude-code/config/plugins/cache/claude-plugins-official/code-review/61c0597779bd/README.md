@@ -13,6 +13,7 @@ The Code Review Plugin automates pull request review by launching multiple agent
 Performs automated code review on a pull request using multiple specialized agents.
 
 **What it does:**
+
 1. Checks if review is needed (skips closed, draft, trivial, or already-reviewed PRs)
 2. Gathers relevant CLAUDE.md guideline files from the repository
 3. Summarizes the pull request changes
@@ -25,11 +26,13 @@ Performs automated code review on a pull request using multiple specialized agen
 7. Posts review comment with high-confidence issues only
 
 **Usage:**
+
 ```bash
 /code-review
 ```
 
 **Example workflow:**
+
 ```bash
 # On a PR branch, run:
 /code-review
@@ -42,6 +45,7 @@ Performs automated code review on a pull request using multiple specialized agen
 ```
 
 **Features:**
+
 - Multiple independent agents for comprehensive review
 - Confidence-based scoring reduces false positives (threshold: 80)
 - CLAUDE.md compliance checking with explicit guideline verification
@@ -51,6 +55,7 @@ Performs automated code review on a pull request using multiple specialized agen
 - Links directly to code with full SHA and line ranges
 
 **Review comment format:**
+
 ```markdown
 ## Code review
 
@@ -70,6 +75,7 @@ https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 ```
 
 **Confidence scoring:**
+
 - **0**: Not confident, false positive
 - **25**: Somewhat confident, might be real
 - **50**: Moderately confident, real but minor
@@ -77,6 +83,7 @@ https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 - **100**: Absolutely certain, definitely real
 
 **False positives filtered:**
+
 - Pre-existing issues not introduced in PR
 - Code that looks like a bug but isn't
 - Pedantic nitpicks
@@ -91,6 +98,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 ## Best Practices
 
 ### Using `/code-review`
+
 - Maintain clear CLAUDE.md files for better compliance checking
 - Trust the 80+ confidence threshold - false positives are filtered
 - Run on all non-trivial pull requests
@@ -98,12 +106,14 @@ This plugin is included in the Claude Code repository. The command is automatica
 - Update CLAUDE.md based on recurring review patterns
 
 ### When to use
+
 - All pull requests with meaningful changes
 - PRs touching critical code paths
 - PRs from multiple contributors
 - PRs where guideline compliance matters
 
 ### When not to use
+
 - Closed or draft PRs (automatically skipped anyway)
 - Trivial automated PRs (automatically skipped)
 - Urgent hotfixes requiring immediate merge
@@ -112,6 +122,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 ## Workflow Integration
 
 ### Standard PR review workflow:
+
 ```bash
 # Create PR with changes
 /code-review
@@ -122,6 +133,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 ```
 
 ### As part of CI/CD:
+
 ```bash
 # Trigger on PR creation or update
 # Automatically posts review comments
@@ -141,6 +153,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 **Issue**: Agents are slow on large PRs
 
 **Solution**:
+
 - Normal for large changes - agents run in parallel
 - 4 independent agents ensure thoroughness
 - Consider splitting large PRs into smaller ones
@@ -150,6 +163,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 **Issue**: Review flags issues that aren't real
 
 **Solution**:
+
 - Default threshold is 80 (already filters most false positives)
 - Make CLAUDE.md more specific about what matters
 - Consider if the flagged issue is actually valid
@@ -160,6 +174,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 
 **Solution**:
 Check if:
+
 - PR is closed (reviews skipped)
 - PR is draft (reviews skipped)
 - PR is trivial/automated (reviews skipped)
@@ -172,9 +187,11 @@ Check if:
 
 **Solution**:
 Links must follow this exact format:
+
 ```
 https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 ```
+
 - Must use full SHA (not abbreviated)
 - Must use `#L` notation
 - Must include line range with at least 1 line of context
@@ -184,6 +201,7 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 **Issue**: `gh` commands fail
 
 **Solution**:
+
 - Install GitHub CLI: `brew install gh` (macOS) or see [GitHub CLI installation](https://cli.github.com/)
 - Authenticate: `gh auth login`
 - Verify repository has GitHub remote
@@ -202,6 +220,7 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 ### Adjusting confidence threshold
 
 The default threshold is 80. To adjust, modify the command file at `commands/code-review.md`:
+
 ```markdown
 Filter out any issues with a score less than 80.
 ```
@@ -211,6 +230,7 @@ Change `80` to your preferred threshold (0-100).
 ### Customizing review focus
 
 Edit `commands/code-review.md` to add or modify agent tasks:
+
 - Add security-focused agents
 - Add performance analysis agents
 - Add accessibility checking agents
@@ -219,19 +239,23 @@ Edit `commands/code-review.md` to add or modify agent tasks:
 ## Technical Details
 
 ### Agent architecture
+
 - **2x CLAUDE.md compliance agents**: Redundancy for guideline checks
 - **1x bug detector**: Focused on obvious bugs in changes only
 - **1x history analyzer**: Context from git blame and history
 - **Nx confidence scorers**: One per issue for independent scoring
 
 ### Scoring system
+
 - Each issue independently scored 0-100
 - Scoring considers evidence strength and verification
 - Threshold (default 80) filters low-confidence issues
 - For CLAUDE.md issues: verifies guideline explicitly mentions it
 
 ### GitHub integration
+
 Uses `gh` CLI for:
+
 - Viewing PR details and diffs
 - Fetching repository data
 - Reading git blame and history
