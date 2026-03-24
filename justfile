@@ -175,7 +175,8 @@ sync-git:
 
     elif [[ -n "$remote_only" ]]; then
         echo "Aligning git state with remote..."
-        git reset "origin/$current_branch"
+        git reset --hard "origin/$current_branch"
+        git clean -fd
         echo "Git state aligned with origin/$current_branch"
 
     else
