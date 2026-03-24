@@ -6,7 +6,6 @@ description: "Intelligently triage bug reports and error messages by searching f
 # Triage Issue
 
 ## Keywords
-
 triage bug, check duplicate, is this a duplicate, search for similar issues, create bug ticket, file a bug, report this error, triage this error, bug report, error message, similar issues, duplicate bug, who fixed this, has this been reported, search bugs, find similar bugs, create issue, file issue
 
 ## Overview
@@ -28,19 +27,16 @@ Analyze the bug report or error message to identify search terms.
 #### Extract These Elements:
 
 **Error signature:**
-
 - Error type or exception name (e.g., "NullPointerException", "TimeoutError")
 - Error code or status (e.g., "500", "404", "ERR_CONNECTION_REFUSED")
 - Specific error message text (key phrases, not full stack trace)
 
 **Context:**
-
 - Component or system affected (e.g., "authentication", "payment gateway", "API")
 - Environment (e.g., "production", "staging", "mobile app")
 - User actions leading to error (e.g., "during login", "when uploading file")
 
 **Symptoms:**
-
 - Observable behavior (e.g., "page blank", "infinite loading", "data not saving")
 - Impact (e.g., "users can't login", "payments failing")
 
@@ -48,14 +44,12 @@ Analyze the bug report or error message to identify search terms.
 
 **Input:** "Users getting 'Connection timeout' error when trying to login on mobile app"
 **Extracted:**
-
 - Error: "Connection timeout"
 - Component: "login", "mobile app"
 - Symptom: "can't login"
 
 **Input:** "NullPointerException in PaymentProcessor.processRefund() line 245"
 **Extracted:**
-
 - Error: "NullPointerException"
 - Component: "PaymentProcessor", "refund"
 - Location: "processRefund line 245"
@@ -71,7 +65,6 @@ Search Jira using extracted keywords to find similar or duplicate issues.
 Execute **multiple targeted searches** to catch duplicates that may use different wording:
 
 **Search 1: Error-focused**
-
 ```
 searchJiraIssuesUsingJql(
   cloudId="...",
@@ -82,7 +75,6 @@ searchJiraIssuesUsingJql(
 ```
 
 **Search 2: Component-focused**
-
 ```
 searchJiraIssuesUsingJql(
   cloudId="...",
@@ -93,7 +85,6 @@ searchJiraIssuesUsingJql(
 ```
 
 **Search 3: Symptom-focused**
-
 ```
 searchJiraIssuesUsingJql(
   cloudId="...",
@@ -106,18 +97,15 @@ searchJiraIssuesUsingJql(
 #### Search Tips:
 
 **Use key terms only:**
-
 - ✅ "timeout login mobile"
 - ✅ "NullPointerException PaymentProcessor refund"
 - ❌ "Users are getting a connection timeout error when..." (too verbose)
 
 **Search recent first:**
-
 - Order by `created DESC` or `updated DESC` to find recent similar issues
 - Recent bugs are more likely to be relevant duplicates
 
 **Don't over-filter:**
-
 - Include resolved issues (might have been reopened or regression)
 - Search across all bug statuses to find fix history
 
@@ -130,28 +118,24 @@ Evaluate the search results to determine if this is a duplicate or a new issue.
 #### Duplicate Detection:
 
 **High confidence duplicate (>90%):**
-
 - Exact same error message in summary or description
 - Same component + same error type
 - Recent issue (< 30 days) with identical symptoms
 - **Action:** Strongly recommend adding comment to existing issue
 
 **Likely duplicate (70-90%):**
-
 - Similar error with slight variations
 - Same component but different context
 - Resolved issue with same root cause
 - **Action:** Present as possible duplicate, let user decide
 
 **Possibly related (40-70%):**
-
 - Similar symptoms but different error
 - Same component area but different specific error
 - Old issue (> 6 months) that might be unrelated
 - **Action:** Mention as potentially related
 
 **Likely new issue (<40%):**
-
 - No similar issues found
 - Different error signature and component
 - Unique symptom or context
@@ -162,7 +146,6 @@ Evaluate the search results to determine if this is a duplicate or a new issue.
 If similar resolved issues are found:
 
 **Extract relevant information:**
-
 - Who fixed it? (assignee on resolved issues)
 - How was it fixed? (resolution comment or linked PRs)
 - When was it fixed? (resolution date)
@@ -256,7 +239,6 @@ Based on user's choice, either add a comment or create a new issue.
 If user wants to add to existing issue:
 
 **Fetch the full issue first** to understand context:
-
 ```
 getJiraIssue(
   cloudId="...",
@@ -265,7 +247,6 @@ getJiraIssue(
 ```
 
 **Then add the comment:**
-
 ```
 addCommentToJiraIssue(
   cloudId="...",
@@ -275,7 +256,6 @@ addCommentToJiraIssue(
 ```
 
 **Comment Structure:**
-
 ```markdown
 ## Additional Instance Reported
 
@@ -286,7 +266,6 @@ addCommentToJiraIssue(
 [Paste relevant error message or stack trace]
 
 **Context:**
-
 - Environment: [e.g., Production, iOS 16.5]
 - User Impact: [e.g., 50+ users affected in last hour]
 - Steps to Reproduce: [if provided]
@@ -295,8 +274,7 @@ addCommentToJiraIssue(
 [Any unique aspects of this instance]
 
 ---
-
-_Added via triage automation_
+*Added via triage automation*
 ```
 
 #### Option B: Create New Issue
@@ -304,7 +282,6 @@ _Added via triage automation_
 If user wants to create new issue:
 
 **First, check available issue types:**
-
 ```
 getJiraProjectIssueTypesMetadata(
   cloudId="...",
@@ -313,13 +290,11 @@ getJiraProjectIssueTypesMetadata(
 ```
 
 **Determine appropriate issue type:**
-
 - For bugs/errors → Use "Bug" (if available)
-- For issues without errors → Use "Task" or "Issue"
+- For issues without errors → Use "Task" or "Issue" 
 - Fallback → First available non-Epic, non-Subtask type
 
 **Create the issue:**
-
 ```
 createJiraIssue(
   cloudId="...",
@@ -337,7 +312,6 @@ createJiraIssue(
 Use the pattern: `[Component] [Error Type] - [Brief Symptom]`
 
 **Examples:**
-
 - ✅ "Mobile Login: Connection timeout during authentication"
 - ✅ "Payment API: NullPointerException in refund processing"
 - ✅ "Dashboard: Infinite loading on reports page"
@@ -345,17 +319,13 @@ Use the pattern: `[Component] [Error Type] - [Brief Symptom]`
 - ❌ "Users experiencing issues" (not specific)
 
 **Description Structure:**
-
 ```markdown
 ## Issue Description
-
 [1-2 sentence summary of the problem]
 
 ## Error Details
 ```
-
 [Error message or stack trace]
-
 ```
 
 ## Environment
@@ -461,7 +431,7 @@ Match: 70% - Similar symptoms, different error
 **PROJ-123** - [summary] (Resolved, 8 months ago)
 Match: 60% - Related component, but was fixed
 
-**Recommendation:**
+**Recommendation:** 
 1. Add to PROJ-456 (most similar)
 2. Reference PROJ-234 in your comment (might be related)
 3. Note PROJ-123 was previously fixed (possible regression)
@@ -533,7 +503,6 @@ Should I create a new issue with this context?
 If creating an issue fails due to required fields:
 
 1. **Check what fields are required:**
-
 ```
 getJiraIssueTypeMetaWithFields(
   cloudId="...",
@@ -543,7 +512,6 @@ getJiraIssueTypeMetaWithFields(
 ```
 
 2. **Ask user for values:**
-
 ```
 This project requires additional fields to create a Bug:
 - Severity: [High/Medium/Low]
@@ -553,7 +521,6 @@ Please provide these values so I can create the issue.
 ```
 
 3. **Retry with additional fields:**
-
 ```
 createJiraIssue(
   ...existing parameters...,
@@ -602,18 +569,15 @@ createJiraIssue(
 ### For Duplicate Assessment:
 
 **High Confidence Duplicates:**
-
 - Exact same error + same component + recent (< 30 days)
 - Same root cause identified
 
 **Likely Different Issues:**
-
 - Different error signatures
 - Different components/systems
 - Significantly different contexts
 
 **When Unsure:**
-
 - Present both options to user
 - Lean toward creating new issue (can be closed as duplicate later)
 - Linking issues is better than hiding information
@@ -625,13 +589,11 @@ createJiraIssue(
 ### Example 1: Clear Duplicate Found
 
 **User Input:**
-
 ```
 Triage this error: "Connection timeout error when users try to login on iOS app"
 ```
 
 **Process:**
-
 1. Extract: "Connection timeout", "login", "iOS"
 2. Search: Find PROJ-456 (open, 2 days ago) with exact same error
 3. Analyze: 95% match - same error, component, symptom
@@ -640,7 +602,6 @@ Triage this error: "Connection timeout error when users try to login on iOS app"
 6. Confirm: Comment added to PROJ-456
 
 **Output:**
-
 ```
 ✅ Comment added to PROJ-456
 
@@ -651,14 +612,12 @@ The assignee will be notified.
 ### Example 2: New Issue with Related Context
 
 **User Input:**
-
 ```
 Error: NullPointerException in PaymentProcessor.processRefund() at line 245
 Stack trace: [full stack trace]
 ```
 
 **Process:**
-
 1. Extract: "NullPointerException", "PaymentProcessor", "processRefund", "line 245"
 2. Search: Find PROJ-789 (resolved, 3 weeks ago) about payment errors, but different line
 3. Analyze: Related component but different specific error
@@ -667,7 +626,6 @@ Stack trace: [full stack trace]
 6. Confirm: PROJ-890 created
 
 **Output:**
-
 ```
 ✅ New Issue Created
 
@@ -680,13 +638,11 @@ References related issue PROJ-789 for context.
 ### Example 3: Possible Regression
 
 **User Input:**
-
 ```
 Users can't upload files larger than 5MB, getting "Upload failed" error
 ```
 
 **Process:**
-
 1. Extract: "Upload failed", "5MB", "file upload"
 2. Search: Find PROJ-234 (resolved 2 months ago) - exact same issue
 3. Analyze: Was fixed but now happening again
@@ -695,7 +651,6 @@ Users can't upload files larger than 5MB, getting "Upload failed" error
 6. Confirm: PROJ-891 created with regression context
 
 **Output:**
-
 ```
 ✅ New Issue Created (Possible Regression)
 
@@ -732,14 +687,12 @@ This skill is for **triaging bugs and errors only**. Do NOT use for:
 **Search tool:** `searchJiraIssuesUsingJql(cloudId, jql, fields, maxResults)`
 
 **Action tools:**
-
 - `addCommentToJiraIssue(cloudId, issueIdOrKey, commentBody)` - Add to existing
 - `createJiraIssue(cloudId, projectKey, issueTypeName, summary, description)` - Create new
 
 **Issue type:** Always prefer "Bug" for error reports, check with `getJiraProjectIssueTypesMetadata`
 
 **Remember:**
-
 - Multiple searches catch more duplicates
 - Present findings before acting
 - Include error details and context
