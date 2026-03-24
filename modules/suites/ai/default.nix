@@ -42,6 +42,7 @@ in
       # termly: disabled
       # llmfit: removed
       plannotator.enable = true;
+      sled.enable = true;
       stop-slop.enable = true;
       superpowers.enable = true;
       ollama = {
