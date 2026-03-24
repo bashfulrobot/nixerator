@@ -26,6 +26,19 @@
     model = "base.en";
   };
 
+  # Touchpad palm rejection: keyd's virtual keyboard is not recognized as
+  # "internal" by libinput, which breaks disable-while-typing detection.
+  # This quirk tells libinput to treat it as a built-in keyboard.
+  environment.etc."libinput/local-overrides.quirks".text = ''
+    [keyd virtual keyboard]
+    MatchUdevType=keyboard
+    MatchName=keyd virtual keyboard
+    AttrKeyboardIntegration=internal
+  '';
+
+  # Ensure disable-while-typing is active at the libinput level
+  services.libinput.touchpad.disableWhileTyping = true;
+
   # Enable archetypes
   archetypes.workstation.enable = true;
 }
