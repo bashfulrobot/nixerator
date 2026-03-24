@@ -146,6 +146,16 @@ in
     #   sansSerif: DejaVu Sans
     #   serif: DejaVu Serif
     #   emoji: Noto Color Emoji
+    # Force Stylix's Kvantum theme to win over Home Manager's Qt module,
+    # which also writes kvantum.kvconfig when qt.style.name = "kvantum"
+    home-manager.users.${globals.user.name}.xdg.configFile."Kvantum/kvantum.kvconfig".source =
+      lib.mkForce (
+        pkgs.writeText "kvantum.kvconfig" ''
+          [General]
+          theme=Base16Kvantum
+        ''
+      );
+
     stylix.fonts = {
       monospace = {
         name = lib.mkForce "SFMono Nerd Font";
