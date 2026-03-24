@@ -28,7 +28,6 @@ The plugin uses a SessionStart hook to inject additional context into every sess
 ## When Claude requests contributions
 
 Claude will ask you to write code for:
-
 - Business logic with multiple valid approaches
 - Error handling strategies
 - Algorithm implementation choices
@@ -39,7 +38,6 @@ Claude will ask you to write code for:
 ## When Claude won't request contributions
 
 Claude will implement directly:
-
 - Boilerplate or repetitive code
 - Obvious implementations with no meaningful choices
 - Configuration or setup code
@@ -66,7 +64,6 @@ In addition to interactive learning, Claude will provide educational insights ab
 ```
 
 These insights focus on:
-
 - Specific implementation choices for your codebase
 - Patterns and conventions in your code
 - Trade-offs and design decisions
