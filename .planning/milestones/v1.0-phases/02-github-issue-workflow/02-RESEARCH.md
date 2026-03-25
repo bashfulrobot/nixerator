@@ -701,10 +701,10 @@ _(No new test framework needed -- rebuild is the automated gate)_
 
 ### Primary (HIGH confidence)
 
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/lib.sh` -- verified state file schema, existing helpers
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/github-issue.sh` -- current stub to be replaced
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/default.nix` -- existing runtimeInputs, confirmed `pkgs.llm-agents.claude-code` as attribute path
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/claude-code/default.nix` -- confirmed `pkgs.llm-agents.claude-code` package reference
+- `/home/dustin/git/nixerator/modules/apps/cli/worktree-flow/scripts/lib.sh` -- verified state file schema, existing helpers
+- `/home/dustin/git/nixerator/modules/apps/cli/worktree-flow/scripts/github-issue.sh` -- current stub to be replaced
+- `/home/dustin/git/nixerator/modules/apps/cli/worktree-flow/default.nix` -- existing runtimeInputs, confirmed `pkgs.llm-agents.claude-code` as attribute path
+- `/home/dustin/git/nixerator/modules/apps/cli/claude-code/default.nix` -- confirmed `pkgs.llm-agents.claude-code` package reference
 - `gh --version` output: 2.87.3 -- confirmed available flags: `--json`, `--jq`, `--body`, `--title`, `--head`
 - `gh help issue view` -- confirmed JSON fields: labels, title, body
 - `gh help pr view` -- confirmed JSON fields: state (MERGED/OPEN/CLOSED), url

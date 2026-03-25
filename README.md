@@ -18,7 +18,7 @@ cat extras/docs/bootstrap.txt
 ### Update Existing System
 
 ```bash
-cd ~/dev/nix/nixerator
+cd ~/git/nixerator
 sudo nixos-rebuild switch --flake .#HOSTNAME
 ```
 

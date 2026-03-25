@@ -4,7 +4,7 @@ set -o pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 OUT="${1:-$SCRIPT_DIR/voxtype-discovery-$(hostname)-$(date +%Y%m%d-%H%M%S).txt}"
-REPO_DIR="${2:-$HOME/dev/nix/nixerator}"
+REPO_DIR="${2:-$HOME/git/nixerator}"
 NIX_CACHE="${NIX_CACHE:-/tmp/nix-cache}"
 
 mkdir -p "$(dirname "$OUT")" "$NIX_CACHE"
