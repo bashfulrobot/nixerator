@@ -66,6 +66,7 @@ in
       desktop = {
         # Use ghostty as the default terminal (overrides hyprflake's kitty default)
         terminal.package = pkgs.ghostty;
+        terminal.hasNautilusExtension = true;
 
         # Keyboard layout and variant
         keyboard = {
