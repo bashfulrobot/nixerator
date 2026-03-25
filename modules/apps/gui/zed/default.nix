@@ -23,7 +23,7 @@ in
           # Language servers
           ansible-language-server
           bash-language-server
-          dockerfile-language-server-nodejs
+          dockerfile-language-server
           docker-compose-language-service
           fish-lsp
           gopls
