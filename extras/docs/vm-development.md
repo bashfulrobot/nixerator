@@ -14,7 +14,7 @@ Set once before running commands (bash shown; for fish use `set -gx` instead of 
 
 ```bash
 export VM_NAME="<your-vm-name>"
-export REPO_PATH="$HOME/dev/nix/nixerator"
+export REPO_PATH="$HOME/git/nixerator"
 export SHARE_TAG="mount_nixerator"
 export CURRENT_HOST="$(hostname)"
 export CURRENT_USER="$(id -un)"

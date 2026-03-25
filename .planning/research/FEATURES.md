@@ -128,9 +128,9 @@ Defer:
 
 ## Sources
 
-- Project context: `/home/dustin/dev/nix/nixerator/.planning/PROJECT.md` (authoritative)
-- Current skill: `/home/dustin/dev/nix/nixerator/modules/apps/cli/claude-code/skills/github-issue/SKILL.md` (authoritative)
-- Existing worktree pattern: `/home/dustin/dev/nix/nixerator/modules/apps/cli/git/default.nix` (gcom reference implementation)
+- Project context: `/home/dustin/git/nixerator/.planning/PROJECT.md` (authoritative)
+- Current skill: `/home/dustin/git/nixerator/modules/apps/cli/claude-code/skills/github-issue/SKILL.md` (authoritative)
+- Existing worktree pattern: `/home/dustin/git/nixerator/modules/apps/cli/git/default.nix` (gcom reference implementation)
 - [coderabbitai/git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner) - ecosystem reference, hooks pattern
 - [worktrunk.dev](https://worktrunk.dev/) - post-start hooks pattern, parallel workflow design
 - [automazeio/ccpm](https://github.com/automazeio/ccpm) - GitHub Issues + worktrees pattern, state management

@@ -596,10 +596,10 @@ _(No new test framework needed -- rebuild is the automated gate)_
 
 ### Primary (HIGH confidence)
 
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/lib.sh` -- verified all shared primitives available for reuse
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/github-issue.sh` -- full reference implementation; patterns directly applicable
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/scripts/hack.sh` -- current stub to be replaced
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/worktree-flow/default.nix` -- confirmed hack-cmd missing `llm-agents.claude-code`
+- `/home/dustin/git/nixerator/modules/apps/cli/worktree-flow/scripts/lib.sh` -- verified all shared primitives available for reuse
+- `/home/dustin/git/nixerator/modules/apps/cli/worktree-flow/scripts/github-issue.sh` -- full reference implementation; patterns directly applicable
+- `/home/dustin/git/nixerator/modules/apps/cli/worktree-flow/scripts/hack.sh` -- current stub to be replaced
+- `/home/dustin/git/nixerator/modules/apps/cli/worktree-flow/default.nix` -- confirmed hack-cmd missing `llm-agents.claude-code`
 - `gum pager --help` (installed) -- confirmed: accepts stdin, no explicit color flag needed
 - `gum confirm --help` (installed) -- confirmed: exit 0=Yes, 1=No; --affirmative/--negative flags available
 - `git merge --help` (git 2.53.0) -- confirmed: `--ff-only` flag; exits non-zero when ff not possible

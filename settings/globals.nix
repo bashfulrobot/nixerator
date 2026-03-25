@@ -11,10 +11,9 @@ rec {
 
   # Common repository and development paths
   paths = {
-    devRoot = "${user.homeDirectory}/dev";
-    nixRoot = "${user.homeDirectory}/dev/nix";
-    nixerator = "${user.homeDirectory}/dev/nix/nixerator";
-    hyprflake = "${user.homeDirectory}/dev/nix/hyprflake";
+    devRoot = "${user.homeDirectory}/git";
+    nixerator = "${user.homeDirectory}/git/nixerator";
+    hyprflake = "${user.homeDirectory}/git/hyprflake";
   };
 
   # System defaults
@@ -37,13 +36,11 @@ rec {
     user = user.name;
     host = tailscale.qbert;
     projects = [
-      "${user.homeDirectory}/dev/nix/nixerator"
-      "${user.homeDirectory}/dev/nix/hyprflake"
-      "${user.homeDirectory}/dev/go/meetsum"
-      "${user.homeDirectory}/dev/go/mcp-tool-proxy"
-      "${user.homeDirectory}/dev/kong/lab"
-      "${user.homeDirectory}/dev/kong/scratch"
-      "${user.homeDirectory}/dev/infra"
+      "${user.homeDirectory}/git/nixerator"
+      "${user.homeDirectory}/git/hyprflake"
+      "${user.homeDirectory}/git/meetsum"
+      "${user.homeDirectory}/git/mcp-tool-proxy"
+      "${user.homeDirectory}/git/infra"
     ];
   };
 

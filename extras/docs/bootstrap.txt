@@ -93,12 +93,12 @@ sudo umount -R /mnt && sudo reboot
 
 # Set variables in first-boot shell (bash; for fish use set -gx)
 export TARGET_HOST="donkeykong"
-export REPO_PATH="$HOME/dev/nix/nixerator"
+export REPO_PATH="$HOME/git/nixerator"
 
 # Fix permissions (run the post-install script, or manually):
 # SSH: chown ~/.ssh, chmod 700 dir, 600 private keys, 644 public keys
 # GPG: chown ~/.gnupg, chmod 700 dir, 600 files; gpgconf --kill gpg-agent
-# Repo: chown ~/dev
+# Repo: chown ~/git
 # Or: extras/helpers/reset-home-permissions.sh
 
 # Verify

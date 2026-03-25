@@ -579,20 +579,20 @@ assert_clean_tree() {
 
 ### Primary (HIGH confidence)
 
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/gcmt/default.nix` + `scripts/gcmt.sh` -- writeShellApplication pattern, color helpers
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/git/default.nix` -- gcom: worktree creation, git-crypt unlock, default_branch, is_worktree, repo_path_with_branch helpers
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/gemini-cli/default.nix` -- home.file skill deployment pattern
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/stop-slop/default.nix` -- alternative home.file skill deployment
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/todoist-report/default.nix` -- writeShellApplication + scripts/ directory pattern
-- `/home/dustin/dev/nix/nixerator/modules/apps/cli/plannotator/default.nix` -- home.file for commands deployment
-- `/home/dustin/dev/nix/nixerator/lib/autoimport.nix` -- auto-import mechanism and exclusion rules
-- `/home/dustin/dev/nix/nixerator/modules/CLAUDE.md` -- module conventions, namespace rules
-- `/home/dustin/dev/nix/nixerator/.planning/phases/01-foundation/01-CONTEXT.md` -- locked decisions
-- `/home/dustin/dev/nix/nixerator/.planning/REQUIREMENTS.md` -- all v1 requirements
+- `/home/dustin/git/nixerator/modules/apps/cli/gcmt/default.nix` + `scripts/gcmt.sh` -- writeShellApplication pattern, color helpers
+- `/home/dustin/git/nixerator/modules/apps/cli/git/default.nix` -- gcom: worktree creation, git-crypt unlock, default_branch, is_worktree, repo_path_with_branch helpers
+- `/home/dustin/git/nixerator/modules/apps/cli/gemini-cli/default.nix` -- home.file skill deployment pattern
+- `/home/dustin/git/nixerator/modules/apps/cli/stop-slop/default.nix` -- alternative home.file skill deployment
+- `/home/dustin/git/nixerator/modules/apps/cli/todoist-report/default.nix` -- writeShellApplication + scripts/ directory pattern
+- `/home/dustin/git/nixerator/modules/apps/cli/plannotator/default.nix` -- home.file for commands deployment
+- `/home/dustin/git/nixerator/lib/autoimport.nix` -- auto-import mechanism and exclusion rules
+- `/home/dustin/git/nixerator/modules/CLAUDE.md` -- module conventions, namespace rules
+- `/home/dustin/git/nixerator/.planning/phases/01-foundation/01-CONTEXT.md` -- locked decisions
+- `/home/dustin/git/nixerator/.planning/REQUIREMENTS.md` -- all v1 requirements
 
 ### Secondary (MEDIUM confidence)
 
-- `/home/dustin/dev/nix/nixerator/.planning/STATE.md` -- open blockers (claude binary, gnused decision)
+- `/home/dustin/git/nixerator/.planning/STATE.md` -- open blockers (claude binary, gnused decision)
 
 ### Tertiary (LOW confidence)
 

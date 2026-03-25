@@ -92,7 +92,7 @@ in
 ```nix
 rec {
   user = { name = "dustin"; fullName = "Dustin Krysak"; email = "dustin@bashfulrobot.com"; homeDirectory = "/home/dustin"; };
-  paths = { devRoot = "${user.homeDirectory}/dev"; nixerator = "${user.homeDirectory}/dev/nix/nixerator"; ... };
+  paths = { devRoot = "${user.homeDirectory}/git"; nixerator = "${user.homeDirectory}/git/nixerator"; ... };
   defaults = { stateVersion = "25.11"; timeZone = "America/Vancouver"; locale = "en_US.UTF-8"; };
   preferences = { editor = "helix"; shell = "fish"; };
 }

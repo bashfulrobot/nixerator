@@ -96,7 +96,7 @@ made via `/plugin`, `/skills`, or manual editing are captured for the next build
 
 ```bash
 claude-capture() {
-  local repo="$HOME/dev/nix/nixerator/modules/apps/cli/claude-code/config"
+  local repo="$HOME/git/nixerator/modules/apps/cli/claude-code/config"
 
   # Settings
   cp ~/.claude/settings.json "$repo/settings.json"
