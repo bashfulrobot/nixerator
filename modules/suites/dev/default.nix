@@ -28,6 +28,7 @@ in
     apps = {
       cli = {
         amber.enable = true;
+        direnv.enable = true;
         # cue: removed
         git.enable = true;
         helix.enable = true;
