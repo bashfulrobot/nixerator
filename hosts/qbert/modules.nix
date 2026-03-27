@@ -3,6 +3,7 @@ _:
 {
   # Apps
   apps.cli.clay.service.enable = true;
+  apps.cli.paseo.service.enable = true;
 
   apps.cli.syncthing = {
     enable = true;
