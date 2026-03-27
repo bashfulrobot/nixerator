@@ -82,6 +82,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    paseo = {
+      url = "github:getpaseo/paseo";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     wayscriber = {
       url = "github:devmobasa/wayscriber";
       inputs.nixpkgs.follows = "nixpkgs";
