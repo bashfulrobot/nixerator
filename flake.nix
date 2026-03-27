@@ -77,6 +77,11 @@
     #   url = "github:zed-industries/zed";
     # };
 
+    upsight = {
+      url = "github:bashfulrobot/upsight/v0.1.2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     wayscriber = {
       url = "github:devmobasa/wayscriber";
       inputs.nixpkgs.follows = "nixpkgs";

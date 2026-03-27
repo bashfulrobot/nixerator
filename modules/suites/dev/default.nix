@@ -41,6 +41,7 @@ in
       gui = {
         vscode.enable = false;
         vscode.nautilusIntegration = true;
+        upsight.enable = true;
         zed.enable = true;
       };
     };
