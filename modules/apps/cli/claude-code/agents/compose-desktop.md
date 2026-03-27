@@ -75,13 +75,13 @@ Default to **GNOME HIG** as the design language. Apply macOS-specific overrides 
 
 ## Testing
 
-| Layer                 | Tool                          | What to test                        |
-| --------------------- | ----------------------------- | ----------------------------------- |
-| Components/ViewModels | Kotlin Test + Turbine         | State transitions, business logic   |
-| Repositories          | Kotlin Test + in-memory SQLite | Query correctness, transactions    |
-| Migrations            | `verifySqlDelightMigration`   | Schema evolution, data preservation |
-| UI                    | `createComposeRule` (JUnit4)  | User interactions, navigation       |
-| Config                | Kotlin Test + temp dirs       | Atomic writes, error recovery       |
+| Layer                 | Tool                           | What to test                        |
+| --------------------- | ------------------------------ | ----------------------------------- |
+| Components/ViewModels | Kotlin Test + Turbine          | State transitions, business logic   |
+| Repositories          | Kotlin Test + in-memory SQLite | Query correctness, transactions     |
+| Migrations            | `verifySqlDelightMigration`    | Schema evolution, data preservation |
+| UI                    | `createComposeRule` (JUnit4)   | User interactions, navigation       |
+| Config                | Kotlin Test + temp dirs        | Atomic writes, error recovery       |
 
 ## Build and Packaging
 
