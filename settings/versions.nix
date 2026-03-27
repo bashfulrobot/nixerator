@@ -35,18 +35,18 @@
     gws = {
       source = "github-release";
       repo = "googleworkspace/cli";
-      version = "0.19.0";
+      version = "0.22.3";
       tagPrefix = "v";
-      hash = "sha256-STxIsqgJxNrMTTiNiN0D/MPknq5/LW3rvGcNAm3Vi88=";
+      hash = "";
     };
 
     salesforce-cli = {
       source = "github-release";
       repo = "salesforcecli/cli";
-      version = "2.129.6";
+      version = "2.130.1";
       tagPrefix = "";
       shortRev = "b31f582";
-      hash = "sha256-kGqlmLX0ZgDG7F40MXIPv75ySqVptspjBioNXxcctpc=";
+      hash = "";
     };
 
     cpx = {
@@ -95,8 +95,8 @@
       source = "npm";
       repo = "c-d-cc/reap";
       npmPkg = "@c-d-cc/reap";
-      version = "0.15.14";
-      hash = "sha256-sKlMfSvpLJU0AktWxQqeanU6Cpcm54QFaK5b4Jsreq4=";
+      version = "0.15.17";
+      hash = "";
       npmDepsHash = "sha256-3WBC0C6hE/4WKLycaO0fvkuOP+wT4hj44kM7Rj+ld2U=";
     };
 
@@ -112,9 +112,9 @@
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
-      version = "0.15.0";
+      version = "0.15.5";
       tagPrefix = "v";
-      hash = "sha256-+kdKhB5nuG9rOEaFkDM0hCWMt937Pxo2+99PKkd9jBo=";
+      hash = "";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
@@ -153,7 +153,7 @@
     helium = {
       source = "github-release";
       repo = "imputnet/helium-linux";
-      version = "0.10.6.1";
+      version = "0.10.7.1";
       tagPrefix = "";
       hash = ""; # placeholder -- populate when apps.gui.helium.enable = true
     };
