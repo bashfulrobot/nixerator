@@ -48,6 +48,7 @@ in
           nixd
           nixfmt
           statix
+          kotlin-language-server
           yaml-language-server
         ];
 
@@ -105,6 +106,11 @@ in
               name = "go";
               auto-format = true;
               language-servers = [ "gopls" ];
+            }
+            {
+              name = "kotlin";
+              auto-format = true;
+              language-servers = [ "kotlin-language-server" ];
             }
             {
               name = "toml";

@@ -28,6 +28,7 @@ in
           fish-lsp
           gopls
           golangci-lint-langserver
+          kotlin-language-server
           helm-ls
           markdown-oxide
           marksman
@@ -46,6 +47,7 @@ in
         extensions = [
           # Languages
           "basher"
+          "kotlin"
           "dockerfile"
           "fish"
           "golangci-lint"
@@ -225,6 +227,11 @@ in
             markdown-oxide = {
               binary = {
                 path = "${pkgs.markdown-oxide}/bin/markdown-oxide";
+              };
+            };
+            kotlin-language-server = {
+              binary = {
+                path = "${pkgs.kotlin-language-server}/bin/kotlin-language-server";
               };
             };
             helm-ls = {
