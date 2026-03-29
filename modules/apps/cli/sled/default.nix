@@ -22,7 +22,7 @@ let
         pkgs.nodejs
         pkgs.pnpm_10
         pkgs.wrangler
-        pkgs.claude-code-acp
+        pkgs.claude-agent-acp
       ]
     }:$PATH"
 
