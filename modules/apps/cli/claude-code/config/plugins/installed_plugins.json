@@ -170,6 +170,16 @@
         "lastUpdated": "2026-03-26T21:54:44.364Z",
         "gitCommitSha": "8ea39819eed74fe2a0338e71789f06b30e953041"
       }
+    ],
+    "kotlin-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/kotlin-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-03-28T02:36:20.669Z",
+        "lastUpdated": "2026-03-28T02:36:20.669Z",
+        "gitCommitSha": "451c481b2b33600dad4563513c99e2268f056f5f"
+      }
     ]
   }
 }
