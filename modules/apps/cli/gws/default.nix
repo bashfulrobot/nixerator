@@ -22,7 +22,9 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
       gws
-      pkgs.google-cloud-sdk
+      (pkgs.google-cloud-sdk.withExtraComponents [
+        pkgs.google-cloud-sdk.components.gke-gcloud-auth-plugin
+      ])
     ];
   };
 }
