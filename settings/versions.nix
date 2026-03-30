@@ -37,7 +37,7 @@
       repo = "googleworkspace/cli";
       version = "0.22.3";
       tagPrefix = "v";
-      hash = "";
+      hash = "sha256-uVHvhHs43UGiPTGjrq88tlBCGqxge7/mNye/T0ITzkQ=";
     };
 
     salesforce-cli = {
@@ -45,8 +45,8 @@
       repo = "salesforcecli/cli";
       version = "2.130.1";
       tagPrefix = "";
-      shortRev = "b31f582";
-      hash = "";
+      shortRev = "6fe0790";
+      hash = "sha256-uFyWy2spRZhM1YMbvnIUQGO80IK2xLqh9pfkpefboLc=";
     };
 
     cpx = {
@@ -96,7 +96,7 @@
       repo = "c-d-cc/reap";
       npmPkg = "@c-d-cc/reap";
       version = "0.15.17";
-      hash = "";
+      hash = "sha256-b7OZDLMFdr9ehbhO9wXa2g6B7oZx+Vsh2peT/jt8lKs=";
       npmDepsHash = "sha256-3WBC0C6hE/4WKLycaO0fvkuOP+wT4hj44kM7Rj+ld2U=";
     };
 
@@ -114,7 +114,7 @@
       repo = "backnotprop/plannotator";
       version = "0.15.5";
       tagPrefix = "v";
-      hash = "";
+      hash = "sha256-+3AAvC2qmSGBgZZf+DnJOrkK+tTR1amHsiTLfkksuLU=";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
