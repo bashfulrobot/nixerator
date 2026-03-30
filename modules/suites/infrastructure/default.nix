@@ -30,7 +30,7 @@ in
       cloud-utils # Cloud management utilities
       cdrtools # mkisofs needed for cloud-init
       aws-iam-authenticator # AWS IAM authentication tool
-      google-cloud-sdk # Google Cloud SDK
+      (google-cloud-sdk.withExtraComponents [ google-cloud-sdk.components.gke-gcloud-auth-plugin ]) # Google Cloud SDK
 
       # Infrastructure as Code
       opentofu # Infrastructure provisioning (open-source Terraform fork)
