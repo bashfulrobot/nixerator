@@ -150,6 +150,12 @@ in
     # Force Stylix's Kvantum theme to win over Home Manager's Qt module,
     # which also writes kvantum.kvconfig when qt.style.name = "kvantum"
     home-manager.users.${globals.user.name} = {
+      # Link Ghostty's shipped Nautilus extension so it's discoverable
+      home.file = lib.mkIf config.hyprflake.desktop.terminal.hasNautilusExtension {
+        ".local/share/nautilus-python/extensions/ghostty.py".source =
+          "${config.hyprflake.desktop.terminal.package}/share/nautilus-python/extensions/ghostty.py";
+      };
+
       # Adopt new 26.05 default: gtk4 no longer inherits gtk.theme
       gtk.gtk4.theme = null;
 
