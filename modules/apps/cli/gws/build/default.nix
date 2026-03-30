@@ -7,7 +7,7 @@
 pkgs.stdenv.mkDerivation {
   name = "gws";
   src = pkgs.fetchurl {
-    url = "https://github.com/googleworkspace/cli/releases/download/v${versions.cli.gws.version}/gws-x86_64-unknown-linux-gnu.tar.gz";
+    url = "https://github.com/googleworkspace/cli/releases/download/v${versions.cli.gws.version}/google-workspace-cli-x86_64-unknown-linux-gnu.tar.gz";
     inherit (versions.cli.gws) hash;
   };
 
@@ -18,7 +18,7 @@ pkgs.stdenv.mkDerivation {
 
   dontBuild = true;
 
-  sourceRoot = "gws-x86_64-unknown-linux-gnu";
+  sourceRoot = "google-workspace-cli-x86_64-unknown-linux-gnu";
 
   installPhase = ''
     mkdir -p $out/bin
