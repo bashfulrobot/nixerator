@@ -40,9 +40,10 @@ in
       };
       gui = {
         vscode.enable = false;
-        vscode.nautilusIntegration = true;
+        vscode.nautilusIntegration = false;
         upsight.enable = true;
         zed.enable = true;
+        zed.nautilusIntegration = true;
       };
     };
 
