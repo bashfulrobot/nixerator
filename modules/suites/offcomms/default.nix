@@ -23,7 +23,7 @@ in
       gui = {
         insync.enable = true;
         localsend.enable = true;
-        morgen.enable = false;
+        morgen.enable = true;
         obsidian.enable = true;
         signal.enable = true;
         typora.enable = true;
