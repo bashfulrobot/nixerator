@@ -106,6 +106,17 @@ in
       shell = pkgs.${globals.preferences.shell};
     };
 
+    # Nautilus right-click script: copy selected path to clipboard
+    home-manager.users.${globals.user.name} = {
+      home.file.".local/share/nautilus/scripts/Copy Path" = {
+        executable = true;
+        text = ''
+          #!/bin/sh
+          echo -n "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS" | ${pkgs.wl-clipboard}/bin/wl-copy
+        '';
+      };
+    };
+
     # naughty
     security.sudo.wheelNeedsPassword = false;
   };
