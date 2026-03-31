@@ -152,6 +152,18 @@ in
               versioning = staggeredVersioning;
             };
 
+            "upsight-data" = {
+              path = "${globals.user.homeDirectory}/.local/share/upsight";
+              devices = [ "qbert" ];
+              versioning = staggeredVersioning;
+            };
+
+            "upsight-config" = {
+              path = "${globals.user.homeDirectory}/.config/upsight";
+              devices = [ "qbert" ];
+              versioning = simpleVersioning;
+            };
+
           };
         };
       })
@@ -237,6 +249,18 @@ in
               versioning = staggeredVersioning;
             };
 
+            "upsight-data" = {
+              path = "${globals.user.homeDirectory}/.local/share/upsight";
+              devices = [ "donkey-kong" ];
+              versioning = staggeredVersioning;
+            };
+
+            "upsight-config" = {
+              path = "${globals.user.homeDirectory}/.config/upsight";
+              devices = [ "donkey-kong" ];
+              versioning = simpleVersioning;
+            };
+
           };
         };
       })
@@ -263,6 +287,26 @@ in
             .git
           '';
           target = "dev/.stignore";
+        };
+
+        "upsight-data/.stignore" = {
+          text = ''
+            upsight.session
+            upsight.session.tmp
+            *.db-wal
+            *.db-shm
+          '';
+          target = ".local/share/upsight/.stignore";
+        };
+
+        "upsight-config/.stignore" = {
+          text = ''
+            upsight.session
+            upsight.session.tmp
+            *.db-wal
+            *.db-shm
+          '';
+          target = ".config/upsight/.stignore";
         };
       };
     };
