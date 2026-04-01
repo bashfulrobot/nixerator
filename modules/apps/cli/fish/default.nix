@@ -110,6 +110,14 @@ in
             end
           '';
 
+          af = ''
+            alias | fzf --prompt="Alias: " --height=40% --border
+          '';
+
+          ff = ''
+            functions | fzf --prompt="Function: " --height=40% --border
+          '';
+
           mkcd = ''
             mkdir -p $argv[1]; and cd $argv[1]
           '';
