@@ -20,18 +20,47 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    environment.systemPackages = lib.optionals cfg.nautilusIntegration [
+      pkgs.nautilus-python
+    ];
+
     home-manager.users.${globals.user.name} = {
-      home.file.".local/share/nautilus/scripts/Open in Zed" = lib.mkIf cfg.nautilusIntegration {
-        executable = true;
-        text = ''
-          #!/bin/sh
-          for path in $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS; do
-            if [ -d "$path" ]; then
-              zeditor --new "$path" &
-            else
-              zeditor "$path" &
-            fi
-          done
+      home.file = lib.mkIf cfg.nautilusIntegration {
+        ".local/share/nautilus-python/extensions/zed-open.py".text = ''
+          from gi.repository import Nautilus, GObject
+          from subprocess import call
+          import os
+
+          class ZedExtension(GObject.GObject, Nautilus.MenuProvider):
+              def launch_zed(self, menu, files):
+                  safepaths = ""
+                  args = ""
+                  for file in files:
+                      filepath = file.get_location().get_path()
+                      safepaths += '"' + filepath + '" '
+                      if os.path.isdir(filepath) and os.path.exists(filepath):
+                          args = "--new "
+                  call("zeditor " + args + safepaths + "&", shell=True)
+
+              def get_file_items(self, *args):
+                  files = args[-1]
+                  item = Nautilus.MenuItem(
+                      name="ZedOpen",
+                      label="Open in Zed",
+                      tip="Opens the selected files with Zed"
+                  )
+                  item.connect("activate", self.launch_zed, files)
+                  return [item]
+
+              def get_background_items(self, *args):
+                  file_ = args[-1]
+                  item = Nautilus.MenuItem(
+                      name="ZedOpenBackground",
+                      label="Open in Zed",
+                      tip="Opens the current directory in Zed"
+                  )
+                  item.connect("activate", self.launch_zed, [file_])
+                  return [item]
         '';
       };
 

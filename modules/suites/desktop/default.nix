@@ -149,6 +149,10 @@ in
     #   emoji: Noto Color Emoji
     # Force Stylix's Kvantum theme to win over Home Manager's Qt module,
     # which also writes kvantum.kvconfig when qt.style.name = "kvantum"
+    # Enable nautilus-python extensions on Hyprland (GNOME sets this automatically)
+    environment.sessionVariables.NAUTILUS_4_EXTENSION_DIR = "${config.system.path}/lib/nautilus/extensions-4";
+    environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
+
     home-manager.users.${globals.user.name} = {
       # Link Ghostty's shipped Nautilus extension so it's discoverable
       home.file = lib.mkIf config.hyprflake.desktop.terminal.hasNautilusExtension {
