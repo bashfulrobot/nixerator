@@ -49,7 +49,6 @@ in
           goh = "cd ${globals.paths.hyprflake}";
           upgrade = "cd ${globals.paths.nixerator} && just upgrade";
           rebuild = "cd ${globals.paths.nixerator} && just rebuild";
-          gsp = "just sync-git";
         };
 
         # Custom functions
@@ -124,6 +123,49 @@ in
             else
               echo "No selection made"
             end
+          '';
+
+          gsp = ''
+            if not git rev-parse --git-dir >/dev/null 2>&1
+              echo "Not a git repo"
+              return 1
+            end
+
+            set -l current_branch (git rev-parse --abbrev-ref HEAD)
+
+            git fetch origin
+
+            set -l local_only (git log "origin/$current_branch..$current_branch" --oneline 2>/dev/null)
+            set -l remote_only (git log "$current_branch..origin/$current_branch" --oneline 2>/dev/null)
+
+            if test -n "$local_only" -a -n "$remote_only"
+              echo "Diverged — local and remote both have commits:"
+              echo ""
+              echo "Local:"
+              echo "$local_only"
+              echo ""
+              echo "Remote:"
+              echo "$remote_only"
+              echo ""
+              echo "Resolve manually (rebase, merge, or force-push)."
+              return 1
+
+            else if test -n "$local_only"
+              echo "Pushing unpushed commits..."
+              git push origin "$current_branch"
+              echo "Pushed to origin/$current_branch"
+
+            else if test -n "$remote_only"
+              echo "Aligning git state with remote..."
+              git reset --hard "origin/$current_branch"
+              git clean -fd
+              echo "Git state aligned with origin/$current_branch"
+
+            else
+              echo "Already in sync with origin/$current_branch"
+            end
+
+            git status --short
           '';
         };
       };
