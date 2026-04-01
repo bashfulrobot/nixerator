@@ -55,6 +55,7 @@ in
         comma
         gnome-disk-utility
         gnome-system-monitor
+        nautilus-python
         wget
         curl
         nerd-fonts.iosevka # System-wide font with icon glyphs
@@ -106,15 +107,37 @@ in
       shell = pkgs.${globals.preferences.shell};
     };
 
-    # Nautilus right-click script: copy selected path to clipboard
+    # Nautilus right-click "Copy Path" extension (top-level context menu)
     home-manager.users.${globals.user.name} = {
-      home.file.".local/share/nautilus/scripts/Copy Path" = {
-        executable = true;
-        text = ''
-          #!/bin/sh
-          echo -n "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS" | ${pkgs.wl-clipboard}/bin/wl-copy
-        '';
-      };
+      home.file.".local/share/nautilus-python/extensions/copy-path.py".text = ''
+        from gi.repository import Nautilus, GObject
+        from subprocess import Popen, PIPE
+
+        class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
+            def copy_paths(self, menu, files):
+                paths = "\n".join(f.get_location().get_path() for f in files if f.get_location().get_path())
+                Popen(["wl-copy"], stdin=PIPE).communicate(paths.encode())
+
+            def get_file_items(self, *args):
+                files = args[-1]
+                item = Nautilus.MenuItem(
+                    name="CopyPath",
+                    label="Copy Path",
+                    tip="Copy the selected file path(s) to clipboard"
+                )
+                item.connect("activate", self.copy_paths, files)
+                return [item]
+
+            def get_background_items(self, *args):
+                file_ = args[-1]
+                item = Nautilus.MenuItem(
+                    name="CopyPathBackground",
+                    label="Copy Path",
+                    tip="Copy the current directory path to clipboard"
+                )
+                item.connect("activate", self.copy_paths, [file_])
+                return [item]
+      '';
     };
 
     # naughty
