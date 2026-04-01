@@ -1349,16 +1349,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1775024527,
-        "narHash": "sha256-5kpVMsIniSvQzpAzowVL4E5aU/Us4szeUpAWsC/MaG8=",
+        "lastModified": 1775087667,
+        "narHash": "sha256-pp2mFWpGSwQQU5+dD5+I3+wkvai+ikqOC0FXcBgPZ8I=",
         "owner": "bashfulrobot",
         "repo": "upsight",
-        "rev": "6c2d398c1490f31773defa5e4d6dab802bcd6b2b",
+        "rev": "20ab2e4169fb694869b562ccb70e40fa9a59e5dd",
         "type": "github"
       },
       "original": {
         "owner": "bashfulrobot",
-        "ref": "v0.2.8",
+        "ref": "v0.2.9",
         "repo": "upsight",
         "type": "github"
       }
