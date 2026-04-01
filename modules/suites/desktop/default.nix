@@ -66,7 +66,6 @@ in
       desktop = {
         # Use ghostty as the default terminal (overrides hyprflake's kitty default)
         terminal.package = pkgs.ghostty;
-        terminal.hasNautilusExtension = true;
 
         # Keyboard layout and variant
         keyboard = {
@@ -149,17 +148,10 @@ in
     #   emoji: Noto Color Emoji
     # Force Stylix's Kvantum theme to win over Home Manager's Qt module,
     # which also writes kvantum.kvconfig when qt.style.name = "kvantum"
-    # Enable nautilus-python extensions on Hyprland (GNOME sets this automatically)
-    environment.sessionVariables.NAUTILUS_4_EXTENSION_DIR = "${config.system.path}/lib/nautilus/extensions-4";
+    # nautilus-open-any-terminal now sets NAUTILUS_4_EXTENSION_DIR upstream
     environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
 
     home-manager.users.${globals.user.name} = {
-      # Link Ghostty's shipped Nautilus extension so it's discoverable
-      home.file = lib.mkIf config.hyprflake.desktop.terminal.hasNautilusExtension {
-        ".local/share/nautilus-python/extensions/ghostty.py".source =
-          "${config.hyprflake.desktop.terminal.package}/share/nautilus-python/extensions/ghostty.py";
-      };
-
       # Adopt new 26.05 default: gtk4 no longer inherits gtk.theme
       gtk.gtk4.theme = null;
 
