@@ -56,11 +56,41 @@ in
       programs = {
         fish = {
           shellAliases = {
+            # core
             g = "git";
             ga = "git add";
+            gaa = "git add -A";
+            gc = "git commit";
+            gcm = "git commit -m";
             gp = "git push";
+            gpf = "git push --force-with-lease";
             gpl = "git pull";
+            gf = "git fetch";
             gd = "git diff";
+            gds = "git diff --staged";
+            gs = "git status";
+            # branching
+            gb = "git branch";
+            gco = "git checkout";
+            gsw = "git switch";
+            gm = "git merge";
+            # log
+            glog = "git log --oneline --graph --decorate";
+            glast = "git log -1 HEAD";
+            # stash
+            gsta = "git stash";
+            gstp = "git stash pop";
+            gstl = "git stash list";
+            # rebase
+            grb = "git rebase";
+            grbc = "git rebase --continue";
+            grba = "git rebase --abort";
+            # misc
+            gcp = "git cherry-pick";
+            gcl = "git clone";
+            gwip = "git commit -am 'WIP'";
+            gundo = "git reset --soft HEAD~1";
+            # tools
             lg = "lazygit";
           };
         };
@@ -94,13 +124,33 @@ in
             gpg.format = "ssh";
             gpg.ssh.allowedSignersFile = "~/.config/git/allowed_signers";
 
-            # Git aliases
+            # Git aliases (for use as `git <alias>`)
             alias = {
               a = "add";
+              aa = "add -A";
               c = "commit";
+              cm = "commit -m";
               co = "checkout";
+              sw = "switch";
               st = "status";
               br = "branch";
+              df = "diff";
+              dfs = "diff --staged";
+              lg = "log --oneline --graph --decorate";
+              ll = "log --oneline -n 20";
+              last = "log -1 HEAD";
+              unstage = "reset HEAD --";
+              amend = "commit --amend --no-edit";
+              undo = "reset --soft HEAD~1";
+              wip = "commit -am 'WIP'";
+              ss = "stash";
+              sp = "stash pop";
+              sl = "stash list";
+              cp = "cherry-pick";
+              rb = "rebase";
+              rbc = "rebase --continue";
+              rba = "rebase --abort";
+              pf = "push --force-with-lease";
             };
           };
         };
