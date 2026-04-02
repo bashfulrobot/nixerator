@@ -36,6 +36,7 @@ in
         nix.enable = true;
         nix-search-tv.enable = true;
         shadowenv.enable = true;
+        kotlin-lsp.enable = true;
         worktree-flow.enable = true;
       };
       gui = {
@@ -62,7 +63,6 @@ in
         sqlite # SQLite CLI client and library
         litecli # User-friendly SQLite CLI with autocomplete and syntax highlighting
         sqlite-utils # CLI tool for manipulating SQLite databases
-        kotlin-language-server # Kotlin LSP for editor integration
       ]
       ++ [
         pkgs.${globals.preferences.editor} # User's preferred editor

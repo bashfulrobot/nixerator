@@ -3,11 +3,13 @@
   lib,
   pkgs,
   config,
+  versions,
   ...
 }:
 
 let
   cfg = config.apps.cli.helix;
+  kotlin-lsp = pkgs.callPackage ../kotlin-lsp/build { inherit versions; };
 in
 {
   options = {
@@ -48,7 +50,7 @@ in
           nixd
           nixfmt
           statix
-          kotlin-language-server
+          kotlin-lsp
           yaml-language-server
         ];
 
@@ -110,7 +112,7 @@ in
             {
               name = "kotlin";
               auto-format = true;
-              language-servers = [ "kotlin-language-server" ];
+              language-servers = [ "kotlin-lsp" ];
             }
             {
               name = "toml";
@@ -128,6 +130,9 @@ in
           language-server = {
             cuelsp = {
               command = "cuelsp";
+            };
+            kotlin-lsp = {
+              command = "${kotlin-lsp}/bin/kotlin-lsp";
             };
             yaml = {
               command = "yaml-language-server";
