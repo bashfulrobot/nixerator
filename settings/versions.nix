@@ -118,6 +118,14 @@
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
+    kotlin-lsp = {
+      source = "github-release";
+      repo = "Kotlin/kotlin-lsp";
+      version = "262.2310.0";
+      tagPrefix = "";
+      hash = "sha256-wAQkIVj0teHZF93YSOb2onlIT6WKPivOiEa4B9GtFrE=";
+    };
+
     gurk = {
       source = "github-release";
       repo = "boxdot/gurk-rs";

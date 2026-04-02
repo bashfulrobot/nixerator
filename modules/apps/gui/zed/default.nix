@@ -3,10 +3,12 @@
   lib,
   pkgs,
   globals,
+  versions,
   ...
 }:
 let
   cfg = config.apps.gui.zed;
+  kotlin-lsp = pkgs.callPackage ../../cli/kotlin-lsp/build { inherit versions; };
 in
 {
   options = {
@@ -77,7 +79,7 @@ in
           fish-lsp
           gopls
           golangci-lint-langserver
-          kotlin-language-server
+          kotlin-lsp
           helm-ls
           markdown-oxide
           marksman
@@ -280,7 +282,7 @@ in
             };
             kotlin-language-server = {
               binary = {
-                path = "${pkgs.kotlin-language-server}/bin/kotlin-language-server";
+                path = "${kotlin-lsp}/bin/kotlin-lsp";
               };
             };
             helm-ls = {
