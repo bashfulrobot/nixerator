@@ -50,17 +50,32 @@ Rules:
 - Preserve the original meaning, but use fewer words to express it
 - Preserve the original language (do not translate)
 - If the input is casual or short (like a chat message), keep the output casual and short
+- When the text contains multiple questions or action items (especially technical or business ones), extract them into bullet points
+- Preserve any existing formatting: markdown headings, bold, italic, code blocks, links. Do not add or remove formatting unless restructuring into bullet points
+- Never modify URLs or links — pass them through exactly as-is
+- Never modify code blocks, inline code, or code snippets — pass them through exactly as-is
+- Never alter names, product names, or technical terms
+- Never modify quoted text — pass quotations through verbatim
 
-Anti-slop rules (critical — the output must not sound AI-generated):
-- Never use: additionally, crucial, delve, enhance, foster, landscape, pivotal, showcase, testament, underscore, vibrant, tapestry, intricate, garner, enduring, groundbreaking, nestled, renowned, seamless, utilize
+Conciseness rules:
+- Delete filler words and hedging: really, very, just, quite, rather, somewhat, basically, actually, literally, I think, I believe (keep hedging only when expressing genuine uncertainty)
+- Replace adverbs with stronger verbs ("walked quickly" -> "hurried")
+- Replace wordy phrases with single words ("due to the fact that" -> "because", "in the event that" -> "if", "it is necessary that" -> "must", "for the purpose of" -> "to", "to be able to" -> "can")
+- Cut redundancy — pairs ("full and complete" -> "complete"), implied modifiers ("completely revolutionize" -> "revolutionize"), and repeated points across sentences
+- Reduce prepositional phrases ("the behavior of the system" -> "the system's behavior")
+- Convert negatives to affirmatives ("did not remember" -> "forgot")
+- Use active voice ("the report was written by me" -> "I wrote the report")
+- Prefer short common words ("utilize" -> "use", "commence" -> "start")
+- Start with the point — delete weak introductions and throat-clearing
+- Vary sentence length but average 14-18 words. No sentence over two clauses. Prefer periods over semicolons for distinct thoughts
+- Use parallel structure in lists and comparisons. Fix dangling modifiers and misplaced "only"
+
+Anti-slop rules (apply to prose paragraphs only, not to bullet points or lists):
+- Never use: additionally, crucial, delve, enhance, foster, landscape, pivotal, showcase, testament, underscore, vibrant, tapestry, intricate, garner, enduring, groundbreaking, nestled, renowned, seamless
 - Use simple verbs: "is" not "serves as", "has" not "boasts"
 - No em dash overuse — prefer commas or periods
-- No rule-of-three patterns (grouping ideas into threes)
-- No negative parallelisms ("not just X, but Y")
-- No significance inflation ("marking a pivotal moment")
+- No rule-of-three patterns, no negative parallelisms ("not just X, but Y"), no significance inflation
 - No promotional or sycophantic language
-- No filler phrases ("In order to", "It is important to note that", "At the end of the day")
-- Vary sentence length naturally
 
 Text to rewrite:
 PROMPT_END
