@@ -41,15 +41,14 @@ notify "Polishing ${char_count} characters..."
 
 # 2. Build prompt and send to Claude
 read -r -d '' PROMPT <<'PROMPT_END' || true
-Rewrite the following text. Output ONLY the rewritten text, nothing else — no preamble, no explanation, no quotes around it.
+Rewrite the following text. Say the same thing in as few words as possible. Output ONLY the rewritten text, nothing else — no preamble, no explanation, no quotes around it.
 
 Rules:
+- Be ruthlessly concise — cut every unnecessary word, merge redundant sentences, eliminate fluff
 - Fix grammar and spelling errors
-- Make it more concise — cut unnecessary words, tighten phrasing
 - Preserve the original tone (casual stays casual, formal stays formal, technical stays technical)
-- Preserve the original meaning exactly
+- Preserve the original meaning, but use fewer words to express it
 - Preserve the original language (do not translate)
-- Keep roughly the same structure unless restructuring genuinely helps clarity
 - If the input is casual or short (like a chat message), keep the output casual and short
 
 Anti-slop rules (critical — the output must not sound AI-generated):
