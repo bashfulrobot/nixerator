@@ -6,7 +6,7 @@
 }:
 pkgs.stdenv.mkDerivation {
   pname = "kotlin-lsp";
-  version = versions.cli.kotlin-lsp.version;
+  inherit (versions.cli.kotlin-lsp) version;
 
   src = pkgs.fetchurl {
     url = "https://download-cdn.jetbrains.com/kotlin-lsp/${versions.cli.kotlin-lsp.version}/kotlin-lsp-${versions.cli.kotlin-lsp.version}-linux-x64.zip";
