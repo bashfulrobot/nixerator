@@ -40,7 +40,7 @@ fi
 notify "Polishing ${char_count} characters..."
 
 # 2. Build prompt and send to Claude
-read -r -d '' PROMPT << 'PROMPT_END' || true
+read -r -d '' PROMPT <<'PROMPT_END' || true
 Rewrite the following text. Output ONLY the rewritten text, nothing else — no preamble, no explanation, no quotes around it.
 
 Rules:
