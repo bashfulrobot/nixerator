@@ -18,7 +18,7 @@ pkgs.stdenv.mkDerivation {
 
   dontBuild = true;
 
-  sourceRoot = "google-workspace-cli-x86_64-unknown-linux-gnu";
+  sourceRoot = ".";
 
   installPhase = ''
     mkdir -p $out/bin

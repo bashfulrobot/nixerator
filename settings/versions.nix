@@ -35,18 +35,18 @@
     gws = {
       source = "github-release";
       repo = "googleworkspace/cli";
-      version = "0.22.3";
+      version = "0.22.5";
       tagPrefix = "v";
-      hash = "sha256-uVHvhHs43UGiPTGjrq88tlBCGqxge7/mNye/T0ITzkQ=";
+      hash = "sha256-3njs29LxqEzKAGOn7LxEAkD8FLbrzLsX9GRreSqMXB8=";
     };
 
     salesforce-cli = {
       source = "github-release";
       repo = "salesforcecli/cli";
-      version = "2.130.1";
+      version = "2.131.1";
       tagPrefix = "";
-      shortRev = "6fe0790";
-      hash = "sha256-uFyWy2spRZhM1YMbvnIUQGO80IK2xLqh9pfkpefboLc=";
+      shortRev = "487641b";
+      hash = "sha256-Nrtis3AuXcEqHsRwiAQW0/YVqT6Hf7vRZcZ09nquCfI=";
     };
 
     cpx = {
@@ -60,8 +60,8 @@
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
-      version = "0.0.59";
-      hash = "sha256-i9x3rZusmPFugDE3xprvIKbB1naTUAVqJbGkWUANaEA=";
+      version = "0.0.60";
+      hash = "sha256-mSlM8BKYqe64noSloqqwSmogCznxMvzdSO5Z1nbJtko=";
       npmPkg = "kubernetes-mcp-server-linux-amd64";
     };
 
@@ -69,8 +69,8 @@
       source = "npm";
       repo = "chadbyte/clay";
       npmPkg = "clay-server";
-      version = "2.17.0";
-      hash = "sha256-8E6/6ubyy/oiNwyKXCrgXxBfNnNIKLjm051xc5RkCn8=";
+      version = "2.22.2";
+      hash = "sha256-FScFGmBhdyeLYHhaMYzvsaZ8LGsqmetgaIYWOeqpOgA=";
       npmDepsHash = "sha256-APUvm7E2q4bQ3xFx1PspXgW5GSstA4AAuQiiGXuNq68=";
     };
 
@@ -95,9 +95,9 @@
       source = "npm";
       repo = "c-d-cc/reap";
       npmPkg = "@c-d-cc/reap";
-      version = "0.15.17";
-      hash = "sha256-b7OZDLMFdr9ehbhO9wXa2g6B7oZx+Vsh2peT/jt8lKs=";
-      npmDepsHash = "sha256-3WBC0C6hE/4WKLycaO0fvkuOP+wT4hj44kM7Rj+ld2U=";
+      version = "0.16.4";
+      hash = "sha256-ABgVEgvlYrPZh9MzTpNlTZp7jfhsOjFlloU0Rltkkio=";
+      npmDepsHash = "sha256-Hdf0YhSTfUUeTnfMKrokdAha8Vw70WMB0BS8OIpArEI=";
     };
 
     sled = {
@@ -112,9 +112,9 @@
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
-      version = "0.15.5";
+      version = "0.16.7";
       tagPrefix = "v";
-      hash = "sha256-+3AAvC2qmSGBgZZf+DnJOrkK+tTR1amHsiTLfkksuLU=";
+      hash = "sha256-xTpdxoSorZWG7az0sPPl2krmoIEFW1HKkEMMo+pING0=";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
@@ -122,7 +122,7 @@
       source = "github-release";
       repo = "Kotlin/kotlin-lsp";
       version = "262.2310.0";
-      tagPrefix = "";
+      tagPrefix = "kotlin-lsp/v";
       hash = "sha256-wAQkIVj0teHZF93YSOb2onlIT6WKPivOiEa4B9GtFrE=";
     };
 
@@ -149,10 +149,10 @@
     insomnia = {
       source = "github-release";
       repo = "Kong/insomnia";
-      version = "12.4.0";
+      version = "12.5.0";
       tagPrefix = "core@";
       platformHashes = {
-        x86_64-linux = "sha256-QHa+BEGDIYsOxE49bL9bXmeYRKewx1P3FQ5bi3iz92w=";
+        x86_64-linux = "sha256-RYNzOX9WRPqPUMhbG/Ab4Ip25imudNGlHX1kPLzuQ+U=";
         aarch64-darwin = ""; # placeholder -- no darwin builds currently used
         x86_64-darwin = ""; # placeholder -- no darwin builds currently used
       };
@@ -161,9 +161,9 @@
     helium = {
       source = "github-release";
       repo = "imputnet/helium-linux";
-      version = "0.10.7.1";
+      version = "0.10.8.1";
       tagPrefix = "";
-      hash = ""; # placeholder -- populate when apps.gui.helium.enable = true
+      hash = "sha256-pN/Iw1ANggDOxxFb2CN436qbcrs8/bDcEqjZC80grQs=";
     };
   };
 
