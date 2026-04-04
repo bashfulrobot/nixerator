@@ -3,16 +3,18 @@
   pkgs,
   config,
   globals,
+  versions,
   ...
 }:
 let
   cfg = config.apps.cli.stop-slop;
+  v = versions.cli.stop-slop;
 
   stop-slop-src = pkgs.fetchFromGitHub {
     owner = "hardikpandya";
     repo = "stop-slop";
-    rev = "65d52b35d7243427ac646e83eae5a9b0709aa191";
-    hash = "sha256-NcwN37kSKOO+4QIhIEVafFtg15KCufmxTJiX3AGQRh0=";
+    rev = v.rev;
+    hash = v.hash;
   };
 in
 {
