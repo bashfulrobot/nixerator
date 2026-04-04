@@ -51,5 +51,7 @@ in
         loadModels = [ "glm-5:cloud" ];
       };
     };
+
+    system.moshi.enable = true;
   };
 }
