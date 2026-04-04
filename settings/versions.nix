@@ -74,6 +74,15 @@
       npmDepsHash = "sha256-APUvm7E2q4bQ3xFx1PspXgW5GSstA4AAuQiiGXuNq68=";
     };
 
+    claudito = {
+      source = "npm";
+      repo = "comfortablynumb/claudito";
+      npmPkg = "claudito";
+      version = "0.19.1";
+      hash = "sha256-r6L/liOHIg8pde9qbraUP2c0hX7YC9Xu5nKowwpar18=";
+      npmDepsHash = "sha256-EJW+olaJPjOcXlfNW0d09yxEBgMwzg0URCnCGHeqZzI=";
+    };
+
     lswt = {
       source = "sourcehut";
       repo = "~leon_plickat/lswt";
@@ -124,6 +133,14 @@
       version = "262.2310.0";
       tagPrefix = "kotlin-lsp/v";
       hash = "sha256-wAQkIVj0teHZF93YSOb2onlIT6WKPivOiEa4B9GtFrE=";
+    };
+
+    stop-slop = {
+      source = "github-commit";
+      repo = "hardikpandya/stop-slop";
+      version = "unstable-2026-04-04";
+      rev = "65d52b35d7243427ac646e83eae5a9b0709aa191";
+      hash = "sha256-NcwN37kSKOO+4QIhIEVafFtg15KCufmxTJiX3AGQRh0=";
     };
 
     gurk = {
