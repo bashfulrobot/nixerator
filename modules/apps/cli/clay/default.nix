@@ -18,7 +18,7 @@ in
 
     port = lib.mkOption {
       type = lib.types.port;
-      default = 2633;
+      default = 3131;
       description = "Port for the Clay server.";
     };
 
@@ -29,8 +29,8 @@ in
       default = [ ];
       description = "Project directories to register with Clay on startup.";
       example = [
-        "/home/dustin/git/nixerator"
-        "/home/dustin/git/other-project"
+        "~/git/nixerator"
+        "~/git/other-project"
       ];
     };
   };
