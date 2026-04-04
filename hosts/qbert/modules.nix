@@ -2,7 +2,15 @@ _:
 
 {
   # Apps
-  apps.cli.clay.service.enable = true;
+  apps.cli.clay = {
+    service.enable = true;
+    projects = [
+      "/home/dustin/git/nixerator"
+      "/home/dustin/git/hyprflake"
+      "/home/dustin/git/upsight"
+      "/home/dustin/git/blackhole"
+    ];
+  };
   apps.cli.paseo.service.enable = true;
   apps.cli.text-polish.enable = true;
 
