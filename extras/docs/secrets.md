@@ -2,10 +2,40 @@
 
 git-crypt encrypted secrets in `secrets/secrets.json`, auto-decrypted with GPG key access.
 
-## Structure
+## Schema
 
 ```json
 {
+  "github": {
+    "accessToken": "ghp_..."
+  },
+  "kong": {
+    "kongKonnectPAT": "kpat_..."
+  },
+  "context7": {
+    "apiKey": "..."
+  },
+  "clay": {
+    "pin": "..."
+  },
+  "claudito": {
+    "username": "...",
+    "password": "..."
+  },
+  "syncthing": {
+    "gui": {
+      "user": "...",
+      "password": "..."
+    }
+  },
+  "qbert": {
+    "tailscale_ip": "100.x.x.x",
+    "syncthing_id": "..."
+  },
+  "donkey-kong": {
+    "tailscale_ip": "100.x.x.x",
+    "syncthing_id": "..."
+  },
   "restic": {
     "srv": {
       "restic_repository": "s3:...",
@@ -14,12 +44,29 @@ git-crypt encrypted secrets in `secrets/secrets.json`, auto-decrypted with GPG k
       "b2_account_key": "...",
       "region": "us-west-000"
     }
-  },
-  "kong": { "kongKonnectPAT": "..." }
+  }
 }
 ```
 
-Restic credentials are used by the server backup stack (Backrest + restic).
+### Key consumers
+
+| Key | Used by | Module |
+|-----|---------|--------|
+| `github.accessToken` | Nix flake fetches from private repos | `system/nix` |
+| `kong.kongKonnectPAT` | Kong Konnect MCP server auth | `apps/cli/claude-code/cfg/mcp-servers.nix` |
+| `context7.apiKey` | Context7 MCP server auth | `apps/cli/claude-code/cfg/mcp-servers.nix` |
+| `clay.pin` | Clay server PIN auth | `apps/cli/clay` |
+| `claudito.username/password` | Claudito server auth | `server/claudito` |
+| `syncthing.gui.*` | Syncthing web UI credentials | `apps/cli/syncthing` |
+| `qbert.*` / `donkey-kong.*` | Syncthing peer discovery, remote editing | `apps/cli/syncthing`, `apps/gui/zed` |
+| `restic.srv.*` | Backrest + restic backup to B2 | `hosts/srv/modules.nix` |
+
+### Rotation
+
+1. Edit `secrets/secrets.json` (repo must be unlocked)
+2. Update the relevant value
+3. Rebuild (`just qr`) to apply
+4. Commit (file stays encrypted in git)
 
 ## Accessing in Modules
 
