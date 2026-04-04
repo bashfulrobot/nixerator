@@ -46,6 +46,7 @@ in
         percollate.enable = true;
         slack-token-refresh.enable = true;
         slack-tracker.enable = true;
+        slidev.enable = true;
         todoist-report.enable = true;
         wkhtmltopdf.enable = true;
       };
