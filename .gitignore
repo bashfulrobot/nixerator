@@ -15,6 +15,9 @@ result-*
 # Claude Code plugin cache (reproducible from installed_plugins.json)
 modules/apps/cli/claude-code/config/plugins/cache/
 
+# Claudito conversation state
+.claudito/
+
 prompt.txt
 .claude/settings.local.json
 AGENTS.md
