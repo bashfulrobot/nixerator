@@ -45,7 +45,7 @@
     };
 
     nixos-hardware = {
-      url = "github:NixOS/nixos-hardware/master";
+      url = "github:NixOS/nixos-hardware";
     };
 
     spicetify-nix = {
