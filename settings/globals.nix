@@ -34,7 +34,6 @@ rec {
   # Remote editing (Zed SSH)
   remoteEdit = {
     user = user.name;
-    host = tailscale.qbert;
     projects = [
       "${user.homeDirectory}/git/nixerator"
       "${user.homeDirectory}/git/hyprflake"
@@ -42,13 +41,6 @@ rec {
       "${user.homeDirectory}/git/mcp-tool-proxy"
       "${user.homeDirectory}/git/infra"
     ];
-  };
-
-  # Tailscale IPs
-  tailscale = {
-    qbert = "100.74.137.95";
-    donkeykong = "100.117.210.113";
-    srv = "100.64.187.14";
   };
 
   # Git configuration
