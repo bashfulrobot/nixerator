@@ -129,7 +129,9 @@ in
           if [ -z "$DRY_RUN_CMD" ]; then
             rm -f "$claude_home/settings.json"
             ${pkgs.gnused}/bin/sed \
-              's|@STATUSLINE_COMMAND@|${statusLineScript}/bin/claude-statusline|g' \
+              -e 's|@STATUSLINE_COMMAND@|${statusLineScript}/bin/claude-statusline|g' \
+              -e 's|@USER_NAME@|${globals.user.name}|g' \
+              -e 's|@HOME_DIR@|${globals.user.homeDirectory}|g' \
               "${configDir}/settings.json" > "$claude_home/settings.json"
             chmod 644 "$claude_home/settings.json"
           else

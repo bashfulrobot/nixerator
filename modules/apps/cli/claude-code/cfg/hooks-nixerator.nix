@@ -1,4 +1,4 @@
-{ lib }:
+{ lib, globals }:
 
 {
   # Nixerator-specific bash guards
@@ -55,7 +55,7 @@
 
               # Hardcoded username detection (outside secrets/)
               if [[ "$is_secrets" == false ]] && [[ -f "$file" ]]; then
-                if grep -qE '/home/dustin|home-manager\.users\.dustin' "$file"; then
+                if grep -qE '${globals.user.homeDirectory}|home-manager\.users\.${globals.user.name}' "$file"; then
                   echo "[nix-content] ERROR: Hardcoded username detected in $file. Fix: use globals.user.name or globals.user.homeDirectory from settings/globals.nix instead."
                   exit 1
                 fi
