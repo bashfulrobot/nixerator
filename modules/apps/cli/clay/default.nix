@@ -59,7 +59,13 @@ in
               After = [ "network.target" ];
             };
             Service = {
-              Type = "simple";
+              Type = "forking";
+              ExecStartPre = pkgs.writeShellScript "clay-set-port" ''
+                cfg="$HOME/.clay/daemon.json"
+                if [ -f "$cfg" ]; then
+                  ${pkgs.jq}/bin/jq '.port = ${toString cfg.port}' "$cfg" > "$cfg.tmp" && mv "$cfg.tmp" "$cfg"
+                fi
+              '';
               ExecStart =
                 let
                   args =
