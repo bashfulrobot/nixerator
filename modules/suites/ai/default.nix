@@ -42,7 +42,8 @@ in
       # termly: disabled
       # llmfit: removed
       plannotator.enable = true;
-      sled.enable = true;
+      # sled: disabled
+
       stop-slop.enable = true;
       superpowers.enable = true;
       paseo.enable = true;
@@ -52,6 +53,7 @@ in
       };
     };
 
-    system.moshi.enable = true;
+    # system.moshi: disabled
+    # server.claudito: disabled
   };
 }
