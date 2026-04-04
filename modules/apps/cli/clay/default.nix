@@ -22,7 +22,7 @@ in
       description = "Port for the Clay server.";
     };
 
-    service.enable = lib.mkEnableOption "Clay persistent server (Hyprland exec-once)";
+    service.enable = lib.mkEnableOption "Clay persistent server (systemd user service)";
 
     projects = lib.mkOption {
       type = lib.types.listOf lib.types.str;
@@ -53,18 +53,33 @@ in
 
       (lib.mkIf cfg.service.enable {
         home-manager.users.${globals.user.name} = {
-          xdg.configFile."hypr/conf.d/clay-server.conf".text =
-            let
-              args =
-                "--headless --yes --no-update -p ${toString cfg.port}"
-                + lib.optionalString (secrets.clay.pin or null != null) " --pin ${secrets.clay.pin}";
-              addProjects = lib.concatMapStringsSep "\n" (
-                dir: "exec-once = sleep 3 && ${clay}/bin/clay-server --add ${dir}"
-              ) cfg.projects;
-            in
-            lib.concatStringsSep "\n" (
-              [ "exec-once = ${clay}/bin/clay-server ${args}" ] ++ lib.optional (cfg.projects != [ ]) addProjects
-            );
+          systemd.user.services.clay = {
+            Unit = {
+              Description = "Clay web UI for Claude Code";
+              After = [ "network.target" ];
+            };
+            Service = {
+              Type = "simple";
+              ExecStart =
+                let
+                  args =
+                    "--headless --yes --no-update -p ${toString cfg.port}"
+                    + lib.optionalString (secrets.clay.pin or null != null) " --pin ${secrets.clay.pin}";
+                in
+                "${clay}/bin/clay-server ${args}";
+              ExecStartPost = lib.optionals (cfg.projects != [ ]) [
+                (pkgs.writeShellScript "clay-add-projects" ''
+                  sleep 3
+                  ${lib.concatMapStringsSep "\n" (dir: "${clay}/bin/clay-server --add ${dir}") cfg.projects}
+                '')
+              ];
+              Restart = "on-failure";
+              RestartSec = 5;
+            };
+            Install = {
+              WantedBy = [ "default.target" ];
+            };
+          };
         };
       })
     ]
