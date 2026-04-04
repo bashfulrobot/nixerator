@@ -13,8 +13,8 @@ let
   stop-slop-src = pkgs.fetchFromGitHub {
     owner = "hardikpandya";
     repo = "stop-slop";
-    rev = v.rev;
-    hash = v.hash;
+    inherit (v) rev;
+    inherit (v) hash;
   };
 in
 {
