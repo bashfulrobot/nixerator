@@ -3,6 +3,7 @@
   lib,
   pkgs,
   globals,
+  secrets,
   versions,
   ...
 }:
@@ -299,7 +300,7 @@ in
           };
         };
       };
-      programs.fish.functions = {
+      programs.fish.functions = lib.optionalAttrs (secrets.qbert or null != null) {
         re = {
           description = "Remote edit: open Zed on a remote project via SSH";
           body = ''
@@ -314,7 +315,7 @@ in
             if test -z "$project"
               return 1
             end
-            zed "ssh://${globals.remoteEdit.user}@${globals.remoteEdit.host}/$project"
+            zed "ssh://${globals.remoteEdit.user}@${secrets.qbert.tailscale_ip}/$project"
           '';
         };
       };
