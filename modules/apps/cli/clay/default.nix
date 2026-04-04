@@ -23,6 +23,16 @@ in
     };
 
     service.enable = lib.mkEnableOption "Clay persistent server (Hyprland exec-once)";
+
+    projects = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Project directories to register with Clay on startup.";
+      example = [
+        "/home/dustin/git/nixerator"
+        "/home/dustin/git/other-project"
+      ];
+    };
   };
 
   config = lib.mkIf cfg.enable (
@@ -48,8 +58,13 @@ in
               args =
                 "--headless --yes --no-update -p ${toString cfg.port}"
                 + lib.optionalString (secrets.clay.pin or null != null) " --pin ${secrets.clay.pin}";
+              addProjects = lib.concatMapStringsSep "\n" (
+                dir: "exec-once = sleep 3 && ${clay}/bin/clay-server --add ${dir}"
+              ) cfg.projects;
             in
-            "exec-once = ${clay}/bin/clay-server ${args}";
+            lib.concatStringsSep "\n" (
+              [ "exec-once = ${clay}/bin/clay-server ${args}" ] ++ lib.optional (cfg.projects != [ ]) addProjects
+            );
         };
       })
     ]
