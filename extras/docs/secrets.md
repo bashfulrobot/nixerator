@@ -60,6 +60,7 @@ git-crypt encrypted secrets in `secrets/secrets.json`, auto-decrypted with GPG k
 | `syncthing.gui.*` | Syncthing web UI credentials | `apps/cli/syncthing` |
 | `qbert.*` / `donkey-kong.*` | Syncthing peer discovery, remote editing | `apps/cli/syncthing`, `apps/gui/zed` |
 | `restic.srv.*` | Backrest + restic backup to B2 | `hosts/srv/modules.nix` |
+| `gemini.apiKey` | Gemini API (visual-explainer, generate-images skills) | `apps/cli/claude-code` |
 
 ### Rotation
 

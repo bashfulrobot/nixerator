@@ -96,10 +96,18 @@ in
       yaml-language-server
     ];
 
+    # Gemini API key for generate-images / visual-explainer skills
+    environment.variables = lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
+      GEMINI_API_KEY = secrets.gemini.apiKey;
+    };
+
     home-manager.users.${globals.user.name} = {
       programs.fish = fishConfig;
 
       home = {
+        sessionVariables = lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
+          GEMINI_API_KEY = secrets.gemini.apiKey;
+        };
         packages =
           with pkgs;
           [
