@@ -204,6 +204,22 @@ fmt:
     @echo "Formatting nix files..."
     @nix fmt
 
+# Update manually-installed Claude skills from GitHub
+update-skills:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Updating generate-images skill..."
+    curl -fsSL "https://raw.githubusercontent.com/ericblue/my-claude/main/skills/generate-images/SKILL.md" \
+        -o ~/.claude/skills/generate-images/SKILL.md
+    mkdir -p ~/.claude/skills/generate-images/scripts
+    curl -fsSL "https://raw.githubusercontent.com/ericblue/my-claude/main/skills/generate-images/scripts/generate-images.sh" \
+        -o ~/.claude/skills/generate-images/scripts/generate-images.sh
+    chmod +x ~/.claude/skills/generate-images/scripts/generate-images.sh
+    echo "Updating visual-explainer skill..."
+    curl -fsSL "https://raw.githubusercontent.com/ericblue/visual-explainer-skill/main/skill/visual-explainer.md" \
+        -o ~/.claude/skills/visual-explainer/SKILL.md
+    echo "Skills updated"
+
 # === Shared Helpers ===
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
@@ -217,11 +233,15 @@ post-rebuild mode="quiet":
     if [[ "{{mode}}" == "interactive" ]]; then
         gum spin --spinner dot --title "Syncing plugins..." \
             -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
+        gum spin --spinner dot --title "Updating skills..." \
+            -- bash -c 'just update-skills &>/dev/null' || gum style --foreground 220 "Skill update failed (non-fatal)"
         gum spin --spinner dot --title "Capturing Claude Code config..." \
             -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
     else
         echo "Syncing plugins..."
         claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
+        echo "Updating skills..."
+        just update-skills || echo "Skill update failed (non-fatal)"
         echo "Capturing Claude Code config..."
         fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
     fi
