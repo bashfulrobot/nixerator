@@ -74,15 +74,6 @@
       npmDepsHash = "sha256-APUvm7E2q4bQ3xFx1PspXgW5GSstA4AAuQiiGXuNq68=";
     };
 
-    claudito = {
-      source = "npm";
-      repo = "comfortablynumb/claudito";
-      npmPkg = "claudito";
-      version = "0.19.1";
-      hash = "sha256-r6L/liOHIg8pde9qbraUP2c0hX7YC9Xu5nKowwpar18=";
-      npmDepsHash = "sha256-EJW+olaJPjOcXlfNW0d09yxEBgMwzg0URCnCGHeqZzI=";
-    };
-
     lswt = {
       source = "sourcehut";
       repo = "~leon_plickat/lswt";
@@ -107,15 +98,6 @@
       version = "0.16.4";
       hash = "sha256-ABgVEgvlYrPZh9MzTpNlTZp7jfhsOjFlloU0Rltkkio=";
       npmDepsHash = "sha256-Hdf0YhSTfUUeTnfMKrokdAha8Vw70WMB0BS8OIpArEI=";
-    };
-
-    sled = {
-      source = "github-commit";
-      repo = "layercodedev/sled";
-      version = "unstable-2026-01-26";
-      rev = "f5a3746627e9de3b1b796e7e4c5a98bcd1de10ad";
-      hash = "sha256-U1E46cNHCU1zzD45OOYLlTrxtEFx1TaMxeZyzNH8HJs=";
-      pnpmDepsHash = "sha256-92f1jC1G1BjGd5SmcGAB/Jo1BRJ6YBfNvjMCsifDYUs=";
     };
 
     plannotator = {
