@@ -52,6 +52,14 @@ let
         "chrome-devtools-mcp@latest"
       ];
     };
+    # draw.io diagram tools — open XML/CSV/Mermaid in browser-based editor
+    drawio = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "@drawio/mcp"
+      ];
+    };
   }
   // lib.optionalAttrs (context7ApiKey != null) {
     context7 = {
