@@ -82,6 +82,15 @@
       hash = "sha256-8jP6I2zsDt57STtuq4F9mcsckrjvaCE5lavqKTjhNT0=";
     };
 
+    sheets = {
+      source = "github-release";
+      repo = "maaslalani/sheets";
+      version = "0.2.0";
+      tagPrefix = "v";
+      hash = "sha256-sRJ1rqtxc4axAkVavxSR2afdvxCAjJdK2mBWnt+nzW0=";
+      vendorHash = "sha256-WWtAt0+W/ewLNuNgrqrgho5emntw3rZL9JTTbNo4GsI=";
+    };
+
     jwtx = {
       source = "github-release";
       repo = "gurleensethi/jwtx";
