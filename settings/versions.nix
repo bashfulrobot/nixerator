@@ -27,9 +27,9 @@
     meetsum = {
       source = "github-release";
       repo = "bashfulrobot/meetsum";
-      version = "0.8.3";
+      version = "0.9.0";
       tagPrefix = "v";
-      hash = "sha256-bYSk/mYor/dil/Dz4RDkRfpE0412Ue93NR5D+i73ihQ=";
+      hash = "sha256-dbQ4ypYrGr0vyA67fcD+pSHHSVEAKNitdzKOM6hig2U=";
     };
 
     gws = {
