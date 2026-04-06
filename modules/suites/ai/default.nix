@@ -18,6 +18,7 @@ in
 
     apps.cli = {
       clay.enable = true;
+      drawio.enable = true;
       claude-code = {
         enable = true;
         plugins = [
