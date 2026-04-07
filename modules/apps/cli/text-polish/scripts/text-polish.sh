@@ -10,12 +10,12 @@ NOTIFY_TAG="text-polish"
 
 notify() {
   "$NOTIFY" "Text Polish" "$1" --icon=accessories-text-editor \
-    --hint=string:x-dunst-stack-tag:$NOTIFY_TAG 2>/dev/null || true
+    --hint=string:x-dunst-stack-tag:"$NOTIFY_TAG" 2>/dev/null || true
 }
 
 notify_error() {
   "$NOTIFY" "Text Polish" "$1" --icon=dialog-error \
-    --hint=string:x-dunst-stack-tag:$NOTIFY_TAG 2>/dev/null || true
+    --hint=string:x-dunst-stack-tag:"$NOTIFY_TAG" 2>/dev/null || true
 }
 
 # 1. Grab text: primary selection first, then clipboard
