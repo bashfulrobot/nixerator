@@ -56,6 +56,7 @@ in
         just # Task runner for project commands
         statix # Nix linter and code quality checker
         git-cliff # Conventional changelog generator
+        fq # jq for binary formats (media, networking, serialization)
         jq # JSON processor
         yq-go # YAML processor
         hugo # Static site generator
