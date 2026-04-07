@@ -73,7 +73,7 @@ Conciseness rules:
 Anti-slop rules (apply to prose paragraphs only, not to bullet points or lists):
 - Never use: additionally, crucial, delve, enhance, foster, landscape, pivotal, showcase, testament, underscore, vibrant, tapestry, intricate, garner, enduring, groundbreaking, nestled, renowned, seamless
 - Use simple verbs: "is" not "serves as", "has" not "boasts"
-- No em dash overuse — prefer commas or periods
+- Never use em dashes (—) or en dashes (–) — replace with commas, periods, or colons
 - No rule-of-three patterns, no negative parallelisms ("not just X, but Y"), no significance inflation
 - No promotional or sycophantic language
 
