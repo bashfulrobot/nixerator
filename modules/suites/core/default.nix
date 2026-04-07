@@ -38,7 +38,7 @@ in
     # Automatic timezone detection based on geolocation
     services.automatic-timezoned.enable = true;
 
-    # Remap Caps Lock to Scroll Lock
+    # Remap Caps Lock to Scroll Lock (Voxtype push-to-talk hotkey)
     services.keyd = {
       enable = true;
       keyboards.default.settings = {

@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  globals,
   pkgs,
   ...
 }:
@@ -70,5 +71,25 @@ in
       fractal
       signal-cli
     ];
+
+    # Force Todoist Electron to use native Wayland (avoids XWayland key
+    # passthrough that breaks Voxtype push-to-talk suppression)
+    home-manager.users.${globals.user.name} = {
+      xdg.desktopEntries.todoist = {
+        name = "Todoist";
+        exec = "todoist-electron --ozone-platform=wayland ---electron -- --no-sandbox %U";
+        terminal = false;
+        icon = "todoist";
+        comment = "The Best To-Do List App & Task Manager";
+        categories = [ "Office" ];
+        mimeType = [
+          "x-scheme-handler/todoist"
+          "x-scheme-handler/com.todoist"
+        ];
+        settings = {
+          StartupWMClass = "Todoist";
+        };
+      };
+    };
   };
 }
