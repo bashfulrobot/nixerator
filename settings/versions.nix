@@ -43,10 +43,10 @@
     salesforce-cli = {
       source = "github-release";
       repo = "salesforcecli/cli";
-      version = "2.131.1";
+      version = "2.131.5";
       tagPrefix = "";
       shortRev = "487641b";
-      hash = "sha256-Nrtis3AuXcEqHsRwiAQW0/YVqT6Hf7vRZcZ09nquCfI=";
+      hash = "";
     };
 
     cpx = {
@@ -69,8 +69,8 @@
       source = "npm";
       repo = "chadbyte/clay";
       npmPkg = "clay-server";
-      version = "2.22.2";
-      hash = "sha256-FScFGmBhdyeLYHhaMYzvsaZ8LGsqmetgaIYWOeqpOgA=";
+      version = "2.25.0";
+      hash = "sha256-TV+OK9ani9te8G+Yot1LBSWRhVcJ+2dTs1ujb2HOxEg=";
       npmDepsHash = "sha256-APUvm7E2q4bQ3xFx1PspXgW5GSstA4AAuQiiGXuNq68=";
     };
 
@@ -112,9 +112,9 @@
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
-      version = "0.16.7";
+      version = "0.17.1";
       tagPrefix = "v";
-      hash = "sha256-xTpdxoSorZWG7az0sPPl2krmoIEFW1HKkEMMo+pING0=";
+      hash = "sha256-UYoImMYyu9BposkwrXLPZiQsse3aHg5Aims2Ekbs59o=";
       pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
     };
 
