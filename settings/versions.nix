@@ -45,8 +45,8 @@
       repo = "salesforcecli/cli";
       version = "2.131.5";
       tagPrefix = "";
-      shortRev = "487641b";
-      hash = "";
+      shortRev = "8ade7c8";
+      hash = "sha256-Ut4e39jXZLnzb7qNSKHpuTuv8s6gLKWDhSfr90ITJE4=";
     };
 
     cpx = {
