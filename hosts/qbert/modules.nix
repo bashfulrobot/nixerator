@@ -8,7 +8,7 @@
       location = secrets.plakar.qbert.repository;
       accessKey = secrets.plakar.qbert.b2_account_id;
       secretAccessKey = secrets.plakar.qbert.b2_account_key;
-      passphrase = secrets.plakar.qbert.passphrase;
+      inherit (secrets.plakar.qbert) passphrase;
     };
 
     jobs.home-to-b2 = {
