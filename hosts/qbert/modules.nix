@@ -1,7 +1,36 @@
-_:
+{ secrets, ... }:
 
 {
   # Apps
+  apps.cli.plakar = {
+    stores.b2-backup = {
+      type = "s3";
+      location = secrets.plakar.qbert.repository;
+      accessKey = secrets.plakar.qbert.b2_account_id;
+      secretAccessKey = secrets.plakar.qbert.b2_account_key;
+      passphrase = secrets.plakar.qbert.passphrase;
+    };
+
+    jobs.home-to-b2 = {
+      store = "@b2-backup";
+      paths = [
+        "/home/dustin/Desktop"
+        "/home/dustin/dev"
+        "/home/dustin/Documents"
+        "/home/dustin/Downloads"
+        "/home/dustin/git"
+        "/home/dustin/Music"
+        "/home/dustin/Pictures"
+        "/home/dustin/Videos"
+        "/home/dustin/.kube"
+        "/home/dustin/.talos"
+        "/home/dustin/.config/upsight"
+        "/home/dustin/.local/share/upsight"
+      ];
+      interval = "24h";
+    };
+  };
+
   apps.cli.clay = {
     service.enable = true;
     projects = [
