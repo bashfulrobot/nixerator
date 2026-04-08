@@ -29,7 +29,7 @@ usage() {
 parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -d | --dir)
+      -d|--dir)
         if [[ -z "${2:-}" ]]; then
           echo "ERROR - --dir requires a directory argument" >&2
           exit 1
@@ -37,7 +37,7 @@ parse_args() {
         root_dir="${2%/}"
         shift 2
         ;;
-      -e | --exclude)
+      -e|--exclude)
         if [[ -z "${2:-}" ]]; then
           echo "ERROR - --exclude requires a directory argument" >&2
           exit 1
@@ -45,7 +45,7 @@ parse_args() {
         exclude_dirs+=("${2%/}")
         shift 2
         ;;
-      -h | --help)
+      -h|--help)
         usage
         exit 0
         ;;
@@ -59,7 +59,7 @@ parse_args() {
 }
 
 check_prerequisites() {
-  if ! command -v awk &>/dev/null; then
+  if ! command -v awk &> /dev/null; then
     echo "ERROR - awk is not installed" >&2
     exit 1
   fi
@@ -80,7 +80,7 @@ find_files() {
         git_patterns+=("**/$pattern")
       fi
     done
-    git -C "$root_dir" ls-files -z --cached --others --exclude-standard -- "${git_patterns[@]}" |
+    git -C "$root_dir" ls-files -z --cached --others --exclude-standard -- "${git_patterns[@]}" | \
       while IFS= read -r -d '' f; do
         [[ "$f" == .* || "$f" == */.* ]] && continue
         printf '%s\0' "$root_dir/$f"
