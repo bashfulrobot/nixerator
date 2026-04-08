@@ -31,6 +31,7 @@ in
         cpx.enable = true;
         gws.enable = true;
         restic.enable = true;
+        plakar.enable = true;
       };
       gui.web-app-hub.enable = true;
     };
