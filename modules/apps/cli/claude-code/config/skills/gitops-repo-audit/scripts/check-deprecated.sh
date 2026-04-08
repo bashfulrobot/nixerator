@@ -39,7 +39,7 @@ if [[ ! -d "$dir" ]]; then
   exit 1
 fi
 
-if ! command -v flux &>/dev/null; then
+if ! command -v flux &> /dev/null; then
   echo "Error: flux CLI is required but not found"
   echo "Install it from https://fluxcd.io/flux/installation/"
   exit 1
