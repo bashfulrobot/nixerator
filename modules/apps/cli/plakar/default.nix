@@ -54,7 +54,7 @@ let
 
     # Import rclone stores
     ${lib.concatStringsSep "\n" (
-      lib.mapAttrsToList (name: store: ''
+      lib.mapAttrsToList (_name: store: ''
         rclone config show | plakar -config /etc/plakar store import -rclone ${store.rcloneRemote}
       '') rcloneStores
     )}
