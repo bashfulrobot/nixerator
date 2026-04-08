@@ -2,6 +2,10 @@
 
 Modular NixOS configuration with flakes, home-manager, and Hyprland desktop.
 
+## Architecture
+
+![Nixerator Architecture](extras/docs/nixerator-architecture.png)
+
 ## Status
 
 Ever changing.
