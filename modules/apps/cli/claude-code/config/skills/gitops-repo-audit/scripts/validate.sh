@@ -56,7 +56,7 @@ usage() {
 parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -d | --dir)
+      -d|--dir)
         if [[ -z "${2:-}" ]]; then
           echo "ERROR - --dir requires a directory argument" >&2
           exit 1
@@ -64,7 +64,7 @@ parse_args() {
         root_dir="${2%/}"
         shift 2
         ;;
-      -e | --exclude)
+      -e|--exclude)
         if [[ -z "${2:-}" ]]; then
           echo "ERROR - --exclude requires a directory argument" >&2
           exit 1
@@ -72,7 +72,7 @@ parse_args() {
         exclude_dirs+=("./${2#./}")
         shift 2
         ;;
-      -h | --help)
+      -h|--help)
         usage
         exit 0
         ;;
@@ -88,7 +88,7 @@ parse_args() {
 check_prerequisites() {
   local missing=0
   for cmd in yq kustomize kubeconform; do
-    if ! command -v "$cmd" &>/dev/null; then
+    if ! command -v "$cmd" &> /dev/null; then
       echo "ERROR - $cmd is not installed" >&2
       missing=1
     fi
@@ -122,7 +122,7 @@ find_files() {
         git_patterns+=("**/$pattern")
       fi
     done
-    git -C "$root_dir" ls-files -z --cached --others --exclude-standard -- "${git_patterns[@]}" |
+    git -C "$root_dir" ls-files -z --cached --others --exclude-standard -- "${git_patterns[@]}" | \
       while IFS= read -r -d '' f; do
         [[ "$f" == .* || "$f" == */.* ]] && continue
         printf '%s\0' "$root_dir/$f"
@@ -208,7 +208,7 @@ validate_yaml_syntax() {
     if is_excluded_dir "$dir"; then
       continue
     fi
-    if ! yq e 'true' "$file" >/dev/null 2>&1; then
+    if ! yq e 'true' "$file" > /dev/null 2>&1; then
       echo "ERROR - Invalid YAML syntax in $file" >&2
       errors=$((errors + 1))
     fi
@@ -234,8 +234,8 @@ validate_kustomize_overlays() {
     if is_non_kustomize_excluded_dir "$dir"; then
       continue
     fi
-    echo "INFO - Validating kustomize overlay ${file/%$kustomize_config/}"
-    kustomize build "${file/%$kustomize_config/}" "${kustomize_flags[@]}" |
+    echo "INFO - Validating kustomize overlay ${file/%$kustomize_config}"
+    kustomize build "${file/%$kustomize_config}" "${kustomize_flags[@]}" | \
       kubeconform "${kubeconform_flags[@]}" "${kubeconform_config[@]}"
     if [[ ${PIPESTATUS[0]} != 0 || ${PIPESTATUS[1]} != 0 ]]; then
       errors=$((errors + 1))
