@@ -38,6 +38,7 @@ let
   # Activation script to import stores and initialize repos
   activationScript = pkgs.writeShellScript "plakar-activate" ''
     set -euo pipefail
+    export HOME="/root"
     export PATH="${
       lib.makeBinPath [
         plakar
@@ -266,6 +267,7 @@ in
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "simple";
+        Environment = "HOME=/root";
         ExecStart = "${plakar}/bin/plakar -config /etc/plakar scheduler start -tasks ${schedulerYaml} -foreground";
         Restart = "on-failure";
         RestartSec = "30s";
