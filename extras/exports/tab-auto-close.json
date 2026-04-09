@@ -1,0 +1,14 @@
+{
+  "version": "TabsAutoCloserExportV1",
+  "data": {
+    "groups": [
+      {
+        "name": "Slack",
+        "matches": [
+          "^https://kongstrong\\.slack\\.com/archives/?"
+        ],
+        "closeTimeout": 0
+      }
+    ]
+  }
+}
