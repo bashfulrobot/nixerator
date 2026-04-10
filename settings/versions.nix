@@ -32,15 +32,6 @@
       hash = "sha256-dbQ4ypYrGr0vyA67fcD+pSHHSVEAKNitdzKOM6hig2U=";
     };
 
-    plakar = {
-      source = "github-release";
-      repo = "PlakarKorp/plakar";
-      version = "1.0.6";
-      tagPrefix = "v";
-      hash = "sha256-X8m2dXMb+cxWBbKm0MhhY2pNSBTUONyHoPnGlDG9jOg=";
-      vendorHash = "sha256-6MdwUJTu9QvqZ3iGEg39L5B5mce7JssFTF3ZmoTuH3M=";
-    };
-
     gws = {
       source = "github-release";
       repo = "googleworkspace/cli";
