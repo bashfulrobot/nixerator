@@ -2,33 +2,33 @@
 
 {
   # Apps
-  apps.cli.plakar = {
-    stores.b2-backup = {
-      type = "s3";
-      location = secrets.plakar.qbert.repository;
-      accessKey = secrets.plakar.qbert.b2_account_id;
-      secretAccessKey = secrets.plakar.qbert.b2_account_key;
-      inherit (secrets.plakar.qbert) passphrase;
-    };
-
-    jobs.home-to-b2 = {
-      store = "@b2-backup";
-      paths = [
-        "/home/dustin/Desktop"
-        "/home/dustin/dev"
-        "/home/dustin/Documents"
-        "/home/dustin/Downloads"
-        "/home/dustin/git"
-        "/home/dustin/Music"
-        "/home/dustin/Pictures"
-        "/home/dustin/Videos"
-        "/home/dustin/.kube"
-        "/home/dustin/.talos"
-        "/home/dustin/.config/upsight"
-        "/home/dustin/.local/share/upsight"
-      ];
-      interval = "24h";
-    };
+  apps.cli.restic.backup = {
+    enable = true;
+    repository = secrets.restic.workstation.restic_repository;
+    password = secrets.restic.workstation.restic_password;
+    awsAccessKeyId = secrets.restic.workstation.b2_account_id;
+    awsSecretAccessKey = secrets.restic.workstation.b2_account_key;
+    awsRegion = secrets.restic.workstation.region;
+    backupPaths = [
+      "/home/dustin/Desktop"
+      "/home/dustin/dev"
+      "/home/dustin/Documents"
+      "/home/dustin/Downloads"
+      "/home/dustin/git"
+      "/home/dustin/Music"
+      "/home/dustin/Pictures"
+      "/home/dustin/Videos"
+      "/home/dustin/.kube"
+      "/home/dustin/.talos"
+      "/home/dustin/.config/upsight"
+      "/home/dustin/.local/share/upsight"
+    ];
+    restorePath = "/tmp/restic-restore";
+    schedule = "*-*-* 03:00:00";
+    keepDaily = 7;
+    keepWeekly = 4;
+    keepMonthly = 12;
+    keepYearly = 2;
   };
 
   apps.cli.clay = {
