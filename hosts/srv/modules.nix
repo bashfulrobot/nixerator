@@ -11,7 +11,7 @@
     ../../modules/apps/cli/vscode-server
     ../../modules/server/kvm
     ../../modules/server/nfs
-    ../../modules/server/restic
+    ../../modules/apps/cli/restic
     ../../modules/system/ssh
   ];
 
@@ -69,7 +69,11 @@
       ];
     };
 
-    restic = {
+  };
+
+  apps.cli.restic = {
+    enable = true;
+    backup = {
       enable = true;
       repository = secrets.restic.srv.restic_repository;
       password = secrets.restic.srv.restic_password;
