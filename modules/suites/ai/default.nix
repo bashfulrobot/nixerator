@@ -44,6 +44,7 @@ in
       # llmfit: removed
       plannotator.enable = true;
 
+      crawl4ai.enable = true;
       stop-slop.enable = true;
       superpowers.enable = true;
       paseo.enable = true;
