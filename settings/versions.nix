@@ -142,6 +142,14 @@
       hash = "sha256-ZTT1wJvNuYjd1QYjw5lVC2C+MZNu0NBmeEi5eOO+f5c=";
     };
 
+    crawl4ai = {
+      source = "github-release";
+      repo = "unclecode/crawl4ai";
+      version = "0.8.5";
+      tagPrefix = "v";
+      hash = "sha256-y5Nve8e41+wcTlymL6bXxPCwmN8+8/YvHYLGO3x4M+Q=";
+    };
+
   };
 
   gui = {
