@@ -89,11 +89,14 @@
             for f in $source_dir/*
               if not test -L "$f"
                 set -l dest "$config_dir/skills/$skill_name/"(basename $f)
-                # Remove existing dest dir first to prevent cp -r nesting
-                if test -d "$f"; and test -d "$dest"
+                if test -d "$f"
+                  # For directories: wipe and copy contents to prevent cp -r nesting
                   rm -rf "$dest"
+                  mkdir -p "$dest"
+                  cp -r "$f"/. "$dest"/
+                else
+                  cp -r "$f" "$dest"
                 end
-                cp -r "$f" "$dest"
                 echo "    $skill_name/"(basename $f)
               end
             end
