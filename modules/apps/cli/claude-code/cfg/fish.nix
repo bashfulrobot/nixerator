@@ -85,6 +85,14 @@
           set -l skill_name (basename $skill_dir)
           set -l source_dir "$claude_dir/skills/$skill_name"
           if test -d "$source_dir"; and not test -L "$source_dir"
+            # Remove config subdirs that no longer exist in source
+            for existing in $config_dir/skills/$skill_name/*/
+              set -l subname (basename $existing)
+              if not test -e "$source_dir/$subname"
+                rm -rf "$existing"
+                echo "    $skill_name/$subname (removed, no longer in source)"
+              end
+            end
             # Copy files and dirs, but skip any symlinks inside
             for f in $source_dir/*
               if not test -L "$f"
@@ -95,7 +103,7 @@
                   mkdir -p "$dest"
                   cp -r "$f"/. "$dest"/
                 else
-                  cp -r "$f" "$dest"
+                  cp "$f" "$dest"
                 end
                 echo "    $skill_name/"(basename $f)
               end
