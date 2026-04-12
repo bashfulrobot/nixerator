@@ -2,6 +2,47 @@
 
 Detect the current lifecycle state on every invocation. This runs before any action — the skill must know where it is before deciding what to do.
 
+## Worktree Audit (pre-flight)
+
+Before routing to a specific issue, scan all existing issue worktrees and cross-reference their PR state. This catches work that's ready for cleanup and gives the user a complete picture.
+
+### Procedure
+
+```bash
+# 1. Find the worktree base directory
+wt_base="$(git rev-parse --show-toplevel)/../.worktrees"
+
+# 2. Scan all issue worktrees
+find "$wt_base" -maxdepth 1 -name 'issue-*' -type d 2>/dev/null
+
+# 3. For each, read .worktree-state.json and check PR state
+for wt_dir in "$wt_base"/issue-*; do
+  state_file="$wt_dir/.worktree-state.json"
+  # Read: issue_number, issue_title, phase, branch, pr_url
+  # If pr_url exists: gh pr view <pr_url> --json state,reviewDecision
+done
+```
+
+### Report Format
+
+Present a table to the user:
+
+```
+Active issue worktrees:
+  #42: add JWT auth [pr_created] — PR merged ⚠️ ready for cleanup
+  #17: fix null response [claude_running] — PR: changes requested
+  #53: update docs [pushing] — no PR yet
+  #8:  refactor DB layer [pr_created] — PR approved, ready to merge
+```
+
+Flag worktrees with merged PRs prominently — these are stale and should be cleaned up. Tell the user: "Run `github-issue` (the CLI command) to auto-clean merged worktrees."
+
+### When to Audit
+
+- **Always** run the audit on invocation, even when the user specifies a specific issue number. Report stale worktrees before proceeding to the requested issue.
+- If the user asked to list/check status (not work on a specific issue), stop after the report.
+- If a worktree exists for the requested issue, include its state in the routing decision.
+
 ## Detection Algorithm
 
 Check signals in this priority order. The first match wins.

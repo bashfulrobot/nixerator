@@ -14,9 +14,34 @@ Works in two contexts:
 - **Worktree mode**: launched by the `github-issue` CLI inside an isolated worktree
 - **Standalone mode**: invoked directly in Claude Code (e.g., "work on issue #42")
 
+## Worktree Audit (run on every invocation)
+
+Before routing to a specific issue, scan for existing worktrees and cross-reference their PR state. This catches stale worktrees from previous work that are ready for cleanup.
+
+```bash
+# Find all issue worktrees
+find "$(git rev-parse --show-toplevel)/../.worktrees" -maxdepth 1 -name 'issue-*' -type d 2>/dev/null
+```
+
+For each worktree with a `.worktree-state.json`:
+1. Read `branch` and `pr_url` from the state file
+2. If `pr_url` exists, check: `gh pr view <pr_url> --json state,reviewDecision`
+3. Report a summary to the user:
+
+```
+Active issue worktrees:
+  #42: add JWT auth [pr_created] — PR merged ⚠️ ready for cleanup
+  #17: fix null response [claude_running] — PR: changes requested
+  #53: update docs [pushing] — no PR yet
+```
+
+If any worktrees have merged PRs, tell the user: "Run `github-issue` (the CLI) to auto-clean merged worktrees, or select one to resume."
+
+If the user asked to list/check status (not work on a specific issue), stop here after the report. If they specified an issue number, continue to state detection below.
+
 ## State Detection
 
-**Run this first on every invocation.** Read `references/state-detection.md` for the full algorithm and edge cases.
+**Run this after the worktree audit.** Read `references/state-detection.md` for the full algorithm and edge cases.
 
 Quick version — check signals in priority order, first match wins:
 
