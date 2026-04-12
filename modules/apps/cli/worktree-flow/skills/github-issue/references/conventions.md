@@ -25,7 +25,9 @@ Rules:
 - Emoji goes after the colon+space, before description
 - Description: imperative mood, lowercase start, no period
 - Sign commits: always use `-S` flag
-- Do NOT add Co-Authored-By lines
+- **NEVER** add Co-Authored-By, Signed-off-by, or any AI attribution trailer
+- No mentions of Claude, Anthropic, AI, or "generated" anywhere in commit messages, PR bodies, or issue comments
+- The user's git identity is the sole author — do not inject any co-author or tool attribution
 
 Examples:
 - `feat(auth): :sparkles: add JWT refresh rotation`

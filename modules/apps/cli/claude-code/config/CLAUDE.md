@@ -17,6 +17,12 @@ sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 - Recall and apply project-specific conventions from CLAUDE.md files.
 - Self-check with reasoning loops; fix mistakes before committing or asking for help.
 
+### Git Attribution
+
+- Never add Co-Authored-By, Signed-off-by, or any AI attribution trailer to commits.
+- No mentions of Claude, Anthropic, AI, or "generated" in commit messages, PR bodies, or issue comments.
+- The user's git identity is the sole author.
+
 ### Use of tools
 
 - **Research-First, never Edit-First** — understand context before touching code to ensure you use the most appropriate tool. Prefer surgical edits over rewrites.

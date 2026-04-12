@@ -11,7 +11,7 @@ Format: `<type>(<scope>): <emoji> <description>`
 ## Rules:
 
 - No branding/secrets.
-- Never add Co-Authored-By or any AI attribution to commits.
+- **NEVER** add Co-Authored-By, Signed-off-by, or any AI attribution trailer. No mentions of Claude, Anthropic, AI, or "generated" in commit messages. The user's git identity is the sole author.
 - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security|deps
 - Scope (REQUIRED for git-cliff): lowercase, kebab-case module name.
 - Emoji: AFTER colon (e.g., `feat(auth): ✨`). Subject: imperative, <72 chars.
