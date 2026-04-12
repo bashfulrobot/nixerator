@@ -10,7 +10,7 @@
 let
   cfg = config.apps.cli.happy;
   happy = pkgs.callPackage ./build { inherit versions; };
-  claude-code = pkgs.llm-agents.claude-code;
+  inherit (pkgs.llm-agents) claude-code;
 in
 {
   options.apps.cli.happy = {
