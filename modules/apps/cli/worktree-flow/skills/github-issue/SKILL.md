@@ -134,7 +134,8 @@ This cycle repeats if the reviewer requests more changes.
 
 See `references/conventions.md` for full details.
 
-- **Commits:** `type(scope): :emoji: description` — signed with `-S`, no Co-Authored-By
+- **Commits:** `type(scope): :emoji: description` — signed with `-S`
+- **No AI attribution:** never add Co-Authored-By, Signed-off-by, or any mention of Claude/Anthropic/AI in commits, PR bodies, or issue comments
 - **Branches:** `type/issue-number-slug` (e.g., `feat/42-add-jwt-auth`)
 - **PR body:** Must include `Closes #<issue-number>`
 - **Atomic commits:** One logical change per commit
