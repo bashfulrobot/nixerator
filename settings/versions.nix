@@ -142,6 +142,15 @@
       hash = "sha256-ZTT1wJvNuYjd1QYjw5lVC2C+MZNu0NBmeEi5eOO+f5c=";
     };
 
+    happy = {
+      source = "npm";
+      repo = "nichochar/happy-coder";
+      npmPkg = "happy-coder";
+      version = "0.13.1";
+      hash = "sha256-xMMKZLAEN/j8cbIjsaHS67csfbuhnW7ulUPu1tVf+Ao=";
+      npmDepsHash = "sha256-+zgPB7lD039NR6U0+MbFshZh12cHdmfMUf+JzEyZDoQ=";
+    };
+
     crawl4ai = {
       source = "github-release";
       repo = "unclecode/crawl4ai";
