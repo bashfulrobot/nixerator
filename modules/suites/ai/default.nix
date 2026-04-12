@@ -17,10 +17,6 @@ in
     };
 
     apps.cli = {
-      ccpocket = {
-        enable = true;
-        service.enable = true;
-      };
       clay.enable = true;
       drawio.enable = true;
       claude-code = {
