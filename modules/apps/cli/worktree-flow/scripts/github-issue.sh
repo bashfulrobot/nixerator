@@ -392,12 +392,39 @@ phase_claude_running() {
     warn "SKILL.md not found at ${skill_path}"
   fi
 
+  # Gather PR review context if a PR exists
+  local pr_url review_context=""
+  pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
+  if [[ -n "$pr_url" ]]; then
+    local review_decision
+    review_decision="$(gh pr view "$pr_url" --json reviewDecision --jq '.reviewDecision' 2>/dev/null)" || review_decision=""
+    if [[ -n "$review_decision" ]] && [[ "$review_decision" != "null" ]]; then
+      review_context="PR: ${pr_url} | Review status: ${review_decision}"
+      if [[ "$review_decision" == "CHANGES_REQUESTED" ]]; then
+        local review_comments
+        review_comments="$(gh pr view "$pr_url" --json reviews \
+          --jq '[.reviews[] | select(.state == "CHANGES_REQUESTED") | .body] | join("\n---\n")' 2>/dev/null)" || review_comments=""
+        if [[ -n "$review_comments" ]]; then
+          review_context="${review_context}
+
+Review comments:
+${review_comments}"
+        fi
+        ok "PR has changes requested -- passing review context to Claude"
+      fi
+    fi
+  fi
+
   local system_prompt
-  system_prompt="$(printf 'You are working on a GitHub issue in worktree %s on branch %s.\n\n%s' \
-    "$wt_path" "$branch" "$skill_content")"
+  system_prompt="$(printf 'You are working on a GitHub issue in worktree %s on branch %s.\n%s\n\n%s' \
+    "$wt_path" "$branch" "$review_context" "$skill_content")"
 
   local task_prompt
-  task_prompt="$(printf 'Implement this GitHub issue:\n\n%s' "$issue_body")"
+  if [[ -n "$pr_url" ]] && [[ "${review_decision:-}" == "CHANGES_REQUESTED" ]]; then
+    task_prompt="$(printf 'PR review requested changes. Address the review feedback and push updates.\n\nOriginal issue:\n%s' "$issue_body")"
+  else
+    task_prompt="$(printf 'Implement this GitHub issue:\n\n%s' "$issue_body")"
+  fi
 
   # Check for existing session_id (resume path)
   local session_id

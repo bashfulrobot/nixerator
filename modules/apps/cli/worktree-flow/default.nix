@@ -87,6 +87,12 @@ in
     home-manager.users.${globals.user.name} = {
       home.file = {
         ".claude/skills/github-issue/SKILL.md".text = builtins.readFile ./skills/github-issue/SKILL.md;
+        ".claude/skills/github-issue/references/conventions.md".text =
+          builtins.readFile ./skills/github-issue/references/conventions.md;
+        ".claude/skills/github-issue/references/state-detection.md".text =
+          builtins.readFile ./skills/github-issue/references/state-detection.md;
+        ".claude/skills/github-issue/references/revamp-workflow.md".text =
+          builtins.readFile ./skills/github-issue/references/revamp-workflow.md;
         ".claude/skills/hack/SKILL.md".text = builtins.readFile ./skills/hack/SKILL.md;
         ".claude/skills/dependabot/SKILL.md".text = builtins.readFile ./skills/dependabot/SKILL.md;
       };
