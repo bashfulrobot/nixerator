@@ -45,6 +45,10 @@ in
       plannotator.enable = true;
 
       crawl4ai.enable = true;
+      happy = {
+        enable = true;
+        daemon.enable = true;
+      };
       stop-slop.enable = true;
       superpowers.enable = true;
       paseo.enable = true;
