@@ -10,6 +10,7 @@
 let
   cfg = config.apps.cli.happy;
   happy = pkgs.callPackage ./build { inherit versions; };
+  claude-code = pkgs.llm-agents.claude-code;
 in
 {
   options.apps.cli.happy = {
@@ -23,6 +24,10 @@ in
       {
         home-manager.users.${globals.user.name} = {
           home.packages = [ happy ];
+
+          # Happy Coder looks for claude in ~/.local/bin/claude (native installer path).
+          # NixOS installs claude-code via nix profile, so we symlink it.
+          home.file.".local/bin/claude".source = "${claude-code}/bin/claude";
         };
       }
 
