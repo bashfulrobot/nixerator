@@ -1,5 +1,16 @@
 # NOTE: set -euo pipefail injected by writeShellApplication
 
+# ── JSON mode ────────────────────────────────────────────────────────────────
+# When _JSON_MODE=1, human-readable output goes to stderr and structured
+# JSON goes to stdout. Subcommands set this before running.
+_JSON_MODE=0
+
+json_ok() { printf '%s\n' "$1"; }
+json_error() {
+  printf '{"error":%s}\n' "$(printf '%s' "$1" | jq -Rs .)"
+  exit 1
+}
+
 # ── Colors ────────────────────────────────────────────────────────────────────
 RED=$'\033[0;31m'
 GREEN=$'\033[0;32m'
@@ -7,19 +18,44 @@ YELLOW=$'\033[1;33m'
 CYAN=$'\033[0;36m'
 NC=$'\033[0m'
 
-info() { printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"; }
-ok() { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
-warn() { printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC"; }
+info() {
+  if [[ $_JSON_MODE -eq 1 ]]; then
+    printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC" >&2
+  else
+    printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"
+  fi
+}
+ok() {
+  if [[ $_JSON_MODE -eq 1 ]]; then
+    printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC" >&2
+  else
+    printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"
+  fi
+}
+warn() {
+  if [[ $_JSON_MODE -eq 1 ]]; then
+    printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC" >&2
+  else
+    printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC"
+  fi
+}
 die() {
   printf '%s✖ %s%s\n' "$RED" "$*" "$NC" >&2
+  if [[ $_JSON_MODE -eq 1 ]]; then
+    json_error "$*"
+  fi
   exit 1
 }
 
 # ── Section headers ───────────────────────────────────────────────────────────
 section() {
-  printf '\n'
-  gum style --bold --foreground="6" -- "-- $* --"
-  printf '\n'
+  if [[ $_JSON_MODE -eq 1 ]]; then
+    info "-- $* --"
+  else
+    printf '\n'
+    gum style --bold --foreground="6" -- "-- $* --"
+    printf '\n'
+  fi
 }
 
 # ── Remote sync ───────────────────────────────────────────────────────────────
@@ -438,6 +474,62 @@ run_claude() {
 
   # Restore signal handling
   trap cleanup EXIT INT TERM
+}
+
+# ── Issue state detection ────────────────────────────────────────────────────
+# Detect lifecycle state for a worktree directory. Sets global variables:
+#   _detected_state   — NEW, ASSESS, IMPLEMENT, READY, REVAMP, DONE, CLOSED
+#   _detected_detail  — human-readable explanation
+#   _detected_pr_state — OPEN, MERGED, CLOSED, or empty
+#   _detected_review  — APPROVED, CHANGES_REQUESTED, or empty
+# Args: $1=wt_dir, $2=branch, $3=pr_url, $4=default_branch
+detect_issue_state() {
+  local wt_dir="$1" branch="$2" pr_url="$3" default_br="$4"
+  _detected_state="" _detected_detail="" _detected_pr_state="" _detected_review=""
+
+  # Check PR state
+  if [[ -n "$pr_url" ]]; then
+    local pr_json
+    pr_json="$(gh pr view "$pr_url" --json state,reviewDecision 2>/dev/null)" || pr_json=""
+    if [[ -n "$pr_json" ]]; then
+      _detected_pr_state="$(printf '%s' "$pr_json" | jq -r '.state')"
+      _detected_review="$(printf '%s' "$pr_json" | jq -r '.reviewDecision // ""')"
+    fi
+  fi
+
+  # Fallback: check branch merge status even without PR URL
+  if [[ "$_detected_pr_state" != "MERGED" ]] && is_branch_merged "$branch"; then
+    _detected_pr_state="MERGED"
+  fi
+
+  if [[ -n "$_detected_pr_state" ]]; then
+    case "$_detected_pr_state" in
+      MERGED)  _detected_state="DONE";   _detected_detail="PR merged" ;;
+      CLOSED)  _detected_state="CLOSED"; _detected_detail="PR closed without merge" ;;
+      OPEN)
+        case "$_detected_review" in
+          CHANGES_REQUESTED) _detected_state="REVAMP"; _detected_detail="changes requested" ;;
+          APPROVED)          _detected_state="READY";  _detected_detail="approved, merge-ready" ;;
+          *)                 _detected_state="READY";  _detected_detail="awaiting review" ;;
+        esac
+        ;;
+    esac
+  else
+    # No PR — check branch for commits/changes
+    local commit_count dirty
+    commit_count="$(git -C "$wt_dir" rev-list --count "${default_br}..${branch}" 2>/dev/null)" || commit_count="0"
+    dirty="$(git -C "$wt_dir" status --porcelain 2>/dev/null)" || dirty=""
+    if [[ "$commit_count" -gt 0 ]] || [[ -n "$dirty" ]]; then
+      _detected_state="IMPLEMENT"
+      _detected_detail="in progress (${commit_count} commits)"
+      if [[ -n "$dirty" ]]; then
+        _detected_detail="${_detected_detail}, uncommitted changes"
+      fi
+    else
+      _detected_state="ASSESS"
+      _detected_detail="no work started"
+    fi
+  fi
 }
 
 # ── gum confirm usage pattern (SF-04) ────────────────────────────────────────

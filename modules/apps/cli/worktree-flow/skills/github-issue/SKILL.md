@@ -8,94 +8,83 @@ description: Use when working on a GitHub issue (by number or URL), checking iss
 
 # GitHub Issue Workflow
 
-State-machine orchestrator for the full GitHub issue lifecycle — from triage through PR merge. Detects current state on every invocation and routes to the appropriate phase.
+State-machine orchestrator for the full GitHub issue lifecycle — from triage through PR merge. Uses the `github-issue` CLI for all mechanical operations (worktree creation, state detection, push+PR, cleanup) and focuses AI on decisions that need judgment.
 
-Works in two contexts:
-- **Worktree mode**: launched by the `github-issue` CLI inside an isolated worktree
-- **Standalone mode**: invoked directly in Claude Code (e.g., "work on issue #42")
+All work happens in an isolated git worktree. Never implement directly in the main working tree.
 
-## Worktree Audit (run on every invocation)
+## On Every Invocation
 
-Before routing to a specific issue, scan for existing worktrees and cross-reference their PR state. This catches stale worktrees from previous work that are ready for cleanup.
+### 1. Audit active worktrees
 
 ```bash
-# Find all issue worktrees
-find "$(git rev-parse --show-toplevel)/../.worktrees" -maxdepth 1 -name 'issue-*' -type d 2>/dev/null
+github-issue audit
 ```
 
-For each worktree with a `.worktree-state.json`:
-1. Read `branch` and `pr_url` from the state file
-2. If `pr_url` exists, check: `gh pr view <pr_url> --json state,reviewDecision`
-3. Report a summary to the user:
+Report any active worktrees to the user. Flag `DONE` worktrees as ready for cleanup.
 
-```
-Active issue worktrees:
-  #42: add JWT auth [pr_created] — PR merged ⚠️ ready for cleanup
-  #17: fix null response [claude_running] — PR: changes requested
-  #53: update docs [pushing] — no PR yet
+### 2. Detect state
+
+```bash
+github-issue status <number>
 ```
 
-If any worktrees have merged PRs, tell the user: "Run `github-issue` (the CLI) to auto-clean merged worktrees, or select one to resume."
+Route based on the `state` field in the JSON response.
 
-If the user asked to list/check status (not work on a specific issue), stop here after the report. If they specified an issue number, continue to state detection below.
+## State Routing
 
-## State Detection
+| State | Action |
+|-------|--------|
+| `NEW` | Run Setup, then proceed to ASSESS |
+| `ASSESS` | cd into worktree, classify issue complexity |
+| `IMPLEMENT` | cd into worktree, continue implementation |
+| `READY` | PR exists, awaiting review — report status |
+| `REVAMP` | cd into worktree, address review feedback |
+| `DONE` | PR merged — run Cleanup |
+| `CLOSED` | PR closed without merge — report, offer reopen/new-PR/abandon |
 
-**Run this after the worktree audit.** Read `references/state-detection.md` for the full algorithm and edge cases.
+## Setup (state: NEW)
 
-Quick version — check signals in priority order, first match wins:
-
-1. PR exists for this issue's branch?
-   - Merged → **DONE** (report; cleanup is bash's job in worktree mode)
-   - Changes requested → **REVAMP**
-   - Approved → **READY** (merge-ready)
-   - Open, pending review → **READY** (awaiting review)
-   - Closed without merge → report; offer reopen/new-PR/abandon
-2. Feature branch exists?
-   - Has commits or uncommitted changes → **IMPLEMENT**
-   - Clean with plan artifact → **IMPLEMENT**
-   - Clean, no plan → **ASSESS**
-3. No branch, no PR → **ASSESS**
-
-In worktree mode, also read `.worktree-state.json` for phase, branch, issue metadata — but live gh/git signals override stale state.
-
-## States
-
-### ASSESS
-
-Read the issue and classify complexity to determine how much pipeline to use.
-
-```
-Fetch: gh issue view <number> --json title,body,labels,state
-  (or use issue body from system prompt in worktree mode)
-
-Classify:
-  trivial  (one-file fix, clear problem)     → skip to IMPLEMENT
-  standard (multi-file, clear requirements)   → skip to PLAN
-  complex  (unclear requirements, design needed) → proceed to DESIGN
+```bash
+github-issue setup <number>
 ```
 
-Present the assessment to the user. Let them confirm or override the classification before proceeding.
+Parse the JSON response to get `worktree` and `branch`. Change into the worktree directory:
 
-### DESIGN
+```bash
+cd <worktree>
+```
+
+Proceed to ASSESS.
+
+## ASSESS
+
+Read the issue body (from `github-issue status` output or `gh issue view`) and classify complexity:
+
+| Complexity | Criteria | Next State |
+|------------|----------|------------|
+| trivial | One-file fix, clear problem | Skip to IMPLEMENT |
+| standard | Multi-file, clear requirements | Skip to PLAN |
+| complex | Unclear requirements, design needed | Proceed to DESIGN |
+
+Present the assessment. Let the user confirm or override before proceeding.
+
+## DESIGN
 
 **Invoke `superpowers:brainstorming`.**
 
-This is a hard gate — do not implement until the design is approved. The brainstorming skill explores intent, requirements, and design options before any code is written.
+Hard gate — do not implement until the design is approved.
 
-Output: an approved design or spec that feeds into PLAN.
-
-### PLAN
+## PLAN
 
 **Invoke `superpowers:writing-plans`.**
 
-Input: issue body + design (if DESIGN ran). Output: an implementation plan with discrete tasks.
+Input: issue body + design (if DESIGN ran). Output: implementation plan with discrete tasks.
 
-### IMPLEMENT
+## IMPLEMENT
 
-Execute the implementation work.
+Execute the implementation work inside the worktree.
 
-- If a plan exists → **invoke `superpowers:subagent-driven-development`** (for plans with independent tasks) or **`superpowers:executing-plans`** (for sequential tasks)
+- If a plan exists → **invoke `superpowers:subagent-driven-development`** (independent tasks) or **`superpowers:executing-plans`** (sequential tasks)
 - If trivial (no plan) → implement directly
 
 Follow commit conventions from `references/conventions.md`:
@@ -103,34 +92,53 @@ Follow commit conventions from `references/conventions.md`:
 - Sign with `-S`, no Co-Authored-By
 - Atomic commits — one logical change per commit
 
-### VERIFY
+## VERIFY
 
 **Invoke `superpowers:verification-before-completion`.**
 
-Run the project's test suite, linters, and build. Evidence before claims, always. If verification fails, loop back to IMPLEMENT with the failure context — do not skip ahead.
+Run the project's test suite, linters, and build. If verification fails, loop back to IMPLEMENT. Do not skip ahead.
 
-### READY
+## READY
 
-Implementation is verified. Next steps depend on context:
-
-**Worktree mode:** Report completion status and exit. The bash script handles push + PR creation after Claude exits. Do NOT create PRs from inside Claude in worktree mode.
-
-```
-"Implementation complete. N commit(s) on branch <branch>.
-Exit Claude to proceed to push + PR creation."
-```
-
-**Standalone mode:** Claude handles push + PR directly:
+Implementation is verified. Push and create PR:
 
 ```bash
-git push -u origin <branch>
-gh pr create --title "<issue title>" --body "## Summary
-Closes #<number>: <title>
-
-<commit log>"
+github-issue push <number>
 ```
 
-### REVAMP
+The command pushes the branch and creates or updates the PR. Report the `pr_url` from the JSON response, then proceed to REVIEW.
+
+## REVIEW
+
+After a PR is created, always suggest running the review pipeline. This is a two-stage gate:
+
+**Stage 1 — Dev Review:** Suggest running `/review-dev` on the PR.
+
+```
+"PR created: <pr_url>
+Recommend running /review-dev to catch issues before merge."
+```
+
+If the dev review produces findings, implement fixes (focused commits), verify with `superpowers:verification-before-completion`, and push:
+
+```bash
+github-issue push <number>
+```
+
+Once all `/review-dev` fixes are complete, proceed to stage 2.
+
+**Stage 2 — Security Review:** Suggest running `/review-security` on the PR.
+
+```
+"Dev review fixes complete and pushed.
+Recommend running /review-security for a security audit before merge."
+```
+
+If the security review produces findings, implement fixes the same way.
+
+**Both stages are always suggested.** The user may decline, but always recommend them in order.
+
+## REVAMP
 
 PR received "changes requested". Read `references/revamp-workflow.md` for the full procedure.
 
@@ -139,21 +147,32 @@ Summary:
 2. **Invoke `superpowers:receiving-code-review`** — evaluate feedback technically, don't blindly agree
 3. Implement fixes with focused commits
 4. **Invoke `superpowers:verification-before-completion`** — verify changes
-5. Push directly to the PR branch: `git push origin <branch>`
+5. Push updates:
+   ```bash
+   github-issue push <number>
+   ```
 6. Comment on PR summarizing what was addressed
 
 This cycle repeats if the reviewer requests more changes.
+
+## DONE (Cleanup)
+
+```bash
+github-issue cleanup <number>
+```
+
+Removes the worktree, deletes branches, and closes the issue.
 
 ## Flow Deviations
 
 | Situation | Detection | Action |
 |-----------|-----------|--------|
-| PR closed without merge | `gh pr view` state=CLOSED | Report; offer reopen, new PR, or abandon |
-| Multi-PR issue | Large scope detected in ASSESS | Break into sub-tasks; each gets own branch/PR. Branch naming: `type/42-slug-part-1` |
-| Blocked | User says blocked or unresolvable dep | Note blocker, suggest exiting. On resume: ask if resolved |
-| Merge conflicts | Push rejected or PR shows conflicts | Rebase onto default branch; use `--force-with-lease` after resolution |
-| CI failure after PR | `gh pr checks` shows failures | Re-enter IMPLEMENT with CI context; fix, push, monitor |
-| Issue already closed | `gh issue view` state=CLOSED | Check for merged PR. If found, report done. If not, ask user |
+| PR closed without merge | `status` returns `CLOSED` | Report; offer reopen, new PR, or abandon |
+| Multi-PR issue | Large scope in ASSESS | Break into sub-tasks; each gets own branch/PR |
+| Blocked | User says blocked | Note blocker, suggest exiting. On resume: ask if resolved |
+| Merge conflicts | Push rejected | Rebase onto default branch; use `--force-with-lease` |
+| CI failure after PR | `gh pr checks` shows failures | Re-enter IMPLEMENT with CI context; fix, push |
+| Issue already closed | `gh issue view` state=CLOSED | Check for merged PR. If found, report done |
 
 ## Conventions Quick Reference
 
