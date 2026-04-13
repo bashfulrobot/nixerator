@@ -16,6 +16,10 @@ in
     apps.gui = {
     };
 
+    apps.webapps = {
+      clay.enable = true;
+    };
+
     apps.cli = {
       clay.enable = true;
       drawio.enable = true;
