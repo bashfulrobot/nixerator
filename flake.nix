@@ -78,7 +78,7 @@
     # };
 
     upsight = {
-      url = "github:bashfulrobot/upsight/v0.5.0";
+      url = "github:bashfulrobot/upsight/v0.5.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
