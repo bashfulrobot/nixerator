@@ -1,13 +1,20 @@
 # github-issue: AI-powered worktree workflow for GitHub issues
 
 if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
-  info "Usage: github-issue [<issue-number>]"
+  info "Usage: github-issue [<command>] [<issue-number>]"
   info "Creates an isolated git worktree and launches Claude to work on a GitHub issue."
   info ""
-  info "Workflow:"
+  info "Interactive (terminal):"
   info "  github-issue <number>  -- new worktree + Claude session + PR"
   info "  github-issue <number>  -- resume existing worktree (if issue matches)"
   info "  github-issue           -- pick from active issue worktrees"
+  info ""
+  info "Subcommands (non-interactive, JSON output):"
+  info "  github-issue setup <number>    -- create worktree + state file"
+  info "  github-issue status <number>   -- detect lifecycle state"
+  info "  github-issue push <number>     -- push branch + create/update PR"
+  info "  github-issue audit             -- scan all issue worktrees"
+  info "  github-issue cleanup <number>  -- remove worktree + branches"
   exit 0
 fi
 
@@ -74,6 +81,30 @@ derive_branch_type() {
       "feat" "fix" "docs" "refactor" "test" "ci" "chore" "revert" "deps" ||
       die "aborted"
   fi
+}
+
+# Non-interactive variant: defaults to "feat" instead of gum choose
+derive_branch_type_auto() {
+  local labels_json="$1"
+  local branch_type=""
+
+  while IFS= read -r label; do
+    [[ -z "$label" ]] && continue
+    local lower="${label,,}"
+    case "$lower" in
+      *bug*)                       branch_type="fix"; break ;;
+      *enhancement* | *feature*)   branch_type="feat"; break ;;
+      *documentation* | *docs*)    branch_type="docs"; break ;;
+      *refactor*)                  branch_type="refactor"; break ;;
+      *testing* | *test*)          branch_type="test"; break ;;
+      *dependenc* | *deps*)        branch_type="deps"; break ;;
+      *ci*)                        branch_type="ci"; break ;;
+      *chore*)                     branch_type="chore"; break ;;
+      *revert*)                    branch_type="revert"; break ;;
+    esac
+  done < <(printf '%s' "$labels_json" | jq -r '.[].name')
+
+  printf '%s' "${branch_type:-feat}"
 }
 
 build_branch_name() {
@@ -626,6 +657,282 @@ phase_cleanup() {
   ok "cleanup complete for issue #${issue_number}"
 }
 
+# ── Subcommands (non-interactive, JSON output) ───────────────────────────────
+
+cmd_setup() {
+  local issue_number="${1:?usage: github-issue setup <issue-number>}"
+  local wt_path
+  wt_path="$(worktree_base)/issue-${issue_number}"
+
+  if [[ -d "$wt_path" ]]; then
+    json_error "worktree already exists at ${wt_path} -- use 'github-issue status ${issue_number}' to check state"
+  fi
+
+  fetch_remote
+  assert_clean_tree
+
+  local issue_json issue_title issue_labels issue_body
+  issue_json="$(fetch_issue_metadata "$issue_number")"
+  issue_title="$(printf '%s' "$issue_json" | jq -r '.title')"
+  issue_labels="$(printf '%s' "$issue_json" | jq -c '.labels')"
+  issue_body="$(printf '%s' "$issue_json" | jq -r '.body')"
+  ok "fetched: ${issue_title}"
+
+  local branch_type
+  branch_type="$(derive_branch_type_auto "$issue_labels")"
+  ok "branch type: ${branch_type}"
+
+  local branch_name
+  branch_name="$(build_branch_name "$branch_type" "$issue_number" "$issue_title")"
+  ok "branch: ${branch_name}"
+
+  mkdir -p "$(dirname "$wt_path")"
+  git worktree add --no-checkout "$wt_path" -b "$branch_name"
+  register_cleanup "$wt_path"
+  checkout_and_unlock "$wt_path"
+  create_issue_state "$branch_name" "$wt_path" "$issue_number" "$issue_title" "$issue_body"
+  _WT_CLEANUP_PATH=""
+  ok "worktree created at ${wt_path}"
+
+  json_ok "$(jq -n \
+    --arg issue_number "$issue_number" \
+    --arg branch "$branch_name" \
+    --arg worktree "$wt_path" \
+    --arg branch_type "$branch_type" \
+    --arg title "$issue_title" \
+    '{issue_number: ($issue_number|tonumber), branch: $branch, worktree: $worktree,
+      branch_type: $branch_type, title: $title}')"
+}
+
+cmd_status() {
+  local issue_number="${1:?usage: github-issue status <issue-number>}"
+  local wt_path
+  wt_path="$(worktree_base)/issue-${issue_number}"
+
+  # No worktree → NEW
+  if [[ ! -d "$wt_path" ]]; then
+    json_ok "$(jq -n \
+      --arg issue_number "$issue_number" \
+      --arg state "NEW" \
+      --arg detail "no worktree exists" \
+      '{issue_number: ($issue_number|tonumber), state: $state, detail: $detail,
+        worktree: null, branch: null, phase: null, title: null, pr: null}')"
+    return
+  fi
+
+  local state_file="${wt_path}/.worktree-state.json"
+  if [[ ! -f "$state_file" ]]; then
+    json_error "worktree exists but no state file at ${state_file}"
+  fi
+
+  local branch phase pr_url issue_title
+  branch="$(jq -r '.branch' "$state_file")"
+  phase="$(jq -r '.phase' "$state_file")"
+  pr_url="$(jq -r '.pr_url // ""' "$state_file")"
+  issue_title="$(jq -r '.issue_title' "$state_file")"
+
+  local default_br
+  default_br="$(default_branch)"
+
+  detect_issue_state "$wt_path" "$branch" "$pr_url" "$default_br"
+
+  # Build PR sub-object
+  local pr_obj="null"
+  if [[ -n "$pr_url" ]] && [[ -n "$_detected_pr_state" ]]; then
+    local pr_number
+    pr_number="$(printf '%s' "$pr_url" | grep -oE '[0-9]+$' || echo "")"
+    pr_obj="$(jq -n \
+      --arg url "$pr_url" \
+      --arg state "$_detected_pr_state" \
+      --arg review "$_detected_review" \
+      --arg number "$pr_number" \
+      '{url: $url, state: $state, review_decision: $review,
+        number: (if $number == "" then null else ($number|tonumber) end)}')"
+  fi
+
+  json_ok "$(jq -n \
+    --arg issue_number "$issue_number" \
+    --arg state "$_detected_state" \
+    --arg detail "$_detected_detail" \
+    --arg worktree "$wt_path" \
+    --arg branch "$branch" \
+    --arg phase "$phase" \
+    --arg title "$issue_title" \
+    --argjson pr "$pr_obj" \
+    '{issue_number: ($issue_number|tonumber), state: $state, detail: $detail,
+      worktree: $worktree, branch: $branch, phase: $phase, title: $title, pr: $pr}')"
+}
+
+cmd_push() {
+  local issue_number="${1:?usage: github-issue push <issue-number>}"
+  local wt_path
+  wt_path="$(worktree_base)/issue-${issue_number}"
+
+  if [[ ! -d "$wt_path" ]]; then
+    json_error "no worktree for issue #${issue_number}"
+  fi
+
+  local branch pr_url issue_title default_br
+  branch="$(read_state_field branch "$wt_path")"
+  pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
+  issue_title="$(read_state_field issue_title "$wt_path")"
+  default_br="$(default_branch)"
+
+  # Check for commits
+  local commit_count
+  commit_count="$(git -C "$wt_path" rev-list --count "${default_br}..${branch}")"
+  if [[ "$commit_count" -eq 0 ]]; then
+    json_error "no commits on branch ${branch} -- nothing to push"
+  fi
+
+  local action=""
+  if [[ -z "$pr_url" ]]; then
+    # Push + create PR
+    (cd "$wt_path" && safe_push "$branch")
+    ok "branch pushed"
+
+    local commit_log pr_body
+    commit_log="$(git -C "$wt_path" log --format='- %s%n%w(0,2,2)%b' "${default_br}..${branch}")"
+    pr_body="$(printf '## Summary\nCloses #%s: %s\n\n%s' "$issue_number" "$issue_title" "$commit_log")"
+
+    pr_url="$(cd "$wt_path" && gh pr create \
+      --title "$issue_title" \
+      --body "$pr_body" \
+      --head "$branch")"
+    ok "PR created: ${pr_url}"
+
+    # Update state with PR URL
+    local current updated timestamp
+    current="$(cat "${wt_path}/.worktree-state.json")"
+    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    updated="$(printf '%s' "$current" | jq \
+      --arg url "$pr_url" \
+      --arg t "$timestamp" \
+      '.pr_url = $url | .updated_at = $t')"
+    write_state "$updated" "$wt_path"
+
+    gh issue comment "$issue_number" --body "PR ready for review: $pr_url" 2>/dev/null || true
+    action="created"
+  else
+    # Push updates to existing PR
+    (cd "$wt_path" && git push origin "$branch")
+    ok "updates pushed to PR: ${pr_url}"
+    action="updated"
+  fi
+
+  set_phase "pr_created" "$wt_path"
+
+  json_ok "$(jq -n \
+    --arg issue_number "$issue_number" \
+    --arg action "$action" \
+    --arg pr_url "$pr_url" \
+    --arg branch "$branch" \
+    --argjson commits "$commit_count" \
+    '{issue_number: ($issue_number|tonumber), action: $action, pr_url: $pr_url,
+      branch: $branch, commits: $commits}')"
+}
+
+cmd_audit() {
+  fetch_remote
+
+  local wt_base
+  wt_base="$(worktree_base)"
+
+  if [[ ! -d "$wt_base" ]]; then
+    json_ok "[]"
+    return
+  fi
+
+  local default_br
+  default_br="$(default_branch)"
+
+  local results="[]"
+  while IFS= read -r -d '' wt_dir; do
+    local state_file="${wt_dir}/.worktree-state.json"
+    [[ -f "$state_file" ]] || continue
+
+    local wt_type
+    wt_type="$(jq -r '.type' "$state_file")"
+    [[ "$wt_type" == "issue" ]] || continue
+
+    local issue_num issue_title branch pr_url
+    issue_num="$(jq -r '.issue_number' "$state_file")"
+    issue_title="$(jq -r '.issue_title' "$state_file")"
+    branch="$(jq -r '.branch' "$state_file")"
+    pr_url="$(jq -r '.pr_url // ""' "$state_file")"
+
+    detect_issue_state "$wt_dir" "$branch" "$pr_url" "$default_br"
+
+    results="$(printf '%s' "$results" | jq \
+      --arg num "$issue_num" \
+      --arg title "$issue_title" \
+      --arg state "$_detected_state" \
+      --arg detail "$_detected_detail" \
+      --arg branch "$branch" \
+      --arg pr_url "$pr_url" \
+      --arg worktree "$wt_dir" \
+      '. + [{issue_number: ($num|tonumber), title: $title, state: $state,
+              detail: $detail, branch: $branch,
+              pr_url: (if $pr_url == "" then null else $pr_url end),
+              worktree: $worktree}]')"
+  done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -name 'issue-*' -print0 2>/dev/null)
+
+  json_ok "$results"
+}
+
+cmd_cleanup() {
+  local issue_number="${1:?usage: github-issue cleanup <issue-number>}"
+  local wt_path
+  wt_path="$(worktree_base)/issue-${issue_number}"
+
+  if [[ ! -d "$wt_path" ]]; then
+    json_error "no worktree for issue #${issue_number}"
+  fi
+
+  local state_file="${wt_path}/.worktree-state.json"
+  if [[ ! -f "$state_file" ]]; then
+    json_error "worktree exists but no state file"
+  fi
+
+  local branch pr_url default_br pr_number
+  branch="$(jq -r '.branch' "$state_file")"
+  pr_url="$(jq -r '.pr_url // ""' "$state_file")"
+  pr_number="$(printf '%s' "$pr_url" | grep -oE '[0-9]+$' || echo "")"
+  default_br="$(default_branch)"
+
+  # Switch to default branch
+  cd "$(git rev-parse --show-toplevel)" || json_error "cannot cd to repo root"
+  git checkout "$default_br" >&2
+  git pull origin "$default_br" >&2
+  ok "switched to ${default_br} and pulled"
+
+  # Remove worktree
+  _WT_CLEANUP_PATH=""
+  git worktree remove --force "$wt_path" 2>/dev/null || true
+  git worktree prune 2>/dev/null || true
+  ok "worktree removed"
+
+  # Delete branches
+  git branch -D "$branch" 2>/dev/null || true
+  git push origin --delete "$branch" 2>/dev/null || true
+  ok "branches cleaned up"
+
+  # Close issue if PR exists
+  if [[ -n "$pr_number" ]]; then
+    gh issue comment "$issue_number" \
+      --body "Resolved via #${pr_number}. Branch and worktree cleaned up." 2>/dev/null || true
+    gh issue close "$issue_number" 2>/dev/null || true
+    ok "issue closed"
+  fi
+
+  json_ok "$(jq -n \
+    --arg issue_number "$issue_number" \
+    --arg branch "$branch" \
+    --arg pr_url "$pr_url" \
+    '{issue_number: ($issue_number|tonumber), cleaned: true, branch: $branch,
+      pr_url: (if $pr_url == "" then null else $pr_url end)}')"
+}
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
@@ -665,9 +972,18 @@ main() {
 
 # ── Entry point ──────────────────────────────────────────────────────────────
 
-if [[ $# -lt 1 ]]; then
-  pick_worktree
-else
-  ISSUE_NUMBER="$1"
-  main "$ISSUE_NUMBER"
-fi
+case "${1:-}" in
+  setup|status|push|audit|cleanup)
+    _JSON_MODE=1
+    SUBCMD="$1"
+    shift
+    "cmd_${SUBCMD}" "$@"
+    ;;
+  "")
+    pick_worktree
+    ;;
+  *)
+    # Treat as issue number (existing interactive flow)
+    main "$1"
+    ;;
+esac
