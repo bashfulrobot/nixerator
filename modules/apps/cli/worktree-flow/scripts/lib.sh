@@ -504,13 +504,28 @@ detect_issue_state() {
 
   if [[ -n "$_detected_pr_state" ]]; then
     case "$_detected_pr_state" in
-      MERGED)  _detected_state="DONE";   _detected_detail="PR merged" ;;
-      CLOSED)  _detected_state="CLOSED"; _detected_detail="PR closed without merge" ;;
+      MERGED)
+        _detected_state="DONE"
+        _detected_detail="PR merged"
+        ;;
+      CLOSED)
+        _detected_state="CLOSED"
+        _detected_detail="PR closed without merge"
+        ;;
       OPEN)
         case "$_detected_review" in
-          CHANGES_REQUESTED) _detected_state="REVAMP"; _detected_detail="changes requested" ;;
-          APPROVED)          _detected_state="READY";  _detected_detail="approved, merge-ready" ;;
-          *)                 _detected_state="READY";  _detected_detail="awaiting review" ;;
+          CHANGES_REQUESTED)
+            _detected_state="REVAMP"
+            _detected_detail="changes requested"
+            ;;
+          APPROVED)
+            _detected_state="READY"
+            _detected_detail="approved, merge-ready"
+            ;;
+          *)
+            _detected_state="READY"
+            _detected_detail="awaiting review"
+            ;;
         esac
         ;;
     esac
