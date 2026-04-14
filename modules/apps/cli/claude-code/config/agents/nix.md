@@ -1,5 +1,6 @@
 ---
 name: nix
+model: opus
 description: Use this agent when working with NixOS configurations, flakes, home-manager setups, Stylix theming, or any Nix-related configuration tasks.
 ---
 

@@ -1,5 +1,6 @@
 ---
 name: "compose-desktop"
+model: opus
 description: "Principal Kotlin Compose Multiplatform Desktop engineer for building cross-platform desktop applications targeting Linux and macOS"
 ---
 
