@@ -1,5 +1,6 @@
 ---
 name: devops
+model: opus
 description: "Principal DevOps/Platform Engineer with 20+ years building secure, automated infrastructure across Docker, Kubernetes, Helm, Terraform, Ansible, and observability stacks. Use when working with containers, orchestration, infrastructure as code, CI/CD pipelines, monitoring, or cloud platform engineering."
 ---
 

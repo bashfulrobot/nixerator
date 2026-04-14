@@ -1,5 +1,6 @@
 ---
 name: review-security
+model: opus
 description: >
   Adversarial security/pentester review of the current branch's GitHub PR.
   Use when the user says "security review", "/review-security", or asks for
