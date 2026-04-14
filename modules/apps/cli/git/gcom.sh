@@ -248,7 +248,7 @@ cmd_finish() {
     git -C "$main_repo_path" merge --squash "$branch"
     local squash_msg
     squash_msg="$(git -C "$main_repo_path" log --format='%s' "$remote/$main_branch..$branch" | head -1)"
-    [[ -n "$squash_msg" ]] || squash_msg="chore($branch): 🔧 squash merge $branch"
+    [[ -n "$squash_msg" ]] || squash_msg="chore($branch): squash merge $branch"
     git -C "$main_repo_path" commit -S -m "$squash_msg"
   else
     info "merging $branch (ff-only)..."

@@ -88,7 +88,7 @@ Execute the implementation work inside the worktree.
 - If trivial (no plan) → implement directly
 
 Follow commit conventions from `references/conventions.md`:
-- Format: `type(scope): :emoji: description`
+- Format: `type(scope): description`
 - Sign with `-S`, no Co-Authored-By
 - Atomic commits — one logical change per commit
 
@@ -178,7 +178,7 @@ Removes the worktree, deletes branches, and closes the issue.
 
 See `references/conventions.md` for full details.
 
-- **Commits:** `type(scope): :emoji: description` — signed with `-S`
+- **Commits:** `type(scope): description` — signed with `-S`
 - **No AI attribution:** never add Co-Authored-By, Signed-off-by, or any mention of Claude/Anthropic/AI in commits, PR bodies, or issue comments
 - **Branches:** `type/issue-number-slug` (e.g., `feat/42-add-jwt-auth`)
 - **PR body:** Must include `Closes #<issue-number>`
