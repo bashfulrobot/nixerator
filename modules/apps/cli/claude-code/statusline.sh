@@ -71,7 +71,7 @@ build_bar() {
 }
 
 # ===== Extract data from JSON =====
-model_name=$(echo "$input" | jq -r '.model.display_name // "Claude"')
+model_name=$(echo "$input" | jq -r '(.model | if type == "object" then (.display_name // "Claude") elif type == "string" then . else "Claude" end) // "Claude"')
 
 # Context window
 size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
@@ -340,8 +340,9 @@ if [ -n "$usage_data" ] && echo "$usage_data" | jq -e . >/dev/null 2>&1; then
     extra_limit=$(echo "$usage_data" | jq -r '.extra_usage.monthly_limit // 0' | awk '{printf "%.2f", $1/100}')
     extra_bar=$(build_bar "$extra_pct" "$bar_width")
 
-    # Next month 1st for reset date (macOS compatible)
-    extra_reset=$(date -v+1m -v1d +"%b %-d" | tr '[:upper:]' '[:lower:]')
+    # Next month 1st for reset date (cross-platform)
+    extra_reset=$(date -d "$(date +%Y-%m-01) +1 month" +"%b %-d" 2>/dev/null | tr '[:upper:]' '[:lower:]' \
+      || date -v+1m -v1d +"%b %-d" 2>/dev/null | tr '[:upper:]' '[:lower:]')
 
     col3_bar="${white}extra:${reset} ${extra_bar} ${cyan}\$${extra_used}/\$${extra_limit}${reset}"
     col3_reset="${white}resets ${extra_reset}${reset}"
