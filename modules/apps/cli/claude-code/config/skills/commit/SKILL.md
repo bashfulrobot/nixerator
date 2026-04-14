@@ -1,12 +1,12 @@
 ---
 name: commit
-description: Create conventional commits with emoji, push, tagging, or GitHub releases.
+description: Create conventional commits, push, tagging, or GitHub releases.
 disable-model-invocation: true
 argument-hint: "[--tag <major|minor|patch>] [--release]"
 allowed-tools: ["Bash", "Grep", "Read"]
 ---
 
-Format: `<type>(<scope>): <emoji> <description>`
+Format: `<type>(<scope>): <description>`
 
 ## Rules:
 
@@ -14,18 +14,13 @@ Format: `<type>(<scope>): <emoji> <description>`
 - **NEVER** add Co-Authored-By, Signed-off-by, or any AI attribution trailer. No mentions of Claude, Anthropic, AI, or "generated" in commit messages. The user's git identity is the sole author.
 - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security|deps
 - Scope (REQUIRED for git-cliff): lowercase, kebab-case module name.
-- Emoji: AFTER colon (e.g., `feat(auth): ✨`). Subject: imperative, <72 chars.
+- Subject: imperative, <72 chars.
 - Sign with `git commit -S`. Split unrelated changes atomically.
-
-## Type→Emoji:
-
-feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
 
 ## Examples:
 
-✅ feat(auth): ✨ add OAuth2 login flow
-✅ fix(api): 🐛 resolve race condition in token refresh
-❌ ✨ feat(auth): add OAuth2 (emoji before type)
+✅ feat(auth): add OAuth2 login flow
+✅ fix(api): resolve race condition in token refresh
 ❌ feat: add OAuth2 (missing scope)
 
 ## Inputs
@@ -53,7 +48,7 @@ feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:�
 4. Check for sensitive files: scan staged and unstaged files for secrets (`.env`, `credentials.*`, `*secret*`, `*.pem`, `*.key`, token/API key patterns). If found, **stop and warn the user** — list the suspect files and ask how to proceed before staging anything.
 5. Stage changes: `git add -A` (only after secrets check passes).
 6. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
-7. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
+7. For each: `git commit -S -m "<type>(<scope>): <description>"`
 8. If --tag: `git tag -s v<version> -m "Release v<version>"`
 9. Always push: `git push && git push --tags` (if tagged).
 10. If --release: `gh release create v<version> --notes-from-tag`.

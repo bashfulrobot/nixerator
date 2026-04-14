@@ -23,7 +23,7 @@ Usage: gcmt [--ai claude|gemini] [--push]
 Interactive conventional commit tool with gum UI and AI-generated body.
 
   - Multi-select staged/unstaged files via fuzzy picker
-  - Choose commit type (feat, fix, chore, …) with auto emoji
+  - Choose commit type (feat, fix, chore, …)
   - Enter scope and summary
   - AI fills the body; you review/edit before committing
 
@@ -65,25 +65,7 @@ esac
 # ── Guard ─────────────────────────────────────────────────────────────────────
 git rev-parse --git-dir >/dev/null 2>&1 || die "not inside a git repository"
 
-# ── Type → emoji ──────────────────────────────────────────────────────────────
-get_emoji() {
-  case "$1" in
-    feat) printf '✨' ;;
-    fix) printf '🐛' ;;
-    docs) printf '📝' ;;
-    style) printf '🎨' ;;
-    refactor) printf '♻️' ;;
-    perf) printf '⚡' ;;
-    test) printf '✅' ;;
-    build) printf '👷' ;;
-    ci) printf '💚' ;;
-    chore) printf '🔧' ;;
-    revert) printf '⏪' ;;
-    security) printf '🔒' ;;
-    deps) printf '⬆️' ;;
-    *) printf '' ;;
-  esac
-}
+# ── Type validation ───────────────────────────────────────────────────────────
 
 # ── Step 1: file selection ─────────────────────────────────────────────────────
 gum style --bold --border normal --padding "0 1" "gcmt — conventional commit"
@@ -155,7 +137,6 @@ TYPE=$(gum choose \
   --header "Select commit type:") || die "aborted"
 
 [[ -n "$TYPE" ]] || die "no type selected — aborted"
-EMOJI=$(get_emoji "$TYPE")
 
 # ── Step 3: scope ─────────────────────────────────────────────────────────────
 printf '\n'
@@ -168,14 +149,14 @@ SCOPE=$(gum input \
 # ── Step 4: summary ───────────────────────────────────────────────────────────
 printf '\n'
 SUMMARY=$(gum input \
-  --prompt "$TYPE($SCOPE): $EMOJI " \
+  --prompt "$TYPE($SCOPE): " \
   --placeholder "imperative, lowercase, no period" \
   --char-limit 72 \
   --header "Commit summary:") || die "aborted"
 
 [[ -n "$SUMMARY" ]] || die "summary is required — aborted"
 
-SUBJECT="$TYPE($SCOPE): $EMOJI $SUMMARY"
+SUBJECT="$TYPE($SCOPE): $SUMMARY"
 
 if [[ ${#SUBJECT} -gt 72 ]]; then
   warn "subject is ${#SUBJECT} chars — recommended max is 72"

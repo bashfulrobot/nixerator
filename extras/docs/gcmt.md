@@ -17,9 +17,9 @@ Default AI backend: `claude`. Falls back gracefully if tool is not in PATH.
 ## Workflow
 
 1. **File selection** -- fuzzy multi-select picker (staged/unstaged/untracked/renamed). Space to toggle, Enter to confirm. Only selected files are staged.
-2. **Commit type** -- choose from 13 conventional types (emoji auto-applied)
+2. **Commit type** -- choose from 13 conventional types
 3. **Scope** -- required, lowercase kebab-case (e.g. `auth`, `api`, `git`)
-4. **Summary** -- pre-filled `type(scope): emoji`, you type the description. Warns if >72 chars.
+4. **Summary** -- pre-filled `type(scope):`, you type the description. Warns if >72 chars.
 5. **AI body** -- staged diff sent to AI, returns 3-5 imperative bullet points. Skipped if tool not found.
 6. **Edit body** -- review/edit in `gum write`. `ctrl+d` to confirm, `esc` to omit.
 7. **Preview + confirm** -- full commit message shown, `gum confirm` before proceeding.
@@ -27,24 +27,15 @@ Default AI backend: `claude`. Falls back gracefully if tool is not in PATH.
 
 ## Commit Types
 
-| Type       | Emoji | Type       | Emoji |
-| ---------- | ----- | ---------- | ----- |
-| `feat`     | ✨    | `perf`     | ⚡    |
-| `fix`      | 🐛    | `test`     | ✅    |
-| `docs`     | 📝    | `build`    | 👷    |
-| `style`    | 🎨    | `ci`       | 💚    |
-| `refactor` | ♻️    | `chore`    | 🔧    |
-| `revert`   | ⏪    | `security` | 🔒    |
-| `deps`     | ⬆️    |            |       |
+`feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert` `security` `deps`
 
 ## Format Rules
 
 ```
-<type>(<scope>): <emoji> <description>
+<type>(<scope>): <description>
 ```
 
 - Scope: required, lowercase kebab-case
-- Emoji: after colon, before description
 - Description: imperative mood, lowercase start, no trailing period
 - Subject line: under 72 characters
 

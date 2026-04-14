@@ -2,13 +2,12 @@
 
 ## Commit Format
 
-Format: `<type>(<scope>): <emoji> <description>`
+Format: `<type>(<scope>): <description>`
 
 Rules:
 
 - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert
 - Scope (REQUIRED): lowercase, kebab-case module name
-- Emoji: single emoji after colon+space
 - Description: imperative mood, lowercase start, no period
 - Sign commits: always use `-S` flag
 - Do NOT add Co-Authored-By lines

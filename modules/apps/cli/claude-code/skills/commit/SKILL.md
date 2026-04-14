@@ -1,12 +1,12 @@
 ---
 name: commit
-description: Create conventional commits with emoji, push, tagging, or GitHub releases.
+description: Create conventional commits, push, tagging, or GitHub releases.
 disable-model-invocation: true
 argument-hint: "[--tag <major|minor|patch>] [--release]"
 allowed-tools: ["Bash", "Grep", "Read"]
 ---
 
-Format: `<type>(<scope>): <emoji> <description>`
+Format: `<type>(<scope>): <description>`
 
 ## Rules:
 
@@ -14,18 +14,13 @@ Format: `<type>(<scope>): <emoji> <description>`
 - Never add Co-Authored-By or any AI attribution to commits.
 - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security|deps
 - Scope (REQUIRED for git-cliff): lowercase, kebab-case module name.
-- Emoji: AFTER colon (e.g., `feat(auth): ✨`). Subject: imperative, <72 chars.
+- Subject: imperative, <72 chars.
 - Sign with `git commit -S`. Split unrelated changes atomically.
-
-## Type→Emoji:
-
-feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
 
 ## Examples:
 
-✅ feat(auth): ✨ add OAuth2 login flow
-✅ fix(api): 🐛 resolve race condition in token refresh
-❌ ✨ feat(auth): add OAuth2 (emoji before type)
+✅ feat(auth): add OAuth2 login flow
+✅ fix(api): resolve race condition in token refresh
 ❌ feat: add OAuth2 (missing scope)
 
 ## Inputs
@@ -61,7 +56,7 @@ If the log doesn't exist or is empty, fall back to inferring intent from the dif
 4. Check branch: detect default branch with `default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'); default_branch="${default_branch:-main}"`. If on default branch, note: "Committing to $default_branch. If this should be on a feature branch, abort and create one first."
 5. Stage all changes: `git add -A`.
 6. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
-7. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
+7. For each: `git commit -S -m "<type>(<scope>): <description>"`
 8. If --tag: `git tag -s v<version> -m "Release v<version>"`
 9. Always push: `git push && git push --tags` (if tagged).
 10. If --release: `gh release create v<version> --notes-from-tag`.

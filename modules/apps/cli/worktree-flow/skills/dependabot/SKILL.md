@@ -2,13 +2,12 @@
 
 ## Commit Format
 
-Format: `<type>(<scope>): <emoji> <description>`
+Format: `<type>(<scope>): <description>`
 
 Rules:
 
 - Type: use `security` for vulnerability fixes, `deps` for version bumps
 - Scope (REQUIRED): lowercase, kebab-case module name (e.g., `clay`, `nodemailer`)
-- Emoji: single emoji after colon+space
 - Description: imperative mood, lowercase start, no period
 - Sign commits: always use `-S` flag
 - Do NOT add Co-Authored-By lines

@@ -2,27 +2,26 @@
 
 ## Commit Format
 
-Format: `<type>(<scope>): <emoji> <description>`
+Format: `<type>(<scope>): <description>`
 
-| Type | Emoji | When |
-|------|-------|------|
-| feat | :sparkles: | New functionality |
-| fix | :bug: | Bug fix |
-| docs | :memo: | Documentation only |
-| style | :art: | Formatting, whitespace |
-| refactor | :recycle: | Neither fix nor feature |
-| perf | :zap: | Performance improvement |
-| test | :white_check_mark: | Adding or fixing tests |
-| build | :construction_worker: | Build system or deps |
-| ci | :green_heart: | CI configuration |
-| chore | :wrench: | Maintenance tasks |
-| revert | :rewind: | Reverting a commit |
-| security | :lock: | Security fix |
-| deps | :arrow_up: | Dependency update |
+| Type | When |
+|------|------|
+| feat | New functionality |
+| fix | Bug fix |
+| docs | Documentation only |
+| style | Formatting, whitespace |
+| refactor | Neither fix nor feature |
+| perf | Performance improvement |
+| test | Adding or fixing tests |
+| build | Build system or deps |
+| ci | CI configuration |
+| chore | Maintenance tasks |
+| revert | Reverting a commit |
+| security | Security fix |
+| deps | Dependency update |
 
 Rules:
 - Scope is REQUIRED: lowercase, kebab-case module name
-- Emoji goes after the colon+space, before description
 - Description: imperative mood, lowercase start, no period
 - Sign commits: always use `-S` flag
 - **NEVER** add Co-Authored-By, Signed-off-by, or any AI attribution trailer
@@ -30,9 +29,9 @@ Rules:
 - The user's git identity is the sole author — do not inject any co-author or tool attribution
 
 Examples:
-- `feat(auth): :sparkles: add JWT refresh rotation`
-- `fix(api): :bug: handle null response from upstream`
-- `refactor(db): :recycle: extract connection pooling`
+- `feat(auth): add JWT refresh rotation`
+- `fix(api): handle null response from upstream`
+- `refactor(db): extract connection pooling`
 
 ## Branch Naming
 
