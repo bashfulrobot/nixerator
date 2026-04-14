@@ -127,7 +127,7 @@ get_oauth_token() {
   local token=""
 
   # 1. Explicit env var override
-  if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+  if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
     echo "$CLAUDE_CODE_OAUTH_TOKEN"
     return 0
   fi
