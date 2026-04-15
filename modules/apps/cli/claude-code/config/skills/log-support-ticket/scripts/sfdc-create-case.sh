@@ -49,7 +49,7 @@ jq -n \
     Status: "New",
     Origin: "Web"
   } + (if $slackThread != "" then {Slack_Thread__c: $slackThread} else {} end)' \
-  >"$BODY_FILE"
+  > "$BODY_FILE"
 
 # Create the Case
 create_result=$(sf api request rest "/services/data/${API_VERSION}/sobjects/Case" \

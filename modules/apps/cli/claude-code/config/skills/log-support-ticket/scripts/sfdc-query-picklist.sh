@@ -11,8 +11,8 @@ CACHE_TTL=300 # 5 minutes
 
 # Use cached describe if fresh enough
 if [[ -f "$CACHE" ]]; then
-  age=$(($(date +%s) - $(stat -c %Y "$CACHE")))
-  if ((age > CACHE_TTL)); then
+  age=$(( $(date +%s) - $(stat -c %Y "$CACHE") ))
+  if (( age > CACHE_TTL )); then
     rm -f "$CACHE"
   fi
 fi
@@ -22,7 +22,7 @@ if [[ ! -f "$CACHE" ]]; then
     jq -n '{error: "Failed to describe Case object"}' >&2
     exit 1
   }
-  echo "$result" >"$CACHE"
+  echo "$result" > "$CACHE"
 fi
 
 # Extract picklist values for the requested field
