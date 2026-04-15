@@ -32,7 +32,7 @@ DESC_MAX_LENGTH=32000
 
 # 1. Description length check
 desc_length=${#CASE_DESCRIPTION}
-if ((desc_length > DESC_MAX_LENGTH)); then
+if (( desc_length > DESC_MAX_LENGTH )); then
   jq -n --arg len "$desc_length" --arg max "$DESC_MAX_LENGTH" \
     '{error: ("Description is " + $len + " characters, exceeding the " + $max + " character SFDC limit. Shorten the description and retry.")}' >&2
   exit 1
