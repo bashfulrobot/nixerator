@@ -18,8 +18,8 @@ fi
 # Check file size (base64 inflates ~33%, SFDC limit is 37.5MB)
 FILE_SIZE=$(stat -c %s "$FILE_PATH")
 MAX_SIZE=$((28 * 1024 * 1024)) # ~28MB raw -> ~37MB base64
-if (( FILE_SIZE > MAX_SIZE )); then
-  jq -n --arg size "$(( FILE_SIZE / 1024 / 1024 ))MB" '{error: ("File too large (" + $size + "). Max ~28MB for SFDC upload.")}' >&2
+if ((FILE_SIZE > MAX_SIZE)); then
+  jq -n --arg size "$((FILE_SIZE / 1024 / 1024))MB" '{error: ("File too large (" + $size + "). Max ~28MB for SFDC upload.")}' >&2
   exit 1
 fi
 
@@ -39,7 +39,7 @@ jq -n \
     PathOnClient: $path,
     VersionData: $data,
     FirstPublishLocationId: $caseId
-  }' > "$BODY_FILE"
+  }' >"$BODY_FILE"
 
 result=$(sf api request rest "/services/data/${API_VERSION}/sobjects/ContentVersion" \
   -X POST \
