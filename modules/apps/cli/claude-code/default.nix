@@ -25,6 +25,10 @@ let
       kubeconfigFile
       ;
   };
+  contextsConfig = import ./cfg/contexts.nix {
+    inherit lib secrets;
+    inherit (mcpConfig) mcpServers;
+  };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
   pluginsConfig = import ./cfg/plugins.nix {
     inherit pkgs;
@@ -222,6 +226,7 @@ in
         file =
           mcpConfig.files
           // lspConfig.files
+          // contextsConfig.files
           // {
             ".claude/docs/tools.md".source = ../../../../extras/docs/tools.md;
           };
