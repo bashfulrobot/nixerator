@@ -26,7 +26,7 @@ let
       ;
   };
   contextsConfig = import ./cfg/contexts.nix {
-    inherit lib secrets;
+    inherit lib;
     inherit (mcpConfig) mcpServers;
   };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
