@@ -22,6 +22,7 @@ in
       # affinity: removed
       cameractrls.enable = true;
       comics.enable = true;
+      kooha.enable = true;
     };
 
     apps.cli = {
