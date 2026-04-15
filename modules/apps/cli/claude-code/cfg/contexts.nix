@@ -1,5 +1,6 @@
 {
   lib,
+  secrets,
   mcpServers,
 }:
 
@@ -7,7 +8,7 @@ let
   # Reuse the Slack MCP config from mcp-servers.nix
   slackMcpJson = builtins.toJSON {
     mcpServers = {
-      inherit (mcpServers) slack;
+      slack = mcpServers.slack;
     };
   };
 
