@@ -10,17 +10,22 @@ description: >-
   that's enough to start. The skill gathers missing context through follow-up
   questions, then produces a complete, actionable issue body structured so that
   a subsequent AI agent can read it and implement the work without further
-  clarification.
+  clarification. Also triggers when the user passes an issue number (e.g.,
+  "/log-github-issue 42") to rewrite an existing issue's description as a
+  detailed agent prompt posted as a comment.
 ---
 
 # Log GitHub Issue
 
-Create a GitHub issue on the current repository. The output is a structured issue
-body written as an AI agent execution prompt — precise enough that another agent
-can pick it up and implement the work without ambiguity.
+Two modes depending on input:
+
+- **No issue number** — create a new GitHub issue, body written as an AI agent
+  execution prompt.
+- **Issue number provided** — fetch the existing issue, assess its description,
+  rewrite it as a detailed agent prompt, and post it as a comment on that issue.
 
 Use `gh` for all GitHub interaction. Ask follow-up questions to fill gaps before
-writing the draft. Never add any AI attribution to the issue.
+writing anything. Never add any AI attribution to the issue or comment.
 
 ---
 
@@ -33,6 +38,16 @@ gh repo view --json nameWithOwner,defaultBranchRef -q '{repo: .nameWithOwner, de
 If this fails, stop: **"Not in a GitHub repository. Run this from inside a repo directory."**
 
 Hold `repo` and `default_branch` for use in the issue body.
+
+---
+
+## Step 1b: Detect Mode
+
+Check the user's invocation for an issue number argument (e.g., `/log-github-issue 42`,
+"rewrite issue 42", "upgrade #7").
+
+- **If an issue number is present** → skip to [Rewrite Mode](#rewrite-mode).
+- **If no issue number** → continue to Step 2 (Create Mode).
 
 ---
 
@@ -194,6 +209,94 @@ Report the issue URL.
 Ask: "Would you like to open this in the browser?" If yes:
 ```bash
 xdg-open "<issue_url>"
+```
+
+---
+
+## Rewrite Mode
+
+Triggered when the user passes an existing issue number. The goal is to take
+whatever description already exists — rough notes, a vague request, a one-liner —
+and produce a fully-specified agent prompt posted as a comment on that issue.
+The original description is left untouched.
+
+### R1: Fetch the Issue
+
+```bash
+gh issue view <number> --json number,title,body,labels,comments
+```
+
+Read the title, body, and any existing comments. Understand what has already
+been said about this issue. If the body is empty, that's fine — you'll build
+the prompt from the title and any context the user provides.
+
+### R2: Assess the Existing Description
+
+Evaluate what's clear and what's missing for an AI agent to act on this:
+
+- Is the problem or goal stated clearly?
+- Are there acceptance criteria, or just a vague outcome?
+- Are relevant files, modules, or components identified?
+- Are there constraints or out-of-scope boundaries?
+- Is there enough technical detail to implement without guessing?
+
+Note the gaps — you'll fill them via follow-up questions.
+
+### R3: Ask Follow-Up Questions
+
+Use the same gap table from Step 3, but only ask about what the existing
+issue body doesn't already answer. If the issue is already detailed, you
+may need zero questions. Cap at 3–4 targeted questions.
+
+Also ask: "Is there anything you want to add or clarify that isn't in the
+current description?" — this is the user's chance to enrich the spec before
+the rewrite.
+
+### R4: Research the Codebase (if helpful)
+
+Same guidance as Step 4. If the issue mentions a specific component or module,
+a quick lookup can produce precise file paths and function names to anchor the
+agent prompt. Keep it targeted.
+
+### R5: Draft the Agent Prompt Comment
+
+Write the comment body using the same issue structure (Context, Goal, Acceptance
+Criteria, Scope, Technical Details, Testing) from Step 5.
+
+**Prepend this instruction block at the very top of the comment:**
+
+```
+> [!IMPORTANT]
+> **Implementation Prompt** — Use this comment as your working specification.
+> Read it fully before touching any code. The sections below define the goal,
+> acceptance criteria, and technical constraints for this issue.
+```
+
+Then the full structured body follows immediately after.
+
+The comment should be entirely self-contained. A fresh agent that only reads
+this comment — not the original issue description — must have everything it
+needs to implement the work correctly.
+
+### R6: Present and Iterate
+
+Show the user the full comment draft in a fenced markdown block.
+
+Say: "Here's the agent prompt draft. Edit anything you'd like to change, or
+confirm to post it."
+
+Iterate until confirmed.
+
+### R7: Post the Comment
+
+```bash
+gh issue comment <number> --body "<comment body>"
+```
+
+Report the comment URL. Ask: "Would you like to open the issue in the browser?"
+If yes:
+```bash
+xdg-open "$(gh issue view <number> --json url -q '.url')"
 ```
 
 ---
