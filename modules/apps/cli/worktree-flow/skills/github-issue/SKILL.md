@@ -151,7 +151,24 @@ github-issue transition <N> verify
 Run the project's test suite, linters, and build.
 
 - If verification fails: `github-issue transition <N> implement` (loop back)
-- If verification passes: `github-issue transition <N> push`
+- If verification passes and `workflow_detail.complexity == "trivial"`: proceed to push, then skip reviews (see **Trivial fast-path** below)
+- If verification passes (non-trivial): `github-issue transition <N> push`
+
+**Trivial fast-path:** When complexity is trivial, after verification passes, push and transition directly to waiting — skipping both review steps:
+
+```bash
+github-issue transition <N> push
+```
+
+Then after push completes:
+
+```
+"Trivial change — skipping reviews, proceeding directly to waiting."
+```
+
+```bash
+github-issue transition <N> waiting
+```
 
 ### Push
 
@@ -161,9 +178,8 @@ github-issue push <number>
 
 Report `pr_url` and `ci_status` from response. Then:
 
-```bash
-github-issue transition <N> review_dev
-```
+- If trivial fast-path: `github-issue transition <N> waiting` (reviews already skipped above)
+- Otherwise: `github-issue transition <N> review_dev`
 
 ### Review (Dev)
 
