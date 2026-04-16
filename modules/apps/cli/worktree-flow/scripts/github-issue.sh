@@ -55,15 +55,42 @@ derive_branch_type_auto() {
     [[ -z "$label" ]] && continue
     local lower="${label,,}"
     case "$lower" in
-      *bug*) branch_type="fix"; break ;;
-      *enhancement* | *feature*) branch_type="feat"; break ;;
-      *documentation* | *docs*) branch_type="docs"; break ;;
-      *refactor*) branch_type="refactor"; break ;;
-      *testing* | *test*) branch_type="test"; break ;;
-      *dependenc* | *deps*) branch_type="deps"; break ;;
-      *ci*) branch_type="ci"; break ;;
-      *chore*) branch_type="chore"; break ;;
-      *revert*) branch_type="revert"; break ;;
+      *bug*)
+        branch_type="fix"
+        break
+        ;;
+      *enhancement* | *feature*)
+        branch_type="feat"
+        break
+        ;;
+      *documentation* | *docs*)
+        branch_type="docs"
+        break
+        ;;
+      *refactor*)
+        branch_type="refactor"
+        break
+        ;;
+      *testing* | *test*)
+        branch_type="test"
+        break
+        ;;
+      *dependenc* | *deps*)
+        branch_type="deps"
+        break
+        ;;
+      *ci*)
+        branch_type="ci"
+        break
+        ;;
+      *chore*)
+        branch_type="chore"
+        break
+        ;;
+      *revert*)
+        branch_type="revert"
+        break
+        ;;
     esac
   done < <(printf '%s' "$labels_json" | jq -r '.[].name')
 
