@@ -62,6 +62,20 @@ Dispatch a single **general-purpose Agent** with the prompt below. Substitute ac
 - Prepend `<!-- review-dev -->` (invisible marker) to the comment body for idempotency.
 - **No AI attribution.** No emoji. Clean and professional — it should look like the user wrote it.
 
+### 8. Output Structured Summary
+
+After posting the comment, output a machine-readable summary line for the calling workflow:
+
+```
+REVIEW_DEV_SUMMARY: verdict=<block|fix|clean> critical=<N> important=<N> minor=<N>
+```
+
+Extract from the subagent's output:
+- `block` = "Block" verdict
+- `fix` = "Merge with fixes" verdict
+- `clean` = "Merge as-is" verdict
+- Counts from each severity tier (Critical/Important/Minor sections)
+
 ## Subagent Prompt
 
 Dispatch with these exact instructions, substituting values:

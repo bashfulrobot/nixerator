@@ -15,14 +15,12 @@ let
     runtimeInputs = with pkgs; [
       git
       git-crypt
-      gum
       gh
       jq
       coreutils
       util-linux
       gnused
       findutils
-      llm-agents.claude-code
     ];
     text = ''
       ${libSh}
@@ -35,14 +33,12 @@ let
     runtimeInputs = with pkgs; [
       git
       git-crypt
-      gum
       gh
       jq
       coreutils
       util-linux
       gnused
       findutils
-      llm-agents.claude-code
     ];
     text = ''
       ${libSh}
@@ -55,14 +51,12 @@ let
     runtimeInputs = with pkgs; [
       git
       git-crypt
-      gum
       gh
       jq
       coreutils
       util-linux
       gnused
       findutils
-      llm-agents.claude-code
     ];
     text = ''
       ${libSh}
