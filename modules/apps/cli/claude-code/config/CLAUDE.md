@@ -32,3 +32,15 @@ sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 
 - Always apply the highest level of thinking depth. Spending more tokens for better output is fine.
 - Never reason from assumptions — read and understand actual code, publications, and documentation before deciding.
+
+## Kong Developer Documentation
+
+Kong's developer docs at `developer.konghq.com` are available in LLM-friendly markdown. To get the markdown version of any content page, append `.md` to the URL path (drop trailing slashes and anchors):
+
+- `https://developer.konghq.com/dev-portal/` → `https://developer.konghq.com/dev-portal.md`
+- `https://developer.konghq.com/konnect-platform/teams-and-roles/#predefined-teams` → `https://developer.konghq.com/konnect-platform/teams-and-roles.md`
+- `https://developer.konghq.com/observability/` → `https://developer.konghq.com/observability.md`
+
+**Index/site-tree pages do NOT have markdown versions** (e.g., `https://developer.konghq.com/` or `https://developer.konghq.com/index/dev-portal/`).
+
+When researching Kong topics, always prefer fetching the `.md` URL — it is optimized for AI consumption and avoids noisy HTML parsing.
