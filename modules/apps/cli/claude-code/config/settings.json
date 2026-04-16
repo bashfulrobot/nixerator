@@ -154,7 +154,6 @@
       "WebFetch(domain:registry.terraform.io)"
     ]
   },
-  "model": "opus",
   "hooks": {
     "PostToolUse": [
       {
