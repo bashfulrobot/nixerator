@@ -291,8 +291,14 @@ slugify() {
 }
 
 # ── Worktree path helper ──────────────────────────────────────────────────────
+# Uses --git-common-dir instead of --show-toplevel so this works correctly
+# when called from inside a worktree (--show-toplevel returns the worktree
+# path, not the main repo root).
 worktree_base() {
-  printf '%s' "$(git rev-parse --show-toplevel)/../.worktrees"
+  local git_common_dir
+  git_common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+  # git_common_dir is /path/to/repo/.git — strip /.git to get repo root
+  printf '%s' "${git_common_dir%/.git}/../.worktrees"
 }
 
 # ── Orphan worktree detection ────────────────────────────────────────────────
