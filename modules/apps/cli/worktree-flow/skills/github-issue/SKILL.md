@@ -92,7 +92,15 @@ Read the issue body (available in `status` response as `issue_body`). Classify c
 | standard | Multi-file, clear requirements | `plan` |
 | complex | Unclear requirements, design needed | `design` |
 
-Present assessment. Let user confirm or override. Then transition:
+**Auto-classification:** If the issue body contains implementation guidance — file paths (e.g., `src/foo/bar.ts`), code blocks with snippets, or explicit acceptance criteria / step-by-step instructions — auto-classify at the appropriate level and skip user confirmation:
+
+```
+"Auto-classified as <level> (detailed implementation guidance present). Proceeding to <target>."
+```
+
+If the issue body is vague or lacks implementation signals, present the assessment and let the user confirm or override as before.
+
+Then transition:
 
 ```bash
 github-issue transition <N> <target> --detail-json '{"complexity":"<level>"}'
