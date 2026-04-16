@@ -148,55 +148,8 @@
     "Bash(unzip *)"
     "Bash(gzip *)"
 
-    # Web fetching — Nix ecosystem
-    "WebFetch(domain:nixos.org)"
-    "WebFetch(domain:search.nixos.org)"
-    "WebFetch(domain:wiki.nixos.org)"
-    "WebFetch(domain:nix.dev)"
-    "WebFetch(domain:discourse.nixos.org)"
-    "WebFetch(domain:mynixos.com)"
-    "WebFetch(domain:hydra.nixos.org)"
-    "WebFetch(domain:nix-community.github.io)"
-
-    # Web fetching — GitHub
-    "WebFetch(domain:github.com)"
-    "WebFetch(domain:api.github.com)"
-    "WebFetch(domain:githubusercontent.com)"
-    "WebFetch(domain:raw.githubusercontent.com)"
-    "WebFetch(domain:objects.githubusercontent.com)"
-    "WebFetch(domain:gist.github.com)"
-    "WebFetch(domain:gist.githubusercontent.com)"
-    "WebFetch(domain:git.sr.ht)"
-    "WebFetch(domain:docs.github.com)"
-
-    # Web fetching — Language docs
-    "WebFetch(domain:doc.rust-lang.org)"
-    "WebFetch(domain:docs.rs)"
-    "WebFetch(domain:crates.io)"
-    "WebFetch(domain:pkg.go.dev)"
-    "WebFetch(domain:developer.mozilla.org)"
-    "WebFetch(domain:docs.python.org)"
-    "WebFetch(domain:nodejs.org)"
-    "WebFetch(domain:npmjs.com)"
-    "WebFetch(domain:www.npmjs.com)"
-    "WebFetch(domain:pypi.org)"
-
-    # Web fetching — Reference & docs
-    "WebFetch(domain:anthropic.com)"
-    "WebFetch(domain:docs.anthropic.com)"
-    "WebFetch(domain:code.claude.com)"
-    "WebFetch(domain:docs.konghq.com)"
-    "WebFetch(domain:stackoverflow.com)"
-    "WebFetch(domain:man7.org)"
-    "WebFetch(domain:wiki.archlinux.org)"
-    "WebFetch(domain:en.wikipedia.org)"
-    "WebFetch(domain:hub.docker.com)"
-    "WebFetch(domain:registry.terraform.io)"
-    "WebFetch(domain:deepwiki.com)"
-    "WebFetch(domain:fishshell.com)"
-    "WebFetch(domain:developer.todoist.com)"
-    "WebFetch(domain:zed.dev)"
-    "WebFetch(domain:happy.engineering)"
+    # Web fetching — all domains
+    "WebFetch"
   ];
 
   deny = [
