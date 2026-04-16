@@ -187,7 +187,21 @@ github-issue transition <N> review_security
 
 ### Review (Security)
 
-Suggest running `/review-security`:
+**UI-only skip:** Before suggesting `/review-security`, check the diff profile:
+
+```bash
+git diff <default-branch>..HEAD --name-only
+```
+
+If the diff touches **only** UI files (Composables, layout XML, string resources, theme files, icons) with **no** new dependencies, network calls, file I/O, user input handling, or permission changes — auto-skip the security review:
+
+```
+"Security review skipped — UI-only changes with no security surface."
+```
+
+The user can force a security review by explicitly requesting it.
+
+**Otherwise**, suggest running `/review-security`:
 
 ```
 "Dev review complete.
@@ -195,7 +209,7 @@ Recommend running /review-security for a security audit before merge."
 ```
 
 After security review runs, parse the summary line if present:
-- `REVIEW_SECURITY_SUMMARY: verdict=block` or `verdict=fix`: implement fixes, verify, push
+- `REVIEW_SECURITY_SUMMARY: verdict=block` or `verdict=fix`: implement fixes, verify, push (see **Batching** below)
 - `verdict=clean`: transition
 - No summary line (backward compat): ask user if there are findings to address
 
