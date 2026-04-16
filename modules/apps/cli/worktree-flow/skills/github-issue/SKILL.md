@@ -191,9 +191,12 @@ Recommend running /review-dev to catch issues before merge."
 ```
 
 After dev review runs, parse the summary line if present:
-- `REVIEW_DEV_SUMMARY: verdict=block` or `verdict=fix`: implement fixes, verify, push
+- `REVIEW_DEV_SUMMARY: verdict=block`: critical issue — fix the blocker, verify, push before continuing
+- `REVIEW_DEV_SUMMARY: verdict=fix`: batch all findings in a single pass (see **Batching** below)
 - `verdict=clean`: transition to next step
 - No summary line (backward compat): ask user if there are findings to address
+
+**Batching minor fixes:** When verdict is `fix`, collect ALL findings from the review. Fix them all in one pass, then run a single verify-push cycle instead of cycling per finding. Log: "Batched N minor fixes into a single commit."
 
 After all fixes (or user declines review):
 
@@ -225,7 +228,8 @@ Recommend running /review-security for a security audit before merge."
 ```
 
 After security review runs, parse the summary line if present:
-- `REVIEW_SECURITY_SUMMARY: verdict=block` or `verdict=fix`: implement fixes, verify, push (see **Batching** below)
+- `REVIEW_SECURITY_SUMMARY: verdict=block`: critical issue — fix the blocker, verify, push before continuing
+- `REVIEW_SECURITY_SUMMARY: verdict=fix`: batch all findings in a single pass — fix everything, then one verify-push cycle. Log: "Batched N minor fixes into a single commit."
 - `verdict=clean`: transition
 - No summary line (backward compat): ask user if there are findings to address
 
