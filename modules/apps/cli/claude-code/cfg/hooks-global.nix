@@ -161,7 +161,8 @@ in
               [[ -n "$cmd" ]] || exit 0
 
               # Warn on git commit and git push (user normally handles these, but may request via /command)
-              if echo "$cmd" | grep -qE '(^|\s|;|&&|\|)git\s+(commit|push)(\s|$)'; then
+              # Exclude gh CLI commands (gh pr, gh issue) which contain 'git' substrings in output/args
+              if echo "$cmd" | grep -qE '(^|\s|;|&&|\|)git\s+(commit|push)(\s|$)' && ! echo "$cmd" | grep -qE '(^|\s|;|&&|\|)gh\s'; then
                 ${detectDefaultBranch}
                 warn="[bash-guard] WARNING: git commit/push detected. Only do this if the user explicitly asked. Do not commit or push on your own initiative."
                 current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
