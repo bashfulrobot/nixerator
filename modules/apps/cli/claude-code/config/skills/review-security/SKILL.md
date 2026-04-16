@@ -63,6 +63,20 @@ Dispatch a single **general-purpose Agent** with the prompt below. Substitute ac
 - Prepend `<!-- review-security -->` (invisible marker) to the comment body for idempotency.
 - **No AI attribution.** No emoji. Clean and professional — it should look like the user wrote it.
 
+### 8. Output Structured Summary
+
+After posting the comment, output a machine-readable summary line for the calling workflow:
+
+```
+REVIEW_SECURITY_SUMMARY: verdict=<block|fix|clean> critical=<N> high=<N> medium=<N> low=<N>
+```
+
+Extract from the subagent's output:
+- `block` = "Blocks merge" verdict
+- `fix` = "Acceptable with fixes" verdict
+- `clean` = "Clean" verdict
+- Counts from each severity tier (Critical/High/Medium/Low sections)
+
 ## Subagent Prompt
 
 Dispatch with these exact instructions, substituting values:
