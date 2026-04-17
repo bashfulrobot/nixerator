@@ -36,6 +36,7 @@ in
 
         # Shell aliases (for programmatic/script-facing use)
         shellAliases = {
+          glow = "glow -p";
           mdr = "glow -p";
           ni = "nix run 'nixpkgs#nix-index' --extra-experimental-features 'nix-command flakes'";
           nix-info = "nix-info --markdown --sandbox --host-os";
