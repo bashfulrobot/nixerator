@@ -69,9 +69,9 @@
       source = "npm";
       repo = "chadbyte/clay";
       npmPkg = "clay-server";
-      version = "2.25.0";
-      hash = "sha256-TV+OK9ani9te8G+Yot1LBSWRhVcJ+2dTs1ujb2HOxEg=";
-      npmDepsHash = "sha256-APUvm7E2q4bQ3xFx1PspXgW5GSstA4AAuQiiGXuNq68=";
+      version = "2.31.0";
+      hash = "sha256-Tw8lM5wVo0pBmqWk9L/0lEJjXSmpQVyNP0i0HfDYKZQ=";
+      npmDepsHash = "sha256-rU+QBeD7xmReA7WzS+2amT6Xr0NiIbcOJhWutmA8X9c=";
     };
 
     lswt = {
