@@ -151,6 +151,15 @@
       npmDepsHash = "sha256-+zgPB7lD039NR6U0+MbFshZh12cHdmfMUf+JzEyZDoQ=";
     };
 
+    graymatter = {
+      source = "github-release";
+      repo = "angelnicolasc/graymatter";
+      version = "0.5.0";
+      tagPrefix = "v";
+      hash = "sha256-xFeXwg8TZTkbSwmTGy2vurasqOzYb7URY/1rTnrR3Zg=";
+      vendorHash = "sha256-gmNsw0mTKnMqcHu9p2yy3GDmU+702sXGtV+giCjPrvM=";
+    };
+
     crawl4ai = {
       source = "github-release";
       repo = "unclecode/crawl4ai";

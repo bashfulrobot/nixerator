@@ -56,6 +56,7 @@ in
       stop-slop.enable = true;
       superpowers.enable = true;
       paseo.enable = true;
+      graymatter.enable = true;
       ollama = {
         enable = false;
         loadModels = [ "glm-5:cloud" ];
