@@ -14,13 +14,15 @@ All work happens in an isolated git worktree. Never implement in the main workin
 
 ## Worktree Anchoring
 
-**Before every action**, verify working directory:
+The skill uses the `EnterWorktree` tool to persist cwd at the session level, so every subsequent Bash call runs inside the worktree without needing a `cd <worktree> &&` prefix. This is set up once during **Setup** (see below) and holds across sub-skill invocations.
+
+**Fallback check** — if a sub-skill (brainstorming, writing-plans, executing-plans, verification, receiving-code-review) appears to have disturbed cwd, re-verify:
 
 ```bash
 github-issue validate-cwd <number>
 ```
 
-If `valid` is false, run the `fix` command. **Repeat after invoking any sub-skill** (brainstorming, writing-plans, executing-plans, verification, receiving-code-review).
+If `valid` is false, call `EnterWorktree` with `path: <worktree-path>` to re-anchor, or run the `fix` command as a last resort.
 
 ## Entry Point
 
@@ -48,6 +50,8 @@ github-issue status <number>
 
 Route on `workflow_step`. If `workflow_step` is null (v1 migration), fall back to `state`.
 
+**If a worktree already exists** (any `workflow_step` other than the `(no worktree)` case), anchor the session to it immediately using the `EnterWorktree` tool with `path: <worktree>` from the status response. All subsequent Bash calls will then run inside the worktree.
+
 ## State Routing
 
 | `workflow_step` | Action |
@@ -59,8 +63,8 @@ Route on `workflow_step`. If `workflow_step` is null (v1 migration), fall back t
 | `implement` | Code the solution in the worktree |
 | `verify` | Invoke `superpowers:verification-before-completion` |
 | `push` | `github-issue push <N>` |
-| `review_dev` | Suggest `/review-dev`, handle findings |
-| `review_security` | Suggest `/review-security`, handle findings |
+| `review_dev` | Invoke `/review-dev` via Skill tool, handle findings; on clean auto-chain to `review_security` |
+| `review_security` | UI-only skip check, else invoke `/review-security` via Skill tool, handle findings |
 | `waiting` | Re-check status for PR state changes |
 | `revamp` | `github-issue review-feedback <N>`, evaluate, fix |
 | `done` | `github-issue cleanup <N>` |
@@ -74,11 +78,7 @@ Route on `workflow_step`. If `workflow_step` is null (v1 migration), fall back t
 github-issue setup <number>
 ```
 
-Parse JSON response for `worktree` and `branch`. Change into worktree:
-
-```bash
-cd <worktree>
-```
+Parse JSON response for `worktree` and `branch`. Switch the session into the worktree using the `EnterWorktree` tool with `path: <worktree>` — this persists cwd at the session level, so subsequent Bash calls run inside the worktree without a `cd` prefix.
 
 Proceed to assess (setup already sets `workflow_step: "assess"`).
 
@@ -183,20 +183,17 @@ Report `pr_url` and `ci_status` from response. Then:
 
 ### Review (Dev)
 
-Suggest running `/review-dev` on the PR:
+Invoke `/review-dev` directly via the `Skill` tool (do not wait for user to trigger). Announce: `"PR created: <pr_url>. Running /review-dev."`
 
-```
-"PR created: <pr_url>
-Recommend running /review-dev to catch issues before merge."
-```
-
-After dev review runs, parse the summary line if present:
+After dev review completes, parse the summary line if present:
 - `REVIEW_DEV_SUMMARY: verdict=block`: critical issue — fix the blocker, verify, push before continuing
 - `REVIEW_DEV_SUMMARY: verdict=fix`: batch all findings in a single pass (see **Batching** below)
-- `verdict=clean`: transition to next step
+- `verdict=clean`: transition to next step **and immediately auto-chain into `/review-security`** (see below)
 - No summary line (backward compat): ask user if there are findings to address
 
 **Batching minor fixes:** When verdict is `fix`, collect ALL findings from the review. Fix them all in one pass, then run a single verify-push cycle instead of cycling per finding. Log: "Batched N minor fixes into a single commit."
+
+**Auto-chain on clean:** When dev returns `verdict=clean`, the diff is unchanged, so security review can run against the same diff immediately — no user wait needed. Transition to `review_security` and invoke `/review-security` in the same turn.
 
 After all fixes (or user declines review):
 
@@ -206,7 +203,7 @@ github-issue transition <N> review_security
 
 ### Review (Security)
 
-**UI-only skip:** Before suggesting `/review-security`, check the diff profile:
+**UI-only skip:** Before running `/review-security`, check the diff profile:
 
 ```bash
 git diff <default-branch>..HEAD --name-only
@@ -220,14 +217,9 @@ If the diff touches **only** UI files (Composables, layout XML, string resources
 
 The user can force a security review by explicitly requesting it.
 
-**Otherwise**, suggest running `/review-security`:
+**Otherwise**, invoke `/review-security` directly via the `Skill` tool (no user prompt needed). Announce: `"Running /review-security."`
 
-```
-"Dev review complete.
-Recommend running /review-security for a security audit before merge."
-```
-
-After security review runs, parse the summary line if present:
+After security review completes, parse the summary line if present:
 - `REVIEW_SECURITY_SUMMARY: verdict=block`: critical issue — fix the blocker, verify, push before continuing
 - `REVIEW_SECURITY_SUMMARY: verdict=fix`: batch all findings in a single pass — fix everything, then one verify-push cycle. Log: "Batched N minor fixes into a single commit."
 - `verdict=clean`: transition
