@@ -291,20 +291,30 @@ in
 
         "upsight-data/.stignore" = {
           text = ''
-            upsight.session
+            upsight.db-wal
+            upsight.db-shm
+            upsight.db.lock
+            *.db.backup-v*
+            *.pre-restore
+            config.toml.tmp
+            config.toml.bak
             upsight.session.tmp
-            *.db-wal
-            *.db-shm
+            *.sync-conflict-*
           '';
           target = ".local/share/upsight/.stignore";
         };
 
         "upsight-config/.stignore" = {
           text = ''
-            upsight.session
+            upsight.db-wal
+            upsight.db-shm
+            upsight.db.lock
+            *.db.backup-v*
+            *.pre-restore
+            config.toml.tmp
+            config.toml.bak
             upsight.session.tmp
-            *.db-wal
-            *.db-shm
+            *.sync-conflict-*
           '';
           target = ".config/upsight/.stignore";
         };
