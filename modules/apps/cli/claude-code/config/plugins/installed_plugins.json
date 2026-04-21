@@ -4,90 +4,90 @@
     "frontend-design@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/frontend-design/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:51:10.433Z",
-        "lastUpdated": "2026-04-16T05:31:27.319Z",
+        "lastUpdated": "2026-04-21T18:14:52.322Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
     "asana@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/asana/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/asana/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:54:25.740Z",
-        "lastUpdated": "2026-04-16T05:31:27.320Z",
+        "lastUpdated": "2026-04-21T18:14:52.323Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
     "code-review@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/code-review/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/code-review/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:55:11.565Z",
-        "lastUpdated": "2026-04-16T05:31:27.322Z",
+        "lastUpdated": "2026-04-21T18:14:52.324Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
     "context7@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/context7/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/context7/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:55:30.545Z",
-        "lastUpdated": "2026-04-16T05:31:27.321Z",
+        "lastUpdated": "2026-04-21T18:14:52.326Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
     "github@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/github/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/github/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:55:39.042Z",
-        "lastUpdated": "2026-04-16T05:31:27.323Z",
+        "lastUpdated": "2026-04-21T18:14:52.325Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
     "feature-dev@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/feature-dev/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/feature-dev/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:55:52.408Z",
-        "lastUpdated": "2026-04-16T05:31:27.322Z",
+        "lastUpdated": "2026-04-21T18:14:52.327Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
     "commit-commands@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/commit-commands/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/commit-commands/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:56:02.020Z",
-        "lastUpdated": "2026-04-16T05:31:27.324Z",
+        "lastUpdated": "2026-04-21T18:14:52.328Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
     "security-guidance@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:56:26.138Z",
-        "lastUpdated": "2026-04-16T05:31:27.325Z",
+        "lastUpdated": "2026-04-21T18:14:52.329Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
     "pr-review-toolkit@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/unknown",
+        "version": "unknown",
         "installedAt": "2026-02-03T16:56:36.061Z",
-        "lastUpdated": "2026-04-16T05:31:27.326Z",
+        "lastUpdated": "2026-04-21T18:14:52.329Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
@@ -134,10 +134,10 @@
     "skill-creator@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/skill-creator/48aa43517886",
-        "version": "48aa43517886",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/skill-creator/unknown",
+        "version": "unknown",
         "installedAt": "2026-03-14T19:42:41.629Z",
-        "lastUpdated": "2026-04-16T05:31:27.326Z",
+        "lastUpdated": "2026-04-21T18:14:52.330Z",
         "gitCommitSha": "d5c15b861cd23e3102215c26020368ad5134dc47"
       }
     ],
