@@ -62,7 +62,10 @@ in
     };
 
     # Calendar notifier (managed by hyprflake)
-    hyprflake.desktop.calendar-notifier.enable = true;
+    hyprflake.desktop.calendar-notifier = {
+      enable = true;
+      debug = false;
+    };
 
     # Special workspaces for task manager and office apps
     system.special-workspaces.enable = true;
