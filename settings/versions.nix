@@ -168,6 +168,23 @@
       hash = "sha256-y5Nve8e41+wcTlymL6bXxPCwmN8+8/YvHYLGO3x4M+Q=";
     };
 
+    claw-ide = {
+      source = "github-release";
+      repo = "davydany/ClawIDE";
+      version = "1.2.0";
+      tagPrefix = "v";
+      hash = "sha256-mMiwTYM6/EVlSe1p9T8I4OHKWjJol5hnQVsse46z04k=";
+    };
+
+    dorkos = {
+      source = "npm";
+      repo = "dork-labs/dorkos";
+      npmPkg = "dorkos";
+      version = "0.41.0";
+      hash = "sha256-3RvvjXQK7B4KDCV5yB4UiG6cZReywW7aTujDY+qY9zk=";
+      npmDepsHash = "sha256-sDVb5Q/HIz6At4wDVkaysgq8VRJoJrSZ+9TDCedJjv0=";
+    };
+
   };
 
   gui = {

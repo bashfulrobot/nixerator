@@ -50,6 +50,14 @@ in
       plannotator.enable = true;
 
       crawl4ai.enable = true;
+      claw-ide = {
+        enable = true;
+        service.enable = true;
+      };
+      dorkos = {
+        enable = true;
+        service.enable = true;
+      };
       happy = {
         enable = true;
         daemon.enable = true;
