@@ -68,7 +68,13 @@ in
                 "--port ${toString cfg.internalPort}"
                 "--no-open"
               ];
-              Environment = lib.optionals (secrets ? anthropic && secrets.anthropic ? apiKey) [
+              Environment = [
+                # DorkOS CORS allowlist defaults to localhost only; the tsnet
+                # origin (what the browser sends) must be added explicitly or
+                # the SPA's XHR calls fail and the page renders blank.
+                "DORKOS_CORS_ORIGIN=https://${cfg.tsnetNode}.${caddyCfg.tailnetDomain}"
+              ]
+              ++ lib.optionals (secrets ? anthropic && secrets.anthropic ? apiKey) [
                 "ANTHROPIC_API_KEY=${secrets.anthropic.apiKey}"
               ];
               Restart = "on-failure";
