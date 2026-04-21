@@ -2,96 +2,67 @@
   lib,
   pkgs,
   config,
+  secrets,
   ...
 }:
 
 let
   cfg = config.system.caddy;
-  certDir = "/var/lib/caddy/.tailscale";
-  certFile = "${certDir}/${cfg.tailnetHostname}.crt";
-  keyFile = "${certDir}/${cfg.tailnetHostname}.key";
+
+  caddyWithTailscale = pkgs.caddy.withPlugins {
+    plugins = [
+      "github.com/tailscale/caddy-tailscale@v0.0.0-20260106222316-bb080c4414ac"
+    ];
+    hash = "sha256-xJOPVE56h4tlhW7m8ZFN8F2jrZW/3gYeLXVqaEaoVvY=";
+  };
 in
 {
   options.system.caddy = {
-    enable = lib.mkEnableOption "system Caddy reverse proxy with Tailscale HTTPS";
+    enable = lib.mkEnableOption "system Caddy with caddy-tailscale plugin";
 
-    openFirewall = lib.mkOption {
-      type = lib.types.listOf lib.types.port;
+    tailnetDomain = lib.mkOption {
+      type = lib.types.str;
+      default = "goat-cloud.ts.net";
+      description = "Tailnet MagicDNS domain suffix (e.g. goat-cloud.ts.net).";
+    };
+
+    tsnetNodes = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
       default = [ ];
       description = ''
-        External TCP ports to open in the firewall for Caddy vhosts.
-        App modules contribute their external ports here.
+        Names of in-process tsnet nodes Caddy should join the tailnet as.
+        Each becomes its own tailnet identity at <name>.<tailnetDomain>
+        with its own Let's Encrypt cert via Tailscale HTTPS.
       '';
-    };
-
-    tailnetHostname = lib.mkOption {
-      type = lib.types.str;
-      default = "${config.networking.hostName}.goat-cloud.ts.net";
-      description = "Tailnet MagicDNS hostname used for Tailscale HTTPS cert provisioning.";
-    };
-
-    certFile = lib.mkOption {
-      type = lib.types.str;
-      default = certFile;
-      readOnly = true;
-      description = "Absolute path to the Tailscale-issued cert (set by this module).";
-    };
-
-    keyFile = lib.mkOption {
-      type = lib.types.str;
-      default = keyFile;
-      readOnly = true;
-      description = "Absolute path to the Tailscale-issued key (set by this module).";
     };
   };
 
   config = lib.mkIf cfg.enable {
     services.caddy = {
       enable = true;
+      package = caddyWithTailscale;
       email = "caddy@localhost";
+
+      globalConfig = lib.optionalString (cfg.tsnetNodes != [ ]) ''
+        tailscale {
+          auth_key {env.TS_AUTHKEY}
+          state_dir /var/lib/caddy/tsnet
+          ${lib.concatMapStrings (n: ''
+            ${n} {
+              hostname ${n}
+              ephemeral false
+            }
+          '') cfg.tsnetNodes}
+        }
+      '';
     };
-
-    services.tailscale.permitCertUid = "caddy";
-
-    networking.firewall.allowedTCPPorts = cfg.openFirewall;
 
     systemd.tmpfiles.rules = [
-      "d ${certDir} 0750 caddy caddy -"
+      "d /var/lib/caddy/tsnet 0750 caddy caddy -"
     ];
 
-    systemd.services.caddy-tailscale-cert = {
-      description = "Provision/renew Tailscale TLS certificate for Caddy";
-      after = [
-        "tailscaled.service"
-        "network-online.target"
-      ];
-      wants = [ "network-online.target" ];
-      requires = [ "tailscaled.service" ];
-      before = [ "caddy.service" ];
-      wantedBy = [ "caddy.service" ];
-      path = [ pkgs.tailscale ];
-      serviceConfig = {
-        Type = "oneshot";
-        User = "caddy";
-        Group = "caddy";
-        RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "caddy-tailscale-cert" ''
-          set -euo pipefail
-          ${pkgs.tailscale}/bin/tailscale cert \
-            --cert-file=${certFile} \
-            --key-file=${keyFile} \
-            ${cfg.tailnetHostname}
-        '';
-      };
-    };
-
-    systemd.timers.caddy-tailscale-cert = {
-      description = "Renew Tailscale TLS certificate for Caddy";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "weekly";
-        Persistent = true;
-      };
-    };
+    systemd.services.caddy.serviceConfig.Environment = lib.optionals (
+      secrets ? tailscale && secrets.tailscale ? caddyAuthKey
+    ) [ "TS_AUTHKEY=${secrets.tailscale.caddyAuthKey}" ];
   };
 }
