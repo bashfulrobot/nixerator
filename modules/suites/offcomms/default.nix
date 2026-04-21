@@ -61,6 +61,9 @@ in
       model = lib.mkDefault "base.en";
     };
 
+    # Calendar notifier (managed by hyprflake)
+    hyprflake.desktop.calendar-notifier.enable = true;
+
     # Special workspaces for task manager and office apps
     system.special-workspaces.enable = true;
 
