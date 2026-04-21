@@ -17,22 +17,22 @@ in
   options.apps.cli.dorkos = {
     enable = lib.mkEnableOption "DorkOS agent coordination server";
 
-    port = lib.mkOption {
-      type = lib.types.port;
-      default = 3134;
-      description = "External HTTPS port (served by Caddy) for DorkOS on the tailnet.";
+    tsnetNode = lib.mkOption {
+      type = lib.types.str;
+      default = "dork";
+      description = "Tailnet node name Caddy joins as for DorkOS (URL: https://<node>.<tailnetDomain>/).";
     };
 
     internalPort = lib.mkOption {
       type = lib.types.port;
       default = 4242;
       description = ''
-        Loopback port where DorkOS itself listens (proxied by Caddy).
-        DorkOS always binds to 127.0.0.1; upstream exposes no --host flag.
+        Loopback port where DorkOS itself listens (proxied by Caddy via tsnet).
+        DorkOS always binds to [::1]; upstream exposes no --host flag.
       '';
     };
 
-    service.enable = lib.mkEnableOption "DorkOS persistent server (systemd user service + Caddy vhost)";
+    service.enable = lib.mkEnableOption "DorkOS persistent server (systemd user service + Caddy tsnet vhost)";
   };
 
   config = lib.mkIf cfg.enable (
@@ -46,12 +46,12 @@ in
       (lib.mkIf cfg.service.enable {
         system.caddy = {
           enable = true;
-          openFirewall = [ cfg.port ];
+          tsnetNodes = [ cfg.tsnetNode ];
         };
 
-        services.caddy.virtualHosts."${caddyCfg.tailnetHostname}:${toString cfg.port}" = {
+        services.caddy.virtualHosts."https://${cfg.tsnetNode}.${caddyCfg.tailnetDomain}" = {
           extraConfig = ''
-            tls ${caddyCfg.certFile} ${caddyCfg.keyFile}
+            bind tailscale/${cfg.tsnetNode}
             reverse_proxy [::1]:${toString cfg.internalPort}
           '';
         };

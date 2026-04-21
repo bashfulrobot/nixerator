@@ -17,16 +17,16 @@ in
   options.apps.cli.claw-ide = {
     enable = lib.mkEnableOption "ClawIDE web-based IDE for Claude Code";
 
-    port = lib.mkOption {
-      type = lib.types.port;
-      default = 3133;
-      description = "External HTTPS port (served by Caddy) for ClawIDE on the tailnet.";
+    tsnetNode = lib.mkOption {
+      type = lib.types.str;
+      default = "claw";
+      description = "Tailnet node name Caddy joins as for ClawIDE (URL: https://<node>.<tailnetDomain>/).";
     };
 
     internalPort = lib.mkOption {
       type = lib.types.port;
       default = 4133;
-      description = "Loopback port where ClawIDE itself listens (proxied by Caddy).";
+      description = "Loopback port where ClawIDE itself listens (proxied by Caddy via tsnet).";
     };
 
     projectsDir = lib.mkOption {
@@ -35,7 +35,7 @@ in
       description = "Root directory ClawIDE browses for projects.";
     };
 
-    service.enable = lib.mkEnableOption "ClawIDE persistent server (systemd user service + Caddy vhost)";
+    service.enable = lib.mkEnableOption "ClawIDE persistent server (systemd user service + Caddy tsnet vhost)";
   };
 
   config = lib.mkIf cfg.enable (
@@ -49,12 +49,12 @@ in
       (lib.mkIf cfg.service.enable {
         system.caddy = {
           enable = true;
-          openFirewall = [ cfg.port ];
+          tsnetNodes = [ cfg.tsnetNode ];
         };
 
-        services.caddy.virtualHosts."${caddyCfg.tailnetHostname}:${toString cfg.port}" = {
+        services.caddy.virtualHosts."https://${cfg.tsnetNode}.${caddyCfg.tailnetDomain}" = {
           extraConfig = ''
-            tls ${caddyCfg.certFile} ${caddyCfg.keyFile}
+            bind tailscale/${cfg.tsnetNode}
             reverse_proxy 127.0.0.1:${toString cfg.internalPort}
           '';
         };

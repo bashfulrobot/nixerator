@@ -17,19 +17,19 @@ in
   options.apps.cli.clay = {
     enable = lib.mkEnableOption "Clay web UI for Claude Code";
 
-    port = lib.mkOption {
-      type = lib.types.port;
-      default = 3131;
-      description = "External HTTPS port (served by Caddy) for Clay on the tailnet.";
+    tsnetNode = lib.mkOption {
+      type = lib.types.str;
+      default = "clay";
+      description = "Tailnet node name Caddy joins as for Clay (URL: https://<node>.<tailnetDomain>/).";
     };
 
     internalPort = lib.mkOption {
       type = lib.types.port;
       default = 4131;
-      description = "Loopback port where Clay itself listens (proxied by Caddy).";
+      description = "Loopback port where Clay itself listens (proxied by Caddy via tsnet).";
     };
 
-    service.enable = lib.mkEnableOption "Clay persistent server (systemd user service + Caddy vhost)";
+    service.enable = lib.mkEnableOption "Clay persistent server (systemd user service + Caddy tsnet vhost)";
 
     projects = lib.mkOption {
       type = lib.types.listOf lib.types.str;
@@ -56,12 +56,12 @@ in
       (lib.mkIf cfg.service.enable {
         system.caddy = {
           enable = true;
-          openFirewall = [ cfg.port ];
+          tsnetNodes = [ cfg.tsnetNode ];
         };
 
-        services.caddy.virtualHosts."${caddyCfg.tailnetHostname}:${toString cfg.port}" = {
+        services.caddy.virtualHosts."https://${cfg.tsnetNode}.${caddyCfg.tailnetDomain}" = {
           extraConfig = ''
-            tls ${caddyCfg.certFile} ${caddyCfg.keyFile}
+            bind tailscale/${cfg.tsnetNode}
             reverse_proxy 127.0.0.1:${toString cfg.internalPort}
           '';
         };
