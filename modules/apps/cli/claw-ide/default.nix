@@ -9,6 +9,7 @@
 
 let
   cfg = config.apps.cli.claw-ide;
+  caddyCfg = config.system.caddy;
   clawide = pkgs.callPackage ./build { inherit versions; };
   inherit (pkgs.llm-agents) claude-code;
 in
@@ -18,14 +19,14 @@ in
 
     port = lib.mkOption {
       type = lib.types.port;
-      default = 9800;
-      description = "Port for the ClawIDE web server.";
+      default = 3133;
+      description = "External HTTPS port (served by Caddy) for ClawIDE on the tailnet.";
     };
 
-    host = lib.mkOption {
-      type = lib.types.str;
-      default = "0.0.0.0";
-      description = "Bind address for the ClawIDE web server.";
+    internalPort = lib.mkOption {
+      type = lib.types.port;
+      default = 4133;
+      description = "Loopback port where ClawIDE itself listens (proxied by Caddy).";
     };
 
     projectsDir = lib.mkOption {
@@ -34,20 +35,30 @@ in
       description = "Root directory ClawIDE browses for projects.";
     };
 
-    service.enable = lib.mkEnableOption "ClawIDE persistent server (systemd user service)";
+    service.enable = lib.mkEnableOption "ClawIDE persistent server (systemd user service + Caddy vhost)";
   };
 
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
       {
-        networking.firewall.allowedTCPPorts = [ cfg.port ];
-
         home-manager.users.${globals.user.name} = {
           home.packages = [ clawide ];
         };
       }
 
       (lib.mkIf cfg.service.enable {
+        system.caddy = {
+          enable = true;
+          openFirewall = [ cfg.port ];
+        };
+
+        services.caddy.virtualHosts."${caddyCfg.tailnetHostname}:${toString cfg.port}" = {
+          extraConfig = ''
+            tls ${caddyCfg.certFile} ${caddyCfg.keyFile}
+            reverse_proxy 127.0.0.1:${toString cfg.internalPort}
+          '';
+        };
+
         home-manager.users.${globals.user.name} = {
           systemd.user.services.claw-ide = {
             Unit = {
@@ -66,8 +77,8 @@ in
               ];
               ExecStart = lib.concatStringsSep " " [
                 "${clawide}/bin/clawide"
-                "-host ${cfg.host}"
-                "-port ${toString cfg.port}"
+                "-host 127.0.0.1"
+                "-port ${toString cfg.internalPort}"
                 "-projects-dir ${cfg.projectsDir}"
                 "-agent-command ${claude-code}/bin/claude"
               ];
