@@ -18,6 +18,7 @@ in
 
     apps.webapps = {
       clay.enable = true;
+      claude.enable = true;
     };
 
     apps.cli = {
