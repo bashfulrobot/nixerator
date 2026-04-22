@@ -39,7 +39,7 @@ let
     homeDir = globals.user.homeDirectory;
   };
   fishConfig = import ./cfg/fish.nix {
-    inherit globals statusLineScript;
+    inherit globals pkgs statusLineScript;
   };
 
   # Status line script -- jq, curl, gawk in PATH via runtimeInputs
@@ -87,6 +87,7 @@ in
       llm-agents.claude-plugins # Plugin & skills manager
       fzf
       jq
+      rsync # used by claude-capture + activation to mirror skills
 
       # Language servers for Claude Code LSP integration
       bash-language-server
@@ -156,13 +157,15 @@ in
             $DRY_RUN_CMD cp --no-preserve=mode "$agent" "$claude_home/agents/$(basename "$agent")"
           done
 
-          # Skills (copy directories recursively, only Nix-managed ones)
+          # Skills -- mirror each Nix-managed skill into ~/.claude/skills/<skill>/
+          # using rsync. --delete prunes anything removed from source.
+          # --chmod=u+w makes files writable so Claude Code can edit them at runtime
+          # (Nix store content is read-only otherwise).
           for skill_dir in "${configDir}"/skills/*/; do
             skill_name="$(basename "$skill_dir")"
-            # Clean and recreate to handle subdirectories (e.g. references/)
-            $DRY_RUN_CMD rm -rf "$claude_home/skills/$skill_name"
             $DRY_RUN_CMD mkdir -p "$claude_home/skills/$skill_name"
-            $DRY_RUN_CMD cp --no-preserve=mode -r "$skill_dir"* "$claude_home/skills/$skill_name/"
+            $DRY_RUN_CMD ${pkgs.rsync}/bin/rsync -a --delete --chmod=u+w \
+              "$skill_dir" "$claude_home/skills/$skill_name/"
           done
 
           # Output styles -- remove stale symlinks before copying
