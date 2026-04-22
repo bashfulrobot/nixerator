@@ -44,7 +44,10 @@ in
           "ralph-loop@claude-plugins-official"
         ];
       };
-      claude-remote.enable = true;
+      claude-remote = {
+        enable = true;
+        controlTower.enable = true;
+      };
       gemini-cli.enable = true;
       # termly: disabled
       # llmfit: removed
