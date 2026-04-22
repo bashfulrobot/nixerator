@@ -49,6 +49,7 @@ in
         slack-tracker.enable = true;
         sheets.enable = true;
         slidev.enable = true;
+        todoist-cli.enable = true;
         todoist-report.enable = true;
         wkhtmltopdf.enable = true;
       };
