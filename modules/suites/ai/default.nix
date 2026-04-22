@@ -70,6 +70,7 @@ in
       superpowers.enable = true;
       paseo.enable = true;
       graymatter.enable = true;
+      skillfish.enable = true;
       ollama = {
         enable = false;
         loadModels = [ "glm-5:cloud" ];

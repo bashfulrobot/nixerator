@@ -185,6 +185,15 @@
       npmDepsHash = "sha256-sDVb5Q/HIz6At4wDVkaysgq8VRJoJrSZ+9TDCedJjv0=";
     };
 
+    skillfish = {
+      source = "npm";
+      repo = "knoxgraeme/skillfish";
+      npmPkg = "skillfish";
+      version = "1.0.33";
+      hash = "sha256-WZ6Dqtv8sgJ0N/6vKqMqEguSROUJHBVOErHxYrLR7EQ=";
+      npmDepsHash = "sha256-fWxj4gu3VYLvjCpuo9FfEAtMFQlEMdwfSj/KvEVgY6c=";
+    };
+
   };
 
   gui = {
