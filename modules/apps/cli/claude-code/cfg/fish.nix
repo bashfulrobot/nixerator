@@ -80,28 +80,49 @@
           end
         end
 
-        # Skills -- mirror $claude_dir/skills/<skill>/ into config/skills/<skill>/
-        # using rsync. Only tracks skills that already exist in config/skills/.
-        # Symlinks at the top level of a skill dir are Nix-managed (e.g.
-        # stop-slop, hack) and excluded so we don't capture their current store
-        # path into git.
+        # Skills -- mirror tracked skills from $claude_dir/skills/<skill>/ into
+        # config/skills/<skill>/ using rsync. Iterates what's installed in
+        # $claude_dir so we can flag orphans (installed but not in config/).
+        # Silently skips:
+        #   - whole-skill symlinks (Nix-managed, e.g. clay-ralph)
+        #   - runtime workspaces with no SKILL.md (commit-workspace, etc.)
+        #   - plugin-managed skills whose every leaf is a symlink into
+        #     /nix/store (hack, dependabot, stop-slop, github-issue)
+        # Top-level symlinks in tracked skills are --exclude'd from rsync
+        # so a store path never lands in git.
         echo "  skills:"
-        for skill_dir in $config_dir/skills/*/
-          set -l skill_name (basename $skill_dir)
-          set -l source_dir "$claude_dir/skills/$skill_name"
-          # Skip missing sources and whole-skill symlinks (Nix-managed skills).
-          if not test -d "$source_dir"; or test -L "$source_dir"
+        for source_dir in $claude_dir/skills/*/
+          set -l skill_name (basename $source_dir)
+          set -l src "$claude_dir/skills/$skill_name"
+          # Skip entire-skill symlinks (Nix-managed).
+          if test -L "$src"
             continue
           end
+          # Skip runtime workspaces -- real skills have a SKILL.md marker.
+          if not test -e "$src/SKILL.md"
+            continue
+          end
+          # Skip plugin-managed skills (no real files anywhere, all symlinks).
+          set -l any_real (${pkgs.findutils}/bin/find "$src" -mindepth 1 \
+            -not -type d -not -type l -print -quit 2>/dev/null)
+          if test -z "$any_real"
+            continue
+          end
+          # Untracked: surface for visibility, don't import.
+          if not test -d "$config_dir/skills/$skill_name"
+            echo "    $skill_name (skipped, not in config/skills/)"
+            continue
+          end
+          # Tracked: mirror src → config, excluding any Nix-managed symlinks.
           set -l excludes
-          for f in $source_dir/*
+          for f in $src/*
             if test -L "$f"
               set -l name (basename $f)
               set excludes $excludes "--exclude=/$name"
             end
           end
           ${pkgs.rsync}/bin/rsync -a --delete $excludes \
-            "$source_dir"/ "$config_dir/skills/$skill_name"/
+            "$src"/ "$config_dir/skills/$skill_name"/
           echo "    $skill_name"
         end
 
