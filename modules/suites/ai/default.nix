@@ -44,6 +44,7 @@ in
           "ralph-loop@claude-plugins-official"
         ];
       };
+      claude-remote.enable = true;
       gemini-cli.enable = true;
       # termly: disabled
       # llmfit: removed
