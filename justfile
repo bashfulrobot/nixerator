@@ -218,6 +218,10 @@ update-skills:
     echo "Updating visual-explainer skill..."
     curl -fsSL "https://raw.githubusercontent.com/ericblue/visual-explainer-skill/main/skill/visual-explainer.md" \
         -o ~/.claude/skills/visual-explainer/SKILL.md
+    if command -v skillfish >/dev/null 2>&1; then
+        echo "Updating skillfish-managed skills..."
+        skillfish update --yes || echo "skillfish update failed (non-fatal)"
+    fi
     echo "Skills updated"
 
 # === Shared Helpers ===
