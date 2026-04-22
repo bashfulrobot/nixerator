@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kong Theme – Reveal.js Demo</title>
+
+  <!--
+    Reveal.js core styles (required).
+    NOTE: We do NOT include any of reveal's built-in theme stylesheets
+    (e.g. black.css, white.css) — kong.css is our complete replacement.
+  -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css" />
+
+  <!-- Kong Brand Theme — full replacement for reveal's theme layer -->
+  <link rel="stylesheet" href="kong.css" />
+</head>
+<body>
+
+<div class="reveal">
+  <div class="slides">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SLIDE 1 — Title Slide
+         data-background-* attributes are the official Reveal.js way to
+         set slide backgrounds. The image has fades baked into its alpha
+         channel; data-background-color fills the rest with black.
+         data-no-footer tells our KongFooter plugin to skip auto-injection
+         because this slide has its footer placed manually.
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="slide-title" data-no-footer data-background-color="#000000">
+
+      <!-- Background image as a regular element, positioned inside the slide.
+           The fades are baked into the PNG alpha so it blends into black naturally. -->
+      <img class="slide-title-bg" src="assets/images/bg-rays-faded.png" alt="" aria-hidden="true" />
+
+      <img class="title-logo" src="assets/images/kong-wordmark.png" alt="Kong" />
+
+      <div class="title-content">
+        <p class="product-tag">Kong Konnect</p>
+        <h1>Presentation<br>Title</h1>
+        <p class="subtitle">The Unified API and AI Platform</p>
+      </div>
+
+      <div class="meta-bar">
+        <span class="meta-date">JAN 2026</span>
+        <span class="meta-speaker">Speaker Name</span>
+      </div>
+
+      <!-- Footer placed manually on title slide (data-no-footer skips the plugin) -->
+      <div class="kong-footer">
+        <img class="footer-mark" src="assets/images/kong-mark-footer.png" alt="Kong" />
+        <span class="footer-label">AI<br>CONNECTIVITY</span>
+        <span class="footer-copy">© Kong Inc.</span>
+        <span class="footer-right">NOT TO BE SHARED EXTERNALLY</span>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SLIDE 2 — Agenda
+         Footer injected automatically by KongFooter plugin.
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="slide-agenda" data-background-color="#000000">
+      <div class="agenda-left">
+        <span class="section-label">Agenda</span>
+        <h2>January '26</h2>
+      </div>
+
+      <div class="agenda-right">
+        <div class="agenda-item">
+          <span class="agenda-num">1</span>
+          <span class="agenda-title">Introduction &amp; Overview</span>
+        </div>
+        <div class="agenda-item">
+          <span class="agenda-num">2</span>
+          <span class="agenda-title">The Challenge</span>
+        </div>
+        <div class="agenda-item">
+          <span class="agenda-num">3</span>
+          <span class="agenda-title">Kong Solution</span>
+        </div>
+        <div class="agenda-item">
+          <span class="agenda-num">4</span>
+          <span class="agenda-title">Next Steps &amp; Q&amp;A</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SLIDE 3 — Section Divider
+         Full-bleed background image via Reveal's native system.
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="slide-divider" data-no-footer data-background-color="#000000">
+      <img class="slide-divider-bg" src="assets/images/bg-hero-ring.png" alt="" aria-hidden="true" />
+      <div class="divider-content">
+        <h2>Write a bold, compelling statement about what the next section will <em>communicate.</em></h2>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SLIDE 4 — Standard Content
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="slide-content" data-background-color="#000000">
+      <div class="slide-header">
+        <span class="section-label">The Challenge</span>
+        <h2>Fragmentation drives<br><em>AI failure</em></h2>
+      </div>
+
+      <ul class="kong-bullets">
+        <li>Demonstrate the benefits of the partnership through charts, graphs, and statistics.</li>
+        <li>Use this space to explain what the data shows and how it impacts both businesses.</li>
+        <li>Demonstrate the benefits of the partnership through charts and key metrics.</li>
+      </ul>
+
+      <div style="margin-top: 28px;">
+        <span class="section-label" style="font-size:0.22em;">Gravity Orbit Cosmos</span>
+        <div style="font-family:'Funnel Display',sans-serif; font-size:2.4em; font-weight:800; color:var(--kong-green); line-height:1;">+80K</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SLIDE 5 — Stats / Metrics Grid
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="slide-stats" data-background-color="#000000">
+      <div class="slide-header">
+        <h2>A secure foundation for <em>software development</em> and deployment</h2>
+      </div>
+
+      <div class="kong-stats-grid">
+        <div class="kong-stat-cell">
+          <span class="kong-stat-value">100,000</span>
+          <p class="kong-stat-desc">Galaxy astronaut nebula the orbit comet blackhole supernova (~60)</p>
+        </div>
+        <div class="kong-stat-cell highlight">
+          <span class="kong-stat-value">100TB</span>
+          <p class="kong-stat-desc">Galaxy astronaut nebula the orbit comet blackhole supernova (~60)</p>
+        </div>
+        <div class="kong-stat-cell">
+          <span class="kong-stat-value">99.99%</span>
+          <p class="kong-stat-desc">Galaxy astronaut nebula the orbit comet blackhole supernova (~60)</p>
+        </div>
+        <div class="kong-stat-cell">
+          <span class="kong-stat-value">+80K</span>
+          <p class="kong-stat-desc">Galaxy astronaut nebula the orbit comet blackhole supernova (~60)</p>
+        </div>
+        <div class="kong-stat-cell">
+          <span class="kong-stat-value">120M</span>
+          <p class="kong-stat-desc">Galaxy astronaut nebula the orbit comet blackhole supernova (~60)</p>
+        </div>
+        <div class="kong-stat-cell">
+          <span class="kong-stat-value">&lt;10ms</span>
+          <p class="kong-stat-desc">Galaxy astronaut nebula the orbit comet blackhole supernova (~60)</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SLIDE 6 — Mixed Content Grid
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="slide-content" data-background-color="#000000">
+      <div class="slide-header">
+        <span class="section-label">Section Title</span>
+        <h2>Highlight your company's growth,<br>metrics, awards, and achievements.</h2>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px; margin-top:12px;">
+        <div class="kong-stat-cell" style="display:flex; align-items:center; gap:16px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--kong-green); flex-shrink:0;"></div>
+          <div>
+            <p style="color:var(--kong-white); font-size:0.46em; font-weight:700; margin:0;">Industry award</p>
+            <p style="margin:0; font-size:0.38em;">Product or campaign</p>
+          </div>
+        </div>
+        <div class="kong-stat-cell">
+          <span class="kong-stat-value" style="font-size:1.2em;">Certifications</span>
+        </div>
+        <div class="kong-stat-cell">
+          <span class="kong-stat-value">00%</span>
+          <p class="kong-stat-desc">Market share</p>
+        </div>
+        <div class="kong-quote">
+          <p>"Quote from published media coverage about your company"</p>
+          <a class="quote-source" href="#">Link to article</a>
+        </div>
+        <div class="kong-stat-cell">
+          <span class="kong-stat-value">#00</span>
+          <p class="kong-stat-desc">Rank in the industry</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SLIDE 7 — Numbered Steps
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="slide-content" data-background-color="#000000">
+      <div class="slide-header">
+        <span class="section-label">Our Approach</span>
+        <h2>How Kong <em>connects</em> your APIs</h2>
+      </div>
+
+      <div style="margin-top: 8px;">
+        <div class="kong-step">
+          <span class="kong-step-num">1</span>
+          <div class="kong-step-body">
+            <h4>Unify your API estate</h4>
+            <p>Connect every service, microservice, and AI agent through a single control plane regardless of where they run.</p>
+          </div>
+        </div>
+        <hr class="kong-divider" />
+        <div class="kong-step">
+          <span class="kong-step-num">2</span>
+          <div class="kong-step-body">
+            <h4>Enforce security at the edge</h4>
+            <p>Apply auth, rate-limiting, and threat protection consistently across all traffic — HTTP, gRPC, and AI prompts alike.</p>
+          </div>
+        </div>
+        <hr class="kong-divider" />
+        <div class="kong-step">
+          <span class="kong-step-num">3</span>
+          <div class="kong-step-body">
+            <h4>Observe and optimise</h4>
+            <p>Deep telemetry across every call lets your teams spot latency, errors, and cost anomalies in real time.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SLIDE 8 — Thank You / Closing
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="slide-thankyou" data-no-footer data-background-color="#000000">
+      <div class="ty-top">
+        <h2 class="ty-headline">Thank you!</h2>
+
+        <div class="ty-cta">
+          <h3>Ready for what's next?</h3>
+          <p class="subtitle">Let's talk</p>
+        </div>
+
+        <div class="ty-contact">
+          <p>
+            Kong Inc.<br>
+            <a href="mailto:contact@konghq.com">contact@konghq.com</a><br>
+            44 Montgomery Street<br>
+            San Francisco, CA 9410, USA<br><br>
+            <a href="https://konghq.com">Konghq.com</a>
+          </p>
+        </div>
+      </div>
+
+      <div class="ty-wordmark">
+        <span class="ty-wordmark-text">Kong</span>
+      </div>
+
+      <!-- Footer placed manually (data-no-footer skips the plugin) -->
+      <div class="kong-footer">
+        <img class="footer-mark" src="assets/images/kong-mark-footer.png" alt="Kong" />
+        <span class="footer-label">AI<br>CONNECTIVITY</span>
+        <span class="footer-copy">© Kong Inc.</span>
+        <span class="footer-right">NOT TO BE SHARED EXTERNALLY</span>
+      </div>
+    </section>
+
+  </div><!-- /.slides -->
+</div><!-- /.reveal -->
+
+<!-- Reveal.js core -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<!-- Kong footer plugin — must load before Reveal.initialize() -->
+<script src="kong-footer-plugin.js"></script>
+
+<script>
+  Reveal.initialize({
+    // ── Navigation ──────────────────────────────────────────────────
+    hash: true,           // adds slide number to URL; implies history
+    keyboard: true,
+    touch: true,
+    overview: true,
+
+    // ── Layout ──────────────────────────────────────────────────────
+    // Kong slides use absolute positioning throughout; we disable
+    // Reveal's default centering and scaling layout accordingly.
+    center: false,
+    disableLayout: false, // keep scaling so slides fill the viewport
+    width: 1280,
+    height: 720,
+    margin: 0,
+    minScale: 0.2,
+    maxScale: 2.0,
+
+    // ── UI ──────────────────────────────────────────────────────────
+    progress: true,
+    controls: true,
+    controlsLayout: 'bottom-right',
+    slideNumber: 'c',     // flat slide number (matches footer)
+
+    // ── Transitions ─────────────────────────────────────────────────
+    transition: 'fade',
+    transitionSpeed: 'fast',
+    backgroundTransition: 'fade',
+
+    // ── Kong footer plugin config ────────────────────────────────────
+    kong: {
+      markSrc:    'assets/images/kong-mark-footer.png',
+      copyright:  '© Kong Inc.',
+      footerCopy: 'NOT TO BE SHARED EXTERNALLY',
+    },
+
+    // ── Plugins ─────────────────────────────────────────────────────
+    // KongFooter is a plain plugin object (id + init), registered here
+    // per the Reveal.js 4+ plugin spec.
+    plugins: [ KongFooter ],
+  });
+</script>
+
+</body>
+</html>
