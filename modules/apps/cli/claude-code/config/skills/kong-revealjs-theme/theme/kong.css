@@ -1,0 +1,749 @@
+/**
+ * Kong Brand Theme for Reveal.js
+ * Based on official Kong Inc. PowerPoint template
+ *
+ * Colors:
+ *   Background:    #000000 (near-black)
+ *   Primary text:  #FFFFFF
+ *   Accent green:  #CCFF00 (Kong Neon Green)
+ *   Secondary:     #AAB4BB
+ *   Muted:         #8A8F89
+ *   Card fill:     #30352F
+ *   Dark card:     #0D1A0E
+ *   Border green:  #1A3A1A
+ *
+ * Fonts: Funnel Sans (primary), Funnel Display (hero titles)
+ */
+
+/* ─── Google Fonts Import ─────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* ─── CSS Custom Properties ───────────────────────────────────────────────── */
+:root {
+  --kong-black:        #000000;
+  --kong-bg:           #050A05;
+  --kong-green:        #CCFF00;
+  --kong-dark-green:   #0D1A0E;
+  --kong-border-green: #1A3A1A;
+  --kong-card:         #30352F;
+  --kong-card-dark:    #0D1A0E;
+  --kong-white:        #FFFFFF;
+  --kong-silver:       #AAB4BB;
+  --kong-muted:        #8A8F89;
+  --kong-font-main:    'Funnel Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --kong-font-display: 'Funnel Display', 'Funnel Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* ─── Base Reveal Overrides ───────────────────────────────────────────────── */
+.reveal-viewport {
+  /* Outer viewport — visible around the slide when the browser window is
+     wider/taller than the 1280×720 slide. A subtle dark charcoal so it
+     reads as a neutral surround that won't clash with any slide content. */
+  background: #0a0a0a;
+  background-image:
+    linear-gradient(rgba(204,255,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(204,255,0,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.reveal {
+  font-family: var(--kong-font-main);
+  font-size: 38px;
+  font-weight: normal;
+  color: var(--kong-white);
+}
+
+/* ─── Slide Base ──────────────────────────────────────────────────────────── */
+.reveal .slides section {
+  background-color: var(--kong-black);
+  color: var(--kong-white);
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Dark green border frame that appears on all slides */
+.reveal .slides section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--kong-border-green);
+  pointer-events: none;
+  z-index: 200;
+}
+
+/* ─── Typography ──────────────────────────────────────────────────────────── */
+.reveal h1,
+.reveal h2,
+.reveal h3,
+.reveal h4,
+.reveal h5,
+.reveal h6 {
+  font-family: var(--kong-font-main);
+  font-weight: 700;
+  color: var(--kong-white);
+  text-transform: none;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0 0 0.4em 0;
+  text-shadow: none;
+}
+
+.reveal h1 { font-size: 2.2em; font-family: var(--kong-font-display); }
+.reveal h2 { font-size: 1.6em; }
+.reveal h3 { font-size: 1.1em; }
+
+.reveal p {
+  font-size: 0.55em;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--kong-silver);
+  margin: 0 0 0.5em 0;
+}
+
+.reveal strong { color: var(--kong-white); font-weight: 700; }
+.reveal em     { font-style: normal; color: var(--kong-green); font-weight: 700; }
+
+/* Neon green accent — use <span class="accent"> or <em> */
+.reveal .accent,
+.reveal em {
+  color: var(--kong-green);
+  font-style: normal;
+}
+
+/* Section label — small caps uppercase above a title */
+.reveal .section-label {
+  display: block;
+  font-family: var(--kong-font-main);
+  font-size: 0.28em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kong-green);
+  margin-bottom: 0.6em;
+}
+
+/* ─── Links ───────────────────────────────────────────────────────────────── */
+.reveal a {
+  color: var(--kong-green);
+  text-decoration: none;
+}
+.reveal a:hover { text-decoration: underline; }
+
+/* ─── Lists ───────────────────────────────────────────────────────────────── */
+.reveal ul,
+.reveal ol {
+  font-size: 0.52em;
+  color: var(--kong-silver);
+  line-height: 1.6;
+  text-align: left;
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.reveal ul li::marker { color: var(--kong-green); }
+.reveal ol li::marker { color: var(--kong-green); font-weight: 700; }
+
+/* ─── Slide Footer Bar ────────────────────────────────────────────────────── */
+/* Applied via data-footer or the .kong-footer class on section */
+.kong-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: var(--kong-black);
+  border-top: 1px solid var(--kong-border-green);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 10px;
+  z-index: 50;
+}
+
+.kong-footer .footer-mark {
+  width: 22px;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.kong-footer .footer-label {
+  font-family: var(--kong-font-main);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kong-green);
+  line-height: 1.1;
+}
+
+.kong-footer .footer-copy {
+  font-size: 9px;
+  color: var(--kong-muted);
+  margin-left: 18px;
+}
+
+.kong-footer .footer-right {
+  display: none;
+}
+
+/* ─── Slide Number ────────────────────────────────────────────────────────── */
+.reveal .slide-number {
+  font-family: var(--kong-font-main);
+  font-size: 11px;
+  color: var(--kong-muted);
+  background: transparent;
+  bottom: 16px;
+  right: 28px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  SLIDE LAYOUT CLASSES                                                        */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── 1. Title / Hero Slide ─────────────────────────────────────────────────── */
+.reveal .slides section.slide-title {
+  background-color: var(--kong-black);
+  text-align: left;
+  padding: 0;
+}
+
+/* Background image — inline <img> positioned inside the slide so it is
+   clipped by the slide boundary. The PNG has gradient fades baked into its
+   alpha channel, so it blends into black at left/top/bottom edges naturally.
+   Right edge stays fully opaque (flush to the slide right side). */
+.slide-title-bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 64%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+  z-index: 0;
+  pointer-events: none;
+  display: block;
+}
+
+.slide-title .title-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 58%;
+  height: calc(100% - 52px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 48px 52px;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.slide-title .title-logo {
+  position: absolute;
+  top: 32px;
+  left: 44px;
+  height: 40px;
+  width: auto;
+  z-index: 1;
+}
+
+.slide-title h1 {
+  font-family: var(--kong-font-display);
+  font-size: 2.8em;
+  font-weight: 800;
+  color: var(--kong-white);
+  line-height: 1.0;
+  margin: 0 0 0.1em 0;
+  letter-spacing: -0.03em;
+}
+
+.slide-title .product-tag {
+  font-size: 0.42em;
+  font-weight: 700;
+  color: var(--kong-green);
+  margin-bottom: 0.15em;
+}
+
+.slide-title .subtitle {
+  font-size: 0.45em;
+  font-weight: 400;
+  color: var(--kong-silver);
+  margin: 0.3em 0 0 0;
+}
+
+.slide-title .meta-bar {
+  position: absolute;
+  bottom: 52px;
+  left: 0;
+  width: 58%;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--kong-border-green);
+  padding: 16px 52px;
+  gap: 0;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.slide-title .meta-date {
+  font-size: 0.3em;
+  font-weight: 700;
+  color: var(--kong-green);
+  letter-spacing: 0.06em;
+  min-width: 160px;
+  border-right: 1px solid var(--kong-border-green);
+  padding-right: 24px;
+}
+
+.slide-title .meta-speaker {
+  font-size: 0.3em;
+  font-weight: 600;
+  color: var(--kong-white);
+  padding-left: 24px;
+}
+
+/* ── 2. Section Divider ────────────────────────────────────────────────────── */
+.reveal .slides section.slide-divider {
+  background-color: var(--kong-black);
+  text-align: left;
+  padding: 0;
+}
+
+/* Full-bleed background image, clipped to slide bounds */
+.slide-divider-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+  pointer-events: none;
+  display: block;
+}
+
+.slide-divider .divider-content {
+  position: absolute;
+  top: 50%;
+  left: 5%;
+  right: 5%;
+  transform: translateY(-50%);
+  background: rgba(10, 20, 10, 0.72);
+  padding: 52px 60px;
+  z-index: 1;
+}
+
+.slide-divider h2 {
+  font-size: 2.2em;
+  font-weight: 800;
+  color: var(--kong-white);
+  line-height: 1.05;
+  margin: 0;
+}
+
+/* ── 3. Content Slide (standard) ───────────────────────────────────────────── */
+.reveal .slides section.slide-content {
+  background-color: var(--kong-black);
+  text-align: left;
+  padding: 52px 52px 70px 52px;
+}
+
+.slide-content .slide-header {
+  margin-bottom: 36px;
+}
+
+/* ── 4. Two-Column Slide ───────────────────────────────────────────────────── */
+.reveal .slides section.slide-two-col {
+  text-align: left;
+  padding: 0 0 52px 0;
+}
+
+.slide-two-col .col-left,
+.slide-two-col .col-right {
+  position: absolute;
+  top: 0;
+  bottom: 52px;
+  width: 48%;
+  padding: 52px 40px;
+  box-sizing: border-box;
+}
+
+.slide-two-col .col-left  { left: 0; border-right: 1px solid var(--kong-border-green); }
+.slide-two-col .col-right { right: 0; }
+
+/* ── 5. Stats / Metrics Grid ───────────────────────────────────────────────── */
+.reveal .slides section.slide-stats {
+  text-align: left;
+  padding: 44px 44px 70px 44px;
+}
+
+.kong-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-top: 20px;
+}
+
+.kong-stat-cell {
+  background: var(--kong-card-dark);
+  padding: 32px 28px;
+  box-sizing: border-box;
+}
+
+.kong-stat-cell.highlight {
+  background: linear-gradient(135deg, var(--kong-card-dark) 0%, #1a2e10 100%);
+}
+
+.kong-stat-value {
+  display: block;
+  font-family: var(--kong-font-display);
+  font-size: 1.6em;
+  font-weight: 800;
+  color: var(--kong-green);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.kong-stat-desc {
+  font-size: 0.36em;
+  color: var(--kong-silver);
+  line-height: 1.45;
+}
+
+/* ── 6. Agenda Slide ───────────────────────────────────────────────────────── */
+.reveal .slides section.slide-agenda {
+  text-align: left;
+  padding: 0;
+}
+
+.slide-agenda .agenda-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 46%;
+  bottom: 52px;
+  background-color: var(--kong-black);
+  background-image: url('assets/images/bg-torus.png');
+  background-size: 110% auto;
+  background-position: center right;
+  background-repeat: no-repeat;
+  padding: 52px 44px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.slide-agenda .agenda-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 54%;
+  bottom: 52px;
+  background: var(--kong-black);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0;
+}
+
+.agenda-item {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--kong-border-green);
+  padding: 22px 44px;
+  gap: 28px;
+}
+
+.agenda-item:first-child { border-top: 1px solid var(--kong-border-green); }
+
+.agenda-num {
+  font-family: var(--kong-font-display);
+  font-size: 1.0em;
+  font-weight: 800;
+  color: var(--kong-green);
+  min-width: 36px;
+  flex-shrink: 0;
+}
+
+.agenda-title {
+  font-size: 0.52em;
+  font-weight: 500;
+  color: var(--kong-white);
+}
+
+/* ── 7. Quote / Callout ────────────────────────────────────────────────────── */
+.kong-quote {
+  background: linear-gradient(135deg, var(--kong-dark-green) 0%, #162a16 100%);
+  border-left: 3px solid var(--kong-green);
+  padding: 28px 32px;
+  margin: 16px 0;
+}
+
+.kong-quote p {
+  font-size: 0.6em;
+  font-weight: 700;
+  color: var(--kong-white);
+  font-style: italic;
+  margin: 0 0 12px 0;
+}
+
+.kong-quote .quote-source {
+  font-size: 0.38em;
+  color: var(--kong-green);
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* ── 8. Thank You / Closing ────────────────────────────────────────────────── */
+.reveal .slides section.slide-thankyou {
+  background-color: var(--kong-black);
+  text-align: left;
+  padding: 0;
+  overflow: hidden;
+}
+
+.slide-thankyou .ty-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 46%;
+  background: var(--kong-black);
+  border-bottom: 1px solid var(--kong-border-green);
+  display: flex;
+  align-items: center;
+  padding: 0 52px;
+  gap: 60px;
+}
+
+.slide-thankyou .ty-headline {
+  font-size: 1.6em;
+  font-weight: 800;
+  color: var(--kong-white);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.slide-thankyou .ty-cta h3 {
+  font-size: 0.65em;
+  color: var(--kong-green);
+  margin: 0 0 4px 0;
+}
+
+.slide-thankyou .ty-cta p {
+  font-size: 0.38em;
+  color: var(--kong-silver);
+  margin: 0;
+}
+
+.slide-thankyou .ty-contact {
+  margin-left: auto;
+  text-align: left;
+}
+
+.slide-thankyou .ty-contact p {
+  font-size: 0.35em;
+  line-height: 1.6;
+  color: var(--kong-silver);
+  margin: 0;
+}
+
+.slide-thankyou .ty-contact a {
+  color: var(--kong-green);
+}
+
+.slide-thankyou .ty-wordmark {
+  position: absolute;
+  bottom: 52px;
+  left: 0;
+  right: 0;
+  height: 54%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.slide-thankyou .ty-wordmark-text {
+  font-family: var(--kong-font-display);
+  font-size: 10em;
+  font-weight: 800;
+  color: var(--kong-green);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  position: relative;
+  z-index: 2;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  UTILITY CLASSES                                                              */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+/* Card / panel */
+.kong-card {
+  background: var(--kong-card-dark);
+  padding: 28px 28px;
+  box-sizing: border-box;
+}
+
+.kong-card-muted {
+  background: var(--kong-card);
+  padding: 24px 24px;
+}
+
+/* Divider line */
+.kong-divider {
+  border: none;
+  border-top: 1px solid var(--kong-border-green);
+  margin: 20px 0;
+}
+
+/* Green bullet squares (matching PPTX) */
+.reveal ul.kong-bullets { list-style: none; padding: 0; }
+.reveal ul.kong-bullets li {
+  padding: 6px 0 6px 24px;
+  position: relative;
+  font-size: 0.5em;
+  color: var(--kong-silver);
+}
+.reveal ul.kong-bullets li::before {
+  content: '■';
+  position: absolute;
+  left: 0;
+  color: var(--kong-green);
+  font-size: 0.7em;
+  top: 8px;
+}
+
+/* Highlight box for a keyword in titles */
+.kong-highlight { color: var(--kong-green); }
+
+/* Tag / badge */
+.kong-badge {
+  display: inline-block;
+  background: var(--kong-green);
+  color: var(--kong-black);
+  font-size: 0.28em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  vertical-align: middle;
+}
+
+/* Numbered step item */
+.kong-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.kong-step-num {
+  font-family: var(--kong-font-display);
+  font-size: 1.2em;
+  font-weight: 800;
+  color: var(--kong-green);
+  line-height: 1;
+  min-width: 36px;
+  flex-shrink: 0;
+}
+
+.kong-step-body h4 {
+  font-size: 0.5em;
+  font-weight: 700;
+  color: var(--kong-white);
+  margin: 0 0 4px 0;
+}
+
+.kong-step-body p {
+  font-size: 0.4em;
+  color: var(--kong-silver);
+  margin: 0;
+}
+
+/* ─── Reveal.js Fragment Animations ──────────────────────────────────────── */
+.reveal .fragment.highlight-kong {
+  opacity: 1;
+  visibility: inherit;
+}
+
+.reveal .fragment.highlight-kong.visible {
+  color: var(--kong-green);
+}
+
+/* ─── Code blocks ─────────────────────────────────────────────────────────── */
+.reveal pre {
+  background: #0a150a;
+  border: 1px solid var(--kong-border-green);
+  border-radius: 0;
+  font-size: 0.42em;
+  box-shadow: none;
+  width: 100%;
+}
+
+.reveal code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  background: #0a150a;
+  color: var(--kong-green);
+  padding: 2px 6px;
+  font-size: 0.85em;
+}
+
+/* ─── Tables ──────────────────────────────────────────────────────────────── */
+.reveal table {
+  font-size: 0.46em;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.reveal table th {
+  background: var(--kong-card-dark);
+  color: var(--kong-green);
+  font-weight: 700;
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 2px solid var(--kong-border-green);
+  font-size: 0.9em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.reveal table td {
+  padding: 10px 16px;
+  color: var(--kong-silver);
+  border-bottom: 1px solid var(--kong-border-green);
+}
+
+.reveal table tr:hover td { background: rgba(204, 255, 0, 0.04); }
+
+/* ─── Progress Bar ────────────────────────────────────────────────────────── */
+.reveal .progress {
+  background: var(--kong-dark-green);
+  color: var(--kong-green);
+  height: 3px;
+}
+
+.reveal .progress span {
+  background: var(--kong-green);
+  -webkit-transition: width 800ms cubic-bezier(0.26, 0.86, 0.44, 0.985);
+          transition: width 800ms cubic-bezier(0.26, 0.86, 0.44, 0.985);
+}
+
+/* ─── Controls ────────────────────────────────────────────────────────────── */
+.reveal .controls { color: var(--kong-green); }
+
+/* ─── Selection ───────────────────────────────────────────────────────────── */
+::selection {
+  background: var(--kong-green);
+  color: var(--kong-black);
+  text-shadow: none;
+}
+
+::-moz-selection {
+  background: var(--kong-green);
+  color: var(--kong-black);
+  text-shadow: none;
+}
