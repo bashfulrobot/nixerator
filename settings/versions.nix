@@ -194,6 +194,15 @@
       npmDepsHash = "sha256-fWxj4gu3VYLvjCpuo9FfEAtMFQlEMdwfSj/KvEVgY6c=";
     };
 
+    todoist-cli = {
+      source = "npm";
+      repo = "Doist/todoist-cli";
+      npmPkg = "@doist/todoist-cli";
+      version = "1.56.0";
+      hash = "sha256-JYkX5Y4cRHYGH6qv8MfTIhGpQGOoXSLbvTyhu0XCGx8=";
+      npmDepsHash = "sha256-eCgRegSn2uyq2k/9tUgUUiC8m+Y3hQ1SEJ6RqoykxwY=";
+    };
+
   };
 
   gui = {
