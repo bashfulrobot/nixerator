@@ -1,5 +1,6 @@
 {
   globals,
+  pkgs,
   statusLineScript,
 }:
 
@@ -79,37 +80,29 @@
           end
         end
 
-        # Skills (only dirs that already exist in config/skills/, skip symlinks)
+        # Skills -- mirror $claude_dir/skills/<skill>/ into config/skills/<skill>/
+        # using rsync. Only tracks skills that already exist in config/skills/.
+        # Symlinks at the top level of a skill dir are Nix-managed (e.g.
+        # stop-slop, hack) and excluded so we don't capture their current store
+        # path into git.
         echo "  skills:"
         for skill_dir in $config_dir/skills/*/
           set -l skill_name (basename $skill_dir)
           set -l source_dir "$claude_dir/skills/$skill_name"
-          if test -d "$source_dir"; and not test -L "$source_dir"
-            # Remove config subdirs that no longer exist in source
-            for existing in $config_dir/skills/$skill_name/*/
-              set -l subname (basename $existing)
-              if not test -e "$source_dir/$subname"
-                rm -rf "$existing"
-                echo "    $skill_name/$subname (removed, no longer in source)"
-              end
-            end
-            # Copy files and dirs, but skip any symlinks inside
-            for f in $source_dir/*
-              if not test -L "$f"
-                set -l dest "$config_dir/skills/$skill_name/"(basename $f)
-                if test -d "$f"
-                  # Wipe and recreate, then cp -rT so dest is treated as the target
-                  # itself (prevents nested dest/basename/ when dest already exists).
-                  rm -rf "$dest"
-                  mkdir -p "$dest"
-                  cp -rT "$f" "$dest"
-                else
-                  cp "$f" "$dest"
-                end
-                echo "    $skill_name/"(basename $f)
-              end
+          # Skip missing sources and whole-skill symlinks (Nix-managed skills).
+          if not test -d "$source_dir"; or test -L "$source_dir"
+            continue
+          end
+          set -l excludes
+          for f in $source_dir/*
+            if test -L "$f"
+              set -l name (basename $f)
+              set excludes $excludes "--exclude=/$name"
             end
           end
+          ${pkgs.rsync}/bin/rsync -a --delete $excludes \
+            "$source_dir"/ "$config_dir/skills/$skill_name"/
+          echo "    $skill_name"
         end
 
         # Output styles
