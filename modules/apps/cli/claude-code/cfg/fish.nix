@@ -98,10 +98,11 @@
               if not test -L "$f"
                 set -l dest "$config_dir/skills/$skill_name/"(basename $f)
                 if test -d "$f"
-                  # For directories: wipe and copy contents to prevent cp -r nesting
+                  # Wipe and recreate, then cp -rT so dest is treated as the target
+                  # itself (prevents nested dest/basename/ when dest already exists).
                   rm -rf "$dest"
                   mkdir -p "$dest"
-                  cp -r "$f"/. "$dest"/
+                  cp -rT "$f" "$dest"
                 else
                   cp "$f" "$dest"
                 end
