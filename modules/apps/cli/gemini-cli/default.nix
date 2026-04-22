@@ -30,12 +30,11 @@ let
 
   # Guidelines shared between the slash command and the gcommit function
   commit-guidelines = ''
-    Format: `<type>(<scope>): <emoji> <description>`
+    Format: `<type>(<scope>): <description>`
     Rules:
     - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security|deps
     - Scope (REQUIRED): lowercase, kebab-case module name.
-    - Emoji: AFTER colon (e.g., `feat(auth): ✨`). Subject: imperative, <72 chars.
-    Type→Emoji: feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
+    - Subject: imperative, <72 chars.
   '';
 
   gcommitScript = ''
@@ -94,22 +93,18 @@ let
   '';
 
   commit-prompt = ''
-    Format: `<type>(<scope>): <emoji> <description>`
+    Format: `<type>(<scope>): <description>`
 
     ## Rules:
     - No branding/secrets.
     - Type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security|deps
     - Scope (REQUIRED for git-cliff): lowercase, kebab-case module name.
-    - Emoji: AFTER colon (e.g., `feat(auth): ✨`). Subject: imperative, <72 chars.
+    - Subject: imperative, <72 chars.
     - Sign with `git commit -S`. Split unrelated changes atomically.
 
-    ## Type→Emoji:
-    feat:✨ fix:🐛 docs:📝 style:🎨 refactor:♻️ perf:⚡ test:✅ build:👷 ci:💚 chore:🔧 revert:⏪ security:🔒 deps:⬆️
-
     ## Examples:
-    ✅ feat(auth): ✨ add OAuth2 login flow
-    ✅ fix(api): 🐛 resolve race condition in token refresh
-    ❌ ✨ feat(auth): add OAuth2 (emoji before type)
+    ✅ feat(auth): add OAuth2 login flow
+    ✅ fix(api): resolve race condition in token refresh
     ❌ feat: add OAuth2 (missing scope)
 
     ## Inputs
@@ -148,7 +143,7 @@ let
     2. Review the injected context above.
     3. Stage all changes: `git add -A`.
     4. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
-    5. For each: `git commit -S -m "<type>(<scope>): <emoji> <description>"`
+    5. For each: `git commit -S -m "<type>(<scope>): <description>"`
     6. If --tag: `git tag -s v<version> -m "Release v<version>"`
     7. Always push: `git push && git push --tags` (if tagged).
     8. If --release: `gh release create v<version> --notes-from-tag`.
@@ -178,7 +173,7 @@ in
 
           # Create ~/.gemini/commands/commit.toml
           ".gemini/commands/commit.toml".text = ''
-            description = "Create conventional commits with emoji and optional push, tagging, or GitHub releases"
+            description = "Create conventional commits with optional push, tagging, or GitHub releases"
             prompt = """
             ${commit-prompt}
             """
