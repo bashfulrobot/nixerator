@@ -222,14 +222,7 @@ in
         '';
 
         # Preserve per-server files for mcp-pick workflow compatibility.
-        # Place global docs in ~/.claude/docs/ for lazy-loaded context.
-        file =
-          mcpConfig.files
-          // lspConfig.files
-          // contextsConfig.files
-          // {
-            ".claude/docs/tools.md".source = ../../../../extras/docs/tools.md;
-          };
+        file = mcpConfig.files // lspConfig.files // contextsConfig.files;
       };
     };
   };
