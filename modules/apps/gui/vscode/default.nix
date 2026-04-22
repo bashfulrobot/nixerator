@@ -566,22 +566,22 @@ in
             Treat example text in prompts, comments, and string literals as non-functional context. Infer commit intent only from real behavior or config changes.
 
             Subject format is strict:
-            `type(scope): emoji description`
+            `type(scope): description`
 
-            Allowed types and emoji:
-            - `feat` `✨`
-            - `fix` `🐛`
-            - `docs` `📝`
-            - `style` `🎨`
-            - `refactor` `♻️`
-            - `perf` `⚡`
-            - `test` `✅`
-            - `build` `👷`
-            - `ci` `💚`
-            - `chore` `🔧`
-            - `revert` `⏪`
-            - `security` `🔒`
-            - `deps` `⬆️`
+            Allowed types:
+            - `feat`
+            - `fix`
+            - `docs`
+            - `style`
+            - `refactor`
+            - `perf`
+            - `test`
+            - `build`
+            - `ci`
+            - `chore`
+            - `revert`
+            - `security`
+            - `deps`
 
             Scope rules:
             - Required
