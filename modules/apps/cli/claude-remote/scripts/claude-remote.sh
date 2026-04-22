@@ -12,9 +12,12 @@ CYAN=$'\033[0;36m'
 NC=$'\033[0m'
 
 info() { printf '%s▸ %s%s\n' "$CYAN" "$*" "$NC"; }
-ok()   { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
+ok() { printf '%s✔ %s%s\n' "$GREEN" "$*" "$NC"; }
 warn() { printf '%s⚠ %s%s\n' "$YELLOW" "$*" "$NC" >&2; }
-die()  { printf '%s✖ %s%s\n' "$RED" "$*" "$NC" >&2; exit 1; }
+die() {
+  printf '%s✖ %s%s\n' "$RED" "$*" "$NC" >&2
+  exit 1
+}
 
 # Single trailing key=value RESULT line for AI / scripted callers to grep.
 emit_result() {
@@ -24,7 +27,8 @@ emit_result() {
 }
 
 emit_err() {
-  local code="$1"; shift
+  local code="$1"
+  shift
   local msg="$*"
   printf '%s✖ %s%s\n' "$RED" "$msg" "$NC" >&2
   emit_result "status=error" "code=${code}" "message=\"${msg}\""
@@ -105,18 +109,35 @@ cmd_start() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --name)
-        [[ $# -ge 2 ]] || { emit_err BAD_ARGS "--name requires an argument"; exit 1; }
-        name="$2"; shift 2 ;;
+        [[ $# -ge 2 ]] || {
+          emit_err BAD_ARGS "--name requires an argument"
+          exit 1
+        }
+        name="$2"
+        shift 2
+        ;;
       -h | --help)
-        usage; exit 0 ;;
-      --) shift; break ;;
-      -*) emit_err BAD_ARGS "unknown flag: $1"; exit 1 ;;
+        usage
+        exit 0
+        ;;
+      --)
+        shift
+        break
+        ;;
+      -*)
+        emit_err BAD_ARGS "unknown flag: $1"
+        exit 1
+        ;;
       *) break ;;
     esac
   done
 
-  [[ $# -ge 1 ]] || { emit_err BAD_ARGS "start requires <repo-subpath>"; exit 1; }
-  local subpath="$1"; shift
+  [[ $# -ge 1 ]] || {
+    emit_err BAD_ARGS "start requires <repo-subpath>"
+    exit 1
+  }
+  local subpath="$1"
+  shift
   local prompt="$*"
 
   local resolved
@@ -163,15 +184,15 @@ cmd_start() {
   # env, but UnsetEnvironment is defensive in case the manager itself was
   # started with these set (e.g., from the control-tower service).
   if ! systemd-run --user \
-         --unit="$unit" \
-         --description="Claude Code remote-control session: $name" \
-         --working-directory="$resolved" \
-         -p "UnsetEnvironment=CLAUDE_CODE_REMOTE CLAUDE_CODE_REMOTE_SESSION_ID CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_CONTAINER_ID CLAUDECODE" \
-         -p "StandardInput=null" \
-         -p "StandardOutput=journal" \
-         -p "StandardError=journal" \
-         --no-block \
-         claude "${claude_args[@]}" >/dev/null 2>&1; then
+    --unit="$unit" \
+    --description="Claude Code remote-control session: $name" \
+    --working-directory="$resolved" \
+    -p "UnsetEnvironment=CLAUDE_CODE_REMOTE CLAUDE_CODE_REMOTE_SESSION_ID CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_CONTAINER_ID CLAUDECODE" \
+    -p "StandardInput=null" \
+    -p "StandardOutput=journal" \
+    -p "StandardError=journal" \
+    --no-block \
+    claude "${claude_args[@]}" >/dev/null 2>&1; then
     emit_err SYSTEMD_RUN_FAILED "systemd-run --user failed for $unit (check: systemctl --user status $unit)"
     exit 2
   fi
@@ -197,7 +218,10 @@ cmd_list() {
 
 # ── status ───────────────────────────────────────────────────────────────────
 cmd_status() {
-  [[ $# -ge 1 ]] || { emit_err BAD_ARGS "status requires <name>"; exit 1; }
+  [[ $# -ge 1 ]] || {
+    emit_err BAD_ARGS "status requires <name>"
+    exit 1
+  }
   local name="$1"
   local unit
   unit="$(unit_for_name "$name")"
@@ -215,7 +239,10 @@ cmd_status() {
 
 # ── stop ─────────────────────────────────────────────────────────────────────
 cmd_stop() {
-  [[ $# -ge 1 ]] || { emit_err BAD_ARGS "stop requires <name>"; exit 1; }
+  [[ $# -ge 1 ]] || {
+    emit_err BAD_ARGS "stop requires <name>"
+    exit 1
+  }
   local name="$1"
   local unit
   unit="$(unit_for_name "$name")"
@@ -237,7 +264,10 @@ cmd_stop() {
 
 # ── resume ───────────────────────────────────────────────────────────────────
 cmd_resume() {
-  [[ $# -ge 1 ]] || { emit_err BAD_ARGS "resume requires <name>"; exit 1; }
+  [[ $# -ge 1 ]] || {
+    emit_err BAD_ARGS "resume requires <name>"
+    exit 1
+  }
   local name="$1"
   local unit
   unit="$(unit_for_name "$name")"
@@ -257,15 +287,25 @@ EOF
 }
 
 # ── dispatch ─────────────────────────────────────────────────────────────────
-[[ $# -ge 1 ]] || { usage; exit 0; }
+[[ $# -ge 1 ]] || {
+  usage
+  exit 0
+}
 
-sub="$1"; shift
+sub="$1"
+shift
 case "$sub" in
-  start)     cmd_start "$@" ;;
-  list)      cmd_list "$@" ;;
-  status)    cmd_status "$@" ;;
-  stop)      cmd_stop "$@" ;;
-  resume)    cmd_resume "$@" ;;
-  -h | --help) usage; exit 0 ;;
-  *) emit_err BAD_ARGS "unknown subcommand: $sub"; exit 1 ;;
+  start) cmd_start "$@" ;;
+  list) cmd_list "$@" ;;
+  status) cmd_status "$@" ;;
+  stop) cmd_stop "$@" ;;
+  resume) cmd_resume "$@" ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    emit_err BAD_ARGS "unknown subcommand: $sub"
+    exit 1
+    ;;
 esac
