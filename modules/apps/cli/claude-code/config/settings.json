@@ -131,7 +131,8 @@
     ],
     "additionalDirectories": [
       "/home/dustin/git/.worktrees"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "hooks": {
     "PostToolUse": [
@@ -377,5 +378,6 @@
   "skipDangerousModePermissionPrompt": true,
   "smallModelOverride": "haiku",
   "coAuthor": "",
-  "remoteControlEnabled": true
+  "remoteControlEnabled": true,
+  "skipAutoPermissionPrompt": true
 }
