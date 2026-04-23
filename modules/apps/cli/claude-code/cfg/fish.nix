@@ -66,23 +66,48 @@
           echo "  CLAUDE.md"
         end
 
-        # Agents (skip gsd-* files, those are managed by GSD)
-        echo "  agents:"
-        for agent in $claude_dir/agents/*.md
-          set -l name (basename $agent)
-          if not string match -q 'gsd-*' $name
-            if test -f "$config_dir/agents/$name"
-              cp "$agent" "$config_dir/agents/$name"
-              echo "    $name"
-            else
-              echo "    $name (skipped, not in config/agents/)"
+        # Agents -- capture all user-managed agents (skip gsd-* managed by
+        # GSD). If an agent isn't in config/agents/ yet, seed it so
+        # manual work survives a machine rebuild. Agents listed in
+        # config/agents/.capture-ignore are silently skipped -- use for
+        # plugin-provided or upstream-maintained agents.
+        set -l agents_ignore_file "$config_dir/agents/.capture-ignore"
+        set -l ignored_agents
+        if test -f "$agents_ignore_file"
+          for line in (cat "$agents_ignore_file")
+            set -l trimmed (string trim -- "$line")
+            if test -n "$trimmed"; and not string match -q '#*' -- "$trimmed"
+              set ignored_agents $ignored_agents $trimmed
             end
           end
         end
+        set -l seeded_agents
+        echo "  agents:"
+        for agent in $claude_dir/agents/*.md
+          set -l name (basename $agent)
+          if string match -q 'gsd-*' $name
+            continue
+          end
+          if contains -- "$name" $ignored_agents
+            continue
+          end
+          set -l marker ""
+          if not test -f "$config_dir/agents/$name"
+            set seeded_agents $seeded_agents $name
+            set marker " (seeded)"
+          end
+          cp "$agent" "$config_dir/agents/$name"
+          echo "    $name$marker"
+        end
 
-        # Skills -- mirror tracked skills from $claude_dir/skills/<skill>/ into
-        # config/skills/<skill>/ using rsync. Iterates what's installed in
-        # $claude_dir so we can flag orphans (installed but not in config/).
+        # Skills -- capture every user-managed skill from $claude_dir/skills/
+        # into config/skills/ using rsync. Guiding principle: anything
+        # manually added to ~/.claude is captured into the repo so it
+        # survives a machine rebuild and can be deployed to other systems.
+        # A skill not yet in config/skills/ is seeded on first capture.
+        # Skills listed in config/skills/.capture-ignore are silently
+        # skipped -- use for upstream-maintained or externally-managed
+        # skills that shouldn't live in git history.
         # Silently skips:
         #   - whole-skill symlinks (Nix-managed, e.g. clay-ralph)
         #   - runtime workspaces with no SKILL.md (commit-workspace, etc.)
@@ -90,6 +115,17 @@
         #     /nix/store (hack, dependabot, stop-slop, github-issue)
         # Top-level symlinks in tracked skills are --exclude'd from rsync
         # so a store path never lands in git.
+        set -l skills_ignore_file "$config_dir/skills/.capture-ignore"
+        set -l ignored_skills
+        if test -f "$skills_ignore_file"
+          for line in (cat "$skills_ignore_file")
+            set -l trimmed (string trim -- "$line")
+            if test -n "$trimmed"; and not string match -q '#*' -- "$trimmed"
+              set ignored_skills $ignored_skills $trimmed
+            end
+          end
+        end
+        set -l seeded_skills
         echo "  skills:"
         for source_dir in $claude_dir/skills/*/
           set -l skill_name (basename $source_dir)
@@ -108,12 +144,18 @@
           if test -z "$any_real"
             continue
           end
-          # Untracked: surface for visibility, don't import.
-          if not test -d "$config_dir/skills/$skill_name"
-            echo "    $skill_name (skipped, not in config/skills/)"
+          # Skip anything the user opted out of tracking.
+          if contains -- "$skill_name" $ignored_skills
             continue
           end
-          # Tracked: mirror src → config, excluding any Nix-managed symlinks.
+          # Untracked: seed it so the user's work is captured.
+          set -l marker ""
+          if not test -d "$config_dir/skills/$skill_name"
+            mkdir -p "$config_dir/skills/$skill_name"
+            set seeded_skills $seeded_skills $skill_name
+            set marker " (seeded)"
+          end
+          # Mirror src → config, excluding any Nix-managed symlinks.
           set -l excludes
           for f in $src/*
             if test -L "$f"
@@ -123,7 +165,7 @@
           end
           ${pkgs.rsync}/bin/rsync -a --delete $excludes \
             "$src"/ "$config_dir/skills/$skill_name"/
-          echo "    $skill_name"
+          echo "    $skill_name$marker"
         end
 
         # Output styles
@@ -162,6 +204,18 @@
           end
 
           # Cache is not tracked in git -- plugins auto-download from installed_plugins.json
+        end
+
+        # Surface seeded items so nothing sneaks into git unnoticed.
+        if test (count $seeded_agents) -gt 0 -o (count $seeded_skills) -gt 0
+          echo ""
+          echo "Seeded items (new in repo, review and git add):"
+          for a in $seeded_agents
+            echo "    agent:  $a"
+          end
+          for s in $seeded_skills
+            echo "    skill:  $s"
+          end
         end
 
         echo ""
