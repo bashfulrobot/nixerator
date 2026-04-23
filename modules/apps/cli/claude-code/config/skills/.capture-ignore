@@ -1,0 +1,12 @@
+# Skills listed here (one name per line) are silently skipped by
+# claude-capture. Use this for upstream-maintained or externally-managed
+# skills that shouldn't live in git history.
+#
+# Format: one skill name per line (match the directory name under
+# ~/.claude/skills/). Comments start with '#'. Blank lines are ignored.
+#
+# Note: Nix-managed skills (home.file with recursive=true, fetched from
+# pinned upstream) are already auto-skipped because every leaf is a store
+# symlink -- no entry needed here. This file is for the gap case:
+# skills that are installed outside Nix but also outside your repo
+# (e.g., experimental skills you're iterating on locally).
