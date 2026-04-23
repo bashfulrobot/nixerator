@@ -1,6 +1,16 @@
 # Conventions
 
-## Commit Format
+Issue branches in this workflow are **squash-merged** by default, so the commit that ends up on `main` is one synthetic commit whose message is derived from the PR title + body. That changes how strict to be about history on the branch itself.
+
+## Commits on issue branches
+
+- **Freeform is fine.** WIP checkpoints, small fixes, batches of review-fix changes all go on the branch however is natural. These commits are collapsed at merge time.
+- **No AI attribution.** Do NOT add `Co-Authored-By:`, `Signed-off-by:`, or any mention of Claude / Anthropic / AI / "generated" anywhere in commit messages, PR bodies, or issue comments. The user's git identity is the sole author.
+- Signing with `-S` is fine if the user's setup requires it, but do not add it unconditionally.
+
+## The squash-merge commit on main
+
+The squash commit title and body follow Conventional Commits:
 
 Format: `<type>(<scope>): <description>`
 
@@ -20,32 +30,29 @@ Format: `<type>(<scope>): <description>`
 | security | Security fix |
 | deps | Dependency update |
 
-Rules:
+Rules for the squashed commit:
 - Scope is REQUIRED: lowercase, kebab-case module name
 - Description: imperative mood, lowercase start, no period
-- Sign commits: always use `-S` flag
-- **NEVER** add Co-Authored-By, Signed-off-by, or any AI attribution trailer
-- No mentions of Claude, Anthropic, AI, or "generated" anywhere in commit messages, PR bodies, or issue comments
-- The user's git identity is the sole author — do not inject any co-author or tool attribution
+- No AI attribution (as above)
 
 Examples:
 - `feat(auth): add JWT refresh rotation`
 - `fix(api): handle null response from upstream`
 - `refactor(db): extract connection pooling`
 
-## Branch Naming
+## Branch naming
 
 Format: `{type}/{issue-number}-{slug}`
 
-- Type matches commit type (feat, fix, docs, refactor, etc.)
-- Slug is kebab-case from issue title, truncated to fit ~50 chars total
+- Type matches the Conventional Commit type (feat, fix, docs, refactor, …)
+- Slug is kebab-case from the issue title, truncated to fit ~50 chars total
 - Examples: `feat/42-add-jwt-auth`, `fix/17-null-response-upstream`
 
-The bash worktree-flow derives this automatically from issue labels and title. In standalone mode, follow the same pattern manually.
+The CLI derives this from issue labels and title automatically.
 
-## PR Body
+## PR body
 
-Use `Closes #{issue-number}` to auto-close the issue on merge.
+Use `Closes #{issue-number}` so the issue auto-closes on merge.
 
 Structure:
 ```
@@ -55,8 +62,8 @@ Closes #<number>: <issue title>
 - <commit log entries>
 ```
 
-The bash worktree-flow builds this automatically from the commit log. In standalone mode, use `gh pr create` with this format.
+The CLI builds this from the commit log at push time.
 
-## Atomic Commits
+## Direct-to-main work (outside this skill)
 
-Make each commit a logical unit of work. If changes span unrelated concerns, split into separate commits. The commit skill handles staging and security scanning.
+When working directly on `main` (no PR), **atomic commits** matter — each commit lives on its own forever. Split changes that span unrelated concerns into separate commits. That rule does NOT apply on issue branches because of squash-merge.

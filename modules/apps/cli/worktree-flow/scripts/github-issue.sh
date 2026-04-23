@@ -6,24 +6,27 @@ if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
   info "Usage: github-issue <subcommand> [args]"
   info ""
   info "Subcommands:"
-  info "  setup <number>                          -- create worktree + state file"
+  info "  setup <number> [--base <ref>]           -- create worktree pinned to base (default origin/main)"
   info "  status <number>                         -- detect lifecycle state"
-  info "  push <number>                           -- push branch + create/update PR"
-  info "  audit                                   -- scan all issue worktrees"
-  info "  cleanup <number>                        -- remove worktree + branches"
-  info "  transition <number> <step> [--detail-json '<json>']"
-  info "                                          -- advance workflow state"
+  info "  push <number>                           -- silent pre-push rebase, push branch, create/update PR, propagate labels"
+  info "  auto-merge <number>                     -- enable GitHub auto-merge (squash) on the PR"
+  info "  audit                                   -- scan worktrees, surface overlap and blocker-ordered merge queue"
+  info "  cleanup <number>                        -- remove worktree + branches, rebase overlapping worktrees"
+  info "  transition <number> <step> --note '...' [--detail-json '<json>']"
+  info "                                          -- advance workflow state (note is required)"
   info "  validate-cwd <number>                   -- check working directory"
   info "  check-ci <number>                       -- check PR CI status"
   info "  review-feedback <number>                -- fetch PR review comments"
+  info "  post-mortem <number>                    -- gather close-context for agent synthesis"
   exit 0
 fi
 
-# ── State v2 constants ────────────────────────────────────────────────────────
+# ── State v3 constants ────────────────────────────────────────────────────────
 
-VALID_STEPS=(setup assess design plan implement verify push review_dev review_security waiting revamp "done" closed)
+VALID_STEPS=(setup assess design plan implement verify push review_dev review_security waiting revamp ci_fix "done" closed)
 
 # Transition whitelist: from -> space-separated valid targets
+# ci_fix is post-push CI failure (distinct from revamp which is review feedback)
 declare -A VALID_TRANSITIONS=(
   [setup]="assess"
   [assess]="design plan implement"
@@ -31,11 +34,12 @@ declare -A VALID_TRANSITIONS=(
   [plan]="implement"
   [implement]="verify"
   [verify]="implement push waiting"
-  [push]="review_dev waiting"
+  [push]="review_dev ci_fix waiting"
   [review_dev]="review_security"
   [review_security]="waiting"
-  [waiting]="done revamp closed"
+  [waiting]="done revamp ci_fix closed"
   [revamp]="verify"
+  [ci_fix]="verify"
   [done]=""
   [closed]=""
 )
@@ -113,7 +117,7 @@ build_branch_name() {
   printf '%s/%s-%s' "$branch_type" "$issue_number" "$slug"
 }
 
-# ── State v2 helpers ─────────────────────────────────────────────────────────
+# ── State v3 helpers ─────────────────────────────────────────────────────────
 
 create_issue_state() {
   local branch="$1"
@@ -121,20 +125,24 @@ create_issue_state() {
   local issue_number="$3"
   local issue_title="$4"
   local issue_body="$5"
+  local base_ref="$6"
+  local blockers_json="${7:-[]}"
   local timestamp
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   local json
   json="$(jq -n \
-    --argjson version 2 \
+    --argjson version 3 \
     --arg type "issue" \
     --arg issue_number "$issue_number" \
     --arg issue_title "$issue_title" \
     --arg issue_body "$issue_body" \
     --arg branch "$branch" \
+    --arg base_ref "$base_ref" \
     --arg wt_path "$wt_path" \
     --arg pr_url "" \
     --arg session_id "" \
     --arg workflow_step "assess" \
+    --argjson blockers "$blockers_json" \
     --arg started_at "$timestamp" \
     --arg updated_at "$timestamp" \
     '{
@@ -144,12 +152,13 @@ create_issue_state() {
       issue_title: $issue_title,
       issue_body: $issue_body,
       branch: $branch,
+      base_ref: $base_ref,
       wt_path: $wt_path,
       pr_url: $pr_url,
       session_id: $session_id,
       workflow_step: $workflow_step,
-      workflow_detail: {complexity: null, plan_file: null, review_stage: null, revamp_round: 0, blocker: null},
-      step_history: [{step: "setup", completed_at: $started_at}],
+      workflow_detail: {complexity: null, plan_file: null, review_stage: null, revamp_round: 0, blockers: $blockers, open_threads: []},
+      step_history: [{step: "setup", completed_at: $started_at, note: "Worktree created from \($base_ref)."}],
       started_at: $started_at,
       updated_at: $updated_at
     }')"
@@ -175,60 +184,106 @@ is_valid_transition() {
   return 1
 }
 
-# Migrate v1 state files (no version field) to v2
-migrate_v1_state() {
+# Migrate state files forward: v1 (no version) -> v2 -> v3.
+# v1 lacks `version`; v2 has version=2; v3 has version=3 plus base_ref, per-step
+# notes, workflow_detail.blockers (array), workflow_detail.open_threads.
+migrate_state() {
   local wt_path="$1"
   local state_file="${wt_path}/.worktree-state.json"
 
-  # Already v2
   local version
   version="$(jq -r '.version // empty' "$state_file" 2>/dev/null)" || version=""
-  if [[ "$version" == "2" ]]; then
-    return 0
+
+  # v1 -> v2: synthesize version+workflow_step from legacy phase
+  if [[ -z "$version" ]]; then
+    local phase
+    phase="$(jq -r '.phase // "setup"' "$state_file")"
+    local workflow_step
+    case "$phase" in
+      setup) workflow_step="assess" ;;
+      claude_running | claude_exited) workflow_step="implement" ;;
+      pushing) workflow_step="push" ;;
+      pr_created) workflow_step="waiting" ;;
+      *) workflow_step="assess" ;;
+    esac
+
+    local timestamp current updated
+    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    current="$(cat "$state_file")"
+    updated="$(printf '%s' "$current" | jq \
+      --argjson version 2 \
+      --arg workflow_step "$workflow_step" \
+      --arg updated_at "$timestamp" \
+      '. + {
+        version: $version,
+        workflow_step: $workflow_step,
+        workflow_detail: (.workflow_detail // {complexity: null, plan_file: null, review_stage: null, revamp_round: 0, blocker: null}),
+        step_history: (.step_history // []),
+        updated_at: $updated_at
+      }')"
+    write_state "$updated" "$wt_path"
+    ok "migrated state v1 -> v2 (phase=${phase} -> workflow_step=${workflow_step})"
+    version="2"
   fi
 
-  local phase
-  phase="$(jq -r '.phase // "setup"' "$state_file")"
+  # v2 -> v3: add base_ref (inferred from default branch), open_threads,
+  # migrate scalar `blocker` -> `blockers` array, backfill empty notes.
+  if [[ "$version" == "2" ]]; then
+    local default_br
+    default_br="$(default_branch)"
+    local inferred_base="origin/${default_br}"
 
-  # Map v1 phase to v2 workflow_step
-  local workflow_step
-  case "$phase" in
-    setup) workflow_step="assess" ;;
-    claude_running | claude_exited) workflow_step="implement" ;;
-    pushing) workflow_step="push" ;;
-    pr_created) workflow_step="waiting" ;;
-    *) workflow_step="assess" ;;
-  esac
-
-  local timestamp
-  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  local current updated
-  current="$(cat "$state_file")"
-  updated="$(printf '%s' "$current" | jq \
-    --argjson version 2 \
-    --arg workflow_step "$workflow_step" \
-    --arg updated_at "$timestamp" \
-    '. + {
-      version: $version,
-      workflow_step: $workflow_step,
-      workflow_detail: (.workflow_detail // {complexity: null, plan_file: null, review_stage: null, revamp_round: 0, blocker: null}),
-      step_history: (.step_history // []),
-      updated_at: $updated_at
-    }')"
-  write_state "$updated" "$wt_path"
-  ok "migrated state v1 -> v2 (phase=${phase} -> workflow_step=${workflow_step})"
+    local timestamp current updated
+    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    current="$(cat "$state_file")"
+    updated="$(printf '%s' "$current" | jq \
+      --argjson version 3 \
+      --arg base_ref "$inferred_base" \
+      --arg updated_at "$timestamp" \
+      '. + {
+        version: $version,
+        base_ref: (.base_ref // $base_ref),
+        workflow_detail: (
+          (.workflow_detail // {})
+          | (
+              if has("blocker") and (.blocker != null)
+              then . + {blockers: [.blocker]}
+              else . + {blockers: (.blockers // [])}
+              end
+            )
+          | . + {open_threads: (.open_threads // [])}
+          | del(.blocker)
+        ),
+        step_history: ((.step_history // []) | map(. + {note: (.note // "")})),
+        updated_at: $updated_at
+      }')"
+    write_state "$updated" "$wt_path"
+    ok "migrated state v2 -> v3 (added base_ref=${inferred_base}, blockers array, open_threads, per-step notes)"
+  fi
 }
 
-# Reconcile workflow_step with git/PR signals
+# Back-compat shim for any callers still using the v1-named helper.
+migrate_v1_state() { migrate_state "$@"; }
+
+# Reconcile workflow_step with git/PR/CI signals. Returns nothing; mutates state.
+# Signals handled:
+#   - PR merged -> done
+#   - PR closed without merge -> closed
+#   - PR open + changes_requested (from waiting) -> revamp
+#   - PR open + CI failing (from waiting/push/review_*) -> ci_fix
+#   - commits exist but step pre-implementation -> implement
+#   - PR exists but step still push -> review_dev
 reconcile_state() {
   local wt_path="$1" branch="$2" pr_url="$3" default_br="$4"
   local state_file="${wt_path}/.worktree-state.json"
-  local workflow_step
+  local workflow_step base_ref
   workflow_step="$(jq -r '.workflow_step' "$state_file")"
+  base_ref="$(jq -r '.base_ref // empty' "$state_file")"
+  [[ -z "$base_ref" ]] && base_ref="origin/${default_br}"
 
   local new_step=""
+  local reconcile_note=""
 
-  # Check PR state if URL exists
   if [[ -n "$pr_url" ]]; then
     local pr_state
     pr_state="$(gh pr view "$pr_url" --json state --jq '.state' 2>/dev/null)" || pr_state=""
@@ -237,42 +292,52 @@ reconcile_state() {
       MERGED)
         if [[ "$workflow_step" != "done" ]]; then
           new_step="done"
+          reconcile_note="PR merged."
         fi
         ;;
       CLOSED)
         if [[ "$workflow_step" != "closed" ]]; then
           new_step="closed"
+          reconcile_note="PR closed without merge."
         fi
         ;;
       OPEN)
-        local review
+        local review ci_conclusion
         review="$(gh pr view "$pr_url" --json reviewDecision --jq '.reviewDecision // ""' 2>/dev/null)" || review=""
-        if [[ "$review" == "CHANGES_REQUESTED" ]] && [[ "$workflow_step" == "waiting" ]]; then
+        ci_conclusion="$(detect_ci_conclusion "$pr_url")"
+
+        if [[ "$ci_conclusion" == "failing" ]] && [[ "$workflow_step" == "waiting" || "$workflow_step" == "push" || "$workflow_step" == "review_dev" || "$workflow_step" == "review_security" ]]; then
+          new_step="ci_fix"
+          reconcile_note="CI failing on PR — routed to ci_fix."
+        elif [[ "$review" == "CHANGES_REQUESTED" ]] && [[ "$workflow_step" == "waiting" ]]; then
           new_step="revamp"
+          reconcile_note="Reviewer requested changes — routed to revamp."
         fi
         ;;
     esac
   else
-    # No PR — check branch merge status
     if is_branch_merged "$branch"; then
       if [[ "$workflow_step" != "done" ]]; then
         new_step="done"
+        reconcile_note="Branch merged to ${default_br}."
       fi
     fi
   fi
 
   # Commits exist but step says pre-implementation
-  if [[ "$workflow_step" == "plan" ]] || [[ "$workflow_step" == "assess" ]] || [[ "$workflow_step" == "design" ]]; then
+  if [[ -z "$new_step" ]] && { [[ "$workflow_step" == "plan" ]] || [[ "$workflow_step" == "assess" ]] || [[ "$workflow_step" == "design" ]]; }; then
     local commit_count
     commit_count="$(git -C "$wt_path" rev-list --count "${default_br}..${branch}" 2>/dev/null)" || commit_count="0"
     if [[ "$commit_count" -gt 0 ]]; then
       new_step="implement"
+      reconcile_note="Commits detected — advanced to implement."
     fi
   fi
 
   # PR exists but step says push
-  if [[ "$workflow_step" == "push" ]] && [[ -n "$pr_url" ]]; then
+  if [[ -z "$new_step" ]] && [[ "$workflow_step" == "push" ]] && [[ -n "$pr_url" ]]; then
     new_step="review_dev"
+    reconcile_note="PR created — advanced to review_dev."
   fi
 
   if [[ -n "$new_step" ]]; then
@@ -283,17 +348,88 @@ reconcile_state() {
     updated="$(printf '%s' "$current" | jq \
       --arg step "$new_step" \
       --arg t "$timestamp" \
+      --arg note "$reconcile_note" \
       '.workflow_step = $step | .updated_at = $t |
-       .step_history = .step_history + [{step: $step, completed_at: $t, reconciled: true}]')"
+       .step_history = .step_history + [{step: $step, completed_at: $t, reconciled: true, note: $note}]')"
     write_state "$updated" "$wt_path"
     ok "reconciled workflow_step: ${workflow_step} -> ${new_step}"
   fi
 }
 
+# Summarize PR CI state as "passing" | "failing" | "pending" | "none".
+detect_ci_conclusion() {
+  local pr_url="$1"
+  local checks_json
+  checks_json="$(gh pr checks "$pr_url" --json state,conclusion 2>/dev/null)" || checks_json="[]"
+  local total failing pending passing
+  total="$(printf '%s' "$checks_json" | jq 'length')"
+  if [[ "$total" -eq 0 ]]; then
+    printf 'none'
+    return
+  fi
+  failing="$(printf '%s' "$checks_json" | jq '[.[] | select(.conclusion == "FAILURE" or .conclusion == "ERROR")] | length')"
+  pending="$(printf '%s' "$checks_json" | jq '[.[] | select(.state == "PENDING" or .state == "QUEUED" or .state == "IN_PROGRESS")] | length')"
+  passing="$(printf '%s' "$checks_json" | jq '[.[] | select(.conclusion == "SUCCESS" or .conclusion == "NEUTRAL")] | length')"
+  if [[ "$failing" -gt 0 ]]; then
+    printf 'failing'
+  elif [[ "$pending" -gt 0 ]]; then
+    printf 'pending'
+  elif [[ "$passing" -eq "$total" ]]; then
+    printf 'passing'
+  else
+    printf 'none'
+  fi
+}
+
 # ── Subcommands ──────────────────────────────────────────────────────────────
 
+# Parse blocker references from issue body. Matches "Blocked by #N",
+# "Depends on #N", "Requires #N", "Needs #N" (case-insensitive). For each
+# hit, fetches issue state + title via gh. Emits JSON array:
+#   [{"number": N, "state": "OPEN"|"CLOSED", "title": "..."}]
+# Missing/unreachable issues are skipped silently (offline-safe).
+parse_blockers() {
+  local body="$1"
+  local numbers
+  numbers="$(printf '%s' "$body" \
+    | grep -oiE '(blocked by|depends on|requires|needs)[[:space:]]*#[0-9]+' \
+    | grep -oE '[0-9]+' \
+    | sort -u)"
+
+  local result="[]"
+  local n entry
+  while IFS= read -r n; do
+    [[ -z "$n" ]] && continue
+    entry="$(gh issue view "$n" --json number,state,title 2>/dev/null)" || continue
+    result="$(printf '%s' "$result" | jq --argjson e "$entry" '. + [$e]')"
+  done <<<"$numbers"
+  printf '%s' "$result"
+}
+
 cmd_setup() {
-  local issue_number="${1:?usage: github-issue setup <issue-number>}"
+  local issue_number=""
+  local base_ref=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --base)
+        base_ref="${2:?--base requires a value}"
+        shift 2
+        ;;
+      -*)
+        die "unknown option: $1"
+        ;;
+      *)
+        if [[ -z "$issue_number" ]]; then
+          issue_number="$1"
+          shift
+        else
+          die "unexpected argument: $1"
+        fi
+        ;;
+    esac
+  done
+  [[ -n "$issue_number" ]] || die "usage: github-issue setup <issue-number> [--base <ref>]"
+
   local wt_path
   wt_path="$(worktree_base)/issue-${issue_number}"
 
@@ -304,12 +440,34 @@ cmd_setup() {
   fetch_remote
   assert_clean_tree
 
+  # Resolve base: default to origin/<default-branch>. Verify it exists.
+  local default_br
+  default_br="$(default_branch)"
+  if [[ -z "$base_ref" ]]; then
+    base_ref="origin/${default_br}"
+  fi
+  git rev-parse --verify --quiet "$base_ref" >/dev/null \
+    || die "base ref '${base_ref}' does not resolve -- run 'git fetch origin' or pass a valid --base"
+  ok "base: ${base_ref}"
+
   local issue_json issue_title issue_labels issue_body
   issue_json="$(fetch_issue_metadata "$issue_number")"
   issue_title="$(printf '%s' "$issue_json" | jq -r '.title')"
   issue_labels="$(printf '%s' "$issue_json" | jq -c '.labels')"
   issue_body="$(printf '%s' "$issue_json" | jq -r '.body')"
   ok "fetched: ${issue_title}"
+
+  # Parse blockers. Warn if any are still OPEN but don't block setup — user can
+  # proceed knowingly. Blocker state is persisted for use by audit merge-ordering.
+  local blockers_json open_blockers_count
+  blockers_json="$(parse_blockers "$issue_body")"
+  open_blockers_count="$(printf '%s' "$blockers_json" | jq '[.[] | select(.state == "OPEN")] | length')"
+  if [[ "$open_blockers_count" -gt 0 ]]; then
+    warn "issue #${issue_number} references ${open_blockers_count} open blocker(s):"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && warn "  ${line}"
+    done < <(printf '%s' "$blockers_json" | jq -r '.[] | select(.state == "OPEN") | "#\(.number) [\(.state)] \(.title)"')
+  fi
 
   local branch_type
   branch_type="$(derive_branch_type_auto "$issue_labels")"
@@ -320,23 +478,27 @@ cmd_setup() {
   ok "branch: ${branch_name}"
 
   mkdir -p "$(dirname "$wt_path")"
-  git worktree add --no-checkout "$wt_path" -b "$branch_name"
+  # Pin branch explicitly to base_ref so the new branch never inherits an
+  # accidental stack from whatever HEAD happened to be when this ran.
+  git worktree add --no-checkout "$wt_path" -b "$branch_name" "$base_ref"
   register_cleanup "$wt_path"
   checkout_and_unlock "$wt_path"
-  create_issue_state "$branch_name" "$wt_path" "$issue_number" "$issue_title" "$issue_body"
+  create_issue_state "$branch_name" "$wt_path" "$issue_number" "$issue_title" "$issue_body" "$base_ref" "$blockers_json"
   _WT_CLEANUP_PATH=""
   ok "worktree created at ${wt_path}"
 
   json_ok "$(jq -n \
     --arg issue_number "$issue_number" \
     --arg branch "$branch_name" \
+    --arg base_ref "$base_ref" \
     --arg worktree "$wt_path" \
     --arg branch_type "$branch_type" \
     --arg title "$issue_title" \
     --arg issue_body "$issue_body" \
-    '{issue_number: ($issue_number|tonumber), branch: $branch, worktree: $worktree,
+    --argjson blockers "$blockers_json" \
+    '{issue_number: ($issue_number|tonumber), branch: $branch, base_ref: $base_ref, worktree: $worktree,
       branch_type: $branch_type, title: $title, issue_body: $issue_body,
-      workflow_step: "assess"}')"
+      blockers: $blockers, workflow_step: "assess"}')"
 }
 
 cmd_status() {
@@ -359,8 +521,8 @@ cmd_status() {
     json_error "worktree exists but no state file at ${state_file}"
   fi
 
-  # Migrate v1 -> v2 if needed
-  migrate_v1_state "$wt_path"
+  # Migrate to current schema version if needed.
+  migrate_state "$wt_path"
 
   local branch pr_url issue_title issue_body workflow_step workflow_detail step_history
   branch="$(jq -r '.branch' "$state_file")"
@@ -427,27 +589,45 @@ cmd_push() {
     json_error "no worktree for issue #${issue_number}"
   fi
 
-  local branch pr_url issue_title default_br
+  migrate_state "$wt_path"
+
+  local branch pr_url issue_title default_br base_ref issue_labels
   branch="$(read_state_field branch "$wt_path")"
   pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
   issue_title="$(read_state_field issue_title "$wt_path")"
   default_br="$(default_branch)"
+  base_ref="$(jq -r '.base_ref // empty' "${wt_path}/.worktree-state.json")"
+  [[ -z "$base_ref" ]] && base_ref="origin/${default_br}"
 
-  # Check for commits
+  # Silent pre-push rebase. Refresh base, check whether we're already ahead of
+  # it, and rebase only when needed. A successful rebase makes later pushes
+  # non-fast-forward, so we switch to --force-with-lease for PR updates.
+  fetch_remote
+  local rebased=0
+  if ! git -C "$wt_path" merge-base --is-ancestor "$base_ref" "$branch" 2>/dev/null; then
+    info "rebasing ${branch} onto ${base_ref}..."
+    if ! git -C "$wt_path" rebase "$base_ref" >&2; then
+      git -C "$wt_path" rebase --abort 2>/dev/null || true
+      json_error "rebase onto ${base_ref} produced conflicts -- agent must resolve. Run 'git -C ${wt_path} rebase ${base_ref}' and address conflicts before retrying push."
+    fi
+    rebased=1
+    ok "rebased onto ${base_ref}"
+  fi
+
+  # commits-vs-base check (not commits-vs-default; base may differ in future)
   local commit_count
-  commit_count="$(git -C "$wt_path" rev-list --count "${default_br}..${branch}")"
+  commit_count="$(git -C "$wt_path" rev-list --count "${base_ref}..${branch}")"
   if [[ "$commit_count" -eq 0 ]]; then
-    json_error "no commits on branch ${branch} -- nothing to push"
+    json_error "no commits on branch ${branch} relative to ${base_ref} -- nothing to push"
   fi
 
   local action=""
   if [[ -z "$pr_url" ]]; then
-    # Push + create PR
     (cd "$wt_path" && safe_push "$branch")
     ok "branch pushed"
 
     local commit_log pr_body
-    commit_log="$(git -C "$wt_path" log --format='- %s%n%w(0,2,2)%b' "${default_br}..${branch}")"
+    commit_log="$(git -C "$wt_path" log --format='- %s%n%w(0,2,2)%b' "${base_ref}..${branch}")"
     pr_body="$(printf '## Summary\nCloses #%s: %s\n\n%s' "$issue_number" "$issue_title" "$commit_log")"
 
     pr_url="$(cd "$wt_path" && gh pr create \
@@ -456,7 +636,19 @@ cmd_push() {
       --head "$branch")"
     ok "PR created: ${pr_url}"
 
-    # Update state with PR URL
+    # Propagate issue labels to PR. Safe no-op when the issue has none.
+    issue_labels="$(gh issue view "$issue_number" --json labels --jq '[.labels[].name]' 2>/dev/null)" || issue_labels="[]"
+    local label_count
+    label_count="$(printf '%s' "$issue_labels" | jq 'length')"
+    if [[ "$label_count" -gt 0 ]]; then
+      local label_args=()
+      while IFS= read -r name; do
+        [[ -n "$name" ]] && label_args+=(--add-label "$name")
+      done < <(printf '%s' "$issue_labels" | jq -r '.[]')
+      gh pr edit "$pr_url" "${label_args[@]}" >/dev/null 2>&1 || warn "could not apply some labels to PR"
+      ok "propagated ${label_count} label(s) from issue to PR"
+    fi
+
     local current updated timestamp
     current="$(cat "${wt_path}/.worktree-state.json")"
     timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -469,8 +661,14 @@ cmd_push() {
     gh issue comment "$issue_number" --body "PR ready for review: $pr_url" 2>/dev/null || true
     action="created"
   else
-    # Push updates to existing PR
-    (cd "$wt_path" && git push origin "$branch")
+    # Rebasing rewrites history, so subsequent pushes to an existing PR branch
+    # require --force-with-lease. Never --force — avoids clobbering concurrent
+    # updates pushed from elsewhere.
+    if [[ "$rebased" -eq 1 ]]; then
+      (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch")
+    else
+      (cd "$wt_path" && assert_not_main && git push origin "$branch")
+    fi
     ok "updates pushed to PR: ${pr_url}"
     action="updated"
   fi
@@ -505,6 +703,14 @@ cmd_push() {
       branch: $branch, commits: $commits, ci_status: $ci_status}')"
 }
 
+# Compute the set of files changed on branch vs. its base. Used by audit to
+# surface cross-worktree overlap. Emits newline-delimited paths; empty on
+# offline/error.
+branch_touched_files() {
+  local wt_dir="$1" branch="$2" base_ref="$3"
+  git -C "$wt_dir" diff "${base_ref}...${branch}" --name-only 2>/dev/null || true
+}
+
 cmd_audit() {
   fetch_remote
 
@@ -512,7 +718,7 @@ cmd_audit() {
   wt_base="$(worktree_base)"
 
   if [[ ! -d "$wt_base" ]]; then
-    json_ok "[]"
+    json_ok '{"worktrees": [], "overlaps": [], "merge_order": []}'
     return
   fi
 
@@ -528,17 +734,24 @@ cmd_audit() {
     wt_type="$(jq -r '.type' "$state_file")"
     [[ "$wt_type" == "issue" ]] || continue
 
-    # Migrate v1 if needed
-    migrate_v1_state "$wt_dir"
+    migrate_state "$wt_dir"
 
-    local issue_num issue_title branch pr_url workflow_step
+    local issue_num issue_title branch pr_url workflow_step base_ref blockers
     issue_num="$(jq -r '.issue_number' "$state_file")"
     issue_title="$(jq -r '.issue_title' "$state_file")"
     branch="$(jq -r '.branch' "$state_file")"
     pr_url="$(jq -r '.pr_url // ""' "$state_file")"
     workflow_step="$(jq -r '.workflow_step' "$state_file")"
+    base_ref="$(jq -r '.base_ref // empty' "$state_file")"
+    [[ -z "$base_ref" ]] && base_ref="origin/${default_br}"
+    blockers="$(jq -c '.workflow_detail.blockers // []' "$state_file")"
 
     detect_issue_state "$wt_dir" "$branch" "$pr_url" "$default_br"
+
+    # Collect touched-file list for overlap pass below.
+    local touched_files_json
+    touched_files_json="$(branch_touched_files "$wt_dir" "$branch" "$base_ref" \
+      | jq -Rsc 'split("\n") | map(select(length > 0))')"
 
     results="$(printf '%s' "$results" | jq \
       --arg num "$issue_num" \
@@ -546,16 +759,61 @@ cmd_audit() {
       --arg state "$_detected_state" \
       --arg detail "$_detected_detail" \
       --arg branch "$branch" \
+      --arg base_ref "$base_ref" \
       --arg pr_url "$pr_url" \
       --arg worktree "$wt_dir" \
       --arg workflow_step "$workflow_step" \
+      --argjson blockers "$blockers" \
+      --argjson touched "$touched_files_json" \
       '. + [{issue_number: ($num|tonumber), title: $title, state: $state,
-              detail: $detail, branch: $branch,
+              detail: $detail, branch: $branch, base_ref: $base_ref,
               pr_url: (if $pr_url == "" then null else $pr_url end),
-              worktree: $worktree, workflow_step: $workflow_step}]')"
+              worktree: $worktree, workflow_step: $workflow_step,
+              blockers: $blockers, touched_files: $touched}]')"
   done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -name 'issue-*' -print0 2>/dev/null)
 
-  json_ok "$results"
+  # Overlap pass: every pair of active worktrees that share >=1 touched file.
+  # Surfaces merge-conflict risk before it materializes.
+  local overlaps
+  overlaps="$(printf '%s' "$results" | jq '
+    [
+      . as $all
+      | range(0; length) as $i
+      | range($i+1; length) as $j
+      | {
+          a: $all[$i].issue_number,
+          b: $all[$j].issue_number,
+          shared: (($all[$i].touched_files // []) - (($all[$i].touched_files // []) - ($all[$j].touched_files // [])))
+        }
+      | select((.shared | length) > 0)
+    ]
+  ')"
+
+  # Merge-ordering: take worktrees whose PR is mergeable (waiting or
+  # review_security with an open PR), annotate each with the set of peer
+  # issues it unblocks, then sort so issues that unblock the most peers
+  # merge first. Non-mergeable worktrees are excluded.
+  local merge_order
+  merge_order="$(printf '%s' "$results" | jq '
+    [ .[] | select(.pr_url != null and (.workflow_step == "waiting" or .workflow_step == "review_security")) ]
+    | . as $mergeable
+    | map(. as $item
+          | . + {
+              blocks: [
+                $mergeable[]
+                | select(.blockers | map(.number) | index($item.issue_number))
+                | .issue_number
+              ]
+            })
+    | sort_by(-(.blocks | length))
+    | map({issue_number, title, pr_url, workflow_step, blocks})
+  ')"
+
+  json_ok "$(jq -n \
+    --argjson worktrees "$results" \
+    --argjson overlaps "$overlaps" \
+    --argjson merge_order "$merge_order" \
+    '{worktrees: $worktrees, overlaps: $overlaps, merge_order: $merge_order}')"
 }
 
 cmd_cleanup() {
@@ -612,23 +870,32 @@ cmd_cleanup() {
 }
 
 cmd_transition() {
-  local issue_number="${1:?usage: github-issue transition <issue-number> <step> [--detail-json '<json>']}"
-  local new_step="${2:?usage: github-issue transition <issue-number> <step>}"
+  local issue_number="${1:?usage: github-issue transition <issue-number> <step> --note '...' [--detail-json '<json>']}"
+  local new_step="${2:?usage: github-issue transition <issue-number> <step> --note '...'}"
   shift 2
 
-  # Parse optional --detail-json
   local detail_json="{}"
+  local note=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --detail-json)
         detail_json="${2:?--detail-json requires a value}"
         shift 2
         ;;
+      --note)
+        note="${2:?--note requires a value}"
+        shift 2
+        ;;
       *) die "unknown option: $1" ;;
     esac
   done
 
-  # Validate step name
+  # --note is mandatory. Autonomous resume depends on every transition leaving
+  # a trail the next agent can read.
+  if [[ -z "$note" ]]; then
+    json_error "--note '<short summary of what happened>' is required on transition"
+  fi
+
   if ! is_valid_step "$new_step"; then
     json_error "invalid step '${new_step}' -- valid steps: ${VALID_STEPS[*]}"
   fi
@@ -645,18 +912,15 @@ cmd_transition() {
     json_error "worktree exists but no state file"
   fi
 
-  # Migrate v1 if needed
-  migrate_v1_state "$wt_path"
+  migrate_state "$wt_path"
 
   local current_step
   current_step="$(jq -r '.workflow_step' "$state_file")"
 
-  # Validate transition
   if ! is_valid_transition "$current_step" "$new_step"; then
     json_error "invalid transition: ${current_step} -> ${new_step} -- allowed from ${current_step}: ${VALID_TRANSITIONS[$current_step]:-none}"
   fi
 
-  # Validate detail_json is valid JSON
   if ! printf '%s' "$detail_json" | jq . >/dev/null 2>&1; then
     json_error "invalid --detail-json: not valid JSON"
   fi
@@ -668,20 +932,22 @@ cmd_transition() {
   updated="$(printf '%s' "$current" | jq \
     --arg step "$new_step" \
     --arg t "$timestamp" \
+    --arg note "$note" \
     --argjson detail "$detail_json" \
     '.workflow_step = $step |
      .updated_at = $t |
      .workflow_detail = (.workflow_detail // {}) * $detail |
-     .step_history = (.step_history // []) + [{step: $step, completed_at: $t}]')"
+     .step_history = (.step_history // []) + [{step: $step, completed_at: $t, note: $note}]')"
   write_state "$updated" "$wt_path"
 
   json_ok "$(jq -n \
     --arg issue_number "$issue_number" \
     --arg previous_step "$current_step" \
     --arg current_step "$new_step" \
+    --arg note "$note" \
     --arg updated_at "$timestamp" \
     '{issue_number: ($issue_number|tonumber), previous_step: $previous_step,
-      current_step: $current_step, updated_at: $updated_at}')"
+      current_step: $current_step, note: $note, updated_at: $updated_at}')"
 }
 
 cmd_validate_cwd() {
@@ -814,10 +1080,118 @@ cmd_review_feedback() {
       inline_comments: $inline_comments}')"
 }
 
+# Enable GitHub-side auto-merge (squash). The merge lands the moment branch
+# protection, required reviews, and CI are all satisfied. The skill's state
+# machine still polls status; reconciliation detects the merge and routes to
+# done.
+cmd_auto_merge() {
+  local issue_number="${1:?usage: github-issue auto-merge <issue-number>}"
+  local wt_path
+  wt_path="$(worktree_base)/issue-${issue_number}"
+
+  if [[ ! -d "$wt_path" ]]; then
+    json_error "no worktree for issue #${issue_number}"
+  fi
+
+  local pr_url
+  pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
+  if [[ -z "$pr_url" ]] || [[ "$pr_url" == "null" ]]; then
+    json_error "no PR exists for issue #${issue_number} -- push first"
+  fi
+
+  local enabled="false"
+  local message=""
+  if gh pr merge "$pr_url" --auto --squash >/dev/null 2>&1; then
+    enabled="true"
+    message="auto-merge (squash) enabled"
+    ok "$message on ${pr_url}"
+  else
+    # Most common non-error cause: branch protection doesn't allow auto-merge,
+    # or PR is already mergeable and gh would need --merge instead.
+    local pr_state
+    pr_state="$(gh pr view "$pr_url" --json state,mergeStateStatus 2>/dev/null)" || pr_state="{}"
+    message="could not enable auto-merge ($(printf '%s' "$pr_state" | jq -r '.mergeStateStatus // "unknown"'))"
+    warn "$message"
+  fi
+
+  json_ok "$(jq -n \
+    --arg issue_number "$issue_number" \
+    --arg pr_url "$pr_url" \
+    --arg enabled "$enabled" \
+    --arg message "$message" \
+    '{issue_number: ($issue_number|tonumber), pr_url: $pr_url,
+      auto_merge_enabled: ($enabled == "true"), message: $message}')"
+}
+
+# Gather close-context for agent synthesis of a post-mortem comment.
+# Returns PR state, review summary (latest reviews + inline comments), CI
+# history at close, commit log, and last few step_history notes. The skill
+# then writes a short comment on the issue.
+cmd_post_mortem() {
+  local issue_number="${1:?usage: github-issue post-mortem <issue-number>}"
+  local wt_path
+  wt_path="$(worktree_base)/issue-${issue_number}"
+
+  if [[ ! -d "$wt_path" ]]; then
+    json_error "no worktree for issue #${issue_number}"
+  fi
+
+  migrate_state "$wt_path"
+
+  local state_file="${wt_path}/.worktree-state.json"
+  local branch pr_url base_ref workflow_step
+  branch="$(jq -r '.branch' "$state_file")"
+  pr_url="$(jq -r '.pr_url // ""' "$state_file")"
+  base_ref="$(jq -r '.base_ref // empty' "$state_file")"
+  workflow_step="$(jq -r '.workflow_step' "$state_file")"
+
+  local default_br
+  default_br="$(default_branch)"
+  [[ -z "$base_ref" ]] && base_ref="origin/${default_br}"
+
+  local pr_json reviews inline_comments checks commits step_notes
+  if [[ -n "$pr_url" ]]; then
+    pr_json="$(gh pr view "$pr_url" --json state,title,url,author,mergeStateStatus,closedAt,updatedAt 2>/dev/null)" || pr_json="{}"
+    local pr_number repo_path
+    pr_number="$(printf '%s' "$pr_url" | grep -oE '[0-9]+$' || echo "")"
+    repo_path="$(printf '%s' "$pr_url" | sed 's|https://github.com/||; s|/pull/[0-9]*$||')"
+    reviews="$(gh api "repos/${repo_path}/pulls/${pr_number}/reviews" \
+      --jq '[.[] | {state, body, author: .user.login, submitted_at}]' 2>/dev/null)" || reviews="[]"
+    inline_comments="$(gh api "repos/${repo_path}/pulls/${pr_number}/comments" \
+      --jq '[.[] | {path, line: (.line // .original_line), body, author: .user.login}]' 2>/dev/null)" || inline_comments="[]"
+    checks="$(gh pr checks "$pr_url" --json name,state,conclusion 2>/dev/null)" || checks="[]"
+  else
+    pr_json="{}"
+    reviews="[]"
+    inline_comments="[]"
+    checks="[]"
+  fi
+
+  commits="$(git -C "$wt_path" log --format='%H%x09%s' "${base_ref}..${branch}" 2>/dev/null \
+    | jq -Rsc 'split("\n") | map(select(length > 0) | split("\t") | {sha: .[0], subject: .[1]})')" \
+    || commits="[]"
+  step_notes="$(jq -c '[.step_history[-10:][] | {step, completed_at, note}]' "$state_file")"
+
+  json_ok "$(jq -n \
+    --arg issue_number "$issue_number" \
+    --arg pr_url "$pr_url" \
+    --arg workflow_step "$workflow_step" \
+    --argjson pr "$pr_json" \
+    --argjson reviews "$reviews" \
+    --argjson inline_comments "$inline_comments" \
+    --argjson checks "$checks" \
+    --argjson commits "$commits" \
+    --argjson step_notes "$step_notes" \
+    '{issue_number: ($issue_number|tonumber), pr_url: (if $pr_url == "" then null else $pr_url end),
+      workflow_step: $workflow_step, pr: $pr, reviews: $reviews,
+      inline_comments: $inline_comments, checks: $checks, commits: $commits,
+      recent_step_notes: $step_notes}')"
+}
+
 # ── Entry point ──────────────────────────────────────────────────────────────
 
 case "${1:-}" in
-  setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback)
+  setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | post-mortem)
     _JSON_MODE=1
     SUBCMD="${1//-/_}"
     shift

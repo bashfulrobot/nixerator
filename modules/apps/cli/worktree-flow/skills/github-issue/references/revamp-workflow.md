@@ -1,106 +1,135 @@
-# Revamp Workflow (PR Review Loop)
+# Revamp & CI-Fix Workflows
 
-When a PR receives "changes requested", Claude re-enters the implementation cycle to address the feedback. This can happen multiple times — each round follows the same pattern.
+Two distinct post-push recovery paths that the state machine treats separately.
 
-## Entry Condition
+- **`revamp`** — a reviewer left `CHANGES_REQUESTED`. Human (or AI) judgment about code quality is required.
+- **`ci_fix`** — CI went red after push. Diagnose the failure and fix it. No code-review evaluation needed.
 
-State detection finds a PR with `reviewDecision: CHANGES_REQUESTED`. In worktree mode, the bash script may also inject review comments into the system prompt.
+Both end by looping back through `verify` so the full gate runs again.
 
-## Procedure
+---
 
-### 1. Fetch Review Feedback
+## `revamp` — address review feedback
 
-```bash
-# Get all reviews with CHANGES_REQUESTED state
-gh pr view <pr_url> --json reviews --jq '.reviews[] | select(.state == "CHANGES_REQUESTED")'
+### Entry
 
-# Get individual review comments (inline code comments)
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --jq '.[] | {path, line, body, created_at}'
-```
+`status` detects an open PR with `reviewDecision == CHANGES_REQUESTED` and advances `workflow_step` to `revamp`.
 
-Read both the review-level comments (high-level feedback) and inline code comments (specific line feedback).
+### Procedure
 
-### 2. Evaluate Feedback Technically
+1. **Fetch review feedback**
 
-**Invoke `superpowers:receiving-code-review`** before making changes.
+   ```bash
+   github-issue review-feedback <N>
+   ```
 
-This skill enforces technical rigor: don't blindly agree with all feedback. For each piece of feedback:
-- Does the suggestion improve the code?
-- Is there a technical reason the current approach is better?
-- Is the feedback based on a misunderstanding of the codebase?
+   Returns `reviews` (high-level comments) and `inline_comments` (specific line feedback), plus `review_decision`.
 
-If feedback is questionable, push back with evidence in the PR comment. If it's valid, address it.
+2. **Evaluate technically — invoke `superpowers:receiving-code-review`**
 
-### 3. Implement Changes
+   Do not blindly agree with every comment. For each piece of feedback ask:
+   - Does the suggestion actually improve the code?
+   - Is there a technical reason the current approach is better?
+   - Is the feedback based on a misunderstanding of the codebase?
 
-Re-enter the IMPLEMENT state with review context:
-- Work through each actionable review item
-- Make focused commits — one per review concern where practical
-- Use commit messages that reference the review (e.g., `fix(auth): :bug: handle edge case from review`)
-- Follow all conventions from conventions.md
+   If a suggestion is questionable, push back with evidence in a PR comment. If valid, address it.
 
-### 4. Verify
+3. **Implement fixes**
 
-**Invoke `superpowers:verification-before-completion`** after making changes.
+   Batch all minor findings into a single commit — the branch is squash-merged anyway, so individual review-fix commits just add noise. Log "Batched N minor fixes" in the transition note.
 
-Run tests, linters, build. Evidence before claims.
+   Block-level issues (verdict=block): fix, verify, push before moving on.
 
-### 5. Push Updates
+4. **Verify — invoke `superpowers:verification-before-completion`**
 
-Push directly to the existing PR branch:
+5. **Push updates**
 
-```bash
-git push origin <branch>
-```
+   ```bash
+   github-issue push <N>
+   ```
 
-Claude can push during REVAMP because the PR already exists — the bash script only creates the initial PR.
+   The CLI rebases onto base first (silent), then pushes with `--force-with-lease` if the rebase rewrote history.
 
-### 6. Comment on PR
+6. **Comment on the PR**
 
-After pushing, leave a comment summarizing what was addressed:
+   ```bash
+   gh pr comment <pr_url> --body "Addressed review feedback:
+   - <item 1>
+   - <item 2>"
+   ```
 
-```bash
-gh pr comment <pr_url> --body "Addressed review feedback:
-- <item 1>
-- <item 2>
-- <item 3>"
-```
+7. **Transition back through verify**
 
-### 7. Request Re-review (optional)
+   ```bash
+   github-issue transition <N> verify \
+     --note "Addressed <N> review comments — <brief>" \
+     --detail-json '{"revamp_round": <round+1>}'
+   ```
 
-If the reviewer should be notified:
+   The cycle repeats if the reviewer requests more changes. No round limit.
 
-```bash
-gh pr edit <pr_url> --add-reviewer <reviewer>
-```
+---
 
-Or simply note in the comment that changes are ready for re-review.
+## `ci_fix` — post-push CI failure
 
-## Multiple Review Rounds
+### Entry
 
-The same cycle repeats if the reviewer requests more changes. Each round:
-1. Fetch latest review feedback (filter by date to see only new comments)
-2. Evaluate technically
-3. Implement + verify + push
-4. Comment
+`status` detects an open PR where `gh pr checks` reports `FAILURE` or `ERROR` checks, while the workflow step is `waiting`, `push`, `review_dev`, or `review_security`. Reconciliation advances `workflow_step` to `ci_fix`.
 
-There's no limit on rounds — the cycle continues until the PR is approved or the user decides to close it.
+### Procedure — do NOT invoke `receiving-code-review`
 
-## CI Failures During Revamp
+1. **Get structured failure data**
 
-If CI fails after pushing revamp changes:
-1. Fetch check details: `gh pr checks <pr_url>`
-2. Identify failing checks
-3. Fix the failures (this is still part of the REVAMP cycle)
-4. Push again
-5. Monitor checks before commenting that changes are ready
+   ```bash
+   github-issue check-ci <N>
+   ```
 
-## Merge Conflicts During Revamp
+   Returns `failing_checks` (name, conclusion, detailsUrl), `passing_checks`, `pending_checks`.
 
-If the PR develops merge conflicts while addressing review feedback:
-1. Rebase onto the default branch: `git fetch origin && git rebase origin/<default>`
-2. Resolve conflicts if able
-3. If conflicts need human input, report conflicting files and stop
-4. After resolution: `git push --force-with-lease origin <branch>`
+2. **Fetch failing job logs** for each failing check
 
-Use `--force-with-lease` (not `--force`) to avoid overwriting concurrent changes.
+   ```bash
+   gh run view <run-id> --log-failed
+   ```
+
+   The `detailsUrl` from check-ci output contains the run id.
+
+3. **Fix the failure**
+
+   - Flaky test: stabilize or skip with issue reference
+   - Real regression: fix the code
+   - Environment / config drift: update the config
+   - Do not paper over real failures
+
+4. **Verify locally — invoke `superpowers:verification-before-completion`**
+
+   Run the same suite that failed in CI to confirm local repro + fix.
+
+5. **Push**
+
+   ```bash
+   github-issue push <N>
+   ```
+
+6. **Transition back through verify**
+
+   ```bash
+   github-issue transition <N> verify \
+     --note "Fixed CI failure in <check-name>: <root cause>"
+   ```
+
+   The state machine continues forward from verify through push/review again — the review skills run again on the new diff.
+
+---
+
+## Merge conflicts encountered during either path
+
+If `github-issue push` fails because the pre-push rebase conflicted, apply the **Merge Conflict Resolution** procedure from `SKILL.md`:
+
+- Single attempt, no retry loops
+- Hard-escalate on lockfile/migration/generated-file conflicts
+- Hard-escalate when both a test file and its source file conflict
+- Mandatory post-resolve verification
+- On verification failure: `git rebase --abort` and hand off to the user with a clear status dump
+
+Never use `git push --force` during revamp or ci_fix — always `--force-with-lease` so concurrent pushes can't be silently overwritten.
