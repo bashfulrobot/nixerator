@@ -203,6 +203,27 @@
       npmDepsHash = "sha256-eCgRegSn2uyq2k/9tUgUUiC8m+Y3hQ1SEJ6RqoykxwY=";
     };
 
+    # Upstream Claude Code skills fetched from single-maintainer GitHub repos.
+    # Pinned to specific commits so a drive-by repo compromise can't silently
+    # replace the SKILL.md (loaded into Claude's context) or shipped shell
+    # scripts (executed with the user's permissions). Consumed by
+    # modules/apps/cli/claude-external-skills/.
+    generate-images-skill = {
+      source = "github-commit";
+      repo = "ericblue/my-claude";
+      version = "unstable-2026-04-23";
+      rev = "d866341949059ef80ea59fac807954cf63d3fb70";
+      hash = "sha256-QYDUvpd6pm6Yp6Otn6B5gyP+p8rePqGcqMExDyb0nR0=";
+    };
+
+    visual-explainer-skill = {
+      source = "github-commit";
+      repo = "ericblue/visual-explainer-skill";
+      version = "unstable-2026-04-23";
+      rev = "811b823653f0d1d9b1d2bc6f7c13df952f0216e7";
+      hash = "sha256-J+Jh76ib17LcIDWJbIclXd5j4doJBDnxbofdNWfAl38=";
+    };
+
   };
 
   gui = {
