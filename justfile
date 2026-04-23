@@ -205,19 +205,14 @@ fmt:
     @nix fmt
 
 # Update manually-installed Claude skills from GitHub
+#
+# generate-images and visual-explainer are now vendored via Nix -- see
+# settings/versions.nix (cli.generate-images-skill, cli.visual-explainer-skill)
+# and modules/apps/cli/claude-external-skills/. To update those, bump the
+# rev + hash in versions.nix and rebuild; they're no longer fetched here.
 update-skills:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "Updating generate-images skill..."
-    curl -fsSL "https://raw.githubusercontent.com/ericblue/my-claude/main/skills/generate-images/SKILL.md" \
-        -o ~/.claude/skills/generate-images/SKILL.md
-    mkdir -p ~/.claude/skills/generate-images/scripts
-    curl -fsSL "https://raw.githubusercontent.com/ericblue/my-claude/main/skills/generate-images/scripts/generate-images.sh" \
-        -o ~/.claude/skills/generate-images/scripts/generate-images.sh
-    chmod +x ~/.claude/skills/generate-images/scripts/generate-images.sh
-    echo "Updating visual-explainer skill..."
-    curl -fsSL "https://raw.githubusercontent.com/ericblue/visual-explainer-skill/main/skill/visual-explainer.md" \
-        -o ~/.claude/skills/visual-explainer/SKILL.md
     if command -v skillfish >/dev/null 2>&1; then
         echo "Updating skillfish-managed skills..."
         skillfish update --yes || echo "skillfish update failed (non-fatal)"
