@@ -19,10 +19,22 @@ target_org=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --json) format="json"; shift ;;
-    --csv) format="csv"; shift ;;
-    --human) format="human"; shift ;;
-    --bulk) bulk="--bulk --wait 10"; shift ;;
+    --json)
+      format="json"
+      shift
+      ;;
+    --csv)
+      format="csv"
+      shift
+      ;;
+    --human)
+      format="human"
+      shift
+      ;;
+    --bulk)
+      bulk="--bulk --wait 10"
+      shift
+      ;;
     --target-org)
       if [[ $# -lt 2 ]]; then
         echo "ERROR: --target-org needs a value" >&2
@@ -31,12 +43,18 @@ while [[ $# -gt 0 ]]; do
       target_org=(--target-org "$2")
       shift 2
       ;;
-    -h|--help)
+    -h | --help)
       sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
-    --) shift; break ;;
-    -*) echo "ERROR: unknown flag: $1" >&2; exit 2 ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "ERROR: unknown flag: $1" >&2
+      exit 2
+      ;;
     *) break ;;
   esac
 done
