@@ -16,7 +16,10 @@ sobject=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --fields-only) fields_only=1; shift ;;
+    --fields-only)
+      fields_only=1
+      shift
+      ;;
     --target-org)
       if [[ $# -lt 2 ]]; then
         echo "ERROR: --target-org needs a value" >&2
@@ -25,12 +28,18 @@ while [[ $# -gt 0 ]]; do
       target_org=(--target-org "$2")
       shift 2
       ;;
-    -h|--help)
+    -h | --help)
       sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
-    --) shift; break ;;
-    -*) echo "ERROR: unknown flag: $1" >&2; exit 2 ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "ERROR: unknown flag: $1" >&2
+      exit 2
+      ;;
     *)
       if [[ -z "$sobject" ]]; then
         sobject="$1"
@@ -57,8 +66,11 @@ fi
 raw=$(sf sobject describe --sobject "$sobject" --json "${target_org[@]}")
 
 if [[ "$fields_only" -eq 1 ]]; then
-  jq -r '.result.fields[] | [.name, .label, .type, (.updateable|tostring), (.createable|tostring)] | @tsv' <<<"$raw" | \
-    (printf 'NAME\tLABEL\tTYPE\tUPDATEABLE\tCREATEABLE\n'; cat) | \
+  jq -r '.result.fields[] | [.name, .label, .type, (.updateable|tostring), (.createable|tostring)] | @tsv' <<<"$raw" |
+    (
+      printf 'NAME\tLABEL\tTYPE\tUPDATEABLE\tCREATEABLE\n'
+      cat
+    ) |
     column -t -s $'\t'
 else
   jq '.result' <<<"$raw"
