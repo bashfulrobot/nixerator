@@ -1,8 +1,7 @@
-{
-  lib,
-  config,
-  globals,
-  ...
+{ lib
+, config
+, globals
+, ...
 }:
 let
   mkWebApp = import ../../../../lib/mkWebApp.nix { inherit lib; };
@@ -14,4 +13,5 @@ mkWebApp {
   url = "https://192.168.169.2:3131/";
   wmClass = "chrome-192.168.169.2__3131-Default";
   icon = ./icon.png;
+  iconGlyph = "󰅴";
 }

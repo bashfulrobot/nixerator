@@ -1,8 +1,7 @@
-{
-  lib,
-  config,
-  globals,
-  ...
+{ lib
+, config
+, globals
+, ...
 }:
 let
   mkWebApp = import ../../../../lib/mkWebApp.nix { inherit lib; };
@@ -14,5 +13,6 @@ mkWebApp {
   url = "https://claude.ai/new";
   wmClass = "chrome-claude.ai__new-claude";
   icon = ./icon.png;
+  iconGlyph = "󰚩";
   extraArgs = "--user-data-dir=${globals.user.homeDirectory}/.config/google-chrome-claude";
 }

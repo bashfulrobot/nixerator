@@ -1,8 +1,7 @@
-{
-  lib,
-  config,
-  globals,
-  ...
+{ lib
+, config
+, globals
+, ...
 }:
 let
   mkWebApp = import ../../../../lib/mkWebApp.nix { inherit lib; };
@@ -14,6 +13,7 @@ mkWebApp {
   url = "https://app.zoom.us/wc/home";
   wmClass = "chrome-app.zoom.us__wc_home-Default";
   icon = ./icon.png;
+  iconGlyph = "󰕧";
   categories = [
     "Network"
     "VideoConference"

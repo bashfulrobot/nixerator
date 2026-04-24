@@ -1,8 +1,7 @@
-{
-  lib,
-  config,
-  globals,
-  ...
+{ lib
+, config
+, globals
+, ...
 }:
 let
   mkWebApp = import ../../../../lib/mkWebApp.nix { inherit lib; };
@@ -14,4 +13,5 @@ mkWebApp {
   url = "https://developer.konghq.com/";
   wmClass = "chrome-developer.konghq.com__-Default";
   icon = ./icon.png;
+  iconGlyph = "󰂺";
 }
