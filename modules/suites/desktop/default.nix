@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -83,6 +82,11 @@ in
           # we package in nixerator that the upstream map does not cover.
           workspaceAppIcons = {
             enable = lib.mkDefault true;
+            # Stylix base0A (Yellow in Catppuccin Mocha) reads well on
+            # active (blue), occupied (mantle), and empty workspace
+            # buttons alike. Override per host if a different accent
+            # works better with your scheme.
+            iconColor = lib.mkDefault "#${config.lib.stylix.colors.base0A}";
             rewrites = {
               "class<dev.zed.Zed>" = "󰰶";
               "class<Zed>" = "󰰶";
