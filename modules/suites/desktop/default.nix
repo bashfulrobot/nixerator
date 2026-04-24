@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -73,9 +72,29 @@ in
           variant = lib.mkDefault ""; # examples: "colemak", "dvorak", "altgr-intl"
         };
 
-        # Waybar auto-hide configuration
-        # Automatically hides waybar when workspace is empty and shows on cursor hover at top edge
-        waybar.autoHide = lib.mkDefault false;
+        # Waybar configuration
+        waybar = {
+          # Automatically hide waybar when workspace is empty and show on cursor hover at top edge
+          autoHide = lib.mkDefault false;
+
+          # Render application icons inside each workspace indicator via window-rewrite.
+          # hyprflake ships sane defaults for common apps; extend here with the tools
+          # we package in nixerator that the upstream map does not cover.
+          workspaceAppIcons = {
+            enable = lib.mkDefault true;
+            rewrites = {
+              "class<dev.zed.Zed>" = "󰰶";
+              "class<Zed>" = "󰰶";
+              "class<Insomnia>" = "󰛮";
+              "class<helium>" = "󰖟";
+              "class<Morgen>" = "";
+              "class<okular>" = "";
+              "class<Typora>" = "";
+              "class<upsight>" = "󰧑";
+              "class<com.localsend.localsend_app>" = "󰇚";
+            };
+          };
+        };
 
         # Idle management configuration (hypridle)
         # Controls screen locking, display power management, and suspend timeouts
