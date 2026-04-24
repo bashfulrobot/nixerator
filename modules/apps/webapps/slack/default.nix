@@ -1,8 +1,7 @@
-{
-  lib,
-  config,
-  globals,
-  ...
+{ lib
+, config
+, globals
+, ...
 }:
 let
   mkWebApp = import ../../../../lib/mkWebApp.nix { inherit lib; };
@@ -14,6 +13,7 @@ mkWebApp {
   url = "https://kongstrong.slack.com/";
   wmClass = "chrome-kongstrong.slack.com__-Default";
   icon = ./icon.png;
+  iconGlyph = "󰒱";
   categories = [
     "Network"
     "InstantMessaging"
