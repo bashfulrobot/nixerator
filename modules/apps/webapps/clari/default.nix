@@ -1,7 +1,8 @@
-{ lib
-, config
-, globals
-, ...
+{
+  lib,
+  config,
+  globals,
+  ...
 }:
 let
   mkWebApp = import ../../../../lib/mkWebApp.nix { inherit lib; };
