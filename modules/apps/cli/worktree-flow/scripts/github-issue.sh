@@ -391,10 +391,10 @@ detect_ci_conclusion() {
 parse_blockers() {
   local body="$1"
   local numbers
-  numbers="$(printf '%s' "$body" |
-    grep -oiE '(blocked by|depends on|requires|needs)[[:space:]]*#[0-9]+' |
-    grep -oE '[0-9]+' |
-    sort -u)"
+  numbers="$(printf '%s' "$body" \
+    | grep -oiE '(blocked by|depends on|requires|needs)[[:space:]]*#[0-9]+' \
+    | grep -oE '[0-9]+' \
+    | sort -u)"
 
   local result="[]"
   local n entry
@@ -446,8 +446,8 @@ cmd_setup() {
   if [[ -z "$base_ref" ]]; then
     base_ref="origin/${default_br}"
   fi
-  git rev-parse --verify --quiet "$base_ref" >/dev/null ||
-    die "base ref '${base_ref}' does not resolve -- run 'git fetch origin' or pass a valid --base"
+  git rev-parse --verify --quiet "$base_ref" >/dev/null \
+    || die "base ref '${base_ref}' does not resolve -- run 'git fetch origin' or pass a valid --base"
   ok "base: ${base_ref}"
 
   local issue_json issue_title issue_labels issue_body
@@ -750,8 +750,8 @@ cmd_audit() {
 
     # Collect touched-file list for overlap pass below.
     local touched_files_json
-    touched_files_json="$(branch_touched_files "$wt_dir" "$branch" "$base_ref" |
-      jq -Rsc 'split("\n") | map(select(length > 0))')"
+    touched_files_json="$(branch_touched_files "$wt_dir" "$branch" "$base_ref" \
+      | jq -Rsc 'split("\n") | map(select(length > 0))')"
 
     results="$(printf '%s' "$results" | jq \
       --arg num "$issue_num" \
@@ -1167,9 +1167,9 @@ cmd_post_mortem() {
     checks="[]"
   fi
 
-  commits="$(git -C "$wt_path" log --format='%H%x09%s' "${base_ref}..${branch}" 2>/dev/null |
-    jq -Rsc 'split("\n") | map(select(length > 0) | split("\t") | {sha: .[0], subject: .[1]})')" ||
-    commits="[]"
+  commits="$(git -C "$wt_path" log --format='%H%x09%s' "${base_ref}..${branch}" 2>/dev/null \
+    | jq -Rsc 'split("\n") | map(select(length > 0) | split("\t") | {sha: .[0], subject: .[1]})')" \
+    || commits="[]"
   step_notes="$(jq -c '[.step_history[-10:][] | {step, completed_at, note}]' "$state_file")"
 
   json_ok "$(jq -n \
