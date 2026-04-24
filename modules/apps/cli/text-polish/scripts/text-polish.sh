@@ -5,6 +5,7 @@ set -euo pipefail
 WL_PASTE="@wl_paste@"
 WL_COPY="@wl_copy@"
 NOTIFY="@notify_send@"
+WTYPE="@wtype@"
 
 NOTIFY_TAG="text-polish"
 
@@ -93,7 +94,11 @@ fi
 # 3. Put result on clipboard
 printf '%s' "$output" | "$WL_COPY"
 
-# 4. Notify success with preview
+# 4. Paste back — wait for shortcut's modifiers to release, then send Ctrl+V
+sleep 1
+"$WTYPE" -M ctrl -P v -p v -m ctrl 2>/dev/null || true
+
+# 5. Notify success with preview
 preview="${output:0:120}"
 if [ ${#output} -gt 120 ]; then
   preview="${preview}..."

@@ -13,6 +13,7 @@ let
     wl_paste = "${pkgs.wl-clipboard}/bin/wl-paste";
     wl_copy = "${pkgs.wl-clipboard}/bin/wl-copy";
     notify_send = "${pkgs.libnotify}/bin/notify-send";
+    wtype = "${pkgs.wtype}/bin/wtype";
   };
 in
 {
