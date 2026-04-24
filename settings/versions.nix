@@ -16,6 +16,14 @@
   #   platformHashes - per-platform SRI hashes (e.g. insomnia AppImage vs DMG)
 
   cli = {
+    agentos = {
+      source = "github-release";
+      repo = "buildermethods/agent-os";
+      version = "3.0.0";
+      tagPrefix = "v";
+      hash = "sha256-NKjR19bHw/fFmkzSxMa5RV9CjYk3SrLjFyyuFE4Cdvs=";
+    };
+
     amber = {
       source = "github-release";
       repo = "dalance/amber";

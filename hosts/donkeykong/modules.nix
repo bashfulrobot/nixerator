@@ -6,6 +6,7 @@
 
   apps.cli.paseo.service.enable = true;
   apps.cli.text-polish.enable = true;
+  apps.cli.text-uppercase.enable = true;
 
   apps.cli.syncthing = {
     enable = true;

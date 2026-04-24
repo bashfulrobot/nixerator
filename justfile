@@ -236,6 +236,8 @@ post-rebuild mode="quiet":
             -- bash -c 'just update-skills &>/dev/null' || gum style --foreground 220 "Skill update failed (non-fatal)"
         gum spin --spinner dot --title "Capturing Claude Code config..." \
             -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
+        gum spin --spinner dot --title "Capturing Agent OS config..." \
+            -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS capture failed (non-fatal)"
     else
         echo "Syncing plugins..."
         claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
@@ -243,6 +245,8 @@ post-rebuild mode="quiet":
         just update-skills || echo "Skill update failed (non-fatal)"
         echo "Capturing Claude Code config..."
         fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
+        echo "Capturing Agent OS config..."
+        fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
     fi
 
     if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
