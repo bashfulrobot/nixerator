@@ -15,16 +15,17 @@
         "sf-pro": "sf-pro"
       },
       "locked": {
-        "lastModified": 1776924392,
-        "narHash": "sha256-gcOiPC+kKae35uni+9qqb5/3dhbrZboKS06I5QQ2z7w=",
+        "lastModified": 1775780043,
+        "narHash": "sha256-gjSmzLF1WaxZ1128suHgT5lp6qbjv+qy4NIuE8dEUXM=",
         "owner": "Lyndeno",
         "repo": "apple-fonts.nix",
-        "rev": "6f4eed8c37574cb41697dc02721939842b15b785",
+        "rev": "ecb843051893bdf34fd4f9c0ec664e356e2251a6",
         "type": "github"
       },
       "original": {
         "owner": "Lyndeno",
         "repo": "apple-fonts.nix",
+        "rev": "ecb843051893bdf34fd4f9c0ec664e356e2251a6",
         "type": "github"
       }
     },
@@ -586,11 +587,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1777063013,
-        "narHash": "sha256-7vqNwCem84Om4q5c7kcZbLTQGWBel2kDoA3kcErZ6dA=",
+        "lastModified": 1777067476,
+        "narHash": "sha256-SnL/zi/Hy6V3A3ZLbfoG+ik4ll5wX3qeiZ5Im04kng4=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "12136ecb6e3b86c5498bd5ae47eccb560e65b10f",
+        "rev": "4cb5108b3333ba3666bfbf0ab70c63a85f181fc9",
         "type": "github"
       },
       "original": {
