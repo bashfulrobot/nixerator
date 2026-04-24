@@ -22,6 +22,7 @@ in
     };
 
     apps.cli = {
+      agentos.enable = true;
       clay.enable = true;
       drawio.enable = true;
       claude-code = {
