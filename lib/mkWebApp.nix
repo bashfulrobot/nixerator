@@ -1,18 +1,18 @@
 { lib }:
 
-{ config
-, globals
-, name
-, displayName
-, url
-, wmClass
-, icon
-, categories ? [ "Network" ]
-, mimeTypes ? [ ]
-, defaultFor ? { }
-, extraArgs ? ""
-, iconGlyph ? null
-,
+{
+  config,
+  globals,
+  name,
+  displayName,
+  url,
+  wmClass,
+  icon,
+  categories ? [ "Network" ],
+  mimeTypes ? [ ],
+  defaultFor ? { },
+  extraArgs ? "",
+  iconGlyph ? null,
 }:
 
 let
@@ -29,28 +29,30 @@ in
 {
   options.apps.webapps.${name}.enable = lib.mkEnableOption "${displayName} web app";
 
-  config = lib.mkIf cfg.enable (lib.mkMerge [
-    {
-      home-manager.users.${globals.user.name} = {
-        xdg.desktopEntries.${desktopName} = {
-          name = displayName;
-          exec = execLine;
-          icon = "${icon}";
-          terminal = false;
-          type = "Application";
-          inherit categories;
-          startupNotify = true;
-          mimeType = mimeTypes;
-          settings = {
-            StartupWMClass = wmClass;
+  config = lib.mkIf cfg.enable (
+    lib.mkMerge [
+      {
+        home-manager.users.${globals.user.name} = {
+          xdg.desktopEntries.${desktopName} = {
+            name = displayName;
+            exec = execLine;
+            icon = "${icon}";
+            terminal = false;
+            type = "Application";
+            inherit categories;
+            startupNotify = true;
+            mimeType = mimeTypes;
+            settings = {
+              StartupWMClass = wmClass;
+            };
           };
-        };
 
-        xdg.mimeApps.defaultApplications = defaultFor;
-      };
-    }
-    (lib.mkIf (iconGlyph != null) {
-      hyprflake.desktop.waybar.workspaceAppIcons.rewrites."class<${wmClass}>" = iconGlyph;
-    })
-  ]);
+          xdg.mimeApps.defaultApplications = defaultFor;
+        };
+      }
+      (lib.mkIf (iconGlyph != null) {
+        hyprflake.desktop.waybar.workspaceAppIcons.rewrites."class<${wmClass}>" = iconGlyph;
+      })
+    ]
+  );
 }
