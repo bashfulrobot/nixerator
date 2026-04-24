@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -88,9 +87,9 @@ in
               "class<Zed>" = "󰰶";
               "class<Insomnia>" = "󰛮";
               "class<helium>" = "󰖟";
-              "class<Morgen>" = "";
-              "class<okular>" = "";
-              "class<Typora>" = "";
+              "class<Morgen>" = "󰃮";
+              "class<okular>" = "󰈦";
+              "class<Typora>" = "󰈙";
               "class<upsight>" = "󰧑";
               "class<com.localsend.localsend_app>" = "󰇚";
             };
