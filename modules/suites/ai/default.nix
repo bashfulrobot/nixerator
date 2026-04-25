@@ -22,6 +22,7 @@ in
     };
 
     apps.cli = {
+      agent-scan.enable = true;
       agentos.enable = true;
       clay.enable = true;
       drawio.enable = true;
