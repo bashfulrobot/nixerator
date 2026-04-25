@@ -129,10 +129,10 @@
       "Bash(kill *)",
       "Bash(pkill *)"
     ],
+    "defaultMode": "auto",
     "additionalDirectories": [
       "/home/dustin/git/.worktrees"
-    ],
-    "defaultMode": "auto"
+    ]
   },
   "hooks": {
     "PostToolUse": [
@@ -376,8 +376,9 @@
     "kotlin-lsp@claude-plugins-official": true
   },
   "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true,
   "smallModelOverride": "haiku",
   "coAuthor": "",
   "remoteControlEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "agentPushNotifEnabled": true
 }
