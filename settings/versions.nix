@@ -16,6 +16,18 @@
   #   platformHashes - per-platform SRI hashes (e.g. insomnia AppImage vs DMG)
 
   cli = {
+    agent-scan = {
+      source = "github-release";
+      repo = "snyk/agent-scan";
+      version = "0.4.18";
+      tagPrefix = "v";
+      platformHashes = {
+        x86_64-linux = "sha256-t+6QaOfoHrb440P6qDnwXKAKNUuFCBsJof3Kpvqiy6s=";
+        aarch64-darwin = "sha256-QJVBZknmJB6keFJjpifPa8ehf9WhgnSuJeIbIpPYpxo=";
+        x86_64-darwin = "sha256-hEdm7MeUf03lBi3FCjhYQ+Pg3vB+CeiJRIQP0QJoIhM=";
+      };
+    };
+
     agentos = {
       source = "github-release";
       repo = "buildermethods/agent-os";
