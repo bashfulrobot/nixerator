@@ -373,12 +373,21 @@
     "ralph-loop@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
-    "kotlin-lsp@claude-plugins-official": true
+    "kotlin-lsp@claude-plugins-official": true,
+    "kong-skill@kong-cs": true
+  },
+  "extraKnownMarketplaces": {
+    "kong-cs": {
+      "source": {
+        "source": "github",
+        "repo": "Kong/cs-skills"
+      }
+    }
   },
   "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "smallModelOverride": "haiku",
   "coAuthor": "",
-  "remoteControlEnabled": true,
-  "agentPushNotifEnabled": true
+  "remoteControlEnabled": true
 }
