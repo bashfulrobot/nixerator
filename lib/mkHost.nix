@@ -49,9 +49,9 @@
             # Verify removal: drop this overlay and run `just qr`; if
             # cli-helpers builds clean, delete.
             (
-              final: prev:
+              _final: prev:
               let
-                cliHelpersPatch = pySelf: pySuper: {
+                cliHelpersPatch = _pySelf: pySuper: {
                   cli-helpers = pySuper.cli-helpers.overridePythonAttrs (old: {
                     disabledTests = (old.disabledTests or [ ]) ++ [
                       "test_style_output"
