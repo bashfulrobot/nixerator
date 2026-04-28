@@ -190,6 +190,15 @@
         "lastUpdated": "2026-04-27T07:01:00.084Z",
         "gitCommitSha": "3f6b1149117d86b191dd38d94591e1f2f2d06530"
       }
+    ],
+    "pyright-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/pyright-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-27T20:14:37.258Z",
+        "lastUpdated": "2026-04-27T20:14:37.258Z"
+      }
     ]
   }
 }
