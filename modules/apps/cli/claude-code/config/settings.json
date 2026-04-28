@@ -374,7 +374,8 @@
     "rust-analyzer-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
     "kotlin-lsp@claude-plugins-official": true,
-    "kong-skill@kong-cs": true
+    "kong-skill@kong-cs": true,
+    "pyright-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "kong-cs": {
