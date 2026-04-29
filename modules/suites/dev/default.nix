@@ -62,7 +62,6 @@ in
         hugo # Static site generator
         envsubst # Environment variable substitution
         sqlite # SQLite CLI client and library
-        litecli # User-friendly SQLite CLI with autocomplete and syntax highlighting
         sqlite-utils # CLI tool for manipulating SQLite databases
       ]
       ++ [
