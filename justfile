@@ -340,11 +340,12 @@ quiet-upgrade:
     echo "Upgrading (quiet mode)..."
     cp flake.lock flake.lock-backup-{{timestamp}}
     rc=0
-    {
+    (
+        set -e
         nix flake update
         sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
         just ref::voxtype-setup
-    } &> {{upgrade_log}} || rc=$?
+    ) &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Upgrade succeeded. Full log: {{upgrade_log}}"
 
