@@ -36,8 +36,10 @@
           # Allow unfree packages (e.g., Google Chrome)
           nixpkgs.config.allowUnfree = true;
 
-          # Discord (and discord-ptb) ship proprietary blobs linked
-          # against libssl.so.1.1; nixpkgs requires opt-in.
+          # TODO(2026-04-28): Revisit once Discord (and discord-ptb) drop
+          # the libssl.so.1.1 dependency. Nixpkgs requires opt-in for the
+          # EOL openssl-1.1.1w blob. Verify removal: drop this list and
+          # run `just qr`; if Discord still launches, delete.
           nixpkgs.config.permittedInsecurePackages = [
             "openssl-1.1.1w"
           ];
