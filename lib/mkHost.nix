@@ -36,6 +36,12 @@
           # Allow unfree packages (e.g., Google Chrome)
           nixpkgs.config.allowUnfree = true;
 
+          # Discord (and discord-ptb) ship proprietary blobs linked
+          # against libssl.so.1.1; nixpkgs requires opt-in.
+          nixpkgs.config.permittedInsecurePackages = [
+            "openssl-1.1.1w"
+          ];
+
           # Apply custom package overlays
           nixpkgs.overlays = [
             # llm-agents packages (exposes pkgs.llm-agents.<name>)
