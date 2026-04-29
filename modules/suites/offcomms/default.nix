@@ -72,7 +72,16 @@ in
     system.special-workspaces.enable = true;
 
     environment.systemPackages = with pkgs; [
-      discord-ptb
+      # Trying vesktop in place of the native Discord PTB client because
+      # discord-ptb's prebuilt binary still links against EOL openssl 1.1,
+      # which fails the system rebuild without permittedInsecurePackages.
+      # Vesktop is a maintained Electron wrapper around Discord's web app
+      # and uses modern openssl.
+      #
+      # TODO: if vesktop turns out to be a keeper, delete the commented
+      #       `discord-ptb` line below.
+      # discord-ptb
+      vesktop
       slack
       todoist-electron
       fractal
