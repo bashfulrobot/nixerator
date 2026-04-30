@@ -1,0 +1,323 @@
+---
+name: autonomous-issues
+description: >-
+  Drive a sequenced batch of GitHub issues end-to-end through the full
+  lifecycle (assess → design → plan → implement → verify → push → /review-dev
+  → /review-security), one after another, with no user gates and no auto-merge.
+  Every PR is left ready-for-review, never set to auto-merge — the human
+  reviews and merges manually. Each subsequent issue is branched off the
+  previous issue's branch so the work composes; every PR is annotated with
+  the merge order. Use whenever the user says "/autonomous-issues", asks to
+  work a list of issues hands-off, says "work issues 12, 14, 18 autonomously",
+  "drive these issues to PR while I'm away", "stack and ship issues X, Y, Z",
+  or otherwise wants a queue of GitHub issues processed without supervision.
+  Trigger eagerly even if the user only hints at autonomous batch processing —
+  this skill exists for exactly that case.
+---
+
+# Autonomous Issues
+
+Drive a queue of GitHub issues from open issue to ready-for-review PR with no
+human gates in between. Merging is entirely the human's job — this skill
+never enables auto-merge, never asks for it, and actively disables it if a
+sub-skill turns it on.
+
+Per-issue work is delegated to the `github-issue` skill, which already runs
+`/review-dev` and `/review-security` internally. This skill adds four things
+on top:
+
+1. **Stacking** — issue N+1 is branched off issue N's branch so changes compose.
+2. **Autonomy override** — when the underlying skill would pause for a user
+   decision, make the call yourself and document it as a PR comment.
+3. **Hard completion of review findings** — every finding (Critical, Important,
+   *and* Minor) gets fixed in the same PR. No deferral, no follow-up issues,
+   no "out of scope".
+4. **No auto-merge, ever** — auto-merge is disabled on every PR, regardless of
+   repo defaults or what `github-issue` would otherwise do. Human reviews and
+   merges each PR by hand.
+
+## Invocation
+
+```
+/autonomous-issues <N1> [<N2> ...]
+```
+
+Each argument is a GitHub issue number. Order matters — issue N+1 stacks on
+issue N. If no numbers are supplied, ask the user once for the queue, then
+proceed without further interaction.
+
+## Operating Principles
+
+- **Autonomous by default.** After confirming the queue once, do not ask the
+  user anything until the final report. Make decisions, document them, move on.
+- **Stacking is the explicit exception to the project's "base on main" rule.**
+  This skill's whole point is composing issues, so chaining is intentional.
+  No other skill or workflow should infer permission to stack from this one.
+- **Reviews are not a checkpoint to negotiate around.** Every finding must be
+  remediated in the PR that surfaced it. Do not file a follow-up issue, mark
+  a finding "minor — accept", "out of scope", or "addressed in #...". Findings
+  leave the queue only by being fixed.
+- **Never auto-merge.** Even if the repo default or the underlying skill would
+  enable auto-merge, disable it. The human reviews each PR and decides when to
+  merge. This is a hard rule — do not negotiate around it.
+- **Don't wait for merges.** Once a PR is open and both reviews are clean,
+  immediately start issue N+1. PRs sit in ready-for-review until the human
+  merges them.
+
+## Step 1: Pre-flight
+
+Verify the queue. Each issue must exist and be open:
+
+```bash
+for n in $ISSUES; do
+  gh issue view "$n" --json number,title,state,labels \
+    -q '{n: .number, t: .title, s: .state}'
+done
+```
+
+If any is closed or missing, surface it and ask the user once whether to skip
+or abort. After this single decision, no more user prompts until the final
+report.
+
+Also list any issues currently marked as blockers on the queued issues, and
+warn if any blocker is OPEN and not in the queue itself — stacking on top of
+unmerged work outside the queue is risky.
+
+State to track across the loop:
+
+- `queue` — ordered list of issue numbers
+- `prev_branch` — branch name to base the next issue on (initially `origin/main`)
+- `prs` — map of issue → PR number/url, populated as PRs are created
+- `decisions[issue]` — buffer of decisions made before that issue's PR existed
+
+## Step 2: Per-Issue Loop
+
+For each issue `N` in `queue`, in order:
+
+### 2a. Establish the worktree on the chained base
+
+First check whether work already exists for this issue:
+
+```bash
+github-issue status <N>
+```
+
+- **Worktree exists** — capture `worktree`, `branch`, and `workflow_step`. Skip
+  setup; the skill will resume from the recorded step.
+- **No worktree, first issue in queue** — `github-issue setup <N>`.
+- **No worktree, subsequent issue** — `github-issue setup <N> --base <prev_branch>`.
+
+Capture the branch name from the response — it becomes `prev_branch` for the
+next iteration.
+
+### 2b. Hand off to the `github-issue` skill
+
+Invoke the skill with the issue number:
+
+```
+Skill(skill: "github-issue", args: "<N>")
+```
+
+The `github-issue` skill walks `assess` → `design` → `plan` → `implement` →
+`verify` → `push` → `review_dev` → `review_security` → `waiting`. It already
+invokes `/review-dev` and `/review-security` at the right steps and enables
+auto-merge on a clean run.
+
+Your job during the handoff is to apply the two override rules below.
+
+### 2c. Override autonomy gates
+
+`github-issue` has gates that normally prompt the user:
+
+| Gate | Default behaviour | Autonomous override |
+|------|-------------------|---------------------|
+| Assess — ambiguous classification | Asks user to confirm or override | Pick the classification that fits the issue body. Default to `standard` if neither `trivial` nor `complex` is clearly indicated. |
+| Design — "do not proceed until design is approved" | Hard gate | Run `superpowers:brainstorming`, treat its output as approved, transition to `plan`. |
+| Verdict resolution — review summary missing | Asks user | Re-read the review subagent's output, extract verdict + findings yourself, proceed. |
+| Idempotency — review comment already exists | Asks user | Skip posting a duplicate; proceed with the existing review's findings. |
+
+Whenever you take an autonomous action that would otherwise have been a user
+prompt, append a record to `decisions[N]`:
+
+```
+Question: <one sentence>
+Options: <bullet list of alternatives considered>
+Decision: <what was chosen>
+Rationale: <why, grounded in the issue body and codebase>
+```
+
+Post the buffered decisions on the PR once it exists, as a single comment:
+
+```bash
+gh pr comment <PR> --body "$(cat <<'EOF'
+<!-- autonomous-issues:decisions -->
+## Autonomous decisions
+
+### Decision 1
+**Question:** ...
+**Options:** ...
+**Decision:** ...
+**Rationale:** ...
+
+### Decision 2
+...
+EOF
+)"
+```
+
+Decisions made *after* the PR exists can be posted individually as they happen.
+
+### 2d. Force completion of every review finding
+
+When `/review-dev` posts its summary line:
+
+```
+REVIEW_DEV_SUMMARY: verdict=<v> critical=<C> important=<I> minor=<M>
+```
+
+Treat the rules below as binding, regardless of what the underlying skill
+would otherwise do:
+
+- `verdict=block` — fix the blocker, plus every Important and Minor finding,
+  in the same PR. Verify, push.
+- `verdict=fix` — fix every Critical, Important, *and* Minor finding. Don't
+  let any minor finding slide because it's "just polish". Verify, push.
+- `verdict=clean` — pass through.
+
+The same rules apply to `/review-security` (`REVIEW_SECURITY_SUMMARY`).
+
+Re-run the relevant review after fixes; both dev and security must end at
+`verdict=clean` before this issue is considered done and the next one begins.
+If a second review finds *new* issues, fix those too, then re-review.
+
+**Loop guard.** If the same review keeps surfacing the same finding after two
+fix attempts, stop the queue and escalate (see Failure Handling).
+
+### 2e. Annotate merge order on the PR
+
+Once the PR exists, edit its body to add (or refresh) a merge-order block at
+the top:
+
+```bash
+gh pr view <PR> --json body -q '.body' > /tmp/body.md
+gh pr edit <PR> --body "$(cat <<EOF
+> [!IMPORTANT]
+> **Merge order:** PR <i> of <total> in an autonomous batch.
+> This PR is **not** set to auto-merge — review and merge manually.
+> Merge in this order to avoid conflicts:
+> 1. <#PR1> — <title1>
+> 2. <#PR2> — <title2>
+> ...
+
+$(cat /tmp/body.md)
+EOF
+)"
+```
+
+Re-emit the block on every PR each time a new PR joins the batch, so the list
+grows in lockstep. After the final issue's PR is opened, do one last pass and
+update the merge-order block on every PR to the complete list.
+
+### 2f. Disable auto-merge and move on
+
+`github-issue` enables auto-merge automatically when both reviews come back
+clean. **Override this.** Immediately disable auto-merge so the PR sits in
+ready-for-review until the human merges it manually:
+
+```bash
+# Check current state
+auto_merge=$(gh pr view <PR> --json autoMergeRequest -q '.autoMergeRequest')
+
+# If anything is set, disable it
+if [ "$auto_merge" != "null" ] && [ -n "$auto_merge" ]; then
+  gh pr merge <PR> --disable-auto
+fi
+```
+
+Verify it's off:
+
+```bash
+gh pr view <PR> --json autoMergeRequest -q '.autoMergeRequest'
+# expect: null
+```
+
+If `gh pr merge --disable-auto` fails (e.g., the repo's branch protection
+prevents disabling), surface the failure in the final report so the human
+knows to disable it manually before the merge condition is met. Do not
+proceed silently.
+
+Then:
+
+- Set `prev_branch = <this issue's branch name>`
+- Record `prs[N] = {number, url, title}`
+- **Do not wait for review.** Start the next iteration immediately. The PR
+  sits open for the human to review and merge whenever they choose.
+
+## Step 3: Final Report
+
+After the last issue's PR is open with both reviews clean, emit one summary:
+
+```
+Autonomous batch complete. <total> PRs open for review.
+
+Auto-merge is OFF on every PR. Review and merge each one manually.
+
+Merge in this order to avoid conflicts:
+1. #<PR1> — <title1> — <url1>
+2. #<PR2> — <title2> — <url2>
+...
+
+After you merge PR <i>, the next PR's base ref will need to retarget to main
+once GitHub detects the merge — `gh pr edit <next> --base main` if it doesn't
+happen automatically.
+
+Decisions documented (please review before merging):
+- #<PR1>: <count> autonomous decisions logged
+- #<PR2>: <count>
+- ...
+
+Findings fixed during review (please skim the diffs):
+- #<PR1>: <C critical / I important / M minor>
+- ...
+```
+
+If any PR's auto-merge could not be disabled (Step 2f), call that out
+explicitly in the summary — the human needs to disable it themselves before
+the merge condition is met.
+
+## Failure Handling
+
+Stop the queue — do not silently skip — when:
+
+- An issue has an OPEN blocker not in the queue
+- The same review finding survives two fix attempts (loop guard)
+- Pre-push rebase produces a conflict that hits the hard-escalate signals in
+  the `github-issue` skill (lockfiles, migrations, generated code, or test +
+  source both conflicting)
+- CI fails and the failure is not addressable from logs alone
+- Any other situation where two attempts have not made progress
+
+In each case, leave the in-flight worktree untouched (do not delete or reset
+it), and report:
+
+- Which issue stopped the queue
+- What blocker was hit
+- What was tried, with command/output references
+- Two or three concrete pivots the user can choose between
+- The state of every prior PR in the queue (links, merge state)
+
+The remaining issues in the queue are deferred — they are not started until
+the user resumes.
+
+## Why this skill exists
+
+It is reasonable to want to ship three or five small, related issues without
+sitting at the keyboard for each one. The underlying `github-issue` skill is
+already capable of driving a single issue to merge — what's missing is the
+glue that runs it for several issues in the right order, makes the small
+judgment calls a human would otherwise be paged for, and produces the
+merge-order annotation that turns a stack of PRs into a clean handoff.
+
+This skill is that glue. It deliberately does not reimplement assess, plan,
+implement, or review — those live in `github-issue`, `/review-dev`, and
+`/review-security`, and improvements there benefit this skill automatically.
