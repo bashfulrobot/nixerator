@@ -52,6 +52,15 @@ let
         "chrome-devtools-mcp@latest"
       ];
     };
+    # Playwright — cross-browser automation (Chromium/Firefox/WebKit), accessibility
+    # tree snapshots, network capture. Microsoft's official MCP server.
+    playwright = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "@playwright/mcp@latest"
+      ];
+    };
     # draw.io diagram tools — open XML/CSV/Mermaid in browser-based editor
     drawio = {
       command = "${pkgs.nodejs}/bin/npx";
