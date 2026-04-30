@@ -75,38 +75,85 @@ When invoked:
 
 ### Kong (`theme-kong/`)
 
-Self-contained custom theme -- ships full `style.css` + nine custom Vue
-layouts + Kong wordmarks.
+Self-contained custom theme -- ships full `style.css` + 22 custom Vue
+layouts + brand assets. The layout catalogue mirrors the bundled
+`kong-theme.pptx` template: every layout wears the same chrome (corner
+registration crosses, inset content frame, three-column footer band) via
+the shared `<KongChrome>` component.
 
 ```
 theme-kong/
 ├── package.json
+├── justfile              # just install / dev / build / pdf / pptx / clean
 ├── slides.md             # Sample deck demonstrating every layout
 ├── style.css             # Kong tokens (palette, fonts, bullets, code styling)
+├── components/
+│   ├── KongChrome.vue        # Shared chrome wrapper used by every layout
+│   ├── KongTriangle.vue      # SVG A-frame Kong glyph for footer
+│   ├── KongAdmonition.vue    # Callout box (info/tip/warn/perf/security/...)
+│   ├── KongArrow.vue         # Lime annotation arrow (wraps Slidev's <Arrow>)
+│   ├── KongBox.vue           # Labelled rectangle for diagram regions
+│   ├── KongQRCode.vue        # Brand-coloured QR code
+│   └── KongStickyNote.vue    # Floating note; supports devOnly
 ├── layouts/
-│   ├── cover.vue         # Title slide w/ Kong wordmark, eyebrow, speaker, date, tagline
-│   ├── section.vue       # Section divider; italic = lime accent
-│   ├── content.vue       # Default title + body, Kong-square bullets, lime hairline footer
-│   ├── two-cols.vue      # ::left:: / ::right:: named slots
-│   ├── stats.vue         # 1-6 big numbers; auto column count
-│   ├── quote.vue         # Big lime quote mark, Funnel Display body, attribution
-│   ├── image.vue         # Text + image, image left or right
-│   ├── team.vue          # Headshot grid 3/4/6 columns based on count
-│   └── closing.vue       # Hero "Thank you" w/ contact + URL
+│   # Core
+│   ├── cover.vue                   # Title slide w/ phyllotaxis hero, date pill, speaker
+│   ├── section.vue                 # Section divider; phyllotaxis sandwich + statement
+│   ├── content.vue                 # Default title + body, optional right-side image
+│   ├── closing.vue                 # Oversized "Kong" word + contact band
+│   # Information density
+│   ├── agenda.vue                  # Numbered agenda (2-4 items) + date pill
+│   ├── mission.vue                 # Mission statement + lime left rule
+│   ├── numbered-values.vue         # 1-3 numbered cards (principles / values)
+│   ├── timeline.vue                # 4-5 step horizontal timeline
+│   ├── persona.vue                 # Customer persona card (photo + traits)
+│   # Stats / numbers
+│   ├── stats.vue                   # 1-6 big numbers; auto column count
+│   ├── stats-trio.vue              # 3 stats in a row with category labels
+│   ├── hero-stat.vue               # 1 hero stat with intro
+│   ├── partnership-stats.vue       # 2 hero stats below headline + intro
+│   ├── achievements-mosaic.vue     # Award + market share + quote mosaic
+│   ├── comparison-stats.vue        # Bullets left + bar chart right
+│   ├── partnership-cards.vue       # 2 / 3 / 4 partnership cards
+│   # Multi-column / media
+│   ├── two-cols.vue                # ::left:: / ::right:: named slots
+│   ├── top-title-two-cols.vue      # Title across top + two columns
+│   ├── image.vue                   # Text + image, image left or right
+│   ├── quote.vue                   # Big lime quote mark, attribution + role
+│   ├── team.vue                    # Headshot grid 3/4/6 columns based on count
+│   └── full.vue                    # Full canvas; bleed mode drops the inset
 └── public/
-    ├── kong-logo.png     # Kong mark + wordmark, lime
-    ├── kong-konnect.png  # Kong Konnect lockup
-    └── kong-globe.png    # Decorative globe
+    ├── kong-logo.png            # Kong mark + wordmark, lime
+    ├── kong-konnect.png         # Kong Konnect lockup
+    ├── kong-globe.png           # Decorative globe
+    ├── kong-blades-tall.png     # Phyllotaxis hero (cover backdrop)
+    ├── kong-blades-wide.png     # Phyllotaxis band (section dividers)
+    ├── kong-blades-orbit.png    # Phyllotaxis orbit (corner decoration)
+    └── kong-glow.png            # Soft lime glow texture
 ```
+
+**Deck-level chrome configuration** -- set in the first slide's
+frontmatter (cascades through `$slidev.configs`):
+
+```yaml
+kong_category: AI CONNECTIVITY
+kong_copyright: 'Kong Inc. 2026'
+kong_external: 'NOT TO BE SHARED EXTERNALLY'
+```
+
+Per-slide override: pass `category:` to any layout to swap that slide's
+footer category.
 
 **Ground rules**
 
 - **Do not modify** `style.css` colours or font stack to fit a customer's
   preference -- the palette is locked to the Kong brand. If they need a
   different look, redirect them to the Neversink theme.
-- **Do not** add extra layouts unless asked -- the nine bundled cover the
-  99% case. Add new ones to `theme-kong/layouts/` only when the user names
-  a real gap.
+- **Match the PPTX.** The 22 bundled layouts mirror the slide bases in
+  the bundled `kong-theme.pptx` template. Add new ones to
+  `theme-kong/layouts/` only when the user names a real gap.
+- **New layouts must wrap with `<KongChrome>`** so they inherit the
+  corner crosses + footer band.
 
 ### Neversink (`theme-neversink/`)
 

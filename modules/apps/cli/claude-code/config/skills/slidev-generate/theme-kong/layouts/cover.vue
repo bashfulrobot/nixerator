@@ -1,92 +1,152 @@
 <template>
-  <div class="kong-cover">
-    <img src="/kong-logo.png" alt="Kong" class="kong-cover__logo" />
-    <div class="kong-cover__body">
-      <p v-if="eyebrow" class="kong-eyebrow">{{ eyebrow }}</p>
-      <slot />
-      <p v-if="tagline" class="kong-cover__tagline">{{ tagline }}</p>
+  <KongChrome>
+    <div class="kong-cover">
+      <img src="/kong-blades-tall.png" alt="" class="kong-cover__blades" />
+
+      <header class="kong-cover__head">
+        <img src="/kong-logo.png" alt="Kong" />
+      </header>
+
+      <div class="kong-cover__title-box">
+        <slot />
+      </div>
+
+      <div class="kong-cover__subtitle" v-if="product || tagline">
+        <p v-if="product" class="kong-cover__product">
+          <span class="kong-cover__product-mark">Kong</span>
+          {{ product }}
+        </p>
+        <p v-if="tagline" class="kong-cover__tagline">{{ tagline }}</p>
+      </div>
+
+      <div class="kong-cover__meta" v-if="date || speaker">
+        <span v-if="date" class="kong-cover__date">{{ date }}</span>
+        <span v-if="speaker" class="kong-cover__speaker">{{ speaker }}</span>
+      </div>
     </div>
-    <div class="kong-cover__meta">
-      <p v-if="speaker" class="kong-cover__speaker">{{ speaker }}</p>
-      <p v-if="date" class="kong-cover__date">{{ date }}</p>
-    </div>
-  </div>
+  </KongChrome>
 </template>
 
 <script setup>
+import KongChrome from '../components/KongChrome.vue';
+
 defineProps({
-  eyebrow: String,
+  product: String,
   tagline: String,
+  date: String,
   speaker: String,
-  date: String
 });
 </script>
 
 <style scoped>
 .kong-cover {
+  position: relative;
   width: 100%;
   height: 100%;
-  background: var(--kong-bg-dark);
-  background-image:
-    radial-gradient(circle at 85% 110%, rgba(204, 255, 0, 0.18), transparent 55%),
-    radial-gradient(circle at 0% -10%, rgba(204, 255, 0, 0.08), transparent 50%);
-  padding: 4rem 5rem;
+  padding: 1.4rem 2rem 1.6rem;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 2rem;
-  color: var(--kong-surface);
+  grid-template-rows: auto 1fr auto auto;
+  gap: 1rem;
 }
 
-.kong-cover__logo {
-  height: 2.25rem;
+.kong-cover__blades {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 55%;
+  object-fit: cover;
+  object-position: left center;
+  z-index: 0;
+}
+
+.kong-cover__head {
+  z-index: 2;
+}
+
+.kong-cover__head img {
+  height: 1.95rem;
   width: auto;
 }
 
-.kong-cover__body {
+.kong-cover__title-box {
   align-self: center;
-  max-width: 60rem;
+  z-index: 2;
+  max-width: 65%;
 }
 
-.kong-cover__body :slotted(h1) {
+.kong-cover__title-box :slotted(h1) {
   font-family: var(--kong-display);
-  font-size: 5.25rem;
-  font-weight: 700;
-  line-height: 1.02;
+  font-weight: 600;
+  font-size: 5.2rem;
+  line-height: 1;
   letter-spacing: -0.02em;
+  margin: 0;
   color: var(--kong-surface);
-  margin: 0.75rem 0 0;
+  background: var(--kong-bg-dark);
+  display: inline;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0.05em 0.35em;
+}
+
+.kong-cover__subtitle {
+  z-index: 2;
+  background: var(--kong-bg-dark);
+  display: inline-block;
+  align-self: end;
+  padding: 0.4rem 0.7rem;
+  width: fit-content;
+  max-width: 60%;
+}
+
+.kong-cover__product {
+  margin: 0;
+  font-family: var(--kong-sans);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--kong-surface);
+}
+
+.kong-cover__product-mark {
+  color: var(--kong-lime);
+  font-weight: 700;
 }
 
 .kong-cover__tagline {
-  margin-top: 1.75rem;
-  font-size: 1.4rem;
-  color: var(--kong-grey-300);
-  max-width: 44rem;
+  margin: 0.2rem 0 0;
+  font-family: var(--kong-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--kong-surface);
 }
 
 .kong-cover__meta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  border-top: 1px solid rgba(204, 255, 0, 0.25);
-  padding-top: 1.5rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 1.4rem;
+  background: var(--kong-bg-dark);
+  padding: 0.4rem 0.7rem;
+  align-self: end;
+  width: fit-content;
+}
+
+.kong-cover__date {
+  background: var(--kong-lime);
+  color: var(--kong-bg-dark);
+  font-family: var(--kong-sans);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.85rem;
 }
 
 .kong-cover__speaker {
   font-family: var(--kong-sans);
   font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--kong-surface);
-  margin: 0;
-}
-
-.kong-cover__date {
-  font-family: var(--kong-sans);
-  font-weight: 600;
   font-size: 0.95rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--kong-lime);
-  margin: 0;
+  color: var(--kong-surface);
 }
 </style>

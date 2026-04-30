@@ -1,47 +1,71 @@
 <template>
-  <div class="kong-section">
-    <p v-if="$slidev.configs.eyebrow || eyebrow" class="kong-eyebrow">{{ eyebrow || $slidev.configs.eyebrow }}</p>
-    <div class="kong-rule" />
-    <div class="kong-section__body">
-      <slot />
+  <KongChrome>
+    <div class="kong-section">
+      <img src="/kong-blades-wide.png" alt="" class="kong-section__blades kong-section__blades--top" />
+      <img src="/kong-blades-wide.png" alt="" class="kong-section__blades kong-section__blades--bottom" />
+
+      <div class="kong-section__inner">
+        <p v-if="eyebrow" class="kong-eyebrow">{{ eyebrow }}</p>
+        <div class="kong-section__body">
+          <slot />
+        </div>
+      </div>
     </div>
-  </div>
+  </KongChrome>
 </template>
 
 <script setup>
+import KongChrome from '../components/KongChrome.vue';
 defineProps({ eyebrow: String });
 </script>
 
 <style scoped>
 .kong-section {
+  position: relative;
   width: 100%;
   height: 100%;
-  background: var(--kong-bg-dark);
-  background-image:
-    linear-gradient(135deg, rgba(204, 255, 0, 0.04) 0%, transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(204, 255, 0, 0.18), transparent 55%);
-  padding: 6rem 6rem;
   display: grid;
-  grid-template-rows: auto auto 1fr;
-  gap: 1rem;
-  align-content: center;
+  grid-template-rows: 1fr auto 1fr;
+  align-items: center;
+  overflow: hidden;
+}
+
+.kong-section__blades {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.kong-section__blades--top { object-position: center top; }
+.kong-section__blades--bottom { transform: scaleY(-1); }
+
+.kong-section__inner {
+  padding: 2rem 4rem;
+  background: var(--kong-bg-dark);
+  display: grid;
+  gap: 0.8rem;
 }
 
 .kong-section__body :slotted(h1),
 .kong-section__body :slotted(h2) {
   font-family: var(--kong-display);
-  font-weight: 700;
-  font-size: 4.75rem;
-  line-height: 1.04;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-size: 3rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   margin: 0;
-  max-width: 70%;
+  max-width: 80%;
+  color: var(--kong-surface);
 }
 
-.kong-section__body :slotted(h1) :deep(em),
-.kong-section__body :slotted(h2) :deep(em),
-.kong-section__body :slotted(em) {
+.kong-section__body :deep(strong) {
   color: var(--kong-lime);
+  font-weight: inherit;
+}
+
+.kong-section__body :deep(em) {
   font-style: normal;
+  color: var(--kong-lime);
 }
 </style>
