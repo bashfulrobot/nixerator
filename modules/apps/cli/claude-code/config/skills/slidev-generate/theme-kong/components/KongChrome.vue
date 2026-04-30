@@ -38,20 +38,20 @@ const props = defineProps({
   bleed: { type: Boolean, default: false },
 });
 
-const $slidev = inject('$slidev', null);
+const slidevCtx = inject('$slidev', null);
 
 const deckCategory = computed(
-  () => $slidev?.configs?.kong_category ?? 'AI CONNECTIVITY'
+  () => slidevCtx?.configs?.kong_category ?? 'AI CONNECTIVITY'
 );
 const category = computed(() => props.category || deckCategory.value);
 
 const copyright = computed(
-  () => $slidev?.configs?.kong_copyright ?? 'Kong Inc.'
+  () => slidevCtx?.configs?.kong_copyright ?? 'Kong Inc.'
 );
 const external = computed(
-  () => $slidev?.configs?.kong_external ?? 'NOT TO BE SHARED EXTERNALLY'
+  () => slidevCtx?.configs?.kong_external ?? 'NOT TO BE SHARED EXTERNALLY'
 );
-const slideNo = computed(() => $slidev?.nav?.currentSlideNo ?? '');
+const slideNo = computed(() => slidevCtx?.nav?.currentSlideNo ?? '');
 </script>
 
 <style scoped>

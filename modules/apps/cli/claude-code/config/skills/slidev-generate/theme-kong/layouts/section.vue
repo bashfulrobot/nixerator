@@ -24,27 +24,43 @@ defineProps({ eyebrow: String });
   position: relative;
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-rows: 1fr auto 1fr;
-  align-items: center;
   overflow: hidden;
+  background: var(--kong-bg-deep);
 }
 
 .kong-section__blades {
+  position: absolute;
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: 32%;
   object-fit: cover;
   display: block;
+  z-index: 0;
 }
 
-.kong-section__blades--top { object-position: center top; }
-.kong-section__blades--bottom { transform: scaleY(-1); }
+.kong-section__blades--top {
+  top: 0;
+  object-position: center top;
+}
+
+.kong-section__blades--bottom {
+  bottom: 0;
+  transform: scaleY(-1);
+  object-position: center top;
+}
 
 .kong-section__inner {
-  padding: 2rem 4rem;
+  position: absolute;
+  top: 32%;
+  bottom: 32%;
+  left: 0;
+  right: 0;
   background: var(--kong-bg-dark);
+  padding: 2rem 4rem;
   display: grid;
+  align-content: center;
   gap: 0.8rem;
+  z-index: 1;
 }
 
 .kong-section__body :slotted(h1),
@@ -52,7 +68,7 @@ defineProps({ eyebrow: String });
   font-family: var(--kong-display);
   font-weight: 600;
   font-size: 3rem;
-  line-height: 1.1;
+  line-height: 1.15;
   letter-spacing: -0.01em;
   margin: 0;
   max-width: 80%;
