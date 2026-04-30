@@ -5,7 +5,7 @@
       "repo": "anthropics/claude-plugins-official"
     },
     "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/claude-plugins-official",
-    "lastUpdated": "2026-04-27T19:04:05.048Z"
+    "lastUpdated": "2026-04-30T03:31:02.363Z"
   },
   "superpowers-marketplace": {
     "source": {
@@ -22,5 +22,13 @@
     },
     "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/claude-code-lsps",
     "lastUpdated": "2026-03-02T18:27:00.523Z"
+  },
+  "kong-cs": {
+    "source": {
+      "source": "github",
+      "repo": "Kong/cs-skills"
+    },
+    "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/kong-cs",
+    "lastUpdated": "2026-04-30T05:49:13.529Z"
   }
 }

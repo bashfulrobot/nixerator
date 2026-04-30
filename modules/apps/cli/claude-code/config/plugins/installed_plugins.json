@@ -4,11 +4,11 @@
     "frontend-design@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
-        "version": "unknown",
-        "installedAt": "2026-02-03T16:51:10.433Z",
-        "lastUpdated": "2026-04-21T18:14:52.322Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/frontend-design/0742692199b4",
+        "version": "0742692199b4",
+        "installedAt": "2026-04-30T15:55:43.816Z",
+        "lastUpdated": "2026-04-30T15:55:43.816Z",
+        "gitCommitSha": "0742692199b49af5c6c33cd68ee674fb2e679d50"
       }
     ],
     "asana@claude-plugins-official": [
@@ -179,6 +179,57 @@
         "installedAt": "2026-03-28T02:36:20.669Z",
         "lastUpdated": "2026-03-28T02:36:20.669Z",
         "gitCommitSha": "451c481b2b33600dad4563513c99e2268f056f5f"
+      }
+    ],
+    "kong-skill@kong-cs": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/kong-skill/ff4c4257299d",
+        "version": "ff4c4257299d",
+        "installedAt": "2026-04-27T07:01:00.084Z",
+        "lastUpdated": "2026-04-30T05:49:13.536Z",
+        "gitCommitSha": "3f6b1149117d86b191dd38d94591e1f2f2d06530"
+      }
+    ],
+    "pyright-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/pyright-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-29T21:44:11.215Z",
+        "lastUpdated": "2026-04-29T21:44:11.215Z"
+      }
+    ],
+    "cs-skills@kong-cs": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/cs-skills/ff4c4257299d",
+        "version": "ff4c4257299d",
+        "installedAt": "2026-04-29T21:53:22.027Z",
+        "lastUpdated": "2026-04-30T05:49:13.533Z",
+        "gitCommitSha": "3f6b1149117d86b191dd38d94591e1f2f2d06530"
+      }
+    ],
+    "commit@kong-cs": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/commit/ff4c4257299d",
+        "version": "ff4c4257299d",
+        "installedAt": "2026-04-29T21:53:22.042Z",
+        "lastUpdated": "2026-04-30T05:49:13.535Z",
+        "gitCommitSha": "3f6b1149117d86b191dd38d94591e1f2f2d06530",
+        "auto": true
+      }
+    ],
+    "kong-pptx-build@kong-cs": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/kong-pptx-build/ff4c4257299d",
+        "version": "ff4c4257299d",
+        "installedAt": "2026-04-30T05:49:22.328Z",
+        "lastUpdated": "2026-04-30T05:49:22.328Z",
+        "gitCommitSha": "ff4c4257299d60866c2b34110595e8da0340df0a",
+        "auto": true
       }
     ]
   }
