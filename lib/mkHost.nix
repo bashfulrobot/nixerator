@@ -36,48 +36,10 @@
           # Allow unfree packages (e.g., Google Chrome)
           nixpkgs.config.allowUnfree = true;
 
-          # TODO(2026-04-28): Revisit once Discord (and discord-ptb) drop
-          # the libssl.so.1.1 dependency. Nixpkgs requires opt-in for the
-          # EOL openssl-1.1.1w blob. Verify removal: drop this list and
-          # run `just qr`; if Discord still launches, delete.
-          nixpkgs.config.permittedInsecurePackages = [
-            "openssl-1.1.1w"
-          ];
-
           # Apply custom package overlays
           nixpkgs.overlays = [
             # llm-agents packages (exposes pkgs.llm-agents.<name>)
             inputs.llm-agents.overlays.default
-
-            # TODO(2026-04-28): Remove once nixpkgs ships a cli-helpers/Pygments
-            # fix. cli-helpers 2.10.0 has 3 ANSI-escape assertions in
-            # tests/tabular_output/test_preprocessors.py that broke when
-            # Pygments changed how it emits 256-color SGR resets. Only
-            # consumer in our closure is `litecli` (modules/suites/dev).
-            # Verify removal: drop this overlay and run `just qr`; if
-            # cli-helpers builds clean, delete.
-            (
-              _final: prev:
-              let
-                cliHelpersPatch = _pySelf: pySuper: {
-                  cli-helpers = pySuper.cli-helpers.overridePythonAttrs (old: {
-                    disabledTests = (old.disabledTests or [ ]) ++ [
-                      "test_style_output"
-                      "test_style_output_with_newlines"
-                      "test_style_output_custom_tokens"
-                    ];
-                  });
-                };
-              in
-              {
-                python3 = prev.python3.override (old: {
-                  packageOverrides = prev.lib.composeExtensions (old.packageOverrides or (_: _: { })) cliHelpersPatch;
-                });
-                python313 = prev.python313.override (old: {
-                  packageOverrides = prev.lib.composeExtensions (old.packageOverrides or (_: _: { })) cliHelpersPatch;
-                });
-              }
-            )
           ];
 
           # Nix settings - Determinate Nix manages these automatically when enabled
