@@ -16,8 +16,6 @@ fonts:
   mono: 'JetBrains Mono'
 defaults:
   transition: fade
-addons:
-  - '@slidev/cli'
 eyebrow: KONG
 speaker: Speaker Name, Role
 date: APRIL 2026
