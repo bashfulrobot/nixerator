@@ -129,6 +129,7 @@
       "Bash(kill *)",
       "Bash(pkill *)"
     ],
+    "defaultMode": "auto",
     "additionalDirectories": [
       "/home/dustin/git/.worktrees"
     ]
@@ -372,11 +373,26 @@
     "ralph-loop@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
-    "kotlin-lsp@claude-plugins-official": true
+    "kotlin-lsp@claude-plugins-official": true,
+    "kong-skill@kong-cs": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "cs-skills@kong-cs": true,
+    "commit@kong-cs": true,
+    "kong-pptx-build@kong-cs": true,
+    "frontend-design@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "kong-cs": {
+      "source": {
+        "source": "github",
+        "repo": "Kong/cs-skills"
+      }
+    }
   },
   "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
   "smallModelOverride": "haiku",
   "coAuthor": "",
-  "remoteControlEnabled": true,
-  "agentPushNotifEnabled": true
+  "remoteControlEnabled": true
 }
