@@ -35,6 +35,7 @@ in
         lswt.enable = true;
         nix.enable = true;
         nix-search-tv.enable = true;
+        pnpm.enable = true;
         shadowenv.enable = true;
         kotlin-lsp.enable = true;
         worktree-flow.enable = true;
