@@ -301,38 +301,6 @@ quiet-rebuild:
         exit "$rc"
     fi
 
-# Quiet boot -- builds next-boot generation without live activation; reboot to activate
-quiet-boot:
-    #!/usr/bin/env bash
-    set -uo pipefail
-
-    # Pre-rebuild guard: warn about uncommitted plugin changes
-    if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
-        echo "⚠ Uncommitted plugin changes from a previous sync. Commit or discard before rebuilding."
-    fi
-
-    echo "Building boot generation (quiet mode)..."
-    git add -A
-    trap 'git restore --staged .' EXIT
-    rc=0
-    sudo nixos-rebuild boot --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
-    if [[ "$rc" -eq 0 ]]; then
-        echo "Boot generation built. Full log: {{rebuild_log}}"
-        echo "Reboot to activate: 'systemctl reboot'"
-    else
-        filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{rebuild_log}} | head -80)
-        {
-            echo "=== FILTERED ERRORS/WARNINGS ==="
-            echo "$filtered"
-            echo ""
-            echo "=== FULL BUILD LOG ==="
-            cat {{rebuild_log}}
-        } > {{rebuild_log}}.tmp
-        mv {{rebuild_log}}.tmp {{rebuild_log}}
-        echo "Boot build FAILED (exit $rc). Use a Nix subagent to diagnose {{rebuild_log}} and fix the issue."
-        exit "$rc"
-    fi
-
 # Quiet upgrade -- captures output, shows only errors on failure
 quiet-upgrade:
     #!/usr/bin/env bash
@@ -340,12 +308,11 @@ quiet-upgrade:
     echo "Upgrading (quiet mode)..."
     cp flake.lock flake.lock-backup-{{timestamp}}
     rc=0
-    (
-        set -e
+    {
         nix flake update
         sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
         just ref::voxtype-setup
-    ) &> {{upgrade_log}} || rc=$?
+    } &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Upgrade succeeded. Full log: {{upgrade_log}}"
 
@@ -370,4 +337,3 @@ alias up := upgrade
 alias gc := clean
 alias qr := quiet-rebuild
 alias qu := quiet-upgrade
-alias qb := quiet-boot
