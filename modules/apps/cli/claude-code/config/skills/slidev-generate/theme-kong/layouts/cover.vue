@@ -79,7 +79,7 @@ defineProps({
   font-family: var(--kong-display);
   font-weight: 600;
   font-size: 5.2rem;
-  line-height: 1.18;
+  line-height: 1.5;
   letter-spacing: -0.02em;
   margin: 0;
   color: var(--kong-surface);
@@ -87,7 +87,7 @@ defineProps({
   display: inline;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
-  padding: 0.18em 0.35em 0.28em;
+  padding: 0.15em 0.35em 0.3em;
 }
 
 .kong-cover__subtitle {
