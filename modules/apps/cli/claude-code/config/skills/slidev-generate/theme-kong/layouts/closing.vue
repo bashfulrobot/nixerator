@@ -123,10 +123,11 @@ defineProps({
 .kong-closing__word {
   font-family: var(--kong-display);
   font-weight: 700;
-  font-size: 23rem;
-  line-height: 0.85;
+  font-size: 19rem;
+  line-height: 1;
   letter-spacing: -0.04em;
   color: var(--kong-lime);
   white-space: nowrap;
+  padding-bottom: 0.05em;
 }
 </style>
