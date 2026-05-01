@@ -118,6 +118,7 @@ in
           [
             llm-agents.claude-code
             libnotify # for notify-send in Stop hook
+            libreoffice # soffice on PATH -- required for marp-slides skill's --pptx-editable export
           ]
           ++ pluginsConfig.packages
           ++ reapConfig.packages;
