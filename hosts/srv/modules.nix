@@ -82,6 +82,18 @@
       enable = true;
       service.enable = true;
       tsnetNode = "zellij";
+
+      # Persistent-session stack: pair zellij (session survives
+      # disconnect) with mosh (transport survives roaming) for a
+      # headless remote-dev box that feels local.
+      mosh.enable = true;
+
+      # Reclaim the bottom rows from the always-on shortcut strip.
+      hideStatusBar = true;
+
+      # Pop a markdown cheat sheet in a floating pane on demand.
+      # `Alt /` keeps a finger near the home row.
+      cheatsheet.enable = true;
     };
   };
 
