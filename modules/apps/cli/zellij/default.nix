@@ -73,6 +73,17 @@ in
         services.caddy.virtualHosts."https://${cfg.tsnetNode}.${caddyCfg.tailnetDomain}" = {
           extraConfig = ''
             bind tailscale/${cfg.tsnetNode}
+            header {
+              # Strip Referer on outbound responses so the bearer token in any
+              # initial ?token= URL never leaks to a third-party site clicked
+              # from inside the terminal.
+              Referrer-Policy "no-referrer"
+              # Defense in depth: prevent the zellij origin from being framed
+              # by another tsnet vhost and from sourcing arbitrary scripts.
+              # zellij-web's own assets are same-origin, so this is safe.
+              Content-Security-Policy "frame-ancestors 'none'; form-action 'self'"
+              X-Frame-Options "DENY"
+            }
             reverse_proxy 127.0.0.1:${toString cfg.internalPort}
           '';
         };

@@ -38,31 +38,6 @@ let
         "mcp"
       ];
     };
-    # Chrome DevTools for coding agents — browser automation, debugging, screenshots
-    chrome-devtools = {
-      command = "${pkgs.nodejs}/bin/npx";
-      args = [
-        "-y"
-        "chrome-devtools-mcp@latest"
-      ];
-    };
-    # Playwright — cross-browser automation (Chromium/Firefox/WebKit), accessibility
-    # tree snapshots, network capture. Microsoft's official MCP server.
-    playwright = {
-      command = "${pkgs.nodejs}/bin/npx";
-      args = [
-        "-y"
-        "@playwright/mcp@latest"
-      ];
-    };
-    # draw.io diagram tools — open XML/CSV/Mermaid in browser-based editor
-    drawio = {
-      command = "${pkgs.nodejs}/bin/npx";
-      args = [
-        "-y"
-        "@drawio/mcp"
-      ];
-    };
   }
   // lib.optionalAttrs (serverProfile == "full") {
     # kubernetes-mcp-server requires a host-local kubeconfig at ${kubeconfigFile};
@@ -74,6 +49,36 @@ let
       env = {
         KUBECONFIG = kubeconfigFile;
       };
+    };
+    # Chrome DevTools for coding agents -- browser automation, debugging, screenshots.
+    # Requires a Chrome install on the host; useless on headless. Also pulls
+    # `chrome-devtools-mcp@latest` from npm at run time -- supply-chain surface
+    # we do not want exposed on a server reachable via a token-authenticated web shell.
+    chrome-devtools = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "chrome-devtools-mcp@latest"
+      ];
+    };
+    # Playwright -- cross-browser automation (Chromium/Firefox/WebKit), accessibility
+    # tree snapshots, network capture. Needs a browser engine; gated for the same
+    # reasons as chrome-devtools above.
+    playwright = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "@playwright/mcp@latest"
+      ];
+    };
+    # draw.io diagram tools -- opens XML/CSV/Mermaid in a browser-based editor.
+    # Useless without a desktop browser; gated.
+    drawio = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "@drawio/mcp"
+      ];
     };
   }
   // lib.optionalAttrs (context7ApiKey != null) {
