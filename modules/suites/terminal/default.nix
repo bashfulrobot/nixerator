@@ -27,6 +27,7 @@ in
     apps.cli = {
       fish.enable = true;
       starship.enable = true;
+      zellij.enable = true;
       zoxide.enable = true;
     };
 

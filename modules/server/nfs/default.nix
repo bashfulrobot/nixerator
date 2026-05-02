@@ -103,6 +103,7 @@ in
       lib.nameValuePair exportCfg.path (
         lib.mkIf (exportCfg.bindMount != null) {
           device = exportCfg.bindMount;
+          fsType = "none";
           options = [ "bind" ];
         }
       )

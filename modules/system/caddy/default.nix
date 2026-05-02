@@ -61,6 +61,13 @@ in
       "d /var/lib/caddy/tsnet 0750 caddy caddy -"
     ];
 
+    # SECURITY-FOLLOWUP: this writes TS_AUTHKEY into the systemd unit file
+    # under /nix/store, which is world-readable. Acceptable today because the
+    # only local user is `dustin`, but every Claude Code MCP child (npx-spawned)
+    # also runs as `dustin` and could exfiltrate the key on disk. Migrate to
+    # sops-nix / agenix so the key is decrypted at activation time into
+    # /run/secrets/ and loaded via systemd `EnvironmentFile=` or
+    # `LoadCredential=`. Tracked separately from issue #43.
     systemd.services.caddy.serviceConfig.Environment = lib.optionals (
       secrets ? tailscale && secrets.tailscale ? caddyAuthKey
     ) [ "TS_AUTHKEY=${secrets.tailscale.caddyAuthKey}" ];

@@ -24,6 +24,7 @@ let
       kubernetesMcpServer
       kubeconfigFile
       ;
+    inherit (cfg) serverProfile;
   };
   contextsConfig = import ./cfg/contexts.nix {
     inherit lib;
@@ -76,30 +77,52 @@ in
         default = [ ];
         description = "Plugin identifiers to install (e.g., 'ralph-loop@claude-plugins-official').";
       };
+      serverProfile = lib.mkOption {
+        type = lib.types.enum [
+          "full"
+          "minimal"
+        ];
+        default = "full";
+        description = ''
+          Selects which MCP servers and host-specific entries are emitted into
+          the generated Claude Code config.
+
+          * "full"    -- Workstation profile. Includes kubernetes-mcp-server
+                         (requires a host-local kubeconfig).
+          * "minimal" -- Headless / server profile. Drops kubernetes-mcp-server
+                         and any other entries that require host-local files.
+        '';
+      };
     };
   };
 
   config = lib.mkIf cfg.enable {
     # System packages for MCP tooling and LSP servers
-    environment.systemPackages = with pkgs; [
-      (writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
-      (writeScriptBin "mcp-pick" mcpPick)
-      llm-agents.claude-plugins # Plugin & skills manager
-      fzf
-      jq
-      rsync # used by claude-capture + activation to mirror skills
+    environment.systemPackages =
+      (with pkgs; [
+        (writeScriptBin "mcp-pick" mcpPick)
+        llm-agents.claude-plugins # Plugin & skills manager
+        fzf
+        jq
+        rsync # used by claude-capture + activation to mirror skills
 
-      # Language servers for Claude Code LSP integration
-      bash-language-server
-      dart
-      gopls
-      lua-language-server
-      pyright
-      rust-analyzer
-      terraform-ls
-      vtsls
-      yaml-language-server
-    ];
+        # Language servers for Claude Code LSP integration
+        bash-language-server
+        dart
+        gopls
+        lua-language-server
+        pyright
+        rust-analyzer
+        terraform-ls
+        vtsls
+        yaml-language-server
+      ])
+      ++ lib.optionals (cfg.serverProfile == "full") [
+        # k8s-mcp-setup is the operator script that wires kubernetes-mcp-server
+        # against a host-local kubeconfig. Pointless on minimal-profile hosts
+        # where the kubernetes MCP server itself is gated out.
+        (pkgs.writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
+      ];
 
     # Gemini API key for generate-images / visual-explainer skills
     environment.variables = lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
@@ -114,12 +137,16 @@ in
           GEMINI_API_KEY = secrets.gemini.apiKey;
         };
         packages =
-          with pkgs;
-          [
+          (with pkgs; [
             llm-agents.claude-code
-            libnotify # for notify-send in Stop hook
-            libreoffice # soffice on PATH -- required for marp-slides skill's --pptx-editable export
-          ]
+          ])
+          ++ lib.optionals (cfg.serverProfile == "full") (
+            with pkgs;
+            [
+              libnotify # for notify-send in Stop hook (workstation-only)
+              libreoffice # soffice on PATH -- required for marp-slides skill's --pptx-editable export (workstation-only)
+            ]
+          )
           ++ pluginsConfig.packages
           ++ reapConfig.packages;
 
