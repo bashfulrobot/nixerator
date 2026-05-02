@@ -1,17 +1,31 @@
 { secrets, ... }:
 
 {
-  # Import only modules that srv used in nixcfg
+  # Import only modules that srv used in nixcfg, plus the cherry-picked
+  # Claude Code + zellij web stack.
   imports = [
+    ../../modules/apps/cli/agent-scan
+    ../../modules/apps/cli/agentos
+    ../../modules/apps/cli/claude-code
+    ../../modules/apps/cli/claude-external-skills
     ../../modules/apps/cli/docker
     ../../modules/apps/cli/fish
+    ../../modules/apps/cli/gemini-cli
+    ../../modules/apps/cli/graymatter
     ../../modules/apps/cli/helix
+    ../../modules/apps/cli/paseo
+    ../../modules/apps/cli/plannotator
+    ../../modules/apps/cli/restic
+    ../../modules/apps/cli/skillfish
     ../../modules/apps/cli/starship
+    ../../modules/apps/cli/stop-slop
+    ../../modules/apps/cli/superpowers
     ../../modules/apps/cli/tailscale
     ../../modules/apps/cli/vscode-server
+    ../../modules/apps/cli/zellij
     ../../modules/server/kvm
     ../../modules/server/nfs
-    ../../modules/apps/cli/restic
+    ../../modules/system/caddy
     ../../modules/system/ssh
   ];
 
@@ -23,6 +37,49 @@
     starship.enable = true;
     tailscale.enable = true;
     vscode-server.enable = false;
+
+    # Claude Code stack (cherry-picked from suites/ai for headless srv)
+    agent-scan.enable = true;
+    agentos.enable = true;
+    claude-code = {
+      enable = true;
+      serverProfile = "minimal";
+      # NOTE: keep plugin list in sync with modules/suites/ai/default.nix.
+      # Two occurrences = below the rule-of-three threshold; do not
+      # extract into shared lib until a third consumer appears.
+      plugins = [
+        "frontend-design@claude-plugins-official"
+        "asana@claude-plugins-official"
+        "code-review@claude-plugins-official"
+        "context7@claude-plugins-official"
+        "github@claude-plugins-official"
+        "feature-dev@claude-plugins-official"
+        "commit-commands@claude-plugins-official"
+        "security-guidance@claude-plugins-official"
+        "pr-review-toolkit@claude-plugins-official"
+        "atlassian@claude-plugins-official"
+        "learning-output-style@claude-plugins-official"
+        "slack@claude-plugins-official"
+        "gopls-lsp@claude-plugins-official"
+        "skill-creator@claude-plugins-official"
+        "ralph-loop@claude-plugins-official"
+      ];
+    };
+    claude-external-skills.enable = true;
+    gemini-cli.enable = true;
+    graymatter.enable = true;
+    paseo.enable = true;
+    plannotator.enable = true;
+    skillfish.enable = true;
+    stop-slop.enable = true;
+    superpowers.enable = true;
+
+    # Zellij with web client behind Caddy tsnet
+    zellij = {
+      enable = true;
+      service.enable = true;
+      tsnetNode = "zellij";
+    };
   };
 
   # System modules
