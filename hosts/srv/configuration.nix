@@ -71,6 +71,9 @@
 
   users.groups.${globals.user.name} = { };
 
+  # Passwordless sudo for wheel group (enables CLI rebuilds from Claude Code / zellij)
+  security.sudo.wheelNeedsPassword = false;
+
   # System packages
   environment.systemPackages = with pkgs; [
     bat
