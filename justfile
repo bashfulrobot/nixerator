@@ -351,6 +351,23 @@ remote-rebuild host repo_path="~/git/nixerator":
         exit "$rc"
     fi
 
+# Remote upgrade — pull and full upgrade (flake update + rebuild) on another
+# nixerator host over SSH. Same prereqs as `remote-rebuild`. Heavier than
+# `rr` because the remote runs `nix flake update` before rebuilding.
+remote-upgrade host repo_path="~/git/nixerator":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    echo "Upgrading {{host}} via SSH..."
+    rc=0
+    ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
+        "cd {{repo_path}} && git pull --ff-only && just qu" || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        echo "Remote upgrade on {{host}} succeeded."
+    else
+        echo "Remote upgrade on {{host}} FAILED (exit $rc)."
+        exit "$rc"
+    fi
+
 # === Aliases ===
 alias r := rebuild
 alias up := upgrade
@@ -358,3 +375,4 @@ alias gc := clean
 alias qr := quiet-rebuild
 alias qu := quiet-upgrade
 alias rr := remote-rebuild
+alias ru := remote-upgrade
