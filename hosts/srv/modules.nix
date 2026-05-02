@@ -10,7 +10,9 @@
     ../../modules/apps/cli/claude-external-skills
     ../../modules/apps/cli/docker
     ../../modules/apps/cli/fish
+    ../../modules/apps/cli/gcmt
     ../../modules/apps/cli/gemini-cli
+    ../../modules/apps/cli/git
     ../../modules/apps/cli/graymatter
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/paseo
@@ -33,6 +35,7 @@
   apps.cli = {
     docker.enable = true;
     fish.enable = true;
+    git.enable = true;
     helix.enable = true;
     starship.enable = true;
     tailscale.enable = true;
