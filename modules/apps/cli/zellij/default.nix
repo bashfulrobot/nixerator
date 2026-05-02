@@ -16,8 +16,16 @@ in
 
     defaultShell = lib.mkOption {
       type = lib.types.str;
-      default = globals.preferences.shell;
-      description = "Login shell zellij spawns inside new panes (default: globals.preferences.shell).";
+      default = "${pkgs.${globals.preferences.shell}}/bin/${globals.preferences.shell}";
+      description = ''
+        Absolute path to the shell zellij spawns inside new panes.
+
+        Default resolves the package named by globals.preferences.shell
+        ("fish") to its store path. Using an absolute path -- rather than
+        a name on PATH -- ensures the shell is part of the closure and
+        does not depend on the systemd user manager inheriting an
+        HM-augmented PATH at start time.
+      '';
     };
 
     tsnetNode = lib.mkOption {
@@ -50,6 +58,13 @@ in
       }
 
       (lib.mkIf cfg.service.enable {
+        # Required so the user's systemd manager (and therefore the
+        # zellij-web user service) starts at boot on headless hosts.
+        # Without linger, systemd --user only spawns when the user
+        # actively logs in, defeating the "browser-accessible without
+        # SSH" promise of the web client.
+        users.users.${globals.user.name}.linger = true;
+
         system.caddy = {
           enable = true;
           tsnetNodes = [ cfg.tsnetNode ];

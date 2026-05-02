@@ -30,13 +30,14 @@ on the host:
 
 ```
 ssh srv
-zellij web --create-token srv-primary
+zellij web --create-token --token-name srv-primary
 ```
 
-The command prints a one-time URL of the form
-`https://zellij.goat-cloud.ts.net/?token=<token>`. Open that URL in any
-browser on the tailnet; the cookie set on the first visit is what
-keeps you authenticated thereafter.
+`--token-name` is optional; omit it and zellij auto-names the token
+(`token_1`, `token_2`, ...). The command prints the token once -- it
+cannot be retrieved later. Use it as a `?token=<token>` query parameter
+on the URL on first visit; the cookie set thereafter is what keeps you
+authenticated.
 
 Tokens are bearer credentials -- treat them like passwords. Do **not**
 commit them to Nix or activation scripts.
@@ -44,13 +45,14 @@ commit them to Nix or activation scripts.
 ## Listing, revoking, rotating
 
 ```
-zellij web --list-tokens                  # list active tokens
+zellij web --list-tokens                  # list token names + creation dates
 zellij web --revoke-token <name>          # revoke by name
 zellij web --revoke-all-tokens            # nuclear option
 ```
 
-To rotate, revoke the old name and create a new one with the same name
-(or a new name).
+To rotate: `--revoke-token <old-name>`, then
+`--create-token --token-name <new-name>` (or reuse the old name once
+the revocation is in).
 
 ## Verifying the service
 

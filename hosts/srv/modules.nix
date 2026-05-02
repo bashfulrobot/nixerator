@@ -44,6 +44,9 @@
     claude-code = {
       enable = true;
       serverProfile = "minimal";
+      # NOTE: keep plugin list in sync with modules/suites/ai/default.nix.
+      # Two occurrences = below the rule-of-three threshold; do not
+      # extract into shared lib until a third consumer appears.
       plugins = [
         "frontend-design@claude-plugins-official"
         "asana@claude-plugins-official"
