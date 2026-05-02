@@ -40,6 +40,8 @@ Reusable VM profile files -- not a standalone `nixosConfigurations` output.
 - Restic `backup-mgr`: daily at 03:00 to B2
 - Backrest: on-demand via `backrest`, UI at `http://127.0.0.1:9898`
 - Secrets for restic credentials in git-crypt `secrets/secrets.json`
+- Claude Code stack (cherry-picked from `suites/ai`) -- `claude-code` runs in `serverProfile = "minimal"` (kubernetes MCP omitted)
+- Zellij web client at `https://zellij.goat-cloud.ts.net/` -- see [`zellij-web.md`](./zellij-web.md) for token mint/rotate procedure
 
 ## Host-Specific Modules
 
