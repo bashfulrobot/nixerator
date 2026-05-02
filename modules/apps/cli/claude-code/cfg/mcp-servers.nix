@@ -4,19 +4,13 @@
   secrets,
   kubernetesMcpServer,
   kubeconfigFile,
+  serverProfile,
 }:
 
 let
   context7ApiKey = (secrets.context7 or { }).apiKey or null;
 
   mcpServers = {
-    kubernetes-mcp-server = {
-      command = "${kubernetesMcpServer}/bin/kubernetes-mcp-server";
-      args = [ "--read-only" ];
-      env = {
-        KUBECONFIG = kubeconfigFile;
-      };
-    };
     # Go code intelligence via official gopls MCP (detached mode)
     # Tools: go_diagnostics, go_references, go_search, go_symbol_references, etc.
     gopls = {
@@ -68,6 +62,18 @@ let
         "-y"
         "@drawio/mcp"
       ];
+    };
+  }
+  // lib.optionalAttrs (serverProfile == "full") {
+    # kubernetes-mcp-server requires a host-local kubeconfig at ${kubeconfigFile};
+    # omitted on minimal-profile hosts (e.g. headless servers) where no
+    # cluster access is wired.
+    kubernetes-mcp-server = {
+      command = "${kubernetesMcpServer}/bin/kubernetes-mcp-server";
+      args = [ "--read-only" ];
+      env = {
+        KUBECONFIG = kubeconfigFile;
+      };
     };
   }
   // lib.optionalAttrs (context7ApiKey != null) {

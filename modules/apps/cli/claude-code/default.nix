@@ -24,6 +24,7 @@ let
       kubernetesMcpServer
       kubeconfigFile
       ;
+    inherit (cfg) serverProfile;
   };
   contextsConfig = import ./cfg/contexts.nix {
     inherit lib;
@@ -75,6 +76,22 @@ in
         type = lib.types.listOf lib.types.str;
         default = [ ];
         description = "Plugin identifiers to install (e.g., 'ralph-loop@claude-plugins-official').";
+      };
+      serverProfile = lib.mkOption {
+        type = lib.types.enum [
+          "full"
+          "minimal"
+        ];
+        default = "full";
+        description = ''
+          Selects which MCP servers and host-specific entries are emitted into
+          the generated Claude Code config.
+
+          * "full"    -- Workstation profile. Includes kubernetes-mcp-server
+                         (requires a host-local kubeconfig).
+          * "minimal" -- Headless / server profile. Drops kubernetes-mcp-server
+                         and any other entries that require host-local files.
+        '';
       };
     };
   };
