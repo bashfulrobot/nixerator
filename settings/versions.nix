@@ -135,7 +135,7 @@
       version = "0.17.1";
       tagPrefix = "v";
       hash = "sha256-UYoImMYyu9BposkwrXLPZiQsse3aHg5Aims2Ekbs59o=";
-      pasteHash = "sha256-9tyfjE4gkdrTuwkgldyRxwdHIcag8wYL3zJ/BJ9mA/g=";
+      pasteHash = "sha256-6T6me3XKnbmVCH1c1JvQ5AsHHDHEgy5iMC6bIQXfYLk=";
     };
 
     kotlin-lsp = {
