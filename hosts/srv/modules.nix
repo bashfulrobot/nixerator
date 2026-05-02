@@ -87,6 +87,10 @@
 
   # System modules
   system.ssh.enable = true;
+  # ssh-agent is managed by `keychain` (see hosts/srv/home.nix) so it
+  # persists across SSH sessions on this headless box. Do NOT also set
+  # `programs.ssh.startAgent` — that would spawn a per-session agent
+  # and defeat keychain's single-agent model.
 
   # Server-specific modules
   server = {

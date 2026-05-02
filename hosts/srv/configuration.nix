@@ -89,6 +89,7 @@
     gnumake
     gnupg
     just
+    keychain
     nixfmt
     pass
     pinentry-tty
