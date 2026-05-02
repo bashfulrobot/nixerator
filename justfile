@@ -331,9 +331,30 @@ quiet-upgrade:
         exit "$rc"
     fi
 
+# Remote rebuild — pull and rebuild on another nixerator host over SSH.
+#
+# Workflow: commit + push from this machine, then `just remote-rebuild qbert`.
+# The remote SSHes back to GitHub via your forwarded ssh-agent (requires the
+# host to have forwardAgent=true in modules/system/ssh/default.nix), pulls
+# fast-forward only, then runs `just qr` of its own host configuration.
+remote-rebuild host repo_path="~/git/nixerator":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    echo "Rebuilding {{host}} via SSH..."
+    rc=0
+    ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
+        "cd {{repo_path}} && git pull --ff-only && just qr" || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        echo "Remote rebuild on {{host}} succeeded."
+    else
+        echo "Remote rebuild on {{host}} FAILED (exit $rc)."
+        exit "$rc"
+    fi
+
 # === Aliases ===
 alias r := rebuild
 alias up := upgrade
 alias gc := clean
 alias qr := quiet-rebuild
 alias qu := quiet-upgrade
+alias rr := remote-rebuild
