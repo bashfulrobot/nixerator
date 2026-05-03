@@ -27,7 +27,10 @@ in
     apps.cli = {
       fish.enable = true;
       starship.enable = true;
-      zellij.enable = true;
+      zellij = {
+        enable = true;
+        mosh.enable = true;
+      };
       zoxide.enable = true;
     };
 
