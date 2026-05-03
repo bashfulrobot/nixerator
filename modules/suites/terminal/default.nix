@@ -30,6 +30,8 @@ in
       zellij = {
         enable = true;
         mosh.enable = true;
+        hideStatusBar = true;
+        cheatsheet.enable = true;
       };
       zoxide.enable = true;
     };
