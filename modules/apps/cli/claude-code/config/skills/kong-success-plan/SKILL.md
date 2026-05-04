@@ -1,6 +1,6 @@
 ---
 name: kong-success-plan
-description: Author a Kong customer success-plan JSON file (the input format kong-success-plan-pptx expects), extract whatever can be extracted from the user's existing context (running notes, call transcripts, prior plans, markdown drafts), ask the user for any missing data instead of fabricating it, run all customer-visible prose through the humanizer skill, render the deck via kong-success-plan-pptx, and visually verify the output. Use whenever the user asks to "write a success plan", "draft a success plan", "build a success plan for <customer>", "update the success plan", "turn these notes into a success plan", "fill out the success plan template", or describes any Kong customer-success-plan authoring task — even when they don't explicitly mention the PPTX or the JSON schema. Trigger on phrases like "success plan", "QBR plan", "customer success plan", "kong success plan", or "renewal cycle plan" combined with a customer reference. Do NOT trigger for generic project plans, non-customer success plans (engineering plans, product roadmaps), or PPTX-rendering requests with the JSON already prepared (that's kong-success-plan-pptx).
+description: Author a Kong customer success-plan JSON file (the input format kong-success-plan-pptx expects), extract whatever can be extracted from the user's existing context (running notes, call transcripts, prior plans, markdown drafts) and from Salesforce via the sfdc skill (Account, Contacts, Opportunity, recent Cases), ask the user only for what's still missing instead of fabricating it, run all customer-visible prose through the humanizer skill, render the deck via kong-success-plan-pptx, and visually verify the output. Use whenever the user asks to "write a success plan", "draft a success plan", "build a success plan for <customer>", "update the success plan", "turn these notes into a success plan", "fill out the success plan template", or describes any Kong customer-success-plan authoring task — even when they don't explicitly mention the PPTX or the JSON schema. Trigger on phrases like "success plan", "QBR plan", "customer success plan", "kong success plan", or "renewal cycle plan" combined with a customer reference. Do NOT trigger for generic project plans, non-customer success plans (engineering plans, product roadmaps), or PPTX-rendering requests with the JSON already prepared (that's kong-success-plan-pptx).
 ---
 
 ## What this skill does
@@ -10,10 +10,11 @@ Builds the *content* of a Kong customer success plan in the JSON format that `ko
 - **Extract first** — read whatever the user already gave you (markdown plans, call transcripts, running notes, the conversation history) and pull every fact you can.
 - **Ask for the rest** — never fabricate stakeholder names, KPI numbers, dates, or dollar figures. If the data is missing, ask. The success plan goes in front of a real customer; invented details get caught and damage credibility.
 
-This is a methodology skill. It pairs with two other skills:
+This is a methodology skill. It pairs with three other skills:
 
 - `kong-success-plan-pptx` — renders the JSON to a Kong-branded PPTX. Required follow-up.
 - `humanizer` — strips AI tells from prose. Required for all customer-visible writing.
+- `sfdc` — queries Salesforce read-only for Account / Contacts / Opportunity / Case data. Used to pre-fill stakeholder names, renewal dates, ARR signals, and recent escalation context before asking the user.
 
 ## Workflow
 
@@ -31,6 +32,33 @@ Before asking the user anything, scan everything they've given you:
 Pull out every fact. Stakeholder names, product licenses, footprint numbers, dates, blockers, business outcomes the customer is chasing. Keep a running list — you'll use it to populate the JSON and to determine what's missing.
 
 If a user-provided markdown plan already maps cleanly to the schema, your job is mostly translation. If they've only handed you a raw transcript, your job is synthesis.
+
+### 1a. Pull missing facts from Salesforce before asking the user
+
+Many of the fields the user would otherwise have to dictate are already in Salesforce. Before assembling your "missing data" question batch in step 3, invoke the `sfdc` skill to query the account directly. Asking the user for things SFDC already knows is a credibility hit — it signals you didn't do your homework.
+
+Use this whenever the customer is a real account (not a hypothetical or sandbox example). If you only have a customer name, that's enough — the `sfdc` skill can resolve it to an Account record.
+
+What's worth pulling, and where each field lands in the success plan:
+
+| SFDC source | Field on the success plan |
+|---|---|
+| `Account.Name`, `Account.Site` | `customer.name` |
+| `Account.OwnerId` → User → CSM/AE owner | `customer.csm`, `deep_dive.footer` |
+| `Contact` records on the account (Name, Title, Role) | Stakeholder map for `deep_dive` owners and "asks" |
+| `Opportunity` (open and recent closed/won) | Renewal/expansion context for `objectives.takeaway` and timelines |
+| `Opportunity.CloseDate` for the renewal opp | Time horizon language ("through the renewal cycle") |
+| Recent `Case` records (last 90 days, severity, status) | Risk signals — informs `deep_dive` bottlenecks and `workstreams` health framing |
+| Custom CX fields (health score, RAG, last QBR date) | `workstreams.footer` KPI line, deep-dive context |
+
+Operating rules:
+
+- **Read-only.** Never invoke `sfdc` in a write mode from this workflow. Success plans are authored from current state, never modify it.
+- **Treat SFDC as one source among many, not gospel.** If the user-provided notes contradict SFDC (e.g., a stakeholder left, an opportunity is no longer real), trust the more recent signal. Note the discrepancy in your final report.
+- **Don't dump SFDC data into the deck verbatim.** Pull facts; synthesize prose. The slide-2 takeaway is not a copy-paste of an Account's description field.
+- **If the user opted out** ("don't bother SFDC", "I'll give you everything", "this is hypothetical"), skip this step entirely. Honor the opt-out and proceed to step 2.
+
+After SFDC enrichment, recompute your "what I have / what's missing" map. Often you'll find you only need to ask the user 1-2 things rather than 6.
 
 ### 2. Map what you have to the schema
 
@@ -194,24 +222,26 @@ Themes match the three strategic objectives. Time horizon is usually "renewal cy
 
 ## What to ask vs. what to author
 
-| Field | Ask | Author then confirm | Notes |
-|---|---|---|---|
-| Customer name | ✓ | | If not in context |
-| Customer date | ✓ | | "May 2026" format |
-| CSM name | ✓ | | Always ask — you can't infer this |
-| Cover tagline | | ✓ | Synthesize from the customer's stated goals |
-| Bottom-line takeaway | | ✓ | Synthesize from the three objectives |
-| Objective headings | | ✓ | ALL CAPS; ask if customer's language differs from typical Kong arc |
-| Objective bullets | | ✓ | From notes/transcripts |
-| Workstream titles | | ✓ | Default Kong tracks unless customer's license differs |
-| Workstream dates | ✓ | | Specific quarters/months — don't guess |
-| Workstream status | | ✓ | "In Progress" is a safe default for active accounts |
-| Workstream bullets | | ✓ | From notes |
-| KPI footer numbers | ✓ | | Real metrics — never invent |
-| Deep-dive bottlenecks | | ✓ | From notes |
-| Deep-dive plays | | ✓ | From notes |
-| Deep-dive owners | ✓ | | CSM/AE/SE names — must be real |
-| Deep-dive footer | ✓ | | Owners line "OWNERS \| CSM \| AE \| SE" |
+"Pull from SFDC" means use the `sfdc` skill against the customer's Account first; only ask the user if SFDC doesn't have it or the user opted out of SFDC enrichment.
+
+| Field | Pull from SFDC | Ask | Author then confirm | Notes |
+|---|---|---|---|---|
+| Customer name | ✓ | ✓ | | SFDC `Account.Name`; ask if not in context and SFDC unavailable |
+| Customer date | | ✓ | | "May 2026" format — usually the meeting/QBR date |
+| CSM name | ✓ | ✓ | | SFDC Account owner / CSM field; confirm with user |
+| Cover tagline | | | ✓ | Synthesize from the customer's stated goals |
+| Bottom-line takeaway | | | ✓ | Synthesize from the three objectives |
+| Objective headings | | | ✓ | ALL CAPS; ask if customer's language differs from typical Kong arc |
+| Objective bullets | | | ✓ | From notes/transcripts |
+| Workstream titles | | | ✓ | Default Kong tracks unless customer's license differs |
+| Workstream dates | | ✓ | | Specific quarters/months — don't guess |
+| Workstream status | | | ✓ | "In Progress" is a safe default for active accounts |
+| Workstream bullets | | | ✓ | From notes |
+| KPI footer numbers | ✓ | ✓ | | SFDC for ARR / renewal / health-score values; ask user for usage metrics SFDC doesn't track |
+| Deep-dive bottlenecks | | | ✓ | From notes; SFDC recent Cases can corroborate |
+| Deep-dive plays | | | ✓ | From notes |
+| Deep-dive owners | ✓ | ✓ | | SFDC Account owner / opportunity team gives you AE; ask user for SE if not on the team |
+| Deep-dive footer | ✓ | | | "OWNERS \| CSM \| AE \| SE" — composed from SFDC owners |
 
 ## Hard rules
 
