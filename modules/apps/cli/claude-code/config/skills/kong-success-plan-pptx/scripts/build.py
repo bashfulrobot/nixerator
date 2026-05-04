@@ -349,9 +349,22 @@ def add_deep_dive_slide(parts, deep_dive_repl, content_types):
         content_types = content_types.replace("</Types>", new_overrides + "</Types>")
     parts["[Content_Types].xml"] = content_types.encode("utf-8")
 
-    # presentation.xml — add a 4th sldId
+    # presentation.xml — register slide4 as a 4th sldId IF the template
+    # doesn't already do so. Some templates ship with slide4 pre-wired
+    # (rId + sldId both present); blindly appending another reference there
+    # produces a malformed file with two sldIds pointing at slide4.xml,
+    # which Google Slides rejects (PowerPoint and LibreOffice tolerate it).
     pres_xml = parts["ppt/presentation.xml"].decode("utf-8")
     pres_rels_xml = parts["ppt/_rels/presentation.xml.rels"].decode("utf-8")
+
+    slide4_already_wired = bool(
+        re.search(
+            r'<Relationship Id="rId\d+"[^>]+Target="slides/slide4\.xml"',
+            pres_rels_xml,
+        )
+    )
+    if slide4_already_wired:
+        return missing
 
     existing_rids = [int(m) for m in re.findall(r'Id="rId(\d+)"', pres_rels_xml)]
     new_rid = max(existing_rids) + 1 if existing_rids else 1000
