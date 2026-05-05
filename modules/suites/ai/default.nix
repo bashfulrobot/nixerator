@@ -51,7 +51,6 @@ in
         controlTower.enable = true;
       };
       gemini-cli.enable = true;
-      # termly: disabled
       # llmfit: removed
       plannotator.enable = true;
 
@@ -63,10 +62,6 @@ in
       dorkos = {
         enable = true;
         service.enable = true;
-      };
-      happy = {
-        enable = true;
-        daemon.enable = true;
       };
       stop-slop.enable = true;
       claude-external-skills.enable = true;
