@@ -38,6 +38,13 @@ let
         "mcp"
       ];
     };
+    # GitMCP -- query docs, code, and READMEs of any public GitHub repo on demand.
+    # The /docs endpoint is the generic/dynamic entry point; per-repo URLs of the
+    # form https://gitmcp.io/{owner}/{repo} also exist if a single repo is wanted.
+    gitmcp = {
+      type = "sse";
+      url = "https://gitmcp.io/docs";
+    };
   }
   // lib.optionalAttrs (serverProfile == "full") {
     # kubernetes-mcp-server requires a host-local kubeconfig at ${kubeconfigFile};
