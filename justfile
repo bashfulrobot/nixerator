@@ -25,6 +25,7 @@ default:
 rebuild:
     #!/usr/bin/env bash
     set -uo pipefail
+    just pre-rebuild interactive
     log="{{rebuild_log}}"
     rc=0
     gum spin --spinner dot --title "Rebuilding NixOS configuration..." \
@@ -65,6 +66,7 @@ dev-rebuild:
 upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
+    just pre-rebuild interactive
     log="{{upgrade_log}}"
     cp flake.lock flake.lock-backup-{{timestamp}}
     rc=0
@@ -231,6 +233,28 @@ update-skills:
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
 
+# Pre-rebuild: capture runtime ~/.claude/* edits back into the source tree
+# before activation overwrites them with the previously-captured version.
+# Without this, any change made directly to a managed file (CLAUDE.md,
+# settings.json, agents, skills, output-styles, plugin metadata) between
+# rebuilds is silently lost when the activation script runs.
+# mode: "interactive" (gum spin) or "quiet" (plain echo)
+[private]
+pre-rebuild mode="quiet":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    if [[ "{{mode}}" == "interactive" ]]; then
+        gum spin --spinner dot --title "Capturing live Claude Code config (pre-rebuild)..." \
+            -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Pre-capture failed (non-fatal)"
+        gum spin --spinner dot --title "Capturing live Agent OS config (pre-rebuild)..." \
+            -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS pre-capture failed (non-fatal)"
+    else
+        echo "Capturing live Claude Code config (pre-rebuild)..."
+        fish -c 'claude-capture' &>/dev/null || echo "Pre-capture failed (non-fatal)"
+        echo "Capturing live Agent OS config (pre-rebuild)..."
+        fish -c 'agentos-capture' &>/dev/null || echo "Agent OS pre-capture failed (non-fatal)"
+    fi
+
 # Post-rebuild: sync plugins, capture config, check for changes
 # mode: "interactive" (gum spin) or "quiet" (plain echo)
 [private]
@@ -286,6 +310,8 @@ quiet-rebuild:
         echo "⚠ Uncommitted plugin changes from a previous sync. Commit or discard before rebuilding."
     fi
 
+    just pre-rebuild quiet
+
     echo "Rebuilding (quiet mode)..."
     git add -A
     trap 'git restore --staged .' EXIT
@@ -313,6 +339,7 @@ quiet-rebuild:
 quiet-upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
+    just pre-rebuild quiet
     echo "Upgrading (quiet mode)..."
     cp flake.lock flake.lock-backup-{{timestamp}}
     rc=0
