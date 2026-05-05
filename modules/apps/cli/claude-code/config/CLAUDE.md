@@ -66,3 +66,4 @@ Kong's developer docs at `developer.konghq.com` are available in LLM-friendly ma
 **Index/site-tree pages do NOT have markdown versions** (e.g., `https://developer.konghq.com/` or `https://developer.konghq.com/index/dev-portal/`).
 
 When researching Kong topics, always prefer fetching the `.md` URL — it is optimized for AI consumption and avoids noisy HTML parsing.
+
