@@ -53,9 +53,22 @@ build_lines() {
   done
 }
 
+# Pre-select rows already in ./.mcp.json so the fzf selection (>) starts in
+# sync with the ✓ markers. From there, Tab/Shift+Tab toggles add or remove.
+preselect_chain=""
+idx=0
+for name in "${servers[@]}"; do
+  idx=$((idx + 1))
+  if [[ -n "${configured[$name]:-}" ]]; then
+    preselect_chain+="pos(${idx})+select+"
+  fi
+done
+preselect_chain+="pos(1)"
+
 header_lines=(
-  "Tab: select  ·  Shift+Tab: unselect  ·  Enter: confirm  ·  Esc: cancel"
-  "✓ marks servers already in ./${output}"
+  "Add: Tab (toggles current row, also Shift+Tab) · select all: Ctrl-A · clear all: Ctrl-D"
+  "Save: Enter (writes ./${output} with the selected set) · Cancel: Esc"
+  "✓ = already in ./${output} (pre-selected — deselect to drop it, select others to add)"
 )
 if (( ${#configured_known[@]} + ${#configured_extra[@]} > 0 )); then
   header_lines+=("Currently in ./${output}: $(printf '%s, ' "${configured_known[@]}" "${configured_extra[@]}" | sed 's/, $//')")
@@ -72,6 +85,8 @@ selected="$(build_lines | fzf -m \
   --delimiter=$'\t' \
   --with-nth=1,2 \
   --nth=2 \
+  --bind="ctrl-a:select-all,ctrl-d:deselect-all" \
+  --bind="load:${preselect_chain}" \
   --header="$header" \
   --header-first)"
 if [[ -z "$selected" ]]; then
