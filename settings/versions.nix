@@ -89,9 +89,9 @@
       source = "npm";
       repo = "chadbyte/clay";
       npmPkg = "clay-server";
-      version = "2.32.0-beta.8";
-      hash = "sha256-L1RI3eSgEljlPJxNO6TWFHlEh58rdr+DFzmVKsTJQ3Y=";
-      npmDepsHash = "sha256-JdpOCX9IDUgrCDw0XuO9cRy4cz8Ipgd9Wm9NeW+BmQU=";
+      version = "2.36.1";
+      hash = "sha256-j9Ly9sMlt4X1XGNw7/sCW5lRquIdGPstqFbh3MBO55c=";
+      npmDepsHash = "sha256-mi18iYlgSXD59d1QGl+HfxseT0LFd4iAC8vGmXAp2ck=";
     };
 
     lswt = {
@@ -209,9 +209,9 @@
       source = "npm";
       repo = "Doist/todoist-cli";
       npmPkg = "@doist/todoist-cli";
-      version = "1.56.0";
-      hash = "sha256-JYkX5Y4cRHYGH6qv8MfTIhGpQGOoXSLbvTyhu0XCGx8=";
-      npmDepsHash = "sha256-eCgRegSn2uyq2k/9tUgUUiC8m+Y3hQ1SEJ6RqoykxwY=";
+      version = "1.61.0";
+      hash = "sha256-Cv+3QDDK1XS5knPX5XqJQSYgbeKoXYMBhnwsSkvwFtc=";
+      npmDepsHash = "sha256-w4syPOYwDnqRlW/GPFk4G8L3dFUYNBZrc5+qNAvRIwA=";
     };
 
     # Upstream Claude Code skills fetched from single-maintainer GitHub repos.
