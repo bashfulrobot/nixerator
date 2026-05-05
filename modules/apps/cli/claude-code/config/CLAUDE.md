@@ -23,6 +23,15 @@ sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 - No mentions of Claude, Anthropic, AI, or "generated" in commit messages, PR bodies, or issue comments.
 - The user's git identity is the sole author.
 
+### Merge Conflicts (mergiraf)
+
+`mergiraf` is installed globally as a syntax-aware merge driver and runs automatically for every `git merge`, `rebase`, `cherry-pick`, `revert`, and `stash pop` on supported file types (Nix, Kotlin, TS/JS, Go, Rust, Python, TOML, YAML, JSON, HCL, Markdown, etc. — full list in `~/.config/git/attributes`). Conflict style is `diff3` so mergiraf can read all three sides.
+
+- **Do not hand-edit conflict markers as a first move.** If `git status` shows unmerged paths after a rebase/merge, run `mergiraf solve <file>` first — it retries the syntactic merge on a single file and often clears markers without manual work.
+- **Genuine conflicts**: if mergiraf left markers, that's usually a real semantic conflict. Resolve by reading both sides, not by deleting one. Re-run `mergiraf solve` after partial edits.
+- **GitHub PR conflicts run server-side and bypass mergiraf.** The GitHub "Merge pull request" button does not invoke client-side merge drivers. When a PR shows "conflicts must be resolved", the workflow is: `gh pr checkout <num>` → `git rebase origin/main` (mergiraf engages) → `mergiraf solve` on any leftovers → `git push --force-with-lease`. GitHub then fast-forwards cleanly.
+- **Project-local extensions**: `*.gradle.kts` and `*.kts` are not in mergiraf's defaults but parse with the Kotlin grammar. Repos that need them (e.g. upsight) carry their own `.gitattributes` adding those globs.
+
 ### Use of tools
 
 - **Research-First, never Edit-First** — understand context before touching code to ensure you use the most appropriate tool. Prefer surgical edits over rewrites.
