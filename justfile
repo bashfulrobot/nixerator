@@ -44,6 +44,8 @@ rebuild:
         # Run package update check in background, show results when done
         echo ""
         bash extras/scripts/check-pkg-updates.bash 2>/dev/null || true
+        echo ""
+        bash extras/scripts/check-security-alerts.bash 2>/dev/null || true
     else
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
         bat --paging=always "$log"
@@ -104,11 +106,17 @@ upgrade:
     # Run package update check after successful upgrade
     echo ""
     bash extras/scripts/check-pkg-updates.bash 2>/dev/null || true
+    echo ""
+    bash extras/scripts/check-security-alerts.bash 2>/dev/null || true
 
 # Update a specific flake input
 update input:
     @echo "Updating {{input}}..."
     @nix flake update {{input}}
+
+# Show open Dependabot alerts and what changed since the last check
+check-security:
+    @bash extras/scripts/check-security-alerts.bash
 
 # Garbage collection (default: 5 days)
 clean days="5":
