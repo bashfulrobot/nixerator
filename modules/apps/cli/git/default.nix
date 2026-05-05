@@ -27,6 +27,12 @@ let
 
     text = builtins.readFile ./gcom.sh;
   };
+
+  # Build-time-generated .gitattributes covering every language mergiraf
+  # currently supports. Stays in sync with the installed mergiraf version.
+  mergirafAttributes = pkgs.runCommand "mergiraf-gitattributes" { } ''
+    ${pkgs.mergiraf}/bin/mergiraf languages --gitattributes > $out
+  '';
 in
 {
   options = {
@@ -48,6 +54,7 @@ in
       git
       git-crypt
       git-filter-repo
+      mergiraf
     ];
 
     # Home Manager user configuration
@@ -107,6 +114,12 @@ in
             pull.rebase = true;
             push.default = "simple";
             merge.ff = "only";
+            merge.conflictStyle = "diff3";
+
+            # mergiraf — syntax-aware merge driver. Triggered per-file by
+            # ~/.config/git/attributes (managed below).
+            merge.mergiraf.name = "mergiraf";
+            merge.mergiraf.driver = "mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L";
             rebase.autoStash = true;
             rebase.updateRefs = true;
             branch.autoSetupRebase = "always";
@@ -208,6 +221,9 @@ in
         result
         result-*
       '';
+
+      # Wire every mergiraf-supported file extension to the merge driver.
+      home.file.".config/git/attributes".source = mergirafAttributes;
 
     };
 
