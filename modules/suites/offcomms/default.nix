@@ -22,6 +22,7 @@ in
     apps = {
       # Communication applications
       gui = {
+        cauldron.enable = true;
         insync.enable = true;
         localsend.enable = true;
         morgen.enable = true;
