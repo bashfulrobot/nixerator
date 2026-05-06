@@ -70,7 +70,6 @@
     };
     claude-external-skills.enable = true;
     gemini-cli.enable = true;
-    graymatter.enable = true;
     paseo.enable = true;
     plannotator.enable = true;
     skillfish.enable = true;
