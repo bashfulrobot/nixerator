@@ -60,7 +60,7 @@ in
         service.enable = true;
       };
       dorkos = {
-        enable = true;
+        enable = false;
         service.enable = true;
       };
       stop-slop.enable = true;
