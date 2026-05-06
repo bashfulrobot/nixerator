@@ -67,7 +67,6 @@ in
       claude-external-skills.enable = true;
       superpowers.enable = true;
       paseo.enable = true;
-      graymatter.enable = true;
       skillfish.enable = true;
       ollama = {
         enable = false;
