@@ -22,6 +22,7 @@ in
     # Development tools
     dev = {
       go.enable = true;
+      python.enable = true;
     };
 
     # Development CLI applications
