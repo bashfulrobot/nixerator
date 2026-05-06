@@ -211,7 +211,7 @@
       npmPkg = "@doist/todoist-cli";
       version = "1.61.0";
       hash = "sha256-Cv+3QDDK1XS5knPX5XqJQSYgbeKoXYMBhnwsSkvwFtc=";
-      npmDepsHash = "sha256-w4syPOYwDnqRlW/GPFk4G8L3dFUYNBZrc5+qNAvRIwA=";
+      npmDepsHash = "sha256-YsFxtaL5+Hf64RfVABEz4im8+RGLwN2DDQM6QGEkbEk=";
     };
 
     # Upstream Claude Code skills fetched from single-maintainer GitHub repos.
