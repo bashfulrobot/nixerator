@@ -52,9 +52,8 @@ The CLI derives this from issue labels and title automatically.
 
 ## PR body
 
-Use `Closes #{issue-number}` so the issue auto-closes on merge.
+Default — atomic issue (one PR resolves the whole thing): use `Closes #{issue-number}` so the issue auto-closes on merge.
 
-Structure:
 ```
 ## Summary
 Closes #<number>: <issue title>
@@ -62,7 +61,20 @@ Closes #<number>: <issue title>
 - <commit log entries>
 ```
 
-The CLI builds this from the commit log at push time.
+The CLI builds this from the commit log at `push` time.
+
+### Multi-phase / umbrella issues
+
+When the issue tracks multiple PRs (e.g., a 13-phase refinement plan, a multi-screen migration), the issue should stay open until all phases land. After `github-issue push` creates the PR with the default `Closes #N` body, edit the body via `gh pr edit <pr> --body-file …` to use `Refs #N` instead and call out the scope:
+
+```
+## Summary
+Refs #<number> (Phase X of Y) — <what this PR delivers>
+
+…
+```
+
+`cleanup` will detect that GitHub did not close the issue on merge and leave it open; close manually with `gh issue close <number>` once the final phase ships.
 
 ## Direct-to-main work (outside this skill)
 

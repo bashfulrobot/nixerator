@@ -329,7 +329,7 @@ When the pre-push rebase conflicts, the CLI aborts the rebase and returns an err
 github-issue cleanup <number>
 ```
 
-Removes worktree, deletes branches, closes issue.
+Removes worktree and deletes the local + remote branch. Does **not** force-close the issue — that's driven by the PR body's closing keyword (`Closes #N` / `Fixes #N` / `Resolves #N`). If the keyword was present, GitHub closed the issue when the PR merged. If the PR used `Refs #N` (multi-phase or umbrella issues that should stay open after this PR lands), the issue is left open. Cleanup reports the resulting state but never overrides it. Close manually with `gh issue close <number>` when all related work is complete.
 
 ### Closed
 
@@ -391,4 +391,4 @@ See `references/conventions.md` for details.
 - **Commits on issue branches:** freeform — branch is squash-merged. No Co-Authored-By, no AI attribution.
 - **Squashed merge commit on main:** `type(scope): description` built by the skill from PR title + body.
 - **Branches:** `type/issue-number-slug` (e.g., `feat/42-add-jwt-auth`) — CLI builds this from issue labels.
-- **PR body:** Must include `Closes #<issue-number>`.
+- **PR body:** Must reference the issue. Use `Closes #<issue-number>` (auto-close on merge) for atomic issues. For multi-phase or umbrella issues that should stay open after this PR lands, edit the body to use `Refs #<issue-number>` after `github-issue push` runs — the CLI defaults to `Closes` and does not auto-detect multi-phase scope.
