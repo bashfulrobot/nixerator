@@ -112,7 +112,7 @@
         #   - whole-skill symlinks (Nix-managed, e.g. clay-ralph)
         #   - runtime workspaces with no SKILL.md (commit-workspace, etc.)
         #   - plugin-managed skills whose every leaf is a symlink into
-        #     /nix/store (hack, dependabot, stop-slop, github-issue)
+        #     /nix/store (hack, dependabot, github-issue)
         # Top-level symlinks in tracked skills are --exclude'd from rsync
         # so a store path never lands in git.
         set -l skills_ignore_file "$config_dir/skills/.capture-ignore"
