@@ -50,17 +50,27 @@ stay consistent across hosts.
 
 After installing via CLI, capture what you want to keep:
 
-1. **Skills** -- copy into `modules/apps/cli/claude-code/skills/<name>/` and
-   wire up via `skills.<name> = ./skills/<name>;` in the module. This is
-   already how `commit` and `humanizer` work.
+1. **Skills** -- author or install in `~/.claude/skills/<name>/` and run
+   `claude-capture` (or just `just qr`, which calls it as a pre-rebuild
+   step). The capture function mirrors each runtime skill into
+   `modules/apps/cli/claude-code/config/skills/<name>/`, and the activation
+   script rsyncs that directory back into `~/.claude/skills/` on every
+   rebuild. `config/skills/` is the single source of truth -- both the
+   capture sink and the deploy source. Skills listed in
+   `config/skills/.capture-ignore` are skipped.
 
 2. **Plugins** -- inspect installed plugin content at
    `~/.claude/plugins/marketplaces/` or `~/.claude/plugins/cache/`.
-   Plugins are typically CLAUDE.md-style instruction files. Extract the
-   useful bits and integrate into agents, skills, or memory as appropriate.
+   `claude-capture` also mirrors `installed_plugins.json`,
+   `known_marketplaces.json`, and `blocklist.json` into
+   `config/plugins/`, which the activation re-deploys on rebuild. Plugin
+   content itself is fetched by Claude Code at runtime from the recorded
+   marketplaces.
 
-3. **Audit installed state** -- `claude-plugins list` and
-   `npx skills-installer list` show what's currently active. Periodically
-   review and pull anything worth keeping into Nix-managed files.
+3. **Audit installed state** -- `claude plugin list` shows installed
+   plugins; `ls ~/.claude/skills` shows active skills. Compare against
+   `config/skills/` and `config/plugins/installed_plugins.json` to spot
+   drift between runtime and committed state.
 
-The pattern: discover with CLI, evaluate, then codify into the module.
+The pattern: discover or author at runtime, capture mirrors to git,
+activation re-deploys on rebuild.
