@@ -7,7 +7,6 @@
     ../../modules/apps/cli/agent-scan
     ../../modules/apps/cli/agentos
     ../../modules/apps/cli/claude-code
-    ../../modules/apps/cli/claude-external-skills
     ../../modules/apps/cli/docker
     ../../modules/apps/cli/fish
     ../../modules/apps/cli/gcmt
@@ -20,7 +19,6 @@
     ../../modules/apps/cli/restic
     ../../modules/apps/cli/skillfish
     ../../modules/apps/cli/starship
-    ../../modules/apps/cli/stop-slop
     ../../modules/apps/cli/superpowers
     ../../modules/apps/cli/tailscale
     ../../modules/apps/cli/vscode-server
@@ -68,12 +66,10 @@
         "ralph-loop@claude-plugins-official"
       ];
     };
-    claude-external-skills.enable = true;
     gemini-cli.enable = true;
     paseo.enable = true;
     plannotator.enable = true;
     skillfish.enable = true;
-    stop-slop.enable = true;
     superpowers.enable = true;
 
     # Zellij with web client behind Caddy tsnet

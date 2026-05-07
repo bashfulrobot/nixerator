@@ -63,8 +63,6 @@ in
         enable = false;
         service.enable = true;
       };
-      stop-slop.enable = true;
-      claude-external-skills.enable = true;
       superpowers.enable = true;
       paseo.enable = true;
       skillfish.enable = true;
