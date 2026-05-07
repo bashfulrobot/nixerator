@@ -379,7 +379,8 @@
     "cs-skills@kong-cs": true,
     "commit@kong-cs": true,
     "kong-pptx-build@kong-cs": true,
-    "frontend-design@claude-plugins-official": true
+    "frontend-design@claude-plugins-official": true,
+    "feature-request@kong-cs": true
   },
   "extraKnownMarketplaces": {
     "kong-cs": {

@@ -231,6 +231,16 @@
         "gitCommitSha": "ff4c4257299d60866c2b34110595e8da0340df0a",
         "auto": true
       }
+    ],
+    "feature-request@kong-cs": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/feature-request/77738064b2d1",
+        "version": "77738064b2d1",
+        "installedAt": "2026-05-07T01:33:21.095Z",
+        "lastUpdated": "2026-05-07T01:33:21.095Z",
+        "gitCommitSha": "77738064b2d1082b81ef509380e33222cb0d36ad"
+      }
     ]
   }
 }
