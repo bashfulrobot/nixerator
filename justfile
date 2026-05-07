@@ -216,10 +216,9 @@ fmt:
 
 # Update manually-installed Claude skills from GitHub
 #
-# generate-images and visual-explainer are now vendored via Nix -- see
-# settings/versions.nix (cli.generate-images-skill, cli.visual-explainer-skill)
-# and modules/apps/cli/claude-external-skills/. To update those, bump the
-# rev + hash in versions.nix and rebuild; they're no longer fetched here.
+# Currently only invokes skillfish to update its tracked skills. Other
+# skills are managed via `claude-capture` (config/skills/ → ~/.claude/
+# skills/ on rebuild) and need no separate update step.
 update-skills:
     #!/usr/bin/env bash
     set -euo pipefail
