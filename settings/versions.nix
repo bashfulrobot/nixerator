@@ -19,12 +19,12 @@
     agent-scan = {
       source = "github-release";
       repo = "snyk/agent-scan";
-      version = "0.4.18";
+      version = "0.5.1";
       tagPrefix = "v";
       platformHashes = {
-        x86_64-linux = "sha256-t+6QaOfoHrb440P6qDnwXKAKNUuFCBsJof3Kpvqiy6s=";
-        aarch64-darwin = "sha256-QJVBZknmJB6keFJjpifPa8ehf9WhgnSuJeIbIpPYpxo=";
-        x86_64-darwin = "sha256-hEdm7MeUf03lBi3FCjhYQ+Pg3vB+CeiJRIQP0QJoIhM=";
+        x86_64-linux = "sha256-mRU++DkLpEhuJ4X1vBjyzhWSTGEE7Cx1ccy5ac6NOi0=";
+        aarch64-darwin = "sha256-WYAHJkZ5Lh3loWIbpFVuDNKPyfFhTQWHWVjksdgUQ04=";
+        x86_64-darwin = "sha256-OoKrOM3b0chpgyL52/+N1lMapeeuD716CIrxMgbcaT8=";
       };
     };
 
@@ -63,10 +63,10 @@
     salesforce-cli = {
       source = "github-release";
       repo = "salesforcecli/cli";
-      version = "2.131.5";
+      version = "2.134.6";
       tagPrefix = "";
-      shortRev = "8ade7c8";
-      hash = "sha256-Ut4e39jXZLnzb7qNSKHpuTuv8s6gLKWDhSfr90ITJE4=";
+      shortRev = "f556e1e";
+      hash = "sha256-OXaMFwpICKlNArUmgABV9X5I/I+ah2ZLJVMCZ7nsFTc=";
     };
 
     cpx = {
@@ -80,8 +80,8 @@
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
-      version = "0.0.60";
-      hash = "sha256-mSlM8BKYqe64noSloqqwSmogCznxMvzdSO5Z1nbJtko=";
+      version = "0.0.62";
+      hash = "sha256-+OH0rg/0v5xrY+bCjK1N3NQHDrWVd8g9REJv5C+RiF0=";
       npmPkg = "kubernetes-mcp-server-linux-amd64";
     };
 
@@ -132,12 +132,17 @@
     plannotator = {
       source = "github-release";
       repo = "backnotprop/plannotator";
-      version = "0.17.1";
+      version = "0.19.10";
       tagPrefix = "v";
-      hash = "sha256-UYoImMYyu9BposkwrXLPZiQsse3aHg5Aims2Ekbs59o=";
+      hash = "sha256-k79VGpH9I/q/509bavZp6B1cjuCqG/38sBgeZmB79QU=";
       pasteHash = "sha256-6T6me3XKnbmVCH1c1JvQ5AsHHDHEgy5iMC6bIQXfYLk=";
     };
 
+    # NOTE: 262.4739.0 is available but upstream renamed assets
+    # (kotlin-lsp-VER-linux-x64.zip -> kotlin-server-VER.tar.gz). Bumping
+    # requires updating modules/dev/python/build/default.nix or wherever
+    # kotlin-lsp is fetched (URL + archive type). Holding at 262.2310.0
+    # until the build script is reworked.
     kotlin-lsp = {
       source = "github-release";
       repo = "Kotlin/kotlin-lsp";
@@ -146,28 +151,20 @@
       hash = "sha256-wAQkIVj0teHZF93YSOb2onlIT6WKPivOiEa4B9GtFrE=";
     };
 
-    stop-slop = {
-      source = "github-commit";
-      repo = "hardikpandya/stop-slop";
-      version = "unstable-2026-04-04";
-      rev = "65d52b35d7243427ac646e83eae5a9b0709aa191";
-      hash = "sha256-NcwN37kSKOO+4QIhIEVafFtg15KCufmxTJiX3AGQRh0=";
-    };
-
     gurk = {
       source = "github-release";
       repo = "boxdot/gurk-rs";
-      version = "0.9.0";
+      version = "0.9.3";
       tagPrefix = "v";
-      hash = "sha256-ZTT1wJvNuYjd1QYjw5lVC2C+MZNu0NBmeEi5eOO+f5c=";
+      hash = "sha256-ZFSUnZlp+BGIfJGs8V/K2YSmBtJrvmjplmRhxlC0o7g=";
     };
 
     graymatter = {
       source = "github-release";
       repo = "angelnicolasc/graymatter";
-      version = "0.5.0";
+      version = "0.5.1";
       tagPrefix = "v";
-      hash = "sha256-xFeXwg8TZTkbSwmTGy2vurasqOzYb7URY/1rTnrR3Zg=";
+      hash = "sha256-DCi5T2OpYb2sQiQB3b3BXtN8CMKaZdab0BFweeuez08=";
       vendorHash = "sha256-gmNsw0mTKnMqcHu9p2yy3GDmU+702sXGtV+giCjPrvM=";
     };
 
@@ -200,39 +197,18 @@
       source = "npm";
       repo = "knoxgraeme/skillfish";
       npmPkg = "skillfish";
-      version = "1.0.33";
-      hash = "sha256-WZ6Dqtv8sgJ0N/6vKqMqEguSROUJHBVOErHxYrLR7EQ=";
-      npmDepsHash = "sha256-fWxj4gu3VYLvjCpuo9FfEAtMFQlEMdwfSj/KvEVgY6c=";
+      version = "1.0.37";
+      hash = "sha256-4XmyKjrxm3LgjxF9so3hiD1F0ZufYY6osj3YQlE+fOo=";
+      npmDepsHash = "sha256-P3J4+OiMaucsNjCaWtMTc8zlGT4fA+ItFy/D6RhBWJ0=";
     };
 
     todoist-cli = {
       source = "npm";
       repo = "Doist/todoist-cli";
       npmPkg = "@doist/todoist-cli";
-      version = "1.61.0";
-      hash = "sha256-Cv+3QDDK1XS5knPX5XqJQSYgbeKoXYMBhnwsSkvwFtc=";
-      npmDepsHash = "sha256-YsFxtaL5+Hf64RfVABEz4im8+RGLwN2DDQM6QGEkbEk=";
-    };
-
-    # Upstream Claude Code skills fetched from single-maintainer GitHub repos.
-    # Pinned to specific commits so a drive-by repo compromise can't silently
-    # replace the SKILL.md (loaded into Claude's context) or shipped shell
-    # scripts (executed with the user's permissions). Consumed by
-    # modules/apps/cli/claude-external-skills/.
-    generate-images-skill = {
-      source = "github-commit";
-      repo = "ericblue/my-claude";
-      version = "unstable-2026-04-23";
-      rev = "d866341949059ef80ea59fac807954cf63d3fb70";
-      hash = "sha256-QYDUvpd6pm6Yp6Otn6B5gyP+p8rePqGcqMExDyb0nR0=";
-    };
-
-    visual-explainer-skill = {
-      source = "github-commit";
-      repo = "ericblue/visual-explainer-skill";
-      version = "unstable-2026-04-23";
-      rev = "811b823653f0d1d9b1d2bc6f7c13df952f0216e7";
-      hash = "sha256-J+Jh76ib17LcIDWJbIclXd5j4doJBDnxbofdNWfAl38=";
+      version = "1.61.2";
+      hash = "sha256-fC4/nZ1mj1v8h97NOn7TA4nG7oOLKeeQCRtnKQ1VfoQ=";
+      npmDepsHash = "sha256-n+lu7f2rsMEOCnzj1nmzGRZo3WcwhBUeamTexCOs0xM=";
     };
 
   };
@@ -262,9 +238,9 @@
     helium = {
       source = "github-release";
       repo = "imputnet/helium-linux";
-      version = "0.10.8.1";
+      version = "0.12.1.1";
       tagPrefix = "";
-      hash = "sha256-pN/Iw1ANggDOxxFb2CN436qbcrs8/bDcEqjZC80grQs=";
+      hash = "sha256-+UE+JqQtxbA5szPvAohapXlES21VBOdNsV6Ej1dRRfs=";
     };
   };
 
