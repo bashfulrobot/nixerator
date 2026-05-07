@@ -31,7 +31,10 @@
     },
     "apple-fonts_2": {
       "inputs": {
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": [
+          "hyprflake",
+          "nixpkgs"
+        ],
         "ny": "ny_2",
         "sf-arabic": "sf-arabic_2",
         "sf-armenian": "sf-armenian_2",
@@ -586,15 +589,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1778112951,
-        "narHash": "sha256-aRY5gZXJoRipfg08RqCAmGuf0Z3lQtHMwAWQ8QavfDU=",
+        "lastModified": 1778178194,
+        "narHash": "sha256-wnwDu5cC7aW46MzGKje+iSflzOOmmGLHn1+vzfvGgeY=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "21eb049fbdba55e6bed89861babc03003687b8c2",
+        "rev": "42ce3bc3c5a984c0d723500d05e29ef32b7a35c9",
         "type": "github"
       },
       "original": {
         "owner": "bashfulrobot",
+        "ref": "chore/cleanup-and-stylix",
         "repo": "hyprflake",
         "type": "github"
       }
@@ -744,22 +748,6 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1771848320,
-        "narHash": "sha256-0MAd+0mun3K/Ns8JATeHT1sX28faLII5hVLq0L3BdZU=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "2fc6539b481e1d2569f25f8799236694180c0993",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_3": {
-      "locked": {
         "lastModified": 1777954456,
         "narHash": "sha256-hGdgeU2Nk87RAuZyYjyDjFL6LK7dAZN5RE9+hrDTkDU=",
         "owner": "nixos",
@@ -855,7 +843,7 @@
         "nix-flatpak": "nix-flatpak",
         "nixos-hardware": "nixos-hardware",
         "nixos-vscode-server": "nixos-vscode-server",
-        "nixpkgs": "nixpkgs_3",
+        "nixpkgs": "nixpkgs_2",
         "paseo": "paseo",
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
