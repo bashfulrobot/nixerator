@@ -184,10 +184,10 @@
     "kong-skill@kong-cs": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/kong-skill/ff4c4257299d",
-        "version": "ff4c4257299d",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/kong-skill/77738064b2d1",
+        "version": "77738064b2d1",
         "installedAt": "2026-04-27T07:01:00.084Z",
-        "lastUpdated": "2026-04-30T05:49:13.536Z",
+        "lastUpdated": "2026-05-06T23:46:07.002Z",
         "gitCommitSha": "3f6b1149117d86b191dd38d94591e1f2f2d06530"
       }
     ],
@@ -203,20 +203,20 @@
     "cs-skills@kong-cs": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/cs-skills/ff4c4257299d",
-        "version": "ff4c4257299d",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/cs-skills/77738064b2d1",
+        "version": "77738064b2d1",
         "installedAt": "2026-04-29T21:53:22.027Z",
-        "lastUpdated": "2026-04-30T05:49:13.533Z",
+        "lastUpdated": "2026-05-06T23:46:06.997Z",
         "gitCommitSha": "3f6b1149117d86b191dd38d94591e1f2f2d06530"
       }
     ],
     "commit@kong-cs": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/commit/ff4c4257299d",
-        "version": "ff4c4257299d",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/commit/77738064b2d1",
+        "version": "77738064b2d1",
         "installedAt": "2026-04-29T21:53:22.042Z",
-        "lastUpdated": "2026-04-30T05:49:13.535Z",
+        "lastUpdated": "2026-05-06T23:46:07.001Z",
         "gitCommitSha": "3f6b1149117d86b191dd38d94591e1f2f2d06530",
         "auto": true
       }
@@ -224,10 +224,10 @@
     "kong-pptx-build@kong-cs": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/kong-pptx-build/ff4c4257299d",
-        "version": "ff4c4257299d",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-cs/kong-pptx-build/77738064b2d1",
+        "version": "77738064b2d1",
         "installedAt": "2026-04-30T05:49:22.328Z",
-        "lastUpdated": "2026-04-30T05:49:22.328Z",
+        "lastUpdated": "2026-05-06T23:46:07.013Z",
         "gitCommitSha": "ff4c4257299d60866c2b34110595e8da0340df0a",
         "auto": true
       }
