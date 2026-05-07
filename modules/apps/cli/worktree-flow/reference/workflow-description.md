@@ -128,7 +128,7 @@ flowchart TD
     PUSH_PR --> DONE(["done!"])
 
     %% Cleanup
-    CLEANUP["phase_cleanup\n• checkout default branch + pull\n• remove worktree\n• delete local+remote branch\n• comment resolution on issue\n• gh issue close"]
+    CLEANUP["phase_cleanup\n• checkout default branch + pull\n• remove worktree\n• delete local+remote branch\n• report issue state (do NOT force-close —\n  PR closing keyword is the source of truth)"]
     CLEANUP --> DONE_CLEAN(["cleanup complete"])
 ```
 

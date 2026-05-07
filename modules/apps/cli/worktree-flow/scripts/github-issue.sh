@@ -853,12 +853,25 @@ cmd_cleanup() {
   git push origin --delete "$branch" 2>/dev/null || true
   ok "branches cleaned up"
 
-  # Close issue if PR exists
+  # Report the issue's state — do NOT force-close. The PR body's closing
+  # keyword (Closes #N / Fixes #N / Resolves #N) is the source of truth: if
+  # present, GitHub already closed the issue at merge time; if absent (e.g.,
+  # a multi-phase issue using Refs #N), the contributor deliberately kept it
+  # open and we must not override that.
   if [[ -n "$pr_number" ]]; then
-    gh issue comment "$issue_number" \
-      --body "Resolved via #${pr_number}. Branch and worktree cleaned up." 2>/dev/null || true
-    gh issue close "$issue_number" 2>/dev/null || true
-    ok "issue closed"
+    local issue_state
+    issue_state="$(gh issue view "$issue_number" --json state -q '.state' 2>/dev/null || echo "UNKNOWN")"
+    case "$issue_state" in
+      CLOSED)
+        ok "issue closed by GitHub on PR merge (closing keyword)"
+        ;;
+      OPEN)
+        ok "issue left open (no closing keyword in PR); close manually when all related work is complete"
+        ;;
+      *)
+        ok "issue state: ${issue_state}"
+        ;;
+    esac
   fi
 
   json_ok "$(jq -n \
