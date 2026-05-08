@@ -42,14 +42,10 @@ appimageTools.wrapType2 {
       };
     in
     ''
-      # Install XDG Desktop file and its icon
+      # Install XDG Desktop file and its icon. Upstream now ships
+      # `Exec=helium` (and variants) directly, so no AppRun rewrite is
+      # needed — the previous `substituteInPlace` block was removed.
       install -Dm444 ${appimageContents}/helium.desktop -t $out/share/applications
       install -Dm444 ${appimageContents}/helium.png -t $out/share/pixmaps
-
-      # Fix exec statements in desktop file (most specific first)
-      substituteInPlace $out/share/applications/helium.desktop \
-        --replace-fail 'Exec=AppRun --incognito' 'Exec=helium --incognito' \
-        --replace-fail 'Exec=AppRun %U' 'Exec=helium %U' \
-        --replace-fail 'Exec=AppRun' 'Exec=helium'
     '';
 }
