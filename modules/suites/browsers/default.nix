@@ -18,7 +18,7 @@ in
       # brave: disabled
       google-chrome.enable = true;
       # google-chrome.enableDev = true;
-      helium.enable = false;
+      helium.enable = true;
     };
   };
 }
