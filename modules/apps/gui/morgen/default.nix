@@ -9,18 +9,24 @@
 let
   cfg = config.apps.gui.morgen;
 
-  # Morgen's Electron 41 GPU process fails to initialise EGL on Wayland in
-  # NixOS 25.11 (NixOS/nixpkgs#431637), and Morgen treats the resulting
-  # "GPU access not allowed" state as fatal and refuses to start. Force the
-  # X11/XWayland ozone backend so Chromium's GPU init path succeeds.
-  morgen = pkgs.symlinkJoin {
-    name = "morgen-x11";
-    paths = [ pkgs.morgen ];
-    nativeBuildInputs = [ pkgs.makeWrapper ];
-    postBuild = ''
-      wrapProgram $out/bin/morgen --add-flags --ozone-platform=x11
+  # Morgen 4.0.4 has a Linux-only bug: `dist/main.js` unconditionally calls
+  # `app.disableHardwareAcceleration()` on non-darwin/non-win32 platforms,
+  # then a Sentry `GpuContext` event processor calls `app.getGPUInfo()`
+  # which throws "GPU access not allowed" because acceleration was just
+  # disabled. The unhandled async rejection kills the main process before
+  # the window opens. Patch the asar to neuter the disable call.
+  morgen = pkgs.morgen.overrideAttrs (old: {
+    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.asar ];
+    postFixup = (old.postFixup or "") + ''
+      asarFile=$out/opt/Morgen/resources/app.asar
+      work=$(mktemp -d)
+      asar extract "$asarFile" "$work"
+      substituteInPlace "$work/dist/main.js" \
+        --replace-fail 'ee.app.disableHardwareAcceleration()' 'ee.app.getName()'
+      asar pack "$work" "$asarFile"
+      rm -rf "$work"
     '';
-  };
+  });
 in
 {
   options = {
