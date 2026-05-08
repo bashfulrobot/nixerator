@@ -388,6 +388,12 @@
         "source": "github",
         "repo": "Kong/cs-skills"
       }
+    },
+    "kong-se-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/KongHQ-SE/se-kong-skills.git"
+      }
     }
   },
   "skipDangerousModePermissionPrompt": true,

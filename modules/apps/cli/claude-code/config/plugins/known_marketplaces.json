@@ -30,5 +30,13 @@
     },
     "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/kong-cs",
     "lastUpdated": "2026-05-07T01:35:47.396Z"
+  },
+  "kong-se-skills": {
+    "source": {
+      "source": "git",
+      "url": "https://github.com/KongHQ-SE/se-kong-skills.git"
+    },
+    "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/kong-se-skills",
+    "lastUpdated": "2026-05-08T19:12:41.412Z"
   }
 }
