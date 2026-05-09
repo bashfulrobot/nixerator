@@ -30,7 +30,10 @@ set -euo pipefail
 CREDS_FILE="${SLACK_CREDENTIALS_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/slack/credentials.json}"
 SLACK_API="https://slack.com/api"
 
-die() { echo "ERROR: $*" >&2; exit 1; }
+die() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
 usage() { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; }
 
 [[ -f "$CREDS_FILE" ]] || die "no slack credentials at $CREDS_FILE -- run 'slack-token-refresh'"
@@ -45,16 +48,44 @@ message=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --channel)    channel="$2"; shift 2 ;;
-    --workspace)  workspace="$2"; shift 2 ;;
-    --thread-ts)  thread_ts="$2"; shift 2 ;;
-    --self)       self=1; shift ;;
-    --stdin)      read_stdin=1; shift ;;
-    --send)       send=1; shift ;;
-    -h|--help)    usage; exit 0 ;;
-    --)           shift; break ;;
-    -*)           die "unknown flag: $1" ;;
-    *)            message="$1"; shift; break ;;
+    --channel)
+      channel="$2"
+      shift 2
+      ;;
+    --workspace)
+      workspace="$2"
+      shift 2
+      ;;
+    --thread-ts)
+      thread_ts="$2"
+      shift 2
+      ;;
+    --self)
+      self=1
+      shift
+      ;;
+    --stdin)
+      read_stdin=1
+      shift
+      ;;
+    --send)
+      send=1
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*) die "unknown flag: $1" ;;
+    *)
+      message="$1"
+      shift
+      break
+      ;;
   esac
 done
 
@@ -132,8 +163,8 @@ ch=$(echo "$resp" | jq -r '.channel')
 
 permalink=$(curl -sS "$SLACK_API/chat.getPermalink?channel=$ch&message_ts=$ts" \
   -H "Authorization: Bearer $xoxc" \
-  -H "Cookie: d=$xoxd" \
-  | jq -r '.permalink // empty')
+  -H "Cookie: d=$xoxd" |
+  jq -r '.permalink // empty')
 
 if [[ -n "$permalink" ]]; then
   echo "$permalink"
