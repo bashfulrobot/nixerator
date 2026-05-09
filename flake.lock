@@ -589,16 +589,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1778178194,
-        "narHash": "sha256-wnwDu5cC7aW46MzGKje+iSflzOOmmGLHn1+vzfvGgeY=",
+        "lastModified": 1778284752,
+        "narHash": "sha256-YefGIpxgDNB2Exn3alkANvDd8FMh8RtC85kKcbXK25w=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "42ce3bc3c5a984c0d723500d05e29ef32b7a35c9",
+        "rev": "c466b2065bbce2e2b34c48c6bf32c67688796427",
         "type": "github"
       },
       "original": {
         "owner": "bashfulrobot",
-        "ref": "chore/cleanup-and-stylix",
         "repo": "hyprflake",
         "type": "github"
       }

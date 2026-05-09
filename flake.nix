@@ -20,9 +20,7 @@
     };
 
     hyprflake = {
-      # Test branch: chore/cleanup-and-stylix
-      # Revert to "github:bashfulrobot/hyprflake" after merge.
-      url = "github:bashfulrobot/hyprflake/chore/cleanup-and-stylix";
+      url = "github:bashfulrobot/hyprflake";
       # Follow all inputs to ensure version consistency and avoid conflicts
       inputs = {
         nixpkgs.follows = "nixpkgs";
