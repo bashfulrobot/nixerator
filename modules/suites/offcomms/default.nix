@@ -37,6 +37,7 @@ in
       webapps = {
         mail.enable = true;
         calendar.enable = true;
+        instapaper.enable = true;
         slack.enable = false;
         zoom.enable = true;
       };
