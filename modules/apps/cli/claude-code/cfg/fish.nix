@@ -1,7 +1,7 @@
-{ globals
-, pkgs
-, statusLineScript
-,
+{
+  globals,
+  pkgs,
+  statusLineScript,
 }:
 
 {
