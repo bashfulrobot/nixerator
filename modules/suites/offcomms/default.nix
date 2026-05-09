@@ -25,7 +25,7 @@ in
         cauldron.enable = true;
         insync.enable = true;
         localsend.enable = true;
-        morgen.enable = true;
+        morgen.enable = false;
         obsidian.enable = true;
         signal.enable = true;
         typora.enable = true;
