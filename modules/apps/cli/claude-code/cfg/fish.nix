@@ -1,7 +1,7 @@
-{
-  globals,
-  pkgs,
-  statusLineScript,
+{ globals
+, pkgs
+, statusLineScript
+,
 }:
 
 {
@@ -204,6 +204,15 @@
           end
 
           # Cache is not tracked in git -- plugins auto-download from installed_plugins.json
+        end
+
+        # Format captured shell scripts to match CI shfmt flags
+        # (-i 2 -ci), so the next auto-format pass is a no-op and we
+        # stop ping-ponging slack-post.sh & friends between condensed
+        # (live) and expanded (CI) formatting.
+        set -l sh_files (${pkgs.findutils}/bin/find "$config_dir" -type f -name '*.sh')
+        if test (count $sh_files) -gt 0
+          ${pkgs.shfmt}/bin/shfmt -w -i 2 -ci $sh_files >/dev/null
         end
 
         # Surface seeded items so nothing sneaks into git unnoticed.

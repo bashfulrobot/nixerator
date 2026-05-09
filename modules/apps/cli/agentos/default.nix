@@ -1,10 +1,9 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  versions,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, versions
+, ...
 }:
 
 let
@@ -113,6 +112,14 @@ in
               ${pkgs.findutils}/bin/find "$config_dir/profiles" \
                 -mindepth 1 -type d -empty -delete 2>/dev/null
               echo "  profiles/ (diffs only)"
+
+              # Format captured shell scripts to match CI shfmt flags
+              # (-i 2 -ci), so auto-format never has to flip them back.
+              set -l sh_files (${pkgs.findutils}/bin/find "$config_dir" -type f -name '*.sh')
+              if test (count $sh_files) -gt 0
+                ${pkgs.shfmt}/bin/shfmt -w -i 2 -ci $sh_files >/dev/null
+              end
+
               echo ""
               echo "Done. Review changes with: git diff $config_dir"
             '';
