@@ -29,6 +29,14 @@
     # once that lands; let hyprflake's own pin take over again.
     voxtype = {
       url = "github:peteonrails/voxtype/adf0ea62c2310b90c55febdc6515cca9f264e25a";
+      # Force voxtype to follow nixerator's nixpkgs. Without this, voxtype's
+      # own pinned nixpkgs (from 2026-01) builds against a stale PipeWire and
+      # the resulting binary hardcodes ALSA-plugin paths to a /nix/store
+      # entry that doesn't exist on the live system — voxtype starts but
+      # silently fails to open audio with `snd_pcm_open` ENXIO. Following
+      # nixerator's nixpkgs aligns voxtype's runtime ALSA/PipeWire deps with
+      # everything else on the system.
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     hyprflake = {
