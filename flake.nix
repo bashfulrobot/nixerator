@@ -19,6 +19,18 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # TODO(workaround): pin voxtype to pre-0.7.0 (adf0ea6, 2026-04-20).
+    # voxtype 0.7.0 (rev 184006c) added a Cargo dep that pulls in `glib-sys`
+    # and `gdk-pixbuf-sys` without feature-gating, so the `vulkan` variant
+    # fails to build on NixOS — its derivation only declares vulkan + alsa
+    # + openssl deps. Re-evaluate this pin when peteonrails/voxtype either
+    # feature-gates the GTK crate or adds the missing native deps to the
+    # vulkan derivation. Drop both this input and the `follows` line below
+    # once that lands; let hyprflake's own pin take over again.
+    voxtype = {
+      url = "github:peteonrails/voxtype/adf0ea62c2310b90c55febdc6515cca9f264e25a";
+    };
+
     hyprflake = {
       url = "github:bashfulrobot/hyprflake";
       # Follow all inputs to ensure version consistency and avoid conflicts
@@ -27,6 +39,8 @@
         home-manager.follows = "home-manager";
         stylix.follows = "stylix";
         waybar-auto-hide.follows = "waybar-auto-hide";
+        # See TODO above the `voxtype` input.
+        voxtype.follows = "voxtype";
       };
     };
 
