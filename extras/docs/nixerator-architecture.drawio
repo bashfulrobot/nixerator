@@ -55,11 +55,8 @@
     <mxCell id="upsight" value="upsight" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="inputs-container">
       <mxGeometry x="20" y="320" width="80" height="35" as="geometry"/>
     </mxCell>
-    <mxCell id="paseo" value="paseo" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="inputs-container">
-      <mxGeometry x="110" y="320" width="80" height="35" as="geometry"/>
-    </mxCell>
     <mxCell id="wayscriber" value="wayscriber" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="inputs-container">
-      <mxGeometry x="200" y="320" width="90" height="35" as="geometry"/>
+      <mxGeometry x="110" y="320" width="90" height="35" as="geometry"/>
     </mxCell>
     <mxCell id="follows-note" value="Most inputs follow nixpkgs. hyprflake also follows&#xa;home-manager + stylix + waybar-auto-hide" style="text;fontSize=10;fontStyle=2;fontColor=#666666;align=left;" vertex="1" parent="inputs-container">
       <mxGeometry x="20" y="370" width="340" height="30" as="geometry"/>
