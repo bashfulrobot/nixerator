@@ -79,6 +79,17 @@ let
   # the user's XDG-style preference slot rather than hardcoding a package.
   hasHyperframes = lib.elem "hyperframes@hyperframes" cfg.plugins;
   hyperframesBrowserPath = "/run/current-system/sw/bin/${globals.preferences.browser}";
+
+  # Conditional env vars exported into both system and HM session scopes.
+  # Built once here so the two consumer sites can't drift.
+  claudeEnv =
+    lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
+      GEMINI_API_KEY = secrets.gemini.apiKey;
+    }
+    // lib.optionalAttrs hasHyperframes {
+      PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
+      PUPPETEER_SKIP_DOWNLOAD = "1";
+    };
 in
 {
   options = {
@@ -152,27 +163,15 @@ in
     # Gemini API key for generate-images / visual-explainer skills.
     # Puppeteer env vars only applied when the hyperframes plugin is enabled --
     # keeps the system environment clean on hosts that don't use it.
-    environment.variables =
-      lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
-        GEMINI_API_KEY = secrets.gemini.apiKey;
-      }
-      // lib.optionalAttrs hasHyperframes {
-        PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
-        PUPPETEER_SKIP_DOWNLOAD = "1";
-      };
+    # `claudeEnv` (see `let` block) builds this attrset once; reused below
+    # for `home.sessionVariables` so the two scopes can't drift.
+    environment.variables = claudeEnv;
 
     home-manager.users.${globals.user.name} = {
       programs.fish = fishConfig;
 
       home = {
-        sessionVariables =
-          lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
-            GEMINI_API_KEY = secrets.gemini.apiKey;
-          }
-          // lib.optionalAttrs hasHyperframes {
-            PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
-            PUPPETEER_SKIP_DOWNLOAD = "1";
-          };
+        sessionVariables = claudeEnv;
         packages =
           (with pkgs; [
             llm-agents.claude-code
