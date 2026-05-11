@@ -63,6 +63,11 @@ let
 
   # Path to config directory (Nix store copy for activation script)
   configDir = ./config;
+
+  # Hyperframes plugin requires ffmpeg + chromium + node + puppeteer env vars
+  # on the host. Gate the runtime deps on plugin-list membership so the
+  # closure is unchanged on hosts where the plugin isn't enabled.
+  hasHyperframes = lib.elem "hyperframes@hyperframes" cfg.plugins;
 in
 {
   options = {
@@ -122,20 +127,40 @@ in
         # against a host-local kubeconfig. Pointless on minimal-profile hosts
         # where the kubernetes MCP server itself is gated out.
         (pkgs.writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
+      ]
+      ++ lib.optionals hasHyperframes [
+        # Hyperframes plugin invokes `npx hyperframes` which spawns ffmpeg
+        # for rendering and a system chromium via puppeteer for HTML capture.
+        # Puppeteer's bundled chromium binary does not run on NixOS, so the
+        # system chromium becomes the puppeteer target via env vars below.
+        pkgs.ffmpeg-full
+        pkgs.chromium
       ];
 
-    # Gemini API key for generate-images / visual-explainer skills
-    environment.variables = lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
-      GEMINI_API_KEY = secrets.gemini.apiKey;
-    };
+    # Gemini API key for generate-images / visual-explainer skills.
+    # Puppeteer env vars only applied when the hyperframes plugin is enabled --
+    # keeps the system environment clean on hosts that don't use it.
+    environment.variables =
+      lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
+        GEMINI_API_KEY = secrets.gemini.apiKey;
+      }
+      // lib.optionalAttrs hasHyperframes {
+        PUPPETEER_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
+        PUPPETEER_SKIP_DOWNLOAD = "1";
+      };
 
     home-manager.users.${globals.user.name} = {
       programs.fish = fishConfig;
 
       home = {
-        sessionVariables = lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
-          GEMINI_API_KEY = secrets.gemini.apiKey;
-        };
+        sessionVariables =
+          lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
+            GEMINI_API_KEY = secrets.gemini.apiKey;
+          }
+          // lib.optionalAttrs hasHyperframes {
+            PUPPETEER_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
+            PUPPETEER_SKIP_DOWNLOAD = "1";
+          };
         packages =
           (with pkgs; [
             llm-agents.claude-code
@@ -147,6 +172,12 @@ in
               libreoffice # soffice on PATH -- required for marp-slides skill's --pptx-editable export (workstation-only)
             ]
           )
+          ++ lib.optionals hasHyperframes [
+            # Claude Code bundles node internally, but `npx hyperframes` must
+            # dispatch to a user-visible Node >= 22. Pinning nodejs_22 matches
+            # the version already used by skillfish and dorkos build derivations.
+            pkgs.nodejs_22
+          ]
           ++ pluginsConfig.packages
           ++ reapConfig.packages;
 
