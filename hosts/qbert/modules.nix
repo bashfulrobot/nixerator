@@ -40,7 +40,6 @@
       "/home/dustin/git/blackhole"
     ];
   };
-  apps.cli.paseo.service.enable = true;
   apps.cli.text-polish.enable = true;
   apps.cli.text-uppercase.enable = true;
 

@@ -14,7 +14,6 @@
     ../../modules/apps/cli/git
     ../../modules/apps/cli/graymatter
     ../../modules/apps/cli/helix
-    ../../modules/apps/cli/paseo
     ../../modules/apps/cli/plannotator
     ../../modules/apps/cli/restic
     ../../modules/apps/cli/skillfish
@@ -71,11 +70,6 @@
       ];
     };
     gemini-cli.enable = true;
-    # Disabled: upstream paseo (v0.1.72..v0.1.74) ships an npm-deps FOD hash
-    # that no longer matches what fetchNpmDeps produces, blocking every
-    # nixerator rebuild. Re-enable once getpaseo/paseo cuts a release whose
-    # npmDepsHash is correct against the current registry.
-    paseo.enable = false;
     plannotator.enable = true;
     skillfish.enable = true;
     superpowers.enable = true;

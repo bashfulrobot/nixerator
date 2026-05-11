@@ -23,7 +23,6 @@ Use `mcp__gitmcp__fetch_generic_documentation` with owner + repo for:
 - `numtide/llm-agents.nix`
 - `gmodena/nix-flatpak`
 - `devmobasa/wayscriber`
-- `getpaseo/paseo`
 - `Lyndeno/apple-fonts.nix`
 - `Gerg-L/spicetify-nix`
 - `nix-community/nixos-vscode-server`

@@ -203,7 +203,7 @@ The `lib/mkHost.nix` builder wires everything together:
 | **nix-flatpak** | Flatpak support |
 | **nixos-hardware** | Hardware quirks |
 | **determinate** | DeterminateSystems Nix |
-| **upsight, paseo, wayscriber** | Custom tools |
+| **upsight, wayscriber** | Custom tools |
 
 ---
 
