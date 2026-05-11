@@ -63,6 +63,22 @@ let
 
   # Path to config directory (Nix store copy for activation script)
   configDir = ./config;
+
+  # Hyperframes plugin needs ffmpeg, node, puppeteer env vars, and a
+  # Chromium-family browser binary on the host. Gate the runtime deps on
+  # plugin-list membership so the closure is unchanged on hosts where the
+  # plugin isn't enabled.
+  #
+  # The browser itself is NOT provisioned from this gate -- it's whatever the
+  # user has nominated via `globals.preferences.browser` and installed via the
+  # appropriate browser module (today: `apps.gui.google-chrome` via
+  # `suites.browsers`, binary at /run/current-system/sw/bin/google-chrome-stable).
+  # PUPPETEER_EXECUTABLE_PATH resolves the preferred-browser binary name through
+  # /run/current-system/sw/bin so a future switch to chromium / brave / vivaldi
+  # is one globals.preferences.browser flip away. This intentionally couples to
+  # the user's XDG-style preference slot rather than hardcoding a package.
+  hasHyperframes = lib.elem "hyperframes@hyperframes" cfg.plugins;
+  hyperframesBrowserPath = "/run/current-system/sw/bin/${globals.preferences.browser}";
 in
 {
   options = {
@@ -122,20 +138,41 @@ in
         # against a host-local kubeconfig. Pointless on minimal-profile hosts
         # where the kubernetes MCP server itself is gated out.
         (pkgs.writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
+      ]
+      ++ lib.optionals hasHyperframes [
+        # Hyperframes plugin invokes `npx hyperframes` which spawns ffmpeg
+        # for rendering and a Chromium-family browser via puppeteer for HTML
+        # capture. The browser binary itself is whatever the user nominates
+        # via `globals.preferences.browser` (provisioned by suites.browsers
+        # or equivalent) -- not added here. Puppeteer is pointed at it via
+        # PUPPETEER_EXECUTABLE_PATH below.
+        pkgs.ffmpeg-full
       ];
 
-    # Gemini API key for generate-images / visual-explainer skills
-    environment.variables = lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
-      GEMINI_API_KEY = secrets.gemini.apiKey;
-    };
+    # Gemini API key for generate-images / visual-explainer skills.
+    # Puppeteer env vars only applied when the hyperframes plugin is enabled --
+    # keeps the system environment clean on hosts that don't use it.
+    environment.variables =
+      lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
+        GEMINI_API_KEY = secrets.gemini.apiKey;
+      }
+      // lib.optionalAttrs hasHyperframes {
+        PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
+        PUPPETEER_SKIP_DOWNLOAD = "1";
+      };
 
     home-manager.users.${globals.user.name} = {
       programs.fish = fishConfig;
 
       home = {
-        sessionVariables = lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
-          GEMINI_API_KEY = secrets.gemini.apiKey;
-        };
+        sessionVariables =
+          lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
+            GEMINI_API_KEY = secrets.gemini.apiKey;
+          }
+          // lib.optionalAttrs hasHyperframes {
+            PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
+            PUPPETEER_SKIP_DOWNLOAD = "1";
+          };
         packages =
           (with pkgs; [
             llm-agents.claude-code
@@ -147,6 +184,16 @@ in
               libreoffice # soffice on PATH -- required for marp-slides skill's --pptx-editable export (workstation-only)
             ]
           )
+          ++ lib.optionals hasHyperframes [
+            # Hyperframes upstream requires Node >= 22. The `apps.cli.pnpm`
+            # module (via suites.dev) also installs `pkgs.nodejs` -- both
+            # nodejs derivations ship `lib/node_modules/corepack/dist/yarnpkg.js`,
+            # so plain `pkgs.nodejs_22` collides. `lib.hiPrio` lifts nodejs_22
+            # above the default nodejs in buildEnv's collision resolution and
+            # keeps the hyperframes branch self-contained -- the gate no longer
+            # silently depends on suites.dev being co-enabled.
+            (lib.hiPrio pkgs.nodejs_22)
+          ]
           ++ pluginsConfig.packages
           ++ reapConfig.packages;
 

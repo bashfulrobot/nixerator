@@ -241,6 +241,16 @@
         "lastUpdated": "2026-05-07T01:33:21.095Z",
         "gitCommitSha": "77738064b2d1082b81ef509380e33222cb0d36ad"
       }
+    ],
+    "hyperframes@hyperframes": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/hyperframes/hyperframes/0.1.0",
+        "version": "0.1.0",
+        "installedAt": "2026-05-11T05:47:52.000Z",
+        "lastUpdated": "2026-05-11T05:47:52.000Z",
+        "gitCommitSha": "553688c996408cb33de27ce4573bef6c8cf27454"
+      }
     ]
   }
 }

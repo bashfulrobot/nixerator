@@ -44,6 +44,7 @@ in
           "gopls-lsp@claude-plugins-official"
           "skill-creator@claude-plugins-official"
           "ralph-loop@claude-plugins-official"
+          "hyperframes@hyperframes"
         ];
       };
       claude-remote = {
@@ -64,7 +65,11 @@ in
         service.enable = true;
       };
       superpowers.enable = true;
-      paseo.enable = true;
+      # Disabled: upstream paseo (v0.1.72..v0.1.74) ships an npm-deps FOD hash
+      # that no longer matches what fetchNpmDeps produces, blocking every
+      # nixerator rebuild. Re-enable once getpaseo/paseo cuts a release whose
+      # npmDepsHash is correct against the current registry.
+      paseo.enable = false;
       skillfish.enable = true;
       ollama = {
         enable = false;
