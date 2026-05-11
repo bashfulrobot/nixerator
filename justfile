@@ -242,6 +242,13 @@ upgrade_log := "/tmp/nixerator-upgrade.log"
 pre-rebuild mode="quiet":
     #!/usr/bin/env bash
     set -uo pipefail
+    # Capture flows live ~/.claude state into the repo. Only workstation hosts
+    # are sources of truth for that config; config-receiver hosts (e.g. srv)
+    # would silently overwrite the repo with their narrower live state.
+    case "$(hostname)" in
+        donkeykong|qbert) ;;
+        *) exit 0 ;;
+    esac
     if [[ "{{mode}}" == "interactive" ]]; then
         gum spin --spinner dot --title "Capturing live Claude Code config (pre-rebuild)..." \
             -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Pre-capture failed (non-fatal)"
@@ -260,27 +267,37 @@ pre-rebuild mode="quiet":
 post-rebuild mode="quiet":
     #!/usr/bin/env bash
     set -uo pipefail
+    # Sync/skills-update flow repo -> live (safe on every host).
+    # Capture flows live -> repo; only workstation hosts own that direction.
+    is_workstation=false
+    case "$(hostname)" in
+        donkeykong|qbert) is_workstation=true ;;
+    esac
     if [[ "{{mode}}" == "interactive" ]]; then
         gum spin --spinner dot --title "Syncing plugins..." \
             -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
         gum spin --spinner dot --title "Updating skills..." \
             -- bash -c 'just update-skills &>/dev/null' || gum style --foreground 220 "Skill update failed (non-fatal)"
-        gum spin --spinner dot --title "Capturing Claude Code config..." \
-            -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
-        gum spin --spinner dot --title "Capturing Agent OS config..." \
-            -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS capture failed (non-fatal)"
+        if $is_workstation; then
+            gum spin --spinner dot --title "Capturing Claude Code config..." \
+                -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
+            gum spin --spinner dot --title "Capturing Agent OS config..." \
+                -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS capture failed (non-fatal)"
+        fi
     else
         echo "Syncing plugins..."
         claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
         echo "Updating skills..."
         just update-skills || echo "Skill update failed (non-fatal)"
-        echo "Capturing Claude Code config..."
-        fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
-        echo "Capturing Agent OS config..."
-        fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
+        if $is_workstation; then
+            echo "Capturing Claude Code config..."
+            fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
+            echo "Capturing Agent OS config..."
+            fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
+        fi
     fi
 
-    if ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
+    if $is_workstation && ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
         commit_msg='fix(claude-code): update captured plugin state'
         echo ""
         if [[ "{{mode}}" == "interactive" ]]; then
