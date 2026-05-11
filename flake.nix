@@ -110,11 +110,13 @@
 
     paseo = {
       # Pinned to v0.1.72 (2ee93296) -- v0.1.73 and v0.1.74 both ship an npm-deps
-      # FOD hash that no longer matches the registry contents, blocking every
-      # rebuild. Track upstream getpaseo/paseo; bump back to a floating ref once
-      # they publish a release whose `npmDepsHash` is correct again.
+      # FOD hash that no longer matches what `fetchNpmDeps` produces, blocking
+      # every rebuild. The drift was reproducible even on v0.1.72 under nixerator's
+      # nixpkgs, so `inputs.nixpkgs.follows` is intentionally dropped here -- paseo
+      # uses its own pinned nixpkgs for npm-deps, which is where its npmDepsHash
+      # was originally captured. Re-enable follows + float the ref once upstream
+      # ships a release whose npmDepsHash is portable across nixpkgs revisions.
       url = "github:getpaseo/paseo/2ee93296635737b4c4d94ada8c4c6681de85f243";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     wayscriber = {
