@@ -101,6 +101,18 @@ in
               return 2
           end
 
+          # Up-front character-class validation of the user-supplied token.
+          # `$name` (and `$target` once we split below) flow into
+          # `ssh ... -- zellij attach -c $name`, which the remote shell
+          # re-parses. Refuse metacharacters before they cross SSH. `@` is
+          # allowed at the pre-split stage because it's our own host separator.
+          if test -n "$name"
+              if not string match -qr '^[A-Za-z0-9._#@-]+$' -- $name
+                  echo "work: name must match [A-Za-z0-9._#@-]+ (got: '$name')" >&2
+                  return 2
+              end
+          end
+
           # Explicit <name>@<host> form short-circuits discovery.
           if string match -q '*@*' -- $name
               set -l parts (string split -m1 '@' -- $name)
@@ -108,6 +120,16 @@ in
               set -l target $parts[2]
               if test -z "$name" -o -z "$target"
                   echo "work: malformed <name>@<host> ('$argv[-1]')" >&2
+                  return 2
+              end
+              # Post-split validation — bare name no longer carries `@`,
+              # target is a hostname.
+              if not string match -qr '^[A-Za-z0-9._#-]+$' -- $name
+                  echo "work: name must match [A-Za-z0-9._#-]+ (got: '$name')" >&2
+                  return 2
+              end
+              if not string match -qr '^[A-Za-z0-9._-]+$' -- $target
+                  echo "work: target must match [A-Za-z0-9._-]+ (got: '$target')" >&2
                   return 2
               end
               if not contains -- $target $peers
@@ -221,6 +243,13 @@ in
 
           set -l picked_session $inventory_sessions[$picked_idx]
           set -l picked_host $inventory_hosts[$picked_idx]
+          # Validate the peer-sourced session name — it flows into the same
+          # ssh remote-command interpolation as the user-supplied $name, so
+          # apply the same char-class refusal.
+          if not string match -qr '^[A-Za-z0-9._#-]+$' -- $picked_session
+              echo "work: peer returned a session name with disallowed characters: '$picked_session'" >&2
+              return 2
+          end
           if test "$picked_host" = "$current_host"
               zellij attach -c $picked_session
           else
