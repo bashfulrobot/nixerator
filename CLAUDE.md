@@ -9,6 +9,7 @@ See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where cu
 - When making code changes — builds, rebuilds, lint, format, upgrades, git discipline, secrets — read `.claude/docs/conventions.md`.
 - When you need to look up docs for a Nix tool, library, or flake input, read `.claude/docs/sources.md` (context7 / gitmcp lookup table).
 - When you need a local CLI tool (`amber`, `cpx`, `meetsum`, `gsd`), read `.claude/docs/tools.md`.
+- When the user asks about cross-device session pickup, the `work` fish function, the `claudeWorkHost` archetype, or how to attach to a session from the iPhone, read `.claude/docs/cross-device-workflow.md`.
 
 ## Reference docs
 

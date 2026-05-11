@@ -7,6 +7,7 @@
     ../../modules/apps/cli/agent-scan
     ../../modules/apps/cli/agentos
     ../../modules/apps/cli/claude-code
+    ../../modules/apps/cli/claude-remote
     ../../modules/apps/cli/docker
     ../../modules/apps/cli/fish
     ../../modules/apps/cli/gcmt
@@ -21,12 +22,20 @@
     ../../modules/apps/cli/superpowers
     ../../modules/apps/cli/tailscale
     ../../modules/apps/cli/vscode-server
+    ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
+    ../../modules/archetypes/claudeWorkHost
     ../../modules/server/kvm
     ../../modules/server/nfs
     ../../modules/system/caddy
     ../../modules/system/ssh
   ];
+
+  # Adopts the Claude work-host archetype: zellij (no web, no mosh),
+  # claude-remote with always-on control tower, sshd, work-launcher.
+  # Sessions live on srv until killed; attach from anywhere on the
+  # tailnet via `work` or `ssh srv zellij attach`.
+  archetypes.claudeWorkHost.enable = true;
 
   # CLI applications (matching nixcfg srv)
   apps.cli = {
@@ -73,25 +82,6 @@
     plannotator.enable = true;
     skillfish.enable = true;
     superpowers.enable = true;
-
-    # Zellij with web client behind Caddy tsnet
-    zellij = {
-      enable = true;
-      service.enable = true;
-      tsnetNode = "zellij";
-
-      # Persistent-session stack: pair zellij (session survives
-      # disconnect) with mosh (transport survives roaming) for a
-      # headless remote-dev box that feels local.
-      mosh.enable = true;
-
-      # Reclaim the bottom rows from the always-on shortcut strip.
-      hideStatusBar = true;
-
-      # Pop a markdown cheat sheet in a floating pane on demand.
-      # `Alt /` keeps a finger near the home row.
-      cheatsheet.enable = true;
-    };
   };
 
   # System modules

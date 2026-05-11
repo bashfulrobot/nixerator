@@ -1,6 +1,12 @@
 { secrets, ... }:
 
 {
+  # Adopt the Claude work-host archetype (symmetric peer to srv): zellij
+  # (no web, no mosh), claude-remote with always-on control tower, sshd,
+  # and the work launcher. Sessions live on qbert until killed; attach
+  # from anywhere on the tailnet via `work` or `ssh qbert zellij attach`.
+  archetypes.claudeWorkHost.enable = true;
+
   # Apps
   apps.cli.restic.backup = {
     enable = true;

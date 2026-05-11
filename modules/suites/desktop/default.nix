@@ -96,7 +96,7 @@ in
               "class<Morgen>" = "󰃮";
               "class<okular>" = "󰈦";
               "class<Typora>" = "󰈙";
-              "class<upsight>" = "󰧑";
+              "class<dev-upsight-MainKt>" = "󱌈";
               "class<com.localsend.localsend_app>" = "󰇚";
             };
           };

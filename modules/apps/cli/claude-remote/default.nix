@@ -96,6 +96,8 @@ in
         }
       ];
 
+      users.users.${globals.user.name}.linger = true;
+
       home-manager.users.${globals.user.name} = {
         xdg.dataFile = {
           "claude-control-tower/CLAUDE.md".source = ./cfg/control-tower-CLAUDE.md;
@@ -120,7 +122,7 @@ in
               fi
             '';
 
-        systemd.user.services.claude-control-tower = {
+        systemd.user.services."claude-control-tower-${config.networking.hostName}" = {
           Unit = {
             Description = "Claude Code control tower (always-on remote-control server)";
             After = [ "graphical-session.target" ];
@@ -130,7 +132,7 @@ in
             WorkingDirectory = towerDir;
             # `claude remote-control` is a proper daemon -- no PTY required,
             # accepts a closed stdin, and stays running until killed.
-            ExecStart = "${pkgs.llm-agents.claude-code}/bin/claude remote-control --name claude-control-tower --permission-mode bypassPermissions";
+            ExecStart = "${pkgs.llm-agents.claude-code}/bin/claude remote-control --name claude-control-tower-${config.networking.hostName} --permission-mode bypassPermissions";
             UnsetEnvironment = "CLAUDE_CODE_REMOTE CLAUDE_CODE_REMOTE_SESSION_ID CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_CONTAINER_ID CLAUDECODE";
             Restart = "always";
             RestartSec = 5;

@@ -1,0 +1,36 @@
+{ lib, config, ... }:
+
+let
+  cfg = config.archetypes.claudeWorkHost;
+in
+{
+  options.archetypes.claudeWorkHost.enable = lib.mkOption {
+    type = lib.types.bool;
+    default = false;
+    description = ''
+      Enable the Claude work-host archetype: zellij (no web, no mosh),
+      claude-remote with always-on control tower, sshd, and the work
+      launcher. Sessions started on this host stay on this host and are
+      attachable from any peer via the `work` fish function or directly
+      via SSH + `zellij attach`.
+    '';
+  };
+
+  config = lib.mkIf cfg.enable {
+    apps = {
+      cli = {
+        zellij = {
+          enable = true;
+          hideStatusBar = true;
+          cheatsheet.enable = true;
+        };
+        claude-remote = {
+          enable = true;
+          controlTower.enable = true;
+        };
+        work-launcher.enable = true;
+      };
+    };
+    system.ssh.enable = true;
+  };
+}
