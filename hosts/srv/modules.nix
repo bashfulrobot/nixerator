@@ -45,9 +45,13 @@
     claude-code = {
       enable = true;
       serverProfile = "minimal";
-      # NOTE: keep plugin list in sync with modules/suites/ai/default.nix.
-      # Two occurrences = below the rule-of-three threshold; do not
-      # extract into shared lib until a third consumer appears.
+      # NOTE: keep plugin list in sync with modules/suites/ai/default.nix,
+      # EXCEPT "hyperframes@hyperframes" -- workstation-only because it pulls
+      # in ffmpeg + node + puppeteer env vars and assumes a Chromium-family
+      # browser binary at /run/current-system/sw/bin/${globals.preferences.browser}
+      # (provisioned via suites.browsers on workstations). srv is headless and
+      # has no browser. Two occurrences = below the rule-of-three threshold;
+      # do not extract into shared lib until a third consumer appears.
       plugins = [
         "frontend-design@claude-plugins-official"
         "asana@claude-plugins-official"
@@ -67,7 +71,11 @@
       ];
     };
     gemini-cli.enable = true;
-    paseo.enable = true;
+    # Disabled: upstream paseo (v0.1.72..v0.1.74) ships an npm-deps FOD hash
+    # that no longer matches what fetchNpmDeps produces, blocking every
+    # nixerator rebuild. Re-enable once getpaseo/paseo cuts a release whose
+    # npmDepsHash is correct against the current registry.
+    paseo.enable = false;
     plannotator.enable = true;
     skillfish.enable = true;
     superpowers.enable = true;
