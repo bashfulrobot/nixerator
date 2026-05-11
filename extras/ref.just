@@ -189,6 +189,10 @@ inspect:
 voxtype-setup:
     #!/usr/bin/env bash
     set -euo pipefail
+    if ! command -v voxtype >/dev/null 2>&1; then
+        echo "Voxtype not installed on this host — skipping model download."
+        exit 0
+    fi
     echo "Ensuring Voxtype models are downloaded..."
     voxtype setup --download
 

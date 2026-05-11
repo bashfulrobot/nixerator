@@ -26,8 +26,14 @@ gsd:
 # Download Voxtype speech models after upgrades
 [group('setup')]
 voxtype:
-    @echo "Ensuring Voxtype models are downloaded..."
-    @voxtype setup --download
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v voxtype >/dev/null 2>&1; then
+        echo "Voxtype not installed on this host — skipping model download."
+        exit 0
+    fi
+    echo "Ensuring Voxtype models are downloaded..."
+    voxtype setup --download
 
 # Sync Claude Code plugins with declared Nix config
 [group('setup')]
