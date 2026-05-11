@@ -172,11 +172,16 @@ in
               libreoffice # soffice on PATH -- required for marp-slides skill's --pptx-editable export (workstation-only)
             ]
           )
-          # Node intentionally omitted from the hyperframes branch: the
-          # `apps.cli.pnpm` module already installs the default `pkgs.nodejs`
-          # into the user profile, which is what `npx hyperframes` dispatches
-          # against. Adding a second Node here triggers a buildEnv conflict on
-          # `lib/node_modules/corepack/dist/yarnpkg.js`.
+          ++ lib.optionals hasHyperframes [
+            # Hyperframes upstream requires Node >= 22. The `apps.cli.pnpm`
+            # module (via suites.dev) also installs `pkgs.nodejs` -- both
+            # nodejs derivations ship `lib/node_modules/corepack/dist/yarnpkg.js`,
+            # so plain `pkgs.nodejs_22` collides. `lib.hiPrio` lifts nodejs_22
+            # above the default nodejs in buildEnv's collision resolution and
+            # keeps the hyperframes branch self-contained -- the gate no longer
+            # silently depends on suites.dev being co-enabled.
+            (lib.hiPrio pkgs.nodejs_22)
+          ]
           ++ pluginsConfig.packages
           ++ reapConfig.packages;
 

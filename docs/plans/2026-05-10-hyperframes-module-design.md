@@ -20,7 +20,7 @@ Upstream version at design time: `v0.5.7` (2026-05-10).
 
 1. Add Hyperframes to the AI suite as a Claude Code plugin so its skills are available in Claude Code sessions.
 2. Provide the runtime dependencies it actually needs (FFmpeg, Chromium, Node.js 22, Puppeteer env vars).
-3. Workstations only — `donkeykong` and `qbert` via the workstation archetype. Do not impose the runtime closure on the headless `srv` host.
+3. Workstations only — any host enabling the `workstation` archetype (currently `donkeykong` and `qbert`, but the gate is `archetypes.workstation`, not a hardcoded host list). Do not impose the runtime closure on the headless `srv` host or any future server-archetype host.
 4. Keep the change small. No new module directory. No new `apps.cli.*` option. Existing claude-code plugin pattern carries it.
 
 ## Non-goals
