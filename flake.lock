@@ -812,26 +812,6 @@
         "url": "https://devimages-cdn.apple.com/design/resources/download/NY.dmg"
       }
     },
-    "paseo": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1778428687,
-        "narHash": "sha256-zWOsnMRmJ7rjzrICpdMkcYwyEP5OAY5p9z+zOQ0BQCs=",
-        "owner": "getpaseo",
-        "repo": "paseo",
-        "rev": "4141c7625801470eaaac2f8d74f146ecdfe2cc7a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "getpaseo",
-        "repo": "paseo",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "apple-fonts": "apple-fonts",
@@ -845,7 +825,6 @@
         "nixos-hardware": "nixos-hardware",
         "nixos-vscode-server": "nixos-vscode-server",
         "nixpkgs": "nixpkgs_2",
-        "paseo": "paseo",
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
         "upsight": "upsight",
