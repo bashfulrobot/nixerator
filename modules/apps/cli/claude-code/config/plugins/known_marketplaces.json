@@ -38,5 +38,13 @@
     },
     "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/kong-se-skills",
     "lastUpdated": "2026-05-08T19:12:41.412Z"
+  },
+  "hyperframes": {
+    "source": {
+      "source": "github",
+      "repo": "heygen-com/hyperframes"
+    },
+    "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/hyperframes",
+    "lastUpdated": "2026-05-11T05:47:52.000Z"
   }
 }
