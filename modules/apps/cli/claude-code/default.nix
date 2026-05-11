@@ -172,12 +172,11 @@ in
               libreoffice # soffice on PATH -- required for marp-slides skill's --pptx-editable export (workstation-only)
             ]
           )
-          ++ lib.optionals hasHyperframes [
-            # Claude Code bundles node internally, but `npx hyperframes` must
-            # dispatch to a user-visible Node >= 22. Pinning nodejs_22 matches
-            # the version already used by skillfish and dorkos build derivations.
-            pkgs.nodejs_22
-          ]
+          # Node intentionally omitted from the hyperframes branch: the
+          # `apps.cli.pnpm` module already installs the default `pkgs.nodejs`
+          # into the user profile, which is what `npx hyperframes` dispatches
+          # against. Adding a second Node here triggers a buildEnv conflict on
+          # `lib/node_modules/corepack/dist/yarnpkg.js`.
           ++ pluginsConfig.packages
           ++ reapConfig.packages;
 
