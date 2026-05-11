@@ -47,9 +47,11 @@
       serverProfile = "minimal";
       # NOTE: keep plugin list in sync with modules/suites/ai/default.nix,
       # EXCEPT "hyperframes@hyperframes" -- workstation-only because it pulls
-      # in ffmpeg + chromium + node, and srv is headless. Two occurrences =
-      # below the rule-of-three threshold; do not extract into shared lib
-      # until a third consumer appears.
+      # in ffmpeg + node + puppeteer env vars and assumes a Chromium-family
+      # browser binary at /run/current-system/sw/bin/${globals.preferences.browser}
+      # (provisioned via suites.browsers on workstations). srv is headless and
+      # has no browser. Two occurrences = below the rule-of-three threshold;
+      # do not extract into shared lib until a third consumer appears.
       plugins = [
         "frontend-design@claude-plugins-official"
         "asana@claude-plugins-official"

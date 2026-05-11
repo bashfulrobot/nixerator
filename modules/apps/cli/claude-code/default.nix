@@ -64,10 +64,21 @@ let
   # Path to config directory (Nix store copy for activation script)
   configDir = ./config;
 
-  # Hyperframes plugin requires ffmpeg + chromium + node + puppeteer env vars
-  # on the host. Gate the runtime deps on plugin-list membership so the
-  # closure is unchanged on hosts where the plugin isn't enabled.
+  # Hyperframes plugin needs ffmpeg, node, puppeteer env vars, and a
+  # Chromium-family browser binary on the host. Gate the runtime deps on
+  # plugin-list membership so the closure is unchanged on hosts where the
+  # plugin isn't enabled.
+  #
+  # The browser itself is NOT provisioned from this gate -- it's whatever the
+  # user has nominated via `globals.preferences.browser` and installed via the
+  # appropriate browser module (today: `apps.gui.google-chrome` via
+  # `suites.browsers`, binary at /run/current-system/sw/bin/google-chrome-stable).
+  # PUPPETEER_EXECUTABLE_PATH resolves the preferred-browser binary name through
+  # /run/current-system/sw/bin so a future switch to chromium / brave / vivaldi
+  # is one globals.preferences.browser flip away. This intentionally couples to
+  # the user's XDG-style preference slot rather than hardcoding a package.
   hasHyperframes = lib.elem "hyperframes@hyperframes" cfg.plugins;
+  hyperframesBrowserPath = "/run/current-system/sw/bin/${globals.preferences.browser}";
 in
 {
   options = {
@@ -130,11 +141,12 @@ in
       ]
       ++ lib.optionals hasHyperframes [
         # Hyperframes plugin invokes `npx hyperframes` which spawns ffmpeg
-        # for rendering and a system chromium via puppeteer for HTML capture.
-        # Puppeteer's bundled chromium binary does not run on NixOS, so the
-        # system chromium becomes the puppeteer target via env vars below.
+        # for rendering and a Chromium-family browser via puppeteer for HTML
+        # capture. The browser binary itself is whatever the user nominates
+        # via `globals.preferences.browser` (provisioned by suites.browsers
+        # or equivalent) -- not added here. Puppeteer is pointed at it via
+        # PUPPETEER_EXECUTABLE_PATH below.
         pkgs.ffmpeg-full
-        pkgs.chromium
       ];
 
     # Gemini API key for generate-images / visual-explainer skills.
@@ -145,7 +157,7 @@ in
         GEMINI_API_KEY = secrets.gemini.apiKey;
       }
       // lib.optionalAttrs hasHyperframes {
-        PUPPETEER_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
+        PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
         PUPPETEER_SKIP_DOWNLOAD = "1";
       };
 
@@ -158,7 +170,7 @@ in
             GEMINI_API_KEY = secrets.gemini.apiKey;
           }
           // lib.optionalAttrs hasHyperframes {
-            PUPPETEER_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
+            PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
             PUPPETEER_SKIP_DOWNLOAD = "1";
           };
         packages =
