@@ -165,13 +165,6 @@ in
       })
 
       (lib.mkIf cfg.service.enable {
-        # Required so the user's systemd manager (and therefore the
-        # zellij-web user service) starts at boot on headless hosts.
-        # Without linger, systemd --user only spawns when the user
-        # actively logs in, defeating the "browser-accessible without
-        # SSH" promise of the web client.
-        users.users.${globals.user.name}.linger = true;
-
         system.caddy = {
           enable = true;
           tsnetNodes = [ cfg.tsnetNode ];
