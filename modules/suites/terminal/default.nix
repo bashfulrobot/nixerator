@@ -29,7 +29,6 @@ in
       starship.enable = true;
       zellij = {
         enable = true;
-        mosh.enable = true;
         hideStatusBar = true;
         cheatsheet.enable = true;
       };
