@@ -44,6 +44,16 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # The work function lives on fish; if fish isn't enabled the option
+    # silently writes into a programs.fish block that won't be activated,
+    # so surface that misconfiguration at eval time.
+    assertions = [
+      {
+        assertion = config.apps.cli.fish.enable;
+        message = "apps.cli.work-launcher.enable requires apps.cli.fish.enable = true.";
+      }
+    ];
+
     home-manager.users.${globals.user.name} = {
       programs.fish.functions.work = {
         description = "Attach to (or create) a zellij session across peer hosts";
@@ -51,11 +61,15 @@ in
           # Build-time configuration injected by the work-launcher module.
           set -l peers ${peersFishList}
           set -l ssh_user ${cfg.sshUser}
-          set -l current_host (hostname)
+          # `hostname -s` to match the short form peers are configured as,
+          # even if /etc/hosts or networking.fqdn cause bare `hostname` to
+          # return an FQDN.
+          set -l current_host (hostname -s)
 
           # --- arg parsing ---
           set -l force_local 0
           set -l name ""
+          set -l positional_seen 0
           for arg in $argv
               switch $arg
                   case '--here'
@@ -68,8 +82,16 @@ in
                       echo "  work <name>@<host>    attach to <name> on specific <host>"
                       echo "  work --here <name>    force current host"
                       return 0
+                  case '--*' '-*'
+                      echo "work: unknown option '$arg' (try --help)" >&2
+                      return 2
                   case '*'
+                      if test $positional_seen -eq 1
+                          echo "work: expected at most one <name>; got extra '$arg'" >&2
+                          return 2
+                      end
                       set name $arg
+                      set positional_seen 1
               end
           end
 
@@ -84,6 +106,13 @@ in
               set -l parts (string split -m1 '@' -- $name)
               set name $parts[1]
               set -l target $parts[2]
+              if test -z "$name" -o -z "$target"
+                  echo "work: malformed <name>@<host> ('$argv[-1]')" >&2
+                  return 2
+              end
+              if not contains -- $target $peers
+                  echo "work: target '$target' is not in configured peers ($peers) — going off-list" >&2
+              end
               if test "$target" = "$current_host"
                   zellij attach -c $name
                   return $status

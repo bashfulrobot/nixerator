@@ -31,6 +31,10 @@ Auto-renames the zellij session to `<repo>#<N>` when invoked inside zellij. An i
 
 donkeykong is **attach-only** in v1: it has the `work` function but does NOT run a control tower or expose sessions to peers. Promotable later by flipping `archetypes.claudeWorkHost.enable = true;` and adding it to the peers list.
 
+## Attack surface
+
+Enabling `archetypes.claudeWorkHost` on a host implies `system.ssh.enable = true`, which turns on `services.openssh` with NixOS defaults: sshd listens on `0.0.0.0:22` and TCP 22 is opened in the firewall. On a workstation (qbert) this is a new exposure — pre-archetype it had no sshd at all. Acceptable under the threat model (single-user hosts, key-only auth, no password login, no port-forwarded internet exposure). If that model ever tightens, narrow sshd to the tailnet interface via `services.openssh.listenAddresses` rather than relaxing the archetype.
+
 ## What is NOT here
 
-- No mosh. No zellij-web. No syncthing of `~/.claude` or worktrees. No cross-host worktree sync. Branches move via `git push`/`git pull` only.
+- No mosh on the **work-host path** (zellij-web and mosh both retired by this design from srv). `mosh.enable = true` is still set in the workstation terminal suite, so donkeykong/qbert keep mosh outside the work flow. No syncthing of `~/.claude` or worktrees. No cross-host worktree sync. Branches move via `git push`/`git pull` only.
