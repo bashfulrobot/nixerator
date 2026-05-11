@@ -763,22 +763,6 @@
         "type": "github"
       }
     },
-    "nixpkgs_3": {
-      "locked": {
-        "lastModified": 1772963539,
-        "narHash": "sha256-9jVDGZnvCckTGdYT53d/EfznygLskyLQXYwJLKMPsZs=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "9dcb002ca1690658be4a04645215baea8b95f31d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nur": {
       "inputs": {
         "flake-parts": [
@@ -830,20 +814,21 @@
     },
     "paseo": {
       "inputs": {
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
-        "lastModified": 1778394482,
-        "narHash": "sha256-AQZJcPavQ/kWFd2bYHyv402lUJRnjcKWGQwW8YhcKUE=",
+        "lastModified": 1778428687,
+        "narHash": "sha256-zWOsnMRmJ7rjzrICpdMkcYwyEP5OAY5p9z+zOQ0BQCs=",
         "owner": "getpaseo",
         "repo": "paseo",
-        "rev": "2ee93296635737b4c4d94ada8c4c6681de85f243",
+        "rev": "4141c7625801470eaaac2f8d74f146ecdfe2cc7a",
         "type": "github"
       },
       "original": {
         "owner": "getpaseo",
         "repo": "paseo",
-        "rev": "2ee93296635737b4c4d94ada8c4c6681de85f243",
         "type": "github"
       }
     },
