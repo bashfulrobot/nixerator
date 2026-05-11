@@ -33,7 +33,7 @@ donkeykong is **attach-only** in v1: it has the `work` function but does NOT run
 
 ## Attack surface
 
-Enabling `archetypes.claudeWorkHost` on a host implies `system.ssh.enable = true`, which turns on `services.openssh` with NixOS defaults: sshd listens on `0.0.0.0:22` and TCP 22 is opened in the firewall. On a workstation (qbert) this is a new exposure — pre-archetype it had no sshd at all. Acceptable under the threat model (single-user hosts, key-only auth, no password login, no port-forwarded internet exposure). If that model ever tightens, narrow sshd to the tailnet interface via `services.openssh.listenAddresses` rather than relaxing the archetype.
+Enabling `archetypes.claudeWorkHost` on a host implies `system.ssh.enable = true`, which turns on `services.openssh` with NixOS defaults: sshd listens on `0.0.0.0:22` and TCP 22 is opened in the firewall. LAN-reachable sshd is **intentional** — the home LAN is treated as a trust boundary, so any LAN-attached host (laptop, tablet, plus the tailnet) can `ssh srv` / `ssh qbert` without going through Tailscale. Controls: key-only auth, no password login, no internet port-forward. If those controls are ever relaxed (password auth, or this flake is deployed where the local network isn't trusted), revisit by binding sshd to the tailnet interface via `services.openssh.listenAddresses`.
 
 ## What is NOT here
 
