@@ -168,8 +168,7 @@ claude-capture() {
 | `programs.claude-code.mcpServers`   | stays empty / not needed  |
 | `programs.claude-code.package`      | stays in Nix              |
 | `programs.claude-code.enable`       | stays in Nix              |
-| hooks (cfg/hooks-\*.nix)            | embedded in settings.json |
-| permissions (cfg/permissions.nix)   | embedded in settings.json |
+| hooks and permissions               | `config/settings.json` (captured via `claude-capture`) |
 | statusLine script                   | stays in Nix (binary ref) |
 
 ## Open Questions
