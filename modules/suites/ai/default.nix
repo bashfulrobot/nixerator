@@ -44,6 +44,7 @@ in
           "gopls-lsp@claude-plugins-official"
           "skill-creator@claude-plugins-official"
           "ralph-loop@claude-plugins-official"
+          "hyperframes@hyperframes"
         ];
       };
       claude-remote = {
