@@ -1,4 +1,5 @@
 {
+  inputs,
   lib,
   pkgs,
   config,
@@ -26,7 +27,6 @@ let
       };
     };
   };
-  humanizerSkill = builtins.readFile ./skills/humanizer/SKILL.md;
 
   # Guidelines shared between the slash command and the gcommit function
   commit-guidelines = ''
@@ -179,8 +179,9 @@ in
             """
           '';
 
-          # Install humanizer skill for Gemini CLI
-          ".gemini/skills/humanizer/SKILL.md".text = humanizerSkill;
+          # Install humanizer skill for Gemini CLI -- read-only symlink into
+          # /nix/store keeps it pinned to the upstream flake input.
+          ".gemini/skills/humanizer/SKILL.md".source = inputs.humanizer-skill + "/SKILL.md";
         };
       };
 

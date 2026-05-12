@@ -51,6 +51,7 @@ let
       globals
       homeDir
       ;
+    humanizerSkillSrc = inputs.humanizer-skill;
   };
 
   # Status line script -- jq, curl, gawk in PATH via runtimeInputs

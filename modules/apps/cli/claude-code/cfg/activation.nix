@@ -5,6 +5,7 @@
   reapConfig,
   globals,
   homeDir,
+  humanizerSkillSrc,
 }:
 
 {
@@ -57,6 +58,13 @@
       $DRY_RUN_CMD ${pkgs.rsync}/bin/rsync -a --delete --chmod=u+w \
         "$skill_dir" "$claude_home/skills/$skill_name/"
     done
+
+    # Humanizer skill -- pinned to upstream blader/humanizer via the
+    # `humanizer-skill` flake input. Symlink (not rsync) so the file stays
+    # read-only and claude-capture auto-skips the top-level symlink check
+    # in cfg/fish.nix. Update via `nix flake update humanizer-skill`.
+    $DRY_RUN_CMD rm -rf "$claude_home/skills/humanizer"
+    $DRY_RUN_CMD ln -snf "${humanizerSkillSrc}" "$claude_home/skills/humanizer"
 
     # Output styles -- remove stale symlinks before copying
     for style in "${configDir}"/output-styles/*; do

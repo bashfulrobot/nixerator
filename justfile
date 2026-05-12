@@ -216,9 +216,10 @@ fmt:
 
 # Update manually-installed Claude skills from GitHub
 #
-# Currently only invokes skillfish to update its tracked skills. Other
-# skills are managed via `claude-capture` (config/skills/ → ~/.claude/
-# skills/ on rebuild) and need no separate update step.
+# Runs skillfish for its tracked skills, then bumps any flake-pinned
+# upstream skills (currently just `humanizer-skill` -> blader/humanizer).
+# Skills authored in this repo under config/skills/ are managed by
+# claude-capture and need no separate update step.
 update-skills:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -226,6 +227,8 @@ update-skills:
         echo "Updating skillfish-managed skills..."
         skillfish update --yes || echo "skillfish update failed (non-fatal)"
     fi
+    echo "Bumping flake-pinned upstream skills..."
+    nix flake update humanizer-skill || echo "humanizer-skill update failed (non-fatal)"
     echo "Skills updated"
 
 # === Shared Helpers ===
