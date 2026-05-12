@@ -571,6 +571,22 @@
         "type": "github"
       }
     },
+    "humanizer-skill": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1775020197,
+        "narHash": "sha256-3yO13MKUK/zF36Sq+CACMM401BhtmYz5cZmC5FX4VQw=",
+        "owner": "blader",
+        "repo": "humanizer",
+        "rev": "8b3a17889fbf12bedae20974a3c9f9de746ed754",
+        "type": "github"
+      },
+      "original": {
+        "owner": "blader",
+        "repo": "humanizer",
+        "type": "github"
+      }
+    },
     "hyprflake": {
       "inputs": {
         "apple-fonts": "apple-fonts_2",
@@ -819,6 +835,7 @@
         "determinate": "determinate",
         "disko": "disko",
         "home-manager": "home-manager",
+        "humanizer-skill": "humanizer-skill",
         "hyprflake": "hyprflake",
         "llm-agents": "llm-agents",
         "nix-flatpak": "nix-flatpak",

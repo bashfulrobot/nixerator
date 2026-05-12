@@ -112,6 +112,15 @@
       url = "github:devmobasa/wayscriber";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Pinned upstream for the `humanizer` skill (claude-code + gemini-cli).
+    # Tracks blader/humanizer; bump via `nix flake update humanizer-skill`
+    # or `just upgrade`. `flake = false` because the repo ships a SKILL.md,
+    # not a flake.
+    humanizer-skill = {
+      url = "github:blader/humanizer";
+      flake = false;
+    };
   };
 
   outputs =
