@@ -44,8 +44,15 @@
     # using rsync. --delete prunes anything removed from source.
     # --chmod=u+w makes files writable so Claude Code can edit them at runtime
     # (Nix store content is read-only otherwise).
+    #
+    # If a previous activation left a stale symlink (e.g. directly into the
+    # Nix store), remove it first -- rsync would otherwise try to write through
+    # the symlink and fail with EROFS on the read-only store target.
     for skill_dir in "${configDir}"/skills/*/; do
       skill_name="$(basename "$skill_dir")"
+      if [ -L "$claude_home/skills/$skill_name" ]; then
+        $DRY_RUN_CMD rm -f "$claude_home/skills/$skill_name"
+      fi
       $DRY_RUN_CMD mkdir -p "$claude_home/skills/$skill_name"
       $DRY_RUN_CMD ${pkgs.rsync}/bin/rsync -a --delete --chmod=u+w \
         "$skill_dir" "$claude_home/skills/$skill_name/"
