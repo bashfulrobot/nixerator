@@ -38,7 +38,9 @@ in
         mail.enable = true;
         calendar.enable = true;
         instapaper.enable = true;
+        salesforce.enable = true;
         slack.enable = false;
+        teams.enable = true;
         zoom.enable = true;
       };
 
