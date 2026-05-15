@@ -231,6 +231,23 @@ update-skills:
     nix flake update humanizer-skill || echo "humanizer-skill update failed (non-fatal)"
     echo "Skills updated"
 
+# Ad-hoc capture of live ~/.claude and ~/agent-os state into the repo.
+#
+# Auto-capture during rebuild is gated to qbert (the designated source of
+# truth) so non-canonical hosts don't regress the repo. Use this recipe to
+# manually surface a new skill/agent/setting installed on any other host
+# (donkeykong, etc.) -- review the resulting diff and commit only the bits
+# that should propagate.
+capture:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    echo "Capturing Claude Code config..."
+    fish -c 'claude-capture' || echo "Claude capture failed (non-fatal)"
+    echo "Capturing Agent OS config..."
+    fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
+    echo ""
+    echo "Review with: git status && git diff modules/apps/cli/claude-code modules/apps/cli/agentos"
+
 # === Shared Helpers ===
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
@@ -245,11 +262,13 @@ upgrade_log := "/tmp/nixerator-upgrade.log"
 pre-rebuild mode="quiet":
     #!/usr/bin/env bash
     set -uo pipefail
-    # Capture flows live ~/.claude state into the repo. Only workstation hosts
-    # are sources of truth for that config; config-receiver hosts (e.g. srv)
-    # would silently overwrite the repo with their narrower live state.
+    # Capture flows live ~/.claude state into the repo. Only qbert is the
+    # designated capture source -- other hosts (donkeykong, srv, ...) carry
+    # narrower live state and would silently regress the repo if allowed to
+    # auto-capture. For ad-hoc captures from another host (e.g. a newly
+    # installed skill), run `just capture` explicitly.
     case "$(hostname)" in
-        donkeykong|qbert) ;;
+        qbert) ;;
         *) exit 0 ;;
     esac
     if [[ "{{mode}}" == "interactive" ]]; then
@@ -271,17 +290,18 @@ post-rebuild mode="quiet":
     #!/usr/bin/env bash
     set -uo pipefail
     # Sync/skills-update flow repo -> live (safe on every host).
-    # Capture flows live -> repo; only workstation hosts own that direction.
-    is_workstation=false
+    # Capture flows live -> repo; only qbert is the designated capture source.
+    # For ad-hoc captures from another host, run `just capture` explicitly.
+    is_capture_source=false
     case "$(hostname)" in
-        donkeykong|qbert) is_workstation=true ;;
+        qbert) is_capture_source=true ;;
     esac
     if [[ "{{mode}}" == "interactive" ]]; then
         gum spin --spinner dot --title "Syncing plugins..." \
             -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
         gum spin --spinner dot --title "Updating skills..." \
             -- bash -c 'just update-skills &>/dev/null' || gum style --foreground 220 "Skill update failed (non-fatal)"
-        if $is_workstation; then
+        if $is_capture_source; then
             gum spin --spinner dot --title "Capturing Claude Code config..." \
                 -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
             gum spin --spinner dot --title "Capturing Agent OS config..." \
@@ -292,7 +312,7 @@ post-rebuild mode="quiet":
         claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
         echo "Updating skills..."
         just update-skills || echo "Skill update failed (non-fatal)"
-        if $is_workstation; then
+        if $is_capture_source; then
             echo "Capturing Claude Code config..."
             fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
             echo "Capturing Agent OS config..."
@@ -300,7 +320,7 @@ post-rebuild mode="quiet":
         fi
     fi
 
-    if $is_workstation && ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
+    if $is_capture_source && ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
         commit_msg='fix(claude-code): update captured plugin state'
         echo ""
         if [[ "{{mode}}" == "interactive" ]]; then
