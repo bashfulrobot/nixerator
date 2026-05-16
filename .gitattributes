@@ -2,3 +2,6 @@
 # Add files here that should be encrypted by git-crypt
 secrets/** filter=git-crypt diff=git-crypt
 modules/system/ssh/default.nix filter=git-crypt diff=git-crypt
+
+# Exceptions: these paths under secrets/ stay plaintext (no credentials inside).
+secrets/secrets.json.tpl !filter !diff
