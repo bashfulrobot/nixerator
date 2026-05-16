@@ -447,9 +447,13 @@ remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
     echo "Rebuilding {{host}} via SSH..."
+    rendered=$(just _render-secrets)
+    remote_path="/run/user/$(ssh -o BatchMode=yes {{host}} id -u)/nixerator-remote-$$.json"
+    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes {{host}} "rm -f $remote_path" 2>/dev/null || true' EXIT
+    scp -q -o BatchMode=yes "$rendered" "{{host}}:$remote_path"
     rc=0
     ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
-        "cd {{repo_path}} && git pull --ff-only && just qr" || rc=$?
+        "cd {{repo_path}} && git pull --ff-only && NIXERATOR_SECRETS=$remote_path just qr" || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Remote rebuild on {{host}} succeeded."
     else
@@ -464,9 +468,13 @@ remote-upgrade host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
     echo "Upgrading {{host}} via SSH..."
+    rendered=$(just _render-secrets)
+    remote_path="/run/user/$(ssh -o BatchMode=yes {{host}} id -u)/nixerator-remote-$$.json"
+    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes {{host}} "rm -f $remote_path" 2>/dev/null || true' EXIT
+    scp -q -o BatchMode=yes "$rendered" "{{host}}:$remote_path"
     rc=0
     ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
-        "cd {{repo_path}} && git pull --ff-only && just qu" || rc=$?
+        "cd {{repo_path}} && git pull --ff-only && NIXERATOR_SECRETS=$remote_path just qu" || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Remote upgrade on {{host}} succeeded."
     else
