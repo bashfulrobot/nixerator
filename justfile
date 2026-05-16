@@ -25,11 +25,14 @@ default:
 rebuild:
     #!/usr/bin/env bash
     set -uo pipefail
+    rendered=$(just _render-secrets)
+    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
+    export NIXERATOR_SECRETS="$rendered"
     just pre-rebuild interactive
     log="{{rebuild_log}}"
     rc=0
     gum spin --spinner dot --title "Rebuilding NixOS configuration..." \
-        -- bash -c 'sudo nixos-rebuild switch --impure --flake {{host_flake}} &> "'"$log"'"' || rc=$?
+        -- bash -c 'sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --flake {{host_flake}} &> "'"$log"'"' || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         warnings=$(grep -c -E -i 'warning:' "$log" 2>/dev/null || true)
         if [[ "$warnings" -gt 0 ]]; then
@@ -66,6 +69,9 @@ dev-rebuild:
 upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
+    rendered=$(just _render-secrets)
+    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
+    export NIXERATOR_SECRETS="$rendered"
     just pre-rebuild interactive
     log="{{upgrade_log}}"
     cp flake.lock flake.lock-backup-{{timestamp}}
@@ -79,7 +85,7 @@ upgrade:
     fi
     gum style --foreground 82 "Flake inputs updated"
     gum spin --spinner dot --title "Rebuilding with upgrades..." \
-        -- bash -c 'sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
+        -- bash -c 'sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
     if [[ "$rc" -ne 0 ]]; then
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
         bat --paging=always "$log"
@@ -369,13 +375,16 @@ quiet-rebuild:
         echo "⚠ Uncommitted plugin changes from a previous sync. Commit or discard before rebuilding."
     fi
 
+    rendered=$(just _render-secrets)
+    export NIXERATOR_SECRETS="$rendered"
+
     just pre-rebuild quiet
 
     echo "Rebuilding (quiet mode)..."
     git add -A
-    trap 'git restore --staged .' EXIT
+    trap 'git restore --staged .; shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
     rc=0
-    sudo nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
+    sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Rebuild succeeded. Full log: {{rebuild_log}}"
 
@@ -398,13 +407,16 @@ quiet-rebuild:
 quiet-upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
+    rendered=$(just _render-secrets)
+    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
+    export NIXERATOR_SECRETS="$rendered"
     just pre-rebuild quiet
     echo "Upgrading (quiet mode)..."
     cp flake.lock flake.lock-backup-{{timestamp}}
     rc=0
     {
         nix flake update
-        sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
+        sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
         just ref::voxtype-setup
     } &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
