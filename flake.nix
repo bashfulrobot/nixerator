@@ -141,9 +141,14 @@
       globals = import ./settings/globals.nix;
       versions = import ./settings/versions.nix;
 
-      # Load secrets from encrypted JSON file
-      secretsFile = "${self}/secrets/secrets.json";
-      secrets = builtins.fromJSON (builtins.readFile secretsFile);
+      # Load secrets from a path supplied via NIXERATOR_SECRETS (rendered by
+      # `just _render-secrets` from secrets/secrets.json.tpl via `op inject`).
+      # When the env var is unset, eval falls back to an empty attrset so
+      # `nix flake show` / `nix flake check` work without an op session.
+      # Modules that consume secrets unconditionally are guarded with
+      # `or` defaults so eval stays clean with the empty fallback.
+      secretsPath = builtins.getEnv "NIXERATOR_SECRETS";
+      secrets = if secretsPath != "" then builtins.fromJSON (builtins.readFile secretsPath) else { };
 
       # Import library functions
       lib = import ./lib { inherit inputs secrets; };
