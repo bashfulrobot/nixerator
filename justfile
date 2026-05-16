@@ -252,6 +252,26 @@ capture:
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
 
+# Render secrets/secrets.json.tpl via `op inject` into a short-lived tmpfs
+# file (mode 600, /run/user/$UID). Prints the path on stdout for callers to
+# capture, export as NIXERATOR_SECRETS, and trap-cleanup with `shred`.
+# Auto-prompts `op signin` if no active session.
+[private]
+_render-secrets:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! op whoami >/dev/null 2>&1; then
+        eval "$(op signin)"
+    fi
+    runtime_dir="/run/user/$(id -u)"
+    if [[ ! -d "$runtime_dir" ]]; then
+        runtime_dir="${TMPDIR:-/tmp}"
+    fi
+    rendered=$(mktemp -p "$runtime_dir" nixerator-XXXXXX.json)
+    chmod 600 "$rendered"
+    op inject -i secrets/secrets.json.tpl -o "$rendered"
+    echo "$rendered"
+
 # Pre-rebuild: capture runtime ~/.claude/* edits back into the source tree
 # before activation overwrites them with the previously-captured version.
 # Without this, any change made directly to a managed file (CLAUDE.md,
