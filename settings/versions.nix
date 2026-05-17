@@ -242,6 +242,14 @@
       tagPrefix = "";
       hash = "sha256-+UE+JqQtxbA5szPvAohapXlES21VBOdNsV6Ej1dRRfs=";
     };
+
+    nimbalyst = {
+      source = "github-release";
+      repo = "Nimbalyst/nimbalyst";
+      version = "0.60.1";
+      tagPrefix = "v";
+      hash = "sha256-ktSmye4Bn62KIu3NMFgh2rECAJNJluz1r8zilwSQs78=";
+    };
   };
 
   fish-plugins = {

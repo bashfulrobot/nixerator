@@ -14,6 +14,7 @@ in
 
   config = lib.mkIf cfg.enable {
     apps.gui = {
+      nimbalyst.enable = true;
     };
 
     apps.webapps = {
