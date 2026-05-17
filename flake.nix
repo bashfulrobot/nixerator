@@ -121,6 +121,11 @@
       url = "github:blader/humanizer";
       flake = false;
     };
+
+    # Recursive Nix module importer. Replaces the hand-rolled
+    # `lib/autoimport.nix`; consumed by `modules/default.nix` and
+    # `modules/apps/webapps/default.nix` via `inputs.import-tree`.
+    import-tree.url = "github:denful/import-tree";
   };
 
   outputs =
