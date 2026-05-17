@@ -11,7 +11,7 @@ in
 {
   options = {
     apps.cli.signal-cli = {
-      enable = lib.mkEnableOption "signal-cli CLI/dbus client for Signal Messenger";
+      enable = lib.mkEnableOption "signal-cli, the command-line/D-Bus client for Signal";
     };
   };
 
