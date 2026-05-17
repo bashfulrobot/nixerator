@@ -3,16 +3,22 @@
 # `disabled/` directories stay opt-out, and this dispatcher file is excluded
 # from its own import list.
 #
-# Paths passed to the filter are root-relative.
+# Self-exclusion checks both the root-relative form `/default.nix` (current
+# import-tree convention) and the absolute path of this file, so the guard
+# survives an upstream change in how paths are relativized.
 { inputs, lib, ... }:
 
 let
+  selfAbsolute = toString ./default.nix;
+
+  isSelf = s: s == "/default.nix" || s == selfAbsolute || lib.hasSuffix "/webapps/default.nix" s;
+
   isExcluded =
     path:
     let
       s = toString path;
     in
-    s == "/default.nix"
+    isSelf s
     || lib.hasInfix "/disabled/" s
     || lib.hasInfix "/build/" s
     || lib.hasInfix "/cfg/" s

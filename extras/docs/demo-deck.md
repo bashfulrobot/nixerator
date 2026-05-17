@@ -60,7 +60,7 @@ modules/           # the bulk of the repo
   system/          # 7 system services
   server/          # 4 server modules
   dev/             # dev environments
-lib/               # mkHost, mkWebApp, autoimport
+lib/               # mkHost, mkWebApp
 extras/            # docs, scripts, helpers
 secrets/           # git-crypt encrypted
 ```
@@ -76,7 +76,7 @@ secrets/           # git-crypt encrypted
 | `flake.nix` | Inputs + host outputs |
 | `globals.nix` | Shared user/path/pref config |
 | `lib/mkHost.nix` | Host builder abstraction |
-| `lib/autoimport.nix` | Recursive module discovery |
+| `modules/default.nix` | Recursive module discovery via [denful/import-tree](https://github.com/denful/import-tree) |
 | `lib/mkWebApp.nix` | PWA module factory |
 | `justfile` | Rebuild, upgrade, clean shortcuts |
 
@@ -112,7 +112,7 @@ Drop a `default.nix` in the right directory and it auto-imports. No manual wirin
 
 # Auto-Import
 
-`lib/autoimport.nix` recursively scans `modules/` and imports everything automatically.
+`modules/default.nix` recursively scans `modules/` and imports everything automatically (powered by [denful/import-tree](https://github.com/denful/import-tree)).
 
 ```
 modules/
