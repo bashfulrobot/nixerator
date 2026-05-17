@@ -49,6 +49,7 @@ in
         meetsum.enable = true;
         pandoc.enable = true;
         percollate.enable = true;
+        signal-cli.enable = true;
         slack-token-refresh.enable = true;
         slack-tracker.enable = true;
         sheets.enable = true;
@@ -89,7 +90,6 @@ in
       slack
       todoist-electron
       fractal
-      signal-cli
     ];
 
     # Force Todoist Electron to use native Wayland (avoids XWayland key
