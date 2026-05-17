@@ -11,7 +11,10 @@
 let
   selfAbsolute = toString ./default.nix;
 
-  isSelf = s: s == "/default.nix" || s == selfAbsolute || lib.hasSuffix "/webapps/default.nix" s;
+  # Same rationale as `modules/default.nix`: two exact-match branches,
+  # no `hasSuffix` branch — the suffix would over-match a legitimate
+  # nested module named `webapps/default.nix`.
+  isSelf = s: s == "/default.nix" || s == selfAbsolute;
 
   isExcluded =
     path:

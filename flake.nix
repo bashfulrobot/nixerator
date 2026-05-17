@@ -125,7 +125,13 @@
     # Recursive Nix module importer. Replaces the hand-rolled
     # `lib/autoimport.nix`; consumed by `modules/default.nix` and
     # `modules/apps/webapps/default.nix` via `inputs.import-tree`.
-    import-tree.url = "github:denful/import-tree";
+    #
+    # Pinned to a release tag (not `main`) so `just upgrade` can't silently
+    # follow upstream HEAD. The denful GitHub org was created 2026-04-20;
+    # an org takeover or hostile push to main would otherwise land at the
+    # next `nix flake update`. Bump this tag explicitly when re-auditing
+    # upstream.
+    import-tree.url = "github:denful/import-tree/v0.2.0";
   };
 
   outputs =

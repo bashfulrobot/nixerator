@@ -18,7 +18,12 @@
 let
   selfAbsolute = toString ./default.nix;
 
-  isSelf = s: s == "/default.nix" || s == selfAbsolute || lib.hasSuffix "/modules/default.nix" s;
+  # Two exact-match branches: import-tree's current convention is the
+  # root-relative form, the absolute form is a fallback if upstream ever
+  # changes that convention. We deliberately do NOT use a `hasSuffix`
+  # branch — a stray `apps/foo/modules/default.nix` somewhere in the tree
+  # would otherwise be silently dropped from `imports`.
+  isSelf = s: s == "/default.nix" || s == selfAbsolute;
 
   isExcluded =
     path:

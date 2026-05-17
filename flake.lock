@@ -631,6 +631,7 @@
       },
       "original": {
         "owner": "denful",
+        "ref": "v0.2.0",
         "repo": "import-tree",
         "type": "github"
       }
