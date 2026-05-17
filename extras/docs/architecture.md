@@ -12,7 +12,7 @@ nixerator/
 │   └── versions.nix       # Centralized version pins
 ├── lib/
 │   ├── mkHost.nix         # Host builder
-│   └── autoimport.nix     # Auto-import helper
+│   └── mkWebApp.nix       # Web app (PWA) module factory
 ├── modules/
 │   ├── archetypes/        # workstation, server
 │   ├── suites/            # Feature bundles (core, dev, desktop, ...)
@@ -35,7 +35,7 @@ nixerator/
 - `cfg/` -- configuration fragments
 - `reference/` -- reference docs
 
-Custom exclusions: edit `defaultExcludes` in `lib/autoimport.nix`. Debug with `tracedAutoImport`.
+Mechanism: `inputs.import-tree.filterNot <predicate> ./.` (see [denful/import-tree](https://github.com/denful/import-tree)). The `.filterNot` predicate in `modules/default.nix` carries the exclusion list above; add a pattern there to introduce a new convention. import-tree also silently skips anything containing `/_` in its path (upstream default).
 
 ## Namespacing
 
