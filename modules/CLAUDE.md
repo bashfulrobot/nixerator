@@ -1,6 +1,6 @@
 # Modules
 
-- Modules auto-import via `modules/default.nix` — never manually import a module elsewhere. Subdirs named `disabled/`, `build/`, `cfg/`, `reference/` are excluded from auto-import; use these for local helpers.
+- Modules auto-import via `modules/default.nix` — never manually import a module elsewhere. Subdirs named `disabled/`, `build/`, `cfg/`, `reference/` are excluded from auto-import; use these for local helpers. Paths containing `/_` are also silently skipped (import-tree upstream default), so `_wip/` etc. is another opt-out option.
 - Standard structure: `let cfg = config.NAMESPACE.PATH;` → `options` with `lib.mkEnableOption` → `config = lib.mkIf cfg.enable { ... }`.
 - Namespace matches directory path: `apps.cli.*`, `apps.gui.*`, `apps.webapps.*`, `suites.*`, `system.*`, `dev.*`, `server.*`, `archetypes.*`.
 - Home Manager config goes inside `home-manager.users.${globals.user.name} = { ... }`.
