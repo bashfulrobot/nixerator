@@ -7,6 +7,7 @@ result-*
 
 # Worktree state files
 .worktree-state.json
+.worktree.lock
 .dependabot-alert.json
 
 # MCP config (project-level)

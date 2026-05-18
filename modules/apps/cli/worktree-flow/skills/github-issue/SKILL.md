@@ -30,6 +30,17 @@ github-issue validate-cwd <number>
 
 If `valid` is false, call `EnterWorktree` with `path: <worktree-path>` to re-anchor, or run the `fix` command as a last resort.
 
+## Multi-Agent Awareness
+
+The skill assumes parallel sessions running on the same machine, each in its own worktree, each on a different issue. The CLI provides the safety rails — the skill mostly just surfaces what comes back.
+
+- **Single-writer locking.** Mutating commands acquire a `flock` before touching state: `push`, `transition`, `cleanup`, and `auto-merge` lock the per-worktree file; `setup` locks a base-directory file keyed on issue number (the worktree doesn't exist yet at that point). Contended invocations return a structured error with `cause: "worktree_locked"` or `cause: "setup_locked"`. Surface it; do not retry — another agent owns this worktree right now.
+- **Fresh refs.** `status` and `audit` run `git fetch origin --prune` before reading PR/CI signals, so long-running sessions don't see stale base or auto-merge state. `fetch_remote` warns and continues on failure; if you've reason to suspect the network is down (e.g., repeated `gh` failures), treat refs as best-effort.
+- **Read-consistent status.** `status` tries to acquire the worktree lock before reconciling. If another mutating command is active, reconciliation is skipped and the response carries `reconciled: false`; the rest of the payload still reflects the last persisted state. Re-run when convenient.
+- **Stale `waiting` PRs self-heal.** When `status` or `audit` sees a `waiting` PR with `mergeStateStatus == BEHIND` (another PR landed in main while this one was queued), the CLI rebases onto the new base and force-with-lease pushes to clear the staleness so GitHub re-evaluates auto-merge. Audit entries report `auto_refreshed: true` only when a rebase/push actually happened. The auto-refresh is best-effort and can fail for several reasons (rebase conflict, push rejected, lease lost, network/auth). When it fails, `pr.merge_state_status` stays `BEHIND` — run `github-issue push <N>` to surface a structured error (`cause` distinguishes `rebase_conflict` from `lease_failed` / `push_failed`) and route from there.
+- **Structured push errors.** `github-issue push` returns `{error: {cause, branch, ...}}` where `cause` is `rebase_conflict`, `lease_failed`, or `push_failed`. Route on `cause` — do not parse the message. `lease_failed` specifically means another session pushed to this branch; do NOT retry — fetch and escalate.
+- **Merge-order coordination.** When `audit` returns a non-empty `merge_order`, surface gating PRs before the user picks an issue. Each entry carries `ci_status` and `merge_state_status` so the skill can identify which gating PR is actually ready vs. waiting on CI (see Entry Point §1).
+
 ## Transition notes
 
 Every `github-issue transition` **requires** `--note '<short summary>'`. The note is persisted in `step_history` and becomes the breadcrumb the next agent (or you, resuming tomorrow) reads to pick up context. Write a one-sentence note covering *what happened this step and any loose threads*.
@@ -49,9 +60,11 @@ github-issue audit
 ```
 
 Returns `{worktrees, overlaps, merge_order}`:
-- `worktrees`: list of active issue worktrees with step, PR, base_ref, blockers, touched_files.
+- `worktrees`: list of active issue worktrees with step, PR, base_ref, ci_status, merge_state_status, auto_refreshed, blockers, touched_files. `auto_refreshed: true` means the CLI just rebased + force-pushed this worktree to clear a BEHIND state.
 - `overlaps`: pairs of worktrees sharing touched files — surfaces merge-conflict risk ahead of time.
-- `merge_order`: mergeable PRs ordered by blocker graph (issues that unblock others merge first).
+- `merge_order`: mergeable PRs ordered by blocker graph (issues that unblock others merge first). Each entry includes `ci_status` and `merge_state_status` so the skill can identify the next *actually-ready* PR.
+
+If `merge_order` is non-empty, surface it before listing open issues — the first entry whose `ci_status == passing` and `merge_state_status` is not `BLOCKED`/`BEHIND` is the next PR to merge. If the user's intended issue appears in another entry's `blocks` list, recommend handling the gating issue first.
 
 Then list open issues so the user can pick one:
 
@@ -86,7 +99,7 @@ Route on `workflow_step`.
 | `push` | `github-issue push <N>` (rebases silently, creates PR, propagates labels) |
 | `review_dev` | Invoke `/review-dev` via Skill tool, handle findings; on clean auto-chain to `review_security` |
 | `review_security` | Invoke `/review-security` via Skill tool, handle findings. On clean: `github-issue auto-merge <N>`, transition to `waiting` |
-| `waiting` | Re-check status for PR state changes |
+| `waiting` | Re-check status — CLI auto-fetches and auto-heals BEHIND. Only act manually if `pr.merge_state_status == BEHIND` persists across reconciliations (auto-refresh rebase conflicted). |
 | `revamp` | Review feedback received — `github-issue review-feedback <N>`, evaluate, fix |
 | `ci_fix` | Post-push CI failure — diagnose from `check-ci`, fix, re-verify, push |
 | `done` | `github-issue cleanup <N>` |
@@ -192,6 +205,13 @@ Mechanics handled by the CLI:
 - Create PR if one doesn't exist; update otherwise.
 - Propagate issue labels onto the PR.
 
+If `push` returns an error object, route on `error.cause`:
+- `rebase_conflict` — agent enters **Merge Conflict Resolution** below.
+- `lease_failed` — another session pushed to this branch. Do NOT retry. Run `git fetch origin <branch>` to see what landed and escalate to the user.
+- `push_failed` — generic network/auth/hook failure. Inspect `error.stderr`.
+- `protected_branch` — state file resolved the branch name to `main`/`master`. Should never happen on a well-formed state file; surface as data corruption.
+- `worktree_locked` / `setup_locked` — another `github-issue` process is mid-operation on this worktree (or this issue's setup). Surface; do not retry.
+
 Report `pr_url` and `ci_status` from response. Then:
 
 ```bash
@@ -247,6 +267,8 @@ Reconciliation auto-detects:
 - Changes requested → advances to `revamp`
 - CI failure on open PR → advances to `ci_fix`
 - PR closed without merge → advances to `closed`
+
+**Auto-healed — `mergeable: BEHIND`.** When another PR lands in main while this one sits in `waiting`, auto-merge can stall behind the new base. `status` and `audit` automatically attempt a fresh rebase + force-with-lease push to clear it; the new state is surfaced in `pr.merge_state_status`. If `pr.merge_state_status == BEHIND` *persists* after a `status` call, the auto-refresh failed — most commonly a rebase conflict, but also possible: push rejected by branch protection, lease lost to a concurrent push, or network/auth. Run `github-issue push <N>` to get a structured `error.cause` (`rebase_conflict` → **Merge Conflict Resolution** below; `lease_failed` → fetch + escalate; `push_failed` → inspect `error.stderr`).
 
 If still waiting, report current state and CI status:
 
@@ -309,19 +331,20 @@ When the pre-push rebase conflicts, the CLI aborts the rebase and returns an err
 **Resolution procedure (single attempt, no retry loops):**
 
 1. Re-run the rebase manually: `git -C <worktree> rebase <base_ref>`
-2. Inspect conflict markers. Resolve each hunk. Use clear judgment — if both sides semantically changed the same logic, escalate.
-3. Stage the resolved files: `git add <files>`
-4. Continue the rebase: `git rebase --continue`
-5. **Mandatory post-resolve verification** — run the project's full test + build + lint suite.
-6. If verification passes → push.
-7. If verification fails → `git rebase --abort`, escalate to user with:
+2. **Run `mergiraf solve <file>` on each unmerged path first.** Mergiraf is registered globally as a merge driver and has already had one pass during the rebase; running `solve` retries syntactic resolution on a single file and often clears markers without manual work. Re-stage anything it fully resolves. The markers that survive `solve` are real semantic divergence.
+3. Inspect remaining conflict markers. Resolve each hunk. Use clear judgment — if both sides semantically changed the same logic, escalate.
+4. Stage the resolved files: `git add <files>`
+5. Continue the rebase: `git rebase --continue`
+6. **Mandatory post-resolve verification** — run the project's full test + build + lint suite.
+7. If verification passes → push.
+8. If verification fails → `git rebase --abort`, escalate to user with:
    - List of conflicting files
    - Which side each hunk came from (ours/theirs)
    - What the resolution attempted
    - Why verification failed
    - Command to resume: `cd <worktree> && git rebase <base_ref>`
 
-**No retry on failure.** One attempt, then escalate. Do not try a "different approach" to the same conflict — if the first resolution didn't pass verification, the divergence is semantic and needs human judgment.
+**No retry on failure.** One attempt, then escalate. Mergiraf has already exhausted the automated path; trying again on the same unedited state won't change anything. If the first resolution didn't pass verification, the divergence is semantic and needs human judgment.
 
 ### Done (Cleanup)
 
