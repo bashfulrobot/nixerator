@@ -6,6 +6,14 @@
 # Item naming: each top-level key (or top-level + first nested key for grouped
 # values) becomes one 1P item. Fields use kebab-case. All items land in the
 # vault named by VAULT (default: Personal).
+#
+# SECURITY NOTE: secrets pass through the op CLI's argv, which means they are
+# transiently visible in /proc/<pid>/cmdline to any other process running as
+# the same UID. This is intentional for the one-shot migration flow but means
+# you MUST NOT run this script while any AI agent (Claude Code, Cursor, etc.)
+# is active in another terminal — that is exactly the leak vector this repo
+# is trying to close. Sign out of those tools before running, then sign back
+# in once `op item list --vault=Personal | grep ^Nixerator` confirms success.
 set -euo pipefail
 
 VAULT="${VAULT:-Personal}"

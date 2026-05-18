@@ -25,9 +25,21 @@ default:
 rebuild:
     #!/usr/bin/env bash
     set -uo pipefail
-    rendered=$(just _render-secrets)
-    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
-    export NIXERATOR_SECRETS="$rendered"
+    # If the caller already gave us a rendered path (e.g. remote-rebuild
+    # scp'd one into /run/user/$UID), use it verbatim and don't shred —
+    # the caller owns its lifecycle. Otherwise render now.
+    if [[ -z "${NIXERATOR_SECRETS:-}" ]]; then
+        if ! rendered=$(just _render-secrets); then
+            echo "error: secrets render failed; aborting rebuild." >&2
+            exit 1
+        fi
+        if [[ -z "$rendered" || ! -s "$rendered" ]]; then
+            echo "error: render produced empty/missing file; aborting rebuild." >&2
+            exit 1
+        fi
+        trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
+        export NIXERATOR_SECRETS="$rendered"
+    fi
     just pre-rebuild interactive
     log="{{rebuild_log}}"
     rc=0
@@ -69,9 +81,19 @@ dev-rebuild:
 upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
-    rendered=$(just _render-secrets)
-    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
-    export NIXERATOR_SECRETS="$rendered"
+    # See `rebuild` for the conditional-render rationale.
+    if [[ -z "${NIXERATOR_SECRETS:-}" ]]; then
+        if ! rendered=$(just _render-secrets); then
+            echo "error: secrets render failed; aborting upgrade." >&2
+            exit 1
+        fi
+        if [[ -z "$rendered" || ! -s "$rendered" ]]; then
+            echo "error: render produced empty/missing file; aborting upgrade." >&2
+            exit 1
+        fi
+        trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
+        export NIXERATOR_SECRETS="$rendered"
+    fi
     just pre-rebuild interactive
     log="{{upgrade_log}}"
     cp flake.lock flake.lock-backup-{{timestamp}}
@@ -274,35 +296,58 @@ upgrade_log := "/tmp/nixerator-upgrade.log"
 _render-secrets:
     #!/usr/bin/env bash
     set -euo pipefail
+
+    # The rendered file holds plaintext secrets, so it must land on tmpfs
+    # so `shred -u` is meaningful (CoW/journalled filesystems retain old
+    # blocks). `/run/user/$UID` is tmpfs on every NixOS host with logind;
+    # fail loudly rather than silently downgrade to a persistent path.
     runtime_dir="/run/user/$(id -u)"
     if [[ ! -d "$runtime_dir" ]]; then
-        runtime_dir="${TMPDIR:-/tmp}"
+        echo "error: $runtime_dir does not exist; logind / XDG_RUNTIME_DIR not set up." >&2
+        echo "       refusing to render secrets to a non-tmpfs path." >&2
+        exit 1
     fi
+    if ! findmnt -T "$runtime_dir" -no FSTYPE 2>/dev/null | grep -qx tmpfs; then
+        echo "error: $runtime_dir is not on tmpfs; refusing to render secrets." >&2
+        exit 1
+    fi
+
     rendered=$(mktemp -p "$runtime_dir" nixerator-XXXXXX.json)
     chmod 600 "$rendered"
+    # Make sure a render-side failure cleans up the half-baked file.
+    trap 'rm -f "$rendered"' ERR
 
     # Path 1: 1Password (preferred). Requires `op` available, signed in,
-    # and every op:// reference in the template to resolve.
+    # and every op:// reference in the template to resolve. Diagnostics
+    # from `op signin` / `op inject` are forwarded to stderr so the user
+    # can see why the 1P path failed (missing item, renamed field, etc.)
+    # before the fallback engages.
     if command -v op >/dev/null 2>&1 \
         && [[ -f secrets/secrets.json.tpl ]] \
-        && { op whoami >/dev/null 2>&1 || eval "$(op signin 2>/dev/null)"; } \
+        && { op whoami >/dev/null 2>&1 || eval "$(op signin)"; } \
         && op whoami >/dev/null 2>&1 \
-        && op inject -i secrets/secrets.json.tpl -o "$rendered" 2>/dev/null; then
+        && op inject -i secrets/secrets.json.tpl -o "$rendered"; then
+        trap - ERR
         echo "$rendered"
         exit 0
     fi
 
-    # Path 2: git-crypt fallback. Requires secrets/secrets.json to be
-    # decrypted (i.e. git-crypt is unlocked in this worktree).
+    # Path 2: git-crypt fallback. `secrets/secrets.json` is either
+    # encrypted (binary, starts with `\0GITCRYPT`) or plaintext JSON
+    # (starts with `{`). The byte check distinguishes them without
+    # invoking git, which is fine because the file shape is fully
+    # under our control.
     if [[ -f secrets/secrets.json ]] && head -c 1 secrets/secrets.json | grep -q '{'; then
         cp secrets/secrets.json "$rendered"
+        trap - ERR
         echo "$rendered"
         exit 0
     fi
 
     rm -f "$rendered"
-    echo "error: no 1Password session and no decrypted secrets/secrets.json available" >&2
-    echo "       fix: `eval \"\$(op signin)\"` (after populating 1P), or unlock git-crypt." >&2
+    trap - ERR
+    echo 'error: no 1Password session and no decrypted secrets/secrets.json available' >&2
+    echo 'fix: run `eval "$(op signin)"` (after populating 1P), or unlock git-crypt.' >&2
     exit 1
 
 # Pre-rebuild: capture runtime ~/.claude/* edits back into the source tree
@@ -402,14 +447,31 @@ quiet-rebuild:
         echo "⚠ Uncommitted plugin changes from a previous sync. Commit or discard before rebuilding."
     fi
 
-    rendered=$(just _render-secrets)
-    export NIXERATOR_SECRETS="$rendered"
+    # remote-rebuild scp's a rendered file and sets NIXERATOR_SECRETS over
+    # SSH — re-rendering here would clobber it (and require an op signin
+    # on the remote, which can't TTY-prompt). Honor the inherited value.
+    if [[ -z "${NIXERATOR_SECRETS:-}" ]]; then
+        if ! rendered=$(just _render-secrets); then
+            echo "error: secrets render failed; aborting rebuild." >&2
+            exit 1
+        fi
+        if [[ -z "$rendered" || ! -s "$rendered" ]]; then
+            echo "error: render produced empty/missing file; aborting rebuild." >&2
+            exit 1
+        fi
+        # Install the cleanup trap immediately so a signal/abort between
+        # here and the build can't leak the tmpfs file.
+        trap 'git restore --staged . 2>/dev/null || true; shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
+        export NIXERATOR_SECRETS="$rendered"
+    else
+        # Caller supplied the path; only restore the staging area on exit.
+        trap 'git restore --staged . 2>/dev/null || true' EXIT
+    fi
 
     just pre-rebuild quiet
 
     echo "Rebuilding (quiet mode)..."
     git add -A
-    trap 'git restore --staged .; shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
     rc=0
     sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
@@ -434,9 +496,19 @@ quiet-rebuild:
 quiet-upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
-    rendered=$(just _render-secrets)
-    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
-    export NIXERATOR_SECRETS="$rendered"
+    # See `quiet-rebuild` for the conditional-render rationale.
+    if [[ -z "${NIXERATOR_SECRETS:-}" ]]; then
+        if ! rendered=$(just _render-secrets); then
+            echo "error: secrets render failed; aborting upgrade." >&2
+            exit 1
+        fi
+        if [[ -z "$rendered" || ! -s "$rendered" ]]; then
+            echo "error: render produced empty/missing file; aborting upgrade." >&2
+            exit 1
+        fi
+        trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
+        export NIXERATOR_SECRETS="$rendered"
+    fi
     just pre-rebuild quiet
     echo "Upgrading (quiet mode)..."
     cp flake.lock flake.lock-backup-{{timestamp}}
@@ -477,7 +549,10 @@ remote-rebuild host repo_path="~/git/nixerator":
     rendered=$(just _render-secrets)
     remote_path="/run/user/$(ssh -o BatchMode=yes {{host}} id -u)/nixerator-remote-$$.json"
     trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes {{host}} "rm -f $remote_path" 2>/dev/null || true' EXIT
-    scp -q -o BatchMode=yes "$rendered" "{{host}}:$remote_path"
+    scp -pq -o BatchMode=yes "$rendered" "{{host}}:$remote_path"
+    # `scp -p` preserves the local mode 600. Re-assert on the remote in
+    # case the target's umask or filesystem stripped it during transfer.
+    ssh -o BatchMode=yes {{host}} "chmod 600 $remote_path"
     rc=0
     ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
         "cd {{repo_path}} && git pull --ff-only && NIXERATOR_SECRETS=$remote_path just qr" || rc=$?
@@ -498,7 +573,10 @@ remote-upgrade host repo_path="~/git/nixerator":
     rendered=$(just _render-secrets)
     remote_path="/run/user/$(ssh -o BatchMode=yes {{host}} id -u)/nixerator-remote-$$.json"
     trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes {{host}} "rm -f $remote_path" 2>/dev/null || true' EXIT
-    scp -q -o BatchMode=yes "$rendered" "{{host}}:$remote_path"
+    scp -pq -o BatchMode=yes "$rendered" "{{host}}:$remote_path"
+    # `scp -p` preserves the local mode 600. Re-assert on the remote in
+    # case the target's umask or filesystem stripped it during transfer.
+    ssh -o BatchMode=yes {{host}} "chmod 600 $remote_path"
     rc=0
     ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
         "cd {{repo_path}} && git pull --ff-only && NIXERATOR_SECRETS=$remote_path just qu" || rc=$?
