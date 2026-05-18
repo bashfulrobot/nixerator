@@ -258,25 +258,52 @@ capture:
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
 
-# Render secrets/secrets.json.tpl via `op inject` into a short-lived tmpfs
-# file (mode 600, /run/user/$UID). Prints the path on stdout for callers to
-# capture, export as NIXERATOR_SECRETS, and trap-cleanup with `shred`.
-# Auto-prompts `op signin` if no active session.
+# Render a secrets JSON into a short-lived tmpfs file (mode 600,
+# /run/user/$UID). Prints the path on stdout for callers to capture, export
+# as NIXERATOR_SECRETS, and trap-cleanup with `shred`.
+#
+# Dual-mode while the 1Password migration is in flight (issue #61):
+#  1. Preferred: render secrets/secrets.json.tpl via `op inject` (auto-
+#     prompts `op signin` if needed). This is the 1Password path.
+#  2. Fallback: copy the git-crypt-decrypted secrets/secrets.json verbatim.
+#     Lets `just rebuild` keep working on hosts that haven't migrated yet.
+#
+# The caller always shreds the returned path, so this recipe never returns
+# a path inside the repo — both modes write to tmpfs.
 [private]
 _render-secrets:
     #!/usr/bin/env bash
     set -euo pipefail
-    if ! op whoami >/dev/null 2>&1; then
-        eval "$(op signin)"
-    fi
     runtime_dir="/run/user/$(id -u)"
     if [[ ! -d "$runtime_dir" ]]; then
         runtime_dir="${TMPDIR:-/tmp}"
     fi
     rendered=$(mktemp -p "$runtime_dir" nixerator-XXXXXX.json)
     chmod 600 "$rendered"
-    op inject -i secrets/secrets.json.tpl -o "$rendered"
-    echo "$rendered"
+
+    # Path 1: 1Password (preferred). Requires `op` available, signed in,
+    # and every op:// reference in the template to resolve.
+    if command -v op >/dev/null 2>&1 \
+        && [[ -f secrets/secrets.json.tpl ]] \
+        && { op whoami >/dev/null 2>&1 || eval "$(op signin 2>/dev/null)"; } \
+        && op whoami >/dev/null 2>&1 \
+        && op inject -i secrets/secrets.json.tpl -o "$rendered" 2>/dev/null; then
+        echo "$rendered"
+        exit 0
+    fi
+
+    # Path 2: git-crypt fallback. Requires secrets/secrets.json to be
+    # decrypted (i.e. git-crypt is unlocked in this worktree).
+    if [[ -f secrets/secrets.json ]] && head -c 1 secrets/secrets.json | grep -q '{'; then
+        cp secrets/secrets.json "$rendered"
+        echo "$rendered"
+        exit 0
+    fi
+
+    rm -f "$rendered"
+    echo "error: no 1Password session and no decrypted secrets/secrets.json available" >&2
+    echo "       fix: `eval \"\$(op signin)\"` (after populating 1P), or unlock git-crypt." >&2
+    exit 1
 
 # Pre-rebuild: capture runtime ~/.claude/* edits back into the source tree
 # before activation overwrites them with the previously-captured version.
