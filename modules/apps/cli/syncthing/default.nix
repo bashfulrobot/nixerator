@@ -67,7 +67,8 @@ in
         overrideFolders = true;
 
         settings.gui = {
-          inherit (secrets.syncthing.gui) user password;
+          user = secrets.syncthing.gui.user or "";
+          password = secrets.syncthing.gui.password or "";
         };
       }
 
@@ -78,8 +79,8 @@ in
         settings = {
           devices = {
             "qbert" = {
-              addresses = [ "tcp://${secrets.qbert.tailscale_ip}:22000" ];
-              id = secrets.qbert.syncthing_id;
+              addresses = [ "tcp://${secrets.qbert.tailscale_ip or "0.0.0.0"}:22000" ];
+              id = secrets.qbert.syncthing_id or "";
             };
           };
 
@@ -175,8 +176,8 @@ in
         settings = {
           devices = {
             "donkey-kong" = {
-              addresses = [ "tcp://${secrets.donkey-kong.tailscale_ip}:22000" ];
-              id = secrets.donkey-kong.syncthing_id;
+              addresses = [ "tcp://${secrets.donkey-kong.tailscale_ip or "0.0.0.0"}:22000" ];
+              id = secrets.donkey-kong.syncthing_id or "";
             };
           };
 

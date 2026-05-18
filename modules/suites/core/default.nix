@@ -142,5 +142,17 @@ in
 
     # naughty
     security.sudo.wheelNeedsPassword = false;
+
+    # Allow `just rebuild` and friends to pass NIXERATOR_SECRETS through
+    # to `sudo nixos-rebuild` via `--preserve-env=NIXERATOR_SECRETS`. With
+    # NixOS' default env_reset, the env var would otherwise be stripped
+    # before nixos-rebuild ever sees it.
+    #
+    # Scoped to the nixos-rebuild command so other sudoed processes don't
+    # silently inherit the secrets path (e.g. into auditd / sudo logs).
+    security.sudo.extraConfig = ''
+      Cmnd_Alias NIXOS_REBUILD = /run/current-system/sw/bin/nixos-rebuild
+      Defaults!NIXOS_REBUILD env_keep += "NIXERATOR_SECRETS"
+    '';
   };
 }
