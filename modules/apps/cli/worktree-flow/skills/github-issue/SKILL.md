@@ -30,6 +30,15 @@ github-issue validate-cwd <number>
 
 If `valid` is false, call `EnterWorktree` with `path: <worktree-path>` to re-anchor, or run the `fix` command as a last resort.
 
+## Multi-Agent Awareness
+
+The skill assumes parallel sessions running on the same machine, each in its own worktree, each on a different issue. Four hot spots fall out of that topology:
+
+- **One session per worktree.** Before resuming an existing worktree, read `step_history[-1].completed_at` from the `status` response. If it's < 5 minutes old and the last `note` reads as work-in-progress (no completion phrasing like "verified", "pushed", "all green"), ask the user before continuing — another live session may be mid-step.
+- **Stale `origin/main` mid-session.** The CLI fetches inside `setup` and `push`, but `status` does not. On long-running sessions, treat PR/CI fields in a `status` response as potentially stale and re-run `status` (or `gh pr view`) before significant decisions: leaving `waiting`, leaving `audit`, deciding to push.
+- **`push` rejection without a rebase conflict.** A non-zero exit from `github-issue push` that is *not* a rebase-conflict error means `--force-with-lease` rejected — the remote branch moved since this session last pushed. Do NOT retry. Run `git fetch origin <branch>`, inspect what landed, and escalate to the user.
+- **Merge-order coordination.** When `audit` returns a non-empty `merge_order`, surface gating PRs before the user picks an issue (see Entry Point §1).
+
 ## Transition notes
 
 Every `github-issue transition` **requires** `--note '<short summary>'`. The note is persisted in `step_history` and becomes the breadcrumb the next agent (or you, resuming tomorrow) reads to pick up context. Write a one-sentence note covering *what happened this step and any loose threads*.
@@ -52,6 +61,8 @@ Returns `{worktrees, overlaps, merge_order}`:
 - `worktrees`: list of active issue worktrees with step, PR, base_ref, blockers, touched_files.
 - `overlaps`: pairs of worktrees sharing touched files — surfaces merge-conflict risk ahead of time.
 - `merge_order`: mergeable PRs ordered by blocker graph (issues that unblock others merge first).
+
+If `merge_order` is non-empty, surface it before listing open issues — the first entry is the next PR to push or merge. If the user's intended issue appears in another entry's `blocks` list, recommend handling the gating issue first.
 
 Then list open issues so the user can pick one:
 
@@ -86,7 +97,7 @@ Route on `workflow_step`.
 | `push` | `github-issue push <N>` (rebases silently, creates PR, propagates labels) |
 | `review_dev` | Invoke `/review-dev` via Skill tool, handle findings; on clean auto-chain to `review_security` |
 | `review_security` | Invoke `/review-security` via Skill tool, handle findings. On clean: `github-issue auto-merge <N>`, transition to `waiting` |
-| `waiting` | Re-check status for PR state changes |
+| `waiting` | Re-check status; on `mergeable: BEHIND` re-run `github-issue push <N>` to refresh the rebase |
 | `revamp` | Review feedback received — `github-issue review-feedback <N>`, evaluate, fix |
 | `ci_fix` | Post-push CI failure — diagnose from `check-ci`, fix, re-verify, push |
 | `done` | `github-issue cleanup <N>` |
@@ -192,6 +203,8 @@ Mechanics handled by the CLI:
 - Create PR if one doesn't exist; update otherwise.
 - Propagate issue labels onto the PR.
 
+If `push` exits non-zero **without** a rebase-conflict message, the `--force-with-lease` check failed — another session pushed to this branch since this session's last push. Do NOT retry. Run `git fetch origin <branch>` to see what landed and escalate to the user.
+
 Report `pr_url` and `ci_status` from response. Then:
 
 ```bash
@@ -247,6 +260,14 @@ Reconciliation auto-detects:
 - Changes requested → advances to `revamp`
 - CI failure on open PR → advances to `ci_fix`
 - PR closed without merge → advances to `closed`
+
+**Not auto-reconciled — `mergeable: BEHIND`.** When another PR lands in main while this one sits in `waiting`, auto-merge can stall behind the new base. The CLI doesn't fetch in `status` and doesn't reconcile this. Check manually:
+
+```bash
+gh pr view <N> --json mergeStateStatus,mergeable
+```
+
+If `mergeStateStatus` is `BEHIND` for more than one reconciliation cycle, re-run `github-issue push <N>` — the pre-push rebase will fetch and rebase onto the new main, and the force-with-lease push refreshes the PR so GitHub re-evaluates auto-merge.
 
 If still waiting, report current state and CI status:
 
@@ -309,19 +330,20 @@ When the pre-push rebase conflicts, the CLI aborts the rebase and returns an err
 **Resolution procedure (single attempt, no retry loops):**
 
 1. Re-run the rebase manually: `git -C <worktree> rebase <base_ref>`
-2. Inspect conflict markers. Resolve each hunk. Use clear judgment — if both sides semantically changed the same logic, escalate.
-3. Stage the resolved files: `git add <files>`
-4. Continue the rebase: `git rebase --continue`
-5. **Mandatory post-resolve verification** — run the project's full test + build + lint suite.
-6. If verification passes → push.
-7. If verification fails → `git rebase --abort`, escalate to user with:
+2. **Run `mergiraf solve <file>` on each unmerged path first.** Mergiraf is registered globally as a merge driver and has already had one pass during the rebase; running `solve` retries syntactic resolution on a single file and often clears markers without manual work. Re-stage anything it fully resolves. The markers that survive `solve` are real semantic divergence.
+3. Inspect remaining conflict markers. Resolve each hunk. Use clear judgment — if both sides semantically changed the same logic, escalate.
+4. Stage the resolved files: `git add <files>`
+5. Continue the rebase: `git rebase --continue`
+6. **Mandatory post-resolve verification** — run the project's full test + build + lint suite.
+7. If verification passes → push.
+8. If verification fails → `git rebase --abort`, escalate to user with:
    - List of conflicting files
    - Which side each hunk came from (ours/theirs)
    - What the resolution attempted
    - Why verification failed
    - Command to resume: `cd <worktree> && git rebase <base_ref>`
 
-**No retry on failure.** One attempt, then escalate. Do not try a "different approach" to the same conflict — if the first resolution didn't pass verification, the divergence is semantic and needs human judgment.
+**No retry on failure.** One attempt, then escalate. Mergiraf has already exhausted the automated path; trying again on the same unedited state won't change anything. If the first resolution didn't pass verification, the divergence is semantic and needs human judgment.
 
 ### Done (Cleanup)
 
@@ -392,3 +414,13 @@ See `references/conventions.md` for details.
 - **Squashed merge commit on main:** `type(scope): description` built by the skill from PR title + body.
 - **Branches:** `type/issue-number-slug` (e.g., `feat/42-add-jwt-auth`) — CLI builds this from issue labels.
 - **PR body:** Must reference the issue. Use `Closes #<issue-number>` (auto-close on merge) for atomic issues. For multi-phase or umbrella issues that should stay open after this PR lands, edit the body to use `Refs #<issue-number>` after `github-issue push` runs — the CLI defaults to `Closes` and does not auto-detect multi-phase scope.
+
+## Known CLI Gaps
+
+Behaviors this skill documents but the CLI does not yet enforce. The agent compensates in prompt-space.
+
+- `status` does not `git fetch` before reading PR/CI fields — long-running sessions may see stale signals. Re-run before significant decisions.
+- `push` exits opaquely on `--force-with-lease` rejection (`set -euo pipefail` kills the script without a structured error). Agent distinguishes lease failure from rebase conflict by reading the error text.
+- No `session_id` / PID lock on `.worktree-state.json` — concurrent sessions in the same worktree can clobber state. Skill mitigates via `step_history[-1].completed_at` recency heuristic at resume time.
+- `reconcile_state` does not detect `mergeStateStatus: BEHIND` from `waiting` — agent must check via `gh pr view` (see Waiting).
+- `audit.merge_order` does not include PR mergeable/CI health — agent must `gh pr view` for any gating PR that may need a fresh push.
