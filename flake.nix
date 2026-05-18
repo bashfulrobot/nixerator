@@ -147,8 +147,21 @@
       # `nix flake show` / `nix flake check` work without an op session.
       # Modules that consume secrets unconditionally are guarded with
       # `or` defaults so eval stays clean with the empty fallback.
+      #
+      # Path validation: `nixos-rebuild --impure` is the consumer; with a
+      # user-controlled env var, an unvalidated `readFile` would let any
+      # typo or pasted hostile snippet pin arbitrary user-readable files
+      # into the world-readable /nix/store. Restrict to the tmpfs path
+      # the render recipe is allowed to produce.
       secretsPath = builtins.getEnv "NIXERATOR_SECRETS";
-      secrets = if secretsPath != "" then builtins.fromJSON (builtins.readFile secretsPath) else { };
+      hasTmpfsPrefix = p: builtins.substring 0 10 p == "/run/user/";
+      secrets =
+        if secretsPath == "" then
+          { }
+        else if hasTmpfsPrefix secretsPath then
+          builtins.fromJSON (builtins.readFile secretsPath)
+        else
+          throw "NIXERATOR_SECRETS must point at a /run/user/<uid>/... tmpfs path; got: ${secretsPath}";
 
       # Import library functions
       lib = import ./lib { inherit inputs secrets; };

@@ -333,11 +333,11 @@ _render-secrets:
     fi
 
     # Path 2: git-crypt fallback. `secrets/secrets.json` is either
-    # encrypted (binary, starts with `\0GITCRYPT`) or plaintext JSON
-    # (starts with `{`). The byte check distinguishes them without
-    # invoking git, which is fine because the file shape is fully
-    # under our control.
-    if [[ -f secrets/secrets.json ]] && head -c 1 secrets/secrets.json | grep -q '{'; then
+    # encrypted (binary, starts with `\0GITCRYPT`) or plaintext JSON.
+    # `jq -e .` parses iff it's well-formed JSON, which both detects
+    # the plaintext-vs-encrypted case AND rejects garbage that
+    # happened to start with `{` (a leading-byte heuristic doesn't).
+    if [[ -f secrets/secrets.json ]] && jq -e . secrets/secrets.json >/dev/null 2>&1; then
         cp secrets/secrets.json "$rendered"
         trap - ERR
         echo "$rendered"
@@ -545,21 +545,33 @@ quiet-upgrade:
 remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
-    echo "Rebuilding {{host}} via SSH..."
+    # Allowlist: the only valid hosts are the three nixerator boxes.
+    # Without this, an attacker-influenced `host` arg starting with `-`
+    # would be parsed as an ssh/scp option (e.g. -oProxyCommand=).
+    case "{{host}}" in
+        qbert|donkeykong|srv) ;;
+        *)
+            echo "error: unrecognized host: {{host}} (allowed: qbert, donkeykong, srv)" >&2
+            exit 2
+            ;;
+    esac
+    host="{{host}}"
+    echo "Rebuilding $host via SSH..."
     rendered=$(just _render-secrets)
-    remote_path="/run/user/$(ssh -o BatchMode=yes {{host}} id -u)/nixerator-remote-$$.json"
-    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes {{host}} "rm -f $remote_path" 2>/dev/null || true' EXIT
-    scp -pq -o BatchMode=yes "$rendered" "{{host}}:$remote_path"
-    # `scp -p` preserves the local mode 600. Re-assert on the remote in
-    # case the target's umask or filesystem stripped it during transfer.
-    ssh -o BatchMode=yes {{host}} "chmod 600 $remote_path"
+    # Create the remote tmpfs file via mktemp on the remote side so the
+    # name is unpredictable. A `nixerator-remote-$$.json` naming scheme
+    # would let any same-UID process on the remote pre-create a symlink
+    # at that path and redirect the scp'd plaintext.
+    remote_path=$(ssh -o BatchMode=yes "$host" 'mktemp -p "/run/user/$(id -u)" nixerator-remote-XXXXXX.json')
+    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes "'"$host"'" "rm -f '"$remote_path"'" 2>/dev/null || true' EXIT
+    scp -pq -o BatchMode=yes "$rendered" "$host:$remote_path"
     rc=0
-    ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
+    ssh -A -o BatchMode=yes -o ConnectTimeout=5 "$host" \
         "cd {{repo_path}} && git pull --ff-only && NIXERATOR_SECRETS=$remote_path just qr" || rc=$?
     if [[ "$rc" -eq 0 ]]; then
-        echo "Remote rebuild on {{host}} succeeded."
+        echo "Remote rebuild on $host succeeded."
     else
-        echo "Remote rebuild on {{host}} FAILED (exit $rc)."
+        echo "Remote rebuild on $host FAILED (exit $rc)."
         exit "$rc"
     fi
 
@@ -569,21 +581,27 @@ remote-rebuild host repo_path="~/git/nixerator":
 remote-upgrade host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
-    echo "Upgrading {{host}} via SSH..."
+    # See `remote-rebuild` for the host allowlist rationale.
+    case "{{host}}" in
+        qbert|donkeykong|srv) ;;
+        *)
+            echo "error: unrecognized host: {{host}} (allowed: qbert, donkeykong, srv)" >&2
+            exit 2
+            ;;
+    esac
+    host="{{host}}"
+    echo "Upgrading $host via SSH..."
     rendered=$(just _render-secrets)
-    remote_path="/run/user/$(ssh -o BatchMode=yes {{host}} id -u)/nixerator-remote-$$.json"
-    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes {{host}} "rm -f $remote_path" 2>/dev/null || true' EXIT
-    scp -pq -o BatchMode=yes "$rendered" "{{host}}:$remote_path"
-    # `scp -p` preserves the local mode 600. Re-assert on the remote in
-    # case the target's umask or filesystem stripped it during transfer.
-    ssh -o BatchMode=yes {{host}} "chmod 600 $remote_path"
+    remote_path=$(ssh -o BatchMode=yes "$host" 'mktemp -p "/run/user/$(id -u)" nixerator-remote-XXXXXX.json')
+    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes "'"$host"'" "rm -f '"$remote_path"'" 2>/dev/null || true' EXIT
+    scp -pq -o BatchMode=yes "$rendered" "$host:$remote_path"
     rc=0
-    ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
+    ssh -A -o BatchMode=yes -o ConnectTimeout=5 "$host" \
         "cd {{repo_path}} && git pull --ff-only && NIXERATOR_SECRETS=$remote_path just qu" || rc=$?
     if [[ "$rc" -eq 0 ]]; then
-        echo "Remote upgrade on {{host}} succeeded."
+        echo "Remote upgrade on $host succeeded."
     else
-        echo "Remote upgrade on {{host}} FAILED (exit $rc)."
+        echo "Remote upgrade on $host FAILED (exit $rc)."
         exit "$rc"
     fi
 
