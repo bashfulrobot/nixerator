@@ -108,7 +108,7 @@ The `status` command reconciles `workflow_step` with git/PR/CI signals:
 | `waiting` | Changes requested | Advance to `revamp` |
 | `waiting`, `push`, `review_dev`, `review_security` | CI failing on open PR | Advance to `ci_fix` |
 | `waiting` | PR closed without merge | Advance to `closed` |
-| `waiting` | `mergeStateStatus == BEHIND` | Auto-rebase + force-with-lease push (no step change). Step_history records the auto-refresh. On rebase conflict, leaves status visible for manual handling. |
+| `waiting` | `mergeStateStatus == BEHIND` | Best-effort auto-rebase + force-with-lease push (no step change). When successful, step_history records the auto-refresh. Failures (rebase conflict, push rejected, lease lost, network/auth) leave `merge_state_status` unchanged — run `github-issue push <N>` for a structured `error.cause` to diagnose. |
 
 Every reconciliation writes a new `step_history` entry with `reconciled: true` and a `note` describing the trigger, so resume-time agents can see why the state changed.
 

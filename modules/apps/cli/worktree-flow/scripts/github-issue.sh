@@ -278,7 +278,11 @@ acquire_worktree_lock() {
   if ! flock -n 9; then
     local issue_num
     issue_num="$(basename "$wt_path" | sed 's/^issue-//')"
-    json_error "worktree for issue #${issue_num} is locked by another process — retry in a few seconds"
+    json_error_obj "$(jq -nc --arg issue "$issue_num" --arg wt "$wt_path" \
+      '{message: ("worktree for issue #" + $issue + " is locked by another github-issue process"),
+        cause: "worktree_locked",
+        issue_number: ($issue|tonumber),
+        worktree: $wt}')"
   fi
 }
 
@@ -293,15 +297,22 @@ acquire_setup_lock() {
   : >"$lock_file" 2>/dev/null || die "cannot create setup lock at ${lock_file}"
   exec 9>"$lock_file"
   if ! flock -n 9; then
-    json_error "another setup for issue #${issue_number} is already in progress"
+    json_error_obj "$(jq -nc --arg issue "$issue_number" \
+      '{message: ("another setup for issue #" + $issue + " is already in progress"),
+        cause: "setup_locked",
+        issue_number: ($issue|tonumber)}')"
   fi
 }
 
 # Attempt to silently refresh a waiting PR whose merge_state_status is BEHIND
 # (main moved forward while the PR sat in auto-merge). Rebases onto base_ref
-# and force-with-lease pushes. On rebase conflict, aborts and returns 1 — the
-# caller decides how to surface that. Quiet on success; logs a step_history
-# entry tagged auto_refresh: true.
+# and force-with-lease pushes. Quiet on success; logs a step_history entry
+# tagged auto_refresh: true. Exit codes are distinct so callers can tell
+# "did real work" from "nothing to do" from "tried and failed":
+#   0 — refresh applied (rebase and/or push happened)
+#   1 — refresh attempted but failed (rebase conflict, push rejected, etc.)
+#   2 — no-op (branch already on top of base and remote in sync, or lock
+#       held by another process so we skipped)
 auto_refresh_behind() {
   local wt_path="$1"
   local branch base_ref state_file
@@ -313,21 +324,22 @@ auto_refresh_behind() {
   # Try-acquire the worktree lock on a separate fd so we don't fight with an
   # outer caller that may already hold fd 9 (cmd_push, etc.). If a mutating
   # command is already running on this worktree, skip — they'll handle their
-  # own rebase + push. Lock releases on function return (fd 8 goes out of
-  # scope when the subshell exits, but since we're in the main shell, close
-  # explicitly at the end).
+  # own rebase + push.
   local lock_file="${wt_path}/.worktree.lock"
   : >"$lock_file" 2>/dev/null || return 1
   exec 8>"$lock_file"
   if ! flock -n 8; then
     exec 8>&-
-    return 1
+    return 2
   fi
 
   local did_rebase=0 did_push=0 rc=0
   if git -C "$wt_path" merge-base --is-ancestor "$base_ref" "$branch" 2>/dev/null; then
-    # Already up-to-date locally. Force-push only if remote is actually behind.
-    if ! git -C "$wt_path" merge-base --is-ancestor "$branch" "origin/${branch}" 2>/dev/null; then
+    # Local branch already on top of base. Push only if remote is strictly
+    # behind local — i.e., origin/branch is an ancestor of local branch AND
+    # the two are not at the same commit. rev-list origin/branch..branch
+    # collapses both checks into "are there commits to send?".
+    if [[ -n "$(git -C "$wt_path" rev-list "origin/${branch}..${branch}" 2>/dev/null)" ]]; then
       if (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch") 2>/dev/null; then
         did_push=1
       else
@@ -353,11 +365,12 @@ auto_refresh_behind() {
     return 1
   fi
 
-  # Idempotent: no actual work happened (branch already on top of base and
-  # remote in sync). Don't log a misleading step_history entry.
+  # Idempotent no-op: nothing actually changed. Don't log a misleading
+  # step_history entry; signal "no work" so callers can avoid setting
+  # auto_refreshed=true on this worktree.
   if [[ "$did_rebase" -eq 0 ]] && [[ "$did_push" -eq 0 ]]; then
     exec 8>&-
-    return 0
+    return 2
   fi
 
   local timestamp current updated note
@@ -687,7 +700,7 @@ cmd_status() {
       --arg merge_status "$_detected_merge_status" \
       --arg number "$pr_number" \
       '{url: $url, state: $state, review_decision: $review,
-        merge_state_status: $merge_status,
+        merge_state_status: (if $merge_status == "" then null else $merge_status end),
         number: (if $number == "" then null else ($number|tonumber) end)}')"
   fi
 
@@ -908,11 +921,14 @@ cmd_audit() {
     detect_issue_state "$wt_dir" "$branch" "$pr_url" "$default_br"
 
     # Auto-heal: a waiting PR that is BEHIND main needs a rebase + force-push
-    # to clear the staleness and let GitHub re-evaluate auto-merge. Best-effort
-    # — failures (rebase conflict) just leave the BEHIND status visible.
+    # to clear the staleness and let GitHub re-evaluate auto-merge. Distinguish
+    # "did real work" (rc=0) from no-op (rc=2) and failure (rc=1) so we only
+    # advertise auto_refreshed=true when something actually changed.
     local refreshed=false
     if [[ "$workflow_step" == "waiting" ]] && [[ "$_detected_merge_status" == "BEHIND" ]]; then
-      if auto_refresh_behind "$wt_dir"; then
+      local refresh_rc=0
+      auto_refresh_behind "$wt_dir" || refresh_rc=$?
+      if [[ "$refresh_rc" -eq 0 ]]; then
         refreshed=true
         # Re-read PR state post-refresh so merge_state_status reflects reality.
         detect_issue_state "$wt_dir" "$branch" "$pr_url" "$default_br"
