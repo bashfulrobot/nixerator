@@ -10,6 +10,13 @@ json_error() {
   printf '{"error":%s}\n' "$(printf '%s' "$1" | jq -Rs .)"
   exit 1
 }
+# Structured error variant — emit a pre-built JSON object as the error value
+# so callers can route on cause/branch/stderr fields instead of regexing a
+# stringified message.
+json_error_obj() {
+  printf '{"error":%s}\n' "$1"
+  exit 1
+}
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 RED=$'\033[0;31m'
@@ -491,15 +498,16 @@ run_claude() {
 # Args: $1=wt_dir, $2=branch, $3=pr_url, $4=default_branch
 detect_issue_state() {
   local wt_dir="$1" branch="$2" pr_url="$3" default_br="$4"
-  _detected_state="" _detected_detail="" _detected_pr_state="" _detected_review=""
+  _detected_state="" _detected_detail="" _detected_pr_state="" _detected_review="" _detected_merge_status=""
 
   # Check PR state
   if [[ -n "$pr_url" ]]; then
     local pr_json
-    pr_json="$(gh pr view "$pr_url" --json state,reviewDecision 2>/dev/null)" || pr_json=""
+    pr_json="$(gh pr view "$pr_url" --json state,reviewDecision,mergeStateStatus 2>/dev/null)" || pr_json=""
     if [[ -n "$pr_json" ]]; then
       _detected_pr_state="$(printf '%s' "$pr_json" | jq -r '.state')"
       _detected_review="$(printf '%s' "$pr_json" | jq -r '.reviewDecision // ""')"
+      _detected_merge_status="$(printf '%s' "$pr_json" | jq -r '.mergeStateStatus // ""')"
     fi
   fi
 

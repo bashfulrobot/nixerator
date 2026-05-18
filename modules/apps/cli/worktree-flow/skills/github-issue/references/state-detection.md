@@ -86,12 +86,15 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
     "url": "https://github.com/user/repo/pull/55",
     "state": "OPEN",
     "review_decision": "CHANGES_REQUESTED",
+    "merge_state_status": "CLEAN",
     "number": 55
   }
 }
 ```
 
 The `pr` field is `null` when no PR exists. The `state` field is the legacy detection result — `workflow_step` is authoritative.
+
+`merge_state_status` mirrors GitHub's `mergeStateStatus` (`CLEAN`, `BEHIND`, `BLOCKED`, `DIRTY`, `UNSTABLE`, `HAS_HOOKS`, `UNKNOWN`). `status` fetches before reading this so it's not stale.
 
 ## Auto-Reconciliation
 
@@ -105,6 +108,7 @@ The `status` command reconciles `workflow_step` with git/PR/CI signals:
 | `waiting` | Changes requested | Advance to `revamp` |
 | `waiting`, `push`, `review_dev`, `review_security` | CI failing on open PR | Advance to `ci_fix` |
 | `waiting` | PR closed without merge | Advance to `closed` |
+| `waiting` | `mergeStateStatus == BEHIND` | Auto-rebase + force-with-lease push (no step change). Step_history records the auto-refresh. On rebase conflict, leaves status visible for manual handling. |
 
 Every reconciliation writes a new `step_history` entry with `reconciled: true` and a `note` describing the trigger, so resume-time agents can see why the state changed.
 
@@ -124,6 +128,9 @@ Every reconciliation writes a new `step_history` entry with `reconciled: true` a
       "base_ref": "origin/main",
       "pr_url": null,
       "worktree": "/path/...",
+      "ci_status": "passing",
+      "merge_state_status": "CLEAN",
+      "auto_refreshed": false,
       "blockers": [...],
       "touched_files": ["src/foo.ts", "src/bar.ts"]
     }
@@ -132,14 +139,15 @@ Every reconciliation writes a new `step_history` entry with `reconciled: true` a
     {"a": 42, "b": 43, "shared": ["src/foo.ts"]}
   ],
   "merge_order": [
-    {"issue_number": 40, "title": "...", "pr_url": "...", "workflow_step": "waiting", "blocks": [42, 43]},
-    {"issue_number": 42, "title": "...", "pr_url": "...", "workflow_step": "waiting", "blocks": []}
+    {"issue_number": 40, "title": "...", "pr_url": "...", "workflow_step": "waiting", "ci_status": "passing", "merge_state_status": "CLEAN", "blocks": [42, 43]},
+    {"issue_number": 42, "title": "...", "pr_url": "...", "workflow_step": "waiting", "ci_status": "pending", "merge_state_status": "BEHIND", "blocks": []}
   ]
 }
 ```
 
 - `overlaps` surfaces worktree pairs that touch shared files — merge-conflict risk to plan around.
-- `merge_order` ranks mergeable PRs so issues that unblock others merge first.
+- `merge_order` ranks mergeable PRs so issues that unblock others merge first. Combine with `ci_status` and `merge_state_status` to pick the next *actually-ready* PR.
+- `auto_refreshed: true` on a worktree means the CLI just rebased + force-pushed it to clear `BEHIND` during this audit run.
 
 ## Migration
 

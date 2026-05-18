@@ -265,6 +265,120 @@ migrate_state() {
 # Back-compat shim for any callers still using the v1-named helper.
 migrate_v1_state() { migrate_state "$@"; }
 
+# ── Single-writer worktree lock ─────────────────────────────────────────────
+# Prevents two CLI invocations from clobbering the same worktree's state file
+# or pushing the same branch concurrently. flock holds the lock for the
+# lifetime of fd 9; the kernel releases it on process exit, so an aborted
+# process never leaves a stale lock. -n fails fast instead of blocking.
+acquire_worktree_lock() {
+  local wt_path="$1"
+  local lock_file="${wt_path}/.worktree.lock"
+  : >"$lock_file" 2>/dev/null || die "cannot create lock file at ${lock_file}"
+  exec 9>"$lock_file"
+  if ! flock -n 9; then
+    local issue_num
+    issue_num="$(basename "$wt_path" | sed 's/^issue-//')"
+    json_error "worktree for issue #${issue_num} is locked by another process — retry in a few seconds"
+  fi
+}
+
+# Setup uses a base-dir lock keyed on issue number, since the worktree dir
+# doesn't exist yet at the moment we need mutual exclusion.
+acquire_setup_lock() {
+  local issue_number="$1"
+  local wt_base
+  wt_base="$(worktree_base)"
+  mkdir -p "$wt_base"
+  local lock_file="${wt_base}/.setup-issue-${issue_number}.lock"
+  : >"$lock_file" 2>/dev/null || die "cannot create setup lock at ${lock_file}"
+  exec 9>"$lock_file"
+  if ! flock -n 9; then
+    json_error "another setup for issue #${issue_number} is already in progress"
+  fi
+}
+
+# Attempt to silently refresh a waiting PR whose merge_state_status is BEHIND
+# (main moved forward while the PR sat in auto-merge). Rebases onto base_ref
+# and force-with-lease pushes. On rebase conflict, aborts and returns 1 — the
+# caller decides how to surface that. Quiet on success; logs a step_history
+# entry tagged auto_refresh: true.
+auto_refresh_behind() {
+  local wt_path="$1"
+  local branch base_ref state_file
+  state_file="${wt_path}/.worktree-state.json"
+  branch="$(jq -r '.branch' "$state_file")"
+  base_ref="$(jq -r '.base_ref // empty' "$state_file")"
+  [[ -z "$base_ref" ]] && base_ref="origin/$(default_branch)"
+
+  # Try-acquire the worktree lock on a separate fd so we don't fight with an
+  # outer caller that may already hold fd 9 (cmd_push, etc.). If a mutating
+  # command is already running on this worktree, skip — they'll handle their
+  # own rebase + push. Lock releases on function return (fd 8 goes out of
+  # scope when the subshell exits, but since we're in the main shell, close
+  # explicitly at the end).
+  local lock_file="${wt_path}/.worktree.lock"
+  : >"$lock_file" 2>/dev/null || return 1
+  exec 8>"$lock_file"
+  if ! flock -n 8; then
+    exec 8>&-
+    return 1
+  fi
+
+  local did_rebase=0 did_push=0 rc=0
+  if git -C "$wt_path" merge-base --is-ancestor "$base_ref" "$branch" 2>/dev/null; then
+    # Already up-to-date locally. Force-push only if remote is actually behind.
+    if ! git -C "$wt_path" merge-base --is-ancestor "$branch" "origin/${branch}" 2>/dev/null; then
+      if (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch") 2>/dev/null; then
+        did_push=1
+      else
+        rc=1
+      fi
+    fi
+  else
+    if git -C "$wt_path" rebase "$base_ref" >/dev/null 2>&1; then
+      did_rebase=1
+      if (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch") 2>/dev/null; then
+        did_push=1
+      else
+        rc=1
+      fi
+    else
+      git -C "$wt_path" rebase --abort 2>/dev/null || true
+      rc=1
+    fi
+  fi
+
+  if [[ "$rc" -ne 0 ]]; then
+    exec 8>&-
+    return 1
+  fi
+
+  # Idempotent: no actual work happened (branch already on top of base and
+  # remote in sync). Don't log a misleading step_history entry.
+  if [[ "$did_rebase" -eq 0 ]] && [[ "$did_push" -eq 0 ]]; then
+    exec 8>&-
+    return 0
+  fi
+
+  local timestamp current updated note
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  if [[ "$did_rebase" -eq 1 ]]; then
+    note="Auto-refreshed: rebased onto ${base_ref} and force-with-lease pushed to clear BEHIND."
+  else
+    note="Auto-refreshed: force-with-lease pushed local HEAD to remote (already past ${base_ref})."
+  fi
+  current="$(cat "$state_file")"
+  updated="$(printf '%s' "$current" | jq \
+    --arg t "$timestamp" \
+    --arg note "$note" \
+    '.updated_at = $t |
+     .step_history = (.step_history // []) + [{step: .workflow_step, completed_at: $t, auto_refresh: true, note: $note}]')"
+  write_state "$updated" "$wt_path"
+  ok "auto-refreshed PR for ${branch}"
+  exec 8>&-
+  return 0
+}
+
 # Reconcile workflow_step with git/PR/CI signals. Returns nothing; mutates state.
 # Signals handled:
 #   - PR merged -> done
@@ -302,9 +416,10 @@ reconcile_state() {
         fi
         ;;
       OPEN)
-        local review ci_conclusion
+        local review ci_conclusion merge_status
         review="$(gh pr view "$pr_url" --json reviewDecision --jq '.reviewDecision // ""' 2>/dev/null)" || review=""
         ci_conclusion="$(detect_ci_conclusion "$pr_url")"
+        merge_status="$(gh pr view "$pr_url" --json mergeStateStatus --jq '.mergeStateStatus // ""' 2>/dev/null)" || merge_status=""
 
         if [[ "$ci_conclusion" == "failing" ]] && [[ "$workflow_step" == "waiting" || "$workflow_step" == "push" || "$workflow_step" == "review_dev" || "$workflow_step" == "review_security" ]]; then
           new_step="ci_fix"
@@ -312,6 +427,12 @@ reconcile_state() {
         elif [[ "$review" == "CHANGES_REQUESTED" ]] && [[ "$workflow_step" == "waiting" ]]; then
           new_step="revamp"
           reconcile_note="Reviewer requested changes — routed to revamp."
+        elif [[ "$merge_status" == "BEHIND" ]] && [[ "$workflow_step" == "waiting" ]]; then
+          # Auto-heal: rebase + force-with-lease push to clear BEHIND so
+          # GitHub re-evaluates auto-merge. Stay in waiting. On rebase
+          # conflict, leave it alone — surfaces via merge_state_status in
+          # the status payload and the agent handles it.
+          auto_refresh_behind "$wt_path" || true
         fi
         ;;
     esac
@@ -433,6 +554,8 @@ cmd_setup() {
   local wt_path
   wt_path="$(worktree_base)/issue-${issue_number}"
 
+  acquire_setup_lock "$issue_number"
+
   if [[ -d "$wt_path" ]]; then
     json_error "worktree already exists at ${wt_path} -- use 'github-issue status ${issue_number}' to check state"
   fi
@@ -521,6 +644,10 @@ cmd_status() {
     json_error "worktree exists but no state file at ${state_file}"
   fi
 
+  # Multi-agent freshness — refresh refs and PR state before reconciling so
+  # long-running sessions don't see stale base or auto-merge state.
+  fetch_remote
+
   # Migrate to current schema version if needed.
   migrate_state "$wt_path"
 
@@ -557,8 +684,10 @@ cmd_status() {
       --arg url "$pr_url" \
       --arg state "$_detected_pr_state" \
       --arg review "$_detected_review" \
+      --arg merge_status "$_detected_merge_status" \
       --arg number "$pr_number" \
       '{url: $url, state: $state, review_decision: $review,
+        merge_state_status: $merge_status,
         number: (if $number == "" then null else ($number|tonumber) end)}')"
   fi
 
@@ -589,6 +718,7 @@ cmd_push() {
     json_error "no worktree for issue #${issue_number}"
   fi
 
+  acquire_worktree_lock "$wt_path"
   migrate_state "$wt_path"
 
   local branch pr_url issue_title default_br base_ref issue_labels
@@ -608,7 +738,12 @@ cmd_push() {
     info "rebasing ${branch} onto ${base_ref}..."
     if ! git -C "$wt_path" rebase "$base_ref" >&2; then
       git -C "$wt_path" rebase --abort 2>/dev/null || true
-      json_error "rebase onto ${base_ref} produced conflicts -- agent must resolve. Run 'git -C ${wt_path} rebase ${base_ref}' and address conflicts before retrying push."
+      json_error_obj "$(jq -nc --arg branch "$branch" --arg base "$base_ref" --arg wt "$wt_path" \
+        '{message: ("rebase onto " + $base + " produced conflicts — agent must resolve. Run mergiraf solve on unmerged paths, then resume with: cd " + $wt + " && git rebase " + $base),
+          cause: "rebase_conflict",
+          branch: $branch,
+          base_ref: $base,
+          worktree: $wt}')"
     fi
     rebased=1
     ok "rebased onto ${base_ref}"
@@ -664,11 +799,35 @@ cmd_push() {
     # Rebasing rewrites history, so subsequent pushes to an existing PR branch
     # require --force-with-lease. Never --force — avoids clobbering concurrent
     # updates pushed from elsewhere.
+    local push_stderr push_rc=0
+    push_stderr="$(mktemp)"
     if [[ "$rebased" -eq 1 ]]; then
-      (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch")
+      (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch") 2>"$push_stderr" || push_rc=$?
     else
-      (cd "$wt_path" && assert_not_main && git push origin "$branch")
+      (cd "$wt_path" && assert_not_main && git push origin "$branch") 2>"$push_stderr" || push_rc=$?
     fi
+    if [[ "$push_rc" -ne 0 ]]; then
+      local err_text
+      err_text="$(cat "$push_stderr")"
+      rm -f "$push_stderr"
+      # Distinguish lease-rejection (another session pushed) from generic push
+      # failure (network, auth, hook). Both surface structured JSON so the
+      # agent can route without parsing the message.
+      if printf '%s' "$err_text" | grep -qE 'stale info|rejected.*non-fast-forward|fetch first'; then
+        json_error_obj "$(jq -nc --arg branch "$branch" --arg detail "$err_text" \
+          '{message: ("push rejected: --force-with-lease check failed on " + $branch + " — another session pushed to this branch; do not retry, fetch and inspect"),
+            cause: "lease_failed",
+            branch: $branch,
+            stderr: $detail}')"
+      else
+        json_error_obj "$(jq -nc --arg branch "$branch" --arg detail "$err_text" \
+          '{message: ("push failed on " + $branch),
+            cause: "push_failed",
+            branch: $branch,
+            stderr: $detail}')"
+      fi
+    fi
+    rm -f "$push_stderr"
     ok "updates pushed to PR: ${pr_url}"
     action="updated"
   fi
@@ -748,6 +907,25 @@ cmd_audit() {
 
     detect_issue_state "$wt_dir" "$branch" "$pr_url" "$default_br"
 
+    # Auto-heal: a waiting PR that is BEHIND main needs a rebase + force-push
+    # to clear the staleness and let GitHub re-evaluate auto-merge. Best-effort
+    # — failures (rebase conflict) just leave the BEHIND status visible.
+    local refreshed=false
+    if [[ "$workflow_step" == "waiting" ]] && [[ "$_detected_merge_status" == "BEHIND" ]]; then
+      if auto_refresh_behind "$wt_dir"; then
+        refreshed=true
+        # Re-read PR state post-refresh so merge_state_status reflects reality.
+        detect_issue_state "$wt_dir" "$branch" "$pr_url" "$default_br"
+      fi
+    fi
+
+    # Per-PR CI summary — included in merge_order so the skill can identify a
+    # gating PR that is actually ready vs one waiting on CI.
+    local ci_status="unknown"
+    if [[ -n "$pr_url" ]]; then
+      ci_status="$(detect_ci_conclusion "$pr_url")"
+    fi
+
     # Collect touched-file list for overlap pass below.
     local touched_files_json
     touched_files_json="$(branch_touched_files "$wt_dir" "$branch" "$base_ref" |
@@ -763,12 +941,18 @@ cmd_audit() {
       --arg pr_url "$pr_url" \
       --arg worktree "$wt_dir" \
       --arg workflow_step "$workflow_step" \
+      --arg ci_status "$ci_status" \
+      --arg merge_status "$_detected_merge_status" \
+      --argjson refreshed "$refreshed" \
       --argjson blockers "$blockers" \
       --argjson touched "$touched_files_json" \
       '. + [{issue_number: ($num|tonumber), title: $title, state: $state,
               detail: $detail, branch: $branch, base_ref: $base_ref,
               pr_url: (if $pr_url == "" then null else $pr_url end),
               worktree: $worktree, workflow_step: $workflow_step,
+              ci_status: $ci_status,
+              merge_state_status: (if $merge_status == "" then null else $merge_status end),
+              auto_refreshed: $refreshed,
               blockers: $blockers, touched_files: $touched}]')"
   done < <(find "$wt_base" -maxdepth 1 -mindepth 1 -type d -name 'issue-*' -print0 2>/dev/null)
 
@@ -806,7 +990,7 @@ cmd_audit() {
               ]
             })
     | sort_by(-(.blocks | length))
-    | map({issue_number, title, pr_url, workflow_step, blocks})
+    | map({issue_number, title, pr_url, workflow_step, ci_status, merge_state_status, blocks})
   ')"
 
   json_ok "$(jq -n \
@@ -824,6 +1008,8 @@ cmd_cleanup() {
   if [[ ! -d "$wt_path" ]]; then
     json_error "no worktree for issue #${issue_number}"
   fi
+
+  acquire_worktree_lock "$wt_path"
 
   local state_file="${wt_path}/.worktree-state.json"
   if [[ ! -f "$state_file" ]]; then
@@ -919,6 +1105,8 @@ cmd_transition() {
   if [[ ! -d "$wt_path" ]]; then
     json_error "no worktree for issue #${issue_number}"
   fi
+
+  acquire_worktree_lock "$wt_path"
 
   local state_file="${wt_path}/.worktree-state.json"
   if [[ ! -f "$state_file" ]]; then
@@ -1105,6 +1293,8 @@ cmd_auto_merge() {
   if [[ ! -d "$wt_path" ]]; then
     json_error "no worktree for issue #${issue_number}"
   fi
+
+  acquire_worktree_lock "$wt_path"
 
   local pr_url
   pr_url="$(read_state_field pr_url "$wt_path" 2>/dev/null || echo "")"
