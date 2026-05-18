@@ -88,11 +88,14 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
     "review_decision": "CHANGES_REQUESTED",
     "merge_state_status": "CLEAN",
     "number": 55
-  }
+  },
+  "reconciled": true
 }
 ```
 
 The `pr` field is `null` when no PR exists. The `state` field is the legacy detection result — `workflow_step` is authoritative.
+
+`reconciled` is `true` when `status` acquired the worktree lock and ran the full reconcile pass. It's `false` when another `github-issue` process held the lock — the rest of the payload reflects the last persisted state and is still safe to read, but transitions/auto-heals were skipped this call.
 
 `merge_state_status` mirrors GitHub's `mergeStateStatus` (`CLEAN`, `BEHIND`, `BLOCKED`, `DIRTY`, `UNSTABLE`, `HAS_HOOKS`, `UNKNOWN`). `status` fetches before reading this so it's not stale.
 

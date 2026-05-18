@@ -35,7 +35,8 @@ If `valid` is false, call `EnterWorktree` with `path: <worktree-path>` to re-anc
 The skill assumes parallel sessions running on the same machine, each in its own worktree, each on a different issue. The CLI provides the safety rails — the skill mostly just surfaces what comes back.
 
 - **Single-writer locking.** Mutating commands acquire a `flock` before touching state: `push`, `transition`, `cleanup`, and `auto-merge` lock the per-worktree file; `setup` locks a base-directory file keyed on issue number (the worktree doesn't exist yet at that point). Contended invocations return a structured error with `cause: "worktree_locked"` or `cause: "setup_locked"`. Surface it; do not retry — another agent owns this worktree right now.
-- **Fresh refs.** `status` and `audit` run `git fetch origin --prune` before reading PR/CI signals, so long-running sessions don't see stale base or auto-merge state.
+- **Fresh refs.** `status` and `audit` run `git fetch origin --prune` before reading PR/CI signals, so long-running sessions don't see stale base or auto-merge state. `fetch_remote` warns and continues on failure; if you've reason to suspect the network is down (e.g., repeated `gh` failures), treat refs as best-effort.
+- **Read-consistent status.** `status` tries to acquire the worktree lock before reconciling. If another mutating command is active, reconciliation is skipped and the response carries `reconciled: false`; the rest of the payload still reflects the last persisted state. Re-run when convenient.
 - **Stale `waiting` PRs self-heal.** When `status` or `audit` sees a `waiting` PR with `mergeStateStatus == BEHIND` (another PR landed in main while this one was queued), the CLI rebases onto the new base and force-with-lease pushes to clear the staleness so GitHub re-evaluates auto-merge. Audit entries report `auto_refreshed: true` only when a rebase/push actually happened. The auto-refresh is best-effort and can fail for several reasons (rebase conflict, push rejected, lease lost, network/auth). When it fails, `pr.merge_state_status` stays `BEHIND` — run `github-issue push <N>` to surface a structured error (`cause` distinguishes `rebase_conflict` from `lease_failed` / `push_failed`) and route from there.
 - **Structured push errors.** `github-issue push` returns `{error: {cause, branch, ...}}` where `cause` is `rebase_conflict`, `lease_failed`, or `push_failed`. Route on `cause` — do not parse the message. `lease_failed` specifically means another session pushed to this branch; do NOT retry — fetch and escalate.
 - **Merge-order coordination.** When `audit` returns a non-empty `merge_order`, surface gating PRs before the user picks an issue. Each entry carries `ci_status` and `merge_state_status` so the skill can identify which gating PR is actually ready vs. waiting on CI (see Entry Point §1).
@@ -208,6 +209,8 @@ If `push` returns an error object, route on `error.cause`:
 - `rebase_conflict` — agent enters **Merge Conflict Resolution** below.
 - `lease_failed` — another session pushed to this branch. Do NOT retry. Run `git fetch origin <branch>` to see what landed and escalate to the user.
 - `push_failed` — generic network/auth/hook failure. Inspect `error.stderr`.
+- `protected_branch` — state file resolved the branch name to `main`/`master`. Should never happen on a well-formed state file; surface as data corruption.
+- `worktree_locked` / `setup_locked` — another `github-issue` process is mid-operation on this worktree (or this issue's setup). Surface; do not retry.
 
 Report `pr_url` and `ci_status` from response. Then:
 

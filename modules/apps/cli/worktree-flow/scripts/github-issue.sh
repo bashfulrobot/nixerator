@@ -287,7 +287,9 @@ acquire_worktree_lock() {
 }
 
 # Setup uses a base-dir lock keyed on issue number, since the worktree dir
-# doesn't exist yet at the moment we need mutual exclusion.
+# doesn't exist yet at the moment we need mutual exclusion. Uses fd 7 so it
+# can coexist with the worktree lock (fd 9) and the auto-refresh try-lock
+# (fd 8) without a future caller silently releasing one by reusing the fd.
 acquire_setup_lock() {
   local issue_number="$1"
   local wt_base
@@ -295,8 +297,8 @@ acquire_setup_lock() {
   mkdir -p "$wt_base"
   local lock_file="${wt_base}/.setup-issue-${issue_number}.lock"
   : >"$lock_file" 2>/dev/null || die "cannot create setup lock at ${lock_file}"
-  exec 9>"$lock_file"
-  if ! flock -n 9; then
+  exec 7>"$lock_file"
+  if ! flock -n 7; then
     json_error_obj "$(jq -nc --arg issue "$issue_number" \
       '{message: ("another setup for issue #" + $issue + " is already in progress"),
         cause: "setup_locked",
@@ -321,16 +323,28 @@ auto_refresh_behind() {
   base_ref="$(jq -r '.base_ref // empty' "$state_file")"
   [[ -z "$base_ref" ]] && base_ref="origin/$(default_branch)"
 
-  # Try-acquire the worktree lock on a separate fd so we don't fight with an
-  # outer caller that may already hold fd 9 (cmd_push, etc.). If a mutating
-  # command is already running on this worktree, skip — they'll handle their
-  # own rebase + push.
+  # Skip auto-refresh for protected branches — should never happen on a
+  # well-formed state file, but defends against corruption.
+  if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+    return 1
+  fi
+
+  # Lock coordination. Two callers reach us:
+  #   (a) cmd_audit, which holds no lock — we acquire our own try-lock on fd 8.
+  #   (b) reconcile_state called from cmd_status, which already holds fd 6 on
+  #       the same lock file. flock on a second OFD in the same process for
+  #       the same file would block forever, so when _GH_OUTER_LOCK matches
+  #       this worktree we skip the inner acquire and reuse the outer hold.
+  local inner_locked=0
   local lock_file="${wt_path}/.worktree.lock"
-  : >"$lock_file" 2>/dev/null || return 1
-  exec 8>"$lock_file"
-  if ! flock -n 8; then
-    exec 8>&-
-    return 2
+  if [[ "${_GH_OUTER_LOCK:-}" != "$wt_path" ]]; then
+    : >"$lock_file" 2>/dev/null || return 1
+    exec 8>"$lock_file"
+    if ! flock -n 8; then
+      exec 8>&-
+      return 2
+    fi
+    inner_locked=1
   fi
 
   local did_rebase=0 did_push=0 rc=0
@@ -340,7 +354,7 @@ auto_refresh_behind() {
     # the two are not at the same commit. rev-list origin/branch..branch
     # collapses both checks into "are there commits to send?".
     if [[ -n "$(git -C "$wt_path" rev-list "origin/${branch}..${branch}" 2>/dev/null)" ]]; then
-      if (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch") 2>/dev/null; then
+      if (cd "$wt_path" && git push --force-with-lease origin "$branch") 2>/dev/null; then
         did_push=1
       else
         rc=1
@@ -349,7 +363,7 @@ auto_refresh_behind() {
   else
     if git -C "$wt_path" rebase "$base_ref" >/dev/null 2>&1; then
       did_rebase=1
-      if (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch") 2>/dev/null; then
+      if (cd "$wt_path" && git push --force-with-lease origin "$branch") 2>/dev/null; then
         did_push=1
       else
         rc=1
@@ -361,7 +375,7 @@ auto_refresh_behind() {
   fi
 
   if [[ "$rc" -ne 0 ]]; then
-    exec 8>&-
+    [[ "$inner_locked" -eq 1 ]] && exec 8>&-
     return 1
   fi
 
@@ -369,7 +383,7 @@ auto_refresh_behind() {
   # step_history entry; signal "no work" so callers can avoid setting
   # auto_refreshed=true on this worktree.
   if [[ "$did_rebase" -eq 0 ]] && [[ "$did_push" -eq 0 ]]; then
-    exec 8>&-
+    [[ "$inner_locked" -eq 1 ]] && exec 8>&-
     return 2
   fi
 
@@ -388,7 +402,7 @@ auto_refresh_behind() {
      .step_history = (.step_history // []) + [{step: .workflow_step, completed_at: $t, auto_refresh: true, note: $note}]')"
   write_state "$updated" "$wt_path"
   ok "auto-refreshed PR for ${branch}"
-  exec 8>&-
+  [[ "$inner_locked" -eq 1 ]] && exec 8>&-
   return 0
 }
 
@@ -676,8 +690,24 @@ cmd_status() {
   local default_br
   default_br="$(default_branch)"
 
-  # Reconcile state with external signals
-  reconcile_state "$wt_path" "$branch" "$pr_url" "$default_br"
+  # Reconcile state with external signals — but only if no mutating command
+  # is currently active on this worktree. The lock guards a read-modify-write
+  # over the whole state file; without it, a concurrent transition could
+  # drop step_history entries. Try-lock on fd 6 (distinct from setup=7,
+  # auto-refresh=8, mutating=9) so this never blocks status itself.
+  local reconciled=true
+  local lock_file="${wt_path}/.worktree.lock"
+  : >"$lock_file" 2>/dev/null || true
+  exec 6>"$lock_file"
+  if flock -n 6; then
+    _GH_OUTER_LOCK="$wt_path"
+    reconcile_state "$wt_path" "$branch" "$pr_url" "$default_br"
+    _GH_OUTER_LOCK=""
+    exec 6>&-
+  else
+    reconciled=false
+    exec 6>&-
+  fi
 
   # Re-read after reconciliation (may have changed)
   workflow_step="$(jq -r '.workflow_step' "$state_file")"
@@ -716,10 +746,11 @@ cmd_status() {
     --arg title "$issue_title" \
     --arg issue_body "$issue_body" \
     --argjson pr "$pr_obj" \
+    --argjson reconciled "$reconciled" \
     '{issue_number: ($issue_number|tonumber), state: $state, detail: $detail,
       worktree: $worktree, branch: $branch, workflow_step: $workflow_step,
       workflow_detail: $workflow_detail, step_history: $step_history,
-      title: $title, issue_body: $issue_body, pr: $pr}')"
+      title: $title, issue_body: $issue_body, pr: $pr, reconciled: $reconciled}')"
 }
 
 cmd_push() {
@@ -741,6 +772,16 @@ cmd_push() {
   default_br="$(default_branch)"
   base_ref="$(jq -r '.base_ref // empty' "${wt_path}/.worktree-state.json")"
   [[ -z "$base_ref" ]] && base_ref="origin/${default_br}"
+
+  # Up-front protected-branch guard. Done here as a structured error so the
+  # actual push subshells can't have assert_not_main inside them (its die()
+  # would print JSON to subshell stdout, get discarded, and we'd misreport
+  # the failure as push_failed).
+  if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+    local msg="refusing to push protected branch ${branch} — state file looks corrupted"
+    json_error_obj "$(jq -nc --arg branch "$branch" --arg msg "$msg" \
+      '{message: $msg, cause: "protected_branch", branch: $branch}')"
+  fi
 
   # Silent pre-push rebase. Refresh base, check whether we're already ahead of
   # it, and rebase only when needed. A successful rebase makes later pushes
@@ -771,7 +812,7 @@ cmd_push() {
 
   local action=""
   if [[ -z "$pr_url" ]]; then
-    (cd "$wt_path" && safe_push "$branch")
+    (cd "$wt_path" && git push -u origin "$branch")
     ok "branch pushed"
 
     local commit_log pr_body
@@ -815,9 +856,9 @@ cmd_push() {
     local push_stderr push_rc=0
     push_stderr="$(mktemp)"
     if [[ "$rebased" -eq 1 ]]; then
-      (cd "$wt_path" && assert_not_main && git push --force-with-lease origin "$branch") 2>"$push_stderr" || push_rc=$?
+      (cd "$wt_path" && git push --force-with-lease origin "$branch") 2>"$push_stderr" || push_rc=$?
     else
-      (cd "$wt_path" && assert_not_main && git push origin "$branch") 2>"$push_stderr" || push_rc=$?
+      (cd "$wt_path" && git push origin "$branch") 2>"$push_stderr" || push_rc=$?
     fi
     if [[ "$push_rc" -ne 0 ]]; then
       local err_text
@@ -845,24 +886,10 @@ cmd_push() {
     action="updated"
   fi
 
-  # Check CI status if available
-  local ci_status="unknown"
-  local ci_json
-  ci_json="$(gh pr checks "$pr_url" --json name,state,conclusion 2>/dev/null)" || ci_json="[]"
-  if [[ "$ci_json" != "[]" ]]; then
-    local total passing failing pending
-    total="$(printf '%s' "$ci_json" | jq 'length')"
-    passing="$(printf '%s' "$ci_json" | jq '[.[] | select(.conclusion == "SUCCESS" or .conclusion == "NEUTRAL")] | length')"
-    failing="$(printf '%s' "$ci_json" | jq '[.[] | select(.conclusion == "FAILURE" or .conclusion == "ERROR")] | length')"
-    pending="$(printf '%s' "$ci_json" | jq '[.[] | select(.state == "PENDING" or .state == "QUEUED" or .state == "IN_PROGRESS")] | length')"
-    if [[ "$failing" -gt 0 ]]; then
-      ci_status="failing"
-    elif [[ "$pending" -gt 0 ]]; then
-      ci_status="pending"
-    elif [[ "$passing" -eq "$total" ]] && [[ "$total" -gt 0 ]]; then
-      ci_status="passing"
-    fi
-  fi
+  # CI summary uses the shared detector so the vocabulary
+  # (passing/failing/pending/none) matches what audit and reconcile_state emit.
+  local ci_status
+  ci_status="$(detect_ci_conclusion "$pr_url")"
 
   json_ok "$(jq -n \
     --arg issue_number "$issue_number" \
@@ -989,18 +1016,21 @@ cmd_audit() {
     ]
   ')"
 
-  # Merge-ordering: take worktrees whose PR is mergeable (waiting or
-  # review_security with an open PR), annotate each with the set of peer
-  # issues it unblocks, then sort so issues that unblock the most peers
-  # merge first. Non-mergeable worktrees are excluded.
+  # Merge-ordering: only worktrees whose PR is mergeable (waiting or
+  # review_security with an open PR) appear in the list, but each entry's
+  # `blocks` counts EVERY peer that names it as a blocker — including peers
+  # still in implement/plan. That matches the prose "issues that unblock
+  # others merge first": an upstream PR with downstream issues still being
+  # written ranks higher than one with no downstreams. Sort by the size of
+  # that fuller set so the next-to-merge floats to the top.
   local merge_order
   merge_order="$(printf '%s' "$results" | jq '
-    [ .[] | select(.pr_url != null and (.workflow_step == "waiting" or .workflow_step == "review_security")) ]
-    | . as $mergeable
+    . as $all
+    | [ .[] | select(.pr_url != null and (.workflow_step == "waiting" or .workflow_step == "review_security")) ]
     | map(. as $item
           | . + {
               blocks: [
-                $mergeable[]
+                $all[]
                 | select(.blockers | map(.number) | index($item.issue_number))
                 | .issue_number
               ]
