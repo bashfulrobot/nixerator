@@ -25,26 +25,11 @@ default:
 rebuild:
     #!/usr/bin/env bash
     set -uo pipefail
-    # If the caller already gave us a rendered path (e.g. remote-rebuild
-    # scp'd one into /run/user/$UID), use it verbatim and don't shred —
-    # the caller owns its lifecycle. Otherwise render now.
-    if [[ -z "${NIXERATOR_SECRETS:-}" ]]; then
-        if ! rendered=$(just _render-secrets); then
-            echo "error: secrets render failed; aborting rebuild." >&2
-            exit 1
-        fi
-        if [[ -z "$rendered" || ! -s "$rendered" ]]; then
-            echo "error: render produced empty/missing file; aborting rebuild." >&2
-            exit 1
-        fi
-        trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
-        export NIXERATOR_SECRETS="$rendered"
-    fi
     just pre-rebuild interactive
     log="{{rebuild_log}}"
     rc=0
     gum spin --spinner dot --title "Rebuilding NixOS configuration..." \
-        -- bash -c 'sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --flake {{host_flake}} &> "'"$log"'"' || rc=$?
+        -- bash -c 'sudo nixos-rebuild switch --impure --flake {{host_flake}} &> "'"$log"'"' || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         warnings=$(grep -c -E -i 'warning:' "$log" 2>/dev/null || true)
         if [[ "$warnings" -gt 0 ]]; then
@@ -81,19 +66,6 @@ dev-rebuild:
 upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
-    # See `rebuild` for the conditional-render rationale.
-    if [[ -z "${NIXERATOR_SECRETS:-}" ]]; then
-        if ! rendered=$(just _render-secrets); then
-            echo "error: secrets render failed; aborting upgrade." >&2
-            exit 1
-        fi
-        if [[ -z "$rendered" || ! -s "$rendered" ]]; then
-            echo "error: render produced empty/missing file; aborting upgrade." >&2
-            exit 1
-        fi
-        trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
-        export NIXERATOR_SECRETS="$rendered"
-    fi
     just pre-rebuild interactive
     log="{{upgrade_log}}"
     cp flake.lock flake.lock-backup-{{timestamp}}
@@ -107,7 +79,7 @@ upgrade:
     fi
     gum style --foreground 82 "Flake inputs updated"
     gum spin --spinner dot --title "Rebuilding with upgrades..." \
-        -- bash -c 'sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
+        -- bash -c 'sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
     if [[ "$rc" -ne 0 ]]; then
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
         bat --paging=always "$log"
@@ -280,76 +252,6 @@ capture:
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
 
-# Render a secrets JSON into a short-lived tmpfs file (mode 600,
-# /run/user/$UID). Prints the path on stdout for callers to capture, export
-# as NIXERATOR_SECRETS, and trap-cleanup with `shred`.
-#
-# Dual-mode while the 1Password migration is in flight (issue #61):
-#  1. Preferred: render secrets/secrets.json.tpl via `op inject` (auto-
-#     prompts `op signin` if needed). This is the 1Password path.
-#  2. Fallback: copy the git-crypt-decrypted secrets/secrets.json verbatim.
-#     Lets `just rebuild` keep working on hosts that haven't migrated yet.
-#
-# The caller always shreds the returned path, so this recipe never returns
-# a path inside the repo — both modes write to tmpfs.
-[private]
-_render-secrets:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    # The rendered file holds plaintext secrets, so it must land on tmpfs
-    # so `shred -u` is meaningful (CoW/journalled filesystems retain old
-    # blocks). `/run/user/$UID` is tmpfs on every NixOS host with logind;
-    # fail loudly rather than silently downgrade to a persistent path.
-    runtime_dir="/run/user/$(id -u)"
-    if [[ ! -d "$runtime_dir" ]]; then
-        echo "error: $runtime_dir does not exist; logind / XDG_RUNTIME_DIR not set up." >&2
-        echo "       refusing to render secrets to a non-tmpfs path." >&2
-        exit 1
-    fi
-    if ! findmnt -T "$runtime_dir" -no FSTYPE 2>/dev/null | grep -qx tmpfs; then
-        echo "error: $runtime_dir is not on tmpfs; refusing to render secrets." >&2
-        exit 1
-    fi
-
-    rendered=$(mktemp -p "$runtime_dir" nixerator-XXXXXX.json)
-    chmod 600 "$rendered"
-    # Make sure a render-side failure cleans up the half-baked file.
-    trap 'rm -f "$rendered"' ERR
-
-    # Path 1: 1Password (preferred). Requires `op` available, signed in,
-    # and every op:// reference in the template to resolve. Diagnostics
-    # from `op signin` / `op inject` are forwarded to stderr so the user
-    # can see why the 1P path failed (missing item, renamed field, etc.)
-    # before the fallback engages.
-    if command -v op >/dev/null 2>&1 \
-        && [[ -f secrets/secrets.json.tpl ]] \
-        && { op whoami >/dev/null 2>&1 || eval "$(op signin)"; } \
-        && op whoami >/dev/null 2>&1 \
-        && op inject -i secrets/secrets.json.tpl -o "$rendered"; then
-        trap - ERR
-        echo "$rendered"
-        exit 0
-    fi
-
-    # Path 2: git-crypt fallback. `secrets/secrets.json` is either
-    # encrypted (binary, starts with `\0GITCRYPT`) or plaintext JSON.
-    # `jq -e .` parses iff it's well-formed JSON, which both detects
-    # the plaintext-vs-encrypted case AND rejects garbage that
-    # happened to start with `{` (a leading-byte heuristic doesn't).
-    if [[ -f secrets/secrets.json ]] && jq -e . secrets/secrets.json >/dev/null 2>&1; then
-        cp secrets/secrets.json "$rendered"
-        trap - ERR
-        echo "$rendered"
-        exit 0
-    fi
-
-    rm -f "$rendered"
-    trap - ERR
-    echo 'error: no 1Password session and no decrypted secrets/secrets.json available' >&2
-    echo 'fix: run `eval "$(op signin)"` (after populating 1P), or unlock git-crypt.' >&2
-    exit 1
-
 # Pre-rebuild: capture runtime ~/.claude/* edits back into the source tree
 # before activation overwrites them with the previously-captured version.
 # Without this, any change made directly to a managed file (CLAUDE.md,
@@ -447,33 +349,13 @@ quiet-rebuild:
         echo "⚠ Uncommitted plugin changes from a previous sync. Commit or discard before rebuilding."
     fi
 
-    # remote-rebuild scp's a rendered file and sets NIXERATOR_SECRETS over
-    # SSH — re-rendering here would clobber it (and require an op signin
-    # on the remote, which can't TTY-prompt). Honor the inherited value.
-    if [[ -z "${NIXERATOR_SECRETS:-}" ]]; then
-        if ! rendered=$(just _render-secrets); then
-            echo "error: secrets render failed; aborting rebuild." >&2
-            exit 1
-        fi
-        if [[ -z "$rendered" || ! -s "$rendered" ]]; then
-            echo "error: render produced empty/missing file; aborting rebuild." >&2
-            exit 1
-        fi
-        # Install the cleanup trap immediately so a signal/abort between
-        # here and the build can't leak the tmpfs file.
-        trap 'git restore --staged . 2>/dev/null || true; shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
-        export NIXERATOR_SECRETS="$rendered"
-    else
-        # Caller supplied the path; only restore the staging area on exit.
-        trap 'git restore --staged . 2>/dev/null || true' EXIT
-    fi
-
     just pre-rebuild quiet
 
     echo "Rebuilding (quiet mode)..."
     git add -A
+    trap 'git restore --staged .' EXIT
     rc=0
-    sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
+    sudo nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Rebuild succeeded. Full log: {{rebuild_log}}"
 
@@ -496,26 +378,13 @@ quiet-rebuild:
 quiet-upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
-    # See `quiet-rebuild` for the conditional-render rationale.
-    if [[ -z "${NIXERATOR_SECRETS:-}" ]]; then
-        if ! rendered=$(just _render-secrets); then
-            echo "error: secrets render failed; aborting upgrade." >&2
-            exit 1
-        fi
-        if [[ -z "$rendered" || ! -s "$rendered" ]]; then
-            echo "error: render produced empty/missing file; aborting upgrade." >&2
-            exit 1
-        fi
-        trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
-        export NIXERATOR_SECRETS="$rendered"
-    fi
     just pre-rebuild quiet
     echo "Upgrading (quiet mode)..."
     cp flake.lock flake.lock-backup-{{timestamp}}
     rc=0
     {
         nix flake update
-        sudo --preserve-env=NIXERATOR_SECRETS nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
+        sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
         just ref::voxtype-setup
     } &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
@@ -545,33 +414,14 @@ quiet-upgrade:
 remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
-    # Allowlist: the only valid hosts are the three nixerator boxes.
-    # Without this, an attacker-influenced `host` arg starting with `-`
-    # would be parsed as an ssh/scp option (e.g. -oProxyCommand=).
-    case "{{host}}" in
-        qbert|donkeykong|srv) ;;
-        *)
-            echo "error: unrecognized host: {{host}} (allowed: qbert, donkeykong, srv)" >&2
-            exit 2
-            ;;
-    esac
-    host="{{host}}"
-    echo "Rebuilding $host via SSH..."
-    rendered=$(just _render-secrets)
-    # Create the remote tmpfs file via mktemp on the remote side so the
-    # name is unpredictable. A `nixerator-remote-$$.json` naming scheme
-    # would let any same-UID process on the remote pre-create a symlink
-    # at that path and redirect the scp'd plaintext.
-    remote_path=$(ssh -o BatchMode=yes "$host" 'mktemp -p "/run/user/$(id -u)" nixerator-remote-XXXXXX.json')
-    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes "'"$host"'" "rm -f '"$remote_path"'" 2>/dev/null || true' EXIT
-    scp -pq -o BatchMode=yes "$rendered" "$host:$remote_path"
+    echo "Rebuilding {{host}} via SSH..."
     rc=0
-    ssh -A -o BatchMode=yes -o ConnectTimeout=5 "$host" \
-        "cd {{repo_path}} && git pull --ff-only && NIXERATOR_SECRETS=$remote_path just qr" || rc=$?
+    ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
+        "cd {{repo_path}} && git pull --ff-only && just qr" || rc=$?
     if [[ "$rc" -eq 0 ]]; then
-        echo "Remote rebuild on $host succeeded."
+        echo "Remote rebuild on {{host}} succeeded."
     else
-        echo "Remote rebuild on $host FAILED (exit $rc)."
+        echo "Remote rebuild on {{host}} FAILED (exit $rc)."
         exit "$rc"
     fi
 
@@ -581,27 +431,14 @@ remote-rebuild host repo_path="~/git/nixerator":
 remote-upgrade host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
-    # See `remote-rebuild` for the host allowlist rationale.
-    case "{{host}}" in
-        qbert|donkeykong|srv) ;;
-        *)
-            echo "error: unrecognized host: {{host}} (allowed: qbert, donkeykong, srv)" >&2
-            exit 2
-            ;;
-    esac
-    host="{{host}}"
-    echo "Upgrading $host via SSH..."
-    rendered=$(just _render-secrets)
-    remote_path=$(ssh -o BatchMode=yes "$host" 'mktemp -p "/run/user/$(id -u)" nixerator-remote-XXXXXX.json')
-    trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"; ssh -o BatchMode=yes "'"$host"'" "rm -f '"$remote_path"'" 2>/dev/null || true' EXIT
-    scp -pq -o BatchMode=yes "$rendered" "$host:$remote_path"
+    echo "Upgrading {{host}} via SSH..."
     rc=0
-    ssh -A -o BatchMode=yes -o ConnectTimeout=5 "$host" \
-        "cd {{repo_path}} && git pull --ff-only && NIXERATOR_SECRETS=$remote_path just qu" || rc=$?
+    ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
+        "cd {{repo_path}} && git pull --ff-only && just qu" || rc=$?
     if [[ "$rc" -eq 0 ]]; then
-        echo "Remote upgrade on $host succeeded."
+        echo "Remote upgrade on {{host}} succeeded."
     else
-        echo "Remote upgrade on $host FAILED (exit $rc)."
+        echo "Remote upgrade on {{host}} FAILED (exit $rc)."
         exit "$rc"
     fi
 

@@ -33,18 +33,7 @@ mkdir -p /tmp/install && cd /tmp/install
 nix-shell -p git --run "git clone $REPO_SSH_URL"
 cd nixerator
 
-## Step 4: Set up secrets access (pick one path)
-# Either path works -- the justfile's `_render-secrets` recipe tries
-# 1Password first and falls back to git-crypt.
-#
-# Path A (preferred long-term): 1Password
-nix-shell -p _1password-cli --run 'op signin'
-# Follow prompts. After signing in once, op caches the session in this shell.
-# Requires the user's Personal vault to already contain the "Nixerator ..."
-# items. If it doesn't, fall through to path B for this host and migrate
-# later via extras/helpers/import-secrets-to-1password.sh.
-#
-# Path B (fallback, still supported): git-crypt
+## Step 4: Setup git-crypt
 scp "$SOURCE_SSH:~/.ssh/nixerator-git-crypt-key" ~/.ssh/
 chmod 600 ~/.ssh/nixerator-git-crypt-key
 ./extras/helpers/setup-git-crypt.sh
@@ -114,15 +103,11 @@ export REPO_PATH="$HOME/git/nixerator"
 
 # Verify
 ssh-add -l && gpg --list-keys && ssh -T git@github.com
-cd "$REPO_PATH"
-# One of these should work for your secrets path:
-#   git-crypt status     (path B)
-#   op whoami            (path A)
-git status
+cd "$REPO_PATH" && git-crypt status && git status
 
-# Update + rebuild via the justfile -- handles secrets rendering for you
+# Update + rebuild
 nix flake update
-just rebuild     # renders secrets via op OR git-crypt, then sudo nixos-rebuild
+sudo nixos-rebuild switch --flake "$REPO_PATH#$TARGET_HOST"
 
 ## Troubleshooting
 
@@ -131,8 +116,6 @@ just rebuild     # renders secrets via op OR git-crypt, then sudo nixos-rebuild
 # Install fails: check internet, verify flake.lock present, test with nix flake metadata
 # Boot fails: check LUKS password, boot live USB and check /boot/loader/entries/, verify ESP
 # git-crypt fails: verify key (ls -l ~/.ssh/nixerator-git-crypt-key), should be 600
-# op signin fails: check `op account list`, re-run `op signin` and follow prompts
-# render fails (both paths): run `just _render-secrets` directly to see which step failed
 
 ## Important Files
 # hosts/donkeykong/configuration.nix, disko.nix, boot.nix, home.nix

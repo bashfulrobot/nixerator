@@ -138,11 +138,11 @@
     enable = true;
     backup = {
       enable = true;
-      repository = secrets.restic.srv.restic_repository or "";
-      password = secrets.restic.srv.restic_password or "";
-      awsAccessKeyId = secrets.restic.srv.b2_account_id or "";
-      awsSecretAccessKey = secrets.restic.srv.b2_account_key or "";
-      awsRegion = secrets.restic.srv.region or "us-west-000";
+      repository = secrets.restic.srv.restic_repository;
+      password = secrets.restic.srv.restic_password;
+      awsAccessKeyId = secrets.restic.srv.b2_account_id;
+      awsSecretAccessKey = secrets.restic.srv.b2_account_key;
+      awsRegion = secrets.restic.srv.region;
       backupPaths = [ "/srv/nfs" ];
       restorePath = "/srv/nfs/restores";
       schedule = "*-*-* 03:00:00";
