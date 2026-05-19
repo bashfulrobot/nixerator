@@ -202,8 +202,7 @@ The `lib/mkHost.nix` builder wires everything together:
 | **apple-fonts** | Apple font derivations |
 | **nix-flatpak** | Flatpak support |
 | **nixos-hardware** | Hardware quirks |
-| **determinate** | DeterminateSystems Nix |
-| **upsight, wayscriber** | Custom tools |
+| **upsight** | Custom tools |
 
 ---
 

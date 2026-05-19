@@ -30,7 +30,6 @@ in
         signal.enable = true;
         typora.enable = true;
         typora.nautilusIntegration = true;
-        wayscriber.enable = true;
       };
 
       # Web apps for office reference desktop

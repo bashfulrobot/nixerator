@@ -89,11 +89,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    determinate = {
-      url = "https://flakehub.com/f/DeterminateSystems/determinate/*";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     browser-previews = {
       url = "github:nix-community/browser-previews";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -105,11 +100,6 @@
 
     upsight = {
       url = "github:bashfulrobot/upsight/v0.27.1";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    wayscriber = {
-      url = "github:devmobasa/wayscriber";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -155,10 +145,7 @@
           inherit globals versions;
           hostname = "donkeykong";
           system = "x86_64-linux";
-          useDeterminate = true;
           extraModules = [
-            # Determinate Nix distribution
-            inputs.determinate.nixosModules.default
             # Disko declarative disk partitioning
             inputs.disko.nixosModules.disko
             # Hyprland desktop environment
@@ -176,10 +163,7 @@
           inherit globals versions;
           hostname = "qbert";
           system = "x86_64-linux";
-          useDeterminate = true;
           extraModules = [
-            # Determinate Nix distribution
-            inputs.determinate.nixosModules.default
             # Disko declarative disk partitioning
             inputs.disko.nixosModules.disko
             # Hyprland desktop environment

@@ -22,7 +22,6 @@ Use `mcp__gitmcp__fetch_generic_documentation` with owner + repo for:
 - `bashfulrobot/*`
 - `numtide/llm-agents.nix`
 - `gmodena/nix-flatpak`
-- `devmobasa/wayscriber`
 - `Lyndeno/apple-fonts.nix`
 - `Gerg-L/spicetify-nix`
 - `nix-community/nixos-vscode-server`
