@@ -11,7 +11,6 @@
       stateVersion ? globals.defaults.stateVersion,
       extraModules ? [ ],
       homeManagerModules ? [ ],
-      useDeterminate ? false,
     }:
     inputs.nixpkgs.lib.nixosSystem {
       inherit system;
@@ -42,33 +41,25 @@
             inputs.llm-agents.overlays.default
           ];
 
-          # Nix settings - Determinate Nix manages these automatically when enabled
-          nix =
-            if useDeterminate then
-              {
-                # Determinate Nix handles flakes, GC, and optimization automatically
-              }
-            else
-              {
-                # Standard Nix configuration for non-Determinate hosts
-                settings.experimental-features = [
-                  "nix-command"
-                  "flakes"
-                ];
+          nix = {
+            settings.experimental-features = [
+              "nix-command"
+              "flakes"
+            ];
 
-                # Automatic garbage collection
-                gc = {
-                  automatic = true;
-                  dates = "weekly";
-                  options = "--delete-older-than 14d";
-                };
+            # Automatic garbage collection
+            gc = {
+              automatic = true;
+              dates = "weekly";
+              options = "--delete-older-than 14d";
+            };
 
-                # Optimize store automatically
-                optimise = {
-                  automatic = true;
-                  dates = [ "weekly" ];
-                };
-              };
+            # Optimize store automatically
+            optimise = {
+              automatic = true;
+              dates = [ "weekly" ];
+            };
+          };
 
           # Keep system generations manageable
           boot.loader.systemd-boot.configurationLimit = inputs.nixpkgs.lib.mkDefault 5;
@@ -87,9 +78,6 @@
             };
             users.${globals.user.name} = {
               imports = [ ../hosts/${hostname}/home.nix ] ++ homeManagerModules;
-              # Disable Home Manager manual/manpages generation to avoid
-              # Determinate Nix warning about options.json referencing the source store path
-              manual.manpages.enable = false;
             };
             # Use a backup command that creates timestamped backups and keeps only the last 5
             backupCommand = "${

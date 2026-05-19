@@ -15,5 +15,4 @@ These are the primary upstreams referenced in the flake inputs. Use them in spec
 - `affinity-nix` - Affinity suite (Photo/Designer/Publisher) on Linux.
 - `apple-fonts` - Apple font packages (SF Pro, SF Mono, NY).
 - `nixos-vscode-server` - VS Code remote server support.
-- `determinate` - Determinate Systems Nix distribution.
 - `browser-previews` - Browser preview/beta builds.

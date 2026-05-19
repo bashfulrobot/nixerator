@@ -68,7 +68,6 @@ Complete inventory of software managed by this NixOS configuration.
 | Spicetify      | Spotify desktop client with theming                                           | nixpkgs (spicetify-nix input)  |
 | Typora         | Markdown editor with optional Nautilus context menu integration               | nixpkgs                        |
 | VS Code        | Code editor with Stylix theming, Copilot, and Nautilus integration            | nixpkgs                        |
-| Wayscriber     | Real-time screen annotation tool for Wayland with keybindings                 | Flake input                    |
 | Web App Hub    | Progressive web app creator with extraction script                            | Flatpak                        |
 | Zed            | Code editor with extensive LSP support, remote dev, and Claude AI integration | nixpkgs                        |
 
