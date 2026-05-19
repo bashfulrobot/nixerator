@@ -99,7 +99,7 @@ Route on `workflow_step`.
 | `push` | `github-issue push <N>` (rebases silently, creates PR, propagates labels) |
 | `review_dev` | Invoke `/review-dev` via Skill tool, handle findings; on clean auto-chain to `review_security` |
 | `review_security` | Invoke `/review-security` via Skill tool, handle findings. On clean: `github-issue auto-merge <N>`, transition to `waiting` |
-| `waiting` | Re-check status — CLI auto-fetches and auto-heals BEHIND. Only act manually if `pr.merge_state_status == BEHIND` persists across reconciliations (auto-refresh rebase conflicted). |
+| `waiting` | Re-check status — CLI auto-fetches and auto-heals BEHIND. Only act manually if `pr.merge_state_status == BEHIND` persists across reconciliations (auto-refresh failed — run `github-issue push <N>` to surface a structured `error.cause`). |
 | `revamp` | Review feedback received — `github-issue review-feedback <N>`, evaluate, fix |
 | `ci_fix` | Post-push CI failure — diagnose from `check-ci`, fix, re-verify, push |
 | `done` | `github-issue cleanup <N>` |

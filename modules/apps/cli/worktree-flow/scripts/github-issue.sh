@@ -864,12 +864,15 @@ cmd_push() {
       local err_text
       err_text="$(cat "$push_stderr")"
       rm -f "$push_stderr"
-      # Distinguish lease-rejection (another session pushed) from generic push
-      # failure (network, auth, hook). Both surface structured JSON so the
-      # agent can route without parsing the message.
+      # Distinguish remote-advanced (another session pushed) from generic push
+      # failure (network, auth, hook). The regex matches both paths reaching
+      # here: stale-info from --force-with-lease (rebased=1) AND plain
+      # non-fast-forward (rebased=0). Both mean "another session has new
+      # commits on this branch" so they share cause: lease_failed and the
+      # agent does the same thing — fetch and escalate, never retry.
       if printf '%s' "$err_text" | grep -qE 'stale info|rejected.*non-fast-forward|fetch first'; then
         json_error_obj "$(jq -nc --arg branch "$branch" --arg detail "$err_text" \
-          '{message: ("push rejected: --force-with-lease check failed on " + $branch + " — another session pushed to this branch; do not retry, fetch and inspect"),
+          '{message: ("push rejected: remote advanced on " + $branch + " — another session has new commits on this branch; do not retry, fetch and inspect"),
             cause: "lease_failed",
             branch: $branch,
             stderr: $detail}')"
