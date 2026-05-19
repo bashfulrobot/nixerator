@@ -23,11 +23,11 @@
 
   apps.cli.restic.backup = {
     enable = true;
-    repository = secrets.restic.workstation.restic_repository or "";
-    password = secrets.restic.workstation.restic_password or "";
-    awsAccessKeyId = secrets.restic.workstation.b2_account_id or "";
-    awsSecretAccessKey = secrets.restic.workstation.b2_account_key or "";
-    awsRegion = secrets.restic.workstation.region or "us-west-000";
+    repository = secrets.restic.workstation.restic_repository;
+    password = secrets.restic.workstation.restic_password;
+    awsAccessKeyId = secrets.restic.workstation.b2_account_id;
+    awsSecretAccessKey = secrets.restic.workstation.b2_account_key;
+    awsRegion = secrets.restic.workstation.region;
     backupPaths = [
       "/home/dustin/Desktop"
       "/home/dustin/dev"
