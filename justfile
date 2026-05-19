@@ -414,9 +414,17 @@ quiet-upgrade:
 remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
+    case "{{host}}" in
+        qbert|donkeykong|srv) ;;
+        *)
+            echo "Refusing to ssh to unrecognized host: {{host}}"
+            echo "Allowed: qbert, donkeykong, srv"
+            exit 1
+            ;;
+    esac
     echo "Rebuilding {{host}} via SSH..."
     rc=0
-    ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
+    ssh -A -o BatchMode=yes -o ConnectTimeout=5 "{{host}}" \
         "cd {{repo_path}} && git pull --ff-only && just qr" || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Remote rebuild on {{host}} succeeded."
@@ -431,9 +439,17 @@ remote-rebuild host repo_path="~/git/nixerator":
 remote-upgrade host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
+    case "{{host}}" in
+        qbert|donkeykong|srv) ;;
+        *)
+            echo "Refusing to ssh to unrecognized host: {{host}}"
+            echo "Allowed: qbert, donkeykong, srv"
+            exit 1
+            ;;
+    esac
     echo "Upgrading {{host}} via SSH..."
     rc=0
-    ssh -A -o BatchMode=yes -o ConnectTimeout=5 {{host}} \
+    ssh -A -o BatchMode=yes -o ConnectTimeout=5 "{{host}}" \
         "cd {{repo_path}} && git pull --ff-only && just qu" || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Remote upgrade on {{host}} succeeded."
