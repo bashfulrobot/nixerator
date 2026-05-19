@@ -10,6 +10,13 @@ json_error() {
   printf '{"error":%s}\n' "$(printf '%s' "$1" | jq -Rs .)"
   exit 1
 }
+# Structured error variant — emit a pre-built JSON object as the error value
+# so callers can route on cause/branch/stderr fields instead of regexing a
+# stringified message.
+json_error_obj() {
+  printf '{"error":%s}\n' "$1"
+  exit 1
+}
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 RED=$'\033[0;31m'
@@ -147,10 +154,12 @@ default_branch() {
 # Canonical check: has a branch's PR been merged?
 # This is the authoritative trigger for automatic cleanup.
 # Primary: gh pr list --head (finds merged PRs for branch).
-# Fallback: git branch -r --merged (offline check against default branch).
+# Fallback: git branch -r --merged (offline check against the branch's
+# configured base_ref, falling back to default_branch if base_ref is empty).
 # Returns 0 if merged, 1 otherwise. Non-fatal on gh failure.
 is_branch_merged() {
   local branch="$1"
+  local base_ref="${2:-}"
 
   # Primary: check for merged PRs via GitHub API
   local merged_count
@@ -160,10 +169,13 @@ is_branch_merged() {
     return 0
   fi
 
-  # Fallback: check if branch is merged into default branch (works offline)
-  local default_br
-  default_br="$(default_branch)"
-  if git branch -r --merged "origin/${default_br}" 2>/dev/null | grep -qE "origin/${branch//\//\\/}\$"; then
+  # Fallback: check if branch is merged into its actual base ref (works
+  # offline). Callers that know the worktree's base_ref should pass it;
+  # we fall back to origin/<default-branch> only if they don't.
+  if [[ -z "$base_ref" ]]; then
+    base_ref="origin/$(default_branch)"
+  fi
+  if git branch -r --merged "$base_ref" 2>/dev/null | grep -qE "origin/${branch//\//\\/}\$"; then
     return 0
   fi
 
@@ -384,6 +396,8 @@ sweep_merged_worktrees() {
 
     pr_url="$(jq -r '.pr_url // ""' "$state_file")"
     branch="$(jq -r '.branch' "$state_file")"
+    local sweep_base_ref
+    sweep_base_ref="$(jq -r '.base_ref // empty' "$state_file")"
     pr_state=""
 
     # Fast path: check known PR URL
@@ -393,7 +407,7 @@ sweep_merged_worktrees() {
 
     # Fallback: check branch merge status (covers PRs created outside workflow)
     if [[ "$pr_state" != "MERGED" ]]; then
-      if is_branch_merged "$branch"; then
+      if is_branch_merged "$branch" "$sweep_base_ref"; then
         pr_state="MERGED"
       else
         continue
@@ -491,20 +505,24 @@ run_claude() {
 # Args: $1=wt_dir, $2=branch, $3=pr_url, $4=default_branch
 detect_issue_state() {
   local wt_dir="$1" branch="$2" pr_url="$3" default_br="$4"
-  _detected_state="" _detected_detail="" _detected_pr_state="" _detected_review=""
+  _detected_state="" _detected_detail="" _detected_pr_state="" _detected_review="" _detected_merge_status=""
 
   # Check PR state
   if [[ -n "$pr_url" ]]; then
     local pr_json
-    pr_json="$(gh pr view "$pr_url" --json state,reviewDecision 2>/dev/null)" || pr_json=""
+    pr_json="$(gh pr view "$pr_url" --json state,reviewDecision,mergeStateStatus 2>/dev/null)" || pr_json=""
     if [[ -n "$pr_json" ]]; then
       _detected_pr_state="$(printf '%s' "$pr_json" | jq -r '.state')"
       _detected_review="$(printf '%s' "$pr_json" | jq -r '.reviewDecision // ""')"
+      _detected_merge_status="$(printf '%s' "$pr_json" | jq -r '.mergeStateStatus // ""')"
     fi
   fi
 
-  # Fallback: check branch merge status even without PR URL
-  if [[ "$_detected_pr_state" != "MERGED" ]] && is_branch_merged "$branch"; then
+  # Fallback: check branch merge status even without PR URL. Pass through the
+  # worktree's base_ref so the offline path checks against the right ref.
+  local detect_base_ref
+  detect_base_ref="$(jq -r '.base_ref // empty' "${wt_dir}/.worktree-state.json" 2>/dev/null)"
+  if [[ "$_detected_pr_state" != "MERGED" ]] && is_branch_merged "$branch" "$detect_base_ref"; then
     _detected_pr_state="MERGED"
   fi
 
