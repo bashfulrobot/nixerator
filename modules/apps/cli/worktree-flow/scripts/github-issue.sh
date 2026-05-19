@@ -464,10 +464,10 @@ reconcile_state() {
         ;;
     esac
   else
-    if is_branch_merged "$branch"; then
+    if is_branch_merged "$branch" "$base_ref"; then
       if [[ "$workflow_step" != "done" ]]; then
         new_step="done"
-        reconcile_note="Branch merged to ${default_br}."
+        reconcile_note="Branch merged to ${base_ref}."
       fi
     fi
   fi
