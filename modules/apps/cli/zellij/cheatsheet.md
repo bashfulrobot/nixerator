@@ -36,13 +36,17 @@ kill-session / delete-session` value slots.
 
 | Command              | What it does                                         |
 |----------------------|------------------------------------------------------|
-| `zj`                 | open zellij                                          |
+| `zj`                 | list sessions (gate — forces conscious next action)  |
 | `zj s`               | list sessions                                        |
 | `zj a [<name>]`      | attach (fzf if no name)                              |
 | `zj d [<name>...]`   | delete session (fzf if no name; kills active first)  |
 | `zj n <name>`        | new named session (or attach if it exists)           |
 | `zj help`            | usage summary                                        |
 | `zj <anything else>` | passthrough to `zellij` (e.g. `zj run …`, `zj edit`) |
+
+Bare `zj` deliberately doesn't launch zellij — it lists sessions so you
+always see current state and have to consciously pick `zj a` (attach) or
+`zj n <name>` (new), avoiding accidental unnamed auto-generated sessions.
 
 `zj d` uses `zellij delete-session --force` — it always succeeds whether
 the session is active or already exited. If you ever want kill-but-keep-

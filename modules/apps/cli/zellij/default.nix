@@ -54,6 +54,12 @@ let
   # straight through to `zellij`, so muscle-memory commands like
   # `zj run …`, `zj edit foo.md`, `zj action …` keep working.
   #
+  # Bare `zj` deliberately lists sessions instead of running zellij —
+  # a self-imposed gate so the user always sees current state and
+  # consciously chooses `zj a` (attach) or `zj n <name>` (new named
+  # session), avoiding the trap of accidentally spawning unnamed
+  # sessions with auto-generated zellij names.
+  #
   # `d` is intentionally smart: it always means "make this session go
   # away forever" regardless of whether it's currently active or
   # already exited. `zellij delete-session --force` does kill-then-
@@ -62,7 +68,7 @@ let
   zjFishBody = ''
     function __zj_help
         echo "Usage:"
-        echo "  zj                  open zellij"
+        echo "  zj                  list sessions (gate: forces conscious next action)"
         echo "  zj s                list sessions"
         echo "  zj a [<name>]       attach (fzf if no name)"
         echo "  zj d [<name>...]    delete session (fzf if no name; kills active first)"
@@ -72,7 +78,7 @@ let
     end
 
     if test (count $argv) -eq 0
-        zellij
+        zellij list-sessions
         return $status
     end
 
