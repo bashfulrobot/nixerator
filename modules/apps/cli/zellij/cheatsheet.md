@@ -41,8 +41,19 @@ kill-session / delete-session` value slots.
 | `zj a [<name>]`      | attach (fzf if no name)                              |
 | `zj d [<name>...]`   | delete session (fzf if no name; kills active first)  |
 | `zj n <name>`        | new named session (or attach if it exists)           |
+| `zj n <name> -- <cmd...>` | new named session whose first pane runs `<cmd>` |
 | `zj help`            | usage summary                                        |
 | `zj <anything else>` | passthrough to `zellij` (e.g. `zj run …`, `zj edit`) |
+
+Examples for `zj n -- <cmd>`:
+```
+zj n logs   -- tail -F /var/log/syslog
+zj n watch  -- watch -n1 'date && uptime'
+zj n vim    -- vim README.md
+```
+The command runs via `sh -c`, so pipes / `&&` / redirects work. Refuses
+to start if the session name already exists — `zj d <name>` first, or
+`zj a <name>` to attach to the existing one without the `-- <cmd>`.
 
 Bare `zj` deliberately doesn't launch zellij — it lists sessions so you
 always see current state and have to consciously pick `zj a` (attach) or

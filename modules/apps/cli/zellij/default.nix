@@ -68,13 +68,14 @@ let
   zjFishBody = ''
     function __zj_help
         echo "Usage:"
-        echo "  zj                  list sessions (gate: forces conscious next action)"
-        echo "  zj s                list sessions"
-        echo "  zj a [<name>]       attach (fzf if no name)"
-        echo "  zj d [<name>...]    delete session (fzf if no name; kills active first)"
-        echo "  zj n <name>         new named session (or attach if it exists)"
-        echo "  zj help             this message"
-        echo "  zj <anything else>  passthrough to zellij"
+        echo "  zj                          list sessions (gate: forces conscious next action)"
+        echo "  zj s                        list sessions"
+        echo "  zj a [<name>]               attach (fzf if no name)"
+        echo "  zj d [<name>...]            delete session (fzf if no name; kills active first)"
+        echo "  zj n <name>                 new named session (or attach if it exists)"
+        echo "  zj n <name> -- <cmd...>     new named session whose first pane runs <cmd>"
+        echo "  zj help                     this message"
+        echo "  zj <anything else>          passthrough to zellij"
     end
 
     if test (count $argv) -eq 0
@@ -138,13 +139,50 @@ let
                 echo "zj n: requires a session name" >&2
                 return 2
             end
-            if test (count $rest) -gt 1
-                echo "zj n: takes exactly one name (got: $rest)" >&2
+            set -l name $rest[1]
+            set -l have_cmd 0
+            set -l cmd_args
+            if test (count $rest) -ge 2
+                if test "$rest[2]" = '--'
+                    set have_cmd 1
+                    if test (count $rest) -ge 3
+                        set cmd_args $rest[3..-1]
+                    end
+                else
+                    echo "zj n: extra arguments require '--' separator (got: $rest[2..-1])" >&2
+                    return 2
+                end
+            end
+
+            if test $have_cmd -eq 0
+                # attach -c: create if missing, attach if exists. Friendliest
+                # "give me this session" behavior.
+                zellij attach -c $name
+                return $status
+            end
+
+            if test (count $cmd_args) -eq 0
+                echo "zj n: '--' requires a command" >&2
                 return 2
             end
-            # attach -c: create if missing, attach if exists. Friendliest
-            # "give me this session" behavior.
-            zellij attach -c $rest[1]
+
+            # Refuse to clobber an existing session — `--session` would
+            # conflict with an existing name. With `-- <cmd>` the user is
+            # explicitly asking for a fresh session, so attach-if-exists
+            # would silently ignore their command.
+            if zellij list-sessions -s 2>/dev/null | string match -qx -- $name
+                echo "zj n: session '$name' already exists; \`zj a $name\` to attach, or \`zj d $name\` first" >&2
+                return 1
+            end
+
+            # Build a one-pane layout that runs the joined command via
+            # `sh -c`, so the user can supply pipelines / redirects without
+            # the wrapper having to teach KDL each argv element. Quotes
+            # inside the joined string need KDL escaping (just `"`).
+            set -l cmd_str (string join ' ' -- $cmd_args)
+            set -l cmd_escaped (string replace -a '"' '\\"' -- $cmd_str)
+            set -l layout "layout { pane command=\"sh\" { args \"-c\" \"$cmd_escaped\" } }"
+            zellij --session $name --layout-string $layout
 
         case -h --help help
             __zj_help
