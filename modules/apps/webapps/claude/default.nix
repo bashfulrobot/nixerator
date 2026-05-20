@@ -12,8 +12,7 @@ mkWebApp {
   name = "claude";
   displayName = "Claude";
   url = "https://claude.ai/new";
-  wmClass = "chrome-claude.ai__new-claude";
+  wmClass = "chrome-claude.ai__new-Default";
   icon = ./icon.png;
   iconGlyph = "󰚩";
-  extraArgs = "--user-data-dir=${globals.user.homeDirectory}/.config/google-chrome-claude";
 }
