@@ -18,7 +18,7 @@ All three files were written after running every prose section through the `huma
 
 ## Detailed description
 
-An enterprise platform team operating Konnect under a corporate egress policy needs each Konnect API token (PAT, service account token) to be usable only from a defined set of source IP CIDRs. Today a leaked token works from anywhere on the public internet, which is the gap the security team is flagging during their internal token-hygiene review. The customer framed this as "add an IP allowlist to API tokens"; the underlying problem is reducing the blast radius of a token leak by binding the token to the network the issuing tenant actually uses.
+An enterprise platform team operating Konnect under a corporate egress policy needs each Konnect API token (PAT, service account token) to be usable only from a defined set of source IP CIDRs. Today a leaked token works from anywhere on the public internet, which is the gap the security teams in the source material are flagging during their internal token-hygiene review. The requesting users framed this as "add an IP allowlist to API tokens"; the underlying problem is reducing the blast radius of a token leak by binding the token to the network the issuing tenant actually uses.
 
 ## Context and use cases
 
@@ -40,7 +40,7 @@ PROPOSED implementation hint from one source: the allowlist is enforced at the K
 ## Benefits
 
 - Reduces the blast radius of a leaked Konnect API token from "anywhere on the public internet" to "the issuing tenant's egress block".
-- Aligns Konnect's API token model with common zero-trust egress requirements expected by enterprise security reviews.
+- Closes a common gap on enterprise security questionnaires, where source-IP binding on credentials is a routine line item.
 - Removes a class of support ticket where a customer asks Kong to invalidate a token they suspect has leaked.
 
 ## Acceptance criteria
@@ -48,7 +48,7 @@ PROPOSED implementation hint from one source: the allowlist is enforced at the K
 - A Konnect admin can attach an IP CIDR allowlist to a PAT or service-account token at creation time.
 - A Konnect admin can edit the allowlist on an existing token without re-issuing it.
 - A Konnect API request presenting a valid token from a source IP outside the allowlist is rejected with a clear error code and a Konnect audit-log entry recording the rejection.
-- The allowlist is enforced for both data-plane control-plane traffic and the public Konnect API surface.
+- The allowlist is enforced for both data-plane and control-plane traffic and the public Konnect API surface.
 - An empty allowlist is treated as "no restriction" so existing tokens are not silently broken.
 
 ## Business impact
@@ -187,4 +187,4 @@ Globex has filed one prior AHA idea, still open (a Konnect plugin-version pinnin
 - The two proxy votes cross-reference each other in their respective `Open questions` sections.
 - The FR's `Proxy votes:` header line records the *count* (`2 attached`) without listing customer-slug filenames, so the FR body remains free of customer names. The back-link is one-way, each proxy vote links the FR by filename, but the FR does not name any proxy vote.
 - The FR's `Priority:` is `High` because Northwind has a documented renewal-block path with a date; if Northwind had not been in the source material, the same FR with only Globex as a proxy vote would land at `Medium`.
-- Every prose section in all three files was run through the `humanizer` skill before write, followed by an em-dash scrub. None of the files contains the `—` character.
+- Every prose section in all three files passes the `humanizer` skill's AI-vocabulary checks (no `align with`, `stands as`, `serves as`, `underscore`, `highlight`, `delve`, etc.) and the em-dash scrub. None of the three files contains any of `—`, `–`, `‒`, or `―`, and none contains a bare ASCII `--` outside a CLI flag or numeric range.

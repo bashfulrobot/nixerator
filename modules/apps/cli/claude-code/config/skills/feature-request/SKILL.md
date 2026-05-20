@@ -50,11 +50,11 @@ Every prose section of every artifact, plus the customer-facing question list wh
 6. **Cross-link proxy votes in multi-customer runs.** If the source material names more than one customer asking for the same thing, every proxy-vote's `Open questions` section references the other proxy-votes by filename, so the PM can see the cluster.
 7. **Run humanizer + em-dash scrub on every prose section.** For each artifact:
     - Pass each prose section through the `humanizer` skill before writing the file. Replace AI-vocabulary leftovers (`underscore`, `highlight`, `delve`, `align with`, `stands as`, `serves as`, etc.).
-    - Strip em dashes (`—`) from the post-humanizer text, replacing each one with a comma, a period, or parentheses based on the surrounding sentence. Re-scan the final string and reject the write if any `—` remains.
+    - Strip every dash character that a human would read as an em-dash from the post-humanizer text, replacing each one with a comma, a period, or parentheses based on the surrounding sentence. The scrub covers: em dash (`—`, U+2014), en dash (`–`, U+2013), figure dash (`‒`, U+2012), horizontal bar (`―`, U+2015), and any ASCII double-hyphen `--` that is not part of a flag, option, or numeric range (`--no-edit`, `9-12`). Re-scan the final string and reject the write if any of those characters or the bare `--` token remain. Hyphens inside compound words and inside CLI flags are fine.
     - If `humanizer` is not installed, do the em-dash scrub anyway and add a one-line note in the chat output: "humanizer skill not detected; em-dash scrub applied locally, run humanizer manually before filing."
 8. **Decide the gap-fill path.**
     - If the FR has enough substance for a PM to triage (problem, user, suggested solution, benefit, category, priority all present) and every proxy-vote names its customer + at least one dated quote + a filing path, present the draft set and stop.
-    - If critical fields are `UNKNOWN`, list them to the user and ask the direct questions needed to fill them in. Be specific: "What does today's workaround cost the customer, in time or dollars?" beats "any more details on impact?".
+    - If critical fields are `UNKNOWN`, list them to the user and ask the direct questions needed to fill them in. Use the `AskUserQuestion` tool for these direct questions so the user can answer with structured choices rather than open prose; be specific in the question text ("What does today's workaround cost the customer, in time or dollars?" beats "any more details on impact?").
     - If the user does not know, offer to generate a customer-facing question list (see format below) they can paste into Slack or email to the customer. Run that list through `humanizer` *and* the em-dash scrub before presenting.
 9. **Present the artifact set.** Show each filled template inline in the chat. If the user asks to save, write to disk per the naming rules in `## Outputs` below.
 10. **Optional follow-ups.** Offer to log it downstream (e.g., `/log-support-ticket` for an SFDC case linking the FR, `/log-github-issue` for an internal repo, paste-ready text for an internal product channel, or paste-ready AHA body + proxy-vote text). Do not do this without being asked.
@@ -108,8 +108,8 @@ constraint. Do not invent an implementation if neither side suggested one.
 
 How this improves the user experience, eases adoption, raises productivity,
 unblocks a use case, reduces risk, or removes operational toil. Tie to
-generic industry trends if there is a clean line ("aligns with common
-zero-trust egress requirements"). Customer-specific benefits ("removes the
+generic industry patterns if there is a clean line ("closes a common
+gap on enterprise security questionnaires"). Customer-specific benefits ("removes the
 ticket category driving N support cases per month for account X") belong in
 the proxy vote, not here.
 
@@ -288,7 +288,7 @@ Leave `<your name>` as a placeholder for the user to fill in, or substitute thei
 
 A single invocation produces, in chat and optionally on disk, **two artifact classes**:
 
-1. **Customer-independent FR** (always exactly one per invocation): `YYYY-MM-DD-<short-slug>-fr.md`. The PRIMARY artifact. Body contains zero matches for any customer name, zero direct customer quotes, zero customer-specific ARR/ECV figures, zero customer stakeholder names, and zero customer-specific dates.
+1. **Customer-independent FR** (always exactly one per invocation): `YYYY-MM-DD-<short-slug>-fr.md`. The PRIMARY artifact. Body contains zero matches for any customer name, zero direct customer quotes, zero customer-specific ARR/ECV figures, zero customer stakeholder names, and zero customer-specific dates. The `<short-slug>` itself must be drawn from the *idea* and is subject to the same banned-content rules as the FR body: no customer name, no customer-specific framing. A good slug names the capability (`konnect-api-token-ip-allowlist`); a bad slug names the source (`acme-corp-token-fix`).
 2. **Per-customer proxy votes** (one per source customer): `YYYY-MM-DD-<customer-slug>-proxy-vote.md`. Each header links the FR filename. Each body carries customer name, ECV/ARR or qualitative scale, stakeholder list with roles, at least one dated and attributed quote, internal commitments, filing path, and open questions specific to the account.
 
 Plus, optional:
@@ -296,3 +296,13 @@ Plus, optional:
 3. **Customer-facing question list**, humanizer-scrubbed and em-dash-scrubbed, presented in chat only when the user cannot fill the gaps themselves and asks for a list.
 
 All artifacts are written only when the user explicitly asks to save. The default presentation is inline in chat. Worked example covering a multi-tenant FR + two proxy votes lives in [references/example-multi-tenant.md](references/example-multi-tenant.md).
+
+## Coexistence with the upstream plugin skill
+
+This skill ships as a nixerator-scope local override at `~/.claude/skills/feature-request/` and intentionally shares the name `feature-request` with the upstream `kong-cs` plugin skill exposed under the namespaced ID `feature-request:feature-request`. Both are visible in the available-skills list at the same time; the runtime does not silently drop the plugin one.
+
+When a feature-request request fires:
+
+- Prefer this local skill. It is the one that implements the dual-artifact split required for AHA submission. The upstream plugin version still produces a single FR with customer-baked content and is unsuited for upstream filing.
+- If the user (or another invoking skill) explicitly invokes `feature-request:feature-request`, that is the upstream path; do not silently route it here. Surface the mismatch and ask whether the user wants the dual-artifact behaviour from this local skill instead.
+- The local skill takes precedence by name match for the bare `feature-request` slug. If a future kong-cs release ships the dual-artifact behaviour upstream, retire this local copy by deleting `modules/apps/cli/claude-code/config/skills/feature-request/` and bumping the plugin pin in `modules/apps/cli/claude-code/config/plugins/installed_plugins.json`.
