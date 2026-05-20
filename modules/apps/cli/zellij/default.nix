@@ -170,16 +170,14 @@ let
     end
   '';
 
-  # Fish completions for `zj` and dynamic session-name completion for the
-  # native `zellij` subcommands whose value slots zellij's shipped fish
-  # completions leave empty (attach, kill-session, delete-session and their
-  # one-letter aliases a / k / d).
+  # Fish completions for `zj` itself. Lives under
+  # `~/.config/fish/completions/zj.fish` so fish lazy-loads it the first
+  # time the user tabs `zj`.
   zjCompletions = ''
     function __zj_sessions
         zellij list-sessions -s 2>/dev/null
     end
 
-    # zj subcommands
     complete -c zj -f
     complete -c zj -n __fish_use_subcommand -a ls    -d 'list sessions'
     complete -c zj -n __fish_use_subcommand -a kill  -d 'kill active session (fzf if no name)'
@@ -188,13 +186,36 @@ let
     complete -c zj -n __fish_use_subcommand -a nuke  -d 'kill + delete all (confirm)'
     complete -c zj -n __fish_use_subcommand -a help  -d 'show usage'
     complete -c zj -n __fish_use_subcommand -a '(__zj_sessions)' -d session
-    complete -c zj -n '__fish_seen_subcommand_from kill kill-session' -a '(__zj_sessions)'
-    complete -c zj -n '__fish_seen_subcommand_from del delete delete-session' -a '(__zj_sessions)'
+    complete -c zj -n '__fish_seen_subcommand_from kill kill-session' -f -a '(__zj_sessions)'
+    complete -c zj -n '__fish_seen_subcommand_from del delete delete-session' -f -a '(__zj_sessions)'
+  '';
 
-    # Augment shipped zellij completions with dynamic session names.
-    complete -c zellij -n '__fish_seen_subcommand_from attach a'         -a '(__zj_sessions)'
-    complete -c zellij -n '__fish_seen_subcommand_from kill-session k'   -a '(__zj_sessions)'
-    complete -c zellij -n '__fish_seen_subcommand_from delete-session d' -a '(__zj_sessions)'
+  # Dynamic session-name completion for the native `zellij` subcommands
+  # whose value slots zellij's shipped fish completions leave empty
+  # (attach, kill-session, delete-session and their k/a/d aliases).
+  #
+  # MUST live in `conf.d/`, not `completions/zellij.fish`:
+  #   * `completions/zellij.fish` would REPLACE the vendor completion file
+  #     shipped by the zellij package (fish's completion-file lookup picks
+  #     one file by precedence, not multiple), losing every subcommand and
+  #     flag.
+  #   * `conf.d/*.fish` is sourced at fish startup and the `complete -c
+  #     zellij ...` lines it contains just add to the rule set, layering on
+  #     top of whatever the vendor completion file later registers.
+  #
+  # `-f` is required: zellij's shipped completions don't constrain the
+  # value slot, so without `-f` fish falls back to file/folder completion
+  # (the bug this was originally written for). With `-f`, file fallback
+  # is suppressed only when these conditions match; `zellij run -- <path>`
+  # etc. is unaffected.
+  zellijAugmentCompletions = ''
+    function __zj_sessions
+        zellij list-sessions -s 2>/dev/null
+    end
+
+    complete -c zellij -n '__fish_seen_subcommand_from attach a'         -f -a '(__zj_sessions)'
+    complete -c zellij -n '__fish_seen_subcommand_from kill-session k'   -f -a '(__zj_sessions)'
+    complete -c zellij -n '__fish_seen_subcommand_from delete-session d' -f -a '(__zj_sessions)'
   '';
 in
 {
@@ -323,6 +344,7 @@ in
             body = zjFishBody;
           };
           xdg.configFile."fish/completions/zj.fish".text = zjCompletions;
+          xdg.configFile."fish/conf.d/zellij-augment.fish".text = zellijAugmentCompletions;
         };
       })
 
