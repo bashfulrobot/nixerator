@@ -29,6 +29,27 @@ Press `Esc` or `Enter` inside zellij to leave a mode and return to normal.
 
 ## Sessions (from a regular shell, not inside zellij)
 
+Use the `zj` wrapper for everyday session work — it falls back to an fzf
+picker whenever a session name is needed but you didn't pass one, which
+covers the gap where `zellij`'s native completions don't suggest names
+for `kill-session` / `delete-session`. Tab name-completion for `zj`
+(and for raw `zellij attach / kill-session / delete-session`) is wired up
+too.
+
+| Command                | What it does                                       |
+|------------------------|----------------------------------------------------|
+| `zj`                   | fzf-pick an active session and attach              |
+| `zj <name>`            | attach to `<name>`, create if missing              |
+| `zj ls`                | list sessions                                      |
+| `zj kill [<name>...]`  | kill active session (fzf if omitted, Tab=multi)    |
+| `zj del  [<name>...]`  | delete session (fzf if omitted, Tab=multi)         |
+| `zj clean`             | delete-all-sessions (bulk exited cleanup)          |
+| `zj nuke`              | kill all active + delete all, with confirm prompt  |
+| `zj help`              | usage summary                                      |
+| `zj <anything else>`   | passthrough to `zellij` (e.g. `zj run …`)          |
+
+Raw `zellij` reference, in case you want it:
+
 | Command                           | What it does           |
 |-----------------------------------|------------------------|
 | `zellij list-sessions`            | list active sessions   |

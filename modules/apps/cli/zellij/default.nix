@@ -47,6 +47,155 @@ let
       }
     ''}
   '';
+
+  # `zj` — short, ergonomic zellij wrapper. `z` is zoxide, so two letters
+  # it is. Replaces the missing dynamic tab-completion for kill-session /
+  # delete-session with fzf pickers, plus a no-arg attach picker. Anything
+  # not recognized is passed through, so muscle-memory commands like
+  # `zj run …`, `zj setup --dump-layout`, etc. still work.
+  zjFishBody = ''
+    function __zj_help
+        echo "Usage: zj [SUBCOMMAND] [args]"
+        echo ""
+        echo "  zj                    pick an active session (fzf), attach"
+        echo "  zj <name>             attach to <name>, create if missing"
+        echo "  zj ls                 list sessions"
+        echo "  zj kill [<name>...]   kill active session (fzf if omitted, Tab=multi)"
+        echo "  zj del  [<name>...]   delete session (fzf if omitted, Tab=multi)"
+        echo "  zj clean              delete-all-sessions (bulk exited cleanup)"
+        echo "  zj nuke               kill all active + delete all (confirm)"
+        echo "  zj help               this message"
+        echo "  zj <anything else>    passthrough to zellij"
+    end
+
+    set -l sub $argv[1]
+    set -l rest $argv[2..-1]
+
+    switch "$sub"
+        case '''
+            set -l active (zellij list-sessions -s 2>/dev/null | string trim)
+            if test (count $active) -eq 0
+                echo "zj: no active sessions, starting a new one"
+                zellij
+                return $status
+            end
+            set -l picked
+            if type -q fzf
+                set picked (printf '%s\n' $active | fzf --prompt='attach> ' --height=40% --border)
+            else
+                for i in (seq (count $active))
+                    echo "$i) $active[$i]"
+                end
+                read -P 'Pick #: ' -l idx
+                if string match -qr '^[0-9]+$' -- $idx
+                    if test $idx -ge 1 -a $idx -le (count $active)
+                        set picked $active[$idx]
+                    end
+                end
+            end
+            if test -z "$picked"
+                return 130
+            end
+            zellij attach -c $picked
+
+        case ls list list-sessions
+            zellij list-sessions $rest
+
+        case kill kill-session
+            if test (count $rest) -gt 0
+                for s in $rest
+                    zellij kill-session $s
+                end
+                return $status
+            end
+            set -l active (zellij list-sessions -s 2>/dev/null | string trim)
+            if test (count $active) -eq 0
+                echo "zj: no active sessions to kill" >&2
+                return 1
+            end
+            if not type -q fzf
+                echo "zj: install fzf or pass a session name" >&2
+                return 2
+            end
+            set -l picked (printf '%s\n' $active | fzf --multi --prompt='kill> ' --height=40% --border --header='Tab to multi-select')
+            if test -z "$picked"
+                return 130
+            end
+            for s in $picked
+                zellij kill-session $s
+            end
+
+        case del delete delete-session
+            if test (count $rest) -gt 0
+                for s in $rest
+                    zellij delete-session $s
+                end
+                return $status
+            end
+            set -l all (zellij list-sessions -s 2>/dev/null | string trim)
+            if test (count $all) -eq 0
+                echo "zj: no sessions to delete" >&2
+                return 1
+            end
+            if not type -q fzf
+                echo "zj: install fzf or pass a session name" >&2
+                return 2
+            end
+            set -l picked (printf '%s\n' $all | fzf --multi --prompt='delete> ' --height=40% --border --header='Tab to multi-select')
+            if test -z "$picked"
+                return 130
+            end
+            for s in $picked
+                zellij delete-session $s
+            end
+
+        case clean delete-all delete-all-sessions
+            zellij delete-all-sessions --yes
+
+        case nuke
+            read -P 'zj: kill ALL active and delete ALL sessions? [y/N] ' -l ans
+            if not string match -qi 'y*' -- $ans
+                return 130
+            end
+            for s in (zellij list-sessions -s 2>/dev/null | string trim)
+                zellij kill-session $s 2>/dev/null
+            end
+            zellij delete-all-sessions --yes
+
+        case -h --help help
+            __zj_help
+
+        case '*'
+            zellij $argv
+    end
+  '';
+
+  # Fish completions for `zj` and dynamic session-name completion for the
+  # native `zellij` subcommands whose value slots zellij's shipped fish
+  # completions leave empty (attach, kill-session, delete-session and their
+  # one-letter aliases a / k / d).
+  zjCompletions = ''
+    function __zj_sessions
+        zellij list-sessions -s 2>/dev/null
+    end
+
+    # zj subcommands
+    complete -c zj -f
+    complete -c zj -n __fish_use_subcommand -a ls    -d 'list sessions'
+    complete -c zj -n __fish_use_subcommand -a kill  -d 'kill active session (fzf if no name)'
+    complete -c zj -n __fish_use_subcommand -a del   -d 'delete session (fzf if no name)'
+    complete -c zj -n __fish_use_subcommand -a clean -d 'delete-all-sessions'
+    complete -c zj -n __fish_use_subcommand -a nuke  -d 'kill + delete all (confirm)'
+    complete -c zj -n __fish_use_subcommand -a help  -d 'show usage'
+    complete -c zj -n __fish_use_subcommand -a '(__zj_sessions)' -d session
+    complete -c zj -n '__fish_seen_subcommand_from kill kill-session' -a '(__zj_sessions)'
+    complete -c zj -n '__fish_seen_subcommand_from del delete delete-session' -a '(__zj_sessions)'
+
+    # Augment shipped zellij completions with dynamic session names.
+    complete -c zellij -n '__fish_seen_subcommand_from attach a'         -a '(__zj_sessions)'
+    complete -c zellij -n '__fish_seen_subcommand_from kill-session k'   -a '(__zj_sessions)'
+    complete -c zellij -n '__fish_seen_subcommand_from delete-session d' -a '(__zj_sessions)'
+  '';
 in
 {
   options.apps.cli.zellij = {
@@ -162,6 +311,19 @@ in
           builtins.readFile ./cheatsheet.md
           + lib.optionalString (cfg.cheatsheet.extraContent != "") ("\n" + cfg.cheatsheet.extraContent)
         );
+      })
+
+      # `zj` fish wrapper + augmented zellij completions. No user-facing
+      # gate: enabled whenever zellij and fish are both on. If fish is off,
+      # silently skip so the zellij module stays usable in non-fish hosts.
+      (lib.mkIf config.apps.cli.fish.enable {
+        home-manager.users.${globals.user.name} = {
+          programs.fish.functions.zj = {
+            description = "zellij wrapper with fzf-driven session pickers";
+            body = zjFishBody;
+          };
+          xdg.configFile."fish/completions/zj.fish".text = zjCompletions;
+        };
       })
 
       (lib.mkIf cfg.service.enable {
