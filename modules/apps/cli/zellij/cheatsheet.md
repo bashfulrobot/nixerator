@@ -29,24 +29,26 @@ Press `Esc` or `Enter` inside zellij to leave a mode and return to normal.
 
 ## Sessions (from a regular shell, not inside zellij)
 
-Use the `zj` wrapper for everyday session work — it falls back to an fzf
-picker whenever a session name is needed but you didn't pass one, which
-covers the gap where `zellij`'s native completions don't suggest names
-for `kill-session` / `delete-session`. Tab name-completion for `zj`
-(and for raw `zellij attach / kill-session / delete-session`) is wired up
-too.
+Use the `zj` wrapper for everyday session work — four verbs (`s`/`a`/`d`/`n`)
+with fzf where it adds value, transparent passthrough for everything else.
+Tab name-completion is wired up for both `zj` and the raw `zellij attach /
+kill-session / delete-session` value slots.
 
-| Command                | What it does                                       |
-|------------------------|----------------------------------------------------|
-| `zj`                   | fzf-pick an active session and attach              |
-| `zj <name>`            | attach to `<name>`, create if missing              |
-| `zj ls`                | list sessions                                      |
-| `zj kill [<name>...]`  | kill active session (fzf if omitted, Tab=multi)    |
-| `zj del  [<name>...]`  | delete session (fzf if omitted, Tab=multi)         |
-| `zj clean`             | delete-all-sessions (bulk exited cleanup)          |
-| `zj nuke`              | kill all active + delete all, with confirm prompt  |
-| `zj help`              | usage summary                                      |
-| `zj <anything else>`   | passthrough to `zellij` (e.g. `zj run …`)          |
+| Command              | What it does                                         |
+|----------------------|------------------------------------------------------|
+| `zj`                 | open zellij                                          |
+| `zj s`               | list sessions                                        |
+| `zj a [<name>]`      | attach (fzf if no name)                              |
+| `zj d [<name>...]`   | delete session (fzf if no name; kills active first)  |
+| `zj n <name>`        | new named session (or attach if it exists)           |
+| `zj help`            | usage summary                                        |
+| `zj <anything else>` | passthrough to `zellij` (e.g. `zj run …`, `zj edit`) |
+
+`zj d` uses `zellij delete-session --force` — it always succeeds whether
+the session is active or already exited. If you ever want kill-but-keep-
+recoverable, fall through with `zj kill-session <name>` (zellij's
+distinction: `kill-session` leaves an EXITED record you can revive;
+`delete-session` removes the record permanently).
 
 Raw `zellij` reference, in case you want it:
 

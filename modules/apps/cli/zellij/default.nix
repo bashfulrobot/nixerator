@@ -48,87 +48,65 @@ let
     ''}
   '';
 
-  # `zj` — short, ergonomic zellij wrapper. `z` is zoxide, so two letters
-  # it is. Replaces the missing dynamic tab-completion for kill-session /
-  # delete-session with fzf pickers, plus a no-arg attach picker. Anything
-  # not recognized is passed through, so muscle-memory commands like
-  # `zj run …`, `zj setup --dump-layout`, etc. still work.
+  # `zj` — tight, transparent zellij wrapper. `z` is zoxide, so two
+  # letters it is. Four wrapper-aware verbs (s/a/d/n) handle the daily
+  # workflow with fzf where it adds value; anything else is passed
+  # straight through to `zellij`, so muscle-memory commands like
+  # `zj run …`, `zj edit foo.md`, `zj action …` keep working.
+  #
+  # `d` is intentionally smart: it always means "make this session go
+  # away forever" regardless of whether it's currently active or
+  # already exited. `zellij delete-session --force` does kill-then-
+  # delete in one call, so the wrapper doesn't need to introspect
+  # session status.
   zjFishBody = ''
     function __zj_help
-        echo "Usage: zj [SUBCOMMAND] [args]"
-        echo ""
-        echo "  zj                    pick an active session (fzf), attach"
-        echo "  zj <name>             attach to <name>, create if missing"
-        echo "  zj ls                 list sessions"
-        echo "  zj kill [<name>...]   kill active session (fzf if omitted, Tab=multi)"
-        echo "  zj del  [<name>...]   delete session (fzf if omitted, Tab=multi)"
-        echo "  zj clean              delete-all-sessions (bulk exited cleanup)"
-        echo "  zj nuke               kill all active + delete all (confirm)"
-        echo "  zj help               this message"
-        echo "  zj <anything else>    passthrough to zellij"
+        echo "Usage:"
+        echo "  zj                  open zellij"
+        echo "  zj s                list sessions"
+        echo "  zj a [<name>]       attach (fzf if no name)"
+        echo "  zj d [<name>...]    delete session (fzf if no name; kills active first)"
+        echo "  zj n <name>         new named session (or attach if it exists)"
+        echo "  zj help             this message"
+        echo "  zj <anything else>  passthrough to zellij"
+    end
+
+    if test (count $argv) -eq 0
+        zellij
+        return $status
     end
 
     set -l sub $argv[1]
     set -l rest $argv[2..-1]
 
     switch "$sub"
-        case '''
-            set -l active (zellij list-sessions -s 2>/dev/null | string trim)
-            if test (count $active) -eq 0
-                echo "zj: no active sessions, starting a new one"
-                zellij
-                return $status
-            end
-            set -l picked
-            if type -q fzf
-                set picked (printf '%s\n' $active | fzf --prompt='attach> ' --height=40% --border)
-            else
-                for i in (seq (count $active))
-                    echo "$i) $active[$i]"
-                end
-                read -P 'Pick #: ' -l idx
-                if string match -qr '^[0-9]+$' -- $idx
-                    if test $idx -ge 1 -a $idx -le (count $active)
-                        set picked $active[$idx]
-                    end
-                end
-            end
-            if test -z "$picked"
-                return 130
-            end
-            zellij attach -c $picked
-
-        case ls list list-sessions
+        case s ls
             zellij list-sessions $rest
 
-        case kill kill-session
+        case a
             if test (count $rest) -gt 0
-                for s in $rest
-                    zellij kill-session $s
-                end
+                zellij attach $rest
                 return $status
             end
             set -l active (zellij list-sessions -s 2>/dev/null | string trim)
             if test (count $active) -eq 0
-                echo "zj: no active sessions to kill" >&2
+                echo "zj: no sessions to attach to" >&2
                 return 1
             end
             if not type -q fzf
                 echo "zj: install fzf or pass a session name" >&2
                 return 2
             end
-            set -l picked (printf '%s\n' $active | fzf --multi --prompt='kill> ' --height=40% --border --header='Tab to multi-select')
+            set -l picked (printf '%s\n' $active | fzf --prompt='attach> ' --height=40% --border)
             if test -z "$picked"
                 return 130
             end
-            for s in $picked
-                zellij kill-session $s
-            end
+            zellij attach $picked
 
-        case del delete delete-session
+        case d
             if test (count $rest) -gt 0
                 for s in $rest
-                    zellij delete-session $s
+                    zellij delete-session --force $s
                 end
                 return $status
             end
@@ -141,26 +119,26 @@ let
                 echo "zj: install fzf or pass a session name" >&2
                 return 2
             end
-            set -l picked (printf '%s\n' $all | fzf --multi --prompt='delete> ' --height=40% --border --header='Tab to multi-select')
+            set -l picked (printf '%s\n' $all | fzf --multi --prompt='delete> ' --height=40% --border --header='Tab to multi-select; kills active first')
             if test -z "$picked"
                 return 130
             end
             for s in $picked
-                zellij delete-session $s
+                zellij delete-session --force $s
             end
 
-        case clean delete-all delete-all-sessions
-            zellij delete-all-sessions --yes
-
-        case nuke
-            read -P 'zj: kill ALL active and delete ALL sessions? [y/N] ' -l ans
-            if not string match -qi 'y*' -- $ans
-                return 130
+        case n
+            if test (count $rest) -eq 0
+                echo "zj n: requires a session name" >&2
+                return 2
             end
-            for s in (zellij list-sessions -s 2>/dev/null | string trim)
-                zellij kill-session $s 2>/dev/null
+            if test (count $rest) -gt 1
+                echo "zj n: takes exactly one name (got: $rest)" >&2
+                return 2
             end
-            zellij delete-all-sessions --yes
+            # attach -c: create if missing, attach if exists. Friendliest
+            # "give me this session" behavior.
+            zellij attach -c $rest[1]
 
         case -h --help help
             __zj_help
@@ -179,15 +157,13 @@ let
     end
 
     complete -c zj -f
-    complete -c zj -n __fish_use_subcommand -a ls    -d 'list sessions'
-    complete -c zj -n __fish_use_subcommand -a kill  -d 'kill active session (fzf if no name)'
-    complete -c zj -n __fish_use_subcommand -a del   -d 'delete session (fzf if no name)'
-    complete -c zj -n __fish_use_subcommand -a clean -d 'delete-all-sessions'
-    complete -c zj -n __fish_use_subcommand -a nuke  -d 'kill + delete all (confirm)'
-    complete -c zj -n __fish_use_subcommand -a help  -d 'show usage'
-    complete -c zj -n __fish_use_subcommand -a '(__zj_sessions)' -d session
-    complete -c zj -n '__fish_seen_subcommand_from kill kill-session' -f -a '(__zj_sessions)'
-    complete -c zj -n '__fish_seen_subcommand_from del delete delete-session' -f -a '(__zj_sessions)'
+    complete -c zj -n __fish_use_subcommand -a s    -d 'list sessions'
+    complete -c zj -n __fish_use_subcommand -a a    -d 'attach (fzf if no name)'
+    complete -c zj -n __fish_use_subcommand -a d    -d 'delete session (fzf if no name; kills active first)'
+    complete -c zj -n __fish_use_subcommand -a n    -d 'new named session (or attach if it exists)'
+    complete -c zj -n __fish_use_subcommand -a help -d 'show usage'
+    complete -c zj -n '__fish_seen_subcommand_from a' -f -a '(__zj_sessions)'
+    complete -c zj -n '__fish_seen_subcommand_from d' -f -a '(__zj_sessions)'
   '';
 
   # Dynamic session-name completion for the native `zellij` subcommands
