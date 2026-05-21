@@ -1,42 +1,54 @@
 ---
 name: gsuite-edit
-description: Edit Google Sheets cells and create, copy, or replace Google Docs and Slides from the command line using gcloud Application Default Credentials and the Drive / Sheets / Docs / Slides REST APIs. Use this skill whenever the user wants to write data into a Google Sheet (e.g. "fill in column X", "batchUpdate these cells", "write self-assessment scores", "update notes/evidence column"), create a Google Doc programmatically (e.g. "make a Google Doc from this markdown / HTML"), replace the body of an existing Google Doc (e.g. "rewrite the IDP doc", "swap out the deck content"), or work from a Workspace template (e.g. "copy this template", "fill in the template placeholders", "clone the IDP template and pre-populate it", "make a copy of the QBR deck template"). Also triggers when the user mentions Google Sheets API, Docs API, Slides API, Drive API, batchUpdate, files.copy, replaceAllText, gcloud ADC, gspread, or asks how to edit Workspace files from a script. Prefer this skill over reaching for a Python SDK when the user just needs a few cell writes, a single doc replacement, or a template-copy-and-fill flow -- curl + ADC is faster and has no dependencies.
+description: Edit Google Sheets cells and create, copy, or replace Google Docs and Slides from the command line using gcloud Application Default Credentials and the Drive / Sheets / Docs / Slides REST APIs. Use this skill whenever the user wants to write data into a Google Sheet (e.g. "fill in column X", "batchUpdate these cells", "write self-assessment scores", "update notes/evidence column"), create a Google Doc programmatically (e.g. "make a Google Doc from this markdown / HTML"), replace the body of an existing Google Doc (e.g. "rewrite the IDP doc", "swap out the deck content"), build a Google Slides deck from scratch or from a brand template (e.g. "create a deck for these slides", "build a Slides presentation from this content"), or work from a Workspace template (e.g. "copy this template", "fill in the template placeholders", "clone the IDP template and pre-populate it", "make a copy of the QBR deck template"). Also triggers when the user mentions Google Sheets API, Docs API, Slides API, Drive API, batchUpdate, files.copy, replaceAllText, gcloud ADC, gspread, or asks how to edit Workspace files from a script. Prefer this skill over reaching for a Python SDK when the user just needs a few cell writes, a single doc replacement, a Slides deck, or a template-copy-and-fill flow; curl + ADC is faster and has no dependencies.
 ---
 
-# gsuite-edit — edit Google Sheets and Docs from the CLI
+# gsuite-edit: edit Google Sheets, Docs, and Slides from the CLI
 
-This skill captures a battle-tested approach for editing Google Workspace files (Sheets, Docs) programmatically using `gcloud` Application Default Credentials and the Google REST APIs. It is fast, dependency-free (just `curl` + `gcloud`), and works for the common "update some cells" or "replace a doc body" tasks without needing a Python SDK or a service account.
+This skill captures a battle-tested approach for editing Google Workspace files (Sheets, Docs, Slides) programmatically using `gcloud` Application Default Credentials and the Google REST APIs. It is fast, dependency-free (just `curl` + `gcloud`), and works for the common "update some cells", "replace a doc body", or "build a small deck" tasks without needing a Python SDK or a service account.
+
+## Style rules for generated content
+
+Every piece of content this skill instructs an agent to generate (slide titles, body bullets, speaker notes, doc paragraphs, cell values) must follow these rules:
+
+- **No em dashes (U+2014).** Acceptable alternatives, in order of preference: comma, period, parentheses, colon. En dashes (U+2013) are permitted in numeric ranges (e.g. `pp. 12–18`) but `to` is preferred in prose. Hyphens are unrestricted.
+- This rule applies to the skill's own prose as well; new edits to this file must not introduce U+2014.
+
+Run `grep -P "\x{2014}"` against any generated artifact before handing it back; the count must be zero.
 
 ## When this skill applies
 
-Use whenever the user wants to write to a Google Sheet or Doc they own (or that they have edit access to) from the command line. Common signals:
+Use whenever the user wants to write to a Google Sheet, Doc, or Slides deck they own (or that they have edit access to) from the command line. Common signals:
 
 - "Write these scores into the sheet"
 - "Update column X for rows 12-28"
 - "Create a Google Doc with this content"
 - "Replace the body of this Doc"
+- "Build a Slides deck with these talking points"
 - "How do I batchUpdate a Sheet from a shell script?"
 
 **Do not** use this skill if:
 - The user has a service account JSON and is comfortable with Python (just use `gspread` or `google-api-python-client`).
-- The task is admin-level Workspace administration (use `gam` instead — see Alternatives below).
-- The user needs to read large amounts of data — read via the Drive MCP if available; this skill is for writes.
+- The task is admin-level Workspace administration (use `gam` instead, see Alternatives below).
+- The user needs to read large amounts of data (read via the Drive MCP if available; this skill is for writes).
 
 ## One-time setup: gcloud ADC with the right scopes
 
-The default `gcloud auth login` does **not** include the Sheets / Drive scopes. Without them, every API call returns 403 `ACCESS_TOKEN_SCOPE_INSUFFICIENT`. Re-auth Application Default Credentials with the explicit scopes:
+The default `gcloud auth login` does **not** include the Workspace API scopes. Without them, every API call returns 403 `ACCESS_TOKEN_SCOPE_INSUFFICIENT`. Re-auth Application Default Credentials with the explicit scopes:
 
 ```bash
 gcloud auth application-default login \
   --scopes=openid,email,\
 https://www.googleapis.com/auth/cloud-platform,\
 https://www.googleapis.com/auth/spreadsheets,\
-https://www.googleapis.com/auth/drive.file
+https://www.googleapis.com/auth/drive.file,\
+https://www.googleapis.com/auth/presentations
 ```
 
-- `spreadsheets` — read/write any sheet the user has access to
-- `drive.file` — create new Drive files and modify files the user authored via this app
-- `cloud-platform` — needed for the quota-project mechanism (see next section)
+- `spreadsheets`: read/write any sheet the user has access to
+- `drive.file`: create new Drive files and modify files the user authored via this app
+- `presentations`: read/write Slides decks (required for any Slides API call, including `presentations.create`)
+- `cloud-platform`: needed for the quota-project mechanism (see next section)
 
 You can re-run this any time the user adds new scopes later. The `--update-adc` flag on `gcloud auth login` also writes ADC, but using `application-default login` is the cleaner path.
 
@@ -47,7 +59,41 @@ TOKEN=$(gcloud auth application-default print-access-token)
 curl -sS "https://oauth2.googleapis.com/tokeninfo?access_token=$TOKEN" | grep scope
 ```
 
-You should see `spreadsheets` and `drive.file` in the output.
+You should see `spreadsheets`, `drive.file`, and `presentations` in the output. For a structured check that exits non-zero on missing scopes and prints a ready-to-paste re-auth command, use the `gsuite_check_scopes` helper documented in the Quick reference section.
+
+## Preflight: verify ADC scopes before the first API call
+
+Always run a scope preflight before the first API call in a workflow. Calling `presentations.create` (or any other Workspace endpoint) with a token that is missing the required scope returns a 403 that is easy to misdiagnose as a permissions or quota issue.
+
+The tokeninfo endpoint returns the active token's scopes as a single space-separated string:
+
+```bash
+TOKEN=$(gcloud auth application-default print-access-token)
+curl -sS "https://oauth2.googleapis.com/tokeninfo?access_token=$TOKEN"
+```
+
+Sample response (truncated):
+
+```json
+{
+  "azp": "...",
+  "scope": "openid https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/spreadsheets",
+  "expires_in": 3599,
+  "email": "user@example.com"
+}
+```
+
+A reliable scope check splits the `scope` field on whitespace and looks for exact matches (substring matching trips up because `drive.file` is a prefix of `drive.file.something` should it ever appear). The `gsuite_check_scopes` helper in the Quick reference section does this for you and prints a ready-to-paste `gcloud auth application-default login --scopes=...` command if any required scope is missing.
+
+For a Slides workflow:
+
+```bash
+gsuite_check_scopes \
+  https://www.googleapis.com/auth/drive.file \
+  https://www.googleapis.com/auth/presentations
+```
+
+If it exits non-zero, copy the re-auth command it prints, run it, then re-run the preflight. Do not proceed to the API calls until the preflight passes.
 
 ## The quota-project header pattern
 
@@ -68,11 +114,11 @@ curl -sS \
   https://sheets.googleapis.com/v4/spreadsheets/...
 ```
 
-The project doesn't need to be related to the sheet/doc owner — it just needs to be a project the user has access to. Sheets / Docs / Drive APIs must be enabled in that project (they are by default for any GCP project that was created via the console).
+The project doesn't need to be related to the sheet/doc owner; it just needs to be a project the user has access to. Sheets / Docs / Slides / Drive APIs must be enabled in that project (they are by default for any GCP project that was created via the console).
 
 ## Pattern: write cells in a Sheet (values.batchUpdate)
 
-Use `spreadsheets.values:batchUpdate` to write one or more ranges in a single call. This is by far the fastest way to update a Sheet — one API hit can write to many ranges across multiple tabs.
+Use `spreadsheets.values:batchUpdate` to write one or more ranges in a single call. This is by far the fastest way to update a Sheet, because one API hit can write to many ranges across multiple tabs.
 
 The request body is a JSON document. The most common shape is:
 
@@ -165,23 +211,163 @@ curl -sS -X POST \
 Returns `{"id": "...", "name": "...", "webViewLink": "..."}`. Hand the user `webViewLink`.
 
 Notes:
-- `mimeType: application/vnd.google-apps.document` tells Drive to convert the HTML to a Doc on import. Drive supports basic HTML — headings, paragraphs, lists, tables with `border` attributes, bold/italic/code, links.
-- For a Sheet, use `application/vnd.google-apps.spreadsheet` and an HTML table or CSV body. For Slides, use `application/vnd.google-apps.presentation` (but conversion fidelity is lower; consider creating an empty deck and using the Slides API instead).
+- `mimeType: application/vnd.google-apps.document` tells Drive to convert the HTML to a Doc on import. Drive supports basic HTML: headings, paragraphs, lists, tables with `border` attributes, bold/italic/code, links.
+- For a Sheet, use `application/vnd.google-apps.spreadsheet` and an HTML table or CSV body. For Slides, do not use this multipart-import path; the resulting deck is unstyled and fragile. Use the Slides-API pattern documented below instead.
 - `supportsAllDrives=true` lets you target shared drives.
 - The new file goes to the user's My Drive root by default. To put it in a specific folder, add `"parents": ["<folder_id>"]` to the metadata JSON.
+
+## Pattern: create a Google Slides deck from scratch
+
+For customer-facing Slides decks the brand-template path is almost always the right starting point; jump to "Pattern: copy a template and fill it in" if you have a template ID. The from-scratch path documented here produces an unstyled deck using Google's default theme, which is rarely what you want for branded work.
+
+### Theming: prefer copying a brand template
+
+Slides theming is applied by copying a brand template, not by configuring the deck after creation. The Slides API has no programmatic way to install a theme on a presentation; the theme is baked into the template file. The flow is:
+
+1. Pick a brand template file ID (cached via the "Persistent template-ID lookup" pattern earlier in this skill, e.g. `~/.config/gsuite-edit/templates.json`).
+2. `files.copy` the template to create a new branded deck (see "Pattern: copy a template and fill it in" for the request shape).
+3. Populate the resulting deck via the Slides API. Slides supports `replaceAllText` too, so if the template uses `{{placeholders}}` the same Docs-style fill pattern works.
+
+Store the brand template's file ID in the template cache:
+
+```json
+{
+  "kong_brand_slides_2026": "1BlmOgUbYcw7eBgNhyi3N5masysljt7yvOcU9fxmGPtg"
+}
+```
+
+**If no brand template ID is configured for a Slides build, ask the user for one** before emitting an unstyled deck. Silently producing a deck in Google's default theme is almost always wrong for the user's intent. Acceptable answers from the user include: "use this template ID", "save this ID as `<key>` in the cache and use it", or "no theme, default is fine for this one".
+
+The rest of this section covers the from-scratch path, which is the right tool for: scratch prototypes, internal-only decks where theming doesn't matter, or building a deck that will be hand-styled afterward.
+
+### Step 1: Create the empty presentation
+
+```bash
+TOKEN=$(gcloud auth application-default print-access-token)
+QUOTA_PROJECT=$(gcloud config get-value project)
+
+RESP=$(curl -sS -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Goog-User-Project: $QUOTA_PROJECT" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "My Deck"}' \
+  "https://slides.googleapis.com/v1/presentations")
+
+PRES_ID=$(echo "$RESP" | python3 -c "import json,sys; print(json.load(sys.stdin)['presentationId'])")
+```
+
+`presentations.create` returns the full presentation object including a default first slide with the `TITLE` layout. Subsequent slides are added via `batchUpdate` with `createSlide`.
+
+### Step 2: Add a slide with deterministic placeholder IDs
+
+`placeholderIdMappings` on a `createSlide` request lets the caller assign deterministic object IDs to the layout's TITLE and BODY placeholders inside the same `batchUpdate`, which avoids a fetch-then-update round trip. Use it whenever you know which placeholder types you want to populate.
+
+```json
+{
+  "requests": [
+    {
+      "createSlide": {
+        "objectId": "slide_1",
+        "slideLayoutReference": {"predefinedLayout": "TITLE_AND_BODY"},
+        "placeholderIdMappings": [
+          {"layoutPlaceholder": {"type": "TITLE", "index": 0}, "objectId": "slide_1_title"},
+          {"layoutPlaceholder": {"type": "BODY", "index": 0}, "objectId": "slide_1_body"}
+        ]
+      }
+    },
+    {"insertText": {"objectId": "slide_1_title", "text": "Strategic objectives"}},
+    {"insertText": {"objectId": "slide_1_body", "text": "Reduce gateway p99 latency by 25%\nShip Konnect data plane in EU\nAdopt OpenTelemetry across all services"}},
+    {
+      "createParagraphBullets": {
+        "objectId": "slide_1_body",
+        "textRange": {"type": "ALL"},
+        "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE"
+      }
+    }
+  ]
+}
+```
+
+Post it:
+
+```bash
+curl -sS -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Goog-User-Project: $QUOTA_PROJECT" \
+  -H "Content-Type: application/json" \
+  -d @/tmp/slide-1.json \
+  "https://slides.googleapis.com/v1/presentations/${PRES_ID}:batchUpdate"
+```
+
+`createParagraphBullets` with `BULLET_DISC_CIRCLE_SQUARE` converts each newline-separated line in the body shape into a real bulleted list with nested-level styling. Without this request, the body text shows up as plain lines, not bullets.
+
+Layout choice cheat sheet (`predefinedLayout`):
+
+- `TITLE`: cover slide (title plus subtitle placeholder).
+- `TITLE_AND_BODY`: standard content slide (title plus body).
+- `SECTION_HEADER`: full-bleed section divider (large centred title).
+- `BLANK`: empty slide, useful when you intend to position shapes by hand later.
+
+The `index` field inside `layoutPlaceholder` is zero-based. `TITLE_AND_BODY` has one TITLE placeholder (index 0) and one BODY placeholder (index 0); `TITLE` has one TITLE placeholder and one SUBTITLE placeholder, each at index 0. For the full enum see the Slides API reference for `PredefinedLayout`.
+
+### Step 3: Speaker notes (second round-trip required)
+
+The notes page for a slide is created after the slide itself is added, and its object ID is not addressable via `placeholderIdMappings`. To populate speaker notes:
+
+1. `GET /v1/presentations/${PRES_ID}` to fetch the current presentation tree.
+2. For each slide, walk to `slideProperties.notesPage.notesProperties.speakerNotesObjectId`.
+3. Send a second `batchUpdate` with `insertText` requests targeting those object IDs.
+
+```bash
+NOTES_OBJ=$(curl -sS \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Goog-User-Project: $QUOTA_PROJECT" \
+  "https://slides.googleapis.com/v1/presentations/${PRES_ID}" \
+  | python3 -c '
+import json, sys
+pres = json.load(sys.stdin)
+for s in pres["slides"]:
+    if s["objectId"] == "slide_1":
+        print(s["slideProperties"]["notesPage"]["notesProperties"]["speakerNotesObjectId"])
+        break
+')
+
+curl -sS -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Goog-User-Project: $QUOTA_PROJECT" \
+  -H "Content-Type: application/json" \
+  -d "{\"requests\":[{\"insertText\":{\"objectId\":\"${NOTES_OBJ}\",\"text\":\"Open with the latency win, then pivot to Konnect EU.\"}}]}" \
+  "https://slides.googleapis.com/v1/presentations/${PRES_ID}:batchUpdate"
+```
+
+If the workflow adds many slides, batch the `speakerNotesObjectId` discovery into a single `presentations.get`, then build one `batchUpdate` with one `insertText` per slide.
+
+### Step 4: Hand back the URL
+
+A presentation created via the Slides API is **not visible to the `drive.file` scope**. Calling `https://www.googleapis.com/drive/v3/files/${PRES_ID}` from a `drive.file`-scoped token returns 404, because `drive.file` only sees files the app created via Drive itself. The Slides API created the presentation directly, not through Drive.
+
+Two consequences:
+
+1. Use the deterministic Slides URL pattern to hand the deck back to the user. No Drive call required:
+
+   ```
+   https://docs.google.com/presentation/d/${PRES_ID}/edit
+   ```
+
+2. Widen to the full `https://www.googleapis.com/auth/drive` scope only when the workflow actually needs Drive metadata: parent folder, `modifiedTime`, sharing settings, or `files.update` to move or rename the deck. If the deck stays in the user's My Drive root and just needs to be opened, the `drive.file` scope is sufficient and no Drive call is needed.
 
 ## Background: what "New from template" actually is
 
 When a Workspace user opens Docs/Sheets/Slides and clicks **File → New → From a template gallery**, they see two sections:
 
-1. **General templates** — Google-provided defaults (Resume, Project Tracker, Meeting Notes, etc.). These are real Drive files owned by Google with stable, publicly-known file IDs.
-2. **Your org's templates** — admin-published templates specific to the Workspace tenant. The admin configures these in Admin Console → Apps → Google Workspace → Drive and Docs → Templates. Behind the scenes, this points at a Drive folder. Anything in that folder shows up in the gallery.
+1. **General templates**: Google-provided defaults (Resume, Project Tracker, Meeting Notes, etc.). These are real Drive files owned by Google with stable, publicly-known file IDs.
+2. **Your org's templates**: admin-published templates specific to the Workspace tenant. The admin configures these in Admin Console → Apps → Google Workspace → Drive and Docs → Templates. Behind the scenes, this points at a Drive folder. Anything in that folder shows up in the gallery.
 
 **There is no dedicated `templateGallery` REST endpoint.** The Drive UI is rendering a normal Drive folder. Programmatic access is just `files.list` against the right folder, plus `files.copy` to clone an entry.
 
 ### What this means for the skill
 
-- If the user knows the file ID of a template (because they opened it once or got a link), `files.copy` works immediately — no special handling needed.
+- If the user knows the file ID of a template (because they opened it once or got a link), `files.copy` works immediately, with no special handling needed.
 - If the user wants to discover what templates exist, you need the **template gallery folder ID** for their org. Ask the user. If they don't know, they can ask their Workspace admin, or pull it from any template's `parents` field after copying one from the UI once.
 - For Google-provided general templates, the easiest path is to copy one through the UI once, then capture the resulting copy's `parents`/`originalFilename`/template metadata to identify the source.
 
@@ -221,9 +407,12 @@ If a workflow uses the same template repeatedly (e.g. a weekly QBR deck), don't 
 {
   "kong_cs_idp": "1t9zgHv115SywQKA8RZnbMzt4E1ZmM6HsKGxcBwgZIGU",
   "kong_cs_success_plan_draft": "1UJIy8oyj9r_500n8OzKmiCiYKgwCIpaTLhYmBd6dxXw",
-  "kong_dark_slide_theme_2026": "1BlmOgUbYcw7eBgNhyi3N5masysljt7yvOcU9fxmGPtg"
+  "kong_dark_slide_theme_2026": "1BlmOgUbYcw7eBgNhyi3N5masysljt7yvOcU9fxmGPtg",
+  "kong_brand_slides_2026": "1BlmOgUbYcw7eBgNhyi3N5masysljt7yvOcU9fxmGPtg"
 }
 ```
+
+Slides theming entries live in the same JSON. The "Pattern: create a Google Slides deck from scratch" section above tells the agent to look up a brand template ID here and ask the user if none is configured.
 
 ## Pattern: copy a template and fill it in
 
@@ -261,7 +450,7 @@ Workspace template galleries (the "From a template" picker in Docs/Sheets/Slides
 
 ### Step 2: Fill in placeholders (Docs API `replaceAllText`)
 
-If the template uses `{{placeholder}}` syntax (or any other marker — `<<name>>`, `[CSM_NAME]`, etc.), use `documents.batchUpdate` with `replaceAllText` requests:
+If the template uses `{{placeholder}}` syntax (or any other marker, e.g. `<<name>>`, `[CSM_NAME]`), use `documents.batchUpdate` with `replaceAllText` requests:
 
 ```bash
 NEW_DOC_ID="<id returned from copy>"
@@ -291,11 +480,11 @@ curl -sS -X POST \
 
 The Docs API supports many request types in the same batchUpdate call. The ones worth knowing for templates:
 
-- `replaceAllText` — substitute marker strings (most common for templates).
-- `insertText` — insert text at a specific 1-indexed character offset. Use only when you already know the offset; getting it usually requires reading the doc structure first via `documents.get`.
-- `insertTableRow` / `insertTableColumn` — add rows/columns to existing tables. Useful when the template has a fixed-row table you need to extend (e.g. an Action Plan table with 5 rows but you have 7 items).
-- `deleteContentRange` — remove a range. Useful for stripping placeholder boilerplate.
-- `updateTextStyle` / `updateParagraphStyle` — change formatting on a range. Rare for templates since the template already has the styles you want.
+- `replaceAllText`: substitute marker strings (most common for templates).
+- `insertText`: insert text at a specific 1-indexed character offset. Use only when you already know the offset; getting it usually requires reading the doc structure first via `documents.get`.
+- `insertTableRow` / `insertTableColumn`: add rows/columns to existing tables. Useful when the template has a fixed-row table you need to extend (e.g. an Action Plan table with 5 rows but you have 7 items).
+- `deleteContentRange`: remove a range. Useful for stripping placeholder boilerplate.
+- `updateTextStyle` / `updateParagraphStyle`: change formatting on a range. Rare for templates since the template already has the styles you want.
 
 For Slides templates (PPTX-style), the Slides API has the same `replaceAllText` plus `replaceAllShapesWithImage` (swap a placeholder image with a real one) and `replaceAllShapesWithSheetsChart` (embed a live Sheet chart). Endpoint is `https://slides.googleapis.com/v1/presentations/${PRES_ID}:batchUpdate`.
 
@@ -303,12 +492,12 @@ For Sheets templates, just copy the file and then use the `values:batchUpdate` p
 
 ### When `replaceAllText` is not enough
 
-If the template uses **empty table cells** instead of `{{placeholders}}` (which is common for Workspace IDP / form templates), `replaceAllText` won't help — there's no marker to find. Two options:
+If the template uses **empty table cells** instead of `{{placeholders}}` (which is common for Workspace IDP / form templates), `replaceAllText` won't help, because there's no marker to find. Two options:
 
 1. **Read the structure first.** Call `documents.get` to retrieve the doc as a JSON tree, find the table cell offsets you need, then use `insertText` with the right `index` value. This is fiddly but works.
 2. **Accept that the user fills it in by hand.** Copy the template, hand them the URL, and let them paste in the prepared content. This is often the better trade-off for one-off filings like an annual self-assessment.
 
-The decision is: how often will this template be filled? Once a year → manual paste. Every week with consistent placeholder names → invest in `replaceAllText` (or get the template author to add `{{placeholders}}`).
+The decision is: how often will this template be filled? Once a year, manual paste. Every week with consistent placeholder names, invest in `replaceAllText` (or get the template author to add `{{placeholders}}`).
 
 ### End-to-end example: clone IDP template, fill placeholders, hand back URL
 
@@ -322,7 +511,7 @@ NEW=$(curl -sS -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Goog-User-Project: $QUOTA_PROJECT" \
   -H "Content-Type: application/json" \
-  -d '{"name": "FY27 IDP — Dustin Krysak"}' \
+  -d '{"name": "FY27 IDP, Dustin Krysak"}' \
   "https://www.googleapis.com/drive/v3/files/${TEMPLATE_ID}/copy?fields=id,webViewLink")
 
 NEW_ID=$(echo "$NEW" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
@@ -342,7 +531,7 @@ echo "New doc: $NEW_URL"
 
 ## Pattern: replace the body of an existing Google Doc
 
-The cleanest way to swap out a Doc's entire body is a Drive media PATCH with new HTML. Drive re-imports the HTML and replaces the content. The Doc's `id`, `webViewLink`, sharing settings, and comments all persist — only the body changes.
+The cleanest way to swap out a Doc's entire body is a Drive media PATCH with new HTML. Drive re-imports the HTML and replaces the content. The Doc's `id`, `webViewLink`, sharing settings, and comments all persist; only the body changes.
 
 ```bash
 DOC_ID="abc123..."
@@ -364,17 +553,18 @@ When `docs.documents:batchUpdate` (Docs API) is better:
 - You're applying small text-substitution edits across a doc.
 - You need to modify a doc with comments or suggestions you must preserve.
 
-The Docs API batchUpdate is much more involved — it uses 1-indexed character offsets and a request-list pattern. Reach for it only when surgical edits matter. For "rewrite the whole thing," the media PATCH above is faster and cleaner.
+The Docs API batchUpdate is much more involved; it uses 1-indexed character offsets and a request-list pattern. Reach for it only when surgical edits matter. For "rewrite the whole thing," the media PATCH above is faster and cleaner.
 
 ## Common errors and fixes
 
 | Error | Cause | Fix |
 |---|---|---|
-| `ACCESS_TOKEN_SCOPE_INSUFFICIENT` | gcloud token lacks sheets/drive scope | Re-run `gcloud auth application-default login --scopes=...` (see Setup) |
+| `ACCESS_TOKEN_SCOPE_INSUFFICIENT` | gcloud token lacks sheets / drive / presentations scope | Run the Preflight section's `gsuite_check_scopes`, then re-auth with `gcloud auth application-default login --scopes=...` (see Setup) |
 | `Method doesn't allow unregistered callers` / `quota project not set` | Missing `X-Goog-User-Project` header on a user-credential call | Add `-H "X-Goog-User-Project: $(gcloud config get-value project)"` |
 | `Requested entity was not found` on a Drive file | File ID typo or you don't have access | Verify the file is shared with the gcloud-authed user; for shared drives add `supportsAllDrives=true` |
+| `Requested entity was not found` (404) on a Slides presentation accessed via Drive (e.g. `drive/v3/files/${PRES_ID}` returns 404 immediately after `presentations.create` succeeds) | The deck was created via the Slides API and is invisible to the `drive.file` scope (`drive.file` only sees files the app created via Drive itself) | Hand the user the deterministic URL `https://docs.google.com/presentation/d/${PRES_ID}/edit` instead of calling Drive; widen to full `drive` scope only when you actually need Drive metadata (`modifiedTime`, `parents`, sharing) |
 | `Insufficient Permission` on `files.update` | `drive.file` scope only allows editing files the app created OR explicitly opened. Pre-existing Docs not authored via your token may need a broader scope | Re-auth with `https://www.googleapis.com/auth/drive` (full Drive access) if you need to edit arbitrary docs |
-| HTML upload landed but tables look broken | Drive's HTML→Doc converter is finicky | Add explicit `border="1"` to `<table>` tags; avoid nested tables; avoid CSS — use inline `style` attributes sparingly |
+| HTML upload landed but tables look broken | Drive's HTML to Doc converter is finicky | Add explicit `border="1"` to `<table>` tags; avoid nested tables; avoid CSS, and use inline `style` attributes sparingly |
 | Sheet write succeeded but cells show `#####` | Numbers got written as text | Set `valueInputOption: "USER_ENTERED"` to make Sheets parse them, or write JSON numbers (not strings) in the `values` array |
 
 ## Alternatives (when not to use this skill)
@@ -386,11 +576,11 @@ The Docs API batchUpdate is much more involved — it uses 1-indexed character o
 | **`google-api-python-client`** | Full coverage of every Google API, programmatic flexibility | When you need APIs this skill doesn't cover (Calendar, Gmail, BigQuery, etc.) |
 | **Drive MCP (`mcp__claude_ai_Google_Drive__*`)** | Reading file metadata, file content, listing recent files | When you only need to read, not write. The MCP doesn't have edit tools. |
 | **Google Apps Script** | Logic that runs inside Google's environment with no auth overhead | When the task is event-driven (form submission, on-edit) or runs on a schedule via Workspace |
-| **`clasp`** | Managing Google Apps Script projects from CLI | Companion to Apps Script — push/pull script files |
+| **`clasp`** | Managing Google Apps Script projects from CLI | Companion to Apps Script for push/pull of script files |
 
-For 90% of "I just need to write some cells / create a doc / replace a doc body" tasks from a shell, the curl + ADC pattern in this skill is the simplest path.
+For 90% of "I just need to write some cells / create a doc / replace a doc body / build a small Slides deck" tasks from a shell, the curl + ADC pattern in this skill is the simplest path.
 
-## Quick reference — minimal working script
+## Quick reference: minimal working script
 
 A drop-in shell function for the common operations:
 
@@ -410,9 +600,45 @@ gsuite_curl() {
     "$@"
 }
 
+# gsuite_check_scopes <scope> [<scope>...]
+#   Exits 0 if every required scope is granted on the current ADC token.
+#   Exits 1 and prints a ready-to-paste re-auth command if any scope is missing.
+#   Exits 2 on usage error.
+gsuite_check_scopes() {
+  if [[ $# -eq 0 ]]; then
+    echo "usage: gsuite_check_scopes <scope> [<scope>...]" >&2
+    return 2
+  fi
+
+  local granted
+  granted=$(curl -sS "https://oauth2.googleapis.com/tokeninfo?access_token=$(gsuite_token)" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin).get("scope",""))')
+
+  local missing=()
+  local scope
+  for scope in "$@"; do
+    case " $granted " in
+      *" $scope "*) ;;
+      *) missing+=("$scope") ;;
+    esac
+  done
+
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "missing scopes:" >&2
+    printf '  %s\n' "${missing[@]}" >&2
+    echo "" >&2
+    local joined
+    joined=$(IFS=,; printf '%s' "$*")
+    echo "re-auth with:" >&2
+    echo "  gcloud auth application-default login --scopes=openid,email,https://www.googleapis.com/auth/cloud-platform,$joined" >&2
+    return 1
+  fi
+}
+
 # usage:
 # gsuite_curl "https://sheets.googleapis.com/v4/spreadsheets/$SHEET_ID?fields=sheets.properties"
 # gsuite_curl -X POST -H "Content-Type: application/json" -d @body.json "https://sheets.googleapis.com/v4/spreadsheets/$SHEET_ID/values:batchUpdate"
+# gsuite_check_scopes https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.file
 ```
 
 Drop into `~/.bashrc` or a project script and the API calls become one-liners.
