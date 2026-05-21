@@ -258,21 +258,17 @@ capture:
         # justfile_directory() rather than $(pwd) so the recipe is safe
         # to invoke from any working directory.
         config_dir="{{justfile_directory()}}/modules/apps/cli/claude-code/config"
-        python3 "{{justfile_directory()}}/modules/apps/cli/claude-code/cfg/scripts/capture-sync.py" \
+        sync_output=$(python3 "{{justfile_directory()}}/modules/apps/cli/claude-code/cfg/scripts/capture-sync.py" \
             --state-file "$config_dir/.capture-state.json" \
             --home-root "$HOME/.claude" \
             --repo-root "$config_dir" \
             --section all \
-            --dry-run | python3 -c "
-import json, sys
-d = json.load(sys.stdin)
-from collections import Counter
-counts = Counter(a['action'] for a in d['actions'])
-for action, n in counts.most_common():
-    print(f'  {action:12s}: {n}')
-if d['conflicts']:
-    print(f'  conflicts:    {len(d[\"conflicts\"])}')
-"
+            --dry-run)
+        echo "$sync_output" | jq -r '.actions[].action' | sort | uniq -c | awk '{printf "  %-12s: %s\n", $2, $1}'
+        conflicts=$(echo "$sync_output" | jq -r '.conflicts | length')
+        if [[ "$conflicts" -gt 0 ]]; then
+            echo "  conflicts   : $conflicts"
+        fi
         exit 0
     fi
     echo "Capturing Claude Code config..."
