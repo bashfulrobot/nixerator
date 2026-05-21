@@ -248,6 +248,16 @@ capture:
     echo ""
     echo "Review with: git status && git diff modules/apps/cli/claude-code modules/apps/cli/agentos"
 
+# Resolve a capture-sync conflict by picking which side wins.
+# Usage: just capture-resolve skills/gsuite-edit/SKILL.md --home
+#        just capture-resolve agents/foo.md --repo
+# Updates the snapshot in .capture-state.json so the next `just qr` is a
+# no-op for this file. Stage the resulting change in git as usual.
+capture-resolve relpath side:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    fish -c "capture-resolve {{relpath}} {{side}}"
+
 # === Shared Helpers ===
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"

@@ -37,13 +37,29 @@
       '';
     };
 
-    # Capture runtime Claude config back to the Nix source tree
+    # Capture runtime Claude config back to the Nix source tree.
+    #
+    # Most surfaces (skills, agents, output-styles, top-level CLAUDE.md)
+    # flow through capture-sync.py, which keeps a sha256 snapshot of
+    # every tracked file at $config_dir/.capture-state.json and refuses
+    # to blindly overwrite either side. Without that snapshot (the old
+    # behaviour), a clean local main checkout that just merged a skill
+    # PR would have its repo content clobbered by the still-stale
+    # ~/.claude copy on the next `just qr`. The 3-way diff catches that
+    # case as "repo was updated, mirror to home" instead.
+    #
+    # settings.json and the plugin JSONs still flow through the legacy
+    # placeholder-substitution path here because the captured content
+    # diverges from the home content by design (statusline store path,
+    # @HOME_DIR@).
     claude-capture = {
       description = "Capture ~/.claude config changes back to Nix source tree";
       body = ''
         set -l config_dir "${globals.paths.nixerator}/modules/apps/cli/claude-code/config"
         set -l claude_dir "$HOME/.claude"
         set -l statusline_pattern "${statusLineScript}/bin/claude-statusline"
+        set -l state_file "$config_dir/.capture-state.json"
+        set -l sync_script "${globals.paths.nixerator}/modules/apps/cli/claude-code/cfg/scripts/capture-sync.py"
 
         if not test -d "$config_dir"
           echo "Error: config directory not found at $config_dir"
@@ -53,182 +69,177 @@
         echo "Capturing Claude Code config to Nix source tree..."
         echo ""
 
-        # settings.json -- replace statusline store path back to placeholder
+        # settings.json -- replace statusline store path back to placeholder.
         if test -f "$claude_dir/settings.json"
           sed "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" "$claude_dir/settings.json" \
             | jq . > "$config_dir/settings.json"
           echo "  settings.json"
         end
 
-        # CLAUDE.md
-        if test -f "$claude_dir/CLAUDE.md"
-          cp "$claude_dir/CLAUDE.md" "$config_dir/CLAUDE.md"
-          echo "  CLAUDE.md"
+        # 3-way sync of skills, agents, output-styles, and top-level CLAUDE.md.
+        # capture-sync.py reads / writes $state_file (committed JSON) and
+        # respects the same .capture-ignore files the old loop did.
+        set -l sync_args \
+          --state-file "$state_file" \
+          --home-root "$claude_dir" \
+          --repo-root "$config_dir" \
+          --section all
+
+        # On first run with no snapshot file, allow capture-sync to take a
+        # baseline. Bootstrap still refuses to silently resolve a real
+        # home/repo divergence; the user must pick a side via
+        # `just capture-resolve`.
+        if not test -f "$state_file"
+          set -a sync_args --bootstrap
         end
 
-        # Agents -- capture all user-managed agents (skip gsd-* managed by
-        # GSD). If an agent isn't in config/agents/ yet, seed it so
-        # manual work survives a machine rebuild. Agents listed in
-        # config/agents/.capture-ignore are silently skipped -- use for
-        # plugin-provided or upstream-maintained agents.
-        set -l agents_ignore_file "$config_dir/agents/.capture-ignore"
-        set -l ignored_agents
-        if test -f "$agents_ignore_file"
-          for line in (cat "$agents_ignore_file")
-            set -l trimmed (string trim -- "$line")
-            if test -n "$trimmed"; and not string match -q '#*' -- "$trimmed"
-              set ignored_agents $ignored_agents $trimmed
+        set -l sync_output (${pkgs.python3}/bin/python3 $sync_script $sync_args 2>&1)
+        set -l sync_status $status
+
+        # Count actions for a tidy summary; the script's JSON output makes
+        # this straightforward with jq.
+        set -l noop_count 0
+        set -l capture_count 0
+        set -l mirror_count 0
+        set -l import_count 0
+        set -l bootstrap_count 0
+        set -l refresh_count 0
+        set -l delete_count 0
+
+        if test $sync_status -eq 0
+          set noop_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="noop")] | length' 2>/dev/null; or echo 0)
+          set capture_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="capture")] | length' 2>/dev/null; or echo 0)
+          set mirror_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="mirror")] | length' 2>/dev/null; or echo 0)
+          set import_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="import")] | length' 2>/dev/null; or echo 0)
+          set bootstrap_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="bootstrap")] | length' 2>/dev/null; or echo 0)
+          set refresh_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="refresh")] | length' 2>/dev/null; or echo 0)
+          set delete_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="delete-home")] | length' 2>/dev/null; or echo 0)
+        end
+
+        echo "  sync (skills / agents / output-styles / CLAUDE.md):"
+        echo "    in sync:    $noop_count"
+        if test "$capture_count" -gt 0
+          echo "    captured:   $capture_count  (home -> repo)"
+        end
+        if test "$mirror_count" -gt 0
+          echo "    mirrored:   $mirror_count  (repo -> home)"
+        end
+        if test "$import_count" -gt 0
+          echo "    imported:   $import_count  (new in home, seeded into repo)"
+        end
+        if test "$bootstrap_count" -gt 0
+          echo "    bootstrap:  $bootstrap_count (repo -> home, no prior snapshot)"
+        end
+        if test "$refresh_count" -gt 0
+          echo "    refreshed:  $refresh_count (snapshot stale, sides matched)"
+        end
+        if test "$delete_count" -gt 0
+          echo "    deleted:    $delete_count  (repo removed file, home cleared)"
+        end
+
+        if test $sync_status -ne 0
+          echo ""
+          echo "  CONFLICTS (capture aborted, neither side changed):"
+          for line in $sync_output
+            if string match -q '*: *' -- "$line"
+              echo "    $line"
             end
           end
-        end
-        set -l seeded_agents
-        echo "  agents:"
-        for agent in $claude_dir/agents/*.md
-          set -l name (basename $agent)
-          if string match -q 'gsd-*' $name
-            continue
-          end
-          if contains -- "$name" $ignored_agents
-            continue
-          end
-          set -l marker ""
-          if not test -f "$config_dir/agents/$name"
-            set seeded_agents $seeded_agents $name
-            set marker " (seeded)"
-          end
-          cp "$agent" "$config_dir/agents/$name"
-          echo "    $name$marker"
+          echo ""
+          echo "  Resolve with:  just capture-resolve <relpath> --home|--repo"
+          echo ""
         end
 
-        # Skills -- capture every user-managed skill from $claude_dir/skills/
-        # into config/skills/ using rsync. Guiding principle: anything
-        # manually added to ~/.claude is captured into the repo so it
-        # survives a machine rebuild and can be deployed to other systems.
-        # A skill not yet in config/skills/ is seeded on first capture.
-        # Skills listed in config/skills/.capture-ignore are silently
-        # skipped -- use for upstream-maintained or externally-managed
-        # skills that shouldn't live in git history.
-        # Silently skips:
-        #   - whole-skill symlinks (Nix-managed, e.g. clay-ralph)
-        #   - runtime workspaces with no SKILL.md (commit-workspace, etc.)
-        #   - plugin-managed skills whose every leaf is a symlink into
-        #     /nix/store (hack, dependabot, github-issue)
-        # Top-level symlinks in tracked skills are --exclude'd from rsync
-        # so a store path never lands in git.
-        set -l skills_ignore_file "$config_dir/skills/.capture-ignore"
-        set -l ignored_skills
-        if test -f "$skills_ignore_file"
-          for line in (cat "$skills_ignore_file")
-            set -l trimmed (string trim -- "$line")
-            if test -n "$trimmed"; and not string match -q '#*' -- "$trimmed"
-              set ignored_skills $ignored_skills $trimmed
-            end
-          end
-        end
-        set -l seeded_skills
-        echo "  skills:"
-        for source_dir in $claude_dir/skills/*/
-          set -l skill_name (basename $source_dir)
-          set -l src "$claude_dir/skills/$skill_name"
-          # Skip entire-skill symlinks (Nix-managed).
-          if test -L "$src"
-            continue
-          end
-          # Skip runtime workspaces -- real skills have a SKILL.md marker.
-          if not test -e "$src/SKILL.md"
-            continue
-          end
-          # Skip plugin-managed skills (no real files anywhere, all symlinks).
-          set -l any_real (${pkgs.findutils}/bin/find "$src" -mindepth 1 \
-            -not -type d -not -type l -print -quit 2>/dev/null)
-          if test -z "$any_real"
-            continue
-          end
-          # Skip anything the user opted out of tracking.
-          if contains -- "$skill_name" $ignored_skills
-            continue
-          end
-          # Untracked: seed it so the user's work is captured.
-          set -l marker ""
-          if not test -d "$config_dir/skills/$skill_name"
-            mkdir -p "$config_dir/skills/$skill_name"
-            set seeded_skills $seeded_skills $skill_name
-            set marker " (seeded)"
-          end
-          # Mirror src → config, excluding any Nix-managed symlinks.
-          set -l excludes
-          for f in $src/*
-            if test -L "$f"
-              set -l name (basename $f)
-              set excludes $excludes "--exclude=/$name"
-            end
-          end
-          ${pkgs.rsync}/bin/rsync -a --delete $excludes \
-            "$src"/ "$config_dir/skills/$skill_name"/
-          echo "    $skill_name$marker"
-        end
-
-        # Output styles
-        echo "  output-styles:"
-        for style in $claude_dir/output-styles/*
-          if not test -L "$style"
-            set -l name (basename $style)
-            cp "$style" "$config_dir/output-styles/$name"
-            echo "    $name"
-          end
-        end
-
-        # Plugins
+        # Plugins -- placeholder substitution, kept on legacy path.
         set -l plugins_dir "$claude_dir/plugins"
         set -l plugins_config "$config_dir/plugins"
         if test -f "$plugins_dir/installed_plugins.json"
           echo "  plugins:"
           mkdir -p "$plugins_config"
 
-          # installed_plugins.json -- replace $HOME with placeholder
           sed "s|$HOME|@HOME_DIR@|g" "$plugins_dir/installed_plugins.json" \
             | jq . > "$plugins_config/installed_plugins.json"
           echo "    installed_plugins.json"
 
-          # known_marketplaces.json -- replace $HOME with placeholder
           if test -f "$plugins_dir/known_marketplaces.json"
             sed "s|$HOME|@HOME_DIR@|g" "$plugins_dir/known_marketplaces.json" \
               | jq . > "$plugins_config/known_marketplaces.json"
             echo "    known_marketplaces.json"
           end
 
-          # blocklist.json -- plain copy
           if test -f "$plugins_dir/blocklist.json"
             cp "$plugins_dir/blocklist.json" "$plugins_config/blocklist.json"
             echo "    blocklist.json"
           end
 
-          # Cache is not tracked in git -- plugins auto-download from installed_plugins.json
+          # Plugin cache not tracked -- Claude Code auto-downloads from installed_plugins.json
         end
 
-        # Format captured shell scripts to match CI shfmt flags
-        # (-i 2 -ci), so the next auto-format pass is a no-op and we
-        # stop ping-ponging slack-post.sh & friends between condensed
-        # (live) and expanded (CI) formatting.
+        # Format captured shell scripts to match CI shfmt flags so the
+        # next auto-format pass is a no-op.
         set -l sh_files (${pkgs.findutils}/bin/find "$config_dir" -type f -name '*.sh')
         if test (count $sh_files) -gt 0
           ${pkgs.shfmt}/bin/shfmt -w -i 2 -ci $sh_files >/dev/null
         end
 
-        # Surface seeded items so nothing sneaks into git unnoticed.
-        if test (count $seeded_agents) -gt 0 -o (count $seeded_skills) -gt 0
-          echo ""
-          echo "Seeded items (new in repo, review and git add):"
-          for a in $seeded_agents
-            echo "    agent:  $a"
-          end
-          for s in $seeded_skills
-            echo "    skill:  $s"
-          end
+        if test $sync_status -ne 0
+          return $sync_status
         end
 
         echo ""
         echo "Done. Review changes with: git diff $config_dir"
+      '';
+    };
+
+    # Resolve a capture-sync conflict by picking which side wins.
+    # Usage:  capture-resolve <relpath> --home|--repo
+    # The relpath is the key the capture-sync output / state file uses,
+    # e.g. "skills/gsuite-edit/SKILL.md" or "agents/foo.md".
+    capture-resolve = {
+      description = "Resolve a capture-sync conflict by picking which side wins";
+      body = ''
+        if test (count $argv) -lt 2
+          echo "usage: capture-resolve <relpath> --home|--repo"
+          return 2
+        end
+
+        set -l relpath $argv[1]
+        set -l side $argv[2]
+        set -l config_dir "${globals.paths.nixerator}/modules/apps/cli/claude-code/config"
+        set -l claude_dir "$HOME/.claude"
+        set -l state_file "$config_dir/.capture-state.json"
+        set -l home_path "$claude_dir/$relpath"
+        set -l repo_path "$config_dir/$relpath"
+
+        switch $side
+          case --home
+            if not test -e "$home_path"
+              echo "capture-resolve: $home_path does not exist"
+              return 1
+            end
+            mkdir -p (dirname "$repo_path")
+            cp "$home_path" "$repo_path"
+            set -l new_hash (${pkgs.coreutils}/bin/sha256sum "$repo_path" | string split -f1 ' ')
+            ${pkgs.jq}/bin/jq --arg key "$relpath" --arg h "$new_hash" \
+              '.files[$key] = $h' "$state_file" > "$state_file.tmp"
+            mv "$state_file.tmp" "$state_file"
+            echo "Resolved $relpath using home; snapshot updated."
+          case --repo
+            if not test -e "$repo_path"
+              echo "capture-resolve: $repo_path does not exist"
+              return 1
+            end
+            mkdir -p (dirname "$home_path")
+            cp "$repo_path" "$home_path"
+            set -l new_hash (${pkgs.coreutils}/bin/sha256sum "$repo_path" | string split -f1 ' ')
+            ${pkgs.jq}/bin/jq --arg key "$relpath" --arg h "$new_hash" \
+              '.files[$key] = $h' "$state_file" > "$state_file.tmp"
+            mv "$state_file.tmp" "$state_file"
+            echo "Resolved $relpath using repo; snapshot updated."
+          case '*'
+            echo "usage: capture-resolve <relpath> --home|--repo"
+            return 2
+        end
       '';
     };
   };
