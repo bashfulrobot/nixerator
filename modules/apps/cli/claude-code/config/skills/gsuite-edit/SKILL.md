@@ -253,18 +253,31 @@ RESP=$(curl -sS -X POST \
   -d '{"title": "My Deck"}' \
   "https://slides.googleapis.com/v1/presentations")
 
-PRES_ID=$(echo "$RESP" | python3 -c "import json,sys; print(json.load(sys.stdin)['presentationId'])")
+PRES_ID=$(echo "$RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('presentationId',''))")
+[[ -n "$PRES_ID" ]] || { echo "presentations.create failed:" >&2; echo "$RESP" >&2; exit 1; }
+
+# Capture the default first slide's objectId. presentations.create returns a
+# response whose slides[0] is a blank cover slide with the TITLE layout; the
+# Step 2 batchUpdate below deletes it so the deck ends up with exactly the
+# slides we explicitly add. If you want that default slide to be your cover,
+# capture its objectId here and `insertText` into its existing placeholders
+# instead of deleting it.
+DEFAULT_SLIDE_ID=$(echo "$RESP" | python3 -c "import json,sys; pres=json.load(sys.stdin); print(pres.get('slides',[{}])[0].get('objectId',''))")
 ```
 
-`presentations.create` returns the full presentation object including a default first slide with the `TITLE` layout. Subsequent slides are added via `batchUpdate` with `createSlide`.
+`presentations.create` returns the full presentation object. Its `slides[0]` is a default cover slide with the `TITLE` layout. The from-scratch example below deletes that default slide in the same `batchUpdate` that creates the real content slide, so the resulting deck contains only the slides this code adds. Subsequent slides beyond the first are added via additional `createSlide` requests in the same or later batch.
 
 ### Step 2: Add a slide with deterministic placeholder IDs
 
 `placeholderIdMappings` on a `createSlide` request lets the caller assign deterministic object IDs to the layout's TITLE and BODY placeholders inside the same `batchUpdate`, which avoids a fetch-then-update round trip. Use it whenever you know which placeholder types you want to populate.
 
-```json
+Write the batch to `/tmp/slide-1.json`; the `${DEFAULT_SLIDE_ID}` placeholder is substituted from Step 1.
+
+```bash
+cat > /tmp/slide-1.json <<JSON
 {
   "requests": [
+    {"deleteObject": {"objectId": "${DEFAULT_SLIDE_ID}"}},
     {
       "createSlide": {
         "objectId": "slide_1",
@@ -276,7 +289,7 @@ PRES_ID=$(echo "$RESP" | python3 -c "import json,sys; print(json.load(sys.stdin)
       }
     },
     {"insertText": {"objectId": "slide_1_title", "text": "Strategic objectives"}},
-    {"insertText": {"objectId": "slide_1_body", "text": "Reduce gateway p99 latency by 25%\nShip Konnect data plane in EU\nAdopt OpenTelemetry across all services"}},
+    {"insertText": {"objectId": "slide_1_body", "text": "Reduce gateway p99 latency by 25%\\nShip Konnect data plane in EU\\nAdopt OpenTelemetry across all services"}},
     {
       "createParagraphBullets": {
         "objectId": "slide_1_body",
@@ -286,9 +299,12 @@ PRES_ID=$(echo "$RESP" | python3 -c "import json,sys; print(json.load(sys.stdin)
     }
   ]
 }
+JSON
 ```
 
-Post it:
+`batchUpdate` applies requests atomically and in order, so the `deleteObject` runs before `createSlide` and the deck ends with exactly one content slide. If you want to keep the default cover slide and add a content slide after it, drop the `deleteObject` request and the deck will have two slides.
+
+Post the batch:
 
 ```bash
 curl -sS -X POST \
@@ -329,8 +345,10 @@ pres = json.load(sys.stdin)
 for s in pres["slides"]:
     if s["objectId"] == "slide_1":
         print(s["slideProperties"]["notesPage"]["notesProperties"]["speakerNotesObjectId"])
-        break
+        sys.exit(0)
+sys.exit("slide_1 not found in presentation")
 ')
+[[ -n "$NOTES_OBJ" ]] || { echo "could not locate speakerNotesObjectId for slide_1" >&2; exit 1; }
 
 curl -sS -X POST \
   -H "Authorization: Bearer $TOKEN" \
@@ -340,7 +358,9 @@ curl -sS -X POST \
   "https://slides.googleapis.com/v1/presentations/${PRES_ID}:batchUpdate"
 ```
 
-If the workflow adds many slides, batch the `speakerNotesObjectId` discovery into a single `presentations.get`, then build one `batchUpdate` with one `insertText` per slide.
+The `sys.exit("...")` plus `[[ -n "$NOTES_OBJ" ]]` guard prevents a silent no-op (e.g. typo in the slide objectId, or slide deleted between Steps 2 and 3). Without it, an empty `NOTES_OBJ` would post `{"objectId":""}` and Slides would return a confusing API error rather than a clear "slide not found" diagnostic.
+
+If the workflow adds many slides, batch the `speakerNotesObjectId` discovery into a single `presentations.get`, then build one `batchUpdate` with one `insertText` per slide. Apply the same guard pattern to each slide ID, since one missing slide should fail the whole batch loudly rather than silently dropping a notes update.
 
 ### Step 4: Hand back the URL
 
@@ -604,6 +624,12 @@ gsuite_curl() {
 #   Exits 0 if every required scope is granted on the current ADC token.
 #   Exits 1 and prints a ready-to-paste re-auth command if any scope is missing.
 #   Exits 2 on usage error.
+#
+# The re-auth command preserves every scope currently granted to the ADC token
+# AND unions in the required scopes. This matters because
+# `gcloud auth application-default login --scopes=...` replaces ADC scopes
+# wholesale (it does not additively merge), so a naive command that lists only
+# the missing scopes would silently drop unrelated scopes the user already had.
 gsuite_check_scopes() {
   if [[ $# -eq 0 ]]; then
     echo "usage: gsuite_check_scopes <scope> [<scope>...]" >&2
@@ -627,10 +653,21 @@ gsuite_check_scopes() {
     echo "missing scopes:" >&2
     printf '  %s\n' "${missing[@]}" >&2
     echo "" >&2
-    local joined
-    joined=$(IFS=,; printf '%s' "$*")
+
+    # Build the re-auth scope list as the union of currently-granted scopes
+    # and required scopes, deduplicated, comma-separated.
+    local all_list
+    all_list=$(
+      {
+        # currently granted (whitespace-separated from tokeninfo)
+        printf '%s\n' $granted
+        # required (one per positional arg)
+        printf '%s\n' "$@"
+      } | awk 'NF && !seen[$0]++' | paste -sd,
+    )
+
     echo "re-auth with:" >&2
-    echo "  gcloud auth application-default login --scopes=openid,email,https://www.googleapis.com/auth/cloud-platform,$joined" >&2
+    echo "  gcloud auth application-default login --scopes=$all_list" >&2
     return 1
   fi
 }
