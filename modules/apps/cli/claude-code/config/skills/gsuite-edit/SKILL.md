@@ -56,8 +56,11 @@ To verify the scopes landed:
 
 ```bash
 TOKEN=$(gcloud auth application-default print-access-token)
-curl -sS "https://oauth2.googleapis.com/tokeninfo?access_token=$TOKEN" | grep scope
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  "https://oauth2.googleapis.com/tokeninfo" | grep scope
 ```
+
+Send the token as an `Authorization: Bearer` header rather than as the `?access_token=...` query parameter the older Google docs sometimes show. The header form keeps the token out of shell history, proxy access logs, HAR captures, and any `set -x` trace that runs while debugging.
 
 You should see `spreadsheets`, `drive.file`, and `presentations` in the output. For a structured check that exits non-zero on missing scopes and prints a ready-to-paste re-auth command, use the `gsuite_check_scopes` helper documented in the Quick reference section.
 
@@ -69,7 +72,8 @@ The tokeninfo endpoint returns the active token's scopes as a single space-separ
 
 ```bash
 TOKEN=$(gcloud auth application-default print-access-token)
-curl -sS "https://oauth2.googleapis.com/tokeninfo?access_token=$TOKEN"
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  "https://oauth2.googleapis.com/tokeninfo"
 ```
 
 Sample response (truncated):
@@ -637,7 +641,8 @@ gsuite_check_scopes() {
   fi
 
   local granted
-  granted=$(curl -sS "https://oauth2.googleapis.com/tokeninfo?access_token=$(gsuite_token)" \
+  granted=$(curl -sS -H "Authorization: Bearer $(gsuite_token)" \
+    "https://oauth2.googleapis.com/tokeninfo" \
     | python3 -c 'import json,sys; print(json.load(sys.stdin).get("scope",""))')
 
   local missing=()
@@ -655,13 +660,14 @@ gsuite_check_scopes() {
     echo "" >&2
 
     # Build the re-auth scope list as the union of currently-granted scopes
-    # and required scopes, deduplicated, comma-separated.
+    # and required scopes, deduplicated, comma-separated. Split $granted on
+    # whitespace with `tr` rather than relying on unquoted word-splitting so
+    # any unexpected glob character in a scope string (e.g. `*`) cannot
+    # trigger pathname expansion against the caller's cwd.
     local all_list
     all_list=$(
       {
-        # currently granted (whitespace-separated from tokeninfo)
-        printf '%s\n' $granted
-        # required (one per positional arg)
+        printf '%s\n' "$granted" | tr ' \t' '\n\n'
         printf '%s\n' "$@"
       } | awk 'NF && !seen[$0]++' | paste -sd,
     )
