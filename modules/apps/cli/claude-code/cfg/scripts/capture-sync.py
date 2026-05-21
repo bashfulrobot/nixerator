@@ -76,15 +76,29 @@ def load_state(state_file: Path) -> dict:
     try:
         data = json.loads(state_file.read_text())
     except json.JSONDecodeError as exc:
-        raise SystemExit(f"capture-sync: state file is not valid JSON ({exc})")
+        # A torn write or hand-edit gone wrong shouldn't brick every host
+        # that pulls the snapshot. Warn loudly and fall back to a fresh
+        # state: the caller will treat existing files as needing a
+        # bootstrap snapshot, which is the same recovery path a fresh
+        # checkout would take.
+        print(
+            f"capture-sync: WARNING state file {state_file} is not valid JSON "
+            f"({exc}); treating as missing and rebuilding from current state",
+            file=sys.stderr,
+        )
+        return {"version": 1, "files": {}}
     if "files" not in data:
         data["files"] = {}
     return data
 
 
 def save_state(state_file: Path, state: dict) -> None:
+    # Atomic write so a SIGINT, OOM-kill, or concurrent invocation can't
+    # leave a committed-and-tracked .capture-state.json half-written.
     state_file.parent.mkdir(parents=True, exist_ok=True)
-    state_file.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+    tmp = state_file.with_suffix(state_file.suffix + ".tmp")
+    tmp.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+    os.replace(tmp, state_file)
 
 
 def read_ignore(ignore_file: Optional[Path]) -> set[str]:
@@ -155,10 +169,13 @@ def reconcile(
                 R,
                 S,
             )
+        # home deleted AND repo changed: the user's home-side deletion
+        # intent might be a delete-from-repo, but repo also moved (probably
+        # via a PR), so silently overriding either side is wrong. Surface.
         return Decision(
             key,
-            "mirror",
-            "home was deleted, repo updated; restoring from repo",
+            "conflict",
+            "home was deleted AND repo was updated since last snapshot",
             H,
             R,
             S,
@@ -212,14 +229,18 @@ def reconcile(
 def apply_decision(
     decision: Decision, home_path: Path, repo_path: Path, dry_run: bool
 ) -> Optional[str]:
-    """Apply the decision to the filesystem; return the new snapshot hash."""
+    """Apply the decision to the filesystem; return the new snapshot hash.
+
+    Uses shutil.copy (not copyfile) so the source mode bits are preserved.
+    Hard-coding 0o644 would strip the executable bit from tracked helper
+    scripts like skills/slack-post/scripts/slack-post.sh and the sfdc-*.sh
+    helpers (committed at 100755 in git), breaking both the repo's tracked
+    mode and the runtime invocation from ~/.claude.
+    """
     action = decision.action
 
-    if action in ("noop",):
+    if action == "noop":
         return decision.snap_hash
-
-    if action == "refresh":
-        return decision.repo_hash
 
     if action == "conflict":
         return decision.snap_hash
@@ -229,28 +250,29 @@ def apply_decision(
             return decision.home_hash
         if action in ("mirror", "bootstrap"):
             return decision.repo_hash
+        if action == "refresh":
+            # H == R at decision time; pick either.
+            return decision.repo_hash
         if action == "delete-home":
             return None
         return decision.snap_hash
 
     if action in ("import", "capture"):
         repo_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(home_path, repo_path)
-        # Preserve a sensible mode for the captured file.
-        try:
-            os.chmod(repo_path, 0o644)
-        except OSError:
-            pass
+        shutil.copy(home_path, repo_path)
         return sha256_file(repo_path)
 
     if action in ("mirror", "bootstrap"):
         home_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(repo_path, home_path)
-        try:
-            os.chmod(home_path, 0o644)
-        except OSError:
-            pass
+        shutil.copy(repo_path, home_path)
         return sha256_file(home_path)
+
+    if action == "refresh":
+        # Both sides matched at decision time but the snapshot was stale.
+        # Re-hash from disk in case anything raced between reconcile and
+        # apply; the source we trust here is whichever side we'd otherwise
+        # have written, but since H == R either works.
+        return sha256_file(repo_path)
 
     if action == "delete-home":
         try:
@@ -473,10 +495,13 @@ def main() -> int:
     print(json.dumps(summary, indent=2, sort_keys=True))
 
     if all_conflicts:
+        # Sentinel-prefixed lines on stderr so the fish wrapper can grep
+        # for them without false-positives against the JSON summary on
+        # stdout (every JSON line matches a naive "*: *" glob).
         print("", file=sys.stderr)
         print("capture-sync: unresolved conflicts:", file=sys.stderr)
         for c in all_conflicts:
-            print(f"  {c.key}: {c.reason}", file=sys.stderr)
+            print(f"CAPTURE_SYNC_CONFLICT {c.key}: {c.reason}", file=sys.stderr)
         print("", file=sys.stderr)
         print(
             "Resolve with: just capture-resolve <relpath> --home|--repo",

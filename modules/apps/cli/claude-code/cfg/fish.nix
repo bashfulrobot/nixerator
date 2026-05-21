@@ -93,11 +93,15 @@
           set -a sync_args --bootstrap
         end
 
-        set -l sync_output (${pkgs.python3}/bin/python3 $sync_script $sync_args 2>&1)
+        # Run capture-sync with stdout (JSON summary) and stderr (conflict
+        # sentinels + warnings) routed to separate temp files. Merging
+        # streams with 2>&1 would put JSON key/value lines through the
+        # conflict-line filter and produce confusing output.
+        set -l sync_stdout (mktemp)
+        set -l sync_stderr (mktemp)
+        ${pkgs.python3}/bin/python3 $sync_script $sync_args >$sync_stdout 2>$sync_stderr
         set -l sync_status $status
 
-        # Count actions for a tidy summary; the script's JSON output makes
-        # this straightforward with jq.
         set -l noop_count 0
         set -l capture_count 0
         set -l mirror_count 0
@@ -105,15 +109,14 @@
         set -l bootstrap_count 0
         set -l refresh_count 0
         set -l delete_count 0
-
-        if test $sync_status -eq 0
-          set noop_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="noop")] | length' 2>/dev/null; or echo 0)
-          set capture_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="capture")] | length' 2>/dev/null; or echo 0)
-          set mirror_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="mirror")] | length' 2>/dev/null; or echo 0)
-          set import_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="import")] | length' 2>/dev/null; or echo 0)
-          set bootstrap_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="bootstrap")] | length' 2>/dev/null; or echo 0)
-          set refresh_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="refresh")] | length' 2>/dev/null; or echo 0)
-          set delete_count (printf '%s\n' $sync_output | ${pkgs.jq}/bin/jq '[.actions[] | select(.action=="delete-home")] | length' 2>/dev/null; or echo 0)
+        if test -s "$sync_stdout"
+          set noop_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="noop")] | length' $sync_stdout 2>/dev/null)
+          set capture_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="capture")] | length' $sync_stdout 2>/dev/null)
+          set mirror_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="mirror")] | length' $sync_stdout 2>/dev/null)
+          set import_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="import")] | length' $sync_stdout 2>/dev/null)
+          set bootstrap_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="bootstrap")] | length' $sync_stdout 2>/dev/null)
+          set refresh_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="refresh")] | length' $sync_stdout 2>/dev/null)
+          set delete_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="delete-home")] | length' $sync_stdout 2>/dev/null)
         end
 
         echo "  sync (skills / agents / output-styles / CLAUDE.md):"
@@ -140,15 +143,20 @@
         if test $sync_status -ne 0
           echo ""
           echo "  CONFLICTS (capture aborted, neither side changed):"
-          for line in $sync_output
-            if string match -q '*: *' -- "$line"
-              echo "    $line"
-            end
-          end
+          ${pkgs.gnugrep}/bin/grep '^CAPTURE_SYNC_CONFLICT ' $sync_stderr \
+            | ${pkgs.gnused}/bin/sed 's/^CAPTURE_SYNC_CONFLICT /    /'
           echo ""
           echo "  Resolve with:  just capture-resolve <relpath> --home|--repo"
           echo ""
         end
+
+        # Surface any other stderr (warnings about corrupt state, etc.) so
+        # it isn't silently swallowed by the temp-file split above.
+        if test -s "$sync_stderr"
+          ${pkgs.gnugrep}/bin/grep -v '^CAPTURE_SYNC_CONFLICT ' $sync_stderr >&2; or true
+        end
+
+        rm -f $sync_stdout $sync_stderr
 
         # Plugins -- placeholder substitution, kept on legacy path.
         set -l plugins_dir "$claude_dir/plugins"
