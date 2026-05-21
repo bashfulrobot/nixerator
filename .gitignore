@@ -26,3 +26,4 @@ prompt.txt
 .claude/settings.local.json
 AGENTS.md
 docs/superpowers/
+__pycache__/

@@ -238,15 +238,64 @@ update-skills:
 # manually surface a new skill/agent/setting installed on any other host
 # (donkeykong, etc.) -- review the resulting diff and commit only the bits
 # that should propagate.
+#
+# When run off qbert this is a DRY-RUN by default: capture-sync still
+# computes the three-way diff and prints what would change, but does not
+# write to the repo or to the snapshot. Set JUST_CAPTURE_FORCE=1 to
+# actually apply on a non-canonical host (uncommon, and the right thing
+# to do if you've just installed something new on that host and want
+# to commit it from there).
 capture:
     #!/usr/bin/env bash
     set -uo pipefail
+    if [[ "$(hostname)" != "qbert" && "${JUST_CAPTURE_FORCE:-0}" != "1" ]]; then
+        echo "just capture: running on non-canonical host $(hostname) in DRY-RUN mode."
+        echo "  To actually apply, re-run with JUST_CAPTURE_FORCE=1 just capture."
+        echo "  Without the override only the dry-run summary is printed; the"
+        echo "  repo and .capture-state.json are not modified."
+        echo ""
+        # capture-sync respects --dry-run. Anchor paths on
+        # justfile_directory() rather than $(pwd) so the recipe is safe
+        # to invoke from any working directory.
+        config_dir="{{justfile_directory()}}/modules/apps/cli/claude-code/config"
+        python3 "{{justfile_directory()}}/modules/apps/cli/claude-code/cfg/scripts/capture-sync.py" \
+            --state-file "$config_dir/.capture-state.json" \
+            --home-root "$HOME/.claude" \
+            --repo-root "$config_dir" \
+            --section all \
+            --dry-run | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+from collections import Counter
+counts = Counter(a['action'] for a in d['actions'])
+for action, n in counts.most_common():
+    print(f'  {action:12s}: {n}')
+if d['conflicts']:
+    print(f'  conflicts:    {len(d[\"conflicts\"])}')
+"
+        exit 0
+    fi
     echo "Capturing Claude Code config..."
     fish -c 'claude-capture' || echo "Claude capture failed (non-fatal)"
     echo "Capturing Agent OS config..."
     fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
     echo ""
     echo "Review with: git status && git diff modules/apps/cli/claude-code modules/apps/cli/agentos"
+
+# Resolve a capture-sync conflict by picking which side wins.
+# Usage: just capture-resolve skills/gsuite-edit/SKILL.md --home
+#        just capture-resolve agents/foo.md --repo
+# Updates the snapshot in .capture-state.json so the next `just qr` is a
+# no-op for this file. Stage the resulting change in git as usual.
+#
+# Both args are passed through fish as separate $argv elements (not
+# concatenated into a fish -c command string) so attacker-controlled
+# characters in a filename can't inject shell syntax even if the
+# resulting conflict line ever surfaces such a name to the user.
+capture-resolve relpath side:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    fish -c 'capture-resolve "$argv[1]" "$argv[2]"' -- {{quote(relpath)}} {{quote(side)}}
 
 # === Shared Helpers ===
 rebuild_log := "/tmp/nixerator-rebuild.log"
