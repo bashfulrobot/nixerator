@@ -258,13 +258,29 @@ def apply_decision(
         return decision.snap_hash
 
     if action in ("import", "capture"):
+        # Belt-and-braces against a TOCTOU swap of the source for a
+        # symlink between enumeration and copy: refuse to read through
+        # a symlink. _safe_walk already filters at enumeration, this
+        # closes the race window.
+        if home_path.is_symlink():
+            print(
+                f"capture-sync: refusing to copy from symlink {home_path}",
+                file=sys.stderr,
+            )
+            return decision.snap_hash
         repo_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(home_path, repo_path)
+        shutil.copy(home_path, repo_path, follow_symlinks=False)
         return sha256_file(repo_path)
 
     if action in ("mirror", "bootstrap"):
+        if repo_path.is_symlink():
+            print(
+                f"capture-sync: refusing to copy from symlink {repo_path}",
+                file=sys.stderr,
+            )
+            return decision.snap_hash
         home_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(repo_path, home_path)
+        shutil.copy(repo_path, home_path, follow_symlinks=False)
         return sha256_file(home_path)
 
     if action == "refresh":
@@ -282,6 +298,50 @@ def apply_decision(
         return None
 
     raise AssertionError(f"capture-sync: unknown action {action!r}")
+
+
+def _safe_walk(root: Path) -> Iterable[Path]:
+    """Yield regular files under `root` without crossing any symlink.
+
+    `Path.rglob` follows symlinked sub-directories on CPython, so a
+    malicious skill that drops `~/.claude/skills/foo/notes ->
+    /etc/something` would silently exfiltrate the target's content into
+    the public repo via `shutil.copy`. `os.walk(..., followlinks=False)`
+    refuses to descend symlinked directories; combined with the
+    per-file `is_symlink()` check, neither symlinked dirs nor symlinked
+    files reach the copy path. We also resolve each candidate path and
+    confirm it stays under `root` as a belt-and-braces check against
+    name-based escapes.
+    """
+    if not root.exists():
+        return
+    resolved_root = root.resolve()
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        # In-place mutation of dirnames prunes the walk: drop any entry
+        # that is itself a symlink (followlinks=False already prevents
+        # descent into one, but this also keeps the listing clean).
+        dirnames[:] = [
+            d for d in dirnames if not Path(dirpath, d).is_symlink()
+        ]
+        for name in filenames:
+            path = Path(dirpath, name)
+            if path.is_symlink():
+                continue
+            try:
+                resolved = path.resolve(strict=True)
+            except (OSError, RuntimeError):
+                continue
+            try:
+                resolved.relative_to(resolved_root)
+            except ValueError:
+                # The resolved target escaped the root somehow (race or
+                # link-component we missed); refuse to surface it.
+                print(
+                    f"capture-sync: skipping {path}; resolved outside root",
+                    file=sys.stderr,
+                )
+                continue
+            yield path
 
 
 def _iter_skill_files(
@@ -312,24 +372,23 @@ def _iter_skill_files(
             skill_md = home_skill / "SKILL.md"
             if not skill_md.exists() and not (repo_skill / "SKILL.md").exists():
                 continue
-            real_leaves = [
-                p
-                for p in home_skill.rglob("*")
-                if p.is_file() and not p.is_symlink()
-            ]
-            if home_skill.exists() and not real_leaves and not repo_skill.exists():
+            real_leaves = list(_safe_walk(home_skill))
+            if not real_leaves and not repo_skill.exists():
                 continue
 
-        # Union of relative paths from both sides.
+        # Union of relative paths from both sides. Each side is walked
+        # with _safe_walk so symlinked sub-directories never expose
+        # files that resolve outside the skill root.
         rels: set[str] = set()
         for root in (home_skill, repo_skill):
-            if root.exists():
-                for f in root.rglob("*"):
-                    if f.is_file() and not f.is_symlink():
-                        try:
-                            rels.add(f.relative_to(root).as_posix())
-                        except ValueError:
-                            continue
+            for f in _safe_walk(root):
+                try:
+                    rel = f.relative_to(root).as_posix()
+                except ValueError:
+                    continue
+                if ".." in rel.split("/"):
+                    continue
+                rels.add(rel)
 
         for rel in sorted(rels):
             key = f"skills/{name}/{rel}"
@@ -498,10 +557,17 @@ def main() -> int:
         # Sentinel-prefixed lines on stderr so the fish wrapper can grep
         # for them without false-positives against the JSON summary on
         # stdout (every JSON line matches a naive "*: *" glob).
+        # Sanitize the key and reason against terminal escape sequences
+        # in case a hostile filename ever reaches the conflict surface.
         print("", file=sys.stderr)
         print("capture-sync: unresolved conflicts:", file=sys.stderr)
         for c in all_conflicts:
-            print(f"CAPTURE_SYNC_CONFLICT {c.key}: {c.reason}", file=sys.stderr)
+            safe_key = c.key.encode("ascii", "backslashreplace").decode("ascii")
+            safe_reason = c.reason.encode("ascii", "backslashreplace").decode("ascii")
+            print(
+                f"CAPTURE_SYNC_CONFLICT {safe_key}: {safe_reason}",
+                file=sys.stderr,
+            )
         print("", file=sys.stderr)
         print(
             "Resolve with: just capture-resolve <relpath> --home|--repo",

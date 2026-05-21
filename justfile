@@ -254,10 +254,11 @@ capture:
         echo "  Without the override only the dry-run summary is printed; the"
         echo "  repo and .capture-state.json are not modified."
         echo ""
-        # capture-sync respects --dry-run; the fish wrapper does not yet
-        # forward a flag, so invoke the script directly here.
-        config_dir="$(pwd)/modules/apps/cli/claude-code/config"
-        python3 "$config_dir/../cfg/scripts/capture-sync.py" \
+        # capture-sync respects --dry-run. Anchor paths on
+        # justfile_directory() rather than $(pwd) so the recipe is safe
+        # to invoke from any working directory.
+        config_dir="{{justfile_directory()}}/modules/apps/cli/claude-code/config"
+        python3 "{{justfile_directory()}}/modules/apps/cli/claude-code/cfg/scripts/capture-sync.py" \
             --state-file "$config_dir/.capture-state.json" \
             --home-root "$HOME/.claude" \
             --repo-root "$config_dir" \
@@ -286,10 +287,15 @@ if d['conflicts']:
 #        just capture-resolve agents/foo.md --repo
 # Updates the snapshot in .capture-state.json so the next `just qr` is a
 # no-op for this file. Stage the resulting change in git as usual.
+#
+# Both args are passed through fish as separate $argv elements (not
+# concatenated into a fish -c command string) so attacker-controlled
+# characters in a filename can't inject shell syntax even if the
+# resulting conflict line ever surfaces such a name to the user.
 capture-resolve relpath side:
     #!/usr/bin/env bash
     set -euo pipefail
-    fish -c "capture-resolve {{relpath}} {{side}}"
+    fish -c 'capture-resolve "$argv[1]" "$argv[2]"' -- {{quote(relpath)}} {{quote(side)}}
 
 # === Shared Helpers ===
 rebuild_log := "/tmp/nixerator-rebuild.log"

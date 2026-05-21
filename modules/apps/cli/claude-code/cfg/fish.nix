@@ -203,6 +203,11 @@
     # Usage:  capture-resolve <relpath> --home|--repo
     # The relpath is the key the capture-sync output / state file uses,
     # e.g. "skills/gsuite-edit/SKILL.md" or "agents/foo.md".
+    #
+    # The relpath is validated against path traversal (no '..' segments,
+    # no leading '/') before being joined onto $claude_dir / $config_dir.
+    # Without this guard, `capture-resolve ../../.ssh/id_ed25519 --home`
+    # would copy the user's private key into the public repo.
     capture-resolve = {
       description = "Resolve a capture-sync conflict by picking which side wins";
       body = ''
@@ -213,6 +218,15 @@
 
         set -l relpath $argv[1]
         set -l side $argv[2]
+
+        # Reject absolute paths and any path containing a '..' segment.
+        # `string match -qr` does regex matching: '(^|/)\.\.(/|$)' catches
+        # '..' as a standalone component; '^/' catches absolute paths.
+        if string match -qr '(^|/)\.\.(/|$)|^/' -- $relpath
+          echo "capture-resolve: refusing relpath with '..' or leading '/' ($relpath)" >&2
+          return 2
+        end
+
         set -l config_dir "${globals.paths.nixerator}/modules/apps/cli/claude-code/config"
         set -l claude_dir "$HOME/.claude"
         set -l state_file "$config_dir/.capture-state.json"
