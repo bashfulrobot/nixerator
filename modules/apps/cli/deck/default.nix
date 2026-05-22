@@ -16,7 +16,7 @@ in
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
       programs.fish.shellAliases = {
-        deck = "docker run --rm --network host -v .:/files -w /files kong/deck";
+        deck = "docker run --rm --network host -v $PWD:/files -w /files kong/deck";
       };
     };
   };
