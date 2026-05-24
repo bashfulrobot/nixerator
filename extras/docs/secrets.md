@@ -6,8 +6,16 @@ template, `secrets.json.tpl`, renders to that path via `op inject` whenever
 secrets rotate.
 
 The file never enters the Nix store as a flake input (read via a string path,
-not a Nix path literal), and the path is on Claude Code's `permissions.deny`
+not a Nix path literal), and the path is on Claude Code's Read `permissions.deny`
 so AI tools scoped to the repo working directory can't read it.
+
+The deny list intentionally only blocks the Read tool, not enumerated Bash
+viewers (`cat`, `bat`, `jq`, `head`, `tail`, …). Trying to enumerate every
+shell command that can read a file is a losing game — `grep`, `rg`, `awk`,
+`python`, `bash -c '...'`, `tar`, and a dozen others would all need entries
+and the list would still leak. The Read fence is the real boundary; the rest
+of the threat model relies on agents using the Read tool for file access (which
+they do by default).
 
 ## One-time setup (per host)
 
@@ -44,43 +52,60 @@ or via `just remote-rebuild srv` from a desktop) reads the same file.
 
 ## Daily workflow
 
+Rebuilds **do not re-render**. They just read the cached file at
+`~/.config/nixos-secrets/secrets.json`. You re-render only after rotating a
+1Password value.
+
 ### Local rebuild (any host)
 
-Just `just qr` (or `just switch`). Reads the existing
-`~/.config/nixos-secrets/secrets.json`. No render needed unless secrets rotated.
+`just qr` (or `just switch`). Reads whatever is in `~/.config/nixos-secrets/secrets.json`.
 
 ### Remote rebuild from a desktop
 
+`just remote-rebuild srv` — SSHes to srv and runs `just qr` there. The target
+host reads its own local secrets file; nothing is rendered or pushed in this
+recipe.
+
+### Rotation (when a 1Password value changes)
+
 ```bash
-just remote-rebuild srv          # pushes secrets first, then SSH + rebuild
-just remote-rebuild qbert        # same — uniform flow regardless of whether
-                                 # the target has 1Password
+# 1. Update the value in 1Password (in the nixerator-secrets item).
+
+# 2. Re-render locally:
+just render-secrets     # alias: just rs
+
+# 3. Push the new file to any peer that needs it:
+just push-secrets srv         # one host          (alias: just ps)
+just push-secrets srv qbert   # several hosts
+
+# 4. Rebuild as usual:
+just qr                       # local
+just remote-rebuild srv       # remote
 ```
 
-The justfile recipe calls `render-secrets --push {{host}}` before SSH'ing. This
-keeps biometric prompts on a single desktop (no prompts on srv or chained
-desktops).
-
-If `render-secrets` is not on the calling host's PATH, the recipe warns and
-proceeds — the rebuild will succeed only if `{{host}}` already has a current
-`~/.config/nixos-secrets/secrets.json` from a previous push.
-
-### Rotation
-
-1. Update the value in the 1Password `nixerator-secrets` item.
-2. `render-secrets` on a desktop.
-3. `render-secrets --push <host>` for any other host that needs it
-   (or just `just remote-rebuild <host>` and let the recipe do it).
-4. `just qr` (or `just remote-rebuild <host>`) to apply.
+`render-secrets` runs `op inject` and triggers a 1Password biometric prompt.
+That's the *only* time you'll see one — rebuilds in between never touch
+1Password.
 
 ### Drift check
 
 ```bash
-render-secrets --check
+just check-secrets      # alias: just cs
 ```
 
-Renders to a temp file and diffs against the live file. Exits non-zero on drift
-(without writing).
+Renders to a tempfile (inside `~/.config/nixos-secrets/`, never `/tmp`) and
+diffs against the live file. Exits non-zero on drift. Read-only — does not
+overwrite.
+
+### Direct CLI
+
+The justfile recipes are thin wrappers; `render-secrets` is also on PATH:
+
+```bash
+render-secrets                       # local render
+render-secrets --push srv [qbert]    # render + push to listed hosts
+render-secrets --check               # drift check
+```
 
 ## Schema (rendered file)
 

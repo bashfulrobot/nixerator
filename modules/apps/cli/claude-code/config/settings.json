@@ -122,21 +122,7 @@
       "Bash(nixos-rebuild boot *)",
       "Bash(nixos-rebuild test *)",
       "Bash(nix-collect-garbage *)",
-      "Read(//home/dustin/.config/nixos-secrets/**)",
-      "Bash(cat /home/dustin/.config/nixos-secrets/*)",
-      "Bash(cat /home/dustin/.config/nixos-secrets/**)",
-      "Bash(bat /home/dustin/.config/nixos-secrets/*)",
-      "Bash(bat /home/dustin/.config/nixos-secrets/**)",
-      "Bash(less /home/dustin/.config/nixos-secrets/*)",
-      "Bash(less /home/dustin/.config/nixos-secrets/**)",
-      "Bash(head /home/dustin/.config/nixos-secrets/*)",
-      "Bash(head /home/dustin/.config/nixos-secrets/**)",
-      "Bash(tail /home/dustin/.config/nixos-secrets/*)",
-      "Bash(tail /home/dustin/.config/nixos-secrets/**)",
-      "Bash(jq * /home/dustin/.config/nixos-secrets/*)",
-      "Bash(jq * /home/dustin/.config/nixos-secrets/**)",
-      "Bash(cp /home/dustin/.config/nixos-secrets/* *)",
-      "Bash(cp /home/dustin/.config/nixos-secrets/** *)"
+      "Read(//home/dustin/.config/nixos-secrets/**)"
     ],
     "ask": [
       "Bash(rm *)",

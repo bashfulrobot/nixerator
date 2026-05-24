@@ -457,11 +457,10 @@ quiet-upgrade:
 # host to have forwardAgent=true in modules/system/ssh/default.nix), pulls
 # fast-forward only, then runs `just qr` of its own host configuration.
 #
-# Pre-step: secrets live outside the repo at ~/.config/nixos-secrets/secrets.json.
-# Each remote rebuild re-renders locally from 1Password (one biometric prompt
-# here) and scp's the file to {{host}}. The remote does NOT call `op inject`
-# itself — that keeps srv (headless) and any host without 1Password working
-# the same way as the desktops.
+# Secrets: rebuilds read ~/.config/nixos-secrets/secrets.json on the target
+# host. They are NOT re-rendered here — that's `just render-secrets` (local) or
+# `just push-secrets <host>` (render + scp to a peer), run manually when 1Password
+# values change. See extras/docs/secrets.md.
 remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -473,14 +472,6 @@ remote-rebuild host repo_path="~/git/nixerator":
             exit 1
             ;;
     esac
-    if command -v render-secrets >/dev/null 2>&1; then
-        echo "Rendering + pushing secrets to {{host}}..."
-        render-secrets --push "{{host}}"
-    else
-        echo "WARNING: render-secrets not on PATH — skipping secrets push."
-        echo "         {{host}} must already have a current ~/.config/nixos-secrets/secrets.json,"
-        echo "         or the rebuild will fail at flake eval."
-    fi
     echo "Rebuilding {{host}} via SSH..."
     rc=0
     ssh -A -o BatchMode=yes -o ConnectTimeout=5 "{{host}}" \
@@ -506,14 +497,6 @@ remote-upgrade host repo_path="~/git/nixerator":
             exit 1
             ;;
     esac
-    if command -v render-secrets >/dev/null 2>&1; then
-        echo "Rendering + pushing secrets to {{host}}..."
-        render-secrets --push "{{host}}"
-    else
-        echo "WARNING: render-secrets not on PATH — skipping secrets push."
-        echo "         {{host}} must already have a current ~/.config/nixos-secrets/secrets.json,"
-        echo "         or the upgrade will fail at flake eval."
-    fi
     echo "Upgrading {{host}} via SSH..."
     rc=0
     ssh -A -o BatchMode=yes -o ConnectTimeout=5 "{{host}}" \
@@ -525,6 +508,26 @@ remote-upgrade host repo_path="~/git/nixerator":
         exit "$rc"
     fi
 
+# Render Nix-eval secrets locally from 1Password into
+# ~/.config/nixos-secrets/secrets.json. Triggers one biometric prompt per
+# rotation; rebuilds in between read the cached file.
+render-secrets:
+    @render-secrets
+
+# Render locally AND scp the rendered file to one or more peer hosts. Use
+# after rotating a 1Password value, before running `just remote-rebuild <host>`
+# against any peer that should see the new value.
+#
+#   just push-secrets srv
+#   just push-secrets srv qbert
+push-secrets +hosts:
+    @render-secrets --push {{hosts}}
+
+# Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
+# Exits non-zero if 1Password values differ from the cached file. Read-only.
+check-secrets:
+    @render-secrets --check
+
 # === Aliases ===
 alias r := rebuild
 alias up := upgrade
@@ -533,3 +536,6 @@ alias qr := quiet-rebuild
 alias qu := quiet-upgrade
 alias rr := remote-rebuild
 alias ru := remote-upgrade
+alias rs := render-secrets
+alias ps := push-secrets
+alias cs := check-secrets
