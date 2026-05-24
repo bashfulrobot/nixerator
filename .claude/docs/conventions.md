@@ -29,7 +29,10 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 
 ## Secrets
 
-- **Never commit plaintext secrets.** Use the `secrets/` directory (encrypted via git-crypt).
+- **Nix-eval secrets live outside the repo** at `~/.config/nixos-secrets/secrets.json`, rendered from `secrets.json.tpl` + 1Password via `render-secrets`. See `extras/docs/secrets.md`.
+- **Never read `~/.config/nixos-secrets/`** from agent tooling — the path is on Claude Code's `permissions.deny`. To inspect schema, read `secrets.json.tpl` (placeholders only) instead.
+- **Never re-introduce `secrets/secrets.json`** in the repo. `.gitignore` blocks it.
+- git-crypt is still active for `modules/system/ssh/default.nix` and non-JSON assets under `secrets/`.
 
 ## Searching nixpkgs
 

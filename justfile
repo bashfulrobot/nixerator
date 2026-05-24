@@ -456,6 +456,11 @@ quiet-upgrade:
 # The remote SSHes back to GitHub via your forwarded ssh-agent (requires the
 # host to have forwardAgent=true in modules/system/ssh/default.nix), pulls
 # fast-forward only, then runs `just qr` of its own host configuration.
+#
+# Secrets: rebuilds read ~/.config/nixos-secrets/secrets.json on the target
+# host. They are NOT re-rendered here — that's `just render-secrets` (local) or
+# `just push-secrets <host>` (render + scp to a peer), run manually when 1Password
+# values change. See extras/docs/secrets.md.
 remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -503,6 +508,42 @@ remote-upgrade host repo_path="~/git/nixerator":
         exit "$rc"
     fi
 
+# Render Nix-eval secrets locally from 1Password into
+# ~/.config/nixos-secrets/secrets.json. Triggers one biometric prompt per
+# rotation; rebuilds in between read the cached file.
+render-secrets:
+    @render-secrets
+
+# Render locally AND scp the rendered file to one or more peer hosts. Use
+# after rotating a 1Password value, before running `just remote-rebuild <host>`
+# against any peer that should see the new value.
+#
+#   just push-secrets srv
+#   just push-secrets srv qbert
+#
+# Hostnames are validated against an allow-list; render-secrets itself also
+# enforces the same allow-list. The recipe quotes each host individually so a
+# host string containing shell metacharacters cannot inject commands.
+push-secrets +hosts:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for host in {{hosts}}; do
+        case "$host" in
+            qbert|donkeykong|srv) ;;
+            *)
+                echo "Refusing to push to unrecognized host: $host"
+                echo "Allowed: qbert, donkeykong, srv"
+                exit 1
+                ;;
+        esac
+    done
+    render-secrets --push {{hosts}}
+
+# Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
+# Exits non-zero if 1Password values differ from the cached file. Read-only.
+check-secrets:
+    @render-secrets --check
+
 # === Aliases ===
 alias r := rebuild
 alias up := upgrade
@@ -511,3 +552,6 @@ alias qr := quiet-rebuild
 alias qu := quiet-upgrade
 alias rr := remote-rebuild
 alias ru := remote-upgrade
+alias rs := render-secrets
+alias ps := push-secrets
+alias cs := check-secrets
