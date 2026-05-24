@@ -64,7 +64,7 @@ Enable modules via options:
 - **[Adding Hosts](extras/docs/adding-hosts.md)** - Adding a new NixOS host
 - **[Hosts Reference](extras/docs/hosts.md)** - Active hosts and their configs
 - **[Commands](extras/docs/commands.md)** - Justfile recipes and common commands
-- **[Secrets](extras/docs/secrets.md)** - git-crypt secrets management
+- **[Secrets](extras/docs/secrets.md)** - 1Password-rendered secrets (out of repo)
 - **[Bootstrap](extras/docs/bootstrap.txt)** - NixOS installation guide
 - **[VM Development](extras/docs/vm-development.md)** - Development VM setup
 - **[Web Apps](extras/docs/webapps.md)** - Progressive web application modules

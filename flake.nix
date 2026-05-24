@@ -131,8 +131,11 @@
       globals = import ./settings/globals.nix;
       versions = import ./settings/versions.nix;
 
-      # Load secrets from encrypted JSON file
-      secretsFile = "${self}/secrets/secrets.json";
+      # Load secrets from an out-of-repo JSON file rendered by `render-secrets`
+      # from secrets.json.tpl + 1Password. String path (not Nix path literal)
+      # so the file is read at eval time without being copied into the Nix
+      # store as a flake input. See extras/docs/secrets.md.
+      secretsFile = "${globals.user.homeDirectory}/.config/nixos-secrets/secrets.json";
       secrets = builtins.fromJSON (builtins.readFile secretsFile);
 
       # Import library functions
