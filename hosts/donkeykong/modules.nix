@@ -1,6 +1,10 @@
 { secrets, ... }:
 
 {
+  # Render Nix-eval secrets locally from 1Password (and push to headless
+  # peers via `render-secrets --push`). Gated on 1Password being available.
+  apps.cli.render-secrets.enable = true;
+
   # Attach-only: install the `work` fish function so donkeykong can attach
   # to zellij sessions on srv or qbert. Does NOT run a control tower or
   # expose sessions to peers in v1 — donkeykong is a workstation, not a

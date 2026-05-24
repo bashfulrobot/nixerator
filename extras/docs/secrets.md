@@ -1,50 +1,107 @@
 # Secrets Management
 
-git-crypt encrypted secrets in `secrets/secrets.json`, auto-decrypted with GPG key access.
+Nix-eval secrets live **outside the repo** at `~/.config/nixos-secrets/secrets.json`
+(perms `0600`, parent dir `0700`). 1Password is the source of truth. A committed
+template, `secrets.json.tpl`, renders to that path via `op inject` whenever
+secrets rotate.
 
-## Schema
+The file never enters the Nix store as a flake input (read via a string path,
+not a Nix path literal), and the path is on Claude Code's `permissions.deny`
+so AI tools scoped to the repo working directory can't read it.
+
+## One-time setup (per host)
+
+Hosts split into two roles:
+
+| Role | Hosts | Has 1Password CLI? | Renders secrets? |
+|------|-------|--------------------|------------------|
+| Desktop | donkeykong, qbert | Yes | Yes (locally, plus `--push` to peers) |
+| Headless | srv | No | No — receives the file via `scp` from a desktop |
+
+### Desktop hosts (donkeykong, qbert)
+
+1. Sign in to 1Password CLI: `op signin` (biometric).
+2. Make sure the aggregated 1Password item exists:
+   - Vault: **Personal**
+   - Item title: **nixerator-secrets** (Secure Note)
+   - One custom field per leaf in `secrets.json.tpl` (e.g. `github_accessToken`,
+     `restic_srv_b2_account_key`). Field names match the placeholder paths in
+     the template exactly.
+3. Render: `render-secrets`
+4. (Optional, on first setup) push to peers: `render-secrets --push srv`
+
+### Headless hosts (srv)
+
+srv never calls `op inject`. It relies on a desktop pushing the file:
+
+```bash
+# From a desktop:
+render-secrets --push srv
+```
+
+After that, `sudo nixos-rebuild switch --flake .#srv` (whether run on srv directly
+or via `just remote-rebuild srv` from a desktop) reads the same file.
+
+## Daily workflow
+
+### Local rebuild (any host)
+
+Just `just qr` (or `just switch`). Reads the existing
+`~/.config/nixos-secrets/secrets.json`. No render needed unless secrets rotated.
+
+### Remote rebuild from a desktop
+
+```bash
+just remote-rebuild srv          # pushes secrets first, then SSH + rebuild
+just remote-rebuild qbert        # same — uniform flow regardless of whether
+                                 # the target has 1Password
+```
+
+The justfile recipe calls `render-secrets --push {{host}}` before SSH'ing. This
+keeps biometric prompts on a single desktop (no prompts on srv or chained
+desktops).
+
+If `render-secrets` is not on the calling host's PATH, the recipe warns and
+proceeds — the rebuild will succeed only if `{{host}}` already has a current
+`~/.config/nixos-secrets/secrets.json` from a previous push.
+
+### Rotation
+
+1. Update the value in the 1Password `nixerator-secrets` item.
+2. `render-secrets` on a desktop.
+3. `render-secrets --push <host>` for any other host that needs it
+   (or just `just remote-rebuild <host>` and let the recipe do it).
+4. `just qr` (or `just remote-rebuild <host>`) to apply.
+
+### Drift check
+
+```bash
+render-secrets --check
+```
+
+Renders to a temp file and diffs against the live file. Exits non-zero on drift
+(without writing).
+
+## Schema (rendered file)
 
 ```json
 {
-  "github": {
-    "accessToken": "ghp_..."
-  },
-  "kong": {
-    "kongKonnectPAT": "kpat_..."
-  },
-  "context7": {
-    "apiKey": "..."
-  },
-  "clay": {
-    "pin": "..."
-  },
-  "claudito": {
-    "username": "...",
-    "password": "..."
-  },
-  "syncthing": {
-    "gui": {
-      "user": "...",
-      "password": "..."
-    }
-  },
-  "qbert": {
-    "tailscale_ip": "100.x.x.x",
-    "syncthing_id": "..."
-  },
-  "donkey-kong": {
-    "tailscale_ip": "100.x.x.x",
-    "syncthing_id": "..."
-  },
-  "restic": {
-    "srv": {
-      "restic_repository": "s3:...",
-      "restic_password": "...",
-      "b2_account_id": "...",
-      "b2_account_key": "...",
-      "region": "us-west-000"
-    }
-  }
+  "github":     { "accessToken": "..." },
+  "kong":       { "kongKonnectPAT": "..." },
+  "context7":   { "apiKey": "..." },
+  "zai":        { "apiKey": "..." },
+  "gemini":     { "apiKey": "..." },
+  "snyk":       { "token": "..." },
+  "clay":       { "pin": "..." },
+  "claudito":   { "username": "...", "password": "..." },
+  "syncthing":  { "gui": { "user": "...", "password": "..." } },
+  "qbert":      { "tailscale_ip": "...", "syncthing_id": "..." },
+  "donkey-kong":{ "tailscale_ip": "...", "syncthing_id": "..." },
+  "srv":        { "tailscale_ip": "..." },
+  "restic":     { "srv": { ... }, "workstation": { ... } },
+  "plakar":     { "qbert": { ... } },
+  "tailscale":  { "caddyAuthKey": "..." },
+  "todoist_token": "..."
 }
 ```
 
@@ -59,17 +116,15 @@ git-crypt encrypted secrets in `secrets/secrets.json`, auto-decrypted with GPG k
 | `claudito.username/password` | Claudito server auth | `server/claudito` |
 | `syncthing.gui.*` | Syncthing web UI credentials | `apps/cli/syncthing` |
 | `qbert.*` / `donkey-kong.*` | Syncthing peer discovery, remote editing | `apps/cli/syncthing`, `apps/gui/zed` |
-| `restic.srv.*` | Backrest + restic backup to B2 | `hosts/srv/modules.nix` |
+| `restic.*` | Restic backups to B2 | `hosts/*/modules.nix` |
+| `plakar.qbert.*` | Plakar backups to B2 | `apps/cli/plakar` |
 | `gemini.apiKey` | Gemini API (visual-explainer, generate-images skills) | `apps/cli/claude-code` |
-
-### Rotation
-
-1. Edit `secrets/secrets.json` (repo must be unlocked)
-2. Update the relevant value
-3. Rebuild (`just qr`) to apply
-4. Commit (file stays encrypted in git)
+| `tailscale.caddyAuthKey` | Caddy auto-issued certs on the tailnet | `system/caddy` |
+| `todoist_token` | `td` CLI | `apps/cli/todoist-cli` |
 
 ## Accessing in Modules
+
+Unchanged — `secrets` still arrives via `specialArgs`:
 
 ```nix
 { secrets, ... }:
@@ -77,7 +132,7 @@ git-crypt encrypted secrets in `secrets/secrets.json`, auto-decrypted with GPG k
   config = {
     someService.password = secrets.restic.srv.restic_password;
 
-    # Conditional on secret existence
+    # Conditional on secret existence (preferred)
     someOption = lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
       token = secrets.kong.kongKonnectPAT;
     };
@@ -85,39 +140,44 @@ git-crypt encrypted secrets in `secrets/secrets.json`, auto-decrypted with GPG k
 }
 ```
 
-## Initial Setup (new machine)
+## git-crypt status (still used for the SSH module)
+
+git-crypt is **still active** for `modules/system/ssh/default.nix` and any
+remaining files under `secrets/` (`init.png`, `sg.png`, the YASD export). New
+GPG keys still added via `git-crypt add-gpg-user`. See `.gitattributes` for the
+live encryption list.
+
+## Adding a new secret
+
+1. Edit `secrets.json.tpl` in the repo, add the new key with an
+   `op://Personal/nixerator-secrets/<field_name>` placeholder.
+2. Open the **nixerator-secrets** item in 1Password and add the matching
+   field with its value.
+3. `render-secrets` on a desktop.
+4. `render-secrets --push <host>` for any peer that needs it.
+5. Reference in a module via `secrets.path.to.secret` (no module-side change
+   to wiring; secrets continues to flow via `specialArgs`).
+6. Commit the template change.
+
+## Recovering / new machine bootstrap
 
 ```bash
-nix-shell -p git-crypt gnupg
-gpg --import /path/to/private-key.asc
-cd /path/to/nixerator && git-crypt unlock
+# Desktop with 1Password installed and signed in:
+git clone git@github.com:bashfulrobot/nixerator ~/git/nixerator
+cd ~/git/nixerator
+# render-secrets only lands on PATH after the first successful rebuild, so
+# bootstrap by calling op inject directly:
+mkdir -p ~/.config/nixos-secrets && chmod 700 ~/.config/nixos-secrets
+op inject -i secrets.json.tpl -o ~/.config/nixos-secrets/secrets.json
+chmod 600 ~/.config/nixos-secrets/secrets.json
+sudo nixos-rebuild switch --flake .#$(hostname)
 ```
 
-Or use the helper: `./extras/helpers/setup-git-crypt.sh`
-
-## Adding a New GPG Key
-
-```bash
-gpg --armor --export user@email.com > user-public.asc
-git-crypt add-gpg-user --trusted user@email.com
-git add .git-crypt/ && git commit -m "chore: add GPG key for user@email.com"
-```
-
-## Adding New Secrets
-
-1. Edit `secrets/secrets.json` (must be unlocked)
-2. Add secret following existing structure
-3. Reference in module via `secrets.path.to.secret`
-4. Commit (file stays encrypted in git)
-
-## Checking Encryption Status
-
-```bash
-git-crypt status
-git show HEAD:secrets/secrets.json | head -c 50   # binary = encrypted
-```
+After the first switch lands, `render-secrets` is on PATH.
 
 ## Troubleshooting
 
-- **"No such file or directory"** -- repo is locked, run `git-crypt unlock`
-- **"decryption failed: No secret key"** -- GPG key not imported or wrong key
+- **`error: builtins.readFile: ... No such file or directory`** during `nix flake check` / rebuild → the rendered file is missing. Run `render-secrets` (or get a peer to `render-secrets --push <thishost>`).
+- **`render-secrets: 'op' (1Password CLI) not in PATH`** → host doesn't have 1Password installed. Either enable `apps.gui.one-password` + `apps.cli.render-secrets` for it, or render on a peer and `--push` here.
+- **`authorization prompt dismissed`** when running `op inject` → touch the 1Password unlock prompt within the timeout. Re-run.
+- **Drift between 1Password and the rendered file** → `render-secrets --check` to see the diff, then plain `render-secrets` to update.

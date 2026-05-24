@@ -1,8 +1,4 @@
-{ lib, ... }:
-
-let
-  secrets = builtins.fromJSON (builtins.readFile ../../../secrets/secrets.json);
-in
+{ lib, secrets, ... }:
 
 {
 

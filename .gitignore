@@ -1,3 +1,9 @@
+# Defensive: secrets.json now lives at ~/.config/nixos-secrets/secrets.json,
+# rendered from secrets.json.tpl + 1Password. Catch any accidental
+# re-introduction of an in-repo copy.
+secrets/secrets.json
+secrets.json
+
 # Flake lock backups
 flake.lock-backup-*
 

@@ -456,6 +456,12 @@ quiet-upgrade:
 # The remote SSHes back to GitHub via your forwarded ssh-agent (requires the
 # host to have forwardAgent=true in modules/system/ssh/default.nix), pulls
 # fast-forward only, then runs `just qr` of its own host configuration.
+#
+# Pre-step: secrets live outside the repo at ~/.config/nixos-secrets/secrets.json.
+# Each remote rebuild re-renders locally from 1Password (one biometric prompt
+# here) and scp's the file to {{host}}. The remote does NOT call `op inject`
+# itself — that keeps srv (headless) and any host without 1Password working
+# the same way as the desktops.
 remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -467,6 +473,14 @@ remote-rebuild host repo_path="~/git/nixerator":
             exit 1
             ;;
     esac
+    if command -v render-secrets >/dev/null 2>&1; then
+        echo "Rendering + pushing secrets to {{host}}..."
+        render-secrets --push "{{host}}"
+    else
+        echo "WARNING: render-secrets not on PATH — skipping secrets push."
+        echo "         {{host}} must already have a current ~/.config/nixos-secrets/secrets.json,"
+        echo "         or the rebuild will fail at flake eval."
+    fi
     echo "Rebuilding {{host}} via SSH..."
     rc=0
     ssh -A -o BatchMode=yes -o ConnectTimeout=5 "{{host}}" \
@@ -492,6 +506,14 @@ remote-upgrade host repo_path="~/git/nixerator":
             exit 1
             ;;
     esac
+    if command -v render-secrets >/dev/null 2>&1; then
+        echo "Rendering + pushing secrets to {{host}}..."
+        render-secrets --push "{{host}}"
+    else
+        echo "WARNING: render-secrets not on PATH — skipping secrets push."
+        echo "         {{host}} must already have a current ~/.config/nixos-secrets/secrets.json,"
+        echo "         or the upgrade will fail at flake eval."
+    fi
     echo "Upgrading {{host}} via SSH..."
     rc=0
     ssh -A -o BatchMode=yes -o ConnectTimeout=5 "{{host}}" \

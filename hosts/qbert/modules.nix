@@ -1,6 +1,10 @@
 { secrets, ... }:
 
 {
+  # Render Nix-eval secrets locally from 1Password (and push to headless
+  # peers via `render-secrets --push`). Gated on 1Password being available.
+  apps.cli.render-secrets.enable = true;
+
   # Adopt the Claude work-host archetype (symmetric peer to srv): zellij
   # (no web, no mosh), claude-remote with always-on control tower, sshd,
   # and the work launcher. Sessions live on qbert until killed; attach
