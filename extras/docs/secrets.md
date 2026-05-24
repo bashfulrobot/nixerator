@@ -102,10 +102,23 @@ overwrite.
 The justfile recipes are thin wrappers; `render-secrets` is also on PATH:
 
 ```bash
-render-secrets                       # local render
+render-secrets                       # local render, baked template
 render-secrets --push srv [qbert]    # render + push to listed hosts
 render-secrets --check               # drift check
+render-secrets --tpl ./secrets.json.tpl   # use a different template (must
+                                          # be inside a git worktree, not
+                                          # a symlink) — for editing the
+                                          # template in a feature branch
 ```
+
+`--push HOST` validates `HOST` against an allow-list (`qbert`, `donkeykong`,
+`srv`) before invoking `ssh`/`scp`. The list lives in `render-secrets.sh` and
+in the `push-secrets` justfile recipe; keep them in sync when adding hosts.
+
+`--tpl PATH` is the only way to override the baked template path. The old
+"silently pick up `$PWD/secrets.json.tpl`" behaviour was removed in favour of
+this explicit flag — a hostile `cd` no longer turns into a 1Password vault
+exfiltration primitive.
 
 ## Schema (rendered file)
 

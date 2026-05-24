@@ -122,7 +122,8 @@
       "Bash(nixos-rebuild boot *)",
       "Bash(nixos-rebuild test *)",
       "Bash(nix-collect-garbage *)",
-      "Read(//home/dustin/.config/nixos-secrets/**)"
+      "Read(/home/dustin/.config/nixos-secrets/**)",
+      "Read(~/.config/nixos-secrets/**)"
     ],
     "ask": [
       "Bash(rm *)",

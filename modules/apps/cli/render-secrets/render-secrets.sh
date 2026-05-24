@@ -17,22 +17,26 @@ set -euo pipefail
 DEST="@DEST@"
 TPL="@TPL@"
 
-# Worktree override: prefer a co-located template in the caller's cwd. Lets
-# `cd ~/git/.worktrees/issue-N && render-secrets` pick up that worktree's
-# template instead of the baked main-clone path.
-if [[ -f "${PWD}/secrets.json.tpl" ]]; then
-    TPL="${PWD}/secrets.json.tpl"
-fi
+# Hosts render-secrets is willing to scp to. Hardcoded — matches the same
+# allow-list `justfile`'s remote-rebuild recipes use. Defends against a
+# user typing (or pasting) an attacker hostname / `user@host` string and
+# silently exfiltrating the rendered secrets via scp.
+ALLOWED_HOSTS=(qbert donkeykong srv)
 
 usage() {
     cat >&2 <<EOF
-Usage: render-secrets [--check] [--push HOST [HOST...]]
+Usage: render-secrets [--check] [--tpl PATH] [--push HOST [HOST...]]
   Renders 1Password-templated secrets to: ${DEST}
-  Template:                                ${TPL}
+  Default template (baked at build time): ${TPL}
 
   --check          Render to a temp file and diff against the live file. No write.
-  --push HOST...   After rendering, scp the rendered file to each HOST at the same
-                   path with 600 perms. Hosts are resolved via SSH config.
+  --tpl PATH       Override the template path. PATH must be inside the current
+                   git working tree (refuses anything outside or symlinked out),
+                   to prevent a hostile-cwd template from exfiltrating
+                   arbitrary 1Password vault fields. Use this only when
+                   intentionally editing the template in a worktree.
+  --push HOST...   After rendering, scp the rendered file to each HOST at the
+                   same path with 600 perms. HOST must be one of: ${ALLOWED_HOSTS[*]}.
 
 Notes:
   --push requires at least one non-flag HOST immediately after it.
@@ -41,12 +45,66 @@ EOF
     exit 2
 }
 
+# is_host_allowed HOST — true iff HOST is in the ALLOWED_HOSTS list (exact match).
+is_host_allowed() {
+    local h="$1" a
+    for a in "${ALLOWED_HOSTS[@]}"; do
+        [[ "$a" == "$h" ]] && return 0
+    done
+    return 1
+}
+
+# validate_tpl_path PATH — refuse the override unless PATH is a regular file
+# (not a symlink), lives inside the cwd's git working tree, and is readable.
+# Prevents two attacks: a hostile cwd dropping a `secrets.json.tpl` with
+# arbitrary `op://` references, and a worktree template symlinked to a file
+# outside the worktree.
+validate_tpl_path() {
+    local p="$1"
+    if [[ ! -e "$p" ]]; then
+        echo "render-secrets: --tpl path does not exist: $p" >&2
+        exit 1
+    fi
+    if [[ -L "$p" ]]; then
+        echo "render-secrets: --tpl refuses symlinked templates: $p" >&2
+        exit 1
+    fi
+    if [[ ! -f "$p" ]]; then
+        echo "render-secrets: --tpl path is not a regular file: $p" >&2
+        exit 1
+    fi
+    local abs toplevel
+    abs="$(realpath -e "$p")"
+    toplevel="$(git -C "$(dirname "$abs")" rev-parse --show-toplevel 2>/dev/null || true)"
+    if [[ -z "$toplevel" ]]; then
+        echo "render-secrets: --tpl path is not inside a git working tree: $p" >&2
+        exit 1
+    fi
+    case "$abs" in
+        "$toplevel"/*) : ;;
+        *)
+            echo "render-secrets: --tpl path is outside its git working tree: $p" >&2
+            exit 1
+            ;;
+    esac
+}
+
 CHECK=0
 PUSH=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --check)
             CHECK=1
+            shift
+            ;;
+        --tpl)
+            shift
+            [[ $# -gt 0 && ! "$1" =~ ^- ]] || {
+                echo "--tpl requires a PATH argument" >&2
+                usage
+            }
+            validate_tpl_path "$1"
+            TPL="$(realpath -e "$1")"
             shift
             ;;
         --push)
@@ -59,6 +117,11 @@ while [[ $# -gt 0 ]]; do
                 usage
             }
             while [[ $# -gt 0 && ! "$1" =~ ^- ]]; do
+                if ! is_host_allowed "$1"; then
+                    echo "render-secrets: refusing to push to unrecognized host: $1" >&2
+                    echo "  Allowed: ${ALLOWED_HOSTS[*]}" >&2
+                    exit 1
+                fi
                 PUSH+=("$1")
                 shift
             done
@@ -136,13 +199,13 @@ if [[ ${#PUSH[@]} -gt 0 ]]; then
         rc=0
         # Stage to ${DEST}.tmp on the remote (same dir as DEST, same fs), then
         # atomically mv. Partial scp leaves DEST untouched.
-        ssh -o BatchMode=yes -o ConnectTimeout=5 "${host}" \
+        ssh -o BatchMode=yes -o ConnectTimeout=5 -- "${host}" \
             "mkdir -p '${DEST_DIR}' && chmod 700 '${DEST_DIR}'" || rc=$?
         if [[ $rc -eq 0 ]]; then
-            scp -q -o BatchMode=yes -o ConnectTimeout=5 "${DEST}" "${host}:${DEST}.tmp" || rc=$?
+            scp -q -o BatchMode=yes -o ConnectTimeout=5 -- "${DEST}" "${host}:${DEST}.tmp" || rc=$?
         fi
         if [[ $rc -eq 0 ]]; then
-            ssh -o BatchMode=yes -o ConnectTimeout=5 "${host}" \
+            ssh -o BatchMode=yes -o ConnectTimeout=5 -- "${host}" \
                 "chmod 600 '${DEST}.tmp' && mv -f '${DEST}.tmp' '${DEST}'" || rc=$?
         fi
         if [[ $rc -eq 0 ]]; then

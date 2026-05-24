@@ -33,6 +33,7 @@ let
               pkgs.openssh
               pkgs.diffutils
               pkgs.coreutils
+              pkgs.git
             ]
           }
       '';

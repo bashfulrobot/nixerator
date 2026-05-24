@@ -520,8 +520,24 @@ render-secrets:
 #
 #   just push-secrets srv
 #   just push-secrets srv qbert
+#
+# Hostnames are validated against an allow-list; render-secrets itself also
+# enforces the same allow-list. The recipe quotes each host individually so a
+# host string containing shell metacharacters cannot inject commands.
 push-secrets +hosts:
-    @render-secrets --push {{hosts}}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for host in {{hosts}}; do
+        case "$host" in
+            qbert|donkeykong|srv) ;;
+            *)
+                echo "Refusing to push to unrecognized host: $host"
+                echo "Allowed: qbert, donkeykong, srv"
+                exit 1
+                ;;
+        esac
+    done
+    render-secrets --push {{hosts}}
 
 # Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
 # Exits non-zero if 1Password values differ from the cached file. Read-only.
