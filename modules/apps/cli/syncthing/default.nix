@@ -78,8 +78,8 @@ in
         settings = {
           devices = {
             "qbert" = {
-              addresses = [ "tcp://${secrets.qbert.tailscale_ip}:22000" ];
-              id = secrets.qbert.syncthing_id;
+              addresses = [ "tcp://${globals.hosts.qbert.tailscale_ip}:22000" ];
+              id = globals.hosts.qbert.syncthing_id;
             };
           };
 
@@ -175,8 +175,8 @@ in
         settings = {
           devices = {
             "donkey-kong" = {
-              addresses = [ "tcp://${secrets.donkey-kong.tailscale_ip}:22000" ];
-              id = secrets.donkey-kong.syncthing_id;
+              addresses = [ "tcp://${globals.hosts.donkeykong.tailscale_ip}:22000" ];
+              id = globals.hosts.donkeykong.syncthing_id;
             };
           };
 

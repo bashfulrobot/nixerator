@@ -29,10 +29,10 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 
 ## Secrets
 
-- **Nix-eval secrets live outside the repo** at `~/.config/nixos-secrets/secrets.json`, rendered from `secrets.json.tpl` + 1Password via `render-secrets`. See `extras/docs/secrets.md`.
-- **Never read `~/.config/nixos-secrets/`** from agent tooling — the path is on Claude Code's `permissions.deny`. To inspect schema, read `secrets.json.tpl` (placeholders only) instead.
-- **Never re-introduce `secrets/secrets.json`** in the repo. `.gitignore` blocks it.
-- git-crypt is still active for `modules/system/ssh/default.nix` and non-JSON assets under `secrets/`.
+- **All secrets live in the `nixerator` 1Password vault.** Nix-eval secrets render to `~/.config/nixos-secrets/secrets.json` via `just render-secrets`; Okular signature PNGs fetch to `~/.kde/share/icons/` via `just fetch-signatures`. See `extras/docs/secrets.md`.
+- **Never read `~/.config/nixos-secrets/` or `~/.config/op/`** from agent tooling — both paths are on Claude Code's Read `permissions.deny`. To inspect the schema, read `secrets.json.tpl` (placeholders only).
+- **Never re-introduce `secrets/secrets.json`, `secrets/sg.png`, or `secrets/init.png`** in the repo. `.gitignore` blocks them; git-crypt has been retired (#86).
+- Per-host network identity (Tailscale IPs, syncthing peer IDs) is NOT secret and lives in `settings/globals.nix` under `hosts.{qbert,donkeykong,srv}`.
 
 ## Searching nixpkgs
 

@@ -1,8 +1,11 @@
-# Defensive: a top-level secrets.json is never expected (the in-repo
-# git-crypt'd file lives at secrets/secrets.json and is opt-in via flake
-# fallback; the rendered file lives at ~/.config/nixos-secrets/secrets.json
-# which is outside the repo).
+# Defensive: nothing should ever land at the repo's old in-repo secrets
+# locations. The rendered Nix-eval file is at ~/.config/nixos-secrets/
+# secrets.json (outside the repo), and the Okular signature/initials PNGs
+# are 1Password Documents fetched to ~/.kde/share/icons/ on demand.
 /secrets.json
+/secrets/secrets.json
+/secrets/sg.png
+/secrets/init.png
 
 # Flake lock backups
 flake.lock-backup-*
