@@ -131,11 +131,23 @@
       globals = import ./settings/globals.nix;
       versions = import ./settings/versions.nix;
 
-      # Load secrets from an out-of-repo JSON file rendered by `render-secrets`
-      # from secrets.json.tpl + 1Password. String path (not Nix path literal)
-      # so the file is read at eval time without being copied into the Nix
-      # store as a flake input. See extras/docs/secrets.md.
-      secretsFile = "${globals.user.homeDirectory}/.config/nixos-secrets/secrets.json";
+      # Secrets source — prefers the rendered out-of-repo file (string path so
+      # it stays out of the Nix store as a flake input), falls back to the
+      # legacy git-crypt'd in-repo file when the rendered file doesn't exist.
+      # See extras/docs/secrets.md.
+      #
+      # === FALLBACK SCAFFOLDING — REMOVE ONCE 1PASSWORD FLOW IS PROVEN ===
+      # When ready: collapse the let-block to the single externalSecrets path
+      # (matching the pre-fallback shape), `git rm secrets/secrets.json`,
+      # restore /secrets/secrets.json to .gitignore, and drop the rollback
+      # section from extras/docs/secrets.md.
+      secretsFile =
+        let
+          externalSecrets = "${globals.user.homeDirectory}/.config/nixos-secrets/secrets.json";
+          inRepoSecrets = "${inputs.self}/secrets/secrets.json";
+        in
+        if builtins.pathExists externalSecrets then externalSecrets else inRepoSecrets;
+      # === END FALLBACK SCAFFOLDING ===
       secrets = builtins.fromJSON (builtins.readFile secretsFile);
 
       # Import library functions

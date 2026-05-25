@@ -544,6 +544,33 @@ push-secrets +hosts:
 check-secrets:
     @render-secrets --check
 
+# Install the 1Password service-account token at ~/.config/op/service-account-token
+# (0600), so render-secrets / push-secrets / check-secrets run with zero
+# biometric prompts thereafter. One-time per host.
+#
+# Default behaviour: `op read` fetches the token from your Personal vault
+# (one biometric on the desktop). Pass-through args support the helper's
+# alternate inputs:
+#
+#   just setup-op-token                            # op read (default, preferred)
+#   just setup-op-token --manual                   # interactive paste
+#   just setup-op-token --force                    # overwrite an existing different token
+#   OP_TOKEN=ops_... just setup-op-token           # from env var (no prompts)
+#
+# See extras/docs/helpers.md for the full helper docs.
+setup-op-token *args:
+    @./extras/helpers/setup-op-service-account.sh {{args}}
+
+# Pre-rebuild bootstrap render: writes ~/.config/nixos-secrets/secrets.json
+# WITHOUT needing render-secrets on PATH yet. Use ONLY on a fresh machine
+# before the first rebuild lands the Nix-packaged render-secrets. After that
+# first rebuild, prefer `just render-secrets`.
+#
+# Auth is the same as render-secrets -- if you ran `just setup-op-token`
+# first, this runs with no prompts.
+bootstrap-secrets:
+    @./extras/helpers/render-secrets-bootstrap.sh
+
 # === Aliases ===
 alias r := rebuild
 alias up := upgrade

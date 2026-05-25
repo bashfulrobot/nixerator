@@ -1,9 +1,7 @@
-# Defensive: secrets.json now lives at ~/.config/nixos-secrets/secrets.json,
-# rendered from secrets.json.tpl + 1Password. Catch any accidental
-# re-introduction of an in-repo copy. Anchored to repo root so a legitimate
-# module that ships a non-sensitive secrets.json (sample/fixture) isn't
-# silently ignored.
-/secrets/secrets.json
+# Defensive: a top-level secrets.json is never expected (the in-repo
+# git-crypt'd file lives at secrets/secrets.json and is opt-in via flake
+# fallback; the rendered file lives at ~/.config/nixos-secrets/secrets.json
+# which is outside the repo).
 /secrets.json
 
 # Flake lock backups

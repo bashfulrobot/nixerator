@@ -34,6 +34,11 @@ nix-shell -p git --run "git clone $REPO_SSH_URL"
 cd nixerator
 
 ## Step 4: Setup git-crypt
+# The flake's secrets source falls back to secrets/secrets.json (git-crypt'd
+# in-repo) when ~/.config/nixos-secrets/secrets.json doesn't exist. On a
+# fresh install the external file never exists, so git-crypt IS the path
+# used here. Switching to the 1Password flow is a post-install opt-in --
+# see "Optional: migrate to 1Password" below.
 scp "$SOURCE_SSH:~/.ssh/nixerator-git-crypt-key" ~/.ssh/
 chmod 600 ~/.ssh/nixerator-git-crypt-key
 ./extras/helpers/setup-git-crypt.sh
@@ -55,7 +60,10 @@ git add hosts/donkeykong/hardware-configuration.nix
 git commit -m "feat(donkeykong): add hardware configuration"
 
 ## Step 8: Install NixOS
-sudo nixos-install --flake ".#$TARGET_HOST"
+# --impure is required: flake.nix reads secretsFile via builtins.readFile of
+# an absolute string path (and gates that on builtins.pathExists) so the
+# fallback can pick the right file without copying it into the store.
+sudo nixos-install --impure --flake ".#$TARGET_HOST"
 
 ## Step 9: Copy Keys to Installed System
 sudo mkdir -p "$TARGET_HOME/.ssh" && sudo chmod 700 "$TARGET_HOME/.ssh"
@@ -79,6 +87,57 @@ sudo cp -r /tmp/install/nixerator "$TARGET_REPO_DIR/"
 ## Step 10: Set Passwords
 sudo nixos-enter --root /mnt -c 'passwd root'
 sudo nixos-enter --root /mnt -c "passwd $INSTALL_USER"
+
+## OPTIONAL Path B addendum: stage SA flow so first boot uses 1Password
+##
+## Run BETWEEN Step 10 and Step 11 if you want the post-install rebuilds on
+## this host to use the 1Password service-account flow from boot #1, with
+## NO git-crypt transit. The install itself in Step 8 still uses the
+## git-crypt fallback (the live USB doesn't have /home/dustin, so the
+## external file path can't resolve there), but staging the SA token and a
+## pre-rendered secrets file under /mnt/home/dustin/ means the very first
+## `nixos-rebuild switch` after first boot picks up the SA flow.
+##
+## Skip this whole block for the default Path A flow (use git-crypt now,
+## migrate to 1Password later via "Optional: migrate to 1Password" below).
+##
+## Prerequisites: an SA token (ops_...) already created in 1Password,
+## scoped read-only on the `nixerator` vault. See extras/docs/secrets.md.
+
+## Path B.1: Get the SA token onto the live USB.
+# Option 1: scp from source machine (preferred if you've already set it up there).
+scp "$SOURCE_SSH:~/.config/op/service-account-token" /tmp/op-sa-token
+# Option 2: paste manually:
+#   printf '%s' 'ops_PASTE_HERE' > /tmp/op-sa-token
+chmod 600 /tmp/op-sa-token
+
+## Path B.2: Render secrets.json into /mnt/home/dustin/.config/nixos-secrets/
+## using the SA token (no biometric).
+sudo mkdir -p "$TARGET_HOME/.config/nixos-secrets"
+sudo chmod 700 "$TARGET_HOME/.config/nixos-secrets"
+sudo OP_SERVICE_ACCOUNT_TOKEN="$(cat /tmp/op-sa-token)" \
+    nix-shell -p _1password-cli --run \
+    "op inject --force -i secrets.json.tpl \
+        -o $TARGET_HOME/.config/nixos-secrets/secrets.json"
+sudo chmod 600 "$TARGET_HOME/.config/nixos-secrets/secrets.json"
+
+## Path B.3: Also stage the SA token itself onto the target so render-secrets /
+## just render-secrets / just push-secrets work without prompts after reboot.
+sudo mkdir -p "$TARGET_HOME/.config/op"
+sudo chmod 700 "$TARGET_HOME/.config/op"
+sudo install -m 0600 /tmp/op-sa-token "$TARGET_HOME/.config/op/service-account-token"
+
+## Path B.4: chown the staged dirs to the target user. NixOS' default user
+## uid:gid is 1000:100; verify with `nixos-enter --root /mnt -c "id $INSTALL_USER"`
+## if you're unsure.
+sudo nixos-enter --root /mnt -c "chown -R $INSTALL_USER:users \
+    /home/$INSTALL_USER/.config/nixos-secrets \
+    /home/$INSTALL_USER/.config/op"
+
+## Path B.5: Clean up the live-USB scratch copy.
+shred -u /tmp/op-sa-token 2>/dev/null || rm -f /tmp/op-sa-token
+
+## End Path B addendum. Continue to Step 11.
 
 ## Step 11: Reboot
 sudo umount -R /mnt && sudo reboot
@@ -105,9 +164,49 @@ export REPO_PATH="$HOME/git/nixerator"
 ssh-add -l && gpg --list-keys && ssh -T git@github.com
 cd "$REPO_PATH" && git-crypt status && git status
 
-# Update + rebuild
+# Update + rebuild (or use `just qr` once you're done; it wraps this)
 nix flake update
-sudo nixos-rebuild switch --flake "$REPO_PATH#$TARGET_HOST"
+sudo nixos-rebuild switch --impure --flake "$REPO_PATH#$TARGET_HOST"
+
+## Optional: migrate to 1Password for secrets (post-install)
+
+# Skip this section if you ran the "Path B addendum" above -- the SA token
+# and rendered file were already staged, so first-boot rebuilds are already
+# on the 1Password flow.
+#
+# Otherwise (Path A default), the first boot of this machine reads secrets
+# from secrets/secrets.json (git-crypt'd, in-repo) via the flake fallback.
+# To opt this host into the 1Password flow instead, run ONE of the following
+# from $REPO_PATH after the host has booted and signed into 1Password:
+#
+# A. From this host. The recommended auth is the 1Password service account
+#    (zero biometric prompts after one-time setup). `just setup-op-token`
+#    uses `op read` to fetch the SA token from your Personal vault via ONE
+#    desktop-biometric prompt, then installs it at
+#    ~/.config/op/service-account-token (0600). From that moment on,
+#    render-secrets / push-secrets / check-secrets all run with no prompts.
+#
+#       op signin                # one biometric (desktop GUI session)
+#       just setup-op-token      # one biometric (op read), installs the token
+#       just render-secrets      # writes ~/.config/nixos-secrets/secrets.json (no prompts)
+#
+#    Alternative auth: skip `just setup-op-token`, stick with desktop
+#    biometric each time render-secrets runs. (1Password app settings
+#    control prompt frequency; per-call vs. per-session is a GUI setting.)
+#
+# B. From a peer that already has the rendered file:
+#       # on the peer:
+#       just push-secrets $TARGET_HOST
+#
+# C. If render-secrets isn't on PATH yet (first rebuild not landed), use
+#    `just bootstrap-secrets`, which pulls op via nix-shell. Same auth
+#    choices as Option A apply -- if you ran `just setup-op-token` first,
+#    bootstrap-secrets auto-sources the token and runs without prompts:
+#       just bootstrap-secrets
+#
+# After any of these, the next `just qr` on this host reads from the
+# rendered file. To roll back: `rm ~/.config/nixos-secrets/secrets.json`
+# and rebuild -- the fallback takes over. See extras/docs/secrets.md.
 
 ## Troubleshooting
 
@@ -116,6 +215,12 @@ sudo nixos-rebuild switch --flake "$REPO_PATH#$TARGET_HOST"
 # Install fails: check internet, verify flake.lock present, test with nix flake metadata
 # Boot fails: check LUKS password, boot live USB and check /boot/loader/entries/, verify ESP
 # git-crypt fails: verify key (ls -l ~/.ssh/nixerator-git-crypt-key), should be 600
+# nixos-install / rebuild errors on "access to absolute path ... is forbidden in pure
+#   evaluation mode": add --impure to the command. Required since the secrets fallback
+#   uses an absolute string path.
+# nixos-install / rebuild errors on "builtins.readFile: No such file or directory":
+#   neither secrets source resolved. Either git-crypt unlock the repo (fallback path)
+#   or render the external file (see "Optional: migrate to 1Password" above).
 
 ## Important Files
 # hosts/donkeykong/configuration.nix, disko.nix, boot.nix, home.nix
