@@ -1,72 +1,72 @@
 {
   "kong": {
-    "kongKonnectPAT": "{{ op://Personal/nixerator-secrets/kong_kongKonnectPAT }}"
+    "kongKonnectPAT": "{{ op://nixerator/kong-konnect-pat/credential }}"
   },
   "syncthing": {
     "gui": {
-      "user": "{{ op://Personal/nixerator-secrets/syncthing_gui_user }}",
-      "password": "{{ op://Personal/nixerator-secrets/syncthing_gui_password }}"
+      "user": "{{ op://nixerator/syncthing-gui/username }}",
+      "password": "{{ op://nixerator/syncthing-gui/password }}"
     }
   },
   "qbert": {
-    "tailscale_ip": "{{ op://Personal/nixerator-secrets/qbert_tailscale_ip }}",
-    "syncthing_id": "{{ op://Personal/nixerator-secrets/qbert_syncthing_id }}"
+    "tailscale_ip": "{{ op://nixerator/host-qbert/tailscale_ip }}",
+    "syncthing_id": "{{ op://nixerator/host-qbert/syncthing_id }}"
   },
   "donkey-kong": {
-    "tailscale_ip": "{{ op://Personal/nixerator-secrets/donkey_kong_tailscale_ip }}",
-    "syncthing_id": "{{ op://Personal/nixerator-secrets/donkey_kong_syncthing_id }}"
+    "tailscale_ip": "{{ op://nixerator/host-donkeykong/tailscale_ip }}",
+    "syncthing_id": "{{ op://nixerator/host-donkeykong/syncthing_id }}"
   },
   "restic": {
     "srv": {
-      "restic_repository": "{{ op://Personal/nixerator-secrets/restic_srv_restic_repository }}",
-      "restic_password": "{{ op://Personal/nixerator-secrets/restic_srv_restic_password }}",
-      "b2_account_id": "{{ op://Personal/nixerator-secrets/restic_srv_b2_account_id }}",
-      "b2_account_key": "{{ op://Personal/nixerator-secrets/restic_srv_b2_account_key }}",
-      "region": "{{ op://Personal/nixerator-secrets/restic_srv_region }}"
+      "restic_repository": "{{ op://nixerator/restic-srv/repository }}",
+      "restic_password": "{{ op://nixerator/restic-password/password }}",
+      "b2_account_id": "{{ op://nixerator/b2-credentials/keyID }}",
+      "b2_account_key": "{{ op://nixerator/b2-credentials/applicationKey }}",
+      "region": "{{ op://nixerator/restic-srv/region }}"
     },
     "workstation": {
-      "restic_repository": "{{ op://Personal/nixerator-secrets/restic_workstation_restic_repository }}",
-      "restic_password": "{{ op://Personal/nixerator-secrets/restic_workstation_restic_password }}",
-      "b2_account_id": "{{ op://Personal/nixerator-secrets/restic_workstation_b2_account_id }}",
-      "b2_account_key": "{{ op://Personal/nixerator-secrets/restic_workstation_b2_account_key }}",
-      "region": "{{ op://Personal/nixerator-secrets/restic_workstation_region }}"
+      "restic_repository": "{{ op://nixerator/restic-workstation/repository }}",
+      "restic_password": "{{ op://nixerator/restic-password/password }}",
+      "b2_account_id": "{{ op://nixerator/b2-credentials/keyID }}",
+      "b2_account_key": "{{ op://nixerator/b2-credentials/applicationKey }}",
+      "region": "{{ op://nixerator/restic-workstation/region }}"
     }
   },
   "plakar": {
     "qbert": {
-      "repository": "{{ op://Personal/nixerator-secrets/plakar_qbert_repository }}",
-      "passphrase": "{{ op://Personal/nixerator-secrets/plakar_qbert_passphrase }}",
-      "b2_account_id": "{{ op://Personal/nixerator-secrets/plakar_qbert_b2_account_id }}",
-      "b2_account_key": "{{ op://Personal/nixerator-secrets/plakar_qbert_b2_account_key }}"
+      "repository": "{{ op://nixerator/plakar-qbert/repository }}",
+      "passphrase": "{{ op://nixerator/plakar-qbert/passphrase }}",
+      "b2_account_id": "{{ op://nixerator/b2-credentials/keyID }}",
+      "b2_account_key": "{{ op://nixerator/b2-credentials/applicationKey }}"
     }
   },
   "context7": {
-    "apiKey": "{{ op://Personal/nixerator-secrets/context7_apiKey }}"
+    "apiKey": "{{ op://nixerator/context7/credential }}"
   },
   "zai": {
-    "apiKey": "{{ op://Personal/nixerator-secrets/zai_apiKey }}"
+    "apiKey": "{{ op://nixerator/zai/credential }}"
   },
   "github": {
-    "accessToken": "{{ op://Personal/nixerator-secrets/github_accessToken }}"
+    "accessToken": "{{ op://nixerator/github-pat/credential }}"
   },
   "clay": {
-    "pin": "{{ op://Personal/nixerator-secrets/clay_pin }}"
+    "pin": "{{ op://nixerator/clay-pin/password }}"
   },
   "claudito": {
-    "username": "{{ op://Personal/nixerator-secrets/claudito_username }}",
-    "password": "{{ op://Personal/nixerator-secrets/claudito_password }}"
+    "username": "{{ op://nixerator/claudito/username }}",
+    "password": "{{ op://nixerator/claudito/password }}"
   },
   "srv": {
-    "tailscale_ip": "{{ op://Personal/nixerator-secrets/srv_tailscale_ip }}"
+    "tailscale_ip": "{{ op://nixerator/host-srv/tailscale_ip }}"
   },
   "gemini": {
-    "apiKey": "{{ op://Personal/nixerator-secrets/gemini_apiKey }}"
+    "apiKey": "{{ op://nixerator/gemini/credential }}"
   },
   "tailscale": {
-    "caddyAuthKey": "{{ op://Personal/nixerator-secrets/tailscale_caddyAuthKey }}"
+    "caddyAuthKey": "{{ op://nixerator/tailscale-caddy-authkey/credential }}"
   },
   "snyk": {
-    "token": "{{ op://Personal/nixerator-secrets/snyk_token }}"
+    "token": "{{ op://nixerator/snyk/credential }}"
   },
-  "todoist_token": "{{ op://Personal/nixerator-secrets/todoist_token }}"
+  "todoist_token": "{{ op://nixerator/todoist/credential }}"
 }

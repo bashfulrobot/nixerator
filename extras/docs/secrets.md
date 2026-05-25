@@ -29,14 +29,41 @@ Hosts split into two roles:
 ### Desktop hosts (donkeykong, qbert)
 
 1. Sign in to 1Password CLI: `op signin` (biometric).
-2. Make sure the aggregated 1Password item exists:
-   - Vault: **Personal**
-   - Item title: **nixerator-secrets** (Secure Note)
-   - One custom field per leaf in `secrets.json.tpl` (e.g. `github_accessToken`,
-     `restic_srv_b2_account_key`). Field names match the placeholder paths in
-     the template exactly.
+2. Make sure the `nixerator` vault and all 19 items below exist (already true
+   if you're the maintainer; the table is here for migration and disaster
+   recovery). Item titles, types, and field names are pinned — they must match
+   `secrets.json.tpl` exactly:
+
+   | Item | Type | Fields |
+   |------|------|--------|
+   | `kong-konnect-pat` | API Credential | `credential` |
+   | `context7` | API Credential | `credential` |
+   | `zai` | API Credential | `credential` |
+   | `gemini` | API Credential | `credential` |
+   | `snyk` | API Credential | `credential` |
+   | `tailscale-caddy-authkey` | API Credential | `credential` |
+   | `github-pat` | API Credential | `credential` |
+   | `todoist` | API Credential | `credential` |
+   | `clay-pin` | Password | `password` |
+   | `claudito` | Login | `username` + `password` |
+   | `syncthing-gui` | Login | `username` + `password` |
+   | `b2-credentials` | Secure Note | `keyID` + `applicationKey` |
+   | `restic-password` | Password | `password` |
+   | `restic-srv` | Secure Note | `repository` + `region` |
+   | `restic-workstation` | Secure Note | `repository` + `region` |
+   | `plakar-qbert` | Secure Note | `repository` + `passphrase` |
+   | `host-qbert` | Secure Note | `tailscale_ip` + `syncthing_id` |
+   | `host-donkeykong` | Secure Note | `tailscale_ip` + `syncthing_id` |
+   | `host-srv` | Secure Note | `tailscale_ip` |
+
 3. Render: `render-secrets`
 4. (Optional, on first setup) push to peers: `render-secrets --push srv`
+
+The vault is intentionally self-contained: some values (the GitHub PAT, the
+b2 creds, syncthing creds, todoist token, restic password) also exist as items
+in `Personal`, but `secrets.json.tpl` only references `op://nixerator/…`. This
+keeps the eval-secrets set under one access boundary so a future service
+account can be granted read-only on just this vault.
 
 ### Headless hosts (srv)
 
@@ -187,20 +214,25 @@ live encryption list.
 
 ## Adding a new secret
 
-1. Edit `secrets.json.tpl` in the repo, add the new key with an
-   `op://Personal/nixerator-secrets/<field_name>` placeholder.
-2. Open the **nixerator-secrets** item in 1Password and add the matching
-   field with its value.
-3. `render-secrets` on a desktop.
-4. `render-secrets --push <host>` for any peer that needs it.
-5. Reference in a module via `secrets.path.to.secret` (no module-side change
-   to wiring; secrets continues to flow via `specialArgs`).
-6. Commit the template change.
+1. Decide whether the secret fits an existing `nixerator/<item>` (e.g. an
+   additional field on `host-qbert`) or needs its own item. Prefer the
+   pattern: API token → `API Credential` with `credential` field; password →
+   `Password`; user+pass → `Login`; multi-value config → `Secure Note`.
+2. Create or extend the item in the `nixerator` 1Password vault.
+3. Edit `secrets.json.tpl` in the repo, add the new key with the matching
+   `{{ op://nixerator/<item>/<field> }}` placeholder.
+4. `render-secrets` on a desktop.
+5. `render-secrets --push <host>` for any peer that needs it.
+6. Reference in a module via `secrets.path.to.secret` (no module-side change
+   to wiring; secrets flow via `specialArgs`).
+7. Commit the template change. Don't commit the rendered JSON — `.gitignore`
+   blocks it.
 
 ## Recovering / new machine bootstrap
 
 ```bash
-# Desktop with 1Password installed and signed in:
+# Desktop with 1Password installed and signed in, and read access to the
+# `nixerator` vault:
 git clone git@github.com:bashfulrobot/nixerator ~/git/nixerator
 cd ~/git/nixerator
 # render-secrets only lands on PATH after the first successful rebuild, so
@@ -208,7 +240,7 @@ cd ~/git/nixerator
 mkdir -p ~/.config/nixos-secrets && chmod 700 ~/.config/nixos-secrets
 op inject -i secrets.json.tpl -o ~/.config/nixos-secrets/secrets.json
 chmod 600 ~/.config/nixos-secrets/secrets.json
-sudo nixos-rebuild switch --flake .#$(hostname)
+sudo nixos-rebuild switch --impure --flake .#$(hostname)
 ```
 
 After the first switch lands, `render-secrets` is on PATH.
