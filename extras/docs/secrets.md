@@ -1,13 +1,26 @@
 # Secrets Management
 
-Nix-eval secrets live **outside the repo** at `~/.config/nixos-secrets/secrets.json`
-(perms `0600`, parent dir `0700`). 1Password is the source of truth. A committed
-template, `secrets.json.tpl`, renders to that path via `op inject` whenever
-secrets rotate.
+Nix-eval secrets are read at flake-eval time from one of two sources, in this
+order:
 
-The file never enters the Nix store as a flake input (read via a string path,
-not a Nix path literal), and the path is on Claude Code's Read `permissions.deny`
-so AI tools scoped to the repo working directory can't read it.
+1. **Preferred**: `~/.config/nixos-secrets/secrets.json` (perms `0600`, parent
+   dir `0700`) — rendered from `secrets.json.tpl` + 1Password via the
+   `render-secrets` helper.
+2. **Fallback**: `secrets/secrets.json` in the repo, git-crypt'd at rest.
+
+The flake picks the first one whose file exists. Both paths produce identical
+JSON; modules consume `secrets.*` the same way regardless of source. The
+fallback exists so a fresh machine can `git-crypt unlock` and rebuild without
+ever touching 1Password (`render-secrets` only lands on PATH after the first
+successful rebuild — see "Fresh machine bootstrap" below). The fallback is
+expected to be removed once the 1Password flow is proven on every host (see
+the `FALLBACK SCAFFOLDING` block in `flake.nix`).
+
+The preferred path never enters the Nix store as a flake input (read via a
+string path, not a Nix path literal), and is on Claude Code's Read
+`permissions.deny` so AI tools scoped to the repo working directory can't read
+it. The fallback path IS in-store at eval time (Nix copies the flake source)
+— that's the trade-off the legacy git-crypt'd flow always carried.
 
 The deny list intentionally only blocks the Read tool, not enumerated Bash
 viewers (`cat`, `bat`, `jq`, `head`, `tail`, …). Trying to enumerate every
@@ -205,12 +218,36 @@ Unchanged — `secrets` still arrives via `specialArgs`:
 }
 ```
 
-## git-crypt status (still used for the SSH module)
+## git-crypt status (still used)
 
-git-crypt is **still active** for `modules/system/ssh/default.nix` and any
-remaining files under `secrets/` (`init.png`, `sg.png`, the YASD export). New
-GPG keys still added via `git-crypt add-gpg-user`. See `.gitattributes` for the
+git-crypt is **still active** for:
+
+- `secrets/secrets.json` — the fallback Nix-eval secrets file (see top of doc;
+  used when `~/.config/nixos-secrets/secrets.json` doesn't exist).
+- `modules/system/ssh/default.nix`.
+- Any other files under `secrets/` (`init.png`, `sg.png`, the YASD export).
+
+New GPG keys added via `git-crypt add-gpg-user`. See `.gitattributes` for the
 live encryption list.
+
+## Rolling back to the git-crypt-only flow
+
+The 1Password / `render-secrets` flow is opt-in per host via file presence. To
+take a host off the new path and back onto git-crypt:
+
+```bash
+# On the host you want to roll back:
+rm ~/.config/nixos-secrets/secrets.json
+sudo nixos-rebuild switch --impure --flake .#$(hostname)
+# Flake eval falls back to secrets/secrets.json (git-crypt'd, must be unlocked).
+```
+
+To opt back in: `just render-secrets` (or `just push-secrets <host>` from a
+peer). The next rebuild picks the rendered file up automatically.
+
+To remove the fallback entirely once the new flow is proven everywhere, see
+the `FALLBACK SCAFFOLDING` comment block in `flake.nix` — it lists the four
+files to revert.
 
 ## Adding a new secret
 
@@ -228,26 +265,56 @@ live encryption list.
 7. Commit the template change. Don't commit the rendered JSON — `.gitignore`
    blocks it.
 
-## Recovering / new machine bootstrap
+## Fresh machine bootstrap
+
+Two paths — pick based on whether you want the first rebuild on this host to
+already use the 1Password flow, or to start on git-crypt and migrate later.
+
+### Path A: git-crypt fallback for bootstrap (simplest)
+
+No 1Password CLI needed for the first rebuild. The flake falls back to
+`secrets/secrets.json` automatically.
 
 ```bash
-# Desktop with 1Password installed and signed in, and read access to the
-# `nixerator` vault:
+nix-shell -p git git-crypt
 git clone git@github.com:bashfulrobot/nixerator ~/git/nixerator
 cd ~/git/nixerator
-# render-secrets only lands on PATH after the first successful rebuild, so
-# bootstrap by calling op inject directly:
-mkdir -p ~/.config/nixos-secrets && chmod 700 ~/.config/nixos-secrets
-op inject -i secrets.json.tpl -o ~/.config/nixos-secrets/secrets.json
-chmod 600 ~/.config/nixos-secrets/secrets.json
+git-crypt unlock /path/to/nixerator-git-crypt-key
 sudo nixos-rebuild switch --impure --flake .#$(hostname)
 ```
 
-After the first switch lands, `render-secrets` is on PATH.
+After the switch lands, `render-secrets` is on PATH. To opt this host into the
+1Password flow:
+
+```bash
+just render-secrets             # local desktop with 1Password
+just push-secrets <thishost>    # OR seed from a peer that already has it
+```
+
+The next rebuild on this host picks up the rendered file automatically.
+
+### Path B: render before the first rebuild (1Password from day one)
+
+Use this when you don't want the git-crypt'd values in the store even
+transiently, or the host won't have git-crypt access at all. A self-contained
+helper renders the file using `nix-shell` to pull `op`, so nothing needs to be
+pre-installed beyond Nix.
+
+```bash
+nix-shell -p git
+git clone git@github.com:bashfulrobot/nixerator ~/git/nixerator
+cd ~/git/nixerator
+op signin                                          # one-time biometric
+./extras/helpers/render-secrets-bootstrap.sh       # renders DEST atomically
+sudo nixos-rebuild switch --impure --flake .#$(hostname)
+```
+
+After the switch lands, the helper is obsolete on this host — `render-secrets`
+on PATH does the same job (plus `--push` / `--check` / `--tpl`).
 
 ## Troubleshooting
 
-- **`error: builtins.readFile: ... No such file or directory`** during `nix flake check` / rebuild → the rendered file is missing. Run `render-secrets` (or get a peer to `render-secrets --push <thishost>`).
+- **`error: builtins.readFile: ... No such file or directory`** during `nix flake check` / rebuild → both sources are missing. Either run `render-secrets` (or `render-secrets --push <thishost>` from a peer), OR `git-crypt unlock` if you're on a fresh machine and intend to use the git-crypt fallback.
 - **`render-secrets: 'op' (1Password CLI) not in PATH`** → host doesn't have 1Password installed. Either enable `apps.gui.one-password` + `apps.cli.render-secrets` for it, or render on a peer and `--push` here.
 - **`authorization prompt dismissed`** when running `op inject` → touch the 1Password unlock prompt within the timeout. Re-run.
 - **Drift between 1Password and the rendered file** → `render-secrets --check` to see the diff, then plain `render-secrets` to update.

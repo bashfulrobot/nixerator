@@ -26,6 +26,33 @@ Collects hardware and driver information for GPU/audio diagnostics. Outputs a ti
 
 Gathers: PCI devices, kernel modules, DRI render nodes, ALSA/PulseAudio state, and Nix package versions. Useful when diagnosing GPU or audio issues on a new host.
 
+## render-secrets-bootstrap.sh
+
+Renders `~/.config/nixos-secrets/secrets.json` from `secrets.json.tpl` via
+`op inject` on a fresh machine, BEFORE the first rebuild lands and puts
+`render-secrets` on PATH. Uses `nix-shell` to pull the 1Password CLI without
+requiring it pre-installed.
+
+**Prerequisites**: Nix with flakes; 1Password CLI signed in (`op signin`);
+read access to the `nixerator` 1Password vault.
+
+```bash
+cd nixerator
+./extras/helpers/render-secrets-bootstrap.sh
+sudo nixos-rebuild switch --impure --flake .#$(hostname)
+```
+
+**When NOT to use**: after the first rebuild lands on a host. From that point
+on, `render-secrets` (and `just render-secrets` / `just push-secrets <host>` /
+`just check-secrets`) is on PATH and is the canonical entry point — the
+bootstrap helper is duplicate behaviour. The bootstrap is also unnecessary if
+you're happy to rebuild against the git-crypt fallback first and migrate
+later (see `setup-git-crypt.sh`).
+
+Atomic write: renders to a tempfile inside `~/.config/nixos-secrets/` (perms
+`0700`) then `mv -f`'s into place. Partial `op inject` failure or SIGINT
+leaves any existing live file untouched.
+
 ## setup-git-crypt.sh
 
 Sets up git-crypt encryption on a new system. Uses `nix-shell` to auto-provide all tools.
