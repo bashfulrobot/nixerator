@@ -226,10 +226,13 @@
     insomnia = {
       source = "github-release";
       repo = "Kong/insomnia";
-      version = "12.6.0";
+      # Pinned to 12.5.0: 12.6.0 ships a main-process logger that crashes on
+      # `write EPIPE` when stdout has no live reader (desktop-file launch).
+      # Filed upstream at Kong/insomnia; re-bump once they ship a fix.
+      version = "12.5.0";
       tagPrefix = "core@";
       platformHashes = {
-        x86_64-linux = "sha256-v+Yq8Ufmg8fE/QHIDK8NPD+gNA6jWy+wrP0nrvo2Ur4=";
+        x86_64-linux = "sha256-RYNzOX9WRPqPUMhbG/Ab4Ip25imudNGlHX1kPLzuQ+U=";
         aarch64-darwin = ""; # placeholder -- no darwin builds currently used
         x86_64-darwin = ""; # placeholder -- no darwin builds currently used
       };
