@@ -571,6 +571,13 @@ setup-op-token *args:
 bootstrap-secrets:
     @./extras/helpers/render-secrets-bootstrap.sh
 
+# Fetch the Okular signature + initials PNGs from the nixerator 1Password
+# vault (Document items okular-signature + okular-initials) to
+# ~/.kde/share/icons/{signature,initials}.png. One-time per host after
+# `just setup-op-token`; re-run only if you rotate the documents in 1P.
+fetch-signatures:
+    @./extras/helpers/fetch-okular-signatures.sh
+
 # === Aliases ===
 alias r := rebuild
 alias up := upgrade
@@ -582,3 +589,4 @@ alias ru := remote-upgrade
 alias rs := render-secrets
 alias ps := push-secrets
 alias cs := check-secrets
+alias fs := fetch-signatures

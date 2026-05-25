@@ -48,4 +48,23 @@ rec {
     # SSH public key for commit signing
     gitPubSigningKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICF9sPiX7zVCn+SW7bQpgS+dhUlVJYNktP6PO4mJWUJZ dustin@bashfulrobot.com";
   };
+
+  # Per-host network identity. These are NOT secrets -- they're already
+  # published in extras/docs/{termly-remote,demo-deck}.md and don't grant
+  # access on their own (you'd need a tailscale auth key, which IS in 1P).
+  # Lives here instead of in the nixerator 1P vault so adding/removing a
+  # host doesn't require an op item create/delete.
+  hosts = {
+    qbert = {
+      tailscale_ip = "100.74.137.95";
+      syncthing_id = "P4GTYZK-MK4AIO5-6JCS4PG-VUACBUS-DP6XERC-ZQGAJAI-PU5WNPB-XTUVEQ2";
+    };
+    donkeykong = {
+      tailscale_ip = "100.117.210.113";
+      syncthing_id = "L5XTMUP-FJ4RF5U-GIHYCX6-ZCB3CNA-VY276FE-2INLPNI-Z4M6KQ6-4PPP2AS";
+    };
+    srv = {
+      tailscale_ip = "100.64.187.14";
+    };
+  };
 }

@@ -1,6 +1,18 @@
-# To add signature stamps in Okular:
-# Go to Settings -> Configure Okular... -> Annotations -> Add -> Select Type: Stamp -> Choose symbol file from your file system using the file picker button.
-# The signature.png and initials.png files will be available in ~/.kde/share/icons/
+# Okular PDF viewer with signature/initials stamps.
+#
+# Signature and initials PNGs are NOT managed by Nix anymore — they live in
+# the nixerator 1Password vault as Document items (`okular-signature`,
+# `okular-initials`) and are fetched on demand by:
+#
+#     just fetch-signatures
+#
+# That writes them to ~/.kde/share/icons/{signature,initials}.png where
+# Okular's signature-stamp picker can find them.
+#
+# To add a signature stamp inside Okular:
+#   Settings → Configure Okular → Annotations → Add → Type: Stamp →
+#   pick ~/.kde/share/icons/signature.png (or initials.png) via the file
+#   picker.
 
 {
   lib,
@@ -31,18 +43,9 @@ in
       # keep-sorted end
     ];
 
-    # Set up signature and initial icons
+    # Set Okular as default PDF viewer. Signature PNGs are out-of-band
+    # (see header comment + `just fetch-signatures`).
     home-manager.users.${globals.user.name} = {
-      home.file = {
-        ".kde/share/icons/signature.png" = {
-          source = ../../../../secrets/sg.png;
-        };
-        ".kde/share/icons/initials.png" = {
-          source = ../../../../secrets/init.png;
-        };
-      };
-
-      # Set Okular as default PDF viewer
       xdg.mimeApps = {
         associations = {
           added = {

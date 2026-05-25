@@ -8,14 +8,6 @@
       "password": "{{ op://nixerator/syncthing-gui/password }}"
     }
   },
-  "qbert": {
-    "tailscale_ip": "{{ op://nixerator/host-qbert/tailscale_ip }}",
-    "syncthing_id": "{{ op://nixerator/host-qbert/syncthing_id }}"
-  },
-  "donkey-kong": {
-    "tailscale_ip": "{{ op://nixerator/host-donkeykong/tailscale_ip }}",
-    "syncthing_id": "{{ op://nixerator/host-donkeykong/syncthing_id }}"
-  },
   "restic": {
     "srv": {
       "restic_repository": "{{ op://nixerator/restic-srv/repository }}",
@@ -55,9 +47,6 @@
   "claudito": {
     "username": "{{ op://nixerator/claudito/username }}",
     "password": "{{ op://nixerator/claudito/password }}"
-  },
-  "srv": {
-    "tailscale_ip": "{{ op://nixerator/host-srv/tailscale_ip }}"
   },
   "gemini": {
     "apiKey": "{{ op://nixerator/gemini/credential }}"

@@ -128,9 +128,7 @@ sudo nixos-rebuild switch --impure --flake .#$(hostname)
 **When NOT to use**: after the first rebuild lands on a host. From that point
 on, `render-secrets` (and `just render-secrets` / `just push-secrets <host>` /
 `just check-secrets`) is on PATH and is the canonical entry point — the
-bootstrap helper is duplicate behaviour. The bootstrap is also unnecessary if
-you're happy to rebuild against the git-crypt fallback first and migrate
-later (see `setup-git-crypt.sh`).
+bootstrap helper is duplicate behaviour.
 
 Atomic write: renders to a tempfile inside `~/.config/nixos-secrets/` (perms
 `0700`) then `mv -f`'s into place. Partial `op inject` failure or SIGINT
@@ -147,21 +145,25 @@ sudo ./extras/helpers/render-secrets-bootstrap.sh \
 The `bootstrap-install-secrets.sh stage` subcommand wraps this for you
 along with the corresponding SA-token install.
 
-## setup-git-crypt.sh
+## fetch-okular-signatures.sh
 
-Sets up git-crypt encryption on a new system. Uses `nix-shell` to auto-provide all tools.
+Fetches the Okular signature + initials PNGs from the nixerator 1Password
+vault (Document items `okular-signature` + `okular-initials`) and writes
+them to `~/.kde/share/icons/{signature,initials}.png` where Okular's
+signature-stamp picker looks for them.
 
-**Prerequisites**: Nix with flakes, encryption key at `~/.ssh/nixerator-git-crypt-key` (copy from source machine, `chmod 600`).
+**Prerequisites**: `op` (1Password CLI) on PATH (enabled via
+`apps.gui.one-password` on this host). SA token at
+`~/.config/op/service-account-token` (auto-sourced; install with
+`just setup-op-token`) — zero biometric prompts in that case. Falls back
+to desktop biometric session if no SA token.
 
 ```bash
-cd nixerator
-./extras/helpers/setup-git-crypt.sh
+just fetch-signatures     # alias: just fs
+# or directly:
+./extras/helpers/fetch-okular-signatures.sh
 ```
 
-Checks that git-crypt is installed and the key exists with correct permissions (600). Then unlocks the repository and verifies encrypted files are readable.
-
-**Troubleshooting**:
-
-- Key not found -- copy from source machine to `~/.ssh/nixerator-git-crypt-key`
-- Slow first run -- nix-shell downloading packages (cached after)
-- Files still binary -- `git-crypt unlock ~/.ssh/nixerator-git-crypt-key` manually
+One-time per host (after `just setup-op-token`). Re-run only if you ever
+rotate the document in 1Password. Atomic write: renders to a tempfile
+inside `~/.kde/share/icons/` then `mv -f`'s into place.
