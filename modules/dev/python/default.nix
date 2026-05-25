@@ -24,7 +24,12 @@ in
     environment.systemPackages = with pkgs; [
       python3 # CPython interpreter and stdlib
       uv # Fast package + project + virtualenv manager
-      pipx # Install Python apps in isolated venvs
+      # pipx 1.8.0 tests assert exact `packaging` canonical strings that the
+      # library has since changed (`black@ url` vs `black @ url`); disable
+      # tests until nixpkgs catches up.
+      (pipx.overridePythonAttrs (_: {
+        doCheck = false;
+      }))
       poetry # Alternate dependency / packaging manager
       ruff # Linter + formatter (replaces black, isort, flake8, pylint)
       basedpyright # Type checker / LSP server
