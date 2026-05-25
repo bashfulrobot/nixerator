@@ -48,21 +48,27 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Coloured terminal output, falls back to plain on non-TTY.
 if [[ -t 1 ]]; then
-  C_HEAD=$'\033[1;36m'   # bold cyan
-  C_OK=$'\033[1;32m'     # bold green
-  C_WARN=$'\033[1;33m'   # bold yellow
-  C_ERR=$'\033[1;31m'    # bold red
-  C_DIM=$'\033[2m'       # dim
+  C_HEAD=$'\033[1;36m' # bold cyan
+  C_OK=$'\033[1;32m'   # bold green
+  C_WARN=$'\033[1;33m' # bold yellow
+  C_ERR=$'\033[1;31m'  # bold red
+  C_DIM=$'\033[2m'     # dim
   C_RESET=$'\033[0m'
 else
   C_HEAD="" C_OK="" C_WARN="" C_ERR="" C_DIM="" C_RESET=""
 fi
 
-heading() { echo; echo "${C_HEAD}=== $* ===${C_RESET}"; }
-ok()      { echo "${C_OK}✓${C_RESET} $*"; }
-warn()    { echo "${C_WARN}!${C_RESET} $*" >&2; }
-fail()    { echo "${C_ERR}✗${C_RESET} $*" >&2; exit 1; }
-note()    { echo "${C_DIM}  $*${C_RESET}"; }
+heading() {
+  echo
+  echo "${C_HEAD}=== $* ===${C_RESET}"
+}
+ok() { echo "${C_OK}✓${C_RESET} $*"; }
+warn() { echo "${C_WARN}!${C_RESET} $*" >&2; }
+fail() {
+  echo "${C_ERR}✗${C_RESET} $*" >&2
+  exit 1
+}
+note() { echo "${C_DIM}  $*${C_RESET}"; }
 
 confirm() {
   local prompt="${1:-Continue?}"
@@ -97,12 +103,15 @@ After this script, you'll proceed with the standard nixos-install steps
 'promote' subcommand to copy the staged files onto /mnt before reboot.
 EOF
   echo
-  confirm "Proceed with staging?" || { warn "Aborted by user."; exit 0; }
+  confirm "Proceed with staging?" || {
+    warn "Aborted by user."
+    exit 0
+  }
 
   # Step 1: prereqs ------------------------------------------------------------
   heading "Step 1: Verify prerequisites"
 
-  [[ -f "${REPO_ROOT}/secrets.json.tpl" ]] || \
+  [[ -f "${REPO_ROOT}/secrets.json.tpl" ]] ||
     fail "secrets.json.tpl not found at ${REPO_ROOT}. Are you in the nixerator repo?"
   ok "Template at ${REPO_ROOT}/secrets.json.tpl"
 
@@ -190,14 +199,17 @@ After this completes, finish bootstrap.txt:
   Step 11: umount /mnt && reboot
 EOF
   echo
-  confirm "Proceed with promotion?" || { warn "Aborted by user."; exit 0; }
+  confirm "Proceed with promotion?" || {
+    warn "Aborted by user."
+    exit 0
+  }
 
   # Step 1: /mnt sanity --------------------------------------------------------
   heading "Step 1: Verify /mnt"
 
   [[ -d /mnt ]] || fail "/mnt does not exist."
   mountpoint -q /mnt || fail "/mnt is not a mountpoint. Did nixos-install run?"
-  [[ -f /mnt/etc/NIXOS ]] || \
+  [[ -f /mnt/etc/NIXOS ]] ||
     fail "/mnt doesn't look like a NixOS install (no /mnt/etc/NIXOS)."
   ok "/mnt is mounted and looks like a NixOS install"
 
@@ -212,11 +224,11 @@ EOF
   local SRC_TOKEN="${TARGET_HOME}/.config/op/service-account-token"
   local SRC_SECRETS="${TARGET_HOME}/.config/nixos-secrets/secrets.json"
 
-  [[ -f "${SRC_TOKEN}" ]] || \
+  [[ -f "${SRC_TOKEN}" ]] ||
     fail "Staged SA token not found at ${SRC_TOKEN}. Did 'stage' run first?"
   ok "SA token staged at ${SRC_TOKEN}"
 
-  [[ -f "${SRC_SECRETS}" ]] || \
+  [[ -f "${SRC_SECRETS}" ]] ||
     fail "Staged secrets file not found at ${SRC_SECRETS}. Did 'stage' run first?"
   ok "Secrets file staged at ${SRC_SECRETS}"
 
@@ -242,7 +254,7 @@ EOF
   local DST_NS="/mnt${TARGET_HOME}/.config/nixos-secrets"
 
   mkdir -p "${DST_OP}" "${DST_NS}"
-  install -m 0600 "${SRC_TOKEN}"   "${DST_OP}/service-account-token"
+  install -m 0600 "${SRC_TOKEN}" "${DST_OP}/service-account-token"
   install -m 0600 "${SRC_SECRETS}" "${DST_NS}/secrets.json"
   chmod 700 "${DST_OP}" "${DST_NS}"
   ok "Copied to ${DST_OP}/ and ${DST_NS}/"
@@ -282,8 +294,14 @@ usage() {
 }
 
 case "${1:-}" in
-  stage) shift; cmd_stage "$@" ;;
-  promote) shift; cmd_promote "$@" ;;
+  stage)
+    shift
+    cmd_stage "$@"
+    ;;
+  promote)
+    shift
+    cmd_promote "$@"
+    ;;
   -h | --help | help | "") usage 0 ;;
   *)
     echo "Unknown subcommand: $1" >&2
