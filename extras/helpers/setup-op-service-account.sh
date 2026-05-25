@@ -1,6 +1,11 @@
-#!/usr/bin/env nix-shell
-#! nix-shell -i bash -p coreutils _1password-cli
+#!/usr/bin/env bash
 # shellcheck shell=bash
+#
+# This is a post-install helper -- it expects `op` (1Password CLI) to be
+# already on PATH (enable `apps.gui.one-password` on the host, or wrap the
+# call in `nix-shell -p _1password-cli` if running on a host without the
+# module). The plain bash shebang avoids the nix-shell+NIX_PATH dance that
+# breaks on hosts with `nix.nixPath = [ ]` (the nixerator default).
 #
 # Install the nixerator 1Password service-account token at the canonical
 # path (~/.config/op/service-account-token, perms 0600). After this script
@@ -56,6 +61,17 @@ for arg in "$@"; do
             ;;
     esac
 done
+
+if ! command -v op >/dev/null 2>&1; then
+    echo "setup-op-service-account: 'op' (1Password CLI) not in PATH." >&2
+    echo "  Either:" >&2
+    echo "    - Enable apps.gui.one-password on this host and rebuild, OR" >&2
+    echo "    - Re-run inside: nix-shell -p _1password-cli ..." >&2
+    echo "  (--manual / OP_TOKEN= / piped stdin do not need op, but the helper" >&2
+    echo "  still imports op for the default --op-read path; rerun with one of" >&2
+    echo "  those alternate inputs if op truly isn't available here.)" >&2
+    exit 1
+fi
 
 read_token() {
     local t

@@ -55,22 +55,23 @@ use least-privilege automation credentials):
    UI, create a service account, scope it **read-only** on the `nixerator`
    vault. Save the `ops_…` token to a 1Password item in your Personal vault
    (so you can recover it from any logged-in host).
-2. **One-time, per host**: run the setup helper. It uses `op read` to fetch
-   the token from your Personal vault (one desktop-biometric prompt) and
-   atomically installs it at `~/.config/op/service-account-token` with
+2. **One-time, per host**: `just setup-op-token`. It uses `op read` to
+   fetch the token from your Personal vault (one desktop-biometric prompt)
+   and atomically installs it at `~/.config/op/service-account-token` with
    `0600` perms:
 
    ```bash
-   op signin                                              # one biometric
-   ./extras/helpers/setup-op-service-account.sh           # fetches via op read
+   op signin              # one biometric (desktop GUI session)
+   just setup-op-token    # one biometric (op read), installs the token
    ```
 
-   Alternative inputs if you don't have desktop 1Password on this host:
+   Alternative inputs if you don't have desktop 1Password on this host
+   (pass-through args to the underlying helper):
 
    ```bash
-   ./extras/helpers/setup-op-service-account.sh --manual           # interactive paste
-   ./extras/helpers/setup-op-service-account.sh < /path/to/token   # from file
-   OP_TOKEN=ops_... ./extras/helpers/setup-op-service-account.sh   # from env (CI)
+   just setup-op-token --manual                # interactive paste
+   OP_TOKEN=ops_... just setup-op-token        # from env (CI)
+   ./extras/helpers/setup-op-service-account.sh < /path/to/token   # piped file
    ```
 
 3. From this point on, `render-secrets` auto-sources the file and exports
@@ -346,13 +347,15 @@ pre-installed beyond Nix.
 nix-shell -p git
 git clone git@github.com:bashfulrobot/nixerator ~/git/nixerator
 cd ~/git/nixerator
-op signin                                          # one-time biometric
-./extras/helpers/render-secrets-bootstrap.sh       # renders DEST atomically
+op signin                                  # one biometric
+just setup-op-token                        # one biometric, installs SA token
+just bootstrap-secrets                     # renders DEST atomically, no prompts
 sudo nixos-rebuild switch --impure --flake .#$(hostname)
 ```
 
-After the switch lands, the helper is obsolete on this host — `render-secrets`
-on PATH does the same job (plus `--push` / `--check` / `--tpl`).
+After the switch lands, `just bootstrap-secrets` is obsolete on this host —
+`just render-secrets` (which calls the on-PATH render-secrets) does the same
+job plus `--push` / `--check` / `--tpl`.
 
 ## Troubleshooting
 

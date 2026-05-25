@@ -125,29 +125,29 @@ sudo nixos-rebuild switch --impure --flake "$REPO_PATH#$TARGET_HOST"
 # the host has booted and signed into 1Password:
 #
 # A. From this host. The recommended auth is the 1Password service account
-#    (zero biometric prompts after one-time setup). The setup helper uses
-#    `op read` to fetch the SA token from your Personal vault via ONE
+#    (zero biometric prompts after one-time setup). `just setup-op-token`
+#    uses `op read` to fetch the SA token from your Personal vault via ONE
 #    desktop-biometric prompt, then installs it at
 #    ~/.config/op/service-account-token (0600). From that moment on,
 #    render-secrets / push-secrets / check-secrets all run with no prompts.
 #
-#       op signin                                                # one biometric
-#       ./extras/helpers/setup-op-service-account.sh             # fetches + installs token
-#       just render-secrets                                      # writes ~/.config/nixos-secrets/secrets.json (no prompts)
+#       op signin                # one biometric (desktop GUI session)
+#       just setup-op-token      # one biometric (op read), installs the token
+#       just render-secrets      # writes ~/.config/nixos-secrets/secrets.json (no prompts)
 #
-#    Alternative auth: skip the SA helper, stick with desktop biometric
-#    each time render-secrets runs. (1Password app settings control prompt
-#    frequency; per-call vs. per-session is a GUI setting.)
+#    Alternative auth: skip `just setup-op-token`, stick with desktop
+#    biometric each time render-secrets runs. (1Password app settings
+#    control prompt frequency; per-call vs. per-session is a GUI setting.)
 #
 # B. From a peer that already has the rendered file:
 #       # on the peer:
 #       just push-secrets $TARGET_HOST
 #
 # C. If render-secrets isn't on PATH yet (first rebuild not landed), use
-#    the standalone helper which pulls op via nix-shell. Same auth choices
-#    as Option A apply -- if you ran setup-op-service-account.sh first, the
-#    bootstrap helper auto-sources the token and runs without prompts:
-#       ./extras/helpers/render-secrets-bootstrap.sh
+#    `just bootstrap-secrets`, which pulls op via nix-shell. Same auth
+#    choices as Option A apply -- if you ran `just setup-op-token` first,
+#    bootstrap-secrets auto-sources the token and runs without prompts:
+#       just bootstrap-secrets
 #
 # After any of these, the next `just qr` on this host reads from the
 # rendered file. To roll back: `rm ~/.config/nixos-secrets/secrets.json`
