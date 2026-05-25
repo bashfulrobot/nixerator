@@ -25,19 +25,49 @@
 # Usage (from the repo root):
 #   ./extras/helpers/render-secrets-bootstrap.sh
 #
+# Render at a non-default path (e.g. from root on a live USB writing into
+# the target user's home before nixos-install):
+#   sudo ./extras/helpers/render-secrets-bootstrap.sh \
+#       --dest /home/dustin/.config/nixos-secrets/secrets.json
+#
 # Does NOT push to peers — for that, wait for the on-PATH render-secrets
 # after the first rebuild lands and use `just push-secrets <host>`.
 
 set -euo pipefail
 
+# Default destination: the current user's ~/.config/nixos-secrets/. Overridable
+# via --dest for live-USB bootstrap (writing into /home/dustin/... from root).
 DEST="${HOME}/.config/nixos-secrets/secrets.json"
-DEST_DIR="$(dirname "${DEST}")"
 
 # Resolve repo root from the script location so the helper works regardless
 # of cwd.
 SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 TPL="${REPO_ROOT}/secrets.json.tpl"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dest)
+      shift
+      [[ $# -gt 0 ]] || {
+        echo "--dest requires a PATH argument" >&2
+        exit 2
+      }
+      DEST="$1"
+      shift
+      ;;
+    -h | --help)
+      sed -n '5,32p' "$0"
+      exit 0
+      ;;
+    *)
+      echo "Unknown arg: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+DEST_DIR="$(dirname "${DEST}")"
 
 if [[ ! -f "${TPL}" ]]; then
   echo "render-secrets-bootstrap: template not found at ${TPL}" >&2
