@@ -1,4 +1,5 @@
-# git-crypt encrypted files
-# Add files here that should be encrypted by git-crypt
-secrets/** filter=git-crypt diff=git-crypt
-modules/system/ssh/default.nix filter=git-crypt diff=git-crypt
+# git-crypt has been retired from this repo. Nix-eval secrets live at
+# ~/.config/nixos-secrets/secrets.json (rendered from 1Password by
+# `just render-secrets`); the signature/initials PNGs that used to live
+# here as encrypted blobs are now 1Password Document items and get
+# fetched by `just fetch-signatures`. See extras/docs/secrets.md.
