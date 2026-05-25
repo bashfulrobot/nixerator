@@ -39,9 +39,50 @@ Hosts split into two roles:
 | Desktop | donkeykong, qbert | Yes | Yes (locally, plus `--push` to peers) |
 | Headless | srv | No | No — receives the file via `scp` from a desktop |
 
+### Authentication: service account vs. desktop biometric
+
+`render-secrets` accepts two auth modes. It picks automatically:
+
+| Mode | Trigger | Biometric prompts |
+|------|---------|--------------------|
+| Service account (preferred) | `OP_SERVICE_ACCOUNT_TOKEN` env var set, OR `~/.config/op/service-account-token` file exists with `0600` perms | **Zero**, ever |
+| Desktop biometric | Neither of the above; falls through to whatever `op` does interactively | Per the 1Password app's CLI integration settings |
+
+Service-account setup (recommended — aligns with 1Password's own guidance to
+use least-privilege automation credentials):
+
+1. **One-time, per service account** (web UI): in the 1Password admin web
+   UI, create a service account, scope it **read-only** on the `nixerator`
+   vault. Save the `ops_…` token to a 1Password item in your Personal vault
+   (so you can recover it from any logged-in host).
+2. **One-time, per host**: run the setup helper. It uses `op read` to fetch
+   the token from your Personal vault (one desktop-biometric prompt) and
+   atomically installs it at `~/.config/op/service-account-token` with
+   `0600` perms:
+
+   ```bash
+   op signin                                              # one biometric
+   ./extras/helpers/setup-op-service-account.sh           # fetches via op read
+   ```
+
+   Alternative inputs if you don't have desktop 1Password on this host:
+
+   ```bash
+   ./extras/helpers/setup-op-service-account.sh --manual           # interactive paste
+   ./extras/helpers/setup-op-service-account.sh < /path/to/token   # from file
+   OP_TOKEN=ops_... ./extras/helpers/setup-op-service-account.sh   # from env (CI)
+   ```
+
+3. From this point on, `render-secrets` auto-sources the file and exports
+   `OP_SERVICE_ACCOUNT_TOKEN` for `op inject`. The path is on Claude Code's
+   Read `permissions.deny` so AI tools scoped to the repo can't read it.
+   Loose perms (anything except `0600`) cause `render-secrets` to refuse
+   with a clear error — token file = vault read access.
+
 ### Desktop hosts (donkeykong, qbert)
 
-1. Sign in to 1Password CLI: `op signin` (biometric).
+1. Sign in to 1Password CLI: `op signin` (biometric) — only needed if you
+   chose desktop-biometric auth above instead of a service account.
 2. Make sure the `nixerator` vault and all 19 items below exist (already true
    if you're the maintainer; the table is here for migration and disaster
    recovery). Item titles, types, and field names are pinned — they must match
@@ -317,5 +358,7 @@ on PATH does the same job (plus `--push` / `--check` / `--tpl`).
 
 - **`error: builtins.readFile: ... No such file or directory`** during `nix flake check` / rebuild → both sources are missing. Either run `render-secrets` (or `render-secrets --push <thishost>` from a peer), OR `git-crypt unlock` if you're on a fresh machine and intend to use the git-crypt fallback.
 - **`render-secrets: 'op' (1Password CLI) not in PATH`** → host doesn't have 1Password installed. Either enable `apps.gui.one-password` + `apps.cli.render-secrets` for it, or render on a peer and `--push` here.
+- **`render-secrets: ~/.config/op/service-account-token perms are NNN, must be 600`** → tighten with `chmod 600 ~/.config/op/service-account-token`. The token grants whatever the SA can read; loose perms = any local process gets vault read access.
+- **`"Personal" isn't a vault in this account`** (or similar "not a vault" error) → the service account is scoped to `nixerator`, but the template you're injecting references `op://Personal/…` (or another vault). Either you're on a stale branch (the template was rewritten to use `op://nixerator/…` in PR #83), or you've manually edited the template to reference a vault outside the SA's scope.
 - **`authorization prompt dismissed`** when running `op inject` → touch the 1Password unlock prompt within the timeout. Re-run.
 - **Drift between 1Password and the rendered file** → `render-secrets --check` to see the diff, then plain `render-secrets` to update.

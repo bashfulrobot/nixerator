@@ -45,9 +45,32 @@ if [[ ! -f "${TPL}" ]]; then
     exit 1
 fi
 
-if ! op account list >/dev/null 2>&1; then
-    echo "render-secrets-bootstrap: 1Password CLI not signed in." >&2
-    echo "  Run: op signin   (then re-run this script)" >&2
+# Service account auto-source — same logic as the on-PATH render-secrets
+# (intentionally duplicated since this helper is the pre-rebuild bootstrap
+# and shouldn't depend on the Nix-wrapped script being available). If a
+# token file exists at the canonical path, the helper uses it and skips
+# the desktop biometric path entirely.
+SA_TOKEN_FILE="${HOME}/.config/op/service-account-token"
+if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" && -f "${SA_TOKEN_FILE}" ]]; then
+    sa_perms="$(stat -c '%a' "${SA_TOKEN_FILE}")"
+    if [[ "${sa_perms}" != "600" ]]; then
+        echo "render-secrets-bootstrap: ${SA_TOKEN_FILE} perms ${sa_perms}, must be 600" >&2
+        echo "  Fix:  chmod 600 ${SA_TOKEN_FILE}" >&2
+        exit 1
+    fi
+    OP_SERVICE_ACCOUNT_TOKEN="$(<"${SA_TOKEN_FILE}")"
+    export OP_SERVICE_ACCOUNT_TOKEN
+fi
+
+# Sanity-check auth: SA mode succeeds on `op whoami`; desktop biometric mode
+# needs an active session. `op whoami` works for both — `op account list`
+# does not, because SA tokens aren't desktop accounts.
+if ! op whoami >/dev/null 2>&1; then
+    echo "render-secrets-bootstrap: 1Password CLI not authenticated." >&2
+    echo "  Either:" >&2
+    echo "    - Set OP_SERVICE_ACCOUNT_TOKEN (or put the token in ${SA_TOKEN_FILE} with 0600 perms), OR" >&2
+    echo "    - Run: op signin   (interactive desktop biometric)" >&2
+    echo "  Then re-run this script." >&2
     exit 1
 fi
 
@@ -58,7 +81,7 @@ chmod 700 "${DEST_DIR}"
 # op-inject failure leaves any existing DEST untouched.
 tmp="$(mktemp -p "${DEST_DIR}" .render-secrets-bootstrap.XXXXXX)"
 trap 'rm -f "${tmp}"' EXIT
-op inject -i "${TPL}" -o "${tmp}"
+op inject --force -i "${TPL}" -o "${tmp}"
 chmod 600 "${tmp}"
 mv -f "${tmp}" "${DEST}"
 echo "render-secrets-bootstrap: wrote ${DEST}"
