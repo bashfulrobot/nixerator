@@ -152,7 +152,10 @@ recipe.
 ### Rotation (when a 1Password value changes)
 
 ```bash
-# 1. Update the value in 1Password (in the nixerator-secrets item).
+# 1. Update the value in 1Password — find the matching item in the `nixerator`
+#    vault (e.g. `nixerator/snyk` for snyk.token, `nixerator/restic-srv` for
+#    restic.srv.{repository,region}). See the item table near the top of this
+#    doc for the full mapping.
 
 # 2. Re-render locally:
 just render-secrets     # alias: just rs
@@ -166,9 +169,16 @@ just qr                       # local
 just remote-rebuild srv       # remote
 ```
 
-`render-secrets` runs `op inject` and triggers a 1Password biometric prompt.
-That's the *only* time you'll see one — rebuilds in between never touch
-1Password.
+Biometric-prompt expectations:
+
+- **Service-account auth (`~/.config/op/service-account-token` installed):**
+  `render-secrets` runs `op inject` with the SA token and produces **zero
+  biometric prompts**, ever. Recommended.
+- **Desktop biometric auth (no SA token file):** `render-secrets` triggers
+  `op`'s desktop integration. Frequency is per `op` invocation under the
+  1Password app's CLI integration settings (per-call vs. per-session is a
+  GUI setting). Rebuilds in between never touch 1Password under either auth
+  mode — they read the cached file off disk.
 
 ### Drift check
 
@@ -330,32 +340,41 @@ After the switch lands, `render-secrets` is on PATH. To opt this host into the
 1Password flow:
 
 ```bash
-just render-secrets             # local desktop with 1Password
-just push-secrets <thishost>    # OR seed from a peer that already has it
+# Recommended -- service account, zero biometric prompts thereafter:
+op signin                       # one biometric (desktop GUI session)
+just setup-op-token             # one biometric (op read), installs SA token
+just render-secrets             # zero prompts, writes the cached file
+
+# OR seed from a peer that already has the rendered file (zero prompts on
+# this host, one biometric on the peer if it doesn't have an SA token):
+just push-secrets <thishost>
 ```
 
 The next rebuild on this host picks up the rendered file automatically.
 
-### Path B: render before the first rebuild (1Password from day one)
+### Path B: SA flow active on first boot (no git-crypt transit)
 
-Use this when you don't want the git-crypt'd values in the store even
-transiently, or the host won't have git-crypt access at all. A self-contained
-helper renders the file using `nix-shell` to pull `op`, so nothing needs to be
-pre-installed beyond Nix.
+Use this when you want the SA flow live from the very first post-install
+rebuild, with no git-crypt transit. The `nixos-install` step itself still
+uses the git-crypt fallback (the live USB doesn't have `/home/dustin`, so the
+external file path doesn't resolve there — there's no clean way around this),
+but the SA token and a rendered secrets file are staged under `/mnt/home/dustin/`
+during install, so first-boot rebuilds use the SA flow without ever needing
+git-crypt unlocked again.
+
+See **`extras/docs/bootstrap.txt` → "Path B addendum"** for the exact
+commands. They slot in between Step 10 (Set Passwords) and Step 11 (Reboot)
+of the standard install guide.
+
+After the first reboot:
 
 ```bash
-nix-shell -p git
-git clone git@github.com:bashfulrobot/nixerator ~/git/nixerator
-cd ~/git/nixerator
-op signin                                  # one biometric
-just setup-op-token                        # one biometric, installs SA token
-just bootstrap-secrets                     # renders DEST atomically, no prompts
-sudo nixos-rebuild switch --impure --flake .#$(hostname)
+just qr     # rebuild reads the pre-staged ~/.config/nixos-secrets/secrets.json
+            # via the SA flow, zero prompts
 ```
 
-After the switch lands, `just bootstrap-secrets` is obsolete on this host —
-`just render-secrets` (which calls the on-PATH render-secrets) does the same
-job plus `--push` / `--check` / `--tpl`.
+The post-install steps for SA setup (`op signin` + `just setup-op-token`)
+are then unnecessary on this host — they were already done during install.
 
 ## Troubleshooting
 
