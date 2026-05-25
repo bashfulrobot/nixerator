@@ -88,8 +88,10 @@ else
         # Install XDG Desktop file and its icon
         install -Dm444 ${appimageContents}/insomnia.desktop -t $out/share/applications
         install -Dm444 ${appimageContents}/insomnia.png -t $out/share/pixmaps
-        # Replace wrong exec statement in XDG Desktop file
+        # Preserve the %U field code so xdg-open passes the auth callback URL
+        # (insomnia://...) into argv; without it the URL is dropped and cloud
+        # login never completes.
         substituteInPlace $out/share/applications/insomnia.desktop \
-            --replace-fail 'Exec=AppRun --no-sandbox %U' 'Exec=insomnia'
+            --replace-fail 'Exec=AppRun --no-sandbox %U' 'Exec=insomnia %U'
       '';
   }
