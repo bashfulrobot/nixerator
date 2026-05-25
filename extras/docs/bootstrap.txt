@@ -90,54 +90,54 @@ sudo nixos-enter --root /mnt -c "passwd $INSTALL_USER"
 
 ## OPTIONAL Path B addendum: stage SA flow so first boot uses 1Password
 ##
-## Run BETWEEN Step 10 and Step 11 if you want the post-install rebuilds on
-## this host to use the 1Password service-account flow from boot #1, with
-## NO git-crypt transit. The install itself in Step 8 still uses the
-## git-crypt fallback (the live USB doesn't have /home/dustin, so the
-## external file path can't resolve there), but staging the SA token and a
-## pre-rendered secrets file under /mnt/home/dustin/ means the very first
-## `nixos-rebuild switch` after first boot picks up the SA flow.
+## Run this addendum if you want the post-install rebuilds on this host to
+## use the 1Password service-account flow from boot #1, with NO git-crypt
+## transit on the running system. The install itself in Step 8 still uses
+## the git-crypt fallback (no clean way around that on the live USB), but
+## staging the SA token + pre-rendered secrets file under /mnt/home/dustin/
+## means the very first `nixos-rebuild switch` after first boot picks up
+## the SA flow.
 ##
 ## Skip this whole block for the default Path A flow (use git-crypt now,
 ## migrate to 1Password later via "Optional: migrate to 1Password" below).
 ##
-## Prerequisites: an SA token (ops_...) already created in 1Password,
-## scoped read-only on the `nixerator` vault. See extras/docs/secrets.md.
+## Prerequisites:
+##   - SA token (ops_...) already created in 1Password admin web UI,
+##     scoped read-only on the `nixerator` vault
+##   - SA token stored in your Personal vault for `op read` retrieval
+##   - Your 1Password account credentials handy (email, secret key, password)
+##     for the live-USB `op signin`
+##   - See extras/docs/secrets.md for full setup
+##
+## The bootstrap-install-secrets.sh helper does everything via two
+## subcommands. Both are interactive -- they print what they're about to
+## do, ask for confirmation, and tell you what to run next.
 
-## Path B.1: Get the SA token onto the live USB.
-# Option 1: scp from source machine (preferred if you've already set it up there).
-scp "$SOURCE_SSH:~/.config/op/service-account-token" /tmp/op-sa-token
-# Option 2: paste manually:
-#   printf '%s' 'ops_PASTE_HERE' > /tmp/op-sa-token
-chmod 600 /tmp/op-sa-token
+## Path B.stage: BEFORE Step 5 (Verify Disk), stage SA token + render secrets
+## into /home/dustin/ on the live USB so nixos-install can read them.
+sudo ./extras/helpers/bootstrap-install-secrets.sh stage
 
-## Path B.2: Render secrets.json into /mnt/home/dustin/.config/nixos-secrets/
-## using the SA token (no biometric).
-sudo mkdir -p "$TARGET_HOME/.config/nixos-secrets"
-sudo chmod 700 "$TARGET_HOME/.config/nixos-secrets"
-sudo OP_SERVICE_ACCOUNT_TOKEN="$(cat /tmp/op-sa-token)" \
-    nix-shell -p _1password-cli --run \
-    "op inject --force -i secrets.json.tpl \
-        -o $TARGET_HOME/.config/nixos-secrets/secrets.json"
-sudo chmod 600 "$TARGET_HOME/.config/nixos-secrets/secrets.json"
+# This will:
+#   - Verify op CLI signed in (prompts you for `op signin` if not)
+#   - Fetch SA token from Personal vault via `op read` (one biometric prompt)
+#   - Stage token at  /home/dustin/.config/op/service-account-token (0600)
+#   - Render secrets  /home/dustin/.config/nixos-secrets/secrets.json (0600)
 
-## Path B.3: Also stage the SA token itself onto the target so render-secrets /
-## just render-secrets / just push-secrets work without prompts after reboot.
-sudo mkdir -p "$TARGET_HOME/.config/op"
-sudo chmod 700 "$TARGET_HOME/.config/op"
-sudo install -m 0600 /tmp/op-sa-token "$TARGET_HOME/.config/op/service-account-token"
+## ... continue with Steps 5-8 (verify disk, disko, hardware-config, nixos-install).
 
-## Path B.4: chown the staged dirs to the target user. NixOS' default user
-## uid:gid is 1000:100; verify with `nixos-enter --root /mnt -c "id $INSTALL_USER"`
-## if you're unsure.
-sudo nixos-enter --root /mnt -c "chown -R $INSTALL_USER:users \
-    /home/$INSTALL_USER/.config/nixos-secrets \
-    /home/$INSTALL_USER/.config/op"
+## Path B.promote: BETWEEN Step 10 (Set Passwords) and Step 11 (Reboot),
+## copy the staged files to /mnt and chown to the install user.
+sudo ./extras/helpers/bootstrap-install-secrets.sh promote
 
-## Path B.5: Clean up the live-USB scratch copy.
-shred -u /tmp/op-sa-token 2>/dev/null || rm -f /tmp/op-sa-token
+# This will:
+#   - Verify /mnt is mounted, has a NixOS install, install user exists on target
+#   - Copy SA token + secrets.json from /home/dustin/ → /mnt/home/dustin/
+#   - chown both dirs to ${INSTALL_USER}:users via nixos-enter
+#
+# After this completes, the script tells you exactly what to run next
+# (Step 10 passwd commands + Step 11 reboot).
 
-## End Path B addendum. Continue to Step 11.
+## End Path B addendum.
 
 ## Step 11: Reboot
 sudo umount -R /mnt && sudo reboot

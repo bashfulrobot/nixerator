@@ -34,11 +34,17 @@
 #
 # Overwrite an existing different token (default is to refuse):
 #   ./extras/helpers/setup-op-service-account.sh --force
+#
+# Install at a non-default path (e.g. from root on a live USB writing into
+# the target user's home before nixos-install):
+#   sudo ./extras/helpers/setup-op-service-account.sh \
+#       --dest /home/dustin/.config/op/service-account-token
 
 set -euo pipefail
 
-DEST_DIR="${HOME}/.config/op"
-DEST="${DEST_DIR}/service-account-token"
+# Default destination: the current user's ~/.config/op/. Overridable via
+# --dest for live-USB bootstrap (writing into /home/dustin/... from root).
+DEST="${HOME}/.config/op/service-account-token"
 
 # Canonical reference for the SA token in 1Password. Pinned to the item ID
 # (not name) so renames don't break this script.
@@ -47,20 +53,37 @@ TOKEN_REF="${OP_TOKEN_REF:-${TOKEN_REF_DEFAULT}}"
 
 MANUAL=0
 FORCE=0
-for arg in "$@"; do
-  case "$arg" in
-    --manual) MANUAL=1 ;;
-    --force) FORCE=1 ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --manual)
+      MANUAL=1
+      shift
+      ;;
+    --force)
+      FORCE=1
+      shift
+      ;;
+    --dest)
+      shift
+      [[ $# -gt 0 ]] || {
+        echo "--dest requires a PATH argument" >&2
+        exit 2
+      }
+      DEST="$1"
+      shift
+      ;;
     -h | --help)
-      sed -n '4,32p' "$0"
+      sed -n '4,38p' "$0"
       exit 0
       ;;
     *)
-      echo "Unknown arg: $arg" >&2
+      echo "Unknown arg: $1" >&2
       exit 2
       ;;
   esac
 done
+
+DEST_DIR="$(dirname "${DEST}")"
 
 if ! command -v op >/dev/null 2>&1; then
   echo "setup-op-service-account: 'op' (1Password CLI) not in PATH." >&2
@@ -143,3 +166,7 @@ mv -f "${tmp}" "${DEST}"
 echo "setup-op-service-account: installed token at ${DEST} (0600)."
 echo "  Verify (no biometric prompt expected):"
 echo "    OP_SERVICE_ACCOUNT_TOKEN=\"\$(cat ${DEST})\" op vault list"
+if [[ "${DEST}" != "${HOME}/.config/op/service-account-token" ]]; then
+  echo "  NOTE: --dest used. If this is bootstrap-install-secrets staging,"
+  echo "  remember to chown the file to the target user before reboot."
+fi

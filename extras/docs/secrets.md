@@ -355,16 +355,36 @@ The next rebuild on this host picks up the rendered file automatically.
 ### Path B: SA flow active on first boot (no git-crypt transit)
 
 Use this when you want the SA flow live from the very first post-install
-rebuild, with no git-crypt transit. The `nixos-install` step itself still
-uses the git-crypt fallback (the live USB doesn't have `/home/dustin`, so the
-external file path doesn't resolve there — there's no clean way around this),
-but the SA token and a rendered secrets file are staged under `/mnt/home/dustin/`
-during install, so first-boot rebuilds use the SA flow without ever needing
-git-crypt unlocked again.
+rebuild. `nixos-install` itself still uses the git-crypt fallback (no clean
+way around that on the live USB), but the SA token and a rendered secrets
+file are staged under `/mnt/home/dustin/` during install, so first-boot
+rebuilds use the SA flow without ever needing git-crypt unlocked again.
 
+The whole flow is driven by one interactive helper with two subcommands.
 See **`extras/docs/bootstrap.txt` → "Path B addendum"** for the exact
-commands. They slot in between Step 10 (Set Passwords) and Step 11 (Reboot)
-of the standard install guide.
+sequencing relative to the rest of the install (where to slot each
+subcommand). At a glance:
+
+```bash
+# BEFORE nixos-install (live USB, repo cloned; op signin happens inside
+# the helper if you're not already signed in):
+sudo ./extras/helpers/bootstrap-install-secrets.sh stage
+
+# ... standard Steps 5-8: verify disk, disko, hardware-config, nixos-install
+
+# AFTER nixos-install, BEFORE reboot (still on live USB, /mnt mounted):
+sudo ./extras/helpers/bootstrap-install-secrets.sh promote
+```
+
+`stage` fetches the SA token from your Personal vault via `op read` (one
+biometric — the only one for the whole bootstrap), installs it at
+`/home/dustin/.config/op/service-account-token`, and renders secrets to
+`/home/dustin/.config/nixos-secrets/secrets.json`. `promote` copies both
+files into `/mnt/home/dustin/.config/...` and chowns them to the install
+user via `nixos-enter`.
+
+Both subcommands print what they're about to do, confirm before touching
+anything, and tell you what to run next. Idempotent — safe to re-run.
 
 After the first reboot:
 
@@ -374,7 +394,7 @@ just qr     # rebuild reads the pre-staged ~/.config/nixos-secrets/secrets.json
 ```
 
 The post-install steps for SA setup (`op signin` + `just setup-op-token`)
-are then unnecessary on this host — they were already done during install.
+are unnecessary on this host — they were already done during install.
 
 ## Troubleshooting
 

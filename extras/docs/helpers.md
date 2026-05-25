@@ -26,6 +26,43 @@ Collects hardware and driver information for GPU/audio diagnostics. Outputs a ti
 
 Gathers: PCI devices, kernel modules, DRI render nodes, ALSA/PulseAudio state, and Nix package versions. Useful when diagnosing GPU or audio issues on a new host.
 
+## bootstrap-install-secrets.sh
+
+Interactive live-USB orchestrator for the nixerator secrets pipeline during a
+fresh NixOS install. Wraps `setup-op-service-account.sh` + `render-secrets-bootstrap.sh`
+with prereq checks, prompts, and copy-into-/mnt semantics so the user can
+follow `bootstrap.txt` without inlining six error-prone commands.
+
+**Prerequisites**: Nix with flakes; 1Password account credentials handy
+(email, secret key, password) — `op signin` is interactive and runs from
+the live USB. SA token already exists in your Personal vault for
+`op read`. NIX_PATH set (which it is on a NixOS live USB; the helper uses
+`nix-shell -p _1password-cli`).
+
+**Two subcommands, both interactive (confirm prompts before destructive
+actions, print next-step guidance after):**
+
+```bash
+# Run BEFORE `sudo nixos-install` -- stages token + renders secrets
+# into /home/dustin/.config/... so the install eval can read them.
+sudo ./extras/helpers/bootstrap-install-secrets.sh stage
+
+# Run AFTER `sudo nixos-install`, BEFORE reboot -- copies the staged files
+# into /mnt/home/dustin/.config/... and chowns them via nixos-enter.
+sudo ./extras/helpers/bootstrap-install-secrets.sh promote
+```
+
+Idempotent (the underlying helpers no-op when the destination already
+matches). `stage` bails if not run as root or if op isn't signed in;
+`promote` bails if /mnt isn't mounted, the staged files don't exist, or
+the install user doesn't yet exist on the target.
+
+**Override the install user** (default `dustin`, matching `settings/globals.nix`):
+
+```bash
+INSTALL_USER=alice sudo ./extras/helpers/bootstrap-install-secrets.sh stage
+```
+
 ## setup-op-service-account.sh
 
 Installs the nixerator 1Password service-account token at
@@ -59,6 +96,17 @@ perms and exits success. Refuses to replace a different existing token unless
 **Token rotation**: regenerate the SA in 1Password, update the Personal
 vault item, then re-run with `--force` on each host.
 
+**Live-USB use** (writes from root into the target user's home, before
+`nixos-install`):
+
+```bash
+sudo ./extras/helpers/setup-op-service-account.sh \
+    --dest /home/dustin/.config/op/service-account-token
+```
+
+The `bootstrap-install-secrets.sh stage` subcommand wraps this for you
+along with the corresponding secrets render.
+
 ## render-secrets-bootstrap.sh
 
 Renders `~/.config/nixos-secrets/secrets.json` from `secrets.json.tpl` via
@@ -87,6 +135,17 @@ later (see `setup-git-crypt.sh`).
 Atomic write: renders to a tempfile inside `~/.config/nixos-secrets/` (perms
 `0700`) then `mv -f`'s into place. Partial `op inject` failure or SIGINT
 leaves any existing live file untouched.
+
+**Live-USB use** (writes from root into the target user's home, before
+`nixos-install`):
+
+```bash
+sudo ./extras/helpers/render-secrets-bootstrap.sh \
+    --dest /home/dustin/.config/nixos-secrets/secrets.json
+```
+
+The `bootstrap-install-secrets.sh stage` subcommand wraps this for you
+along with the corresponding SA-token install.
 
 ## setup-git-crypt.sh
 
