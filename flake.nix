@@ -125,7 +125,7 @@
   };
 
   outputs =
-    { ... }@inputs:
+    inputs:
     let
       # Import configuration data
       globals = import ./settings/globals.nix;
