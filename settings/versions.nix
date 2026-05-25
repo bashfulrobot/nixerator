@@ -226,10 +226,10 @@
     insomnia = {
       source = "github-release";
       repo = "Kong/insomnia";
-      version = "12.5.0";
+      version = "12.6.0";
       tagPrefix = "core@";
       platformHashes = {
-        x86_64-linux = "sha256-RYNzOX9WRPqPUMhbG/Ab4Ip25imudNGlHX1kPLzuQ+U=";
+        x86_64-linux = "sha256-v+Yq8Ufmg8fE/QHIDK8NPD+gNA6jWy+wrP0nrvo2Ur4=";
         aarch64-darwin = ""; # placeholder -- no darwin builds currently used
         x86_64-darwin = ""; # placeholder -- no darwin builds currently used
       };
