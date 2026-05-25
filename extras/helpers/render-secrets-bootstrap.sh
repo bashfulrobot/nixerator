@@ -40,9 +40,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 TPL="${REPO_ROOT}/secrets.json.tpl"
 
 if [[ ! -f "${TPL}" ]]; then
-  echo "render-secrets-bootstrap: template not found at ${TPL}" >&2
-  echo "  Are you running this from the nixerator repo?" >&2
-  exit 1
+    echo "render-secrets-bootstrap: template not found at ${TPL}" >&2
+    echo "  Are you running this from the nixerator repo?" >&2
+    exit 1
 fi
 
 # Service account auto-source — same logic as the on-PATH render-secrets
@@ -52,26 +52,26 @@ fi
 # the desktop biometric path entirely.
 SA_TOKEN_FILE="${HOME}/.config/op/service-account-token"
 if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" && -f "${SA_TOKEN_FILE}" ]]; then
-  sa_perms="$(stat -c '%a' "${SA_TOKEN_FILE}")"
-  if [[ "${sa_perms}" != "600" ]]; then
-    echo "render-secrets-bootstrap: ${SA_TOKEN_FILE} perms ${sa_perms}, must be 600" >&2
-    echo "  Fix:  chmod 600 ${SA_TOKEN_FILE}" >&2
-    exit 1
-  fi
-  OP_SERVICE_ACCOUNT_TOKEN="$(<"${SA_TOKEN_FILE}")"
-  export OP_SERVICE_ACCOUNT_TOKEN
+    sa_perms="$(stat -c '%a' "${SA_TOKEN_FILE}")"
+    if [[ "${sa_perms}" != "600" ]]; then
+        echo "render-secrets-bootstrap: ${SA_TOKEN_FILE} perms ${sa_perms}, must be 600" >&2
+        echo "  Fix:  chmod 600 ${SA_TOKEN_FILE}" >&2
+        exit 1
+    fi
+    OP_SERVICE_ACCOUNT_TOKEN="$(<"${SA_TOKEN_FILE}")"
+    export OP_SERVICE_ACCOUNT_TOKEN
 fi
 
 # Sanity-check auth: SA mode succeeds on `op whoami`; desktop biometric mode
 # needs an active session. `op whoami` works for both — `op account list`
 # does not, because SA tokens aren't desktop accounts.
 if ! op whoami >/dev/null 2>&1; then
-  echo "render-secrets-bootstrap: 1Password CLI not authenticated." >&2
-  echo "  Either:" >&2
-  echo "    - Set OP_SERVICE_ACCOUNT_TOKEN (or put the token in ${SA_TOKEN_FILE} with 0600 perms), OR" >&2
-  echo "    - Run: op signin   (interactive desktop biometric)" >&2
-  echo "  Then re-run this script." >&2
-  exit 1
+    echo "render-secrets-bootstrap: 1Password CLI not authenticated." >&2
+    echo "  Either:" >&2
+    echo "    - Set OP_SERVICE_ACCOUNT_TOKEN (or put the token in ${SA_TOKEN_FILE} with 0600 perms), OR" >&2
+    echo "    - Run: op signin   (interactive desktop biometric)" >&2
+    echo "  Then re-run this script." >&2
+    exit 1
 fi
 
 mkdir -p "${DEST_DIR}"
