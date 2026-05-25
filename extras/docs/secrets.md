@@ -87,8 +87,9 @@ srv never calls `op inject`. It relies on a desktop pushing the file:
 render-secrets --push srv
 ```
 
-After that, `sudo nixos-rebuild switch --flake .#srv` (whether run on srv directly
-or via `just remote-rebuild srv` from a desktop) reads the same file.
+After that, `sudo nixos-rebuild switch --impure --flake .#srv` (whether run on
+srv directly or via `just remote-rebuild srv` from a desktop) reads the same
+file.
 
 ## Daily workflow
 

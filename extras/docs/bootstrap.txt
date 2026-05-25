@@ -34,6 +34,11 @@ nix-shell -p git --run "git clone $REPO_SSH_URL"
 cd nixerator
 
 ## Step 4: Setup git-crypt
+# The flake's secrets source falls back to secrets/secrets.json (git-crypt'd
+# in-repo) when ~/.config/nixos-secrets/secrets.json doesn't exist. On a
+# fresh install the external file never exists, so git-crypt IS the path
+# used here. Switching to the 1Password flow is a post-install opt-in --
+# see "Optional: migrate to 1Password" below.
 scp "$SOURCE_SSH:~/.ssh/nixerator-git-crypt-key" ~/.ssh/
 chmod 600 ~/.ssh/nixerator-git-crypt-key
 ./extras/helpers/setup-git-crypt.sh
@@ -55,7 +60,10 @@ git add hosts/donkeykong/hardware-configuration.nix
 git commit -m "feat(donkeykong): add hardware configuration"
 
 ## Step 8: Install NixOS
-sudo nixos-install --flake ".#$TARGET_HOST"
+# --impure is required: flake.nix reads secretsFile via builtins.readFile of
+# an absolute string path (and gates that on builtins.pathExists) so the
+# fallback can pick the right file without copying it into the store.
+sudo nixos-install --impure --flake ".#$TARGET_HOST"
 
 ## Step 9: Copy Keys to Installed System
 sudo mkdir -p "$TARGET_HOME/.ssh" && sudo chmod 700 "$TARGET_HOME/.ssh"
@@ -105,9 +113,33 @@ export REPO_PATH="$HOME/git/nixerator"
 ssh-add -l && gpg --list-keys && ssh -T git@github.com
 cd "$REPO_PATH" && git-crypt status && git status
 
-# Update + rebuild
+# Update + rebuild (or use `just qr` once you're done; it wraps this)
 nix flake update
-sudo nixos-rebuild switch --flake "$REPO_PATH#$TARGET_HOST"
+sudo nixos-rebuild switch --impure --flake "$REPO_PATH#$TARGET_HOST"
+
+## Optional: migrate to 1Password for secrets (post-install)
+
+# The first boot of this machine reads secrets from secrets/secrets.json
+# (git-crypt'd, in-repo) via the flake fallback. To opt this host into the
+# 1Password flow instead, run ONE of the following from $REPO_PATH after
+# the host has booted and signed into 1Password:
+#
+# A. From this host (needs 1Password installed; `apps.gui.one-password` is
+#    enabled on the host -- desktops already get it via the security suite):
+#       op signin
+#       just render-secrets       # writes ~/.config/nixos-secrets/secrets.json
+#
+# B. From a peer that already has the rendered file:
+#       # on the peer:
+#       just push-secrets $TARGET_HOST
+#
+# C. If render-secrets isn't on PATH yet (first rebuild not landed), use
+#    the standalone helper which pulls op via nix-shell:
+#       ./extras/helpers/render-secrets-bootstrap.sh
+#
+# After any of these, the next `just qr` on this host reads from the
+# rendered file. To roll back: `rm ~/.config/nixos-secrets/secrets.json`
+# and rebuild -- the fallback takes over. See extras/docs/secrets.md.
 
 ## Troubleshooting
 
@@ -116,6 +148,12 @@ sudo nixos-rebuild switch --flake "$REPO_PATH#$TARGET_HOST"
 # Install fails: check internet, verify flake.lock present, test with nix flake metadata
 # Boot fails: check LUKS password, boot live USB and check /boot/loader/entries/, verify ESP
 # git-crypt fails: verify key (ls -l ~/.ssh/nixerator-git-crypt-key), should be 600
+# nixos-install / rebuild errors on "access to absolute path ... is forbidden in pure
+#   evaluation mode": add --impure to the command. Required since the secrets fallback
+#   uses an absolute string path.
+# nixos-install / rebuild errors on "builtins.readFile: No such file or directory":
+#   neither secrets source resolved. Either git-crypt unlock the repo (fallback path)
+#   or render the external file (see "Optional: migrate to 1Password" above).
 
 ## Important Files
 # hosts/donkeykong/configuration.nix, disko.nix, boot.nix, home.nix
