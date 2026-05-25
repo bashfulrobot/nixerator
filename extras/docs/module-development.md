@@ -143,9 +143,9 @@ Excluded dirs: `disabled/`, `build/`, `cfg/`, `reference/`. To temporarily disab
 ## Testing
 
 ```bash
-nix-instantiate --parse modules/apps/cli/APPNAME/default.nix   # syntax check
-sudo nixos-rebuild build --flake .#HOSTNAME                     # build without activating
-sudo nixos-rebuild switch --flake .#HOSTNAME                    # apply
+nix-instantiate --parse modules/apps/cli/APPNAME/default.nix             # syntax check
+sudo nixos-rebuild build --impure --flake .#HOSTNAME                     # build without activating
+sudo nixos-rebuild switch --impure --flake .#HOSTNAME                    # apply
 ```
 
 ## Checklist

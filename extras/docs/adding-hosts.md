@@ -95,11 +95,14 @@ Create `disko.nix`, import it in `configuration.nix`, and add `inputs.disko.nixo
 ```bash
 # First install (from NixOS installer)
 sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko -- --mode disko --flake ".#newhostname"
-sudo nixos-install --flake .#newhostname
+sudo nixos-install --impure --flake .#newhostname
 
 # Subsequent rebuilds
-sudo nixos-rebuild switch --flake .#newhostname
+sudo nixos-rebuild switch --impure --flake .#newhostname
 ```
+
+`--impure` is required: the flake reads the secrets file via an absolute
+string path. See `extras/docs/secrets.md`.
 
 ## Server Hosts
 

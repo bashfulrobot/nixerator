@@ -34,7 +34,7 @@ A single flake-based repo that declaratively manages every aspect of multiple Ni
 <br>
 
 ```
-nixos-rebuild switch --flake .#donkeykong
+nixos-rebuild switch --impure --flake .#donkeykong
 ```
 
 ---

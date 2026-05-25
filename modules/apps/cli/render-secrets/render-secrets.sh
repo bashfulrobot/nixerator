@@ -147,6 +147,24 @@ if ! command -v op >/dev/null 2>&1; then
   exit 1
 fi
 
+# Service account auto-source. If OP_SERVICE_ACCOUNT_TOKEN is unset and a
+# token file exists at the canonical path, use it — `op inject` then runs
+# under the service account with zero biometric prompts. The token grants
+# whatever the service account's vault scope allows (we deliberately scope
+# the nixerator SA to read-only on the `nixerator` vault), so loose perms
+# on the token file = full vault read. Refuse anything looser than 0600.
+SA_TOKEN_FILE="${HOME}/.config/op/service-account-token"
+if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" && -f "${SA_TOKEN_FILE}" ]]; then
+  sa_perms="$(stat -c '%a' "${SA_TOKEN_FILE}")"
+  if [[ "${sa_perms}" != "600" ]]; then
+    echo "render-secrets: ${SA_TOKEN_FILE} perms are ${sa_perms}, must be 600" >&2
+    echo "  Fix:  chmod 600 ${SA_TOKEN_FILE}" >&2
+    exit 1
+  fi
+  OP_SERVICE_ACCOUNT_TOKEN="$(<"${SA_TOKEN_FILE}")"
+  export OP_SERVICE_ACCOUNT_TOKEN
+fi
+
 DEST_DIR="$(dirname "${DEST}")"
 
 # Render to a tmp file inside DEST_DIR (so the mv is atomic and on the same
@@ -158,7 +176,10 @@ render_to() {
   tmp="$(mktemp -p "$(dirname "${out}")" .render-secrets.XXXXXX)"
   # If op fails or we get interrupted between create and rename, clean up.
   trap 'rm -f "${tmp}"' RETURN
-  op inject -i "${TPL}" -o "${tmp}"
+  # --force: we created the tmp via mktemp so it already exists; without
+  # --force op inject would prompt to confirm overwrite, which is impossible
+  # under service-account auth (no TTY interaction).
+  op inject --force -i "${TPL}" -o "${tmp}"
   chmod 600 "${tmp}"
   mv -f "${tmp}" "${out}"
   trap - RETURN
@@ -174,7 +195,10 @@ if [[ "${CHECK}" -eq 1 ]]; then
   chmod 700 "${DEST_DIR}"
   tmp="$(mktemp -p "${DEST_DIR}" .render-secrets-check.XXXXXX)"
   trap 'rm -f "${tmp}"' EXIT
-  op inject -i "${TPL}" -o "${tmp}"
+  # --force: we created the tmp via mktemp so it already exists; without
+  # --force op inject would prompt to confirm overwrite, which is impossible
+  # under service-account auth (no TTY interaction).
+  op inject --force -i "${TPL}" -o "${tmp}"
   chmod 600 "${tmp}"
   if diff -u "${DEST}" "${tmp}" >/dev/null; then
     echo "render-secrets: no drift"

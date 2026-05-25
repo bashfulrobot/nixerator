@@ -49,7 +49,7 @@ virsh start "$VM_NAME"
 sudo mkdir -p "$REPO_PATH"
 sudo mount -t virtiofs "$SHARE_TAG" "$REPO_PATH"
 sudo chown -R "$CURRENT_USER:$CURRENT_GROUP" "$REPO_PATH"
-cd "$REPO_PATH" && sudo nixos-rebuild switch --flake ".#$CURRENT_HOST"
+cd "$REPO_PATH" && sudo nixos-rebuild switch --impure --flake ".#$CURRENT_HOST"
 ```
 
 After first rebuild, mount is persistent (configured in `hosts/nixerator/vm.nix`):
@@ -65,7 +65,7 @@ fileSystems.${globals.paths.nixerator} = {
 ## Development Workflow
 
 1. Edit on host in `$REPO_PATH`
-2. In VM: `nix flake check --show-trace`, then `sudo nixos-rebuild switch --flake ".#$CURRENT_HOST"`
+2. In VM: `nix flake check --show-trace`, then `sudo nixos-rebuild switch --impure --flake ".#$CURRENT_HOST"`
 3. Commit from either side (same repo)
 
 ## Troubleshooting

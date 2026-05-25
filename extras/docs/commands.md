@@ -30,9 +30,15 @@ Non-quiet rebuild recipes show a summary of available updates after a successful
 ## Manual Rebuild
 
 ```bash
-sudo nixos-rebuild switch --flake ".#$(hostname)"    # current host
-sudo nixos-rebuild switch --flake .#qbert             # specific host
+sudo nixos-rebuild switch --impure --flake ".#$(hostname)"    # current host
+sudo nixos-rebuild switch --impure --flake .#qbert             # specific host
 ```
+
+`--impure` is required: `flake.nix` reads the secrets file via
+`builtins.readFile` of an absolute string path (gated on
+`builtins.pathExists`) so the rendered file at
+`~/.config/nixos-secrets/secrets.json` stays out of the Nix store. The
+justfile recipes already pass this flag.
 
 ## Flake Maintenance
 

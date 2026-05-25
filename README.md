@@ -23,7 +23,7 @@ cat extras/docs/bootstrap.txt
 
 ```bash
 cd ~/git/nixerator
-sudo nixos-rebuild switch --flake .#HOSTNAME
+sudo nixos-rebuild switch --impure --flake .#HOSTNAME
 ```
 
 ## Common Commands
@@ -36,7 +36,7 @@ just clean           # Garbage collect
 just generations     # List generations
 
 # Direct nix commands
-sudo nixos-rebuild switch --flake .#HOSTNAME
+sudo nixos-rebuild switch --impure --flake .#HOSTNAME
 nix flake update
 nix-collect-garbage -d
 ```
