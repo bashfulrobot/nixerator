@@ -7,7 +7,6 @@
     ../../modules/apps/cli/agent-scan
     ../../modules/apps/cli/agentos
     ../../modules/apps/cli/claude-code
-    ../../modules/apps/cli/claude-remote
     ../../modules/apps/cli/docker
     ../../modules/apps/cli/fish
     ../../modules/apps/cli/gcmt
@@ -32,9 +31,8 @@
   ];
 
   # Adopts the Claude work-host archetype: zellij (no web, no mosh),
-  # claude-remote with always-on control tower, sshd, work-launcher.
-  # Sessions live on srv until killed; attach from anywhere on the
-  # tailnet via `work` or `ssh srv zellij attach`.
+  # sshd, work-launcher. Sessions live on srv until killed; attach from
+  # anywhere on the tailnet via `work` or `ssh srv zellij attach`.
   archetypes.claudeWorkHost.enable = true;
 
   # CLI applications (matching nixcfg srv)

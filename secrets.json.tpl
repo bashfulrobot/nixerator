@@ -41,13 +41,6 @@
   "github": {
     "accessToken": "{{ op://nixerator/github-pat/credential }}"
   },
-  "clay": {
-    "pin": "{{ op://nixerator/clay-pin/password }}"
-  },
-  "claudito": {
-    "username": "{{ op://nixerator/claudito/username }}",
-    "password": "{{ op://nixerator/claudito/password }}"
-  },
   "gemini": {
     "apiKey": "{{ op://nixerator/gemini/credential }}"
   },

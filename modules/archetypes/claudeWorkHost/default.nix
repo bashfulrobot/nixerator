@@ -9,10 +9,9 @@ in
     default = false;
     description = ''
       Enable the Claude work-host archetype: zellij (no web, no mosh),
-      claude-remote with always-on control tower, sshd, and the work
-      launcher. Sessions started on this host stay on this host and are
-      attachable from any peer via the `work` fish function or directly
-      via SSH + `zellij attach`.
+      sshd, and the work launcher. Sessions started on this host stay on
+      this host and are attachable from any peer via the `work` fish
+      function or directly via SSH + `zellij attach`.
     '';
   };
 
@@ -23,10 +22,6 @@ in
           enable = true;
           hideStatusBar = true;
           cheatsheet.enable = true;
-        };
-        claude-remote = {
-          enable = true;
-          controlTower.enable = true;
         };
         work-launcher.enable = true;
       };

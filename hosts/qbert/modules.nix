@@ -6,9 +6,9 @@
   apps.cli.render-secrets.enable = true;
 
   # Adopt the Claude work-host archetype (symmetric peer to srv): zellij
-  # (no web, no mosh), claude-remote with always-on control tower, sshd,
-  # and the work launcher. Sessions live on qbert until killed; attach
-  # from anywhere on the tailnet via `work` or `ssh qbert zellij attach`.
+  # (no web, no mosh), sshd, and the work launcher. Sessions live on
+  # qbert until killed; attach from anywhere on the tailnet via `work`
+  # or `ssh qbert zellij attach`.
   archetypes.claudeWorkHost.enable = true;
 
   # Apps
@@ -41,15 +41,6 @@
     keepYearly = 2;
   };
 
-  apps.cli.clay = {
-    service.enable = true;
-    projects = [
-      "/home/dustin/git/nixerator"
-      "/home/dustin/git/hyprflake"
-      "/home/dustin/git/upsight"
-      "/home/dustin/git/blackhole"
-    ];
-  };
   apps.cli.text-polish.enable = true;
   apps.cli.text-uppercase.enable = true;
 

@@ -1,10 +1,19 @@
 # Cross-device Claude workflow
 
-Two peer work hosts: `srv` (always-on) and `qbert` (workstation, occasional direct-use). Both run `claude-control-tower-${hostname}` and zellij; both are reachable over SSH on the tailnet. Sessions live on the host where they were started; no cross-host state sync.
+Two peer work hosts: `srv` (always-on) and `qbert` (workstation, occasional direct-use). Both run zellij and are reachable over SSH on the tailnet. Sessions live on the host where they were started; no cross-host state sync.
 
 ## Verbs
 
-The `work` fish function is installed on every host (workstations + peers). It is the canonical entry point.
+### `zj` / `czj` (canonical entry point)
+
+The zellij module ships two wrappers, installed wherever `apps.cli.zellij.enable = true;` (i.e. on every host that adopts `archetypes.claudeWorkHost`, currently srv + qbert):
+
+- `zj` — tight zellij wrapper. `zj s` list, `zj a [<name>]` attach, `zj n <name>` new (or `zj n <name> -- <cmd>`), `zj d` delete. Anything else passes through to `zellij`.
+- `czj` — `zj` layered for Claude. Starts a zellij session whose first pane is `claude` with a remote-control endpoint already attached, so the same session is usable locally **and** from claude.ai/code without a separate control-tower service.
+
+### `work` (cross-host picker)
+
+The `work` fish function is installed on every host (workstations + peers). Use it when you want to attach to a session that lives on another host without remembering which one.
 
 - `work` — across-peer session picker (fzf if installed, numbered prompt otherwise).
 - `work <name>` — attach locally if `<name>` exists locally; else fall back to a peer; else create on the current host.
@@ -16,8 +25,8 @@ Sessions are named per-repo by convention: zellij session name = repo basename (
 
 ## iPhone
 
-- **Resume:** Termius / Blink / Prompt over Tailscale → `ssh srv` (or `qbert`) → `work`. SSH only — no mosh, no zellij-web.
-- **Spawn new:** claude.ai/code → pick `claude-control-tower-srv` or `claude-control-tower-qbert` → start a new session in a repo.
+- **Spawn or resume from claude.ai/code:** czj sessions register their own remote-control endpoints, so claude.ai/code's session list picks them up directly. No separate control-tower service.
+- **SSH fallback (rarely needed):** Termius / Blink / Prompt over Tailscale → `ssh srv` (or `qbert`) → `zj a <name>` or `work`. SSH only — no mosh, no zellij-web.
 
 ## /github-issue
 
@@ -25,16 +34,17 @@ Auto-renames the zellij session to `<repo>#<N>` when invoked inside zellij. An i
 
 ## Components
 
-- `archetypes.claudeWorkHost` (enabled on srv + qbert) — bundles zellij + claude-remote + control tower + ssh + work-launcher.
+- `archetypes.claudeWorkHost` (enabled on srv + qbert) — bundles zellij + ssh + work-launcher.
 - `apps.cli.work-launcher` (enabled on srv + qbert + donkeykong) — ships the `work` fish function. `peers` defaults to `[ "srv" "qbert" ]`.
-- `apps.cli.claude-remote.controlTower` — the systemd `--user` service (per-host name `claude-control-tower-${hostname}`) that claude.ai/code connects to.
+- `apps.cli.zellij` (enabled by the archetype) — provides `zj` and `czj` wrappers.
 
-donkeykong is **attach-only** in v1: it has the `work` function but does NOT run a control tower or expose sessions to peers. Promotable later by flipping `archetypes.claudeWorkHost.enable = true;` and adding it to the peers list.
+donkeykong is **attach-only** in v1: it has the `work` function but does NOT host sessions for peers. Promotable later by flipping `archetypes.claudeWorkHost.enable = true;` and adding it to the peers list.
 
 ## Attack surface
 
-Enabling `archetypes.claudeWorkHost` on a host implies `system.ssh.enable = true`, which turns on `services.openssh` with NixOS defaults: sshd listens on `0.0.0.0:22` and TCP 22 is opened in the firewall. LAN-reachable sshd is **intentional** — the home LAN is treated as a trust boundary, so any LAN-attached host (laptop, tablet, plus the tailnet) can `ssh srv` / `ssh qbert` without going through Tailscale. Controls: key-only auth, no password login, no internet port-forward. If those controls are ever relaxed (password auth, or this flake is deployed where the local network isn't trusted), revisit by binding sshd to the tailnet interface via `services.openssh.listenAddresses`.
+Enabling `archetypes.claudeWorkHost` on a host implies `system.ssh.enable = true;`, which turns on `services.openssh` with NixOS defaults: sshd listens on `0.0.0.0:22` and TCP 22 is opened in the firewall. LAN-reachable sshd is **intentional** — the home LAN is treated as a trust boundary, so any LAN-attached host (laptop, tablet, plus the tailnet) can `ssh srv` / `ssh qbert` without going through Tailscale. Controls: key-only auth, no password login, no internet port-forward. If those controls are ever relaxed (password auth, or this flake is deployed where the local network isn't trusted), revisit by binding sshd to the tailnet interface via `services.openssh.listenAddresses`.
 
 ## What is NOT here
 
-- No mosh on the **work-host path** (zellij-web and mosh both retired by this design from srv). `mosh.enable = true` is still set in the workstation terminal suite, so donkeykong/qbert keep mosh outside the work flow. No syncthing of `~/.claude` or worktrees. No cross-host worktree sync. Branches move via `git push`/`git pull` only.
+- No `claude-remote` / always-on control-tower service: czj's per-session remote-control endpoint replaced it.
+- No mosh on the work-host path, no zellij-web. No syncthing of `~/.claude` or worktrees. No cross-host worktree sync. Branches move via `git push`/`git pull` only.
