@@ -150,6 +150,42 @@ gc-nuclear:
     echo "Disk space reclaimed:"
     df -h / | tail -1
 
+# List system generations (with current marker)
+generations:
+    @sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
+
+# Roll back to a previous system generation. No arg = one step back
+# (`nixos-rebuild --rollback`). With arg = jump to that specific gen
+# (e.g. `just rollback 721`). Asks for confirmation before switching
+# because this is destructive to the current generation pointer.
+rollback gen="":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    sudo nix-env --profile /nix/var/nix/profiles/system --list-generations | tail -8
+    echo ""
+    target="{{gen}}"
+    if [[ -z "$target" ]]; then
+        prompt="Roll back ONE generation (sudo nixos-rebuild --rollback switch)?"
+    else
+        if [[ ! -L "/nix/var/nix/profiles/system-${target}-link" ]]; then
+            echo "Generation ${target} not found at /nix/var/nix/profiles/system-${target}-link" >&2
+            exit 1
+        fi
+        prompt="Switch to generation ${target}?"
+    fi
+    if ! gum confirm "$prompt"; then
+        echo "Cancelled."
+        exit 0
+    fi
+    if [[ -z "$target" ]]; then
+        sudo nixos-rebuild --rollback switch
+    else
+        sudo "/nix/var/nix/profiles/system-${target}-link/bin/switch-to-configuration" switch
+    fi
+    echo ""
+    echo "Active generation now:"
+    sudo nix-env --profile /nix/var/nix/profiles/system --list-generations | grep "(current)"
+
 # Smart push/pull — detects git state and acts accordingly
 sync-git:
     #!/usr/bin/env bash
@@ -590,3 +626,5 @@ alias rs := render-secrets
 alias ps := push-secrets
 alias cs := check-secrets
 alias fs := fetch-signatures
+alias gen := generations
+alias rb := rollback
