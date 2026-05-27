@@ -182,7 +182,20 @@ let
             set -l cmd_str (string join ' ' -- $cmd_args)
             set -l cmd_escaped (string replace -a '"' '\\"' -- $cmd_str)
             set -l layout "layout { pane command=\"sh\" { args \"-c\" \"$cmd_escaped\" } }"
-            zellij --session $name --layout-string $layout
+
+            # In zellij 0.44, `--session NEW --layout-string …` is interpreted
+            # as "append tabs to existing session NEW" and fails with "Session
+            # 'NEW' not found" when NEW doesn't exist yet. The only flag that
+            # reliably starts a fresh session is --new-session-with-layout,
+            # which requires a file path. Stage the KDL to a tempfile, then
+            # clean up after zellij exits (the layout is consumed at session
+            # creation and not needed afterwards).
+            set -l layout_file (mktemp --suffix=.kdl)
+            echo $layout > $layout_file
+            zellij --session $name --new-session-with-layout $layout_file
+            set -l rc $status
+            rm -f $layout_file
+            return $rc
 
         case -h --help help
             __zj_help
