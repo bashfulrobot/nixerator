@@ -8,11 +8,19 @@ let
   cfg = config.server.netbootXyz;
 
   # Build a Docker `-p [HOSTIP:]HOSTPORT:CONTAINERPORT[/proto]` token.
-  # When hostIp is empty, Docker binds to 0.0.0.0 (the default).
+  # When hostIp is empty, Docker binds to 0.0.0.0 (the default). IPv6
+  # literals must be bracketed so Docker doesn't mis-parse the colons.
   bindSpec =
     hostIp: hostPort: containerPort: proto:
     let
-      prefix = if hostIp == "" then "" else "${hostIp}:";
+      isIpv6 = lib.hasInfix ":" hostIp;
+      prefix =
+        if hostIp == "" then
+          ""
+        else if isIpv6 then
+          "[${hostIp}]:"
+        else
+          "${hostIp}:";
       suffix = if proto == "" then "" else "/${proto}";
     in
     "${prefix}${toString hostPort}:${toString containerPort}${suffix}";
@@ -191,11 +199,16 @@ in
     virtualisation.oci-containers.containers."netboot-xyz" = {
       inherit (cfg) image;
       autoStart = true;
+      # TFTPD_OPTS is only set when the toggle is on -- an empty env var
+      # could be passed as a literal empty arg to dnsmasq inside the
+      # container, which dnsmasq rejects with "bad command line options".
       environment = {
         PUID = toString cfg.puid;
         PGID = toString cfg.pgid;
         TZ = globals.defaults.timeZone;
-        TFTPD_OPTS = lib.optionalString cfg.tftpSinglePort "--tftp-single-port";
+      }
+      // lib.optionalAttrs cfg.tftpSinglePort {
+        TFTPD_OPTS = "--tftp-single-port";
       };
       volumes = [
         "${cfg.stateDir}/config:/config"
