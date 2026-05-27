@@ -100,6 +100,13 @@ let
     // lib.optionalAttrs hasHyperframes {
       PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
       PUPPETEER_SKIP_DOWNLOAD = "1";
+    }
+    // {
+      # Force conversation auto-compaction at 400k tokens — below the point
+      # where 1M-context Opus quality measurably degrades. Env var name
+      # verified by string-grepping the claude-code binary; not yet in
+      # public docs as of 2026-05-27.
+      CLAUDE_CODE_AUTO_COMPACT_WINDOW = "400000";
     };
 in
 {

@@ -37,6 +37,10 @@ sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 - **Research-First, never Edit-First** — understand context before touching code to ensure you use the most appropriate tool. Prefer surgical edits over rewrites.
 - Use **Reasoning Loops** frequently. Don't skip them.
 
+### Bug Fixes
+
+- **Reproduce as a failing test before fixing.** For any defect with observable symptoms (wrong output, crash, hang, race), write a test that asserts the *correct* behaviour, confirm it fails with the reported symptom, then fix. If the failure looks different from the report, the test is wrong — fix the test first. Skip only for one-line typos with no realistic test target (e.g. a bad CSS variable name in a single template).
+
 ### Code Style
 
 - **Write DRY code where appropriate** — if the same logic appears in three or more places, extract it (function, module, variable, config). Two occurrences is usually a coincidence; three is a pattern.

@@ -312,7 +312,16 @@ Quick path:
    expose `just quiet-release <bump>` printing `Released v<X.Y.Z>`? If
    not, add the recipe first using the template in `references/recipe-contract.md`.
    Don't work around a missing recipe — make the app conform.
-2. Once the recipe is in place, gather these fields via `AskUserQuestion`:
+2. Once the recipe is in place, gather these fields. **If `$CLAUDE_AUTO_MODE` is set** (autonomous run via `/auto`), use the safest defaults below and skip the prompt; otherwise gather via `AskUserQuestion`.
+
+   **Auto-mode defaults:**
+   - Version bump: `patch` (never minor/major in autonomous runs)
+   - Release notes: auto-generated from commit log since last tag
+   - Dogfood after release: yes
+   - Push to remote: yes
+   - If any required field has no safe default in your context (e.g. an unrecognised app), abort the autonomous run with a blocked-reason report rather than guessing.
+
+   **Interactive gathering** (when `$CLAUDE_AUTO_MODE` unset):
    1. Registry key (short name)
    2. Source repo absolute path
    3. Downstream repo absolute path — or skip if release-only
