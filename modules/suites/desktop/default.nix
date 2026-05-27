@@ -106,7 +106,9 @@ in
         # Controls screen locking, display power management, and suspend timeouts
         idle = {
           lockTimeout = lib.mkDefault 300; # Lock screen after 5 minutes
-          dpmsTimeout = lib.mkDefault 360; # Turn off display after 6 minutes
+          # dpmsTimeout intentionally not set: hyprflake's default is 0 (disabled).
+          # OS-driven DPMS is unreliable across GPU/cable/monitor combinations.
+          # Opt back in per host with `hyprflake.desktop.idle.dpmsTimeout = 360;` if needed.
           suspendTimeout = lib.mkDefault 600; # Suspend after 10 minutes (set to 0 to disable)
         };
       };
