@@ -170,7 +170,7 @@ let
             # conflict with an existing name. With `-- <cmd>` the user is
             # explicitly asking for a fresh session, so attach-if-exists
             # would silently ignore their command.
-            if zellij list-sessions -s 2>/dev/null | string match -qx -- $name
+            if zellij list-sessions -s 2>/dev/null | string match -q -- $name
                 echo "zj n: session '$name' already exists; \`zj a $name\` to attach, or \`zj d $name\` first" >&2
                 return 1
             end
@@ -190,6 +190,95 @@ let
         case '*'
             zellij $argv
     end
+  '';
+
+  # `czj` — "c" for claude, layered on `zj`. One command launches a
+  # zellij session, a local interactive Claude in that pane, and a
+  # Remote Control registration, all sharing the same name. Phone or
+  # browser at claude.ai/code can then join the same live conversation
+  # without taking the terminal away from the local user (per `claude`
+  # docs, the `--remote-control` *flag* keeps both surfaces alive; only
+  # the `claude remote-control` *subcommand* claims the TTY).
+  #
+  # Bare `czj` mirrors `zj`'s "list and force a conscious next step"
+  # gate by delegating straight to `zj`, so there is one place that
+  # owns session-listing UX. With one argument it validates the name
+  # before any side effect, attaches if a zellij session of that name
+  # already exists (since `zj n NAME -- cmd` would refuse to clobber),
+  # and otherwise hands the launch to `zj n` so layout / session-name
+  # plumbing stays in one wrapper.
+  czjFishBody = ''
+    function __czj_help
+        echo "Usage:"
+        echo "  czj                       list sessions (delegates to zj)"
+        echo "  czj <name>                create-or-attach zellij session <name>"
+        echo "                            running: claude -n <name> --remote-control <name>"
+        echo "  czj help                  this message"
+        echo ""
+        echo "Names must match [A-Za-z0-9._-]+ and not start with '-'."
+    end
+
+    if test (count $argv) -eq 0
+        zj
+        return $status
+    end
+
+    if test (count $argv) -gt 1
+        echo "czj: takes 0 or 1 argument (got: $argv)" >&2
+        return 2
+    end
+
+    set -l name $argv[1]
+
+    switch "$name"
+        case -h --help help
+            __czj_help
+            return 0
+    end
+
+    # Validate before doing anything. zellij and claude both choke on
+    # whitespace and shell-special chars in session names, and a
+    # leading dash gets parsed as a flag by one of the inner commands.
+    # Fail fast with a clear message instead of letting the failure
+    # surface three layers deep.
+    if not string match -rq -- '^[A-Za-z0-9._-]+$' $name
+        echo "czj: invalid name '$name'; only [A-Za-z0-9._-] allowed" >&2
+        return 2
+    end
+    if string match -q -- '-*' $name
+        echo "czj: name cannot start with '-' (got '$name')" >&2
+        return 2
+    end
+
+    # `zj n NAME -- cmd` refuses to clobber an existing session, so we
+    # have to short-circuit here: if the session already exists, just
+    # attach. There is presumably already a Claude running in it
+    # (started by an earlier `czj NAME`); a second one would conflict
+    # on the Remote Control session name anyway.
+    if zellij list-sessions -s 2>/dev/null | string match -q -- $name
+        zellij attach $name
+        return $status
+    end
+
+    # Three places, one name:
+    #   - zellij session  : `zj n NAME`             (visible in `zj`, terminal title)
+    #   - claude local    : `-n NAME`               (prompt box, /resume picker)
+    #   - remote control  : `--remote-control NAME` (claude.ai/code, iOS app)
+    zj n $name -- claude -n $name --remote-control $name
+  '';
+
+  # Fish completions for `czj`. Same lazy-load pattern as `zj.fish`.
+  # Only the first positional arg gets suggestions: existing sessions
+  # (so `czj <Tab>` offers attach targets); -f suppresses the file
+  # fallback fish would otherwise add.
+  czjCompletions = ''
+    function __czj_sessions
+        zellij list-sessions -s 2>/dev/null
+    end
+
+    complete -c czj -f
+    complete -c czj -n __fish_use_subcommand -a help -d 'show usage'
+    complete -c czj -n __fish_use_subcommand -a '(__czj_sessions)' -d 'attach if exists; else create + claude --remote-control'
   '';
 
   # Fish completions for `zj` itself. Lives under
@@ -363,7 +452,12 @@ in
             description = "zellij wrapper with fzf-driven session pickers";
             body = zjFishBody;
           };
+          programs.fish.functions.czj = {
+            description = "claude + zellij launcher: zellij/claude/RC sessions all share one name";
+            body = czjFishBody;
+          };
           xdg.configFile."fish/completions/zj.fish".text = zjCompletions;
+          xdg.configFile."fish/completions/czj.fish".text = czjCompletions;
           xdg.configFile."fish/conf.d/zellij-augment.fish".text = zellijAugmentCompletions;
         };
       })
