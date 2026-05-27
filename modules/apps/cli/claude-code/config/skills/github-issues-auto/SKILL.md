@@ -1,18 +1,19 @@
 ---
-name: autonomous-issues
+name: github-issues-auto
 description: >-
-  Drive a sequenced batch of GitHub issues end-to-end through the full
-  lifecycle (assess → design → plan → implement → verify → push → /review-dev
-  → /review-security), one after another, with no user gates and no auto-merge.
+  Drive one or more GitHub issues end-to-end through the full lifecycle
+  (assess → design → plan → implement → verify → push → /review-dev →
+  /review-security), one after another, with no user gates and no auto-merge.
   Every PR is left ready-for-review, never set to auto-merge — the human
-  reviews and merges manually. Each subsequent issue is branched off the
-  previous issue's branch so the work composes; every PR is annotated with
-  the merge order. Use whenever the user says "/autonomous-issues", asks to
-  work a list of issues hands-off, says "work issues 12, 14, 18 autonomously",
-  "drive these issues to PR while I'm away", "stack and ship issues X, Y, Z",
-  or otherwise wants a queue of GitHub issues processed without supervision.
-  Trigger eagerly even if the user only hints at autonomous batch processing —
-  this skill exists for exactly that case.
+  reviews and merges manually. For multi-issue runs each subsequent issue
+  is branched off the previous issue's branch so the work composes, and
+  every PR is annotated with the merge order. Use whenever the user says
+  "/github-issues-auto", "/autonomous-issues" (legacy alias), asks to work
+  one or more issues hands-off, says "work issue 42 autonomously", "drive
+  issues 12, 14, 18 to PR while I'm away", "stack and ship issues X, Y, Z",
+  or otherwise wants GitHub issues processed without supervision. Trigger
+  eagerly even if the user only hints at hands-off issue work — this skill
+  exists for exactly that case.
 ---
 
 # Autonomous Issues
@@ -39,7 +40,7 @@ on top:
 ## Invocation
 
 ```
-/autonomous-issues <N1> [<N2> ...]
+/github-issues-auto <N1> [<N2> ...]
 ```
 
 Each argument is a GitHub issue number. Order matters — issue N+1 stacks on
@@ -150,7 +151,7 @@ Post the buffered decisions on the PR once it exists, as a single comment:
 
 ```bash
 gh pr comment <PR> --body "$(cat <<'EOF'
-<!-- autonomous-issues:decisions -->
+<!-- github-issues-auto:decisions -->
 ## Autonomous decisions
 
 ### Decision 1
