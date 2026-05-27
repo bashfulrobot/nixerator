@@ -23,8 +23,11 @@ in
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
-      xdg.configFile."hypr/conf.d/text-uppercase.conf".text = ''
-        bind = SUPER SHIFT, U, exec, ${pkgs.bash}/bin/bash ${textUppercaseScript}
+      # Hyprflake's hyprland.lua loads ~/.config/hypr/conf.d/*.lua via a
+      # dofile loop; .conf files are ignored by the Lua backend.
+      xdg.configFile."hypr/conf.d/text-uppercase.lua".text = ''
+        hl.bind("SUPER + SHIFT + U",
+          hl.dsp.exec_cmd("${pkgs.bash}/bin/bash ${textUppercaseScript}"))
       '';
     };
   };

@@ -6,5 +6,7 @@
 - Home Manager config goes inside `home-manager.users.${globals.user.name} = { ... }`.
 - Configuration priority: prefer `programs.<name>` or `services.<name>` Home Manager modules first, then NixOS options, then `xdg.configFile`/`xdg.dataFile` as a last resort.
 - Guard secrets access: `lib.optionalAttrs (secrets.foo or null != null) { ... }`.
-- Hyprland config (keybinds, windowrules, exec-once, env vars) uses the conf.d drop-in pattern: `xdg.configFile."hypr/conf.d/<name>.conf"` inside a `home-manager.users` block. Do not use `hyprflake.desktop.autostartD` or `wayland.windowManager.hyprland.settings`.
-- Window rules MUST use block syntax (Hyprland 0.53+). Never use `windowrulev2` or single-line `windowrule =` for rules with values. See `extras/docs/hyprland-windowrules.md`.
+- Hyprland config (keybinds, windowrules, exec-once-equivalents, env vars) uses the conf.d drop-in pattern: `xdg.configFile."hypr/conf.d/<name>.lua"` inside a `home-manager.users` block. Do not use `hyprflake.desktop.autostartD` or `wayland.windowManager.hyprland.settings`.
+- Hyprflake's hyprland module sets `configType = "lua"`. Snippets must be **Lua** (`hl.bind(...)`, `hl.window_rule({...})`, `hl.on("hyprland.start", function() hl.exec_cmd(...) end)`). `.conf` files in `conf.d/` are silently ignored by the dofile loader.
+- For window rules use `hl.window_rule({name=..., match={...}, <effect>=<value>})`. `opacity` is a string (`"0.9 0.9"`), booleans like `tile`/`float`/`pin` are `true`/`false`. Never use hyprlang `windowrule = ...` or `windowrulev2` syntax in conf.d.
+- For "exec-once" use `hl.on("hyprland.start", function() hl.exec_cmd(...) end)`. The Lua backend has no `exec-once` keyword.

@@ -22,8 +22,11 @@ in
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
-      xdg.configFile."hypr/conf.d/text-polish.conf".text = ''
-        bind = SUPER SHIFT, R, exec, ${pkgs.bash}/bin/bash ${textPolishScript}
+      # Hyprflake's hyprland.lua loads ~/.config/hypr/conf.d/*.lua via a
+      # dofile loop; .conf files are ignored by the Lua backend.
+      xdg.configFile."hypr/conf.d/text-polish.lua".text = ''
+        hl.bind("SUPER + SHIFT + R",
+          hl.dsp.exec_cmd("${pkgs.bash}/bin/bash ${textPolishScript}"))
       '';
     };
   };
