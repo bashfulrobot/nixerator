@@ -433,11 +433,11 @@
     "humanizer-skill": {
       "flake": false,
       "locked": {
-        "lastModified": 1775020197,
-        "narHash": "sha256-3yO13MKUK/zF36Sq+CACMM401BhtmYz5cZmC5FX4VQw=",
+        "lastModified": 1779850524,
+        "narHash": "sha256-Cnqkti8Socpvs1bW+Fp0Ld+kePjaJyDhTwFe+aklWwg=",
         "owner": "blader",
         "repo": "humanizer",
-        "rev": "8b3a17889fbf12bedae20974a3c9f9de746ed754",
+        "rev": "a2ace14a88a6746f64f1f53ed8272d6788828038",
         "type": "github"
       },
       "original": {
@@ -466,11 +466,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1779841335,
-        "narHash": "sha256-PDyfDYDib34Gvh3W7HUXbh/1UGCr37sCxXGLmXw16MI=",
+        "lastModified": 1779898724,
+        "narHash": "sha256-nnLo2ANRMuB0Neu4aabvicK5tT20NMyB5w0uFBiwVqA=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "c660f65912bc615320d9259592e0cfa1b019c703",
+        "rev": "03e6101aae1a120d1dee1a93dcfb8191eb4379d1",
         "type": "github"
       },
       "original": {
@@ -507,11 +507,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1779801808,
-        "narHash": "sha256-jrzX7xyjOLsa7f5+sVoh3jaRum6H0QZ7tB7JMDVEHgA=",
+        "lastModified": 1779868340,
+        "narHash": "sha256-TK1oFHU2SPXuB1gUX3SnqNujViWiYIPYTuWxXy1wR6U=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "da9d15d764d8f3b7ffb4be1c7dfedd72ff6049d5",
+        "rev": "93c592a1bf2bfcb7e72b9a5344611efcf72917db",
         "type": "github"
       },
       "original": {
