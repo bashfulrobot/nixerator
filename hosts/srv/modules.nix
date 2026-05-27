@@ -1,4 +1,4 @@
-{ secrets, ... }:
+{ secrets, globals, ... }:
 
 {
   # Import only modules that srv used in nixcfg, plus the cherry-picked
@@ -110,7 +110,18 @@
       };
     };
 
-    netbootXyz.enable = true;
+    netbootXyz = {
+      enable = true;
+      # Bind container ports to specific host IPs. Listener-binding is the
+      # primary exposure control on srv because the kvm module's INPUT-
+      # accept override neuters firewall scoping. LAN ports bind to enp3s0;
+      # admin UI binds LAN + Tailscale.
+      lanAddress = "192.168.168.1";
+      adminAddresses = [
+        "192.168.168.1"
+        globals.hosts.srv.tailscale_ip
+      ];
+    };
 
     nfs = {
       enable = true;
