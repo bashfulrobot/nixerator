@@ -25,6 +25,7 @@
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
     ../../modules/server/kvm
+    ../../modules/server/netboot-xyz
     ../../modules/server/nfs
     ../../modules/system/caddy
     ../../modules/system/ssh
@@ -108,6 +109,8 @@
         proxyArpInterfaces = [ "ens2" ];
       };
     };
+
+    netbootXyz.enable = true;
 
     nfs = {
       enable = true;
