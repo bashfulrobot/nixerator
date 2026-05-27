@@ -181,7 +181,6 @@ let
             # inside the joined string need KDL escaping (just `"`).
             set -l cmd_str (string join ' ' -- $cmd_args)
             set -l cmd_escaped (string replace -a '"' '\\"' -- $cmd_str)
-            set -l layout "layout { pane command=\"sh\" { args \"-c\" \"$cmd_escaped\" } }"
 
             # In zellij 0.44, `--session NEW --layout-string …` is interpreted
             # as "append tabs to existing session NEW" and fails with "Session
@@ -190,8 +189,17 @@ let
             # which requires a file path. Stage the KDL to a tempfile, then
             # clean up after zellij exits (the layout is consumed at session
             # creation and not needed afterwards).
+            #
+            # KDL must be multi-line: single-line `{ args "-c" "…" }` fails
+            # zellij's parser ("Failed to deserialize KDL node") because nodes
+            # inside a block need newline or `;` termination.
             set -l layout_file (mktemp --suffix=.kdl)
-            echo $layout > $layout_file
+            printf '%s\n' \
+                'layout {' \
+                '    pane command="sh" {' \
+                "        args \"-c\" \"$cmd_escaped\"" \
+                '    }' \
+                '}' > $layout_file
             zellij --session $name --new-session-with-layout $layout_file
             set -l rc $status
             rm -f $layout_file
