@@ -82,9 +82,12 @@ in
 
         # Custom ncspot desktop file with proper window class
         file = {
-          # Hyprland keybind: SUPER+CTRL+S to save currently playing song
-          ".config/hypr/conf.d/ncspot-save.conf".text = ''
-            bind = SUPER CTRL, S, exec, ncspot-save-playing
+          # Hyprland keybind: SUPER+CTRL+S to save currently playing song.
+          # Lua backend — hyprflake's hyprland.lua loads conf.d/*.lua via
+          # dofile; .conf files are ignored.
+          ".config/hypr/conf.d/ncspot-save.lua".text = ''
+            hl.bind("SUPER + CTRL + S",
+              hl.dsp.exec_cmd("ncspot-save-playing"))
           '';
 
           ".local/share/applications/ncspot.desktop".text = ''
