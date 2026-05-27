@@ -85,15 +85,6 @@
       npmPkg = "kubernetes-mcp-server-linux-amd64";
     };
 
-    clay = {
-      source = "npm";
-      repo = "chadbyte/clay";
-      npmPkg = "clay-server";
-      version = "2.36.1";
-      hash = "sha256-j9Ly9sMlt4X1XGNw7/sCW5lRquIdGPstqFbh3MBO55c=";
-      npmDepsHash = "sha256-mi18iYlgSXD59d1QGl+HfxseT0LFd4iAC8vGmXAp2ck=";
-    };
-
     lswt = {
       source = "sourcehut";
       repo = "~leon_plickat/lswt";

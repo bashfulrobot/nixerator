@@ -217,15 +217,15 @@ Format: `<type>(<scope>): <description>`
 
 Rules:
 - Type: use `security` for vulnerability fixes, `deps` for version bumps
-- Scope (REQUIRED): lowercase, kebab-case module name (e.g., `clay`, `nodemailer`)
+- Scope (REQUIRED): lowercase, kebab-case module name (e.g., `claude-code`, `nodemailer`)
 - Description: imperative mood, lowercase start, no period
 - Sign commits: always use `-S` flag
 - Do NOT add Co-Authored-By lines
 - Include CVE/GHSA ID in commit body
 
 Examples:
-- `security(clay): fix nodemailer addressparser DoS (CVE-2025-14874)`
-- `deps(clay): bump esbuild to 0.25.1`
+- `security(claude-code): fix nodemailer addressparser DoS (CVE-2025-14874)`
+- `deps(claude-code): bump esbuild to 0.25.1`
 
 ### Remediation Guidelines
 

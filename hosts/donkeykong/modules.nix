@@ -6,10 +6,9 @@
   apps.cli.render-secrets.enable = true;
 
   # Attach-only: install the `work` fish function so donkeykong can attach
-  # to zellij sessions on srv or qbert. Does NOT run a control tower or
-  # expose sessions to peers in v1 — donkeykong is a workstation, not a
-  # work-host peer. Promotable later by flipping the claudeWorkHost
-  # archetype here.
+  # to zellij sessions on srv or qbert. Does NOT expose sessions to peers
+  # in v1 — donkeykong is a workstation, not a work-host peer. Promotable
+  # later by flipping the claudeWorkHost archetype here.
   apps.cli.work-launcher.enable = true;
 
   # Apps

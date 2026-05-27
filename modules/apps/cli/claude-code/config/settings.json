@@ -94,7 +94,6 @@
       "Bash(ghostty *)",
       "Bash(tmux *)",
       "Bash(hyprctl *)",
-      "Bash(clay-server *)",
       "Bash(systemctl *)",
       "Bash(journalctl *)",
       "Bash(pgrep *)",

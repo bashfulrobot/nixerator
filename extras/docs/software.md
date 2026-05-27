@@ -8,7 +8,6 @@ Complete inventory of software managed by this NixOS configuration.
 | --------------------- | ------------------------------------------------------------------------------------- | -------------------------------- |
 | Amber                 | Code search (`ambs`) and replace (`ambr`) tool                                        | Local build                      |
 | Claude Code           | AI coding assistant CLI with MCP servers, LSP, status line, hooks, skills, and agents | Local build                      |
-| Clay                  | Web UI for Claude Code with headless server mode and PIN auth                         | Local build (npm)                |
 | CPX                   | Fast Rust-based `cp` replacement with progress bars and resume; aliased as `cp`       | Local build                      |
 | Docker                | Container runtime with daemon, socket access, and CLI tools                           | nixpkgs                          |
 | Fish                  | Shell with custom functions (kcfg, tcfg, copy, kns) and navigation aliases            | nixpkgs                          |
@@ -134,7 +133,7 @@ Modules that exist but are currently disabled (set to `false` or commented out i
 
 All version-pinned packages managed in `settings/versions.nix`:
 
-**CLI:** amber, clay, cpx, gurk, gws, jwtx, kubernetes-mcp-server, lswt, meetsum, plannotator, reap, salesforce-cli
+**CLI:** amber, cpx, gurk, gws, jwtx, kubernetes-mcp-server, lswt, meetsum, plannotator, reap, salesforce-cli
 
 **GUI:** comics-downloader, helium, insomnia
 

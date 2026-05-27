@@ -73,7 +73,7 @@
     <mxCell id="globals" value="settings/globals.nix&#xa;&#xa;user.name / email / homeDirectory&#xa;paths.nixerator / hyprflake&#xa;defaults.stateVersion / locale / timeZone&#xa;preferences.editor / shell / browser&#xa;git.gitPubSigningKey" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="settings-container">
       <mxGeometry x="15" y="40" width="260" height="115" as="geometry"/>
     </mxCell>
-    <mxCell id="versions" value="settings/versions.nix&#xa;&#xa;SRI hashes + version pins&#xa;for non-nixpkgs packages&#xa;(amber, clay, meetsum...)" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="settings-container">
+    <mxCell id="versions" value="settings/versions.nix&#xa;&#xa;SRI hashes + version pins&#xa;for non-nixpkgs packages&#xa;(amber, meetsum, reap...)" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="settings-container">
       <mxGeometry x="290" y="40" width="140" height="100" as="geometry"/>
     </mxCell>
     <mxCell id="secrets" value="secrets/secrets.json  (git-crypt encrypted)&#xa;&#xa;API keys, Tailscale IPs, device IDs,&#xa;Syncthing config, B2 creds, Restic passwords" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="settings-container">
@@ -199,7 +199,7 @@
     <mxCell id="mods-label" value="Individual Modules" style="text;fontSize=12;fontStyle=5;fontColor=#82b366;align=center;" vertex="1" parent="modules-container">
       <mxGeometry x="350" y="220" width="160" height="20" as="geometry"/>
     </mxCell>
-    <mxCell id="apps-cli" value="apps/cli/ (~35+ modules)&#xa;&#xa;tailscale, fish, starship, zoxide,&#xa;git, helix, clay, claude-code,&#xa;kubectl, amber, direnv, spotify,&#xa;restic, plakar, cpx, gws..." style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">
+    <mxCell id="apps-cli" value="apps/cli/ (~35+ modules)&#xa;&#xa;tailscale, fish, starship, zoxide,&#xa;git, helix, claude-code,&#xa;kubectl, amber, direnv, spotify,&#xa;restic, plakar, cpx, gws..." style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">
       <mxGeometry x="30" y="250" width="230" height="110" as="geometry"/>
     </mxCell>
     <mxCell id="apps-gui" value="apps/gui/ (~15+ modules)&#xa;&#xa;ghostty, brave, google-chrome,&#xa;1password, signal, obsidian,&#xa;zed, insomnia, upsight,&#xa;cameractrls, web-app-hub..." style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">

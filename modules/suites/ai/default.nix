@@ -18,14 +18,12 @@ in
     };
 
     apps.webapps = {
-      clay.enable = true;
       claude.enable = true;
     };
 
     apps.cli = {
       agent-scan.enable = true;
       agentos.enable = true;
-      clay.enable = true;
       drawio.enable = true;
       claude-code = {
         enable = true;
@@ -48,10 +46,6 @@ in
           "hyperframes@hyperframes"
         ];
       };
-      claude-remote = {
-        enable = true;
-        controlTower.enable = true;
-      };
       gemini-cli.enable = true;
       # llmfit: removed
       plannotator.enable = true;
@@ -72,7 +66,5 @@ in
         loadModels = [ "glm-5:cloud" ];
       };
     };
-
-    # system.moshi: disabled
   };
 }
