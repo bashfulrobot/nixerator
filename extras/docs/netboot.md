@@ -11,8 +11,9 @@ of the upstream catalog) without maintaining local images.
 ```nix
 server.netbootXyz = {
   enable = true;
-  lanAddress = "192.168.168.1";                          # bind TFTP + HTTP boot files here
+  lanAddress = "192.168.168.1";                          # bind TFTP listener here
   adminAddresses = [ "192.168.168.1" "100.64.187.14" ];  # admin UI on LAN + Tailscale
+  blockBridges = [ "virbr+" ];                            # keep libvirt guests out
 };
 ```
 
@@ -22,23 +23,36 @@ the module for the full list.
 
 ## Exposure model
 
-| Service             | Host port | Bound to                                | Defense-in-depth firewall |
-| ------------------- | --------- | --------------------------------------- | ------------------------- |
-| TFTP (PXE)          | 69/udp    | `192.168.168.1`                         | `enp3s0` only             |
-| HTTP boot files     | 8080/tcp  | `192.168.168.1`                         | `enp3s0` only             |
-| Web admin UI        | 3000/tcp  | `192.168.168.1` + `100.64.187.14` (TS)  | `enp3s0` + `tailscale0`   |
+| Service             | Host port | Bound to                                | Reachable from                |
+| ------------------- | --------- | --------------------------------------- | ----------------------------- |
+| TFTP (PXE)          | 69/udp    | `192.168.168.1`                         | main LAN only                 |
+| Web admin UI        | 3000/tcp  | `192.168.168.1` + `100.64.187.14`       | main LAN + Tailscale          |
+| HTTP boot files     | 8080/tcp  | not published (`localMirror` off)       | nowhere -- listener is in-container only |
 
-**Listener-binding is the primary control.** srv's kvm module installs
-an `iptables -A INPUT -j ACCEPT` rule (needed for inter-bridge routing)
-that bypasses per-interface firewall scoping. Binding container ports
-to specific host IPs means the unauthenticated admin UI is not reachable
-from libvirt guests on `virbr1..virbr7` -- only from clients that can
-hit `192.168.168.1` (main LAN) or the Tailscale address.
+Three layers stack:
 
-State lives in `/srv/netboot.xyz/{config,assets}` owned `1000:1000` (the
-upstream container's default uid/gid). The host user can read files
-under that tree without `sudo`; edits to menus over SSH need either
-`sudo` or aligning `server.netbootXyz.pgid` with your primary group.
+1. **Listener-binding (primary).** The container is published only on
+   specific host IPs (`lanAddress` for TFTP, each of `adminAddresses`
+   for the admin UI). The unauthenticated admin UI cannot be reached
+   from any interface whose IP is not in `adminAddresses`.
+
+2. **`blockBridges` PREROUTING bypass.** Docker's published-port DNAT
+   lives in `nat/PREROUTING` with no input-interface predicate, so a
+   libvirt guest routing through srv toward `192.168.168.1` would
+   *otherwise* hit the admin UI before any INPUT/FORWARD ACL runs.
+   `blockBridges = [ "virbr+" ]` installs explicit
+   `nat/PREROUTING -i virbr+ ... -j RETURN` rules that bypass Docker's
+   DNAT for traffic arriving on any libvirt bridge. The kernel then
+   has no listener on `192.168.168.1` and the packet is dropped.
+
+3. **Per-interface firewall (defense-in-depth).** TFTP and the admin
+   UI are also opened in `networking.firewall.interfaces.*`. This
+   scoping is decorative on srv because the kvm module installs an
+   `iptables -A INPUT -j ACCEPT` for routing, but it's correct on
+   hosts without that override and harmless otherwise.
+
+State lives in `/srv/netboot.xyz/{config,assets}` at mode `0750`
+(non-`puid` host users need `sudo` to read menus or cached assets).
 
 ## TFTP through Docker NAT
 
@@ -104,22 +118,23 @@ controller, then **force-provision** the gateway.
 
 ## Local mirror (optional)
 
-By default, the iPXE boot files served via TFTP chain-load menus from
+By default, iPXE boot files served via TFTP chain-load menus from
 `https://boot.netboot.xyz` over the LAN's internet connection. The
-container also runs a local nginx on port 8080 that can serve the
-mirrored menus + downloaded ISOs, but **upstream menus do not use it
-out of the box** -- you have to redirect them.
+container also runs a local nginx that can serve mirrored menus and
+downloaded ISOs from `<lanAddress>:<httpPort>`, but **upstream menus
+do not use it out of the box** and exposing the listener for no reason
+is unused attack surface. The HTTP port is therefore **not** published
+or opened in the firewall by default.
 
 To enable local-mirror booting:
 
-1. Open the admin UI (`http://srv:3000`).
-2. Edit `boot.cfg` (under "Boot Configuration"), set:
+1. Set `server.netbootXyz.localMirror.enable = true;` in
+   `hosts/srv/modules.nix`, rebuild.
+2. Open the admin UI (`http://srv:3000`).
+3. Edit `boot.cfg` (under "Boot Configuration"), set:
    - `live_endpoint = http://192.168.168.1:8080`
-3. Save and re-deploy the menu. Subsequent PXE boots will pull from
+4. Save and re-deploy the menu. Subsequent PXE boots will pull from
    the local mirror.
-
-Without that override, port 8080 in the firewall is opened but unused.
-Leave it as-is for future flexibility.
 
 ## Verify
 
@@ -132,27 +147,45 @@ tftp 192.168.168.1
 > quit
 ls -l /tmp/netboot.xyz.efi    # expect ~1MB
 
-# HTTP boot file server (returns 200 once menus are deployed)
-curl -fsSI http://192.168.168.1:8080/menu.ipxe
-
 # Admin UI (LAN or Tailscale)
 xdg-open http://srv:3000
 ```
 
 End-to-end test: configure a libvirt VM with `<boot dev='network'/>`
-first and watch TFTP -> iPXE chainload -> netboot.xyz menu in the
-viewer.
+first and watch TFTP -> iPXE chainload -> netboot.xyz menu. Note that
+libvirt guests are explicitly blocked by the `blockBridges` rules, so
+PXE booting an in-host VM through srv's netboot service will not work
+-- if you need that, add an exception or PXE-boot the VM from a host
+on the main LAN instead.
 
 ## Upgrades
 
-The container tracks `ghcr.io/netbootxyz/netbootxyz:latest`. To pull a
-newer image:
+The container is digest-pinned in
+`modules/server/netboot-xyz/default.nix`. To pull a newer build, look
+up the new digest and update the module:
 
 ```bash
-sudo docker pull ghcr.io/netbootxyz/netbootxyz:latest
-sudo systemctl restart docker-netboot-xyz
+# 1. Look up the current digest for the moving :latest tag
+TOKEN=$(curl -fsS "https://ghcr.io/token?scope=repository:netbootxyz/netbootxyz:pull" \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
+curl -fsSI -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/vnd.oci.image.index.v1+json" \
+  "https://ghcr.io/v2/netbootxyz/netbootxyz/manifests/latest" \
+  | grep -i 'docker-content-digest'
+# -> docker-content-digest: sha256:<new digest>
+
+# 2. Update server.netbootXyz.image in modules/server/netboot-xyz/default.nix
+#    to the new sha256:... reference
+
+# 3. Rebuild srv. `just rebuild` (or wherever this flake is consumed).
 ```
 
-Pin to a specific tag in `hosts/srv/modules.nix` via
-`server.netbootXyz.image = "ghcr.io/netbootxyz/netbootxyz:0.7.5";` if
-reproducibility matters more than fresh menu data.
+Or override per host without touching the module default:
+
+```nix
+server.netbootXyz.image = "ghcr.io/netbootxyz/netbootxyz@sha256:<new digest>";
+```
+
+Pinning by digest (rather than `:latest`) means a compromise of the
+upstream registry cannot silently push code into the container without
+this file changing in git.

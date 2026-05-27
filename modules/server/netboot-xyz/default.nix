@@ -32,6 +32,47 @@ let
       [ (bindSpec "" cfg.adminPort 3000 "") ]
     else
       map (ip: bindSpec ip cfg.adminPort 3000 "") cfg.adminAddresses;
+
+  # Ports this module wants to block from a given interface pattern via a
+  # nat/PREROUTING RETURN, so Docker's published-port DNAT (which has no
+  # input-interface predicate) doesn't expose the listeners to traffic
+  # arriving on bridges we don't trust.
+  bridgeBlockPorts = [
+    {
+      proto = "tcp";
+      port = cfg.adminPort;
+    }
+  ]
+  ++ lib.optional cfg.localMirror.enable {
+    proto = "tcp";
+    port = cfg.httpPort;
+  }
+  ++ [
+    {
+      proto = "udp";
+      port = cfg.tftpPort;
+    }
+  ];
+
+  bridgeBlockLine =
+    iface:
+    { proto, port }:
+    "iptables -t nat -I PREROUTING -i ${iface} -d ${cfg.lanAddress} -p ${proto} --dport ${toString port} -j RETURN";
+
+  bridgeBlockStopLine =
+    iface:
+    { proto, port }:
+    "iptables -t nat -D PREROUTING -i ${iface} -d ${cfg.lanAddress} -p ${proto} --dport ${toString port} -j RETURN 2>/dev/null || true";
+
+  bridgeBlockEnabled = cfg.blockBridges != [ ] && cfg.lanAddress != "";
+
+  bridgeBlockCommands = lib.concatStringsSep "\n" (
+    lib.concatMap (iface: map (bridgeBlockLine iface) bridgeBlockPorts) cfg.blockBridges
+  );
+
+  bridgeBlockStopCommands = lib.concatStringsSep "\n" (
+    lib.concatMap (iface: map (bridgeBlockStopLine iface) bridgeBlockPorts) cfg.blockBridges
+  );
 in
 {
   options.server.netbootXyz = {
@@ -39,11 +80,17 @@ in
 
     image = lib.mkOption {
       type = lib.types.str;
-      default = "ghcr.io/netbootxyz/netbootxyz:latest";
+      # Digest-pinned to ghcr.io/netbootxyz/netbootxyz:latest as of 2026-05-27
+      # (tag 0.7.6-nbxyz23). Bump by looking up the new digest, e.g.
+      #   docker manifest inspect ghcr.io/netbootxyz/netbootxyz:latest | head
+      # and updating both this default and the docs upgrade snippet.
+      default = "ghcr.io/netbootxyz/netbootxyz@sha256:39bb40c85d1f6e500b3df1871460f88609215735c224b234b9e6e4e849faf92b";
       description = ''
-        OCI image to run. Defaults to the official upstream image. Pin to a
-        tag (e.g. `:0.7.5`) for reproducible deployments; `:latest` is fine
-        for a personal lab where menu churn is desirable.
+        OCI image to run. Defaults to a digest-pinned reference of the
+        official upstream image. Bump the digest when you want a newer
+        build -- a floating `:latest` tag would let a compromised
+        upstream silently push code that runs root-equivalent inside
+        the container with a bind mount on `/config` and `/assets`.
       '';
     };
 
@@ -76,11 +123,12 @@ in
       default = "";
       example = "192.168.168.1";
       description = ''
-        Host IP to bind the LAN-facing container ports (TFTP and boot-file
-        HTTP) to. Empty means Docker binds 0.0.0.0 and host-firewall
-        scoping is the only exposure control -- not safe on hosts that
-        otherwise have a permissive INPUT chain (e.g. KVM routing). Set
-        to the IP of `lanInterface` for proper isolation.
+        Host IP to bind the LAN-facing container ports (TFTP and, if
+        `localMirror.enable`, the boot-file HTTP port) to. Empty means
+        Docker binds 0.0.0.0 and host-firewall scoping is the only
+        exposure control -- not safe on hosts that otherwise have a
+        permissive INPUT chain (e.g. KVM routing). Set to the IP of
+        `lanInterface` for proper isolation.
       '';
     };
 
@@ -98,6 +146,21 @@ in
       '';
     };
 
+    blockBridges = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "virbr+" ];
+      description = ''
+        Bridge interface patterns whose source traffic must NOT be able
+        to reach the container's published ports via Docker's DNAT.
+        Each pattern gets a `nat/PREROUTING -j RETURN` rule that bypasses
+        Docker's port DNAT for packets arriving on that bridge, so e.g.
+        libvirt guests cannot hit the unauthenticated admin UI even
+        though the host's INPUT chain is otherwise permissive. Requires
+        `lanAddress` to be set (the rules match on destination IP).
+      '';
+    };
+
     tftpPort = lib.mkOption {
       type = lib.types.port;
       default = 69;
@@ -109,10 +172,9 @@ in
       default = 8080;
       description = ''
         TCP port the container's boot-file HTTP server is published on.
-        Defaults to 8080 to avoid colliding with Caddy on 80. Only useful
-        if you configure local-mirror menus -- see
-        `extras/docs/netboot.md` for how to point `boot.cfg` at this
-        endpoint.
+        Defaults to 8080 to avoid colliding with Caddy on 80. Only
+        published and opened in the firewall when
+        `localMirror.enable = true`.
       '';
     };
 
@@ -122,13 +184,28 @@ in
       description = "TCP port for the netboot.xyz web admin UI.";
     };
 
+    localMirror.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Publish the container's nginx (boot-file HTTP) port and open it
+        in the firewall. Only useful once you've edited the admin UI's
+        `boot.cfg` so `live_endpoint = http://<lanAddress>:<httpPort>`.
+        Until then the listener is reachable LAN-wide but does nothing,
+        so it's gated off by default to avoid exposing an unused
+        attack surface (any future nginx CVE in the container build
+        would otherwise be unauthenticated-reachable).
+      '';
+    };
+
     stateDir = lib.mkOption {
       type = lib.types.str;
       default = "/srv/netboot.xyz";
       description = ''
         Host directory for persistent container state. `<stateDir>/config`
         holds menus and settings, `<stateDir>/assets` holds locally
-        cached ISOs.
+        cached ISOs. Created with mode 0750 so non-`puid` host users
+        can't read menus or cached assets without `sudo`.
       '';
     };
 
@@ -176,21 +253,28 @@ in
           Enable apps.cli.docker on this host (or set the Docker option directly).
         '';
       }
+      {
+        assertion = cfg.blockBridges == [ ] || cfg.lanAddress != "";
+        message = ''
+          server.netbootXyz.blockBridges requires server.netbootXyz.lanAddress to be
+          set -- the PREROUTING RETURN rules need a destination IP to match against.
+        '';
+      }
     ];
 
     systemd.tmpfiles.settings."10-netboot-xyz" = {
       "${cfg.stateDir}".d = {
-        mode = "0755";
+        mode = "0750";
         user = toString cfg.puid;
         group = toString cfg.pgid;
       };
       "${cfg.stateDir}/config".d = {
-        mode = "0755";
+        mode = "0750";
         user = toString cfg.puid;
         group = toString cfg.pgid;
       };
       "${cfg.stateDir}/assets".d = {
-        mode = "0755";
+        mode = "0750";
         user = toString cfg.puid;
         group = toString cfg.pgid;
       };
@@ -216,21 +300,22 @@ in
       ];
       ports = [
         (bindSpec cfg.lanAddress cfg.tftpPort 69 "udp")
-        (bindSpec cfg.lanAddress cfg.httpPort 80 "")
       ]
+      ++ lib.optional cfg.localMirror.enable (bindSpec cfg.lanAddress cfg.httpPort 80 "")
       ++ adminPortMappings;
     };
 
     # mkMerge (not `//`) so an interface listed in both lanInterface and
     # adminInterfaces (the default for enp3s0) gets its TCP port lists
-    # concatenated rather than overwritten. Note: on a host whose INPUT
-    # chain is already permissively open (e.g. KVM routing), per-interface
-    # firewall scoping is decorative -- the listener-binding controlled by
-    # lanAddress / adminAddresses is the primary exposure control.
+    # concatenated rather than overwritten. Listener-binding via
+    # lanAddress / adminAddresses is the primary exposure control; this
+    # firewall scope is defense-in-depth.
     networking.firewall.interfaces = lib.mkMerge [
       {
         ${cfg.lanInterface} = {
           allowedUDPPorts = [ cfg.tftpPort ];
+        }
+        // lib.optionalAttrs cfg.localMirror.enable {
           allowedTCPPorts = [ cfg.httpPort ];
         };
       }
@@ -238,5 +323,16 @@ in
         allowedTCPPorts = [ cfg.adminPort ];
       }))
     ];
+
+    # Block libvirt-bridge traffic from reaching the container's published
+    # ports. Docker's DNAT lives in nat/PREROUTING with no input-interface
+    # predicate, so without these rules a guest VM that routes through srv
+    # toward `lanAddress` would hit the unauthenticated admin UI before
+    # any INPUT/FORWARD ACL runs. RETURN bypasses Docker's chain for that
+    # source; the kernel then tries to deliver locally, finds no listener
+    # on lanAddress (Docker's listener is on docker0), and the packet is
+    # dropped by the firewall.
+    networking.firewall.extraCommands = lib.mkIf bridgeBlockEnabled bridgeBlockCommands;
+    networking.firewall.extraStopCommands = lib.mkIf bridgeBlockEnabled bridgeBlockStopCommands;
   };
 }

@@ -114,13 +114,20 @@
       enable = true;
       # Bind container ports to specific host IPs. Listener-binding is the
       # primary exposure control on srv because the kvm module's INPUT-
-      # accept override neuters firewall scoping. LAN ports bind to enp3s0;
-      # admin UI binds LAN + Tailscale.
+      # accept override neuters per-interface firewall scoping. LAN ports
+      # bind to enp3s0; admin UI binds LAN + Tailscale.
       lanAddress = "192.168.168.1";
       adminAddresses = [
         "192.168.168.1"
         globals.hosts.srv.tailscale_ip
       ];
+      # Docker's published-port DNAT in nat/PREROUTING does not filter by
+      # input interface, so a libvirt guest routing through srv toward
+      # 192.168.168.1 would otherwise reach the unauthenticated admin UI.
+      # blockBridges installs PREROUTING RETURN rules that bypass Docker's
+      # DNAT for traffic arriving on any virbr*, so guest VMs cannot hit
+      # the netboot.xyz listeners.
+      blockBridges = [ "virbr+" ];
     };
 
     nfs = {
