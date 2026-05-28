@@ -234,9 +234,130 @@ let
         echo "  czj                       list sessions (delegates to zj)"
         echo "  czj <name>                create-or-attach zellij session <name>"
         echo "                            running: claude -n <name> --remote-control <name>"
+        echo "  czj d [<name>...]         delete czj-made session(s): zellij + on-disk Claude"
+        echo "                            transcript. With no name, fzf picker."
         echo "  czj help                  this message"
         echo ""
         echo "Names must match [A-Za-z0-9._-]+ and not start with '-'."
+    end
+
+    # Print absolute paths of ~/.claude/projects/*/*.jsonl whose customTitle
+    # exactly equals NAME. Match is on the encoded JSON form
+    # `"customTitle":"NAME"` -- names are pre-validated to [A-Za-z0-9._-]+
+    # so no JSON escaping is needed and shell-injection into `grep` is not
+    # reachable. -F = fixed string, -l = list matching files.
+    function __czj_find_transcripts -a name
+        grep -lF --include='*.jsonl' -r -- "\"customTitle\":\"$name\"" \
+            ~/.claude/projects/ 2>/dev/null
+    end
+
+    # Union of live zellij session names and on-disk czj transcript names.
+    # Used by the bare `czj d` fzf picker.
+    function __czj_candidates
+        set -l zellij_names (zellij list-sessions -s 2>/dev/null)
+        set -l disk_names (grep -hoE '"customTitle":"[^"]+"' \
+            --include='*.jsonl' -r ~/.claude/projects/ 2>/dev/null \
+            | sed -E 's/.*"customTitle":"([^"]+)".*/\1/')
+        printf '%s\n' $zellij_names $disk_names | sort -u
+    end
+
+    # Per-name cleanup: validate, delete zellij side via `zj d`, remove
+    # matching on-disk JSONL(s) and sibling uuid dirs. Prints per-step
+    # status with the NAME as a prefix so multi-name runs stay legible.
+    function __czj_delete_one -a name
+        if not string match -rq -- '^[A-Za-z0-9._-]+$' $name
+            echo "czj d: invalid name '$name'; only [A-Za-z0-9._-] allowed" >&2
+            return 2
+        end
+        if string match -q -- '-*' $name
+            echo "czj d: name cannot start with '-' (got '$name')" >&2
+            return 2
+        end
+
+        set -l overall 0
+
+        # Zellij side. `zj d` runs `zellij delete-session --force`, which
+        # works whether the session is alive or already exited. On a live
+        # session the SIGHUP from teardown lets Claude's shutdown handler
+        # run, which deregisters Remote Control as a free side-effect.
+        if zellij list-sessions -s 2>/dev/null | string match -q -- $name
+            zj d $name
+            set -l rc $status
+            if test $rc -ne 0
+                echo "czj d $name: zellij delete failed (exit $rc)" >&2
+                set overall $rc
+            else
+                echo "czj d $name: zellij session deleted"
+            end
+        else
+            echo "czj d $name: no zellij session named '$name'"
+        end
+
+        # On-disk Claude side. A name can match multiple JSONLs if `czj
+        # NAME` was run from different cwds historically; remove all
+        # matches. Sibling <uuid>/ directory (tool-results sidecar) is
+        # derived by stripping `.jsonl` from the path.
+        set -l files (__czj_find_transcripts $name)
+        if test (count $files) -eq 0
+            echo "czj d $name: no on-disk transcript with customTitle='$name'"
+        else
+            for f in $files
+                set -l dir (string replace -r '\.jsonl$' "" -- $f)
+                rm -f -- $f
+                set -l rc1 $status
+                rm -rf -- $dir
+                set -l rc2 $status
+                if test $rc1 -ne 0 -o $rc2 -ne 0
+                    echo "czj d $name: failed to remove $f or $dir" >&2
+                    set overall 1
+                else
+                    echo "czj d $name: transcript $f removed (and sibling dir)"
+                end
+            end
+        end
+
+        return $overall
+    end
+
+    # `czj d` dispatcher. With names: loop, continue on per-name error,
+    # return last non-zero. Without names: fzf picker over candidates.
+    function __czj_delete
+        if test (count $argv) -eq 0
+            set -l candidates (__czj_candidates)
+            if test (count $candidates) -eq 0
+                echo "czj d: nothing to delete (no zellij sessions, no on-disk transcripts)" >&2
+                return 1
+            end
+            if not type -q fzf
+                echo "czj d: install fzf or pass a name" >&2
+                return 2
+            end
+            set -l picked (printf '%s\n' $candidates \
+                | fzf --multi --prompt='czj delete> ' --height=40% --border \
+                      --header='Tab to multi-select; deletes zellij + on-disk transcript')
+            if test -z "$picked"
+                return 130
+            end
+            set -l rc 0
+            for name in $picked
+                __czj_delete_one $name
+                set -l one $status
+                if test $one -ne 0
+                    set rc $one
+                end
+            end
+            return $rc
+        end
+
+        set -l rc 0
+        for name in $argv
+            __czj_delete_one $name
+            set -l one $status
+            if test $one -ne 0
+                set rc $one
+            end
+        end
+        return $rc
     end
 
     if test (count $argv) -eq 0
@@ -244,18 +365,28 @@ let
         return $status
     end
 
-    if test (count $argv) -gt 1
-        echo "czj: takes 0 or 1 argument (got: $argv)" >&2
-        return 2
-    end
+    set -l sub $argv[1]
+    set -l rest $argv[2..-1]
 
-    set -l name $argv[1]
-
-    switch "$name"
+    switch "$sub"
         case -h --help help
             __czj_help
             return 0
+        case d
+            __czj_delete $rest
+            return $status
     end
+
+    # Fallthrough: $sub is treated as a session name (the existing
+    # `czj NAME` shape). Reject extra positional args here so the
+    # "takes 0 or 1 argument" contract for the create-or-attach path
+    # is preserved; sub-verbs (`d`) have their own arity rules above.
+    if test (count $argv) -gt 1
+        echo "czj: takes 0 or 1 argument for create-or-attach (got: $argv); did you mean `czj d $argv`?" >&2
+        return 2
+    end
+
+    set -l name $sub
 
     # Validate before doing anything. zellij and claude both choke on
     # whitespace and shell-special chars in session names, and a
@@ -297,9 +428,22 @@ let
         zellij list-sessions -s 2>/dev/null
     end
 
+    # Mirrors __czj_candidates in czjFishBody, duplicated here because
+    # completions are sourced at fish startup, before the `czj` function
+    # body has ever run (so the body-local helpers aren't defined yet).
+    function __czj_candidates_complete
+        set -l zellij_names (zellij list-sessions -s 2>/dev/null)
+        set -l disk_names (grep -hoE '"customTitle":"[^"]+"' \
+            --include='*.jsonl' -r ~/.claude/projects/ 2>/dev/null \
+            | sed -E 's/.*"customTitle":"([^"]+)".*/\1/')
+        printf '%s\n' $zellij_names $disk_names | sort -u
+    end
+
     complete -c czj -f
     complete -c czj -n __fish_use_subcommand -a help -d 'show usage'
+    complete -c czj -n __fish_use_subcommand -a d    -d 'delete czj-made session(s): zellij + on-disk Claude transcript'
     complete -c czj -n __fish_use_subcommand -a '(__czj_sessions)' -d 'attach if exists; else create + claude --remote-control'
+    complete -c czj -n '__fish_seen_subcommand_from d' -f -a '(__czj_candidates_complete)'
   '';
 
   # Fish completions for `zj` itself. Lives under
