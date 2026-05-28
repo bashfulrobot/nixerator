@@ -2,14 +2,14 @@
 
 Two distinct post-push recovery paths that the state machine treats separately.
 
-- **`revamp`** — a reviewer left `CHANGES_REQUESTED`. Human (or AI) judgment about code quality is required.
-- **`ci_fix`** — CI went red after push. Diagnose the failure and fix it. No code-review evaluation needed.
+- **`revamp`.** A reviewer left `CHANGES_REQUESTED`. Human (or AI) judgment about code quality is required.
+- **`ci_fix`.** CI went red after push. Diagnose the failure and fix it. No code-review evaluation needed.
 
 Both end by looping back through `verify` so the full gate runs again.
 
 ---
 
-## `revamp` — address review feedback
+## `revamp`, address review feedback
 
 ### Entry
 
@@ -25,7 +25,7 @@ Both end by looping back through `verify` so the full gate runs again.
 
    Returns `reviews` (high-level comments) and `inline_comments` (specific line feedback), plus `review_decision`.
 
-2. **Evaluate technically — invoke `superpowers:receiving-code-review`**
+2. **Evaluate technically. Invoke `superpowers:receiving-code-review`.**
 
    Do not blindly agree with every comment. For each piece of feedback ask:
    - Does the suggestion actually improve the code?
@@ -36,11 +36,11 @@ Both end by looping back through `verify` so the full gate runs again.
 
 3. **Implement fixes**
 
-   Batch all minor findings into a single commit — the branch is squash-merged anyway, so individual review-fix commits just add noise. Log "Batched N minor fixes" in the transition note.
+   Batch all minor findings into a single commit; the branch is squash-merged anyway, so individual review-fix commits just add noise. Log "Batched N minor fixes" in the transition note.
 
    Block-level issues (verdict=block): fix, verify, push before moving on.
 
-4. **Verify — invoke `superpowers:verification-before-completion`**
+4. **Verify. Invoke `superpowers:verification-before-completion`.**
 
 5. **Push updates**
 
@@ -52,8 +52,14 @@ Both end by looping back through `verify` so the full gate runs again.
 
 6. **Comment on the PR**
 
+   Run the comment body through the [`humanizer`](../../humanizer/SKILL.md)
+   skill before posting. See the **Voice for posted content** section in
+   `SKILL.md`. The structure below is a shape, not a verbatim template; write
+   each item as a complete sentence without em dashes or decorative colons.
+
    ```bash
-   gh pr comment <pr_url> --body "Addressed review feedback:
+   gh pr comment <pr_url> --body "Addressed review feedback.
+
    - <item 1>
    - <item 2>"
    ```
@@ -62,7 +68,7 @@ Both end by looping back through `verify` so the full gate runs again.
 
    ```bash
    github-issue transition <N> verify \
-     --note "Addressed <N> review comments — <brief>" \
+     --note "Addressed <N> review comments. <brief>" \
      --detail-json '{"revamp_round": <round+1>}'
    ```
 
@@ -70,13 +76,13 @@ Both end by looping back through `verify` so the full gate runs again.
 
 ---
 
-## `ci_fix` — post-push CI failure
+## `ci_fix`, post-push CI failure
 
 ### Entry
 
 `status` detects an open PR where `gh pr checks` reports `FAILURE` or `ERROR` checks, while the workflow step is `waiting`, `push`, `review_dev`, or `review_security`. Reconciliation advances `workflow_step` to `ci_fix`.
 
-### Procedure — do NOT invoke `receiving-code-review`
+### Procedure. Do NOT invoke `receiving-code-review`.
 
 1. **Get structured failure data**
 
@@ -101,7 +107,7 @@ Both end by looping back through `verify` so the full gate runs again.
    - Environment / config drift: update the config
    - Do not paper over real failures
 
-4. **Verify locally — invoke `superpowers:verification-before-completion`**
+4. **Verify locally. Invoke `superpowers:verification-before-completion`.**
 
    Run the same suite that failed in CI to confirm local repro + fix.
 
@@ -118,7 +124,7 @@ Both end by looping back through `verify` so the full gate runs again.
      --note "Fixed CI failure in <check-name>: <root cause>"
    ```
 
-   The state machine continues forward from verify through push/review again — the review skills run again on the new diff.
+   The state machine continues forward from verify through push/review again. The review skills run again on the new diff.
 
 ---
 
@@ -132,4 +138,4 @@ If `github-issue push` fails because the pre-push rebase conflicted, apply the *
 - Mandatory post-resolve verification
 - On verification failure: `git rebase --abort` and hand off to the user with a clear status dump
 
-Never use `git push --force` during revamp or ci_fix — always `--force-with-lease` so concurrent pushes can't be silently overwritten.
+Never use `git push --force` during revamp or ci_fix. Always `--force-with-lease` so concurrent pushes can't be silently overwritten.

@@ -52,7 +52,7 @@ The CLI derives this from issue labels and title automatically.
 
 ## PR body
 
-Default — atomic issue (one PR resolves the whole thing): use `Closes #{issue-number}` so the issue auto-closes on merge.
+Default for an atomic issue (one PR resolves the whole thing): use `Closes #{issue-number}` so the issue auto-closes on merge.
 
 ```
 ## Summary
@@ -69,7 +69,7 @@ When the issue tracks multiple PRs (e.g., a 13-phase refinement plan, a multi-sc
 
 ```
 ## Summary
-Refs #<number> (Phase X of Y) — <what this PR delivers>
+Refs #<number> (Phase X of Y). <what this PR delivers>
 
 …
 ```
@@ -78,4 +78,4 @@ Refs #<number> (Phase X of Y) — <what this PR delivers>
 
 ## Direct-to-main work (outside this skill)
 
-When working directly on `main` (no PR), **atomic commits** matter — each commit lives on its own forever. Split changes that span unrelated concerns into separate commits. That rule does NOT apply on issue branches because of squash-merge.
+When working directly on `main` (no PR), **atomic commits** matter; each commit lives on its own forever. Split changes that span unrelated concerns into separate commits. That rule does NOT apply on issue branches because of squash-merge.

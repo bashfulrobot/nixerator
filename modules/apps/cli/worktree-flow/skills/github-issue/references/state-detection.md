@@ -45,17 +45,17 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
 
 ### v3 changes vs v2
 
-- `base_ref` (string) — the ref the branch was pinned to at `setup`. Defaults to `origin/<default-branch>`. Used by pre-push rebase and touched-file overlap detection.
-- `workflow_detail.blockers` — array of `{number, state, title}` parsed from issue body (`Blocked by #N`, `Depends on #N`, `Requires #N`, `Needs #N`). The v2 scalar `blocker` field is migrated into a single-element array.
-- `workflow_detail.open_threads` — freeform array of short strings. Loose ends the agent noticed but hasn't resolved. Read on resume; add during transitions via `--detail-json '{"open_threads": ["..."]}'`.
-- `step_history[].note` — required non-empty string on each transition. Backfilled as `""` for v2 entries; new entries are rejected without `--note`.
+- `base_ref` (string). The ref the branch was pinned to at `setup`. Defaults to `origin/<default-branch>`. Used by pre-push rebase and touched-file overlap detection.
+- `workflow_detail.blockers`. Array of `{number, state, title}` parsed from issue body (`Blocked by #N`, `Depends on #N`, `Requires #N`, `Needs #N`). The v2 scalar `blocker` field is migrated into a single-element array.
+- `workflow_detail.open_threads`. Freeform array of short strings. Loose ends the agent noticed but hasn't resolved. Read on resume; add during transitions via `--detail-json '{"open_threads": ["..."]}'`.
+- `step_history[].note`. Required non-empty string on each transition. Backfilled as `""` for v2 entries; new entries are rejected without `--note`.
 
 ## Workflow Steps
 
 | Step | Meaning |
 |------|---------|
 | `assess` | Worktree created, issue needs complexity classification |
-| `design` | Complex issue — brainstorming/design phase |
+| `design` | Complex issue, brainstorming/design phase |
 | `plan` | Writing implementation plan |
 | `implement` | Active development |
 | `verify` | Running tests/linters/build |
@@ -64,7 +64,7 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
 | `review_security` | Dev review done, security review stage |
 | `waiting` | Both reviews done, auto-merge enabled, waiting for CI + branch protection |
 | `revamp` | Reviewer requested changes |
-| `ci_fix` | Post-push CI failure — diagnose and fix (distinct from `revamp`) |
+| `ci_fix` | Post-push CI failure. Diagnose and fix (distinct from `revamp`). |
 | `done` | PR merged |
 | `closed` | PR closed without merge |
 
@@ -93,9 +93,9 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
 }
 ```
 
-The `pr` field is `null` when no PR exists. The `state` field is the legacy detection result — `workflow_step` is authoritative.
+The `pr` field is `null` when no PR exists. The `state` field is the legacy detection result; `workflow_step` is authoritative.
 
-`reconciled` is `true` when `status` acquired the worktree lock and ran the full reconcile pass. It's `false` when another `github-issue` process held the lock — the rest of the payload reflects the last persisted state and is still safe to read, but transitions/auto-heals were skipped this call.
+`reconciled` is `true` when `status` acquired the worktree lock and ran the full reconcile pass. It's `false` when another `github-issue` process held the lock. The rest of the payload reflects the last persisted state and is still safe to read, but transitions/auto-heals were skipped this call.
 
 `merge_state_status` mirrors GitHub's `mergeStateStatus` (`CLEAN`, `BEHIND`, `BLOCKED`, `DIRTY`, `UNSTABLE`, `HAS_HOOKS`, `UNKNOWN`). `status` fetches before reading this so it's not stale.
 
@@ -111,7 +111,7 @@ The `status` command reconciles `workflow_step` with git/PR/CI signals:
 | `waiting` | Changes requested | Advance to `revamp` |
 | `waiting`, `push`, `review_dev`, `review_security` | CI failing on open PR | Advance to `ci_fix` |
 | `waiting` | PR closed without merge | Advance to `closed` |
-| `waiting` | `mergeStateStatus == BEHIND` | Best-effort auto-rebase + force-with-lease push (no step change). When successful, step_history records the auto-refresh. Failures (rebase conflict, push rejected, lease lost, network/auth) leave `merge_state_status` unchanged — run `github-issue push <N>` for a structured `error.cause` to diagnose. |
+| `waiting` | `mergeStateStatus == BEHIND` | Best-effort auto-rebase + force-with-lease push (no step change). When successful, step_history records the auto-refresh. Failures (rebase conflict, push rejected, lease lost, network/auth) leave `merge_state_status` unchanged. Run `github-issue push <N>` for a structured `error.cause` to diagnose. |
 
 Every reconciliation writes a new `step_history` entry with `reconciled: true` and a `note` describing the trigger, so resume-time agents can see why the state changed.
 
@@ -148,7 +148,7 @@ Every reconciliation writes a new `step_history` entry with `reconciled: true` a
 }
 ```
 
-- `overlaps` surfaces worktree pairs that touch shared files — merge-conflict risk to plan around.
+- `overlaps` surfaces worktree pairs that touch shared files, surfacing merge-conflict risk to plan around.
 - `merge_order` ranks mergeable PRs so issues that unblock others merge first. Combine with `ci_status` and `merge_state_status` to pick the next *actually-ready* PR.
 - `auto_refreshed: true` on a worktree means the CLI just rebased + force-pushed it to clear `BEHIND` during this audit run.
 
@@ -171,6 +171,6 @@ Every reconciliation writes a new `step_history` entry with `reconciled: true` a
 
 **CI failures after PR:** `ci_fix` state. Use `github-issue check-ci <N>` for structured failure data. Distinct from `revamp`; do not invoke `receiving-code-review`.
 
-**Merge conflicts at pre-push rebase:** The CLI aborts the rebase and returns an error. Follow the Merge Conflict Resolution procedure in `SKILL.md` — one attempt, mandatory post-resolve verification, escalate on failure.
+**Merge conflicts at pre-push rebase.** The CLI aborts the rebase and returns an error. Follow the Merge Conflict Resolution procedure in `SKILL.md`: one attempt, mandatory post-resolve verification, escalate on failure.
 
 **Offline / gh unavailable:** The script falls back to git-only signals when `gh` fails. PR state may be unknown.
