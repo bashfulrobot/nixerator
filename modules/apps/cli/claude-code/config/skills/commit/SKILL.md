@@ -1,7 +1,6 @@
 ---
 name: commit
 description: Create conventional commits, push, tagging, or GitHub releases.
-disable-model-invocation: true
 argument-hint: "[--tag <major|minor|patch>] [--release]"
 allowed-tools: ["Bash", "Grep", "Read"]
 ---
