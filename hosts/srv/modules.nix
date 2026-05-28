@@ -1,4 +1,4 @@
-{ secrets, ... }:
+{ secrets, globals, ... }:
 
 {
   # Import only modules that srv used in nixcfg, plus the cherry-picked
@@ -25,6 +25,7 @@
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
     ../../modules/server/kvm
+    ../../modules/server/netboot-xyz
     ../../modules/server/nfs
     ../../modules/system/caddy
     ../../modules/system/ssh
@@ -109,6 +110,30 @@
       };
     };
 
+    netbootXyz = {
+      enable = true;
+      # NB: pairs with `virtualisation.docker.daemon.settings.userland-proxy
+      # = false` below. Without that, docker-proxy opens a real userspace
+      # listener on `192.168.168.1:3000` that bypasses the PREROUTING RETURN
+      # rule installed by `blockBridges`.
+      # Bind container ports to specific host IPs. Listener-binding is the
+      # primary exposure control on srv because the kvm module's INPUT-
+      # accept override neuters per-interface firewall scoping. LAN ports
+      # bind to enp3s0; admin UI binds LAN + Tailscale.
+      lanAddress = "192.168.168.1";
+      adminAddresses = [
+        "192.168.168.1"
+        globals.hosts.srv.tailscale_ip
+      ];
+      # Docker's published-port DNAT in nat/PREROUTING does not filter by
+      # input interface, so a libvirt guest routing through srv toward
+      # 192.168.168.1 would otherwise reach the unauthenticated admin UI.
+      # blockBridges installs PREROUTING RETURN rules that bypass Docker's
+      # DNAT for traffic arriving on any virbr*, so guest VMs cannot hit
+      # the netboot.xyz listeners.
+      blockBridges = [ "virbr+" ];
+    };
+
     nfs = {
       enable = true;
       exports = {
@@ -131,6 +156,16 @@
     };
 
   };
+
+  # Disable docker-proxy on srv: Docker's userspace fallback for published
+  # ports would otherwise open a real listening socket on the published host
+  # IPs (e.g. 192.168.168.1:3000), which a cross-interface guest packet
+  # delivered to INPUT would still hit -- bypassing the nat/PREROUTING
+  # RETURN rules installed by server.netbootXyz.blockBridges. With this
+  # flag off Docker uses iptables NAT exclusively, so the RETURN rule is
+  # actually load-bearing. Scoped to srv because workstations rely on
+  # docker-proxy for localhost-to-published-port patterns in dev.
+  virtualisation.docker.daemon.settings.userland-proxy = false;
 
   apps.cli.restic = {
     enable = true;

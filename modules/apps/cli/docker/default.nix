@@ -38,6 +38,9 @@ in
           };
         };
       };
+      # If any module pulls in oci-containers, default it to docker. mkDefault
+      # so a host can switch to podman without flipping this back manually.
+      oci-containers.backend = lib.mkDefault "docker";
     };
 
     # Grant user direct socket access so systemd user services can reach Docker
