@@ -19,13 +19,14 @@ body = """
 {% else -%}
 ## [Unreleased]
 {% endif -%}
-{% for group, commits in commits | group_by(attribute="group") %}
+{%- for group, commits in commits | group_by(attribute="group") %}
+
 ### {{ group | striptags | trim }}
 {% for commit in commits -%}
 - {% if commit.breaking %}[**breaking**] {% endif %}\
 {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
 {{ commit.message }} ({{ commit.id | truncate(length=7, end="") }})
-{% endfor %}
+{% endfor -%}
 {% endfor %}
 """
 footer = """
@@ -49,21 +50,28 @@ commit_preprocessors = []
 # Tera's `group_by` sorts groups lexicographically by key, so widths
 # must match — `<!-- 10 -->` < `<!-- 2 -->` as a string, hence the
 # zero-padding to two digits. `striptags` removes the prefix at render
-# time so the section header reads cleanly.
+# time so the section header reads cleanly. NB: `striptags` is a
+# cosmetic filter for the group label only — it does NOT sanitise
+# attacker-controlled commit content. Commit messages are rendered
+# raw (see body template above); if you publish CHANGELOG.md to a
+# renderer that doesn't sanitise markdown, add an `escape` filter on
+# `commit.message` / `commit.scope` there.
+# Type anchors use `[(:!]` so `^docs?` doesn't accidentally match
+# `docker:`, `^test` doesn't match `testing-only:`, etc.
 commit_parsers = [
-  { message = "^feat",     group = "<!-- 00 --> Features"      },
-  { message = "^fix",      group = "<!-- 01 --> Bug Fixes"     },
-  { message = "^perf",     group = "<!-- 02 --> Performance"   },
-  { message = "^refactor", group = "<!-- 03 --> Refactor"      },
-  { message = "^docs?",    group = "<!-- 04 --> Documentation" },
-  { message = "^test",     group = "<!-- 05 --> Tests"         },
-  { message = "^build",    group = "<!-- 06 --> Build System"  },
-  { message = "^ci",       group = "<!-- 07 --> CI"            },
-  { message = "^chore\\(release\\):", skip = true              },
+  { message = "^feat[(:!]",     group = "<!-- 00 --> Features"      },
+  { message = "^fix[(:!]",      group = "<!-- 01 --> Bug Fixes"     },
+  { message = "^perf[(:!]",     group = "<!-- 02 --> Performance"   },
+  { message = "^refactor[(:!]", group = "<!-- 03 --> Refactor"      },
+  { message = "^docs?[(:!]",    group = "<!-- 04 --> Documentation" },
+  { message = "^test[(:!]",     group = "<!-- 05 --> Tests"         },
+  { message = "^build[(:!]",    group = "<!-- 06 --> Build System"  },
+  { message = "^ci[(:!]",       group = "<!-- 07 --> CI"            },
+  { message = "^chore\\(release\\):", skip = true                   },
   { message = "^chore\\(deps\\):",    group = "<!-- 08 --> Dependencies" },
-  { message = "^chore",    group = "<!-- 09 --> Maintenance"   },
-  { message = "^revert",   group = "<!-- 10 --> Reverts"       },
-  { message = "^style",    group = "<!-- 11 --> Style"         },
+  { message = "^chore[(:!]",    group = "<!-- 09 --> Maintenance"   },
+  { message = "^revert[(:!]",   group = "<!-- 10 --> Reverts"       },
+  { message = "^style[(:!]",    group = "<!-- 11 --> Style"         },
   # Noise filters. Case-insensitive so `wip:` / `merge:` are also caught.
   { message = "^(?i)wip",      skip = true                     },
   { message = "^(?i)merge",    skip = true                     },
