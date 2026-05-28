@@ -207,7 +207,11 @@
       repo = "tepea-code/yaml-schema-router";
       version = "0.2.0";
       tagPrefix = "v";
-      hash = "sha256-kXRkuQuihQrDEwptpCMELvpPCdeho0tniKo4mvdMUfU=";
+      # Source build via buildGoModule; `hash` is the GitHub source archive
+      # for the tag. Upstream has no external Go deps (pure stdlib), so
+      # vendorHash is null.
+      hash = "sha256-GFe5NPW8nxv+bQsG5G26WCf2Z6qrW1WAZBMWFZD8MFI=";
+      vendorHash = null;
     };
 
   };
