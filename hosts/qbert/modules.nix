@@ -53,6 +53,17 @@
 
   # Server modules
   server = {
+    # Serve qbert's /nix/store as a binary cache for donkeykong (and any
+    # future LAN peer). Donkeykong enables the consumer side via
+    # system.qbert-cache.enable.
+    harmonia = {
+      enable = true;
+      interfaces = [
+        "tailscale0"
+        "enp34s0"
+      ];
+    };
+
     whisper-server = {
       enable = true;
       vulkan = true;

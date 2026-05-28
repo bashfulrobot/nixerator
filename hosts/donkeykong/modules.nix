@@ -5,6 +5,10 @@
   # peers via `render-secrets --push`). Gated on 1Password being available.
   apps.cli.render-secrets.enable = true;
 
+  # Pull from qbert's harmonia cache: LAN first, then tailscale, then the
+  # upstream caches declared in modules/system/nix.
+  system.qbert-cache.enable = true;
+
   # Attach-only: install the `work` fish function so donkeykong can attach
   # to zellij sessions on srv or qbert. Does NOT expose sessions to peers
   # in v1 — donkeykong is a workstation, not a work-host peer. Promotable
