@@ -54,15 +54,19 @@ let
     }
   ];
 
+  # Wrap interpolations in single quotes so a future hostile/typo'd option
+  # value (e.g. lanAddress = "1.2.3.4; echo pwn") cannot break out of the
+  # iptables argv into shell. iptables itself tolerates quoted args; the
+  # `virbr+` wildcard works inside quotes too.
   bridgeBlockLine =
     iface:
     { proto, port }:
-    "iptables -t nat -I PREROUTING -i ${iface} -d ${cfg.lanAddress} -p ${proto} --dport ${toString port} -j RETURN";
+    "iptables -t nat -I PREROUTING -i '${iface}' -d '${cfg.lanAddress}' -p '${proto}' --dport '${toString port}' -j RETURN";
 
   bridgeBlockStopLine =
     iface:
     { proto, port }:
-    "iptables -t nat -D PREROUTING -i ${iface} -d ${cfg.lanAddress} -p ${proto} --dport ${toString port} -j RETURN 2>/dev/null || true";
+    "iptables -t nat -D PREROUTING -i '${iface}' -d '${cfg.lanAddress}' -p '${proto}' --dport '${toString port}' -j RETURN 2>/dev/null || true";
 
   bridgeBlockEnabled = cfg.blockBridges != [ ] && cfg.lanAddress != "";
 

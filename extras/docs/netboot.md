@@ -36,14 +36,22 @@ Three layers stack:
    for the admin UI). The unauthenticated admin UI cannot be reached
    from any interface whose IP is not in `adminAddresses`.
 
-2. **`blockBridges` PREROUTING bypass.** Docker's published-port DNAT
-   lives in `nat/PREROUTING` with no input-interface predicate, so a
-   libvirt guest routing through srv toward `192.168.168.1` would
-   *otherwise* hit the admin UI before any INPUT/FORWARD ACL runs.
-   `blockBridges = [ "virbr+" ]` installs explicit
-   `nat/PREROUTING -i virbr+ ... -j RETURN` rules that bypass Docker's
-   DNAT for traffic arriving on any libvirt bridge. The kernel then
-   has no listener on `192.168.168.1` and the packet is dropped.
+2. **`blockBridges` PREROUTING bypass + `userland-proxy = false`.**
+   Docker has two port-publishing paths: an iptables DNAT in
+   `nat/PREROUTING` (with no input-interface predicate) and a
+   userspace `docker-proxy` process that binds the published host
+   IP directly. Both need to be closed.
+   - `blockBridges = [ "virbr+" ]` installs explicit
+     `nat/PREROUTING -i virbr+ ... -j RETURN` rules that skip
+     Docker's DNAT for traffic arriving on any libvirt bridge.
+   - `virtualisation.docker.daemon.settings.userland-proxy = false`
+     in `hosts/srv/modules.nix` turns off the userspace fallback so
+     Docker uses iptables-only. Without this, docker-proxy would
+     bind `192.168.168.1:3000` as a host socket and a guest packet
+     routed through srv would still hit it via the kvm module's
+     permissive INPUT chain.
+   With both, the kernel has no listener on `192.168.168.1:3000`
+   for guest-sourced packets and they are dropped.
 
 3. **Per-interface firewall (defense-in-depth).** TFTP and the admin
    UI are also opened in `networking.firewall.interfaces.*`. This

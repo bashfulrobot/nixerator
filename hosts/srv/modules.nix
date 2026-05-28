@@ -112,6 +112,10 @@
 
     netbootXyz = {
       enable = true;
+      # NB: pairs with `virtualisation.docker.daemon.settings.userland-proxy
+      # = false` below. Without that, docker-proxy opens a real userspace
+      # listener on `192.168.168.1:3000` that bypasses the PREROUTING RETURN
+      # rule installed by `blockBridges`.
       # Bind container ports to specific host IPs. Listener-binding is the
       # primary exposure control on srv because the kvm module's INPUT-
       # accept override neuters per-interface firewall scoping. LAN ports
@@ -152,6 +156,16 @@
     };
 
   };
+
+  # Disable docker-proxy on srv: Docker's userspace fallback for published
+  # ports would otherwise open a real listening socket on the published host
+  # IPs (e.g. 192.168.168.1:3000), which a cross-interface guest packet
+  # delivered to INPUT would still hit -- bypassing the nat/PREROUTING
+  # RETURN rules installed by server.netbootXyz.blockBridges. With this
+  # flag off Docker uses iptables NAT exclusively, so the RETURN rule is
+  # actually load-bearing. Scoped to srv because workstations rely on
+  # docker-proxy for localhost-to-published-port patterns in dev.
+  virtualisation.docker.daemon.settings.userland-proxy = false;
 
   apps.cli.restic = {
     enable = true;
