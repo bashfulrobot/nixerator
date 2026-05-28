@@ -47,6 +47,9 @@
   "tailscale": {
     "caddyAuthKey": "{{ op://nixerator/tailscale-caddy-authkey/credential }}"
   },
+  "harmonia": {
+    "privateKey": "{{ op://nixerator/harmonia-signing-key/credential }}"
+  },
   "snyk": {
     "token": "{{ op://nixerator/snyk/credential }}"
   },
