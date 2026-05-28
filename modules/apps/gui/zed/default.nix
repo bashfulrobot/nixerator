@@ -9,6 +9,7 @@
 let
   cfg = config.apps.gui.zed;
   kotlin-lsp = pkgs.callPackage ../../cli/kotlin-lsp/build { inherit versions; };
+  yaml-schema-router = pkgs.callPackage ../../cli/yaml-schema-router/build { inherit versions; };
 in
 {
   options = {
@@ -90,6 +91,7 @@ in
           terraform-ls
           vscode-langservers-extracted # JSON/HTML/CSS/ESLint
           yaml-language-server
+          yaml-schema-router
 
           # Formatters and linters
           nixfmt
@@ -272,7 +274,11 @@ in
             };
             yaml-language-server = {
               binary = {
-                path = "${pkgs.yaml-language-server}/bin/yaml-language-server";
+                path = "${yaml-schema-router}/bin/yaml-schema-router";
+                arguments = [
+                  "--lsp-path"
+                  "${pkgs.yaml-language-server}/bin/yaml-language-server"
+                ];
               };
             };
             markdown-oxide = {

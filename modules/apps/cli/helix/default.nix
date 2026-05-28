@@ -10,6 +10,7 @@
 let
   cfg = config.apps.cli.helix;
   kotlin-lsp = pkgs.callPackage ../kotlin-lsp/build { inherit versions; };
+  yaml-schema-router = pkgs.callPackage ../yaml-schema-router/build { inherit versions; };
 in
 {
   options = {
@@ -52,6 +53,7 @@ in
           statix
           kotlin-lsp
           yaml-language-server
+          yaml-schema-router
         ];
 
         settings = lib.mkMerge [
@@ -135,8 +137,11 @@ in
               command = "${kotlin-lsp}/bin/kotlin-lsp";
             };
             yaml = {
-              command = "yaml-language-server";
-              args = [ "--stdio" ];
+              command = "${yaml-schema-router}/bin/yaml-schema-router";
+              args = [
+                "--lsp-path"
+                "${pkgs.yaml-language-server}/bin/yaml-language-server"
+              ];
               scope = "source.yaml";
             };
           };

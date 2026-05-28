@@ -202,6 +202,14 @@
       npmDepsHash = "sha256-n+lu7f2rsMEOCnzj1nmzGRZo3WcwhBUeamTexCOs0xM=";
     };
 
+    yaml-schema-router = {
+      source = "github-release";
+      repo = "tepea-code/yaml-schema-router";
+      version = "0.2.0";
+      tagPrefix = "v";
+      hash = "sha256-kXRkuQuihQrDEwptpCMELvpPCdeho0tniKo4mvdMUfU=";
+    };
+
   };
 
   gui = {
