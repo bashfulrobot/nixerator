@@ -26,8 +26,12 @@ the module for the full list.
 | Service             | Host port | Bound to                                | Reachable from                |
 | ------------------- | --------- | --------------------------------------- | ----------------------------- |
 | TFTP (PXE)          | 69/udp    | `192.168.168.1`                         | main LAN only                 |
-| Web admin UI        | 3000/tcp  | `192.168.168.1` + `100.64.187.14`       | main LAN + Tailscale          |
-| HTTP boot files     | 8080/tcp  | not published (`localMirror` off)       | nowhere -- listener is in-container only |
+| Web admin UI        | 3030/tcp  | `192.168.168.1` + `100.64.187.14`       | main LAN + Tailscale          |
+| HTTP boot files     | 18080/tcp | not published (`localMirror` off)       | nowhere -- listener is in-container only |
+
+Module defaults are 3000 and 8080 (the upstream netboot.xyz convention);
+srv overrides them in `hosts/srv/modules.nix` because forgejo already
+owns 3000 and shiori owns 8080 in the unmanaged docker-compose stack.
 
 Three layers stack:
 
@@ -47,10 +51,10 @@ Three layers stack:
    - `virtualisation.docker.daemon.settings.userland-proxy = false`
      in `hosts/srv/modules.nix` turns off the userspace fallback so
      Docker uses iptables-only. Without this, docker-proxy would
-     bind `192.168.168.1:3000` as a host socket and a guest packet
+     bind `192.168.168.1:3030` as a host socket and a guest packet
      routed through srv would still hit it via the kvm module's
      permissive INPUT chain.
-   With both, the kernel has no listener on `192.168.168.1:3000`
+   With both, the kernel has no listener on `192.168.168.1:3030`
    for guest-sourced packets and they are dropped.
 
 3. **Per-interface firewall (defense-in-depth).** TFTP and the admin
@@ -138,9 +142,9 @@ To enable local-mirror booting:
 
 1. Set `server.netbootXyz.localMirror.enable = true;` in
    `hosts/srv/modules.nix`, rebuild.
-2. Open the admin UI (`http://srv:3000`).
+2. Open the admin UI (`http://srv:3030`).
 3. Edit `boot.cfg` (under "Boot Configuration"), set:
-   - `live_endpoint = http://192.168.168.1:8080`
+   - `live_endpoint = http://192.168.168.1:18080`
 4. Save and re-deploy the menu. Subsequent PXE boots will pull from
    the local mirror.
 
@@ -156,7 +160,7 @@ tftp 192.168.168.1
 ls -l /tmp/netboot.xyz.efi    # expect ~1MB
 
 # Admin UI (LAN or Tailscale)
-xdg-open http://srv:3000
+xdg-open http://srv:3030
 ```
 
 End-to-end test: configure a libvirt VM with `<boot dev='network'/>`
