@@ -132,6 +132,13 @@
       # DNAT for traffic arriving on any virbr*, so guest VMs cannot hit
       # the netboot.xyz listeners.
       blockBridges = [ "virbr+" ];
+      # Default ports (3000, 8080) collide with the docker-compose stack on
+      # srv -- forgejo owns 3000, shiori owns 8080. Move netboot.xyz to free
+      # host ports. httpPort only matters once localMirror.enable is set,
+      # but we still want a free default so flipping that flag doesn't
+      # collide with shiori.
+      adminPort = 3030;
+      httpPort = 18080;
     };
 
     nfs = {
