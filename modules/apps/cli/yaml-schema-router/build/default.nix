@@ -29,5 +29,6 @@ pkgs.buildGoModule {
     mainProgram = "yaml-schema-router";
     maintainers = [ ];
     platforms = platforms.unix;
+    sourceProvenance = with sourceTypes; [ fromSource ];
   };
 }
