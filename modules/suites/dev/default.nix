@@ -46,8 +46,8 @@ in
         vscode.enable = false;
         vscode.nautilusIntegration = false;
         upsight.enable = true;
-        zed.enable = true;
-        zed.nautilusIntegration = true;
+        zed.enable = false;
+        zed.nautilusIntegration = false;
       };
     };
 
