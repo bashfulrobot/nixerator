@@ -8,9 +8,43 @@ description: Use when working on a Dependabot alert (by number), checking remedi
 
 # Dependabot Remediation Workflow
 
-State-machine orchestrator for Dependabot alert remediation. Uses the `dependabot` CLI for all mechanical operations (alert fetching, worktree creation, state management, push+PR, cleanup). AI handles only judgment work — implementation, review evaluation.
+State-machine orchestrator for Dependabot alert remediation. Uses the `dependabot` CLI for all mechanical operations (alert fetching, worktree creation, state management, push+PR, cleanup). AI handles only the judgment work: implementation, review evaluation.
 
 All work happens in an isolated git worktree. Never implement in the main working tree.
+
+## Voice for posted content
+
+Any comment this skill posts to GitHub (revamp summaries on a PR, manual
+notes added to a Dependabot PR) must read like a developer wrote it. Run the
+body through the [`humanizer`](../humanizer/SKILL.md) skill before calling
+`gh pr comment`. Hard constraints for posted content:
+
+- **No em dashes (`—`) or en dashes (`–`).** Use a comma, period,
+  parentheses, or restructure.
+- **No agent voice.** No "I will fix", no "as an AI", no "here's a summary".
+- **Use colons sparingly.** Only when introducing a list, a definition, or a
+  label/value pair.
+- **No AI vocabulary.** Avoid *crucial*, *seamless*, *robust*, *delve*,
+  *leverage*, *underscore* unless the meaning is exact and unavoidable.
+- **No AI attribution** of any kind.
+
+The PR body that `dependabot push` generates is built by the CLI from the
+alert metadata. It does not flow through humanizer; the conventional shape
+(`Fixes Dependabot alert #N`, package, summary, commit log) is what humans
+expect to see in this slot.
+
+## Complete every outstanding item
+
+When remediating an alert, fix everything else that surfaces along the way.
+Review findings (Critical, Important, **and** Minor), TODOs in the code you
+touch, sibling vulnerabilities the upgrade quietly addresses, lint/format/test
+failures that aren't directly caused by your change. All of it lands in the
+same PR.
+
+This expands scope intentionally. The only reason to spin out a separate PR
+is when a discovered issue requires a genuinely large, independent fix that
+would dwarf the original change. Default to fixing it inline. The
+project-wide principle applies: **own every problem**.
 
 ## Worktree Anchoring
 
@@ -32,7 +66,7 @@ dependabot audit
 
 Report any active worktrees. Flag `done` worktrees for cleanup.
 
-### 2. If no alert number provided — list open alerts
+### 2. If no alert number provided, list open alerts
 
 ```bash
 gh api 'repos/{owner}/{repo}/dependabot/alerts?state=open' --jq '.[] | {number, package: .dependency.package.name, severity: .security_advisory.severity, summary: .security_advisory.summary}'
@@ -85,18 +119,24 @@ Proceed to implement (setup already sets `workflow_step: "implement"`).
 
 Fix the vulnerability:
 
-1. Read the alert context from the setup response or `.dependabot-alert.json`
-2. Update the vulnerable package to at least the patched version
-3. Update both the dependency file and lock file
-4. If the vulnerable package is a transitive dependency, update the parent package
-5. Run `npm install` or equivalent to regenerate the lock file
-6. If a build script exists, verify the build still works
-7. Keep changes scoped to the vulnerability — no unrelated changes
+1. Read the alert context from the setup response or `.dependabot-alert.json`.
+2. Update the vulnerable package to at least the patched version.
+3. Update both the dependency file and lock file.
+4. If the vulnerable package is a transitive dependency, update the parent package.
+5. Run `npm install` or equivalent to regenerate the lock file.
+6. If a build script exists, verify the build still works.
+7. **Fix every outstanding item that surfaces during implementation.** TODOs
+   in code you touched, lint or test failures that turn up, related
+   vulnerabilities in the same dependency tree, comments referencing the
+   fixed CVE. All of it lands in this PR. The "scope" of a Dependabot
+   remediation is not the single CVE; it is everything that this fix forces
+   you to read or change. The only reason to defer is a discovered issue
+   that would require a genuinely large, independent fix.
 
 Follow commit conventions:
-- Format: `security(<scope>): fix <summary> (CVE-XXXX-XXXXX)`
-- Sign with `-S`, no Co-Authored-By
-- Include CVE/GHSA ID in commit body
+- Format. `security(<scope>): fix <summary> (CVE-XXXX-XXXXX)`
+- Sign with `-S`. No Co-Authored-By.
+- Include CVE/GHSA ID in commit body.
 
 When implementation is believed complete:
 
@@ -135,9 +175,11 @@ Recommend running /review-dev to catch issues before merge."
 ```
 
 After dev review runs, parse the summary line if present:
-- `REVIEW_DEV_SUMMARY: verdict=block` or `verdict=fix`: implement fixes, verify, push
-- `verdict=clean`: transition to next step
-- No summary line (backward compat): ask user if there are findings to address
+- `REVIEW_DEV_SUMMARY: verdict=block` or `verdict=fix`. Fix **every** finding
+  (Critical, Important, Minor) in this PR. No deferral. Verify and push.
+- `verdict=clean`. Transition to next step.
+- No summary line (backward compat). Ask the user if there are findings to
+  address.
 
 If findings addressed (or user declines review):
 
@@ -155,9 +197,10 @@ Recommend running /review-security for a security audit before merge."
 ```
 
 Same summary parsing pattern:
-- `REVIEW_SECURITY_SUMMARY: verdict=block` or `verdict=fix`: implement fixes, verify, push
-- `verdict=clean`: transition
-- No summary line: ask user
+- `REVIEW_SECURITY_SUMMARY: verdict=block` or `verdict=fix`. Fix every finding
+  (Critical, High, Medium, Low) in this PR. No deferral. Verify and push.
+- `verdict=clean`. Transition.
+- No summary line. Ask the user.
 
 After all fixes (or user declines):
 
@@ -182,10 +225,14 @@ If still waiting, report current state.
 
 ### Revamp
 
-1. Evaluate review feedback technically (don't blindly agree)
-2. Implement fixes with focused commits
-3. **Invoke `superpowers:verification-before-completion`**
-4. Push: `dependabot push <N>`
+1. Evaluate review feedback technically. Don't blindly agree.
+2. Implement fixes with focused commits. Address **every** review comment in
+   this PR (no "follow-up issue", no "out of scope").
+3. **Invoke `superpowers:verification-before-completion`**.
+4. Push. Run `dependabot push <N>`.
+5. If a summary PR comment is appropriate, run the body through the
+   [`humanizer`](../humanizer/SKILL.md) skill before calling
+   `gh pr comment`. See [Voice for posted content](#voice-for-posted-content).
 
 Then:
 

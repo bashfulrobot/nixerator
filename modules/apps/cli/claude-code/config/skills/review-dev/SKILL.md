@@ -9,7 +9,37 @@ allowed-tools: ["Bash", "Read", "Grep", "Glob", "Agent"]
 
 # Adversarial Developer Review
 
-Spawn a subagent to adversarially review the current branch's PR from a senior developer perspective. The reviewer is skeptical, thorough, and opinionated — not a rubber stamp.
+Spawn a subagent to adversarially review the current branch's PR from a senior developer perspective. The reviewer is skeptical, thorough, and opinionated, not a rubber stamp.
+
+## Voice for the posted comment
+
+The subagent's output is posted verbatim as a public PR comment. It must read
+like a senior engineer wrote it, not like an agent or a checklist tool. Both
+the subagent prompt and the post step apply the rules below.
+
+- **No em dashes (`—`) or en dashes (`–`).** Use a comma, period,
+  parentheses, or restructure.
+- **No agent voice.** No "I will review", no "as an AI", no "here's a
+  summary".
+- **Use colons sparingly.** Only when introducing a list, a definition, or a
+  label/value pair. A colon that could be a comma or a period must go.
+- **No AI vocabulary.** Avoid *crucial*, *robust*, *seamless*, *delve*,
+  *leverage*, *underscore*, *intricate* unless the meaning is exact and
+  unavoidable.
+- **No emoji, no decorative boldface, no "Conclusion" or "Future Outlook"
+  filler.**
+- **No AI attribution** of any kind.
+
+Before calling `gh pr comment`, run the body through the
+[`humanizer`](../humanizer/SKILL.md) skill and post the humanized result.
+
+## Scope of findings
+
+Surface every defensible finding. Critical, Important, **and** Minor. The
+downstream `github-issue` and `github-issues-auto` workflows fix every finding
+in the same PR. The review should not pre-filter "minor stuff" because the
+author "probably already knows about it". If it's worth fixing, it goes in the
+comment.
 
 ## Workflow
 
@@ -27,7 +57,7 @@ If this fails, stop and tell the user: **"No PR found for the current branch. Pu
 DIFF=$(gh pr diff)
 ```
 
-If the diff is empty, stop: **"PR diff is empty — nothing to review."**
+If the diff is empty, stop: **"PR diff is empty, nothing to review."**
 
 ### 3. Get Repo Metadata
 
@@ -55,12 +85,20 @@ If additions + deletions > 5000, warn: **"Large diff (N lines). Review quality m
 
 Dispatch a single **general-purpose Agent** with the prompt below. Substitute actual values for all `{PLACEHOLDERS}`.
 
-### 7. Display and Post
+### 7. Humanize, Display, and Post
 
-- Display the subagent's structured output in the terminal.
-- Post as a PR comment via `gh pr comment {PR_NUMBER} --body "$BODY"`.
-- Prepend `<!-- review-dev -->` (invisible marker) to the comment body for idempotency.
-- **No AI attribution.** No emoji. Clean and professional — it should look like the user wrote it.
+1. Take the subagent's structured output as the draft comment body.
+2. Run it through the [`humanizer`](../humanizer/SKILL.md) skill. Apply the
+   full ruleset. The constraints in
+   [Voice for the posted comment](#voice-for-the-posted-comment) are hard
+   requirements; the humanizer pass is what enforces them.
+3. Display the humanized output in the terminal.
+4. Prepend `<!-- review-dev -->` (invisible marker) to the humanized body
+   for idempotency.
+5. Post as a PR comment via `gh pr comment {PR_NUMBER} --body "$BODY"`.
+
+No AI attribution. No emoji. Clean and professional. The comment must look
+like the user wrote it.
 
 ### 8. Output Structured Summary
 
@@ -102,57 +140,83 @@ You are a senior staff engineer conducting an adversarial code review. You have 
 
 You are looking for problems the author missed. Think about what breaks at 3am, what breaks at scale, what breaks when assumptions change.
 
-**Focus areas:**
+**Focus areas.**
 
-1. **Logic errors** — off-by-ones, wrong operators, inverted conditions, unreachable code
-2. **Race conditions and concurrency** — shared mutable state, TOCTOU, missing locks, async footguns
-3. **Edge cases** — empty inputs, nil/null/undefined, boundary values, unicode, large inputs
-4. **Error handling gaps** — swallowed errors, missing cleanup in error paths, partial failure states
-5. **API contract violations** — breaking changes to public interfaces, undocumented behavior changes
-6. **Backwards compatibility** — will this break existing callers/configs/data?
-7. **Performance regressions** — O(n^2) where O(n) exists, unnecessary allocations, missing pagination, N+1 queries
-8. **Missing tests** — new code paths without coverage, changed behavior without updated tests
-9. **Unclear abstractions** — wrong level of abstraction, leaky abstractions, naming that misleads
-10. **Tech debt introduction** — copy-paste, magic numbers, TODOs without tickets, coupling that will hurt later
-11. **Design decisions** — challenge whether the approach is right, not just whether the code is correct
+1. **Logic errors.** Off-by-ones, wrong operators, inverted conditions, unreachable code.
+2. **Race conditions and concurrency.** Shared mutable state, TOCTOU, missing locks, async footguns.
+3. **Edge cases.** Empty inputs, nil/null/undefined, boundary values, unicode, large inputs.
+4. **Error handling gaps.** Swallowed errors, missing cleanup in error paths, partial failure states.
+5. **API contract violations.** Breaking changes to public interfaces, undocumented behavior changes.
+6. **Backwards compatibility.** Will this break existing callers, configs, or data?
+7. **Performance regressions.** O(n^2) where O(n) exists, unnecessary allocations, missing pagination, N+1 queries.
+8. **Missing tests.** New code paths without coverage, changed behavior without updated tests.
+9. **Unclear abstractions.** Wrong level of abstraction, leaky abstractions, naming that misleads.
+10. **Tech debt introduction.** Copy-paste, magic numbers, TODOs without tickets, coupling that will hurt later.
+11. **Design decisions.** Challenge whether the approach is right, not just whether the code is correct.
 
 ### Rules
 
-- Only report issues you are confident about. No nitpicks, no style preferences, no "consider using X."
-- Every issue must have a file path and line reference using this link format: [`file:line`](https://github.com/{REPO}/blob/{HEAD_SHA}/file#Lline)
-- Explain WHY each issue matters (what breaks, when, for whom)
-- If you would block this PR in a real review, say so and explain why
-- If the code is genuinely solid, say that — do not manufacture issues
-- Read the actual source files (not just the diff) when you need surrounding context to assess correctness
+- Surface every defensible finding. Critical, Important, **and** Minor. The
+  downstream workflow fixes every finding in the same PR, so do not pre-filter
+  Minor items because the author "probably knows already". If a Minor item is
+  worth fixing, surface it.
+- Skip nitpicks, pure style preferences, and "consider using X" suggestions
+  with no concrete reason. "Genuinely worth fixing" is the bar, not "anything
+  I noticed".
+- Every issue must have a file path and line reference using this link format. [`file:line`](https://github.com/{REPO}/blob/{HEAD_SHA}/file#Lline)
+- Explain why each issue matters. What breaks, when, for whom.
+- If you would block this PR in a real review, say so and explain why.
+- If the code is genuinely solid, say so. Do not manufacture issues.
+- Read the actual source files (not just the diff) when you need surrounding
+  context to assess correctness.
+
+### Voice rules for the comment body
+
+The output below is posted verbatim as a public PR comment. Write it the way
+a senior engineer would write a review on a coworker's PR.
+
+- **No em dashes (`—`) or en dashes (`–`).** Use a comma, period,
+  parentheses, or restructure the sentence.
+- **No agent voice.** No "I will review", no "as an AI", no "here's a
+  summary".
+- **Use colons sparingly.** Only when introducing a list, a definition, or a
+  label/value pair. Decorative colons that could be a comma or a period must
+  go.
+- **No AI vocabulary.** Avoid *crucial*, *robust*, *seamless*, *delve*,
+  *leverage*, *underscore*, *intricate* unless the meaning is exact and
+  unavoidable.
+- **No rule-of-three padding, no emoji, no Conclusion section.**
+- **No AI attribution** of any kind.
 
 ### Output Format
 
-Use exactly this format:
+Use exactly this format. Replace bracketed prompts with real prose; do not
+keep them as headings:
 
 ```
 #### Strengths
-[What is done well — be specific with file:line references]
+[What is done well. Be specific with file:line references.]
 
 #### Issues
 
-**Critical** (blocks merge):
+**Critical** (blocks merge).
 [Bugs, data loss, broken functionality. If none, write "None."]
 
-**Important** (should fix before merge):
+**Important** (should fix before merge).
 [Design flaws, missing error handling, backwards compat risks, missing tests. If none, write "None."]
 
-**Minor** (fix at your discretion):
-[Edge cases, cleanup, minor improvements. If none, write "None."]
+**Minor** (fix in the same PR).
+[Edge cases, cleanup, small improvements. If none, write "None."]
 
-For each issue:
-- **[short title]** — [`file:line`](https://github.com/{REPO}/blob/{HEAD_SHA}/file#Lline)
-  [What is wrong, why it matters, and how to fix it]
+For each issue.
+- **[short title]**, [`file:line`](https://github.com/{REPO}/blob/{HEAD_SHA}/file#Lline)
+  [What is wrong, why it matters, and how to fix it.]
 
 #### Verdict
 
 **Merge?** [Block / Merge with fixes / Merge as-is]
 
-[1-2 sentence reasoning]
+[1 to 2 sentences of reasoning.]
 ```
 
 ---
@@ -162,7 +226,7 @@ For each issue:
 | Scenario | Detection | Response |
 |----------|-----------|----------|
 | No PR for branch | `gh pr view` non-zero exit | "No PR found. Push branch and create a PR first." |
-| Empty diff | `gh pr diff` returns empty | "PR diff is empty — nothing to review." |
+| Empty diff | `gh pr diff` returns empty | "PR diff is empty, nothing to review." |
 | Already reviewed | Comment contains `<!-- review-dev -->` | Ask user before posting duplicate |
 | Large diff (>5000 lines) | additions + deletions from PR JSON | Warn, still proceed |
 | Auth failure | `gh` returns 403/404 | "Unable to access PR. Check `gh auth status`." |
