@@ -32,6 +32,7 @@ in
         direnv.enable = true;
         # cue: removed
         git.enable = true;
+        git-cliff.enable = true;
         helix.enable = true;
         lswt.enable = true;
         nix.enable = true;
@@ -57,7 +58,6 @@ in
         filezilla # FTP/SFTP client
         just # Task runner for project commands
         statix # Nix linter and code quality checker
-        git-cliff # Conventional changelog generator
         fq # jq for binary formats (media, networking, serialization)
         jq # JSON processor
         yq-go # YAML processor
