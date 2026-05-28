@@ -202,6 +202,18 @@
       npmDepsHash = "sha256-n+lu7f2rsMEOCnzj1nmzGRZo3WcwhBUeamTexCOs0xM=";
     };
 
+    yaml-schema-router = {
+      source = "github-release";
+      repo = "tepea-code/yaml-schema-router";
+      version = "0.2.0";
+      tagPrefix = "v";
+      # Source build via buildGoModule; `hash` is the GitHub source archive
+      # for the tag. Upstream has no external Go deps (pure stdlib), so
+      # vendorHash is null.
+      hash = "sha256-GFe5NPW8nxv+bQsG5G26WCf2Z6qrW1WAZBMWFZD8MFI=";
+      vendorHash = null;
+    };
+
   };
 
   gui = {
