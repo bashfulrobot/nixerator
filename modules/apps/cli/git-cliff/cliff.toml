@@ -20,12 +20,11 @@ body = """
 ## [Unreleased]
 {% endif -%}
 {% for group, commits in commits | group_by(attribute="group") %}
-### {{ group | striptags | trim | upper_first }}
+### {{ group | striptags | trim }}
 {% for commit in commits -%}
 - {% if commit.breaking %}[**breaking**] {% endif %}\
 {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
-{{ commit.message | upper_first }}\
-{% if commit.id %} ({{ commit.id | truncate(length=7, end="") }}){% endif %}
+{{ commit.message }} ({{ commit.id | truncate(length=7, end="") }})
 {% endfor %}
 {% endfor %}
 """
@@ -39,7 +38,6 @@ postprocessors = []
 conventional_commits = true
 filter_unconventional = true
 split_commits = false
-protect_breaking_commits = true
 filter_commits = true
 tag_pattern = "v[0-9]*"
 topo_order = false
@@ -47,23 +45,26 @@ sort_commits = "newest"
 
 commit_preprocessors = []
 
+# Hidden HTML-comment prefix forces deterministic section order.
+# Tera's `group_by` sorts groups lexicographically by key, so widths
+# must match — `<!-- 10 -->` < `<!-- 2 -->` as a string, hence the
+# zero-padding to two digits. `striptags` removes the prefix at render
+# time so the section header reads cleanly.
 commit_parsers = [
-  # Hidden HTML-comment prefix forces section order while keeping the
-  # rendered group name clean (git-cliff strips tags via `striptags`).
-  { message = "^feat",     group = "<!-- 0 --> Features"      },
-  { message = "^fix",      group = "<!-- 1 --> Bug Fixes"     },
-  { message = "^perf",     group = "<!-- 2 --> Performance"   },
-  { message = "^refactor", group = "<!-- 3 --> Refactor"      },
-  { message = "^docs?",    group = "<!-- 4 --> Documentation" },
-  { message = "^test",     group = "<!-- 5 --> Tests"         },
-  { message = "^build",    group = "<!-- 6 --> Build System"  },
-  { message = "^ci",       group = "<!-- 7 --> CI"            },
-  { message = "^chore\\(release\\):", skip = true             },
-  { message = "^chore\\(deps\\):",    group = "<!-- 8 --> Dependencies" },
-  { message = "^chore",    group = "<!-- 9 --> Maintenance"   },
-  { message = "^revert",   group = "<!-- 10 --> Reverts"      },
-  { message = "^style",    group = "<!-- 11 --> Style"        },
-  # Skip noise: WIP, merge commits, GPG-style trailers only.
-  { message = "^WIP",      skip = true                        },
-  { message = "^Merge",    skip = true                        },
+  { message = "^feat",     group = "<!-- 00 --> Features"      },
+  { message = "^fix",      group = "<!-- 01 --> Bug Fixes"     },
+  { message = "^perf",     group = "<!-- 02 --> Performance"   },
+  { message = "^refactor", group = "<!-- 03 --> Refactor"      },
+  { message = "^docs?",    group = "<!-- 04 --> Documentation" },
+  { message = "^test",     group = "<!-- 05 --> Tests"         },
+  { message = "^build",    group = "<!-- 06 --> Build System"  },
+  { message = "^ci",       group = "<!-- 07 --> CI"            },
+  { message = "^chore\\(release\\):", skip = true              },
+  { message = "^chore\\(deps\\):",    group = "<!-- 08 --> Dependencies" },
+  { message = "^chore",    group = "<!-- 09 --> Maintenance"   },
+  { message = "^revert",   group = "<!-- 10 --> Reverts"       },
+  { message = "^style",    group = "<!-- 11 --> Style"         },
+  # Noise filters. Case-insensitive so `wip:` / `merge:` are also caught.
+  { message = "^(?i)wip",      skip = true                     },
+  { message = "^(?i)merge",    skip = true                     },
 ]

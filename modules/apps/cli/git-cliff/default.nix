@@ -10,11 +10,8 @@ let
   cfg = config.apps.cli.git-cliff;
 in
 {
-  options.apps.cli.git-cliff.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable git-cliff — conventional-commit changelog generator with a shared default cliff.toml.";
-  };
+  options.apps.cli.git-cliff.enable =
+    lib.mkEnableOption "git-cliff — conventional-commit changelog generator with a shared default cliff.toml";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ pkgs.git-cliff ];
