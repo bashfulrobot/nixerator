@@ -1,5 +1,4 @@
-#!/usr/bin/env nix-shell
-#! nix-shell -i bash -p _1password-cli coreutils
+#!/usr/bin/env bash
 # shellcheck shell=bash
 #
 # Pre-rebuild bootstrap helper. Renders ~/.config/nixos-secrets/secrets.json
@@ -18,8 +17,11 @@
 # having render-secrets installed yet.
 #
 # Prerequisites:
-#   - Nix installed (with flakes enabled). The nix-shell shebang pulls op.
-#   - 1Password CLI signed in (`op signin`).
+#   - 1Password CLI (`op`) on PATH. On a built nixerator host, this is
+#     provided by `programs._1password.enable`. On a virgin machine, install
+#     it first (e.g. `nix shell nixpkgs#_1password-cli`).
+#   - 1Password CLI signed in (`op signin`) or a service-account token at
+#     ~/.config/op/service-account-token (0600).
 #   - Read access to the `nixerator` 1Password vault.
 #
 # Usage (from the repo root):
