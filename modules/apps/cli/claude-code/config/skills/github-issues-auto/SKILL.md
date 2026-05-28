@@ -228,14 +228,54 @@ fix attempts, stop the queue and escalate (see Failure Handling).
 
 Once the PR exists, edit its body to add (or refresh) a merge-order block at
 the top. Run the block through the [`humanizer`](../humanizer/SKILL.md) skill
-before posting. See [Voice for posted content](#voice-for-posted-content). The
-template below shows the structure; produce real prose, not boilerplate:
+before posting. See [Voice for posted content](#voice-for-posted-content). Two
+flavours: the **parent PR** (or the only PR in the batch) gets an `[!IMPORTANT]`
+block; every **stacked child PR** gets a stronger `[!CAUTION]` block because of
+the squash-merge race described below.
+
+**Parent or only PR.** Standard merge-order block:
 
 ```bash
 gh pr view <PR> --json body -q '.body' > /tmp/body.md
 gh pr edit <PR> --body "$(cat <<EOF
 > [!IMPORTANT]
 > PR <i> of <total> in an autonomous batch.
+> This PR is **not** set to auto-merge. Review and merge manually.
+> Merge in this order to avoid conflicts.
+> 1. <#PR1>, <title1>
+> 2. <#PR2>, <title2>
+> ...
+
+$(cat /tmp/body.md)
+EOF
+)"
+```
+
+**Stacked child PR.** Use the stronger block. The danger is real: when the
+human merges the parent and then merges the child within ~30 seconds, GitHub
+can squash the child against its stale stacked base before the auto-retarget
+to main completes. The squash commit gets the right diff but is unreachable
+from any branch, so the child's content silently never lands on main even
+though the UI marks it merged.
+
+```bash
+gh pr view <PR> --json body -q '.body' > /tmp/body.md
+gh pr edit <PR> --body "$(cat <<EOF
+> [!CAUTION]
+> PR <i> of <total> in an autonomous batch. **Stacked on #<parent>.**
+>
+> Before merging this PR, confirm GitHub has retargeted its base from the
+> parent's branch to \`main\`:
+>
+> \`\`\`bash
+> gh pr view <PR> --json baseRefName -q '.baseRefName'   # expect: main
+> \`\`\`
+>
+> If it still shows the parent's branch, GitHub has not finished the
+> auto-retarget yet. Wait for it, or run \`gh pr edit <PR> --base main\`
+> manually. Merging before this is a known squash-merge race that drops
+> this PR's content into an unreachable commit.
+>
 > This PR is **not** set to auto-merge. Review and merge manually.
 > Merge in this order to avoid conflicts.
 > 1. <#PR1>, <title1>
@@ -305,6 +345,17 @@ Merge in this order to avoid conflicts.
 After you merge PR <i>, the next PR's base ref needs to retarget to main once
 GitHub detects the merge. Run `gh pr edit <next> --base main` if it doesn't
 happen automatically.
+
+For stacked batches, after all PRs are merged on GitHub, verify each one
+actually landed on main (catches the squash-merge race):
+
+```
+github-issue verify-landed <PR1>
+github-issue verify-landed <PR2>
+```
+
+If any returns `status: "orphaned"`, run `github-issue verify-landed <PR>
+--rescue` to cherry-pick the orphan commit onto main and push.
 
 Decisions documented (please review before merging).
 - #<PR1>. <count> autonomous decisions logged.

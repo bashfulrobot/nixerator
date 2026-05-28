@@ -17,6 +17,9 @@ if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
   info "  validate-cwd <number>                   -- check working directory"
   info "  check-ci <number>                       -- check PR CI status"
   info "  review-feedback <number>                -- fetch PR review comments"
+  info "  verify-landed <pr-number> [--rescue]    -- confirm a merged PR landed on the default branch;"
+  info "                                             with --rescue, cherry-pick + push if it didn't"
+  info "                                             (use after stacked-PR squash-merge races)"
   info "  post-mortem <number>                    -- gather close-context for agent synthesis"
   exit 0
 fi
@@ -1375,6 +1378,218 @@ cmd_auto_merge() {
       auto_merge_enabled: ($enabled == "true"), message: $message}')"
 }
 
+# Verify a merged PR's content actually landed on the default branch, and
+# (optionally) recover when it didn't. The classic failure mode this catches
+# is the stacked-PR squash race:
+#
+#   PR A: base=main, head=feat/A
+#   PR B: base=feat/A, head=feat/B (stacked on A)
+#
+# When the user merges A then merges B within seconds, GitHub may squash B
+# against its now-stale base before the auto-retarget to main completes. The
+# squash commit gets computed (with the right diff) but is unreachable from
+# any branch — main never receives B's content even though the GitHub UI
+# happily reports B as merged.
+#
+# Usage:
+#   github-issue verify-landed <PR-number>           — read-only check; JSON output.
+#                                                       exit 0 if landed or not yet merged.
+#                                                       exit 1 if merged but orphaned.
+#   github-issue verify-landed <PR-number> --rescue  — cherry-pick the orphan onto the
+#                                                       default branch and push.
+#                                                       Refuses on dirty working tree,
+#                                                       conflicts, or push rejection.
+cmd_verify_landed() {
+  local pr_number="${1:?usage: github-issue verify-landed <pr-number> [--rescue]}"
+  local rescue="false"
+  shift
+  while (($#)); do
+    case "$1" in
+      --rescue) rescue="true"; shift ;;
+      *) die "unknown flag: $1 (usage: github-issue verify-landed <pr-number> [--rescue])" ;;
+    esac
+  done
+
+  [[ "$pr_number" =~ ^[0-9]+$ ]] || die "PR number must be numeric, got: ${pr_number}"
+
+  local pr_json state merge_commit base_ref_name pr_url
+  pr_json="$(gh pr view "$pr_number" --json number,state,mergeCommit,baseRefName,url 2>/dev/null)" \
+    || json_error "PR #${pr_number} not found (gh pr view failed)"
+  state="$(printf '%s' "$pr_json" | jq -r '.state')"
+  merge_commit="$(printf '%s' "$pr_json" | jq -r '.mergeCommit.oid // ""')"
+  base_ref_name="$(printf '%s' "$pr_json" | jq -r '.baseRefName')"
+  pr_url="$(printf '%s' "$pr_json" | jq -r '.url')"
+
+  if [[ "$state" != "MERGED" ]]; then
+    json_ok "$(jq -nc \
+      --arg pr "$pr_number" --arg state "$state" --arg url "$pr_url" \
+      '{pr_number: ($pr|tonumber), state: $state, url: $url, status: "not_merged",
+        message: "PR is not in MERGED state; nothing to verify"}')"
+    return
+  fi
+
+  [[ -n "$merge_commit" && "$merge_commit" != "null" ]] \
+    || json_error "PR #${pr_number} is MERGED but has no mergeCommit.oid (GitHub API anomaly)"
+
+  local default_br
+  default_br="$(default_branch)"
+
+  info "fetching latest origin/${default_br}..."
+  git fetch origin "$default_br" >/dev/null 2>&1 \
+    || warn "git fetch origin ${default_br} failed; verifying against last known refs"
+
+  # If the merge commit isn't in the local object store yet, pull it.
+  # `git fetch origin <sha>` works because GitHub allows fetching by SHA.
+  if ! git cat-file -e "${merge_commit}^{commit}" 2>/dev/null; then
+    git fetch origin "$merge_commit" >/dev/null 2>&1 \
+      || warn "could not fetch merge commit ${merge_commit:0:7} into local repo"
+  fi
+
+  local landed="false" landed_via="direct"
+  if git cat-file -e "${merge_commit}^{commit}" 2>/dev/null; then
+    if git merge-base --is-ancestor "$merge_commit" "origin/${default_br}" 2>/dev/null; then
+      landed="true"
+      landed_via="direct"
+    else
+      # The merge commit's SHA isn't reachable, but its diff might be on the
+      # default branch via cherry-pick (e.g. a prior --rescue run, or a manual
+      # recovery). `git cherry <upstream> <head> <limit>` does patch-id
+      # matching and prints `-` for commits whose equivalent is already on
+      # the upstream. Use the merge commit as both head and limit's source
+      # (limit = ${merge_commit}~1) so cherry walks exactly one commit.
+      # If the parent isn't fetched locally, cherry fails silently and we
+      # stay in orphan land. That's fine: the user's `--rescue` path doesn't
+      # depend on this detection.
+      if git cat-file -e "${merge_commit}~1^{commit}" 2>/dev/null \
+         && [[ "$(git cherry "origin/${default_br}" "$merge_commit" "${merge_commit}~1" 2>/dev/null | awk '{print $1; exit}')" == "-" ]]; then
+        landed="true"
+        landed_via="cherry_pick_equivalent"
+      fi
+    fi
+  fi
+
+  if [[ "$landed" == "true" ]]; then
+    if [[ "$landed_via" == "direct" ]]; then
+      ok "PR #${pr_number} merge commit ${merge_commit:0:7} is reachable from origin/${default_br}"
+    else
+      ok "PR #${pr_number} content is on origin/${default_br} as a cherry-pick equivalent (orphan ${merge_commit:0:7} was previously rescued)"
+    fi
+    json_ok "$(jq -nc \
+      --arg pr "$pr_number" --arg sha "$merge_commit" --arg br "$default_br" \
+      --arg url "$pr_url" --arg base "$base_ref_name" --arg via "$landed_via" \
+      '{pr_number: ($pr|tonumber), url: $url, status: "landed",
+        merge_commit: $sha, default_branch: $br, original_base_ref: $base,
+        landed_via: $via,
+        message: (if $via == "direct"
+                  then "PR content reachable from default branch"
+                  else "PR content present on default branch via patch-id-equivalent commit (orphan previously rescued)"
+                  end)}')"
+    return
+  fi
+
+  # Orphan detected.
+  local diff_stat="" subject="" parent_sha=""
+  if git cat-file -e "${merge_commit}^{commit}" 2>/dev/null; then
+    subject="$(git log -1 --format='%s' "$merge_commit" 2>/dev/null || echo "")"
+    parent_sha="$(git log -1 --format='%P' "$merge_commit" 2>/dev/null | awk '{print $1}')"
+    diff_stat="$(git show --stat --format='' "$merge_commit" 2>/dev/null | tail -1 | sed 's/^ *//')"
+  fi
+
+  warn "ORPHAN: PR #${pr_number} merged but ${merge_commit:0:7} is NOT on origin/${default_br}"
+  warn "  stacked base at merge time: ${base_ref_name}"
+  [[ -n "$diff_stat" ]] && warn "  diff: ${diff_stat}"
+
+  if [[ "$rescue" != "true" ]]; then
+    json_ok "$(jq -nc \
+      --arg pr "$pr_number" --arg sha "$merge_commit" --arg subj "$subject" \
+      --arg parent "$parent_sha" --arg stat "$diff_stat" --arg br "$default_br" \
+      --arg base "$base_ref_name" --arg url "$pr_url" \
+      '{pr_number: ($pr|tonumber), url: $url, status: "orphaned",
+        merge_commit: $sha, merge_commit_subject: $subj,
+        merge_commit_parent: $parent, diff_stat: $stat,
+        default_branch: $br, original_base_ref: $base,
+        recovery_hint: ("github-issue verify-landed " + $pr + " --rescue"),
+        message: "PR is MERGED on GitHub but the squash commit is unreachable from the default branch (stacked-PR squash race). Re-run with --rescue to cherry-pick and push."}')"
+    return 1
+  fi
+
+  # --rescue: cherry-pick orphan onto default branch and push.
+  local repo_root
+  repo_root="$(git rev-parse --show-toplevel)" \
+    || json_error "rescue requires running from inside the repo working tree"
+
+  # Refuse to act on a dirty tree — we'd risk losing uncommitted work.
+  if ! git -C "$repo_root" diff --quiet HEAD -- 2>/dev/null || ! git -C "$repo_root" diff --cached --quiet 2>/dev/null; then
+    json_error_obj "$(jq -nc --arg pr "$pr_number" --arg sha "$merge_commit" \
+      '{message: "working tree has uncommitted changes; commit or stash before --rescue",
+        cause: "dirty_tree", pr_number: ($pr|tonumber), merge_commit: $sha}')"
+  fi
+
+  # Take a base-dir lock so two concurrent rescues don't race on the same repo.
+  local wt_base lock_file
+  wt_base="$(worktree_base)"
+  mkdir -p "$wt_base"
+  lock_file="${wt_base}/.rescue-${pr_number}.lock"
+  : >"$lock_file" 2>/dev/null || die "cannot create rescue lock at ${lock_file}"
+  exec 5>"$lock_file"
+  if ! flock -n 5; then
+    json_error_obj "$(jq -nc --arg pr "$pr_number" \
+      '{message: ("another rescue for PR #" + $pr + " is already in progress"),
+        cause: "rescue_locked", pr_number: ($pr|tonumber)}')"
+  fi
+
+  # Make sure the orphan is locally available before checkout.
+  git -C "$repo_root" cat-file -e "${merge_commit}^{commit}" 2>/dev/null \
+    || git -C "$repo_root" fetch origin "$merge_commit" >/dev/null 2>&1 \
+    || json_error "cannot fetch orphan commit ${merge_commit} from origin"
+
+  local current_branch
+  current_branch="$(git -C "$repo_root" branch --show-current)"
+  if [[ "$current_branch" != "$default_br" ]]; then
+    info "switching to ${default_br} (was on ${current_branch})..."
+    git -C "$repo_root" switch "$default_br" >/dev/null 2>&1 \
+      || json_error_obj "$(jq -nc --arg b "$default_br" \
+        '{message: ("cannot switch to " + $b + " (uncommitted changes?)"),
+          cause: "checkout_failed"}')"
+  fi
+
+  info "fast-forwarding local ${default_br} to origin..."
+  git -C "$repo_root" pull --ff-only origin "$default_br" >/dev/null 2>&1 \
+    || json_error_obj "$(jq -nc --arg b "$default_br" \
+      '{message: ("local " + $b + " is not fast-forwardable from origin; resolve by hand"),
+        cause: "ff_failed"}')"
+
+  info "cherry-picking ${merge_commit:0:7}..."
+  if ! git -C "$repo_root" cherry-pick "$merge_commit" >/tmp/github-issue-rescue.log 2>&1; then
+    local cherry_log
+    cherry_log="$(cat /tmp/github-issue-rescue.log 2>/dev/null || echo "")"
+    git -C "$repo_root" cherry-pick --abort 2>/dev/null || true
+    json_error_obj "$(jq -nc --arg sha "$merge_commit" --arg log "$cherry_log" \
+      '{message: "cherry-pick of orphan failed (conflict?); aborted and reverted",
+        cause: "cherry_pick_conflict", merge_commit: $sha, output: $log}')"
+  fi
+
+  local new_head
+  new_head="$(git -C "$repo_root" rev-parse HEAD)"
+
+  info "pushing to origin/${default_br}..."
+  if ! git -C "$repo_root" push origin "$default_br" >/tmp/github-issue-rescue.log 2>&1; then
+    local push_log
+    push_log="$(cat /tmp/github-issue-rescue.log 2>/dev/null || echo "")"
+    json_error_obj "$(jq -nc --arg b "$default_br" --arg sha "$new_head" --arg log "$push_log" \
+      '{message: ("push to origin/" + $b + " rejected; cherry-pick is committed locally at " + $sha),
+        cause: "push_failed", local_head: $sha, output: $log}')"
+  fi
+
+  ok "rescued: orphan ${merge_commit:0:7} now on origin/${default_br} as ${new_head:0:7}"
+  json_ok "$(jq -nc \
+    --arg pr "$pr_number" --arg orig "$merge_commit" --arg new "$new_head" \
+    --arg br "$default_br" --arg url "$pr_url" \
+    '{pr_number: ($pr|tonumber), url: $url, status: "rescued",
+      orphan_commit: $orig, cherry_picked_as: $new, default_branch: $br,
+      message: "Orphan squash commit was cherry-picked onto the default branch and pushed"}')"
+}
+
 # Gather close-context for agent synthesis of a post-mortem comment.
 # Returns PR state, review summary (latest reviews + inline comments), CI
 # history at close, commit log, and last few step_history notes. The skill
@@ -1443,7 +1658,7 @@ cmd_post_mortem() {
 # ── Entry point ──────────────────────────────────────────────────────────────
 
 case "${1:-}" in
-  setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | post-mortem)
+  setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | verify-landed | post-mortem)
     _JSON_MODE=1
     SUBCMD="${1//-/_}"
     shift

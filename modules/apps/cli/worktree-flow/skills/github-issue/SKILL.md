@@ -410,6 +410,29 @@ github-issue cleanup <number>
 
 Removes worktree and deletes the local + remote branch. Does **not** force-close the issue; that's driven by the PR body's closing keyword (`Closes #N` / `Fixes #N` / `Resolves #N`). If the keyword was present, GitHub closed the issue when the PR merged. If the PR used `Refs #N` (multi-phase or umbrella issues that should stay open after this PR lands), the issue is left open. Cleanup reports the resulting state but never overrides it. Close manually with `gh issue close <number>` when all related work is complete.
 
+### Verifying a merged PR actually landed
+
+After cleanup, the GitHub UI may report a PR as merged even when its squash commit is unreachable from the default branch. The classic trigger is the stacked-PR squash race: a child PR (base = parent's feature branch) merged within seconds of the parent, before GitHub finished auto-retargeting the child's base to main. The squash gets the right diff but lands in an orphan commit.
+
+```bash
+github-issue verify-landed <PR-number>
+```
+
+Read-only. Exits 0 with `status: "landed"` when the PR's content is on origin's default branch; exits 1 with `status: "orphaned"` and a `recovery_hint` when it isn't. Returns `status: "not_merged"` (exit 0) when the PR is not in `MERGED` state.
+
+`landed` responses include `landed_via`:
+
+- `"direct"` — `mergeCommit.oid` is a literal ancestor of origin's default branch. The normal case.
+- `"cherry_pick_equivalent"` — the SHA isn't reachable, but a patch-id-equivalent commit is (detected via `git cherry`). Means the orphan was previously rescued (via `--rescue` or by hand) and re-running `--rescue` on this PR is a no-op.
+
+To recover an orphan:
+
+```bash
+github-issue verify-landed <PR-number> --rescue
+```
+
+Refuses on a dirty working tree, switches to the default branch, fast-forwards, cherry-picks the orphan, and pushes to origin. Routes failures via `error.cause`: `dirty_tree`, `checkout_failed`, `ff_failed`, `cherry_pick_conflict`, `push_failed`, `rescue_locked`. On `cherry_pick_conflict` the cherry-pick is auto-aborted and `error.output` carries git's error so you can route to **Merge Conflict Resolution** above.
+
 ### Closed
 
 PR closed without merge. Gather context and draft a post-mortem comment.
