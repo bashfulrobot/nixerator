@@ -39,6 +39,17 @@
           nixpkgs.overlays = [
             # llm-agents packages (exposes pkgs.llm-agents.<name>)
             inputs.llm-agents.overlays.default
+
+            # Stub nautilus-open-any-terminal: hyprflake adds it to systemPackages
+            # unconditionally, but Ghostty ships its own Nautilus extension so the
+            # upstream one creates a duplicate "Open in Ghostty" menu entry. Replacing
+            # the package with an empty derivation removes its share/nautilus-python
+            # extension from the system profile while leaving hyprflake's reference intact.
+            (_final: _prev: {
+              nautilus-open-any-terminal =
+                _prev.runCommand "nautilus-open-any-terminal-disabled" { }
+                  "mkdir -p $out";
+            })
           ];
 
           nix = {
