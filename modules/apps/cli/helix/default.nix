@@ -47,6 +47,7 @@ in
           delve
           golangci-lint-langserver
           gopls
+          harper
           marksman
           nixd
           nixfmt
@@ -127,6 +128,14 @@ in
                 "scls"
               ];
             }
+            {
+              name = "markdown";
+              language-servers = [ "harper-ls" ];
+            }
+            {
+              name = "git-commit";
+              language-servers = [ "harper-ls" ];
+            }
           ];
 
           language-server = {
@@ -143,6 +152,11 @@ in
                 "${pkgs.yaml-language-server}/bin/yaml-language-server"
               ];
               scope = "source.yaml";
+            };
+            harper-ls = {
+              command = "harper-ls";
+              args = [ "--stdio" ];
+              config.harper-ls.dialect = "Canadian";
             };
           };
         };

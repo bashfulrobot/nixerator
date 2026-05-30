@@ -80,6 +80,7 @@ in
           fish-lsp
           gopls
           golangci-lint-langserver
+          harper
           kotlin-lsp
           helm-ls
           markdown-oxide
@@ -135,6 +136,7 @@ in
           "desktop"
           "editorconfig"
           "git-firefly"
+          "harper"
           "ini"
           "make"
           "rainbow-csv"
@@ -294,6 +296,17 @@ in
             helm-ls = {
               binary = {
                 path = "${pkgs.helm-ls}/bin/helm_ls";
+              };
+            };
+            harper-ls = {
+              binary = {
+                path = "${pkgs.harper}/bin/harper-ls";
+                arguments = [ "--stdio" ];
+              };
+              settings = {
+                harper-ls = {
+                  dialect = "Canadian";
+                };
               };
             };
           };
