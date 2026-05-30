@@ -298,6 +298,10 @@ in
                 path = "${pkgs.helm-ls}/bin/helm_ls";
               };
             };
+            # binary.path overrides the binary the upstream harper Zed
+            # extension would otherwise download. The extension still
+            # owns the language-server registration, just point it at
+            # the Nix-built harper-ls so the version is pinned.
             harper-ls = {
               binary = {
                 path = "${pkgs.harper}/bin/harper-ls";

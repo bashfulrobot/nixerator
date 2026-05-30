@@ -48,6 +48,7 @@ in
           golangci-lint-langserver
           gopls
           harper
+          markdown-oxide
           marksman
           nixd
           nixfmt
@@ -128,9 +129,16 @@ in
                 "scls"
               ];
             }
+            # language-servers lists in helix REPLACE the upstream default
+            # (no append). When adding more LSPs later, merge them into
+            # these lists or they will silently stop attaching.
             {
               name = "markdown";
-              language-servers = [ "harper-ls" ];
+              language-servers = [
+                "marksman"
+                "markdown-oxide"
+                "harper-ls"
+              ];
             }
             {
               name = "git-commit";
