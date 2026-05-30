@@ -162,7 +162,7 @@ in
               scope = "source.yaml";
             };
             harper-ls = {
-              command = "harper-ls";
+              command = "${pkgs.harper}/bin/harper-ls";
               args = [ "--stdio" ];
               config.harper-ls.dialect = "Canadian";
             };
