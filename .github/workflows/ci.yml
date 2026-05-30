@@ -24,35 +24,34 @@ jobs:
 
       - name: Format nix
         run: |
-          find . -name '*.nix' -not -path './.git/*' -not -path './secrets/*' -print0 \
+          set -euo pipefail
+          find . -name '*.nix' -not -path './.git/*' -print0 \
             | xargs -0 -r nix run nixpkgs#nixfmt-tree --
 
       - name: Fix nix lint issues
         run: nix run nixpkgs#statix -- fix .
 
       - name: Remove dead nix code
-        run: |
-          find . -name '*.nix' -not -path './.git/*' -not -path './secrets/*' -print0 \
-            | xargs -0 -r nix run nixpkgs#deadnix -- --edit
+        run: nix run nixpkgs#deadnix -- --edit .
 
       - name: Format shell scripts
         run: |
-          find . -name '*.sh' -not -path './.git/*' -not -path './secrets/*' -print0 \
-            | xargs -0 -r nix run nixpkgs#shfmt -- -w -i 2 -ci
-        continue-on-error: true
+          set -euo pipefail
+          find . -name '*.sh' -not -path './.git/*' -print0 \
+            | xargs -0 -r nix run nixpkgs#shfmt -- -w -i 2 -ci || true
 
       - name: Lint shell scripts
         run: |
-          find . -name '*.sh' -not -path './.git/*' -not -path './secrets/*' -print0 \
-            | xargs -0 -r nix run nixpkgs#shellcheck --
-        continue-on-error: true
+          set -euo pipefail
+          find . -name '*.sh' -not -path './.git/*' -print0 \
+            | xargs -0 -r nix run nixpkgs#shellcheck -- || true
 
       - name: Format fish scripts
-        run: find . -name '*.fish' -not -path './.git/*' -not -path './secrets/*' -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \;
+        run: find . -name '*.fish' -not -path './.git/*' -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \;
         continue-on-error: true
 
       - name: Format YAML, JSON, and Markdown
-        run: nix run nixpkgs#nodePackages.prettier -- --write '**/*.{yml,yaml,json,md}' --ignore-path <(echo 'secrets/') --no-error-on-unmatched-pattern
+        run: nix run nixpkgs#nodePackages.prettier -- --write '**/*.{yml,yaml,json,md}' --no-error-on-unmatched-pattern
         continue-on-error: true
 
       - name: Commit and push changes
