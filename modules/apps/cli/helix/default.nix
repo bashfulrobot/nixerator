@@ -47,6 +47,8 @@ in
           delve
           golangci-lint-langserver
           gopls
+          harper
+          markdown-oxide
           marksman
           nixd
           nixfmt
@@ -127,6 +129,21 @@ in
                 "scls"
               ];
             }
+            # language-servers lists in helix REPLACE the upstream default
+            # (no append). When adding more LSPs later, merge them into
+            # these lists or they will silently stop attaching.
+            {
+              name = "markdown";
+              language-servers = [
+                "marksman"
+                "markdown-oxide"
+                "harper-ls"
+              ];
+            }
+            {
+              name = "git-commit";
+              language-servers = [ "harper-ls" ];
+            }
           ];
 
           language-server = {
@@ -143,6 +160,11 @@ in
                 "${pkgs.yaml-language-server}/bin/yaml-language-server"
               ];
               scope = "source.yaml";
+            };
+            harper-ls = {
+              command = "${pkgs.harper}/bin/harper-ls";
+              args = [ "--stdio" ];
+              config.harper-ls.dialect = "Canadian";
             };
           };
         };

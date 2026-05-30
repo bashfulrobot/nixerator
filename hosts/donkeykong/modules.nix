@@ -16,8 +16,6 @@
   apps.cli.work-launcher.enable = true;
 
   # Apps
-  apps.webapps.scratch.enable = true;
-
   apps.cli.text-polish.enable = true;
   apps.cli.text-uppercase.enable = true;
 

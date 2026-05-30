@@ -54,7 +54,7 @@ hosts/
 modules/           # the bulk of the repo
   apps/cli/        # 33+ CLI tools
   apps/gui/        # 20+ GUI apps
-  apps/webapps/    # 8 PWAs
+  apps/webapps/    # 10 PWAs
   archetypes/      # workstation / server
   suites/          # 13 feature bundles
   system/          # 7 system services
@@ -270,7 +270,7 @@ The `justfile` provides ergonomic shortcuts:
 |----------|-------|---------|
 | **CLI** | 33+ | fish, helix, git, docker, claude-code, ollama, pandoc |
 | **GUI** | 20+ | 1Password, Chrome, Obsidian, Signal, Ghostty, VS Code, Zed |
-| **WebApps** | 8 | Gmail, Calendar, Slack, Zoom (Chrome PWAs via mkWebApp) |
+| **WebApps** | 10 | Gmail, Calendar, Slack, Zoom (Chrome PWAs via mkWebApp) |
 | **System** | 7 | SSH, Flatpak, Nix settings, special workspaces, fonts |
 | **Server** | 4 | KVM, NFS, Restic backup, Whisper server |
 
