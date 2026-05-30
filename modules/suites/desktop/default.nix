@@ -178,6 +178,12 @@ in
     # nautilus-open-any-terminal now sets NAUTILUS_4_EXTENSION_DIR upstream
     environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
 
+    # Ghostty ships its own Nautilus extension (share/nautilus-python/extensions/ghostty.py).
+    # Disable hyprflake's nautilus-open-any-terminal to avoid duplicate "Open in Ghostty"
+    # entries; the package itself is stubbed via overlay in lib/mkHost.nix so the .py
+    # cannot be picked up from hyprflake's environment.systemPackages contribution.
+    programs.nautilus-open-any-terminal.enable = lib.mkForce false;
+
     home-manager.users.${globals.user.name} = {
       # Adopt new 26.05 default: gtk4 no longer inherits gtk.theme
       gtk.gtk4.theme = null;
