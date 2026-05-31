@@ -24,6 +24,7 @@
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
+    ../../modules/server/cloudflare-ddns
     ../../modules/server/kvm
     ../../modules/server/netboot-xyz
     ../../modules/server/nfs

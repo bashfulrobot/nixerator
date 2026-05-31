@@ -53,5 +53,8 @@
   "snyk": {
     "token": "{{ op://nixerator/snyk/credential }}"
   },
-  "todoist_token": "{{ op://nixerator/todoist/credential }}"
+  "todoist_token": "{{ op://nixerator/todoist/credential }}",
+  "cloudflareDdns": {
+    "apiToken": "{{ op://nixerator/cloudflare-ddns/api_token }}"
+  }
 }

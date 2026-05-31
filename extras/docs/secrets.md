@@ -110,6 +110,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `tailscale-caddy-authkey` | API Credential | `credential` | `secrets.tailscale.caddyAuthKey` |
 | `github-pat` | API Credential | `credential` | `secrets.github.accessToken` |
 | `todoist` | API Credential | `credential` | `secrets.todoist_token` |
+| `cloudflare-ddns` | API Credential | `api_token` | `secrets.cloudflareDdns.apiToken` |
 | `syncthing-gui` | Login | `username` + `password` | `secrets.syncthing.gui.*` |
 | `b2-credentials` | Secure Note | `keyID` + `applicationKey` | `secrets.{restic,plakar}.*.b2_account_*` (shared) |
 | `restic-password` | Password | `password` | `secrets.restic.{srv,workstation}.restic_password` (shared) |
