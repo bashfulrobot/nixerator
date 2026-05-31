@@ -1,33 +1,114 @@
 name: Update Flake Lock
+
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 0 * * *"
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: update-flake-lock
+  cancel-in-progress: false
 
 jobs:
   lockfile:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Validate NIXERATOR_FLAKE_TOKEN shape
+        env:
+          T: ${{ secrets.NIXERATOR_FLAKE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The token is interpolated into a nix.conf string below; a newline
+          # in the value would inject arbitrary settings. PATs never contain
+          # newlines, so a non-empty value with a newline means misconfigured
+          # or compromised secret. Fail fast.
+          if [ -z "$T" ]; then
+            echo "NIXERATOR_FLAKE_TOKEN is empty" >&2
+            exit 1
+          fi
+          if [[ "$T" == *$'\n'* || "$T" == *$'\r'* ]]; then
+            echo "NIXERATOR_FLAKE_TOKEN contains a newline; refusing to proceed" >&2
+            exit 1
+          fi
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
         with:
           flakehub: false
           extra-conf: |
             access-tokens = github.com=${{ secrets.NIXERATOR_FLAKE_TOKEN }}
 
       - name: Update flake lock
+        env:
+          GITHUB_TOKEN: ""
         run: nix flake update
 
-      - name: Commit and push changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add flake.lock
-          git diff --staged --quiet || git commit -m "chore(flake): 🔄 update flake lock"
-          git push
+      - name: Commit and push via signed API
+        # Commit SHA (not tag object) so the pin is fully immutable.
+        # d746ffe... resolves to the v9.0.0 tag object whose underlying
+        # commit is the SHA below.
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { execSync } = require('node:child_process');
+            const fs = require('node:fs');
+
+            execSync("git add -- flake.lock");
+            const raw = execSync(
+              "git diff --staged --no-renames --name-status -z -- flake.lock"
+            ).toString();
+            if (raw.length === 0) {
+              core.info('flake.lock unchanged');
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const branch = 'main';
+            const path = 'flake.lock';
+            const message = 'chore(flake): 🔄 update flake lock';
+
+            const tree = [{
+              path,
+              mode: '100644',
+              type: 'blob',
+              content: fs.readFileSync(path, 'utf8'),
+            }];
+
+            const maxAttempts = 3;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const { data: ref } = await github.rest.git.getRef({
+                owner, repo, ref: `heads/${branch}`,
+              });
+              const parentSha = ref.object.sha;
+              const { data: newTree } = await github.rest.git.createTree({
+                owner, repo, base_tree: parentSha, tree,
+              });
+              const { data: newCommit } = await github.rest.git.createCommit({
+                owner, repo, message, tree: newTree.sha, parents: [parentSha],
+              });
+              try {
+                await github.rest.git.updateRef({
+                  owner, repo, ref: `heads/${branch}`, sha: newCommit.sha,
+                });
+                core.info(`pushed ${newCommit.sha}`);
+                return;
+              } catch (e) {
+                if (e.status !== 422 || attempt === maxAttempts) throw e;
+                core.warning(
+                  `updateRef rejected (attempt ${attempt}/${maxAttempts}, ` +
+                  `status ${e.status}), refetching ref and retrying`
+                );
+                await new Promise(r => setTimeout(r, 2000 * attempt));
+              }
+            }
