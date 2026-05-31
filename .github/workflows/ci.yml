@@ -16,6 +16,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          # Full history so 'git pull --rebase origin main' in the autocommit
+          # step does not trip on shallow-boundary edge cases when main has
+          # moved during the run.
+          fetch-depth: 0
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -43,9 +48,6 @@ jobs:
       - name: Format fish scripts
         run: find . -name '*.fish' -not -path './.git/*' -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \;
 
-      - name: Format CI workflow YAML
-        run: nix run nixpkgs#prettier -- --write '.github/**/*.{yml,yaml}'
-
       - name: Commit and push changes
         run: |
           set -euo pipefail
@@ -59,5 +61,6 @@ jobs:
           git commit -m "chore: 🤖 auto-format and lint"
           # Rebase onto any concurrent push that landed while we were running,
           # then push. Avoids non-fast-forward losing the autofix commit.
-          git pull --rebase origin main
+          # On conflict, abort cleanly so the run log surfaces the cause.
+          git pull --rebase origin main || { git rebase --abort; exit 1; }
           git push
