@@ -47,12 +47,10 @@ jobs:
             | xargs -0 -r nix run nixpkgs#shellcheck -- || true
 
       - name: Format fish scripts
-        run: find . -name '*.fish' -not -path './.git/*' -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \;
-        continue-on-error: true
-
-      - name: Format YAML, JSON, and Markdown
-        run: nix run nixpkgs#nodePackages.prettier -- --write '**/*.{yml,yaml,json,md}' --no-error-on-unmatched-pattern
-        continue-on-error: true
+        run: |
+          set -euo pipefail
+          find . -name '*.fish' -not -path './.git/*' \
+            -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \; || true
 
       - name: Commit and push changes
         run: |
