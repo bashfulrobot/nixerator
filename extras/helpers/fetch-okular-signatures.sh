@@ -70,7 +70,7 @@ fetch_one() {
 }
 
 fetch_one okular-signature "${SIG_PATH}"
-fetch_one okular-initials  "${INIT_PATH}"
+fetch_one okular-initials "${INIT_PATH}"
 
 echo
 echo "Done. Both PNGs are at ~/.kde/share/icons/. Re-launch Okular to pick"
