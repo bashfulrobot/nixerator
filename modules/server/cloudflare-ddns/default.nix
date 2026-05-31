@@ -14,14 +14,17 @@ let
 
   joinCsv = items: lib.concatStringsSep "," items;
 
-  # Token-file paths. The host file is rendered at activation time so the
-  # value lives outside `docker run` argv (which would otherwise expose
-  # the token in /proc/<pid>/cmdline for every reader). The container sees
-  # it via a read-only bind mount, and CLOUDFLARE_API_TOKEN_FILE in env
-  # tells upstream to read from that path. This is the upstream-documented
-  # "Docker secrets compatible" path.
-  hostTokenDir = "/var/lib/cloudflare-ddns";
-  hostTokenPath = "${hostTokenDir}/token";
+  # Token-file paths. The host file is materialised through
+  # `environment.etc` at activation time so the value never enters
+  # `docker run` argv (which would otherwise expose it in
+  # /proc/<pid>/cmdline) and never lands in a world-readable file under
+  # /etc/tmpfiles.d. `environment.etc` rewrites the file on every
+  # activation, so a rotated 1Password value propagates on the next
+  # `nixos-rebuild switch` without any manual cleanup. The container
+  # sees the file via a read-only bind mount; CLOUDFLARE_API_TOKEN_FILE
+  # in env tells upstream to read it (the documented "Docker secrets
+  # compatible" path).
+  hostTokenPath = "/etc/cloudflare-ddns/token";
   containerTokenPath = "/run/secrets/cloudflare-ddns-token";
 
   # Env keys the module owns. Passing any of these via `extraEnv` would
@@ -184,98 +187,102 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
+  config = lib.mkIf cfg.enable (
+    lib.mkMerge [
       {
-        assertion = config.virtualisation.docker.enable;
-        message = ''
-          server.cloudflareDdns.enable = true requires
-          virtualisation.docker.enable = true. Enable apps.cli.docker on
-          this host (or set the Docker option directly).
-        '';
-      }
-      {
-        assertion = hasToken;
-        message = ''
-          server.cloudflareDdns.enable = true requires
-          secrets.cloudflareDdns.apiToken to be set. Create the
-          `nixerator/cloudflare-ddns` 1Password item (type: API Credential,
-          field: `credential`, value: a Cloudflare API token scoped to
-          `Zone / DNS / Edit` on the target zones) and run
-          `just render-secrets`.
-        '';
-      }
-      {
-        assertion =
-          cfg.domains != [ ] || cfg.ip4Domains != [ ] || cfg.ip6Domains != [ ] || cfg.wafLists != [ ];
-        message = ''
-          server.cloudflareDdns.enable = true requires at least one of
-          `domains`, `ip4Domains`, `ip6Domains`, or `wafLists` to be
-          non-empty.
-        '';
-      }
-      {
-        assertion = cfg.network == "host" || cfg.ip6Provider == "none";
-        message = ''
-          server.cloudflareDdns.network must be "host" whenever
-          server.cloudflareDdns.ip6Provider is anything other than "none".
-          Upstream reads the host routing table for IPv6 detection and only
-          works with host networking.
-        '';
-      }
-      {
-        assertion = cfg.ip6Provider != "none" || cfg.ip6Domains == [ ];
-        message = ''
-          server.cloudflareDdns.ip6Domains is non-empty but ip6Provider is
-          "none". Upstream silently skips AAAA updates in that combination.
-          Set ip6Provider to a real provider (e.g. "cloudflare.trace") or
-          drop the IPv6-only domains.
-        '';
-      }
-    ];
+        assertions = [
+          {
+            assertion = config.virtualisation.docker.enable;
+            message = ''
+              server.cloudflareDdns.enable = true requires
+              virtualisation.docker.enable = true. Enable apps.cli.docker on
+              this host (or set the Docker option directly).
+            '';
+          }
+          {
+            assertion = hasToken;
+            message = ''
+              server.cloudflareDdns.enable = true requires
+              secrets.cloudflareDdns.apiToken to be set. Create the
+              `nixerator/cloudflare-ddns` 1Password item (type: API Credential,
+              field: `credential`, value: a Cloudflare API token scoped to
+              `Zone / DNS / Edit` on the target zones) and run
+              `just render-secrets`.
+            '';
+          }
+          {
+            assertion =
+              cfg.domains != [ ] || cfg.ip4Domains != [ ] || cfg.ip6Domains != [ ] || cfg.wafLists != [ ];
+            message = ''
+              server.cloudflareDdns.enable = true requires at least one of
+              `domains`, `ip4Domains`, `ip6Domains`, or `wafLists` to be
+              non-empty.
+            '';
+          }
+          {
+            assertion = cfg.network == "host" || cfg.ip6Provider == "none";
+            message = ''
+              server.cloudflareDdns.network must be "host" whenever
+              server.cloudflareDdns.ip6Provider is anything other than "none".
+              Upstream reads the host routing table for IPv6 detection and only
+              works with host networking.
+            '';
+          }
+          {
+            # `domains` is a both-stack list upstream: every entry contributes
+            # to the IPv6 update set, so an empty `ip6Domains` is not enough
+            # to make ip6Provider = "none" safe.
+            assertion = cfg.ip6Provider != "none" || (cfg.ip6Domains == [ ] && cfg.domains == [ ]);
+            message = ''
+              server.cloudflareDdns.ip6Provider is "none" but `domains` or
+              `ip6Domains` is non-empty. Upstream treats both as IPv6 targets
+              and silently skips AAAA updates in this combination. Either set
+              ip6Provider to a real provider (e.g. "cloudflare.trace") or move
+              both-stack entries into `ip4Domains`.
+            '';
+          }
+        ];
 
-    warnings = lib.optional (conflictingExtraKeys != [ ]) ''
-      server.cloudflareDdns.extraEnv contains keys the module manages
-      directly: ${lib.concatStringsSep ", " conflictingExtraKeys}. These
-      are dropped from extraEnv. Set them via the typed options instead
-      (or remove them).
-    '';
-
-    # Render the API token to a host-side file so the value never enters
-    # `docker run` argv. The bind mount makes the same path readable
-    # inside the container under a fixed location, and
-    # CLOUDFLARE_API_TOKEN_FILE in env tells upstream to consume it
-    # there. Per the project threat model, the token still lives in
-    # /nix/store via the tmpfiles rule (acceptable on single-user hosts);
-    # the win here is removing it from /proc/<pid>/cmdline.
-    systemd.tmpfiles.settings."10-cloudflare-ddns" = {
-      "${hostTokenDir}".d = {
-        mode = "0700";
-        user = "root";
-        group = "root";
-      };
-      "${hostTokenPath}".f = {
-        mode = "0400";
-        user = "root";
-        group = "root";
-        argument = secrets.cloudflareDdns.apiToken;
-      };
-    };
-
-    virtualisation.oci-containers.containers."cloudflare-ddns" = {
-      inherit (cfg) image;
-      autoStart = true;
-      hostname = "cloudflare-ddns";
-      extraOptions = [ "--network=${cfg.network}" ];
-      volumes = [ "${hostTokenPath}:${containerTokenPath}:ro" ];
-      environment = {
-        CLOUDFLARE_API_TOKEN_FILE = containerTokenPath;
-        IP4_PROVIDER = cfg.ip4Provider;
-        IP6_PROVIDER = cfg.ip6Provider;
-        UPDATE_CRON = cfg.updateCron;
+        warnings = lib.optional (conflictingExtraKeys != [ ]) ''
+          server.cloudflareDdns.extraEnv contains keys the module manages
+          directly: ${lib.concatStringsSep ", " conflictingExtraKeys}. These
+          are dropped from extraEnv. Set them via the typed options instead
+          (or remove them).
+        '';
       }
-      // domainEnv
-      // sanitizedExtraEnv;
-    };
-  };
+
+      # Everything below touches the token value, so guard the whole block
+      # behind hasToken. The strict assertion above fires first with an
+      # actionable message; without this guard, evaluating `text =
+      # secrets.cloudflareDdns.apiToken` would throw a cryptic
+      # `attribute 'cloudflareDdns' missing` before the assertion machinery
+      # could surface anything.
+      (lib.mkIf hasToken {
+        # `environment.etc` materialises /etc/cloudflare-ddns/token at
+        # activation time with the configured mode, so the value never enters
+        # `docker run` argv and never lands in a world-readable file under
+        # /etc/tmpfiles.d. Per the project threat model the plaintext copy
+        # in /nix/store is the documented trade-off for inline secrets.
+        environment.etc."cloudflare-ddns/token" = {
+          text = secrets.cloudflareDdns.apiToken;
+          mode = "0400";
+        };
+
+        virtualisation.oci-containers.containers."cloudflare-ddns" = {
+          inherit (cfg) image;
+          autoStart = true;
+          extraOptions = [ "--network=${cfg.network}" ];
+          volumes = [ "${hostTokenPath}:${containerTokenPath}:ro" ];
+          environment = {
+            CLOUDFLARE_API_TOKEN_FILE = containerTokenPath;
+            IP4_PROVIDER = cfg.ip4Provider;
+            IP6_PROVIDER = cfg.ip6Provider;
+            UPDATE_CRON = cfg.updateCron;
+          }
+          // domainEnv
+          // sanitizedExtraEnv;
+        };
+      })
+    ]
+  );
 }
