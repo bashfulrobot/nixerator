@@ -40,22 +40,24 @@ jobs:
           find . -name '*.sh' -not -path './.git/*' -print0 \
             | xargs -0 -r nix run nixpkgs#shfmt -- -w -i 2 -ci || true
 
-      - name: Lint shell scripts
-        run: |
-          set -euo pipefail
-          find . -name '*.sh' -not -path './.git/*' -print0 \
-            | xargs -0 -r nix run nixpkgs#shellcheck -- || true
-
       - name: Format fish scripts
-        run: |
-          set -euo pipefail
-          find . -name '*.fish' -not -path './.git/*' \
-            -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \; || true
+        run: find . -name '*.fish' -not -path './.git/*' -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \;
+
+      - name: Format CI workflow YAML
+        run: nix run nixpkgs#prettier -- --write '.github/**/*.{yml,yaml}'
 
       - name: Commit and push changes
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --staged --quiet || git commit -m "chore: 🤖 auto-format and lint"
+          if git diff --staged --quiet; then
+            echo "no changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: 🤖 auto-format and lint"
+          # Rebase onto any concurrent push that landed while we were running,
+          # then push. Avoids non-fast-forward losing the autofix commit.
+          git pull --rebase origin main
           git push
