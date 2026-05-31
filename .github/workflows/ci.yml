@@ -52,20 +52,20 @@ jobs:
           GITHUB_TOKEN: ""
         run: |
           set -euo pipefail
-          find . -name '*.nix' -not -path './.git/*' -print0 \
+          find . -name '*.nix' -not -path './.git/*' -not -path './secrets/*' -print0 \
             | xargs -0 -r nix run "${NIXPKGS}#nixfmt-tree" --
 
       - name: Fix nix lint issues
         env:
           NIXPKGS: github:NixOS/nixpkgs/${{ steps.nixpkgs.outputs.rev }}
           GITHUB_TOKEN: ""
-        run: nix run "${NIXPKGS}#statix" -- fix .
+        run: nix run "${NIXPKGS}#statix" -- fix --ignore secrets .
 
       - name: Remove dead nix code
         env:
           NIXPKGS: github:NixOS/nixpkgs/${{ steps.nixpkgs.outputs.rev }}
           GITHUB_TOKEN: ""
-        run: nix run "${NIXPKGS}#deadnix" -- --edit .
+        run: nix run "${NIXPKGS}#deadnix" -- --edit --exclude '**/secrets/**' .
 
       - name: Format shell scripts
         env:
@@ -73,7 +73,7 @@ jobs:
           GITHUB_TOKEN: ""
         run: |
           set -euo pipefail
-          find . -name '*.sh' -not -path './.git/*' -print0 \
+          find . -name '*.sh' -not -path './.git/*' -not -path './secrets/*' -print0 \
             | xargs -0 -r nix run "${NIXPKGS}#shfmt" -- -w -i 2 -ci
 
       - name: Format fish scripts
@@ -85,19 +85,36 @@ jobs:
           # Filenames are passed as positional args ($argv) to a single fish
           # invocation. They never enter the -c script body, so shell
           # metachars in filenames cannot escape into command position.
-          find . -name '*.fish' -not -path './.git/*' -print0 \
+          find . -name '*.fish' -not -path './.git/*' -not -path './secrets/*' -print0 \
             | xargs -0 -r nix run "${NIXPKGS}#fish" -- -c \
               'for f in $argv; fish_indent -w "$f"; end'
 
       - name: Commit and push via signed API
-        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        # Commit SHA (not tag object) so the pin is fully immutable and survives
+        # tag re-signing. d746ffe... resolves to the v9.0.0 tag object whose
+        # underlying commit is the SHA below.
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const { execSync } = require('node:child_process');
             const fs = require('node:fs');
 
-            execSync('git add -A');
-            const raw = execSync('git diff --staged --name-status -z').toString();
+            // Stage only files the formatters actually touch. `git add -A`
+            // would also capture stray runner artifacts (result symlinks,
+            // tool caches), and the commit lands on main with no human in
+            // the loop, so the staging scope must be tight. Pathspecs use
+            // the :(glob) magic prefix so `**` traverses all depths.
+            execSync(
+              "git add -A -- " +
+              "':(glob)**/*.nix' ':(glob)**/*.sh' ':(glob)**/*.fish' " +
+              "':(exclude,glob)**/secrets/**'"
+            );
+
+            // --no-renames forces git to emit only A/M/D/T statuses, so the
+            // C-status branch becomes unreachable and a malicious
+            // `git config diff.renames copies` cannot trick the parser into
+            // deleting the original file.
+            const raw = execSync('git diff --staged --no-renames --name-status -z').toString();
             if (raw.length === 0) {
               core.info('no changes to commit');
               return;
@@ -107,17 +124,14 @@ jobs:
             const entries = [];
             for (let i = 0; i < toks.length; ) {
               const status = toks[i];
-              if (status.startsWith('R') || status.startsWith('C')) {
+              if (status === 'D') {
                 entries.push({ kind: 'delete', path: toks[i + 1] });
-                entries.push({ kind: 'add', path: toks[i + 2] });
-                i += 3;
-              } else if (status === 'D') {
-                entries.push({ kind: 'delete', path: toks[i + 1] });
-                i += 2;
-              } else {
+              } else if (status === 'A' || status === 'M' || status === 'T') {
                 entries.push({ kind: 'add', path: toks[i + 1] });
-                i += 2;
+              } else {
+                throw new Error(`unexpected git diff status '${status}' for ${toks[i + 1]}`);
               }
+              i += 2;
             }
 
             const { owner, repo } = context.repo;
@@ -129,8 +143,22 @@ jobs:
                 tree.push({ path, mode: '100644', type: 'blob', sha: null });
                 continue;
               }
-              const stat = fs.statSync(path);
-              const mode = (stat.mode & 0o111) ? '100755' : '100644';
+              // lstat (not stat) so a symlink does not silently follow out of
+              // the working tree. Submodules/non-regular files are rejected.
+              const lstat = fs.lstatSync(path);
+              if (lstat.isSymbolicLink()) {
+                tree.push({
+                  path,
+                  mode: '120000',
+                  type: 'blob',
+                  content: fs.readlinkSync(path),
+                });
+                continue;
+              }
+              if (!lstat.isFile()) {
+                throw new Error(`refusing to commit non-regular file at ${path}`);
+              }
+              const mode = (lstat.mode & 0o111) ? '100755' : '100644';
               const { data: blob } = await github.rest.git.createBlob({
                 owner, repo,
                 content: fs.readFileSync(path).toString('base64'),
