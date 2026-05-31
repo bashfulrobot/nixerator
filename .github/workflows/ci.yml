@@ -1,10 +1,11 @@
 name: CI
+
 on:
   push:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,54 +14,156 @@ concurrency:
 jobs:
   autofix:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Full history so 'git pull --rebase origin main' in the autocommit
-          # step does not trip on shallow-boundary edge cases when main has
-          # moved during the run.
+          # Full history so the autocommit step can rebase cleanly when main
+          # has moved during the run.
           fetch-depth: 0
+          # Drop the runner credential helper so a compromised formatter
+          # binary cannot piggy-back on the implicit token to push to main.
+          # The commit step below presents the token explicitly via
+          # actions/github-script.
+          persist-credentials: false
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
         with:
           flakehub: false
 
+      - name: Read pinned nixpkgs ref from flake.lock
+        id: nixpkgs
+        run: |
+          set -euo pipefail
+          rev=$(jq -r '.nodes.nixpkgs.locked.rev' flake.lock)
+          if [ -z "$rev" ] || [ "$rev" = "null" ]; then
+            echo "could not extract nixpkgs rev from flake.lock" >&2
+            exit 1
+          fi
+          echo "rev=$rev" >> "$GITHUB_OUTPUT"
+
       - name: Format nix
+        env:
+          NIXPKGS: github:NixOS/nixpkgs/${{ steps.nixpkgs.outputs.rev }}
+          GITHUB_TOKEN: ""
         run: |
           set -euo pipefail
           find . -name '*.nix' -not -path './.git/*' -print0 \
-            | xargs -0 -r nix run nixpkgs#nixfmt-tree --
+            | xargs -0 -r nix run "${NIXPKGS}#nixfmt-tree" --
 
       - name: Fix nix lint issues
-        run: nix run nixpkgs#statix -- fix .
+        env:
+          NIXPKGS: github:NixOS/nixpkgs/${{ steps.nixpkgs.outputs.rev }}
+          GITHUB_TOKEN: ""
+        run: nix run "${NIXPKGS}#statix" -- fix .
 
       - name: Remove dead nix code
-        run: nix run nixpkgs#deadnix -- --edit .
+        env:
+          NIXPKGS: github:NixOS/nixpkgs/${{ steps.nixpkgs.outputs.rev }}
+          GITHUB_TOKEN: ""
+        run: nix run "${NIXPKGS}#deadnix" -- --edit .
 
       - name: Format shell scripts
+        env:
+          NIXPKGS: github:NixOS/nixpkgs/${{ steps.nixpkgs.outputs.rev }}
+          GITHUB_TOKEN: ""
         run: |
           set -euo pipefail
           find . -name '*.sh' -not -path './.git/*' -print0 \
-            | xargs -0 -r nix run nixpkgs#shfmt -- -w -i 2 -ci || true
+            | xargs -0 -r nix run "${NIXPKGS}#shfmt" -- -w -i 2 -ci
 
       - name: Format fish scripts
-        run: find . -name '*.fish' -not -path './.git/*' -exec nix run nixpkgs#fish -- -c 'fish_indent -w {}' \;
-
-      - name: Commit and push changes
+        env:
+          NIXPKGS: github:NixOS/nixpkgs/${{ steps.nixpkgs.outputs.rev }}
+          GITHUB_TOKEN: ""
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --staged --quiet; then
-            echo "no changes to commit"
-            exit 0
-          fi
-          git commit -m "chore: 🤖 auto-format and lint"
-          # Rebase onto any concurrent push that landed while we were running,
-          # then push. Avoids non-fast-forward losing the autofix commit.
-          # On conflict, abort cleanly so the run log surfaces the cause.
-          git pull --rebase origin main || { git rebase --abort; exit 1; }
-          git push
+          # Filenames are passed as positional args ($argv) to a single fish
+          # invocation. They never enter the -c script body, so shell
+          # metachars in filenames cannot escape into command position.
+          find . -name '*.fish' -not -path './.git/*' -print0 \
+            | xargs -0 -r nix run "${NIXPKGS}#fish" -- -c \
+              'for f in $argv; fish_indent -w "$f"; end'
+
+      - name: Commit and push via signed API
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        with:
+          script: |
+            const { execSync } = require('node:child_process');
+            const fs = require('node:fs');
+
+            execSync('git add -A');
+            const raw = execSync('git diff --staged --name-status -z').toString();
+            if (raw.length === 0) {
+              core.info('no changes to commit');
+              return;
+            }
+
+            const toks = raw.split('\0').filter(s => s.length > 0);
+            const entries = [];
+            for (let i = 0; i < toks.length; ) {
+              const status = toks[i];
+              if (status.startsWith('R') || status.startsWith('C')) {
+                entries.push({ kind: 'delete', path: toks[i + 1] });
+                entries.push({ kind: 'add', path: toks[i + 2] });
+                i += 3;
+              } else if (status === 'D') {
+                entries.push({ kind: 'delete', path: toks[i + 1] });
+                i += 2;
+              } else {
+                entries.push({ kind: 'add', path: toks[i + 1] });
+                i += 2;
+              }
+            }
+
+            const { owner, repo } = context.repo;
+            const branch = 'main';
+
+            const tree = [];
+            for (const { kind, path } of entries) {
+              if (kind === 'delete') {
+                tree.push({ path, mode: '100644', type: 'blob', sha: null });
+                continue;
+              }
+              const stat = fs.statSync(path);
+              const mode = (stat.mode & 0o111) ? '100755' : '100644';
+              const { data: blob } = await github.rest.git.createBlob({
+                owner, repo,
+                content: fs.readFileSync(path).toString('base64'),
+                encoding: 'base64',
+              });
+              tree.push({ path, mode, type: 'blob', sha: blob.sha });
+            }
+
+            const message = 'chore: 🤖 auto-format and lint';
+            const maxAttempts = 3;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const { data: ref } = await github.rest.git.getRef({
+                owner, repo, ref: `heads/${branch}`,
+              });
+              const parentSha = ref.object.sha;
+              const { data: newTree } = await github.rest.git.createTree({
+                owner, repo, base_tree: parentSha, tree,
+              });
+              const { data: newCommit } = await github.rest.git.createCommit({
+                owner, repo, message, tree: newTree.sha, parents: [parentSha],
+              });
+              try {
+                await github.rest.git.updateRef({
+                  owner, repo, ref: `heads/${branch}`, sha: newCommit.sha,
+                });
+                core.info(`pushed ${newCommit.sha}`);
+                return;
+              } catch (e) {
+                if (e.status !== 422 || attempt === maxAttempts) throw e;
+                core.warning(
+                  `updateRef rejected (attempt ${attempt}/${maxAttempts}, ` +
+                  `status ${e.status}), refetching ref and retrying`
+                );
+                await new Promise(r => setTimeout(r, 2000 * attempt));
+              }
+            }
