@@ -1405,7 +1405,10 @@ cmd_verify_landed() {
   shift
   while (($#)); do
     case "$1" in
-      --rescue) rescue="true"; shift ;;
+      --rescue)
+        rescue="true"
+        shift
+        ;;
       *) die "unknown flag: $1 (usage: github-issue verify-landed <pr-number> [--rescue])" ;;
     esac
   done
@@ -1413,8 +1416,8 @@ cmd_verify_landed() {
   [[ "$pr_number" =~ ^[0-9]+$ ]] || die "PR number must be numeric, got: ${pr_number}"
 
   local pr_json state merge_commit base_ref_name pr_url
-  pr_json="$(gh pr view "$pr_number" --json number,state,mergeCommit,baseRefName,url 2>/dev/null)" \
-    || json_error "PR #${pr_number} not found (gh pr view failed)"
+  pr_json="$(gh pr view "$pr_number" --json number,state,mergeCommit,baseRefName,url 2>/dev/null)" ||
+    json_error "PR #${pr_number} not found (gh pr view failed)"
   state="$(printf '%s' "$pr_json" | jq -r '.state')"
   merge_commit="$(printf '%s' "$pr_json" | jq -r '.mergeCommit.oid // ""')"
   base_ref_name="$(printf '%s' "$pr_json" | jq -r '.baseRefName')"
@@ -1428,21 +1431,21 @@ cmd_verify_landed() {
     return
   fi
 
-  [[ -n "$merge_commit" && "$merge_commit" != "null" ]] \
-    || json_error "PR #${pr_number} is MERGED but has no mergeCommit.oid (GitHub API anomaly)"
+  [[ -n "$merge_commit" && "$merge_commit" != "null" ]] ||
+    json_error "PR #${pr_number} is MERGED but has no mergeCommit.oid (GitHub API anomaly)"
 
   local default_br
   default_br="$(default_branch)"
 
   info "fetching latest origin/${default_br}..."
-  git fetch origin "$default_br" >/dev/null 2>&1 \
-    || warn "git fetch origin ${default_br} failed; verifying against last known refs"
+  git fetch origin "$default_br" >/dev/null 2>&1 ||
+    warn "git fetch origin ${default_br} failed; verifying against last known refs"
 
   # If the merge commit isn't in the local object store yet, pull it.
   # `git fetch origin <sha>` works because GitHub allows fetching by SHA.
   if ! git cat-file -e "${merge_commit}^{commit}" 2>/dev/null; then
-    git fetch origin "$merge_commit" >/dev/null 2>&1 \
-      || warn "could not fetch merge commit ${merge_commit:0:7} into local repo"
+    git fetch origin "$merge_commit" >/dev/null 2>&1 ||
+      warn "could not fetch merge commit ${merge_commit:0:7} into local repo"
   fi
 
   local landed="false" landed_via="direct"
@@ -1460,8 +1463,8 @@ cmd_verify_landed() {
       # If the parent isn't fetched locally, cherry fails silently and we
       # stay in orphan land. That's fine: the user's `--rescue` path doesn't
       # depend on this detection.
-      if git cat-file -e "${merge_commit}~1^{commit}" 2>/dev/null \
-         && [[ "$(git cherry "origin/${default_br}" "$merge_commit" "${merge_commit}~1" 2>/dev/null | awk '{print $1; exit}')" == "-" ]]; then
+      if git cat-file -e "${merge_commit}~1^{commit}" 2>/dev/null &&
+        [[ "$(git cherry "origin/${default_br}" "$merge_commit" "${merge_commit}~1" 2>/dev/null | awk '{print $1; exit}')" == "-" ]]; then
         landed="true"
         landed_via="cherry_pick_equivalent"
       fi
@@ -1515,8 +1518,8 @@ cmd_verify_landed() {
 
   # --rescue: cherry-pick orphan onto default branch and push.
   local repo_root
-  repo_root="$(git rev-parse --show-toplevel)" \
-    || json_error "rescue requires running from inside the repo working tree"
+  repo_root="$(git rev-parse --show-toplevel)" ||
+    json_error "rescue requires running from inside the repo working tree"
 
   # Refuse to act on a dirty tree — we'd risk losing uncommitted work.
   if ! git -C "$repo_root" diff --quiet HEAD -- 2>/dev/null || ! git -C "$repo_root" diff --cached --quiet 2>/dev/null; then
@@ -1539,23 +1542,23 @@ cmd_verify_landed() {
   fi
 
   # Make sure the orphan is locally available before checkout.
-  git -C "$repo_root" cat-file -e "${merge_commit}^{commit}" 2>/dev/null \
-    || git -C "$repo_root" fetch origin "$merge_commit" >/dev/null 2>&1 \
-    || json_error "cannot fetch orphan commit ${merge_commit} from origin"
+  git -C "$repo_root" cat-file -e "${merge_commit}^{commit}" 2>/dev/null ||
+    git -C "$repo_root" fetch origin "$merge_commit" >/dev/null 2>&1 ||
+    json_error "cannot fetch orphan commit ${merge_commit} from origin"
 
   local current_branch
   current_branch="$(git -C "$repo_root" branch --show-current)"
   if [[ "$current_branch" != "$default_br" ]]; then
     info "switching to ${default_br} (was on ${current_branch})..."
-    git -C "$repo_root" switch "$default_br" >/dev/null 2>&1 \
-      || json_error_obj "$(jq -nc --arg b "$default_br" \
+    git -C "$repo_root" switch "$default_br" >/dev/null 2>&1 ||
+      json_error_obj "$(jq -nc --arg b "$default_br" \
         '{message: ("cannot switch to " + $b + " (uncommitted changes?)"),
           cause: "checkout_failed"}')"
   fi
 
   info "fast-forwarding local ${default_br} to origin..."
-  git -C "$repo_root" pull --ff-only origin "$default_br" >/dev/null 2>&1 \
-    || json_error_obj "$(jq -nc --arg b "$default_br" \
+  git -C "$repo_root" pull --ff-only origin "$default_br" >/dev/null 2>&1 ||
+    json_error_obj "$(jq -nc --arg b "$default_br" \
       '{message: ("local " + $b + " is not fast-forwardable from origin; resolve by hand"),
         cause: "ff_failed"}')"
 
