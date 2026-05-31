@@ -55,6 +55,6 @@
   },
   "todoist_token": "{{ op://nixerator/todoist/credential }}",
   "cloudflareDdns": {
-    "apiToken": "{{ op://nixerator/cloudflare-ddns/api_token }}"
+    "apiToken": "{{ op://nixerator/cloudflare-ddns/credential }}"
   }
 }
