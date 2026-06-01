@@ -24,6 +24,15 @@
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
+    # Imported-not-enabled. Activate by creating the `nixerator/cloudflare-ddns`
+    # 1Password item (API Credential, default `credential` field, value: a
+    # Cloudflare token scoped to `Zone / DNS / Edit`), running
+    # `just render-secrets`, and adding to this file:
+    #   server.cloudflareDdns = {
+    #     enable  = true;
+    #     domains = [ "your.zone.example.com" ];
+    #   };
+    ../../modules/server/cloudflare-ddns
     ../../modules/server/kvm
     ../../modules/server/netboot-xyz
     ../../modules/server/nfs
