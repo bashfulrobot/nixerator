@@ -46,4 +46,13 @@
       # Add your custom bash configuration here
     '';
   };
+
+  xdg.configFile."hypr/conf.d/monitor.lua".text = ''
+    hl.monitor({
+      output = "eDP-1",
+      mode = "preferred",
+      position = "auto",
+      scale = "1",
+    })
+  '';
 }
