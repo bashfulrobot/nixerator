@@ -1,9 +1,8 @@
-{
-  lib,
-  config,
-  globals,
-  pkgs,
-  ...
+{ lib
+, config
+, globals
+, pkgs
+, ...
 }:
 
 let
@@ -64,12 +63,6 @@ in
       enable = true;
       hotkey = "SCROLLLOCK";
       model = lib.mkDefault "base.en";
-    };
-
-    # Calendar notifier (managed by hyprflake)
-    hyprflake.desktop.calendar-notifier = {
-      enable = true;
-      debug = false;
     };
 
     # Special workspaces for task manager and office apps
