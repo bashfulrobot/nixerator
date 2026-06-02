@@ -46,15 +46,9 @@
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
         stylix.follows = "stylix";
-        waybar-auto-hide.follows = "waybar-auto-hide";
         # See TODO above the `voxtype` input.
         voxtype.follows = "voxtype";
       };
-    };
-
-    waybar-auto-hide = {
-      url = "github:bashfulrobot/nixpkg-waybar-auto-hide";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     llm-agents = {
@@ -78,7 +72,7 @@
     apple-fonts = {
       # Pinned: upstream rev 6f4eed8 (2026-04-23) ships an empty sf-mono-nerd
       # derivation (no font files), which strips all Nerd Font glyphs from
-      # waybar/etc. ecb8430 (2026-04-10) is the last known-working commit.
+      # the shell bar, etc. ecb8430 (2026-04-10) is the last known-working commit.
       # Unpin once upstream fixes the sf-mono-nerd build.
       url = "github:Lyndeno/apple-fonts.nix/ecb843051893bdf34fd4f9c0ec664e356e2251a6";
       inputs.nixpkgs.follows = "nixpkgs";
