@@ -31,58 +31,25 @@ the org, and real customer impact if it hits Cases or Accounts.
 The guiding principle: **read freely, write rarely, and only with the user
 watching every step**.
 
-## Context folder and memory
+## Memory
 
-This skill keeps persistent, project-style memory in a dedicated folder.
-Defaults to `~/sfdc/`; override with `$SFDC_CONTEXT_DIR` if needed. The
-folder holds:
-
-- `.graymatter/` -- the GrayMatter memory database (agent ID: `sfdc`)
-- `.mcp.json` -- wires `graymatter` as an MCP server if the user `cd`s into
-  the folder for a session
-- `CLAUDE.md` -- directs any Claude session started in that folder to use
-  the graymatter MCP for memory
-
-This skill itself doesn't require the MCP to be active in the current
-session. It uses the `graymatter` CLI with `--dir` so it works from any
-working directory.
-
-### Step 0: Bootstrap (run once on first use)
-
-At the start of every SFDC task, check the context folder exists:
-
-```bash
-test -f "${SFDC_CONTEXT_DIR:-$HOME/sfdc}/.graymatter/gray.db" \
-  || bash "$(dirname "$0")/scripts/bootstrap-context.sh"
-```
-
-Or, more simply, run the bootstrap script -- it's idempotent:
-```bash
-bash scripts/bootstrap-context.sh
-```
+This skill uses Claude Code's native auto-memory (the per-project
+`~/.claude/projects/<project>/memory/` store). Recalled memories are
+surfaced automatically at session start, and you write reusable SFDC facts
+there with the normal memory workflow -- no separate database or bootstrap
+step.
 
 ### Recall before acting
 
-For any non-trivial SObject, query, or named record, check memory first:
-
-```bash
-graymatter recall sfdc "<natural-language query>" \
-  --dir "${SFDC_CONTEXT_DIR:-$HOME/sfdc}/.graymatter"
-```
-
-Examples of what's worth recalling: field names on custom objects, working
-SOQL patterns, account/opportunity IDs the user has named, gotchas hit
-previously.
+For any non-trivial SObject, query, or named record, check what you already
+know from recalled memories before running a describe or query. Worth
+recalling: field names on custom objects, working SOQL patterns,
+account/opportunity IDs the user has named, gotchas hit previously.
 
 ### Store what's reusable
 
 After a task, if you learned something that would save time next session,
-store it:
-
-```bash
-graymatter remember sfdc "<concise fact>" \
-  --dir "${SFDC_CONTEXT_DIR:-$HOME/sfdc}/.graymatter"
-```
+save it to auto-memory.
 
 Reusable: field API names on custom objects, SOQL patterns, record IDs the
 user referenced by name ("our Acme account"), org-specific gotchas
@@ -161,7 +128,7 @@ whole point.
 ### Step 5: Store any lesson
 
 After the task, if something you learned will save time next time, save it
-to graymatter (see "Store what's reusable" above).
+to auto-memory (see "Store what's reusable" above).
 
 ## Output format defaults
 
@@ -173,14 +140,13 @@ to graymatter (see "Store what's reusable" above).
 
 If the user requests a recurring report, consider writing a small shell
 script they can run on demand. Put it wherever they direct (often in their
-project folder), and have it source the context folder so graymatter memory
-is available if needed.
+project folder).
 
 ## What NOT to do
 
 - Do not run a write command without the playbook, even if the user seems
   to be in a hurry. A delayed yes is cheaper than a wrong write.
-- Do not store raw query results in graymatter. Store the *pattern* that
+- Do not store raw query results in memory. Store the *pattern* that
   produced them, not the data.
 - Do not invent field API names. Describe the object. Custom fields almost
   always end in `__c`; some standard fields have non-obvious names (e.g.,
@@ -205,7 +171,6 @@ is available if needed.
 
 ### scripts/
 
-- `bootstrap-context.sh` -- idempotent init of the context folder
 - `sfdc-query.sh` -- SOQL runner with human/json/csv/bulk modes
 - `sfdc-describe.sh` -- SObject describe with compact `--fields-only` mode
 - `sfdc-count.sh` -- COUNT() sanity check, used by the writes playbook
