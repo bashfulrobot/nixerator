@@ -14,5 +14,4 @@ mkWebApp {
   url = "https://calendar.google.com/calendar/u/1/r";
   wmClass = "chrome-calendar.google.com__calendar_u_1_r-Default";
   icon = ./icon.png;
-  iconGlyph = "󰃭";
 }

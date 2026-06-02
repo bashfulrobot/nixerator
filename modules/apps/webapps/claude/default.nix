@@ -14,5 +14,4 @@ mkWebApp {
   url = "https://claude.ai/new";
   wmClass = "chrome-claude.ai__new-Default";
   icon = ./icon.png;
-  iconGlyph = "󰚩";
 }
