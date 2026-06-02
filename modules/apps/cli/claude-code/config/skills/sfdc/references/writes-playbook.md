@@ -147,12 +147,8 @@ writes without looping back to step 0.
 
 ## 9. Store the lesson
 
-If the write surfaced a gotcha, store it:
-
-```bash
-graymatter remember sfdc "<concise fact>" \
-  --dir "${SFDC_CONTEXT_DIR:-$HOME/sfdc}/.graymatter"
-```
+If the write surfaced a gotcha, store it in auto-memory as a concise,
+reusable fact.
 
 Examples of worth-storing lessons:
 - "Account.Territory_Assigned__c is a formula field, not updateable."
