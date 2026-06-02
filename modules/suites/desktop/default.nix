@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -72,11 +71,6 @@ in
           layout = lib.mkDefault "us";
           variant = lib.mkDefault ""; # examples: "colemak", "dvorak", "altgr-intl"
         };
-
-        # Waybar retired: DankMaterialShell now provides the status bar, so the
-        # workspaceAppIcons/autoHide options are ignored. Disable the stub to
-        # drop the dead config and silence its no-op warning.
-        waybar.enable = false;
 
         # Idle management configuration (handled by DankMaterialShell)
         # Controls screen locking, display power management, and suspend timeouts
