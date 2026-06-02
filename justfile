@@ -252,16 +252,17 @@ fmt:
 
 # Update manually-installed Claude skills from GitHub
 #
-# Runs skillfish for its tracked skills, then bumps any flake-pinned
-# upstream skills (currently just `humanizer-skill` -> blader/humanizer).
-# Skills authored in this repo under config/skills/ are managed by
-# claude-capture and need no separate update step.
+# Applies skillfish-tracked updates and reports what changed via
+# claude-skill-updates (which also fires a desktop notify-send on
+# workstation hosts), then bumps any flake-pinned upstream skills
+# (currently just `humanizer-skill` -> blader/humanizer). Skills authored
+# in this repo under config/skills/ are managed by claude-capture and need
+# no separate update step.
 update-skills:
     #!/usr/bin/env bash
     set -euo pipefail
-    if command -v skillfish >/dev/null 2>&1; then
-        echo "Updating skillfish-managed skills..."
-        skillfish update --yes || echo "skillfish update failed (non-fatal)"
+    if command -v claude-skill-updates >/dev/null 2>&1; then
+        claude-skill-updates || echo "skillfish update failed (non-fatal)"
     fi
     echo "Bumping flake-pinned upstream skills..."
     nix flake update humanizer-skill || echo "humanizer-skill update failed (non-fatal)"
@@ -386,8 +387,12 @@ post-rebuild mode="quiet":
     if [[ "{{mode}}" == "interactive" ]]; then
         gum spin --spinner dot --title "Syncing plugins..." \
             -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
-        gum spin --spinner dot --title "Updating skills..." \
-            -- bash -c 'just update-skills &>/dev/null' || gum style --foreground 220 "Skill update failed (non-fatal)"
+        # Run visibly (not inside a gum spin) so claude-skill-updates'
+        # "updated N skill(s)" report reaches the terminal; the spinner's
+        # &>/dev/null would otherwise swallow it. The desktop notify-send
+        # still fires regardless.
+        echo "Updating skills..."
+        just update-skills || gum style --foreground 220 "Skill update failed (non-fatal)"
         if systemctl --user is-active --quiet dms.service; then
             gum spin --spinner dot --title "Restarting DankMaterialShell..." \
                 -- bash -c 'systemctl --user restart dms.service' || gum style --foreground 220 "DMS restart failed (non-fatal)"
