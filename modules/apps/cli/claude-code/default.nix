@@ -35,6 +35,9 @@ let
     inherit pkgs;
     desiredPlugins = cfg.plugins;
   };
+  skillUpdatesConfig = import ./cfg/skill-updates.nix {
+    inherit pkgs;
+  };
   reapConfig = import ./cfg/reap.nix {
     inherit pkgs versions;
     homeDir = globals.user.homeDirectory;
@@ -213,6 +216,7 @@ in
             (lib.hiPrio pkgs.nodejs_22)
           ]
           ++ pluginsConfig.packages
+          ++ skillUpdatesConfig.packages
           ++ reapConfig.packages;
 
         # Copy config files as writable copies via activation script.
