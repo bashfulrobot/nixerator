@@ -14,5 +14,4 @@ mkWebApp {
   url = "https://copilot.clari.com/myCalls";
   wmClass = "chrome-copilot.clari.com__myCalls-Default";
   icon = ./icon.png;
-  iconGlyph = "󰏲";
 }

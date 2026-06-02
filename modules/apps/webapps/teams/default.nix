@@ -14,7 +14,6 @@ mkWebApp {
   url = "https://teams.cloud.microsoft/";
   wmClass = "chrome-teams.cloud.microsoft__-Default";
   icon = ./icon.png;
-  iconGlyph = "󰊻";
   categories = [
     "Network"
     "VideoConference"

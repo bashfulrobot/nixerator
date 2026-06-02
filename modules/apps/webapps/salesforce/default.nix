@@ -14,7 +14,6 @@ mkWebApp {
   url = "https://kong.lightning.force.com/lightning/r/Dashboard/01ZPJ000004TcSb2AK/view?queryScope=userFolders";
   wmClass = "chrome-kong.lightning.force.com__lightning_r_Dashboard_01ZPJ000004TcSb2AK_view-Default";
   icon = ./icon.png;
-  iconGlyph = "󰢩";
   categories = [
     "Network"
     "Office"

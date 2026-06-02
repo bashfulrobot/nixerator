@@ -12,7 +12,6 @@
   mimeTypes ? [ ],
   defaultFor ? { },
   extraArgs ? "",
-  iconGlyph ? null,
 }:
 
 let
@@ -39,41 +38,34 @@ in
 {
   options.apps.webapps.${name}.enable = lib.mkEnableOption "${displayName} web app";
 
-  config = lib.mkIf cfg.enable (
-    lib.mkMerge [
-      {
-        home-manager.users.${globals.user.name} = {
-          xdg.desktopEntries.${desktopName} = {
-            name = displayName;
-            exec = execLine;
-            icon = "${icon}";
-            terminal = false;
-            type = "Application";
-            inherit categories;
-            startupNotify = true;
-            mimeType = mimeTypes;
-            settings = {
-              StartupWMClass = wmClass;
-            };
-          };
-
-          xdg.desktopEntries.${manageDesktopName} = {
-            name = "Manage ${displayName}";
-            genericName = "Manage ${displayName} extensions and logins";
-            exec = manageExecLine;
-            icon = "${icon}";
-            terminal = false;
-            type = "Application";
-            categories = [ "Settings" ];
-            startupNotify = false;
-          };
-
-          xdg.mimeApps.defaultApplications = defaultFor;
+  config = lib.mkIf cfg.enable {
+    home-manager.users.${globals.user.name} = {
+      xdg.desktopEntries.${desktopName} = {
+        name = displayName;
+        exec = execLine;
+        icon = "${icon}";
+        terminal = false;
+        type = "Application";
+        inherit categories;
+        startupNotify = true;
+        mimeType = mimeTypes;
+        settings = {
+          StartupWMClass = wmClass;
         };
-      }
-      (lib.mkIf (iconGlyph != null) {
-        hyprflake.desktop.waybar.workspaceAppIcons.rewrites."class<${wmClass}>" = iconGlyph;
-      })
-    ]
-  );
+      };
+
+      xdg.desktopEntries.${manageDesktopName} = {
+        name = "Manage ${displayName}";
+        genericName = "Manage ${displayName} extensions and logins";
+        exec = manageExecLine;
+        icon = "${icon}";
+        terminal = false;
+        type = "Application";
+        categories = [ "Settings" ];
+        startupNotify = false;
+      };
+
+      xdg.mimeApps.defaultApplications = defaultFor;
+    };
+  };
 }

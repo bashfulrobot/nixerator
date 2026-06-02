@@ -14,7 +14,6 @@ mkWebApp {
   url = "https://www.instapaper.com/u";
   wmClass = "chrome-www.instapaper.com__u-Default";
   icon = ./icon.png;
-  iconGlyph = "󰂽";
   categories = [
     "Network"
     "News"

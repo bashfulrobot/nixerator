@@ -14,5 +14,4 @@ mkWebApp {
   url = "https://developer.konghq.com/";
   wmClass = "chrome-developer.konghq.com__-Default";
   icon = ./icon.png;
-  iconGlyph = "󰂺";
 }

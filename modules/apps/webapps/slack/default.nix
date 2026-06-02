@@ -14,7 +14,6 @@ mkWebApp {
   url = "https://kongstrong.slack.com/";
   wmClass = "chrome-kongstrong.slack.com__-Default";
   icon = ./icon.png;
-  iconGlyph = "󰒱";
   categories = [
     "Network"
     "InstantMessaging"
