@@ -364,8 +364,14 @@ pre-rebuild mode="quiet":
         fish -c 'agentos-capture' &>/dev/null || echo "Agent OS pre-capture failed (non-fatal)"
     fi
 
-# Post-rebuild: sync plugins, capture config, check for changes
+# Post-rebuild: sync plugins, restart DMS, capture config, check for changes
 # mode: "interactive" (gum spin) or "quiet" (plain echo)
+#
+# DankMaterialShell loads ~/.config/DankMaterialShell/settings.json once at
+# startup and does not live-watch it, so a rebuild that rewrites that file
+# (e.g. a hyprflake dank settings change) has no visible effect until the
+# running shell is restarted. We bounce dms.service here, guarded on is-active
+# so headless hosts without the desktop shell skip it.
 [private]
 post-rebuild mode="quiet":
     #!/usr/bin/env bash
@@ -382,6 +388,10 @@ post-rebuild mode="quiet":
             -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
         gum spin --spinner dot --title "Updating skills..." \
             -- bash -c 'just update-skills &>/dev/null' || gum style --foreground 220 "Skill update failed (non-fatal)"
+        if systemctl --user is-active --quiet dms.service; then
+            gum spin --spinner dot --title "Restarting DankMaterialShell..." \
+                -- bash -c 'systemctl --user restart dms.service' || gum style --foreground 220 "DMS restart failed (non-fatal)"
+        fi
         if $is_capture_source; then
             gum spin --spinner dot --title "Capturing Claude Code config..." \
                 -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
@@ -393,6 +403,10 @@ post-rebuild mode="quiet":
         claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
         echo "Updating skills..."
         just update-skills || echo "Skill update failed (non-fatal)"
+        if systemctl --user is-active --quiet dms.service; then
+            echo "Restarting DankMaterialShell..."
+            systemctl --user restart dms.service || echo "DMS restart failed (non-fatal)"
+        fi
         if $is_capture_source; then
             echo "Capturing Claude Code config..."
             fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
