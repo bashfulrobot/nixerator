@@ -73,34 +73,10 @@ in
           variant = lib.mkDefault ""; # examples: "colemak", "dvorak", "altgr-intl"
         };
 
-        # Waybar configuration
-        waybar = {
-          # Automatically hide waybar when workspace is empty and show on cursor hover at top edge
-          autoHide = lib.mkDefault false;
-
-          # Render application icons inside each workspace indicator via window-rewrite.
-          # hyprflake ships sane defaults for common apps; extend here with the tools
-          # we package in nixerator that the upstream map does not cover.
-          workspaceAppIcons = {
-            enable = lib.mkDefault true;
-            # Stylix base0A (Yellow in Catppuccin Mocha) reads well on
-            # active (blue), occupied (mantle), and empty workspace
-            # buttons alike. Override per host if a different accent
-            # works better with your scheme.
-            iconColor = lib.mkDefault "#${config.lib.stylix.colors.base0A}";
-            rewrites = {
-              "class<dev.zed.Zed>" = "󰰶";
-              "class<Zed>" = "󰰶";
-              "class<Insomnia>" = "󰛮";
-              "class<helium>" = "󰖟";
-              "class<Morgen>" = "󰃮";
-              "class<okular>" = "󰈦";
-              "class<Typora>" = "󰈙";
-              "class<dev-upsight-MainKt>" = "󱌈";
-              "class<com.localsend.localsend_app>" = "󰇚";
-            };
-          };
-        };
+        # Waybar retired: DankMaterialShell now provides the status bar, so the
+        # workspaceAppIcons/autoHide options are ignored. Disable the stub to
+        # drop the dead config and silence its no-op warning.
+        waybar.enable = false;
 
         # Idle management configuration (hypridle)
         # Controls screen locking, display power management, and suspend timeouts
@@ -195,6 +171,11 @@ in
         ''
       );
     };
+
+    # kmscon is not used on any host, but Stylix's kmscon target auto-enables
+    # and sets services.kmscon.{extraConfig,fonts} — both removed in nixpkgs
+    # 26.05, which hard-fails evaluation. Disable the unused target.
+    stylix.targets.kmscon.enable = false;
 
     stylix.fonts = {
       monospace = {
