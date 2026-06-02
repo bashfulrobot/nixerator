@@ -40,7 +40,7 @@
     };
 
     hyprflake = {
-      url = "github:bashfulrobot/hyprflake/feat/17-dank-shell";
+      url = "github:bashfulrobot/hyprflake";
       # Follow all inputs to ensure version consistency and avoid conflicts
       inputs = {
         nixpkgs.follows = "nixpkgs";
