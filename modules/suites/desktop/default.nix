@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -38,7 +37,7 @@ in
         # hyprflake.style.wallpaper = ./path/to/your-wallpaper.png;
 
         # Font configuration - using hyprflake defaults
-        # Default monospace: Iosevka Nerd Font (includes icon glyphs for waybar)
+        # Default monospace: Iosevka Nerd Font (includes icon glyphs for the shell)
         # Default sansSerif: Inter
         # Default serif: Noto Serif
         # Default emoji: Noto Color Emoji
@@ -78,7 +77,7 @@ in
         # drop the dead config and silence its no-op warning.
         waybar.enable = false;
 
-        # Idle management configuration (hypridle)
+        # Idle management configuration (handled by DankMaterialShell)
         # Controls screen locking, display power management, and suspend timeouts
         idle = {
           lockTimeout = lib.mkDefault 300; # Lock screen after 5 minutes
@@ -116,7 +115,7 @@ in
             handlePowerKey = lib.mkDefault "poweroff";
             handleLidSwitch = lib.mkDefault "suspend";
             handleLidSwitchDocked = lib.mkDefault "ignore";
-            idleAction = lib.mkDefault "ignore"; # Handled by hypridle
+            idleAction = lib.mkDefault "ignore"; # Handled by DankMaterialShell
             idleActionSec = lib.mkDefault 0;
           };
 
@@ -134,7 +133,9 @@ in
         };
       };
 
-      # Note: Hyprshell window switcher (alt-tab) is now always enabled via hyprflake
+      # Note: the old hyprshell alt-tab switcher was retired. DMS offers a
+      # window overview/exposé (dms ipc hypr toggleOverview), not a classic
+      # alt-tab; a traditional alt-tab would be a Hyprland cyclenext keybind.
 
       # User configuration (required)
       user = {
