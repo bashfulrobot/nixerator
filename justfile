@@ -392,6 +392,9 @@ post-rebuild mode="quiet":
             gum spin --spinner dot --title "Restarting DankMaterialShell..." \
                 -- bash -c 'systemctl --user restart dms.service' || gum style --foreground 220 "DMS restart failed (non-fatal)"
         fi
+        if command -v hyprflake-updates >/dev/null 2>&1; then
+            hyprflake-updates || true
+        fi
         if $is_capture_source; then
             gum spin --spinner dot --title "Capturing Claude Code config..." \
                 -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
@@ -406,6 +409,10 @@ post-rebuild mode="quiet":
         if systemctl --user is-active --quiet dms.service; then
             echo "Restarting DankMaterialShell..."
             systemctl --user restart dms.service || echo "DMS restart failed (non-fatal)"
+        fi
+        if command -v hyprflake-updates >/dev/null 2>&1; then
+            echo "Checking for DankMaterialShell / Hyprland updates..."
+            hyprflake-updates || true
         fi
         if $is_capture_source; then
             echo "Capturing Claude Code config..."
