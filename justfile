@@ -614,14 +614,6 @@ bootstrap-secrets:
 fetch-signatures:
     @./extras/helpers/fetch-okular-signatures.sh
 
-# One-shot: stub out the nixerator/cloudflare-ddns 1P item (API Credential,
-# default `credential` field, DUMMY_REPLACE_ME value) so render-secrets has
-# something to inject before you've populated the real token. Idempotent.
-# Delete this recipe + extras/helpers/op-create-cloudflare-ddns.sh once
-# the real token is in 1Password.
-op-create-cloudflare-ddns:
-    @./extras/helpers/op-create-cloudflare-ddns.sh
-
 # === Aliases ===
 alias r := rebuild
 alias up := upgrade
