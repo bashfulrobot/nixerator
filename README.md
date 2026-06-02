@@ -1,6 +1,7 @@
 # Nixerator
 
-Modular NixOS configuration with flakes, home-manager, and Hyprland desktop.
+Modular NixOS configuration with flakes, home-manager, and a Hyprland desktop
+running the DankMaterialShell (DMS) shell.
 
 ## Architecture
 
@@ -95,3 +96,10 @@ suites.dev.enable = true;
 ## Desktop
 
 - The desktop configuration is an external repo for the Hyprland desktop: [bashfulrobot/hyprflake](https://github.com/bashfulrobot/hyprflake)
+- The desktop shell is **DankMaterialShell (DMS)** — bar, launcher,
+  notifications, OSD, power menu, lock, and idle in one process. hyprflake is
+  DMS-first, and the previous Waybar-based stack has been retired. The desktop
+  suite (`modules/suites/desktop`) wires it via `hyprflake.*` options.
+- DMS reads its settings once at startup, so the rebuild recipes
+  (`just rebuild` / `just upgrade` and their quiet variants) restart
+  `dms.service` automatically after activation.
