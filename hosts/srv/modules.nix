@@ -24,14 +24,9 @@
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
-    # Imported-not-enabled. Activate by creating the `nixerator/cloudflare-ddns`
-    # 1Password item (API Credential, default `credential` field, value: a
-    # Cloudflare token scoped to `Zone / DNS / Edit`), running
-    # `just render-secrets`, and adding to this file:
-    #   server.cloudflareDdns = {
-    #     enable  = true;
-    #     domains = [ "your.zone.example.com" ];
-    #   };
+    # Dynamic DNS for home.bashfulrobot.com (A record only). Token lives in
+    # the `nixerator/cloudflare-ddns` 1Password item; enabled below under
+    # `server.cloudflareDdns`.
     ../../modules/server/cloudflare-ddns
     ../../modules/server/kvm
     ../../modules/server/netboot-xyz
@@ -101,6 +96,15 @@
 
   # Server-specific modules
   server = {
+    # IPv4-only DDNS: manages the A record for home.bashfulrobot.com.
+    # ip6Provider = "none" because srv has no public IPv6; without it the
+    # both-stack `domains` option would try (and fail) to manage AAAA.
+    cloudflareDdns = {
+      enable = true;
+      ip4Domains = [ "home.bashfulrobot.com" ];
+      ip6Provider = "none";
+    };
+
     kvm = {
       enable = true;
       routing = {
