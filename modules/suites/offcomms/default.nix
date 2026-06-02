@@ -1,8 +1,9 @@
-{ lib
-, config
-, globals
-, pkgs
-, ...
+{
+  lib,
+  config,
+  globals,
+  pkgs,
+  ...
 }:
 
 let
