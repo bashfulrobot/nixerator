@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -158,8 +157,11 @@ in
     programs.nautilus-open-any-terminal.enable = lib.mkForce false;
 
     home-manager.users.${globals.user.name} = {
-      # Adopt new 26.05 default: gtk4 no longer inherits gtk.theme
-      gtk.gtk4.theme = null;
+      # Adopt new 26.05 default: gtk4 no longer inherits gtk.theme.
+      # mkForce to win over stylix's HM gtk module, which now sets
+      # gtk.gtk4.theme = config.gtk.theme (otherwise: "defined both null
+      # and not null" eval conflict).
+      gtk.gtk4.theme = lib.mkForce null;
 
       xdg.configFile."Kvantum/kvantum.kvconfig".source = lib.mkForce (
         pkgs.writeText "kvantum.kvconfig" ''
