@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -92,8 +91,9 @@ in
         # Power management configuration
         # Desktop defaults - hosts can override for laptop-specific needs
         power = {
-          # No power profile backend by default (performance desktop)
-          profilesBackend = lib.mkDefault "none";
+          # profilesBackend is intentionally not set here. hyprflake derives it
+          # from hyprflake.system.isLaptop: "power-profiles-daemon" on laptops
+          # (so the DMS power-profile applet works), "none" on desktops.
 
           # Thermald disabled by default (enable for Intel laptops)
           thermald.enable = lib.mkDefault false;
