@@ -20,18 +20,13 @@
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
   i18n.defaultLocale = globals.defaults.locale;
 
-  # donkeykong is a laptop (Lenovo ThinkPad T14 Intel gen6). This enables
-  # UPower for battery monitoring and shows the DMS battery / power-profile bar
-  # widget. Desktops leave hyprflake.system.isLaptop at its false default.
+  # donkeykong is a laptop (Lenovo ThinkPad T14 Intel gen6). isLaptop enables
+  # UPower for battery monitoring, shows the DMS battery / power-profile bar
+  # widget, and defaults the power-profile backend to power-profiles-daemon so
+  # the DMS applet can switch profiles (it drives ppd over D-Bus; TLP provides
+  # no such interface). nixos-hardware stands TLP down automatically. Desktops
+  # leave hyprflake.system.isLaptop at its false default.
   hyprflake.system.isLaptop = true;
-
-  # Use power-profiles-daemon as the backend so the DMS panel applet can switch
-  # profiles — it drives ppd over D-Bus (net.hadess.PowerProfiles), and TLP
-  # provides no such interface. nixos-hardware stands TLP down automatically
-  # (services.tlp.enable = mkDefault (!power-profiles-daemon.enable)).
-  # Trade-off: this drops TLP's battery charge-threshold cap; profile switching
-  # from the bar is preferred over the 80% limit here.
-  hyprflake.system.power.profilesBackend = "power-profiles-daemon";
 
   # Voxtype on donkeykong (hyprflake currently supports local package/model controls only)
   hyprflake.desktop.voxtype = {
