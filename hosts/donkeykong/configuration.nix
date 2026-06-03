@@ -20,6 +20,19 @@
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
   i18n.defaultLocale = globals.defaults.locale;
 
+  # donkeykong is a laptop (Lenovo ThinkPad T14 Intel gen6). This enables
+  # UPower for battery monitoring and shows the DMS battery / power-profile bar
+  # widget. Desktops leave hyprflake.system.isLaptop at its false default.
+  hyprflake.system.isLaptop = true;
+
+  # Cap charging at 80% to extend battery lifespan. TLP is supplied by the
+  # nixos-hardware ThinkPad profile (profilesBackend stays "none"); hyprflake
+  # merges these thresholds into services.tlp.settings. Adjust to taste.
+  hyprflake.system.power.battery = {
+    startThreshold = 75;
+    stopThreshold = 80;
+  };
+
   # Voxtype on donkeykong (hyprflake currently supports local package/model controls only)
   hyprflake.desktop.voxtype = {
     enable = true;
