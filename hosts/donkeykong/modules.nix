@@ -7,7 +7,9 @@
 
   # Pull from qbert's harmonia cache: LAN first, then tailscale, then the
   # upstream caches declared in modules/system/nix.
-  system.qbert-cache.enable = true;
+  # Disabled: self-hosted caching turned off; only the public substituters
+  # in modules/system/nix (plus cache.nixos.org) are used.
+  system.qbert-cache.enable = false;
 
   # Attach-only: install the `work` fish function so donkeykong can attach
   # to zellij sessions on srv or qbert. Does NOT expose sessions to peers

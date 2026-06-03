@@ -56,8 +56,10 @@
     # Serve qbert's /nix/store as a binary cache for donkeykong (and any
     # future LAN peer). Donkeykong enables the consumer side via
     # system.qbert-cache.enable.
+    # Disabled: self-hosted caching turned off (consumer side off on
+    # donkeykong too). Flip both back to true to re-enable.
     harmonia = {
-      enable = true;
+      enable = false;
       interfaces = [
         "tailscale0"
         "enp34s0"
