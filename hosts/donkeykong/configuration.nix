@@ -25,13 +25,13 @@
   # widget. Desktops leave hyprflake.system.isLaptop at its false default.
   hyprflake.system.isLaptop = true;
 
-  # Cap charging at 80% to extend battery lifespan. TLP is supplied by the
-  # nixos-hardware ThinkPad profile (profilesBackend stays "none"); hyprflake
-  # merges these thresholds into services.tlp.settings. Adjust to taste.
-  hyprflake.system.power.battery = {
-    startThreshold = 75;
-    stopThreshold = 80;
-  };
+  # Use power-profiles-daemon as the backend so the DMS panel applet can switch
+  # profiles — it drives ppd over D-Bus (net.hadess.PowerProfiles), and TLP
+  # provides no such interface. nixos-hardware stands TLP down automatically
+  # (services.tlp.enable = mkDefault (!power-profiles-daemon.enable)).
+  # Trade-off: this drops TLP's battery charge-threshold cap; profile switching
+  # from the bar is preferred over the 80% limit here.
+  hyprflake.system.power.profilesBackend = "power-profiles-daemon";
 
   # Voxtype on donkeykong (hyprflake currently supports local package/model controls only)
   hyprflake.desktop.voxtype = {
