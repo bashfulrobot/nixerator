@@ -40,7 +40,7 @@ in
         salesforce.enable = true;
         slack.enable = false;
         teams.enable = true;
-        zoom.enable = true;
+        zoom.enable = false;
       };
 
       cli = {
@@ -83,6 +83,7 @@ in
       slack
       todoist-electron
       fractal
+      zoom-us
     ];
 
     # Force Todoist Electron to use native Wayland (avoids XWayland key
