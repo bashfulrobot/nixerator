@@ -45,14 +45,6 @@ let
       type = "http";
       url = "https://gitmcp.io/docs";
     };
-    # Amplifiers (aiblewmymind) -- streamable-HTTP MCP secured by OAuth with
-    # dynamic client registration, so no clientId/secret is configured here;
-    # Claude Code auto-registers and opens a browser login on first use
-    # (`/mcp` -> authenticate). Requires a Claude Pro/Max/Team/Enterprise plan.
-    amplifiers = {
-      type = "http";
-      url = "https://mcp.aiblewmymind.com";
-    };
   }
   // lib.optionalAttrs (serverProfile == "full") {
     # kubernetes-mcp-server requires a host-local kubeconfig at ${kubeconfigFile};
@@ -84,15 +76,6 @@ let
       args = [
         "-y"
         "@playwright/mcp@latest"
-      ];
-    };
-    # draw.io diagram tools -- opens XML/CSV/Mermaid in a browser-based editor.
-    # Useless without a desktop browser; gated.
-    drawio = {
-      command = "${pkgs.nodejs}/bin/npx";
-      args = [
-        "-y"
-        "@drawio/mcp"
       ];
     };
   }
