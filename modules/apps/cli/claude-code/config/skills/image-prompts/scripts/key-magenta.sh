@@ -52,8 +52,8 @@ fi
 # (4 bytes R G B A) and take the 4th numeric byte; filtering to numeric tokens
 # avoids the leading-whitespace token od emits.
 corner_alpha="$(ffmpeg -hide_banner -i "$out" -vf "crop=1:1:0:0,format=rgba" \
-  -f rawvideo - 2>/dev/null | od -A n -t u1 | tr -s ' ' '\n' \
-  | grep -E '^[0-9]+$' | sed -n '4p')"
+  -f rawvideo - 2>/dev/null | od -A n -t u1 | tr -s ' ' '\n' |
+  grep -E '^[0-9]+$' | sed -n '4p')"
 if [ "${corner_alpha:-x}" != "0" ]; then
   echo "key-magenta: WARN corner alpha is ${corner_alpha:-unknown}, expected 0." >&2
   echo "             The key colour or tolerance may be off for this image." >&2
