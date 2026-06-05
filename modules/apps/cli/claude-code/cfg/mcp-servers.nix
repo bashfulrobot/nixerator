@@ -42,7 +42,7 @@ let
     # The /docs endpoint is the generic/dynamic entry point; per-repo URLs of the
     # form https://gitmcp.io/{owner}/{repo} also exist if a single repo is wanted.
     gitmcp = {
-      type = "sse";
+      type = "http";
       url = "https://gitmcp.io/docs";
     };
     # Amplifiers (aiblewmymind) -- streamable-HTTP MCP secured by OAuth with
