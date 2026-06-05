@@ -241,6 +241,23 @@
       };
     };
 
+    # Insomnia 13 beta -- runs side-by-side with the pinned stable above.
+    # updatePolicy = "manual": the update scripts query /releases/latest which
+    # excludes prereleases, so auto-bump would silently rewrite this to a stable
+    # tag. Bump by hand: set version, clear platformHashes, rebuild.
+    insomnia-beta = {
+      source = "github-release";
+      repo = "Kong/insomnia";
+      version = "13.0.0-beta.0";
+      tagPrefix = "core@";
+      updatePolicy = "manual";
+      platformHashes = {
+        x86_64-linux = "sha256-sfEMtdNWm6wPrf8o7cHzqkkW+OV9RezLO4Qs/XA11p4=";
+        aarch64-darwin = ""; # placeholder -- no darwin builds currently used
+        x86_64-darwin = ""; # placeholder -- no darwin builds currently used
+      };
+    };
+
     helium = {
       source = "github-release";
       repo = "imputnet/helium-linux";

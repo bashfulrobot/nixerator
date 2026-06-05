@@ -24,6 +24,8 @@ in
       # Kong GUI applications
       gui = {
         insomnia.enable = true;
+        # v13 beta side-by-side (separate binary + isolated data dir)
+        insomnia.beta.enable = true;
       };
 
       # Kong web applications
