@@ -182,6 +182,15 @@ for category in $categories; do
         pkg_json=$(echo "$versions_json" | jq --arg c "$category" --arg p "$pkg" '.[$c][$p]')
         source=$(echo "$pkg_json" | jq -r '.source')
 
+        # Packages flagged updatePolicy="manual" (e.g. prerelease pins) are not
+        # comparable against /releases/latest -- report and skip.
+        if [[ "$(echo "$pkg_json" | jq -r '.updatePolicy // empty')" == "manual" ]]; then
+            version=$(echo "$pkg_json" | jq -r '.version // empty')
+            add_result "$pkg" "$category" "$version" "" "manual" "manual update policy -- bump by hand"
+            manual "$pkg $version (manual update policy)"
+            continue
+        fi
+
         case "$source" in
             github-release)
                 version=$(echo "$pkg_json" | jq -r '.version')

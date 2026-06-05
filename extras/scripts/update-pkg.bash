@@ -297,6 +297,11 @@ update_single() {
 
     info "Found $name in category '$category' (source: $source)"
 
+    if [[ "$(echo "$pkg_json" | jq -r '.updatePolicy // empty')" == "manual" ]]; then
+        warn "$name: updatePolicy=manual -- bump by hand (edit version + clear hash in versions.nix)"
+        return 0
+    fi
+
     case "$source" in
         github-release)
             local version repo prefix
@@ -346,6 +351,11 @@ update_all() {
             pkg_json=$(echo "$versions_json" | jq --arg c "$category" --arg p "$pkg" '.[$c][$p]')
             local source
             source=$(echo "$pkg_json" | jq -r '.source')
+
+            if [[ "$(echo "$pkg_json" | jq -r '.updatePolicy // empty')" == "manual" ]]; then
+                info "$pkg: skipping (updatePolicy=manual)"
+                continue
+            fi
 
             case "$source" in
                 github-release)
