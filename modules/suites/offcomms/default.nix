@@ -34,12 +34,12 @@ in
 
       # Web apps for office reference desktop
       webapps = {
-        mail.enable = true;
-        calendar.enable = true;
-        instapaper.enable = true;
-        salesforce.enable = true;
+        mail.enable = false;
+        calendar.enable = false;
+        instapaper.enable = false;
+        salesforce.enable = false;
         slack.enable = false;
-        teams.enable = true;
+        teams.enable = false;
         zoom.enable = false;
       };
 

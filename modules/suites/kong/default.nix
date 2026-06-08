@@ -30,10 +30,10 @@ in
 
       # Kong web applications
       webapps = {
-        calendar.enable = true;
-        clari.enable = true;
-        kong-docs.enable = true;
-        mail.enable = true;
+        calendar.enable = false;
+        clari.enable = false;
+        kong-docs.enable = false;
+        mail.enable = false;
       };
     };
   };
