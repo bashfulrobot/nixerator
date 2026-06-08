@@ -250,6 +250,15 @@ fmt:
     @echo "Formatting nix files..."
     @nix fmt
 
+# Install repo git hooks (sets core.hooksPath to .githooks for this clone)
+#
+# The pre-commit hook auto-formats staged .nix files via `nix fmt` so no
+# commit can introduce formatting drift, regardless of editor/agent/human.
+# Run once per clone.
+setup-hooks:
+    @git config core.hooksPath .githooks
+    @echo "git hooks installed: core.hooksPath -> .githooks"
+
 # Update manually-installed Claude skills from GitHub
 #
 # Applies skillfish-tracked updates and reports what changed via
