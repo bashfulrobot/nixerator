@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -64,8 +63,8 @@ in
 
       # Desktop configuration - Desktop environment behavior
       desktop = {
-        # Use ghostty as the default terminal (overrides hyprflake's kitty default)
-        terminal.package = pkgs.ghostty;
+        # Terminal: use hyprflake's default kitty (Stylix-themed kitty module,
+        # enabled by default in hyprflake). No override needed.
 
         # Keyboard layout and variant
         keyboard = {
@@ -149,27 +148,13 @@ in
     #   emoji: Noto Color Emoji
     # Force Stylix's Kvantum theme to win over Home Manager's Qt module,
     # which also writes kvantum.kvconfig when qt.style.name = "kvantum"
-    # Link every package's nautilus-python extension into the system profile
-    # (Ghostty's ghostty.py, the copy-path.py defined in the core suite, etc.).
-    environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
-
-    # Make nautilus find the nautilus-python *loader*. Nautilus 4 (GNOME 47+)
-    # only loads C/GObject extensions — including libnautilus-python.so, which
-    # in turn loads every .py extension from XDG_DATA_DIRS — from the single
-    # directory named by NAUTILUS_4_EXTENSION_DIR (when not running a full GNOME
-    # session). Upstream's programs.nautilus-open-any-terminal module sets this,
-    # but we disable that module below, so without setting it here the python
-    # loader is never found and ALL python context-menu items silently vanish
-    # (Ghostty "Open in Terminal", Copy Path, insync). Point it at
-    # nautilus-python's extensions-4 dir, which is where libnautilus-python.so
-    # lives.
-    environment.sessionVariables.NAUTILUS_4_EXTENSION_DIR = "${pkgs.nautilus-python}/lib/nautilus/extensions-4";
-
-    # Ghostty ships its own Nautilus extension (share/nautilus-python/extensions/ghostty.py).
-    # Disable hyprflake's nautilus-open-any-terminal to avoid duplicate "Open in Ghostty"
-    # entries; the package itself is stubbed via overlay in lib/mkHost.nix so the .py
-    # cannot be picked up from hyprflake's environment.systemPackages contribution.
-    programs.nautilus-open-any-terminal.enable = lib.mkForce false;
+    # Nautilus right-click "Open in kitty" comes from hyprflake's
+    # programs.nautilus-open-any-terminal module (terminal = kitty), enabled by
+    # default. That module also sets NAUTILUS_4_EXTENSION_DIR (the nautilus-python
+    # loader dir) and environment.pathsToLink for /share/nautilus-python/extensions,
+    # which is what lets the Copy Path extension and insync's python plugin load
+    # too — so nothing extra is needed here. (Previously this suite stubbed and
+    # force-disabled that module for Ghostty; both are gone now that we use kitty.)
 
     home-manager.users.${globals.user.name} = {
       # Adopt new 26.05 default: gtk4 no longer inherits gtk.theme.

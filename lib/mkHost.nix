@@ -3,14 +3,14 @@
 {
   # Function to create a host configuration with home-manager integration
   mkHost =
-    {
-      globals,
-      versions,
-      hostname,
-      system,
-      stateVersion ? globals.defaults.stateVersion,
-      extraModules ? [ ],
-      homeManagerModules ? [ ],
+    { globals
+    , versions
+    , hostname
+    , system
+    , stateVersion ? globals.defaults.stateVersion
+    , extraModules ? [ ]
+    , homeManagerModules ? [ ]
+    ,
     }:
     inputs.nixpkgs.lib.nixosSystem {
       inherit system;
@@ -39,17 +39,6 @@
           nixpkgs.overlays = [
             # llm-agents packages (exposes pkgs.llm-agents.<name>)
             inputs.llm-agents.overlays.default
-
-            # Stub nautilus-open-any-terminal: hyprflake adds it to systemPackages
-            # unconditionally, but Ghostty ships its own Nautilus extension so the
-            # upstream one creates a duplicate "Open in Ghostty" menu entry. Replacing
-            # the package with an empty derivation removes its share/nautilus-python
-            # extension from the system profile while leaving hyprflake's reference intact.
-            (_final: _prev: {
-              nautilus-open-any-terminal =
-                _prev.runCommand "nautilus-open-any-terminal-disabled" { }
-                  "mkdir -p $out";
-            })
 
             # Work around a nixpkgs bug that breaks `google-cloud-sdk.withExtraComponents`.
             #
@@ -99,15 +88,17 @@
                   # by pname, which equals the component id / attr name).
                   fixedComponents = prev.lib.fix (
                     self:
-                    prev.lib.mapAttrs (
-                      _name: drv:
-                      drv.overrideAttrs (old: {
-                        autoPatchelfIgnoreMissingDeps = (old.autoPatchelfIgnoreMissingDeps or [ ]) ++ ignoreLibs;
-                        passthru = (old.passthru or { }) // {
-                          dependencies = map (d: self.${d.pname}) (old.passthru.dependencies or [ ]);
-                        };
-                      })
-                    ) rawComponents
+                    prev.lib.mapAttrs
+                      (
+                        _name: drv:
+                          drv.overrideAttrs (old: {
+                            autoPatchelfIgnoreMissingDeps = (old.autoPatchelfIgnoreMissingDeps or [ ]) ++ ignoreLibs;
+                            passthru = (old.passthru or { }) // {
+                              dependencies = map (d: self.${d.pname}) (old.passthru.dependencies or [ ]);
+                            };
+                          })
+                      )
+                      rawComponents
                   );
 
                   fixedWithExtraComponents = prev.callPackage "${gcloudDir}/withExtraComponents.nix" {

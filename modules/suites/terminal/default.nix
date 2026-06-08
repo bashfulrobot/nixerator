@@ -1,8 +1,7 @@
-{
-  lib,
-  pkgs,
-  config,
-  ...
+{ lib
+, pkgs
+, config
+, ...
 }:
 
 let
@@ -18,9 +17,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Terminal emulator
+    # Terminal emulator. Ghostty's module is kept available but disabled; the
+    # desktop suite uses hyprflake's Stylix-themed kitty module as the terminal.
     apps.gui = {
-      ghostty.enable = true;
+      ghostty.enable = false;
     };
 
     # Shell and prompt
