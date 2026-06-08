@@ -20,19 +20,46 @@ let
   # PATH (which inherits from cfg.defaultShell).
   cheatsheetCmd = "${pkgs.bat}/bin/bat";
 
-  # Custom layout that omits zellij's tab-bar AND status-bar plugins,
-  # giving the full terminal to the active pane. Combined with the
-  # cheat sheet keybind, the user trades the always-on shortcut strip
-  # for an on-demand reference.
-  noBarLayoutKdl = ''
+  # zjstatus plugin wasm, referenced by store path so the slim session
+  # bar needs no separate install step. The nixpkgs wrapper makes the
+  # derivation's $out the single .wasm file, so this path *is* the wasm.
+  zjstatusWasm = "${pkgs.zellijPlugins.zjstatus}";
+
+  # A single borderless top row that loads zjstatus configured to render
+  # ONLY the session name — no tabs, mode indicator, or keybind hints.
+  # This is the "slim session" bar. zjstatus prompts once for plugin
+  # permissions on first load (and after each version bump); press `y`.
+  sessionBarPaneKdl = ''
+    pane size=1 borderless=true {
+        plugin location="file:${zjstatusWasm}" {
+            format_left "{session}"
+            format_center ""
+            format_right ""
+            format_space ""
+        }
+    }
+  '';
+
+  # Custom minimal layout: always omits zellij's tab-bar AND status-bar
+  # plugins, giving the full terminal to the active pane. When the slim
+  # session bar is enabled, its one row is prepended; otherwise the
+  # layout is a bare full-screen pane. Pair with the cheat sheet keybind
+  # so the lost shortcut strip has an on-demand replacement.
+  minimalLayoutKdl = ''
     layout {
+        ${lib.optionalString cfg.sessionBar.enable sessionBarPaneKdl}
         pane
     }
   '';
 
+  # The custom minimal layout replaces zellij's default whenever either
+  # the status bar is hidden or the slim session bar is requested (the
+  # session bar lives *in* this layout, so it implies using it).
+  useMinimalLayout = cfg.hideStatusBar || cfg.sessionBar.enable;
+
   configKdl = ''
     default_shell "${cfg.defaultShell}"
-    ${lib.optionalString cfg.hideStatusBar ''default_layout "no-bar"''}
+    ${lib.optionalString useMinimalLayout ''default_layout "minimal"''}
     ${lib.optionalString cfg.cheatsheet.enable ''
       keybinds {
           shared {
@@ -543,6 +570,15 @@ in
       '';
     };
 
+    sessionBar.enable = lib.mkEnableOption ''
+      Slim one-row bar showing ONLY the zellij session name, rendered by
+      the zjstatus plugin (no tabs, mode indicator, or keybind hints).
+      Prepends that single row to the minimal layout, so it implies the
+      minimal layout (you can leave `hideStatusBar` off and still get it).
+      Note: zjstatus requests plugin permissions on first load — and again
+      after each version bump, since the wasm store path changes — so
+      zellij prompts once per build; focus the bar pane and press `y`'';
+
     cheatsheet = {
       enable = lib.mkEnableOption ''
         On-demand zellij keybind reference. Installs a markdown
@@ -596,9 +632,9 @@ in
         ];
       })
 
-      (lib.mkIf cfg.hideStatusBar {
-        home-manager.users.${globals.user.name}.xdg.configFile."zellij/layouts/no-bar.kdl".text =
-          noBarLayoutKdl;
+      (lib.mkIf useMinimalLayout {
+        home-manager.users.${globals.user.name}.xdg.configFile."zellij/layouts/minimal.kdl".text =
+          minimalLayoutKdl;
       })
 
       (lib.mkIf cfg.cheatsheet.enable {
