@@ -1,8 +1,9 @@
-{ lib
-, pkgs
-, config
-, globals
-, ...
+{
+  lib,
+  pkgs,
+  config,
+  globals,
+  ...
 }:
 
 let
@@ -162,8 +163,7 @@ in
     # (Ghostty "Open in Terminal", Copy Path, insync). Point it at
     # nautilus-python's extensions-4 dir, which is where libnautilus-python.so
     # lives.
-    environment.sessionVariables.NAUTILUS_4_EXTENSION_DIR =
-      "${pkgs.nautilus-python}/lib/nautilus/extensions-4";
+    environment.sessionVariables.NAUTILUS_4_EXTENSION_DIR = "${pkgs.nautilus-python}/lib/nautilus/extensions-4";
 
     # Ghostty ships its own Nautilus extension (share/nautilus-python/extensions/ghostty.py).
     # Disable hyprflake's nautilus-open-any-terminal to avoid duplicate "Open in Ghostty"
