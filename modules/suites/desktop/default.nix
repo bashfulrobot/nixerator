@@ -1,9 +1,8 @@
-{
-  lib,
-  pkgs,
-  config,
-  globals,
-  ...
+{ lib
+, pkgs
+, config
+, globals
+, ...
 }:
 
 let
@@ -149,8 +148,22 @@ in
     #   emoji: Noto Color Emoji
     # Force Stylix's Kvantum theme to win over Home Manager's Qt module,
     # which also writes kvantum.kvconfig when qt.style.name = "kvantum"
-    # nautilus-open-any-terminal now sets NAUTILUS_4_EXTENSION_DIR upstream
+    # Link every package's nautilus-python extension into the system profile
+    # (Ghostty's ghostty.py, the copy-path.py defined in the core suite, etc.).
     environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
+
+    # Make nautilus find the nautilus-python *loader*. Nautilus 4 (GNOME 47+)
+    # only loads C/GObject extensions — including libnautilus-python.so, which
+    # in turn loads every .py extension from XDG_DATA_DIRS — from the single
+    # directory named by NAUTILUS_4_EXTENSION_DIR (when not running a full GNOME
+    # session). Upstream's programs.nautilus-open-any-terminal module sets this,
+    # but we disable that module below, so without setting it here the python
+    # loader is never found and ALL python context-menu items silently vanish
+    # (Ghostty "Open in Terminal", Copy Path, insync). Point it at
+    # nautilus-python's extensions-4 dir, which is where libnautilus-python.so
+    # lives.
+    environment.sessionVariables.NAUTILUS_4_EXTENSION_DIR =
+      "${pkgs.nautilus-python}/lib/nautilus/extensions-4";
 
     # Ghostty ships its own Nautilus extension (share/nautilus-python/extensions/ghostty.py).
     # Disable hyprflake's nautilus-open-any-terminal to avoid duplicate "Open in Ghostty"
