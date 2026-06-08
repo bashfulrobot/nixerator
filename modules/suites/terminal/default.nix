@@ -32,6 +32,7 @@ in
         enable = true;
         mosh.enable = true;
         hideStatusBar = true;
+        sessionBar.enable = true;
         cheatsheet.enable = true;
       };
       zoxide.enable = true;
