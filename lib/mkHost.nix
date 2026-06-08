@@ -3,14 +3,14 @@
 {
   # Function to create a host configuration with home-manager integration
   mkHost =
-    { globals
-    , versions
-    , hostname
-    , system
-    , stateVersion ? globals.defaults.stateVersion
-    , extraModules ? [ ]
-    , homeManagerModules ? [ ]
-    ,
+    {
+      globals,
+      versions,
+      hostname,
+      system,
+      stateVersion ? globals.defaults.stateVersion,
+      extraModules ? [ ],
+      homeManagerModules ? [ ],
     }:
     inputs.nixpkgs.lib.nixosSystem {
       inherit system;
@@ -88,17 +88,15 @@
                   # by pname, which equals the component id / attr name).
                   fixedComponents = prev.lib.fix (
                     self:
-                    prev.lib.mapAttrs
-                      (
-                        _name: drv:
-                          drv.overrideAttrs (old: {
-                            autoPatchelfIgnoreMissingDeps = (old.autoPatchelfIgnoreMissingDeps or [ ]) ++ ignoreLibs;
-                            passthru = (old.passthru or { }) // {
-                              dependencies = map (d: self.${d.pname}) (old.passthru.dependencies or [ ]);
-                            };
-                          })
-                      )
-                      rawComponents
+                    prev.lib.mapAttrs (
+                      _name: drv:
+                      drv.overrideAttrs (old: {
+                        autoPatchelfIgnoreMissingDeps = (old.autoPatchelfIgnoreMissingDeps or [ ]) ++ ignoreLibs;
+                        passthru = (old.passthru or { }) // {
+                          dependencies = map (d: self.${d.pname}) (old.passthru.dependencies or [ ]);
+                        };
+                      })
+                    ) rawComponents
                   );
 
                   fixedWithExtraComponents = prev.callPackage "${gcloudDir}/withExtraComponents.nix" {
