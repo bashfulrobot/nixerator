@@ -18,7 +18,7 @@ in
     };
 
     apps.webapps = {
-      claude.enable = true;
+      claude.enable = false;
     };
 
     apps.cli = {
