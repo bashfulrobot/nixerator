@@ -16,7 +16,7 @@ in
         "hyprland"
         "cosmic"
       ];
-      default = "cosmic";
+      default = "hyprland";
       description = ''
         Which desktop environment the workstation runs.
 
