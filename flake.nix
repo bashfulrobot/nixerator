@@ -51,21 +51,6 @@
       };
     };
 
-    # Declarative COSMIC desktop config (home-manager modules + a typed
-    # Nix->RON generator) consumed by modules/system/cosmic. Pinned to a
-    # specific rev: upstream cuts no release tags, and COSMIC itself is beta,
-    # so `just upgrade` must not silently follow a churning main. Bump this
-    # rev explicitly when re-auditing upstream. Only the home-manager modules
-    # are used, so flake-parts stays on its own pin; nixpkgs/home-manager
-    # follow nixerator's to avoid duplicate trees.
-    cosmic-manager = {
-      url = "github:HeitorAugustoLN/cosmic-manager/1630bbf792a95baffbd3169885580cd53a7027d8";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        home-manager.follows = "home-manager";
-      };
-    };
-
     llm-agents = {
       url = "github:numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
