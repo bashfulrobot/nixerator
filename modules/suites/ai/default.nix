@@ -18,14 +18,9 @@ in
         nimbalyst.enable = true;
       };
 
-      webapps = {
-        claude.enable = false;
-      };
-
       cli = {
         agent-scan.enable = true;
         agentos.enable = true;
-        drawio.enable = true;
         claude-code = {
           enable = true;
           plugins = [
@@ -50,17 +45,7 @@ in
         };
         gemini-cli.enable = true;
         # llmfit: removed
-        plannotator.enable = true;
-
         crawl4ai.enable = true;
-        claw-ide = {
-          enable = true;
-          service.enable = true;
-        };
-        dorkos = {
-          enable = false;
-          service.enable = true;
-        };
         superpowers.enable = true;
         skillfish.enable = true;
         ollama = {

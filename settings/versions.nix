@@ -12,7 +12,6 @@
   #   vendorHash  - Go module vendor hash (Go packages only)
   #   npmDepsHash - hash of npm dependency tree (npm packages only)
   #   npmPkg      - npm registry package name when it differs from the key
-  #   pasteHash   - SRI hash of an auxiliary paste/clipboard asset (e.g. plannotator)
   #   platformHashes - per-platform SRI hashes (e.g. insomnia AppImage vs DMG)
 
   cli = {
@@ -120,15 +119,6 @@
       npmDepsHash = "sha256-Hdf0YhSTfUUeTnfMKrokdAha8Vw70WMB0BS8OIpArEI=";
     };
 
-    plannotator = {
-      source = "github-release";
-      repo = "backnotprop/plannotator";
-      version = "0.19.10";
-      tagPrefix = "v";
-      hash = "sha256-k79VGpH9I/q/509bavZp6B1cjuCqG/38sBgeZmB79QU=";
-      pasteHash = "sha256-6T6me3XKnbmVCH1c1JvQ5AsHHDHEgy5iMC6bIQXfYLk=";
-    };
-
     # NOTE: 262.4739.0 is available but upstream renamed assets
     # (kotlin-lsp-VER-linux-x64.zip -> kotlin-server-VER.tar.gz). Bumping
     # requires updating modules/dev/python/build/default.nix or wherever
@@ -165,23 +155,6 @@
       version = "0.8.5";
       tagPrefix = "v";
       hash = "sha256-y5Nve8e41+wcTlymL6bXxPCwmN8+8/YvHYLGO3x4M+Q=";
-    };
-
-    claw-ide = {
-      source = "github-release";
-      repo = "davydany/ClawIDE";
-      version = "1.2.0";
-      tagPrefix = "v";
-      hash = "sha256-mMiwTYM6/EVlSe1p9T8I4OHKWjJol5hnQVsse46z04k=";
-    };
-
-    dorkos = {
-      source = "npm";
-      repo = "dork-labs/dorkos";
-      npmPkg = "dorkos";
-      version = "0.41.0";
-      hash = "sha256-3RvvjXQK7B4KDCV5yB4UiG6cZReywW7aTujDY+qY9zk=";
-      npmDepsHash = "sha256-sDVb5Q/HIz6At4wDVkaysgq8VRJoJrSZ+9TDCedJjv0=";
     };
 
     skillfish = {
