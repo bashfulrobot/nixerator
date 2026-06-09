@@ -47,7 +47,9 @@
     '';
   };
 
-  xdg.configFile."hypr/conf.d/monitor.lua".text = ''
+  # Declared through hyprflake.hyprland.extraLua so it loads last and the
+  # eDP-1 override wins over hyprflake's default wildcard monitor rule.
+  hyprflake.hyprland.extraLua."monitor" = ''
     hl.monitor({
       output = "eDP-1",
       mode = "preferred",

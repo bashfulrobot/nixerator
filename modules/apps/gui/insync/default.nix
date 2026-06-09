@@ -30,10 +30,10 @@ in
       with pkgs;
       [ insync ] ++ lib.optionals cfg.nautilusIntegration [ insync-nautilus ];
 
-    # Autostart insync via Hyprland conf.d pattern. The Lua backend has no
-    # `exec-once` keyword — register a `hyprland.start` event handler.
+    # Autostart insync. The Lua backend has no `exec-once` keyword — register a
+    # `hyprland.start` event handler, declared through hyprflake.hyprland.extraLua.
     home-manager.users.${globals.user.name} = {
-      xdg.configFile."hypr/conf.d/insync-autostart.lua".text = ''
+      hyprflake.hyprland.extraLua."insync-autostart" = ''
         hl.on("hyprland.start", function()
           hl.exec_cmd("insync start --no-daemon")
         end)

@@ -15,8 +15,8 @@ in
     home-manager.users.${globals.user.name} = {
       # Special workspaces: named, toggled by shortcut.
       # SUPER+W = Work, SUPER+O = Office, SUPER+M = Music, SUPER+D = Dev.
-      # Lua backend: hyprflake's hyprland.lua loads conf.d/*.lua via dofile.
-      xdg.configFile."hypr/conf.d/special-workspaces.lua".text = ''
+      # Declared through hyprflake.hyprland.extraLua.
+      hyprflake.hyprland.extraLua."special-workspaces" = ''
         local function toggle(name)
           return hl.dsp.workspace.toggle_special(name)
         end
