@@ -382,6 +382,13 @@ pre-rebuild mode="quiet":
 # (e.g. a hyprflake dank settings change) has no visible effect until the
 # running shell is restarted. We bounce dms.service here, guarded on is-active
 # so headless hosts without the desktop shell skip it.
+#
+# The bounce is ALSO skipped when the screen is locked. DMS owns the
+# ext-session-lock surface while locked; restarting it kills that client
+# without unlocking, so Hyprland keeps the session locked (its emergency
+# fallback) and the freshly started DMS crash-loops on the orphaned lock
+# (wl_display "invalid object") until the lock clears. If the screen idle-locks
+# during a long rebuild, an unguarded restart here is exactly that collision.
 [private]
 post-rebuild mode="quiet":
     #!/usr/bin/env bash
@@ -393,6 +400,14 @@ post-rebuild mode="quiet":
     case "$(hostname)" in
         qbert) is_capture_source=true ;;
     esac
+    # Detect an active screen lock so the DMS bounce below can skip it (see the
+    # recipe header). Any of the user's sessions reporting LockedHint=yes counts.
+    screen_locked=false
+    if loginctl --no-legend list-sessions 2>/dev/null | awk -v u="$USER" '$3==u{print $1}' \
+         | xargs -r -I{} loginctl show-session {} -p LockedHint --value 2>/dev/null \
+         | grep -q '^yes$'; then
+        screen_locked=true
+    fi
     if [[ "{{mode}}" == "interactive" ]]; then
         gum spin --spinner dot --title "Syncing plugins..." \
             -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
@@ -403,8 +418,12 @@ post-rebuild mode="quiet":
         echo "Updating skills..."
         just update-skills || gum style --foreground 220 "Skill update failed (non-fatal)"
         if systemctl --user is-active --quiet dms.service; then
-            gum spin --spinner dot --title "Restarting DankMaterialShell..." \
-                -- bash -c 'systemctl --user restart dms.service' || gum style --foreground 220 "DMS restart failed (non-fatal)"
+            if $screen_locked; then
+                gum style --foreground 220 "Screen locked; skipping DMS restart (would orphan the session lock). Run 'systemctl --user restart dms.service' after unlocking."
+            else
+                gum spin --spinner dot --title "Restarting DankMaterialShell..." \
+                    -- bash -c 'systemctl --user restart dms.service' || gum style --foreground 220 "DMS restart failed (non-fatal)"
+            fi
         fi
         if command -v hyprflake-updates >/dev/null 2>&1; then
             hyprflake-updates || true
@@ -421,8 +440,12 @@ post-rebuild mode="quiet":
         echo "Updating skills..."
         just update-skills || echo "Skill update failed (non-fatal)"
         if systemctl --user is-active --quiet dms.service; then
-            echo "Restarting DankMaterialShell..."
-            systemctl --user restart dms.service || echo "DMS restart failed (non-fatal)"
+            if $screen_locked; then
+                echo "Screen locked; skipping DMS restart (would orphan the session lock). Run 'systemctl --user restart dms.service' after unlocking."
+            else
+                echo "Restarting DankMaterialShell..."
+                systemctl --user restart dms.service || echo "DMS restart failed (non-fatal)"
+            fi
         fi
         if command -v hyprflake-updates >/dev/null 2>&1; then
             echo "Checking for DankMaterialShell / Hyprland updates..."
