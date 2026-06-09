@@ -112,22 +112,32 @@ in
             };
             init.defaultBranch = "main";
             pull.rebase = true;
-            push.default = "simple";
-            merge.ff = "only";
-            merge.conflictStyle = "diff3";
+            push = {
+              default = "simple";
+              autoSetupRemote = true;
+              followTags = true;
+            };
+            merge = {
+              ff = "only";
+              conflictStyle = "diff3";
 
-            # mergiraf — syntax-aware merge driver. Triggered per-file by
-            # ~/.config/git/attributes (managed below).
-            merge.mergiraf.name = "mergiraf";
-            merge.mergiraf.driver = "mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L";
-            rebase.autoStash = true;
-            rebase.updateRefs = true;
-            branch.autoSetupRebase = "always";
-            branch.sort = "-committerdate";
+              # mergiraf — syntax-aware merge driver. Triggered per-file by
+              # ~/.config/git/attributes (managed below).
+              mergiraf = {
+                name = "mergiraf";
+                driver = "mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L";
+              };
+            };
+            rebase = {
+              autoStash = true;
+              updateRefs = true;
+            };
+            branch = {
+              autoSetupRebase = "always";
+              sort = "-committerdate";
+            };
             rerere.enabled = true;
             fetch.prune = true;
-            push.autoSetupRemote = true;
-            push.followTags = true;
             diff.algorithm = "histogram";
             core.excludesFile = "~/.config/git/ignore";
 
@@ -208,22 +218,24 @@ in
         };
       };
 
-      # Create allowed_signers file for SSH signing
-      home.file.".config/git/allowed_signers".text = ''
-        ${globals.user.email} ${globals.git.gitPubSigningKey}
-      '';
+      home.file = {
+        # Create allowed_signers file for SSH signing
+        ".config/git/allowed_signers".text = ''
+          ${globals.user.email} ${globals.git.gitPubSigningKey}
+        '';
 
-      home.file.".config/git/ignore".text = ''
-        .direnv/
-        .DS_Store
-        *.swp
-        .helix/
-        result
-        result-*
-      '';
+        ".config/git/ignore".text = ''
+          .direnv/
+          .DS_Store
+          *.swp
+          .helix/
+          result
+          result-*
+        '';
 
-      # Wire every mergiraf-supported file extension to the merge driver.
-      home.file.".config/git/attributes".source = mergirafAttributes;
+        # Wire every mergiraf-supported file extension to the merge driver.
+        ".config/git/attributes".source = mergirafAttributes;
+      };
 
     };
 

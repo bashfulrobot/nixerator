@@ -33,39 +33,41 @@ in
     home-manager.users.${globals.user.name} =
       { lib, ... }:
       {
-        home.packages = [ agentos-pkg ];
+        home = {
+          packages = [ agentos-pkg ];
 
-        # Deploy the agentos-init skill as a Nix-managed symlink. Because
-        # every leaf is a store symlink, claude-capture's "skip
-        # plugin-managed skills" heuristic already ignores it -- no
-        # .capture-ignore entry needed.
-        home.file.".claude/skills/agentos-init" = {
-          source = ./skills/agentos-init;
-          recursive = true;
+          # Deploy the agentos-init skill as a Nix-managed symlink. Because
+          # every leaf is a store symlink, claude-capture's "skip
+          # plugin-managed skills" heuristic already ignores it -- no
+          # .capture-ignore entry needed.
+          file.".claude/skills/agentos-init" = {
+            source = ./skills/agentos-init;
+            recursive = true;
+          };
+
+          # Bootstrap ~/agent-os/ from the pinned Nix store tree. Copy-based
+          # (not symlink) so upstream's project-install.sh can operate on a
+          # writable base, and so users can customize profiles/ in place.
+          # Stamp-gated on the package's store path -- any derivation change
+          # (version bump OR build patch) forces a re-sync, but idempotent
+          # rebuilds are free. User edits to profiles/ are clobbered on
+          # re-sync by design; run `agentos-capture` before upgrading to
+          # preserve them in the repo.
+          activation.agentosSetup = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            set -eu
+            target="${globals.user.homeDirectory}/agent-os"
+            source="${agentos-pkg}/share/agent-os"
+            stamp="$target/.nix-version"
+            want="${agentos-pkg}"
+
+            if [ ! -f "$stamp" ] || [ "$(cat "$stamp" 2>/dev/null)" != "$want" ]; then
+              $DRY_RUN_CMD mkdir -p "$target"
+              $DRY_RUN_CMD ${pkgs.rsync}/bin/rsync -a --chmod=u+w \
+                "$source/" "$target/"
+              echo "$want" > "$stamp"
+            fi
+          '';
         };
-
-        # Bootstrap ~/agent-os/ from the pinned Nix store tree. Copy-based
-        # (not symlink) so upstream's project-install.sh can operate on a
-        # writable base, and so users can customize profiles/ in place.
-        # Stamp-gated on the package's store path -- any derivation change
-        # (version bump OR build patch) forces a re-sync, but idempotent
-        # rebuilds are free. User edits to profiles/ are clobbered on
-        # re-sync by design; run `agentos-capture` before upgrading to
-        # preserve them in the repo.
-        home.activation.agentosSetup = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          set -eu
-          target="${globals.user.homeDirectory}/agent-os"
-          source="${agentos-pkg}/share/agent-os"
-          stamp="$target/.nix-version"
-          want="${agentos-pkg}"
-
-          if [ ! -f "$stamp" ] || [ "$(cat "$stamp" 2>/dev/null)" != "$want" ]; then
-            $DRY_RUN_CMD mkdir -p "$target"
-            $DRY_RUN_CMD ${pkgs.rsync}/bin/rsync -a --chmod=u+w \
-              "$source/" "$target/"
-            echo "$want" > "$stamp"
-          fi
-        '';
 
         programs.fish.functions = {
           # Capture runtime Agent OS config back to the Nix source tree.

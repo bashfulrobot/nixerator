@@ -657,9 +657,11 @@ in
             description = "claude + zellij launcher: zellij/claude/RC sessions all share one name";
             body = czjFishBody;
           };
-          xdg.configFile."fish/completions/zj.fish".text = zjCompletions;
-          xdg.configFile."fish/completions/czj.fish".text = czjCompletions;
-          xdg.configFile."fish/conf.d/zellij-augment.fish".text = zellijAugmentCompletions;
+          xdg.configFile = {
+            "fish/completions/zj.fish".text = zjCompletions;
+            "fish/completions/czj.fish".text = czjCompletions;
+            "fish/conf.d/zellij-augment.fish".text = zellijAugmentCompletions;
+          };
         };
       })
 

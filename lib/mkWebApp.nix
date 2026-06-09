@@ -40,32 +40,36 @@ in
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
-      xdg.desktopEntries.${desktopName} = {
-        name = displayName;
-        exec = execLine;
-        icon = "${icon}";
-        terminal = false;
-        type = "Application";
-        inherit categories;
-        startupNotify = true;
-        mimeType = mimeTypes;
-        settings = {
-          StartupWMClass = wmClass;
+      xdg = {
+        desktopEntries = {
+          ${desktopName} = {
+            name = displayName;
+            exec = execLine;
+            icon = "${icon}";
+            terminal = false;
+            type = "Application";
+            inherit categories;
+            startupNotify = true;
+            mimeType = mimeTypes;
+            settings = {
+              StartupWMClass = wmClass;
+            };
+          };
+
+          ${manageDesktopName} = {
+            name = "Manage ${displayName}";
+            genericName = "Manage ${displayName} extensions and logins";
+            exec = manageExecLine;
+            icon = "${icon}";
+            terminal = false;
+            type = "Application";
+            categories = [ "Settings" ];
+            startupNotify = false;
+          };
         };
-      };
 
-      xdg.desktopEntries.${manageDesktopName} = {
-        name = "Manage ${displayName}";
-        genericName = "Manage ${displayName} extensions and logins";
-        exec = manageExecLine;
-        icon = "${icon}";
-        terminal = false;
-        type = "Application";
-        categories = [ "Settings" ];
-        startupNotify = false;
+        mimeApps.defaultApplications = defaultFor;
       };
-
-      xdg.mimeApps.defaultApplications = defaultFor;
     };
   };
 }
