@@ -41,9 +41,9 @@ in
     environment.systemPackages = [ morgen ];
 
     # Force Morgen onto the tiling layout (it requests floating by default).
-    # Lua backend: hyprflake's hyprland.lua loads conf.d/*.lua via dofile.
+    # Declared through hyprflake.hyprland.extraLua.
     home-manager.users.${globals.user.name} = {
-      xdg.configFile."hypr/conf.d/morgen-windowrule.lua".text = ''
+      hyprflake.hyprland.extraLua."morgen-windowrule" = ''
         hl.window_rule({
           name = "morgen-tile",
           match = { class = "^([Mm]orgen)$" },

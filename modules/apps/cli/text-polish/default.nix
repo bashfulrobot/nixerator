@@ -22,9 +22,9 @@ in
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
-      # Hyprflake's hyprland.lua loads ~/.config/hypr/conf.d/*.lua via a
-      # dofile loop; .conf files are ignored by the Lua backend.
-      xdg.configFile."hypr/conf.d/text-polish.lua".text = ''
+      # Declared through hyprflake.hyprland.extraLua (hyprflake writes the file
+      # and requires it at the end of hyprland.lua).
+      hyprflake.hyprland.extraLua."text-polish" = ''
         hl.bind("SUPER + SHIFT + R",
           hl.dsp.exec_cmd("${pkgs.bash}/bin/bash ${textPolishScript}"))
       '';
