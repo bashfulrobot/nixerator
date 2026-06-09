@@ -45,6 +45,7 @@ in
             "skill-creator@claude-plugins-official"
             "ralph-loop@claude-plugins-official"
             "hyperframes@hyperframes"
+            "impeccable@impeccable"
           ];
         };
         gemini-cli.enable = true;
