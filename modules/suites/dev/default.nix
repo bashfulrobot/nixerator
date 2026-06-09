@@ -36,6 +36,7 @@ in
         helix.enable = true;
         lswt.enable = true;
         nix.enable = true;
+        nix-init.enable = true;
         nix-search-tv.enable = true;
         pnpm.enable = true;
         shadowenv.enable = true;
