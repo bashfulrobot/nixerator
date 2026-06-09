@@ -379,7 +379,8 @@
     "commit@kong-cs": true,
     "kong-pptx-build@kong-cs": true,
     "frontend-design@claude-plugins-official": true,
-    "feature-request@kong-cs": true
+    "feature-request@kong-cs": true,
+    "impeccable@impeccable": true
   },
   "extraKnownMarketplaces": {
     "kong-cs": {
@@ -392,6 +393,12 @@
       "source": {
         "source": "git",
         "url": "https://github.com/KongHQ-SE/se-kong-skills.git"
+      }
+    },
+    "impeccable": {
+      "source": {
+        "source": "github",
+        "repo": "pbakaus/impeccable"
       }
     }
   },

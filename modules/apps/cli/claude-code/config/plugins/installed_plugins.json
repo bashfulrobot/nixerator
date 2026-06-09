@@ -251,6 +251,16 @@
         "lastUpdated": "2026-05-11T05:47:52.000Z",
         "gitCommitSha": "553688c996408cb33de27ce4573bef6c8cf27454"
       }
+    ],
+    "impeccable@impeccable": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/impeccable/impeccable/3.5.0",
+        "version": "3.5.0",
+        "installedAt": "2026-06-09T21:00:46.872Z",
+        "lastUpdated": "2026-06-09T21:00:46.872Z",
+        "gitCommitSha": "e3e22007a974fbb2023d36a3abf643f49dfd1fb3"
+      }
     ]
   }
 }
