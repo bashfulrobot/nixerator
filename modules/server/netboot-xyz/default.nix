@@ -309,34 +309,36 @@ in
       ++ adminPortMappings;
     };
 
-    # mkMerge (not `//`) so an interface listed in both lanInterface and
-    # adminInterfaces (the default for enp3s0) gets its TCP port lists
-    # concatenated rather than overwritten. Listener-binding via
-    # lanAddress / adminAddresses is the primary exposure control; this
-    # firewall scope is defense-in-depth.
-    networking.firewall.interfaces = lib.mkMerge [
-      {
-        ${cfg.lanInterface} = {
-          allowedUDPPorts = [ cfg.tftpPort ];
+    networking.firewall = {
+      # mkMerge (not `//`) so an interface listed in both lanInterface and
+      # adminInterfaces (the default for enp3s0) gets its TCP port lists
+      # concatenated rather than overwritten. Listener-binding via
+      # lanAddress / adminAddresses is the primary exposure control; this
+      # firewall scope is defense-in-depth.
+      interfaces = lib.mkMerge [
+        {
+          ${cfg.lanInterface} = {
+            allowedUDPPorts = [ cfg.tftpPort ];
+          }
+          // lib.optionalAttrs cfg.localMirror.enable {
+            allowedTCPPorts = [ cfg.httpPort ];
+          };
         }
-        // lib.optionalAttrs cfg.localMirror.enable {
-          allowedTCPPorts = [ cfg.httpPort ];
-        };
-      }
-      (lib.genAttrs cfg.adminInterfaces (_: {
-        allowedTCPPorts = [ cfg.adminPort ];
-      }))
-    ];
+        (lib.genAttrs cfg.adminInterfaces (_: {
+          allowedTCPPorts = [ cfg.adminPort ];
+        }))
+      ];
 
-    # Block libvirt-bridge traffic from reaching the container's published
-    # ports. Docker's DNAT lives in nat/PREROUTING with no input-interface
-    # predicate, so without these rules a guest VM that routes through srv
-    # toward `lanAddress` would hit the unauthenticated admin UI before
-    # any INPUT/FORWARD ACL runs. RETURN bypasses Docker's chain for that
-    # source; the kernel then tries to deliver locally, finds no listener
-    # on lanAddress (Docker's listener is on docker0), and the packet is
-    # dropped by the firewall.
-    networking.firewall.extraCommands = lib.mkIf bridgeBlockEnabled bridgeBlockCommands;
-    networking.firewall.extraStopCommands = lib.mkIf bridgeBlockEnabled bridgeBlockStopCommands;
+      # Block libvirt-bridge traffic from reaching the container's published
+      # ports. Docker's DNAT lives in nat/PREROUTING with no input-interface
+      # predicate, so without these rules a guest VM that routes through srv
+      # toward `lanAddress` would hit the unauthenticated admin UI before
+      # any INPUT/FORWARD ACL runs. RETURN bypasses Docker's chain for that
+      # source; the kernel then tries to deliver locally, finds no listener
+      # on lanAddress (Docker's listener is on docker0), and the packet is
+      # dropped by the firewall.
+      extraCommands = lib.mkIf bridgeBlockEnabled bridgeBlockCommands;
+      extraStopCommands = lib.mkIf bridgeBlockEnabled bridgeBlockStopCommands;
+    };
   };
 }

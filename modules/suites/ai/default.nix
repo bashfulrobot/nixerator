@@ -13,57 +13,59 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    apps.gui = {
-      nimbalyst.enable = true;
-    };
-
-    apps.webapps = {
-      claude.enable = false;
-    };
-
-    apps.cli = {
-      agent-scan.enable = true;
-      agentos.enable = true;
-      drawio.enable = true;
-      claude-code = {
-        enable = true;
-        plugins = [
-          "frontend-design@claude-plugins-official"
-          "asana@claude-plugins-official"
-          "code-review@claude-plugins-official"
-          "context7@claude-plugins-official"
-          "github@claude-plugins-official"
-          "feature-dev@claude-plugins-official"
-          "commit-commands@claude-plugins-official"
-          "security-guidance@claude-plugins-official"
-          "pr-review-toolkit@claude-plugins-official"
-          "atlassian@claude-plugins-official"
-          "learning-output-style@claude-plugins-official"
-          "slack@claude-plugins-official"
-          "gopls-lsp@claude-plugins-official"
-          "skill-creator@claude-plugins-official"
-          "ralph-loop@claude-plugins-official"
-          "hyperframes@hyperframes"
-        ];
+    apps = {
+      gui = {
+        nimbalyst.enable = true;
       };
-      gemini-cli.enable = true;
-      # llmfit: removed
-      plannotator.enable = true;
 
-      crawl4ai.enable = true;
-      claw-ide = {
-        enable = true;
-        service.enable = true;
+      webapps = {
+        claude.enable = false;
       };
-      dorkos = {
-        enable = false;
-        service.enable = true;
-      };
-      superpowers.enable = true;
-      skillfish.enable = true;
-      ollama = {
-        enable = false;
-        loadModels = [ "glm-5:cloud" ];
+
+      cli = {
+        agent-scan.enable = true;
+        agentos.enable = true;
+        drawio.enable = true;
+        claude-code = {
+          enable = true;
+          plugins = [
+            "frontend-design@claude-plugins-official"
+            "asana@claude-plugins-official"
+            "code-review@claude-plugins-official"
+            "context7@claude-plugins-official"
+            "github@claude-plugins-official"
+            "feature-dev@claude-plugins-official"
+            "commit-commands@claude-plugins-official"
+            "security-guidance@claude-plugins-official"
+            "pr-review-toolkit@claude-plugins-official"
+            "atlassian@claude-plugins-official"
+            "learning-output-style@claude-plugins-official"
+            "slack@claude-plugins-official"
+            "gopls-lsp@claude-plugins-official"
+            "skill-creator@claude-plugins-official"
+            "ralph-loop@claude-plugins-official"
+            "hyperframes@hyperframes"
+          ];
+        };
+        gemini-cli.enable = true;
+        # llmfit: removed
+        plannotator.enable = true;
+
+        crawl4ai.enable = true;
+        claw-ide = {
+          enable = true;
+          service.enable = true;
+        };
+        dorkos = {
+          enable = false;
+          service.enable = true;
+        };
+        superpowers.enable = true;
+        skillfish.enable = true;
+        ollama = {
+          enable = false;
+          loadModels = [ "glm-5:cloud" ];
+        };
       };
     };
   };
