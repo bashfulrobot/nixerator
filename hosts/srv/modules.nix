@@ -14,7 +14,6 @@
     ../../modules/apps/cli/git
     ../../modules/apps/cli/graymatter
     ../../modules/apps/cli/helix
-    ../../modules/apps/cli/plannotator
     ../../modules/apps/cli/restic
     ../../modules/apps/cli/skillfish
     ../../modules/apps/cli/starship
@@ -82,7 +81,6 @@
       ];
     };
     gemini-cli.enable = true;
-    plannotator.enable = true;
     skillfish.enable = true;
     superpowers.enable = true;
   };
