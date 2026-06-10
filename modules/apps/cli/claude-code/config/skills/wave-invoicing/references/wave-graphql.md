@@ -1,22 +1,23 @@
 # Wave GraphQL — queries/mutations used by this skill
 
 Endpoint: `https://gql.waveapps.com/graphql/public` (POST, `Authorization: Bearer <token>`).
-OAuth token endpoint: `https://api.waveapps.com/oauth2/token/`.
 
-## Refresh token → access token
-POST form: `client_id`, `client_secret`, `grant_type=refresh_token`, `refresh_token`.
-Response: `{ access_token, token_type:"Bearer", expires_in, refresh_token }`.
+## Authentication — Full Access Token (personal use)
+This skill authenticates with a Wave **Full Access Token**, not OAuth. Wave's docs
+recommend the Full Access Token for "development purposes or personal applications
+only" (OAuth is required only for apps distributed to other users). It is a
+long-lived bearer token (~3-year expiry) created in the developer portal
+(Manage Applications → an application → **Create token**).
 
-`UNVERIFIED:` whether Wave rotates the refresh token on each refresh. The OAuth
-docs describe access-token invalidation on refresh but do not mention refresh-token
-rotation, so the read-only 1Password approach is very likely fine. Confirm by
-running a token exchange twice (exit-status only — never print the token).
+The token lives in 1Password (`op://nixerator/wave/credential`) and reaches the
+skill as the `WAVE_FULL_ACCESS_TOKEN` env var via the nixerator claude-code module
+(secrets.json.tpl → secrets.json → env). No OAuth client id/secret/refresh flow.
 
 ## Secrets discipline
-The access token and the `op://` credential fields are secrets. They are read and
-used only inside the scripts (Authorization header / curl form body) and are never
-printed to stdout, logged, or returned to a terminal. There is intentionally no
-CLI that prints the token. See the `wave_access_token` note in `scripts/lib.sh`.
+The token is a secret. It is read from `WAVE_FULL_ACCESS_TOKEN` and used only in
+the `Authorization: Bearer` header — never printed, logged, or returned to a
+terminal. There is intentionally no CLI that prints it. See the
+`wave_access_token` note in `scripts/lib.sh`.
 
 ## Bootstrap query (businesses → customers + products)
 See `scripts/wave-bootstrap.sh`. Returns the ids needed in `config.json`

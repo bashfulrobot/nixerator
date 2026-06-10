@@ -1,6 +1,6 @@
 # Nixerator
 
-Personal NixOS / home-manager flake covering Dustin's hosts (`donkeykong`, `qbert`, `srv`). Module-based config, justfile-driven rebuilds, secrets via git-crypt, claude-code stack auto-imported.
+Personal NixOS / home-manager flake covering Dustin's hosts (`donkeykong`, `qbert`, `srv`). Module-based config, justfile-driven rebuilds, secrets via 1Password (`op inject`; git-crypt retired), claude-code stack auto-imported.
 
 See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where curated knowledge goes* rubric. Project topic files live in `.claude/docs/`.
 
@@ -11,6 +11,7 @@ See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where cu
 - When you need to look up docs for a Nix tool, library, or flake input, read `.claude/docs/sources.md` (context7 / gitmcp lookup table).
 - When you need a local CLI tool (`amber`, `cpx`, `meetsum`, `gsd`, `nix-init`), read `.claude/docs/tools.md`.
 - When the user asks about cross-device session pickup, the `work` fish function, the `claudeWorkHost` archetype, or how to attach to a session from the iPhone, read `.claude/docs/cross-device-workflow.md`.
+- **Secrets (hard rule):** NEVER read rendered secret values — not from `~/.config/nixos-secrets/secrets.json` and not from 1Password (`op read`/`op item get --reveal`), not even a prefix or length. Item titles, field labels, `op://` paths, and placeholders are fine. For the full 1Password flow — adding, rotating, per-host setup, the vault item table — read `extras/docs/secrets.md`.
 
 ## Reference docs
 

@@ -2,8 +2,6 @@
   "issuer": { "code": "BrMfg", "name": "Bashfulrobot Manufacturing" },
   "wave": {
     "graphql_url": "https://gql.waveapps.com/graphql/public",
-    "token_url": "https://api.waveapps.com/oauth2/token/",
-    "op_item": "op://nixerator/wave",
     "business_id": "",
     "products": { "consulting": "", "passthrough": "" }
   },
