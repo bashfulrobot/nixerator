@@ -29,17 +29,14 @@ whitespace collapsed; register extra lookup names with repeated --alias.
 EOF
 }
 
-die() {
-  echo "skill-cache: $*" >&2
-  exit 2
-}
+die() { echo "skill-cache: $*" >&2; exit 2; }
 
 cache_dir() { printf '%s' "${XDG_CACHE_HOME:-$HOME/.cache}/claude-skills"; }
 
 cache_file() {
   [ -n "${1:-}" ] || die "missing <skill>"
   case "$1" in
-    */* | *..* | .) die "invalid skill name: $1" ;;
+    */* | *..* | . ) die "invalid skill name: $1";;
   esac
   printf '%s/%s.json' "$(cache_dir)" "$1"
 }
@@ -48,8 +45,7 @@ cache_file() {
 norm() {
   local s
   s="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]' | tr -s '[:space:]' ' ')"
-  s="${s# }"
-  s="${s% }"
+  s="${s# }"; s="${s% }"
   printf '%s' "$s"
 }
 
@@ -68,7 +64,7 @@ write_cache() {
   dir="$(dirname "$1")"
   mkdir -p "$dir"
   tmp="$(mktemp "$dir/.skill-cache.XXXXXX")"
-  printf '%s\n' "$2" >"$tmp"
+  printf '%s\n' "$2" > "$tmp"
   mv -f "$tmp" "$1"
 }
 
@@ -76,46 +72,37 @@ write_cache() {
 ttl_seconds() {
   local d="$1" num unit
   case "$d" in
-    *[!0-9hd]* | "") die "bad --ttl '$d' (use <n>h or <n>d)" ;;
+    *[!0-9hd]* | "") die "bad --ttl '$d' (use <n>h or <n>d)";;
   esac
   num="${d%[hd]}"
   unit="${d##*[0-9]}"
   [ -n "$num" ] || die "bad --ttl '$d' (use <n>h or <n>d)"
   case "$unit" in
-    h) printf '%s' "$((10#$num * 3600))" ;;
-    d) printf '%s' "$((10#$num * 86400))" ;;
-    *) die "bad --ttl '$d' (use <n>h or <n>d)" ;;
+    h) printf '%s' "$(( 10#$num * 3600 ))";;
+    d) printf '%s' "$(( 10#$num * 86400 ))";;
+    *) die "bad --ttl '$d' (use <n>h or <n>d)";;
   esac
 }
 
-cmd="${1:-}"
-[ -n "$cmd" ] || {
-  usage
-  exit 2
-}
+cmd="${1:-}"; [ -n "$cmd" ] || { usage; exit 2; }
 shift || true
 
 case "$cmd" in
-  -h | --help | help)
-    usage
-    exit 0
-    ;;
+  -h|--help|help) usage; exit 0;;
 
   get)
     allow_stale=0
     args=()
     while [ $# -gt 0 ]; do
       case "$1" in
-        --allow-stale) allow_stale=1 ;;
-        -*) die "unknown flag for get: $1" ;;
-        *) args+=("$1") ;;
+        --allow-stale) allow_stale=1;;
+        -*) die "unknown flag for get: $1";;
+        *) args+=("$1");;
       esac
       shift
     done
     [ "${#args[@]}" -eq 3 ] || die "usage: get <skill> <table> <key>"
-    skill="${args[0]}"
-    table="${args[1]}"
-    nkey="$(norm "${args[2]}")"
+    skill="${args[0]}"; table="${args[1]}"; nkey="$(norm "${args[2]}")"
     f="$(cache_file "$skill")"
     # alias lookup: first matching entry by object order wins (uniqueness not enforced)
     entry="$(read_cache "$f" | jq -c --arg t "$table" --arg k "$nkey" '
@@ -139,26 +126,17 @@ case "$cmd" in
     args=()
     while [ $# -gt 0 ]; do
       case "$1" in
-        --ttl)
-          shift
-          ttl="${1:-}"
-          [ -n "$ttl" ] || die "--ttl needs a value"
-          ;;
+        --ttl) shift; ttl="${1:-}"; [ -n "$ttl" ] || die "--ttl needs a value";;
         --alias)
-          shift
-          [ -n "${1:-}" ] || die "--alias needs a value"
-          aliases="$(printf '%s' "$aliases" | jq -c --arg a "$(norm "$1")" '. + [$a] | unique')"
-          ;;
-        -*) die "unknown flag for put: $1" ;;
-        *) args+=("$1") ;;
+          shift; [ -n "${1:-}" ] || die "--alias needs a value"
+          aliases="$(printf '%s' "$aliases" | jq -c --arg a "$(norm "$1")" '. + [$a] | unique')";;
+        -*) die "unknown flag for put: $1";;
+        *) args+=("$1");;
       esac
       shift
     done
     [ "${#args[@]}" -eq 4 ] || die "usage: put <skill> <table> <key> <json-value> [--ttl D] [--alias N]..."
-    skill="${args[0]}"
-    table="${args[1]}"
-    nkey="$(norm "${args[2]}")"
-    value="${args[3]}"
+    skill="${args[0]}"; table="${args[1]}"; nkey="$(norm "${args[2]}")"; value="${args[3]}"
     printf '%s' "$value" | jq . >/dev/null 2>&1 || die "<json-value> is not valid JSON"
     if [ -n "$ttl" ]; then ttlsec="$(ttl_seconds "$ttl")"; else ttlsec="null"; fi
     f="$(cache_file "$skill")"
@@ -177,9 +155,7 @@ case "$cmd" in
 
   forget)
     [ $# -ge 2 ] || die "usage: forget <skill> <table> [<key>]"
-    skill="$1"
-    table="$2"
-    key="${3:-}"
+    skill="$1"; table="$2"; key="${3:-}"
     f="$(cache_file "$skill")"
     [ -f "$f" ] || exit 0
     if [ -n "$key" ]; then
@@ -197,15 +173,14 @@ case "$cmd" in
     args=()
     while [ $# -gt 0 ]; do
       case "$1" in
-        --json) as_json=1 ;;
-        -*) die "unknown flag for list: $1" ;;
-        *) args+=("$1") ;;
+        --json) as_json=1;;
+        -*) die "unknown flag for list: $1";;
+        *) args+=("$1");;
       esac
       shift
     done
     [ "${#args[@]}" -ge 1 ] || die "usage: list <skill> [<table>] [--json]"
-    skill="${args[0]}"
-    table="${args[1]:-}"
+    skill="${args[0]}"; table="${args[1]:-}"
     f="$(cache_file "$skill")"
     data="$(read_cache "$f")"
     if [ "$as_json" -eq 1 ]; then
@@ -232,5 +207,5 @@ case "$cmd" in
     printf '%s\n' "$f"
     ;;
 
-  *) die "unknown command '$cmd' (try --help)" ;;
+  *) die "unknown command '$cmd' (try --help)";;
 esac
