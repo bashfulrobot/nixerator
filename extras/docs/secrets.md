@@ -103,6 +103,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | Item | Type | Fields | Consumed as |
 |------|------|--------|-------------|
 | `kong-konnect-pat` | API Credential | `credential` | `secrets.kong.kongKonnectPAT` |
+| `aha` | API Credential | `credential` | `secrets.aha.apiToken` (injected as `AHA_API_TOKEN` by the claude-code module for the `aha` skill) |
 | `context7` | API Credential | `credential` | `secrets.context7.apiKey` |
 | `zai` | API Credential | `credential` | `secrets.zai.apiKey` |
 | `gemini` | API Credential | `credential` | `secrets.gemini.apiKey` |
