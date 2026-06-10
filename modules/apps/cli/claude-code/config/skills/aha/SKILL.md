@@ -1,0 +1,154 @@
+---
+name: aha
+description: >-
+  Query and (carefully) update Aha! product-management data via the Aha! REST
+  API. Use when the user asks about Aha!, an Aha idea/feature/epic/initiative/
+  release/requirement, a reference number like DEVP-123 or PROD-I-42, proxy
+  votes/endorsements on ideas, or invokes /aha. Trigger phrases include "look
+  up this Aha idea", "what's the status of feature DEVP-123", "search Aha for
+  rate-limiting ideas", "add a proxy vote to this idea", "list ideas in the
+  portal", "pull the epic from this aha.io link". The skill wraps every call
+  in a reproducible script that reads the API token from the AHA_API_TOKEN
+  environment variable. Defaults to read-only; any write (create idea, proxy vote, update
+  feature) requires explicit per-run confirmation. Do NOT trigger on tangential
+  mentions of Aha, and do NOT author feature-request documents here -- the
+  feature-request skill owns that; this skill is the API layer it can call.
+---
+
+# Aha! REST API (aha)
+
+Work with Aha! through its v1 REST API via `scripts/aha.sh`. The script reads
+the API token from the `AHA_API_TOKEN` environment variable and carries no
+dependency on any particular secrets tool, so it's portable and safe to share.
+Default posture is read-only; writes need confirmation.
+
+## Why this skill exists
+
+Aha! is the source of truth for Kong product management: features, epics,
+initiatives, releases, and the customer-facing idea portal. As a CSM you mostly
+*read* it -- "what's the status of DEVP-123", "is there already an idea for X",
+"how many endorsements does this have" -- and occasionally *write* to it:
+logging a proxy vote on a customer's behalf, or creating an idea. A wrong write
+is visible to the whole product org and sometimes to customers (the portal), so
+writes go through a confirmation step. Reads are free.
+
+The token is supplied via the `AHA_API_TOKEN` environment variable. Keeping the
+secret-provisioning out of the script -- rather than hardcoding a vault path --
+is deliberate: it makes the skill reproducible, auditable, and portable enough
+to share with someone who manages their secrets differently.
+
+## Prerequisites
+
+- `AHA_API_TOKEN` set in the environment -- an Aha! API key (generate one at
+  `https://secure.aha.io/settings/api_keys`). Provide it however you manage
+  secrets: a shell export, a `.env` you source, a CI secret, or a secrets
+  manager. The script intentionally doesn't reach into any vault itself, which
+  keeps it portable and shareable.
+- `curl` and `jq` on PATH.
+- Default account is `konghq.aha.io`. Override with `AHA_SUBDOMAIN=otherco`.
+
+## The one tool: scripts/aha.sh
+
+Every endpoint goes through the same wrapper. You pass an HTTP method and a path
+relative to `/api/v1/`; it adds auth, encodes query params, and pretty-prints
+JSON.
+
+```bash
+# Read a single record by reference number
+bash scripts/aha.sh get features/DEVP-123
+bash scripts/aha.sh get epics/DEVP-E-8
+bash scripts/aha.sh get ideas/PROD-I-42
+
+# List / search (note: list endpoints are scoped to a product)
+bash scripts/aha.sh get products/DEVP/ideas -q 'q=rate limiting' -q per_page=50
+bash scripts/aha.sh get products/DEVP/features --paginate -q 'updated_since=2026-01-01'
+
+# Trim the payload to the fields you need (faster, easier to read)
+bash scripts/aha.sh get ideas/PROD-I-42 -q 'fields=reference_num,name,workflow_status,endorsements_count'
+
+# Write (see the writes playbook below first)
+bash scripts/aha.sh post ideas/PROD-I-42/votes -d '{"idea_vote":{"email":"jane@customer.com","vote_weight":10}}'
+```
+
+Key flags: `-q KEY=VALUE` (repeatable query params, values auto-encoded),
+`-d JSON` or `-d @file.json` (request body), `--paginate` (follow every page and
+merge the collection into one flat JSON array, GET only), `--per-page N`,
+`--raw`, `--status`. Run `bash scripts/aha.sh --help` for the full list.
+
+For the endpoint catalogue, query params, pagination, rate limits, and field
+selection, read `references/api-reference.md`. For ready-made recipes (search
+ideas, create an idea, log a proxy vote, find features by initiative, walk an
+epic's children), read `references/recipes.md`.
+
+## Workflow
+
+### Step 1: Classify the request
+
+- **Read** -- GET anything. Safe; proceed. This is ~90% of requests.
+- **Write** -- POST/PUT/PATCH/DELETE (create idea, proxy vote, update a record).
+  Stop and follow the writes playbook below.
+
+### Step 2 (reads): Resolve the identifier, then fetch
+
+If the user gives a reference number (`DEVP-123`, `DEVP-E-8`, `PROD-I-42`) or an
+aha.io URL, extract the reference and GET it directly -- you do not need the
+internal id. The reference prefix tells you the type:
+
+- `<PREFIX>-<n>` -> a feature (e.g. `DEVP-123`)
+- `<PREFIX>-E-<n>` -> an epic (e.g. `DEVP-E-8`)
+- `<PREFIX>-I-<n>` -> an idea (e.g. `DEVP-I-42`)
+- `<PREFIX>-R-<n>` -> a requirement; `<PREFIX>-<n>` releases vary
+
+If you only have a search term, list within the product:
+`get products/<PREFIX>/ideas -q 'q=<term>'`. Default to `fields=` selection so
+responses stay small, and `--paginate` only when the user actually wants the
+whole set (it can be many pages -- see the rate-limit note in the reference).
+
+### Step 3 (writes): Confirm before mutating
+
+Aha writes are visible org-wide and sometimes customer-facing (the portal).
+Before any POST/PUT/PATCH/DELETE:
+
+1. Show the user the exact call you intend to run: method, full path, and the
+   JSON body, with the target account (`konghq.aha.io`) stated explicitly.
+2. For a proxy vote, confirm the idea reference, the customer email, and the
+   vote weight -- a wrong weight skews prioritization.
+3. Get an explicit "yes" for *this* call. Approval of one write is not approval
+   of the next.
+4. Run it, then GET the record back to confirm the change landed.
+
+Do not batch multiple writes behind a single confirmation. One call, one yes.
+
+## Memory
+
+This skill uses Claude Code's native auto-memory. Recall before acting; store
+what's reusable after.
+
+Reusable: product reference prefixes (`DEVP` = ...), idea-portal ids the user
+works with, custom-field API keys on Kong's Aha schema, named records the user
+refers to ("the gateway initiative"), workflow-status names that differ from
+the defaults. Not reusable: one-off query results, transient ids.
+
+## What NOT to do
+
+- Do not hardcode or echo the API token. The script reads it from
+  `AHA_API_TOKEN`; never paste the raw token into a command or commit it.
+- Do not run a write without showing the call and getting a yes for it.
+- Do not `--paginate` a huge collection just to grab the first few records --
+  use `-q per_page=N` and read page 1. Aha allows 300 req/min; runaway
+  pagination burns the budget and returns 429s.
+- Do not invent endpoint paths, custom-field keys, or query params. If unsure,
+  check `references/api-reference.md` or GET one record and inspect its fields.
+- Do not author or format a feature-request write-up here. That belongs to the
+  feature-request skill; this skill is just the API it calls.
+
+## Files in this skill
+
+### scripts/
+- `aha.sh` -- the API wrapper. Auth from `AHA_API_TOKEN`, query encoding, body
+  from inline JSON or `@file`, `--paginate` collection merge, jq pretty-printing.
+
+### references/
+- `api-reference.md` -- base URL, auth, the resource/endpoint catalogue, query
+  params, pagination, rate limits, and `fields=` selection.
+- `recipes.md` -- copy-paste workflows for the common CSM tasks.
