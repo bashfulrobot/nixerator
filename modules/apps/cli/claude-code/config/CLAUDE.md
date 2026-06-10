@@ -8,6 +8,16 @@ When asked to send a file to my phone, use:
 sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 ```
 
+## Secrets and 1Password
+
+**Never let a secret value enter the conversation or model context.** Secrets in my 1Password vaults (tokens, passwords, keys, credentials) must never be read into anything you can see — that data leaks into the model and can be sent off-site. This is a hard boundary, not a preference.
+
+- **Forbidden:** any command that surfaces a secret value to stdout/the transcript — `op read`, `op item get` with the value revealed, printing a credential field, or even echoing a *partial* value (a prefix, suffix, or length). Partial exposure is still exposure.
+- **Allowed — references and metadata only:** look up item titles, field labels, vault names, `op://` paths, and whether an item/field exists. These don't reveal the secret.
+- **Allowed — placeholders:** create items or fields with a dummy value (e.g. `op item create … credential="REPLACE_ME"`) for me to fill in myself.
+- **Allowed — blind copy:** move a value from one item/field to another *without displaying it*, by piping it through a shell so it never reaches stdout — e.g. `op item edit dest field="$(op read 'op://src/item/field')"`. The value passes through the subshell but is never printed, so it stays out of context.
+- **Verifying a secret landed:** don't read it back. Render/consume it through the normal tooling (e.g. `just render-secrets`) and trust the exit status, or check existence/non-emptiness by means that don't print the value.
+
 ## Claude Code Behaviour Guidelines
 
 - **Own every problem** — never deflect with "not my changes", "pre-existing issue", "known limitation", or defer to "future work". Diagnose and fix it.
