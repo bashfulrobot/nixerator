@@ -28,10 +28,10 @@ See `scripts/wave-list-invoices.sh`. Queries
 `business(id).invoices(page,pageSize,status)` and returns a normalized JSON array
 (amounts coerced to numbers, plus computed `outstanding` and `overdue` flags) so
 freeform status questions resolve with a single `jq` select instead of an
-ad-hoc query. The optional `status` arg (enum `InvoiceStatus`, e.g. `SAVED`,
-`UNVERIFIED`, `PAID`, `OVERDUE`, `DRAFT`) filters server-side. UNVERIFIED: the
-exact arg/enum/money-field names follow Wave's public schema but were not
-confirmed live; adjust the query in the script if a field errors.
+ad-hoc query. The optional `status` arg (enum `InvoiceStatus`, e.g. `DRAFT`,
+`SAVED`, `SENT`, `PAID`, `OVERDUE`) filters server-side. Schema verified against
+the live API 2026-06-10 (arg `status`, money `.value`); observed status values
+include `SENT` (outstanding) and `PAID`.
 
 ## invoiceCreate
 Input `InvoiceCreateInput`: `businessId`, `customerId`, `status` (DRAFT),
