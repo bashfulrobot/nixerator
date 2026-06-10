@@ -1,0 +1,19 @@
+{
+  "issuer": { "code": "BrMfg", "name": "Bashfulrobot Manufacturing" },
+  "wave": {
+    "graphql_url": "https://gql.waveapps.com/graphql/public",
+    "token_url": "https://api.waveapps.com/oauth2/token/",
+    "op_item": "op://nixerator/wave",
+    "business_id": "",
+    "products": { "consulting": "", "passthrough": "" }
+  },
+  "customers": {
+    "camino": {
+      "name": "Camino Corp",
+      "wave_customer_id": "",
+      "insync_root": "/home/dustin/insync/bashfulrobot/My-drive/Professional/Consulting/Camino-corp/Financial/Invoices",
+      "default_rate": 0,
+      "vendors": { "DigitalOcean": "DO", "Grasshopper": "GH", "MailChimp": "MC", "Stockdio": "ST" }
+    }
+  }
+}
