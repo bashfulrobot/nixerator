@@ -61,8 +61,8 @@ body="$(jq -nc --arg q "${QUERY}" --argjson v "${vars}" '{query:$q,variables:$v}
 curl -fsS -X POST "${GQL_URL}" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
-  -d "${body}" \
-| jq --arg today "${TODAY}" '
+  -d "${body}" |
+  jq --arg today "${TODAY}" '
     # money may arrive as "1,234.56" (string) or a number; coerce either way.
     def num: (. // 0) | tostring | gsub(",";"") | tonumber;
     [ .data.business.invoices.edges[].node
