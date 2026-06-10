@@ -9,6 +9,14 @@ All Wave API I/O goes through the scripts in `scripts/` — never hand-write `cu
 Money is never trusted blind: always show the line-item table for approval before
 creating anything. Any missing datum: ask the user.
 
+## Writing discipline
+ALL customer-facing prose this skill produces (the `email.md` cover note, and any
+future note or message) goes through **both** writing skills before it is saved:
+first the **writing-style** skill (the user's voice — Canadian English, "Cheers,"
+sign-off), then the **humanizer** skill (strip AI tells). This applies to every
+piece of writing, not just one step. Internal status reports to the user (e.g. the
+Stage-1 working-folder summary) are exempt — they are not customer-facing.
+
 ## Secrets discipline
 Auth uses a Wave **Full Access Token** (personal-use bearer token). It lives in
 1Password (`op://nixerator/wave/credential`) and is exposed to the skill as the
@@ -35,6 +43,17 @@ If the Wave id fields in `config.json` are empty, do steps 1–5 before Stage 1.
 `config.json` holds the issuer (`BrMfg` = Bashfulrobot Manufacturing), the
 customer (`Camino Corp`), Wave ids, the vendor-code map, and paths. Read values
 with `source scripts/lib.sh config.json; cfg '.path'`.
+
+## Stage Q — Status / freeform query (read-only fast path)
+For any "do I have outstanding invoices?", "what's overdue?", "did Camino pay
+the May invoice?" question, do NOT improvise a GraphQL query or run
+`wave-bootstrap.sh`. Run `scripts/wave-list-invoices.sh [CONFIG] [STATUS]` — it
+returns normalized JSON (real-number amounts, plus `outstanding` and `overdue`
+booleans) so you answer with one `jq` select, e.g.
+`scripts/wave-list-invoices.sh | jq 'map(select(.outstanding))'`. Pass an
+optional STATUS (e.g. `OVERDUE`, `PAID`, `UNVERIFIED`) to filter server-side.
+Needs `wave.business_id` populated (Stage-1 prerequisites). Read-only — never
+creates or mutates anything.
 
 ## Workflow
 
@@ -65,8 +84,9 @@ with `source scripts/lib.sh config.json; cfg '.path'`.
 13. Download the PDF: `scripts/wave-download-pdf.sh <pdfUrl> <workdir>/<invoicePdf>`.
 14. Package evidence: build the `{source:vendorcode}` map and run
     `scripts/package-evidence.sh <workdir> <PERIOD> <ISSUER> <MAP_JSON>`.
-15. Write `email.md` (cover note to the customer). **Run it through the humanizer
-    skill** before saving.
+15. Write `email.md` (cover note to the customer). Per **Writing discipline**
+    above, run it through the **writing-style** then **humanizer** skills before
+    saving.
 16. Report the working folder contents and STOP: tell the user to review, then send
     the Gmail by hand (attach the invoice PDF + the references zip, paste `email.md`).
 
