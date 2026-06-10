@@ -45,6 +45,35 @@ scripts/aha.sh get products/DEVP/ideas -q 'q=<the customer ask in 2-3 keywords>'
 If a strong match exists, prefer adding a proxy vote (below) over creating a new
 idea -- consolidating endorsements is what gets things prioritized.
 
+## List a customer's ideas and assess status (pull-and-assess)
+
+A customer is an Aha *idea organization*; the ideas they care about are the ones
+they've endorsed (proxy votes). `scripts/customer-ideas.sh` does the whole flow
+in one command -- resolve the org(s), pull every endorsed idea's ref + name +
+vote weight in a single paginated pass per org (`fields=idea,weight`, no per-idea
+call to list them), then fetch only `workflow_status` for the unique ideas *in
+parallel*, and print an open-vs-closed table.
+
+```bash
+scripts/customer-ideas.sh "HealthEquity"          # full assessed table
+scripts/customer-ideas.sh "HealthEquity" --open   # only still-open ideas
+scripts/customer-ideas.sh "HealthEquity" --json   # assessed array, pipe to jq
+scripts/customer-ideas.sh --org ACCOUNT-O-32404   # pin to one org, skip search
+```
+
+Why it's fast: the endorsements endpoint embeds the idea (`fields=idea,weight`)
+so listing a customer's ideas is 1-2 calls, not N. The embedded idea is a *short*
+form (`id, name, reference_num` only) -- `workflow_status` is **not** included
+and Aha has no deep field selection here, so status is the one unavoidable
+per-idea fetch; the script parallelises it (`CUSTOMER_IDEAS_PARALLEL`, default 6,
+under Aha's 20 req/s). A spaced name retries without spaces ("Health Equity" ->
+"HealthEquity"). Idea status is always fetched live -- it's the volatile field
+you're assessing, so it is never cached.
+
+To do it by hand (e.g. a one-off variant): search `idea_organizations -q 'q=NAME'`
+for the id, then `idea_organizations/{id}/endorsements --paginate -q
+'fields=idea,weight'`, then GET each `ideas/{ref}` for `workflow_status`.
+
 ## Log a proxy vote (endorsement) on a customer's behalf
 
 This is the most common write. Confirm the idea reference, customer email, and
