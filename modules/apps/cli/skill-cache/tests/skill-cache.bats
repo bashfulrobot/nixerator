@@ -108,3 +108,49 @@ teardown() { rm_xdg; }
   run sc put aha customers acme '{"x":1}' --ttl 5x
   [ "$status" -eq 2 ]
 }
+
+@test "put upserts: a second put overwrites the value" {
+  sc put todoist projects work '{"id":"1"}'
+  sc put todoist projects work '{"id":"2"}'
+  run sc get todoist projects work
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"id":"2"}' ]
+}
+
+@test "a real key wins over another entry's matching alias" {
+  sc put aha customers realkey '{"v":"R"}'
+  sc put aha customers other '{"v":"O"}' --alias realkey
+  run sc get aha customers realkey
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"v":"R"}' ]
+}
+
+@test "list shows entries across multiple tables" {
+  sc put aha customers acme '{"portal":"PROD"}'
+  sc put aha projects gateway '{"id":"9"}'
+  run sc list aha
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"customers"* ]]
+  [[ "$output" == *"projects"* ]]
+}
+
+@test "list --json emits valid JSON" {
+  sc put aha customers acme '{"portal":"PROD"}'
+  run sc list aha --json
+  [ "$status" -eq 0 ]
+  printf '%s' "$output" | jq -e . >/dev/null
+}
+
+@test "a skill name with path traversal is rejected" {
+  run sc put ../evil t k '{"x":1}'
+  [ "$status" -eq 2 ]
+  run sc path ../evil
+  [ "$status" -eq 2 ]
+}
+
+@test "forget on a missing skill file does not create one" {
+  sc forget neverexisted t k
+  run sc path neverexisted
+  [ "$status" -eq 0 ]
+  [ ! -f "$output" ]
+}
