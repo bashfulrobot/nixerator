@@ -44,7 +44,7 @@ in
         hl.window_rule({
           name = "upsight-noanim",
           match = { class = "^(dev-upsight-MainKt)$" },
-          noanim = true,
+          no_anim = true,
         })
       '';
     };
