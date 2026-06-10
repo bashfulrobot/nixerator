@@ -100,6 +100,13 @@ let
     lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
       GEMINI_API_KEY = secrets.gemini.apiKey;
     }
+    // lib.optionalAttrs (secrets ? aha && secrets.aha ? apiToken) {
+      # Aha! REST API token for the `aha` Claude Code skill. Injected as an
+      # env var the same way as GEMINI_API_KEY so `aha.sh` reads it directly
+      # (no runtime `op` call, no Personal-vault dependency). Sourced from the
+      # `nixerator` vault via secrets.json.tpl.
+      AHA_API_TOKEN = secrets.aha.apiToken;
+    }
     // lib.optionalAttrs hasHyperframes {
       PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
       PUPPETEER_SKIP_DOWNLOAD = "1";

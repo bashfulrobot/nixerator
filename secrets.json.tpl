@@ -2,6 +2,9 @@
   "kong": {
     "kongKonnectPAT": "{{ op://nixerator/kong-konnect-pat/credential }}"
   },
+  "aha": {
+    "apiToken": "{{ op://nixerator/aha/credential }}"
+  },
   "syncthing": {
     "gui": {
       "user": "{{ op://nixerator/syncthing-gui/username }}",
