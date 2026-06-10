@@ -80,6 +80,17 @@ teardown() { rm_xdg; }
   [ "$status" -eq 2 ]
 }
 
+@test "put accepts the valid JSON scalars false and null" {
+  sc put todoist flags beta 'false'
+  run sc get todoist flags beta
+  [ "$status" -eq 0 ]
+  [ "$output" = 'false' ]
+  sc put todoist flags gamma 'null'
+  run sc get todoist flags gamma
+  [ "$status" -eq 0 ]
+  [ "$output" = 'null' ]
+}
+
 @test "a corrupt cache file is treated as a miss, not an error" {
   mkdir -p "${XDG}/claude-skills"
   printf 'garbage{' > "${XDG}/claude-skills/aha.json"
