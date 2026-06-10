@@ -23,6 +23,16 @@ terminal. There is intentionally no CLI that prints it. See the
 See `scripts/wave-bootstrap.sh`. Returns the ids needed in `config.json`
 (`wave.business_id`, `customers.<c>.wave_customer_id`, `wave.products.*`).
 
+## invoices (read-only status query)
+See `scripts/wave-list-invoices.sh`. Queries
+`business(id).invoices(page,pageSize,status)` and returns a normalized JSON array
+(amounts coerced to numbers, plus computed `outstanding` and `overdue` flags) so
+freeform status questions resolve with a single `jq` select instead of an
+ad-hoc query. The optional `status` arg (enum `InvoiceStatus`, e.g. `SAVED`,
+`UNVERIFIED`, `PAID`, `OVERDUE`, `DRAFT`) filters server-side. UNVERIFIED: the
+exact arg/enum/money-field names follow Wave's public schema but were not
+confirmed live; adjust the query in the script if a field errors.
+
 ## invoiceCreate
 Input `InvoiceCreateInput`: `businessId`, `customerId`, `status` (DRAFT),
 `invoiceNumber`, `invoiceDate`, `dueDate`,
