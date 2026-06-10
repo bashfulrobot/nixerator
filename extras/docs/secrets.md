@@ -18,6 +18,32 @@ git-crypt is no longer used in this repo. The fallback `secrets/secrets.json`
 that bridged the migration was removed in #86; see git history for the
 retired flow.
 
+## Hard boundary for AI assistants (Claude Code)
+
+**Never read rendered secret VALUES — from the secrets file or from 1Password.**
+This is a non-negotiable rule, not a preference: a secret value read into the
+agent's context leaks into the model and can be sent off-site.
+
+- **Never** read `~/.config/nixos-secrets/secrets.json` or anything under
+  `~/.config/op/` — both are on Claude Code's Read `permissions.deny`. To inspect
+  the schema, read `secrets.json.tpl` (placeholders only).
+- **Never** surface a secret value via 1Password: no `op read` of a credential,
+  no `op item get … --reveal`, no echoing/printing a field value — not even a
+  prefix, suffix, or length. Partial exposure is still exposure.
+- **Allowed — references/metadata only:** item titles, field labels, vault names,
+  `op://` paths, and whether an item/field exists.
+- **Allowed — placeholders:** create items/fields with a dummy value
+  (`op item create … credential="REPLACE_ME"`) for the user to fill in.
+- **Allowed — blind move:** pipe a value between fields without displaying it
+  (`op item edit dest field="$(op read 'op://src/item/field')"`) — the value
+  passes through the subshell but never reaches stdout.
+- **Verifying a secret landed:** do NOT read it back. Run it through the normal
+  tooling (`just render-secrets` / `just check-secrets`) and trust the exit
+  status, or check existence/non-emptiness by means that never print the value
+  (e.g. transform the value to a present/absent boolean in `jq` before printing).
+
+This mirrors the identical global rule in `~/.claude/CLAUDE.md`.
+
 ## One-time per-host setup
 
 1. **Install the SA token** (one biometric):
@@ -104,6 +130,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 |------|------|--------|-------------|
 | `kong-konnect-pat` | API Credential | `credential` | `secrets.kong.kongKonnectPAT` |
 | `aha` | API Credential | `credential` | `secrets.aha.apiToken` (injected as `AHA_API_TOKEN` by the claude-code module for the `aha` skill) |
+| `wave` | API Credential | `credential` | `secrets.wave.fullAccessToken` (injected as `WAVE_FULL_ACCESS_TOKEN` by the claude-code module for the `wave-invoicing` skill; Wave Full Access Token — personal-use bearer, no OAuth) |
 | `context7` | API Credential | `credential` | `secrets.context7.apiKey` |
 | `zai` | API Credential | `credential` | `secrets.zai.apiKey` |
 | `gemini` | API Credential | `credential` | `secrets.gemini.apiKey` |

@@ -10,22 +10,26 @@ Money is never trusted blind: always show the line-item table for approval befor
 creating anything. Any missing datum: ask the user.
 
 ## Secrets discipline
-Wave OAuth credentials live in 1Password (`op://nixerator/wave/*`) and are read
-only inside the scripts. NEVER print, log, or surface a token or any credential
-value (not even a prefix or length). When verifying auth, rely on exit status
-only. There is no CLI that prints the token by design.
+Auth uses a Wave **Full Access Token** (personal-use bearer token). It lives in
+1Password (`op://nixerator/wave/credential`) and is exposed to the skill as the
+`WAVE_FULL_ACCESS_TOKEN` env var via the nixerator claude-code module
+(secrets.json.tpl → secrets.json → env, like `AHA_API_TOKEN`). The skill never
+calls `op` at runtime. NEVER print, log, or surface the token (not even a prefix
+or length); when verifying, rely on exit status only.
 
 ## Prerequisites (one-time)
 The Wave I/O scripts (`wave-bootstrap.sh`, `wave-create-invoice.sh`,
-`wave-download-pdf.sh`) require OAuth setup before they work:
-1. Register an application in the Wave developer portal and run the OAuth
-   authorization once to obtain a `refresh_token`.
-2. Store `client_id`, `client_secret`, `refresh_token` in the 1Password
-   `nixerator` vault as item `wave`.
-3. In Wave, create products "Consulting" and "Reimbursable Expenses".
-4. Run `scripts/wave-bootstrap.sh` and copy the returned ids into `config.json`
+`wave-download-pdf.sh`) need this setup before they work:
+1. In the Wave developer portal (developer.waveapps.com) → Manage Applications →
+   create an application → **Create token** to generate a **Full Access Token**.
+2. Put the token in the 1Password `nixerator` vault, item `wave`, field
+   `credential` (`op://nixerator/wave/credential`).
+3. Run `just render-secrets` then rebuild (`just qr`) so `WAVE_FULL_ACCESS_TOKEN`
+   is in the environment.
+4. In Wave, create products "Consulting" and "Reimbursable Expenses".
+5. Run `scripts/wave-bootstrap.sh` and copy the returned ids into `config.json`
    (`wave.business_id`, `customers.camino.wave_customer_id`, `wave.products.*`).
-If the Wave id fields in `config.json` are empty, do steps 1–4 before Stage 1.
+If the Wave id fields in `config.json` are empty, do steps 1–5 before Stage 1.
 
 ## Config
 `config.json` holds the issuer (`BrMfg` = Bashfulrobot Manufacturing), the

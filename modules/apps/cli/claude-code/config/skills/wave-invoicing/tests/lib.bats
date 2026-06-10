@@ -25,3 +25,14 @@ teardown() { rm_tmpdir; }
   run bash -c "source '${SCRIPTS}/lib.sh' '${SKILL_DIR}/config.json'; cfg '.issuer'"
   [ "$status" -ne 0 ]
 }
+
+@test "wave_access_token returns WAVE_FULL_ACCESS_TOKEN when set" {
+  run bash -c "export WAVE_FULL_ACCESS_TOKEN=tok123; source '${SCRIPTS}/lib.sh' '${SKILL_DIR}/config.json'; wave_access_token"
+  [ "$status" -eq 0 ]
+  [ "$output" = "tok123" ]
+}
+
+@test "wave_access_token errors when WAVE_FULL_ACCESS_TOKEN is unset" {
+  run bash -c "unset WAVE_FULL_ACCESS_TOKEN; source '${SCRIPTS}/lib.sh' '${SKILL_DIR}/config.json'; wave_access_token"
+  [ "$status" -ne 0 ]
+}

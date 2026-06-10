@@ -107,6 +107,14 @@ let
       # `nixerator` vault via secrets.json.tpl.
       AHA_API_TOKEN = secrets.aha.apiToken;
     }
+    // lib.optionalAttrs (secrets ? wave && secrets.wave ? fullAccessToken) {
+      # Wave Full Access Token for the `wave-invoicing` skill. Injected as an
+      # env var the same way as AHA_API_TOKEN so the skill reads it directly
+      # (no runtime `op` call). Sourced from the `nixerator` vault via
+      # secrets.json.tpl. Full Access Token = personal-use bearer token; no
+      # OAuth client/secret/refresh flow.
+      WAVE_FULL_ACCESS_TOKEN = secrets.wave.fullAccessToken;
+    }
     // lib.optionalAttrs hasHyperframes {
       PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
       PUPPETEER_SKIP_DOWNLOAD = "1";

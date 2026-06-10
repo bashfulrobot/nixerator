@@ -37,48 +37,21 @@ build_invoice_payload() {
     '{input:{businessId:$businessId,customerId:$customerId,status:"DRAFT",invoiceNumber:$invoiceNumber,invoiceDate:$invoiceDate,dueDate:$dueDate,items:$items}}'
 }
 
-# _source_op_token — mirror render-secrets.sh: if OP_SERVICE_ACCOUNT_TOKEN is
-# unset and the canonical token file exists, source it (refusing perms != 600).
-_source_op_token() {
-  local f="${HOME}/.config/op/service-account-token"
-  if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ] && [ -f "${f}" ]; then
-    local p
-    p="$(stat -c '%a' "${f}")"
-    [ "${p}" = "600" ] || {
-      echo "lib: ${f} perms ${p}, must be 600" >&2
-      return 1
-    }
-    OP_SERVICE_ACCOUNT_TOKEN="$(<"${f}")"
-    export OP_SERVICE_ACCOUNT_TOKEN
-  fi
-}
-
-# wave_access_token — exchange the stored refresh_token for an access_token and
-# echo the bare token to stdout for capture into a variable.
+# wave_access_token — echo the Wave Full Access Token for capture into a variable.
 #
-# SECRETS DISCIPLINE: the returned value is a credential. Callers MUST capture
-# it (token="$(wave_access_token)") and pass it only via an Authorization header
-# or env var — NEVER print it, log it, or pipe it anywhere a human/agent would
-# see it (not even a prefix/length). There is deliberately no standalone CLI
-# that prints the token, to avoid it landing in a terminal/transcript.
+# The token is a personal-use bearer token sourced from the `nixerator` 1Password
+# vault (item `wave`, field `credential`) and exposed as the WAVE_FULL_ACCESS_TOKEN
+# env var by the nixerator claude-code module (secrets.json.tpl -> secrets.json ->
+# env), exactly like AHA_API_TOKEN. The skill never calls `op` at runtime.
+#
+# SECRETS DISCIPLINE: the returned value is a credential. Callers MUST capture it
+# (token="$(wave_access_token)") and pass it only via an Authorization header —
+# NEVER print it, log it, or pipe it anywhere a human/agent would see it (not even
+# a prefix/length).
 wave_access_token() {
-  _source_op_token
-  local item token_url cid csec rtok resp
-  item="$(cfg '.wave.op_item')"
-  token_url="$(cfg '.wave.token_url')"
-  cid="$(op read "${item}/client_id")"
-  csec="$(op read "${item}/client_secret")"
-  rtok="$(op read "${item}/refresh_token")"
-  resp="$(curl -fsS -X POST "${token_url}" \
-    -d "client_id=${cid}" -d "client_secret=${csec}" \
-    -d "grant_type=refresh_token" -d "refresh_token=${rtok}")" ||
-    {
-      echo "wave_access_token: token request failed" >&2
-      return 1
-    }
-  echo "${resp}" | jq -er '.access_token' ||
-    {
-      echo "wave_access_token: no access_token in response" >&2
-      return 1
-    }
+  if [ -z "${WAVE_FULL_ACCESS_TOKEN:-}" ]; then
+    echo "wave_access_token: WAVE_FULL_ACCESS_TOKEN not set — run 'just render-secrets' then rebuild (just qr)" >&2
+    return 1
+  fi
+  printf '%s' "${WAVE_FULL_ACCESS_TOKEN}"
 }

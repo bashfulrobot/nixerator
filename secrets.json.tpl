@@ -5,6 +5,9 @@
   "aha": {
     "apiToken": "{{ op://nixerator/aha/credential }}"
   },
+  "wave": {
+    "fullAccessToken": "{{ op://nixerator/wave/credential }}"
+  },
   "syncthing": {
     "gui": {
       "user": "{{ op://nixerator/syncthing-gui/username }}",
