@@ -101,6 +101,7 @@ case "$cmd" in
     [ "${#args[@]}" -eq 3 ] || die "usage: get <skill> <table> <key>"
     skill="${args[0]}"; table="${args[1]}"; nkey="$(norm "${args[2]}")"
     f="$(cache_file "$skill")"
+    # alias lookup: first matching entry by object order wins (uniqueness not enforced)
     entry="$(read_cache "$f" | jq -c --arg t "$table" --arg k "$nkey" '
       (.tables[$t] // {}) as $tbl
       | ($tbl[$k] // ([ $tbl | to_entries[]
@@ -133,7 +134,7 @@ case "$cmd" in
     done
     [ "${#args[@]}" -eq 4 ] || die "usage: put <skill> <table> <key> <json-value> [--ttl D] [--alias N]..."
     skill="${args[0]}"; table="${args[1]}"; nkey="$(norm "${args[2]}")"; value="${args[3]}"
-    printf '%s' "$value" | jq -e . >/dev/null 2>&1 || die "<json-value> is not valid JSON"
+    printf '%s' "$value" | jq . >/dev/null 2>&1 || die "<json-value> is not valid JSON"
     if [ -n "$ttl" ]; then ttlsec="$(ttl_seconds "$ttl")"; else ttlsec="null"; fi
     f="$(cache_file "$skill")"
     new="$(read_cache "$f" | jq -c \
