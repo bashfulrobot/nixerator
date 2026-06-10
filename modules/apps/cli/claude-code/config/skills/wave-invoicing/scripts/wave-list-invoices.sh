@@ -28,10 +28,10 @@ BIZ="$(cfg '.wave.business_id')"
 TOKEN="$(wave_access_token)"
 TODAY="$(date +%F)"
 
-# UNVERIFIED: the exact invoices() arg name (`status`), enum type (`InvoiceStatus`),
-# and money field (`.value`) are taken from Wave's public GraphQL schema and could
-# not be confirmed against the live API (token not yet loaded). If a field errors,
-# adjust here; the jq normalization below is tolerant of string/number money.
+# Schema verified against the live Wave API 2026-06-10: the invoices() arg
+# `status` (type `InvoiceStatus`) and the `.value` money fields all resolve.
+# Observed status values include SENT (outstanding) and PAID. The jq
+# normalization below stays tolerant of string/number money regardless.
 read -r -d '' QUERY <<'GQL' || true
 query($businessId: ID!, $page: Int!, $pageSize: Int!, $status: InvoiceStatus) {
   business(id: $businessId) {

@@ -2,15 +2,18 @@
   "issuer": { "code": "BrMfg", "name": "Bashfulrobot Manufacturing" },
   "wave": {
     "graphql_url": "https://gql.waveapps.com/graphql/public",
-    "business_id": "",
-    "products": { "consulting": "", "passthrough": "" }
+    "business_id": "QnVzaW5lc3M6YTk4MTcxMjgtNDk4OC00ODM4LWE5ZTAtZDQxOTMyOWIzOGFl",
+    "products": {
+      "consulting": "QnVzaW5lc3M6YTk4MTcxMjgtNDk4OC00ODM4LWE5ZTAtZDQxOTMyOWIzOGFlO1Byb2R1Y3Q6MTYwNjQzMjE=",
+      "passthrough": "QnVzaW5lc3M6YTk4MTcxMjgtNDk4OC00ODM4LWE5ZTAtZDQxOTMyOWIzOGFlO1Byb2R1Y3Q6Njc0MDU5MjI="
+    }
   },
   "customers": {
     "camino": {
       "name": "Camino Corp",
-      "wave_customer_id": "",
+      "wave_customer_id": "QnVzaW5lc3M6YTk4MTcxMjgtNDk4OC00ODM4LWE5ZTAtZDQxOTMyOWIzOGFlO0N1c3RvbWVyOjU2NTE4ODky",
       "insync_root": "/home/dustin/insync/bashfulrobot/My-drive/Professional/Consulting/Camino-corp/Financial/Invoices",
-      "default_rate": 0,
+      "default_rate": 125,
       "vendors": { "DigitalOcean": "DO", "Grasshopper": "GH", "MailChimp": "MC", "Stockdio": "ST" }
     }
   }
