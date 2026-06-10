@@ -120,6 +120,10 @@ update input:
 check-security:
     @bash extras/scripts/check-security-alerts.bash
 
+# Run skill-cache unit tests
+test-skill-cache:
+    nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/skill-cache/tests/
+
 # Garbage collection (default: 5 days)
 clean days="5":
     @echo "Cleaning packages older than {{days}} days..."
