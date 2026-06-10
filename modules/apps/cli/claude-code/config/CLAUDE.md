@@ -101,6 +101,14 @@ When something could fit two homes, prefer the one with the strongest trigger:
 - Claude reads it while planning a task → `.claude/docs/`
 - Claude captures it without being asked → auto-memory
 
+## skill-cache convention
+
+When creating or modifying a skill that resolves names→IDs or repeatedly queries
+an external API, read `/home/dustin/git/nixerator/.claude/docs/skill-cache.md`
+and consider adopting the `skill-cache` convention. For a skill that will be
+shared/published, vendor `scripts/skill-cache.sh` from the canonical source named
+in that doc rather than depending on the packaged CLI.
+
 ## Kong Developer Documentation
 
 Kong's developer docs at `developer.konghq.com` are available in LLM-friendly markdown. To get the markdown version of any content page, append `.md` to the URL path (drop trailing slashes and anchors):
