@@ -69,6 +69,8 @@ upgrade:
     just pre-rebuild interactive
     log="{{upgrade_log}}"
     cp flake.lock flake.lock-backup-{{timestamp}}
+    # Keep only the 5 newest lock backups.
+    ls -1t flake.lock-backup-* 2>/dev/null | tail -n +6 | xargs -r rm -f
     rc=0
     gum spin --spinner dot --title "Updating flake inputs..." \
         -- bash -c 'nix flake update &> "'"$log"'"' || rc=$?
@@ -102,6 +104,14 @@ upgrade:
         fi
     else
         gum style --foreground 82 "Upgrade complete"
+    fi
+    # Auto-commit the refreshed lock so it never lingers uncommitted.
+    if ! git diff --quiet flake.lock; then
+        if git add flake.lock && git commit -q -m "chore(flake): update flake lock"; then
+            gum style --foreground 82 "Committed flake.lock"
+        else
+            gum style --foreground 220 "flake.lock updated but commit failed — commit it manually"
+        fi
     fi
     just post-rebuild interactive
 
@@ -463,21 +473,22 @@ post-rebuild mode="quiet":
         fi
     fi
 
-    if $is_capture_source && ! git diff --quiet modules/apps/cli/claude-code/config/plugins/ 2>/dev/null; then
-        commit_msg='fix(claude-code): update captured plugin state'
+    captured=(modules/apps/cli/claude-code/config modules/apps/cli/agentos/config)
+    if $is_capture_source && [[ -n "$(git status --porcelain -- "${captured[@]}" 2>/dev/null)" ]]; then
+        commit_msg='chore(claude-code): update captured config state'
         echo ""
         if [[ "{{mode}}" == "interactive" ]]; then
-            gum style --foreground 220 --bold "Plugin config changed! Commit with:"
+            gum style --foreground 220 --bold "Captured config changed! Review and commit with:"
         else
             echo "════════════════════════════════════════════════════════════"
-            echo "  Plugin config changed! Commit with:"
+            echo "  Captured config changed! Review and commit with:"
         fi
-        echo "  git add modules/apps/cli/claude-code/config/plugins/ && git commit -m \"$commit_msg\""
+        echo "  git add ${captured[*]} && git commit -m \"$commit_msg\""
         if [[ "{{mode}}" != "interactive" ]]; then
             echo "════════════════════════════════════════════════════════════"
         fi
         echo "$commit_msg" | wl-copy 2>/dev/null || true
-        notify-send "Nixerator" "Plugin config changed — commit suggested" 2>/dev/null || true
+        notify-send "Nixerator" "Captured config changed — review and commit" 2>/dev/null || true
     fi
 
 # === Quiet Recipes ===
@@ -524,14 +535,26 @@ quiet-upgrade:
     just pre-rebuild quiet
     echo "Upgrading (quiet mode)..."
     cp flake.lock flake.lock-backup-{{timestamp}}
+    # Keep only the 5 newest lock backups.
+    ls -1t flake.lock-backup-* 2>/dev/null | tail -n +6 | xargs -r rm -f
     rc=0
+    # &&-chain so a failed `nix flake update` aborts instead of rebuilding on
+    # the old lock (a bare `;` group would mask its exit status).
     {
-        nix flake update
-        sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}}
-        just ref::voxtype-setup
+        nix flake update \
+            && sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} \
+            && just ref::voxtype-setup
     } &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Upgrade succeeded. Full log: {{upgrade_log}}"
+        # Auto-commit the refreshed lock so it never lingers uncommitted.
+        if ! git diff --quiet flake.lock; then
+            if git add flake.lock && git commit -q -m "chore(flake): update flake lock"; then
+                echo "Committed flake.lock."
+            else
+                echo "⚠ flake.lock updated but commit failed — commit it manually."
+            fi
+        fi
 
         just post-rebuild quiet
     else
