@@ -5,7 +5,7 @@ compatibility: "Requires the td CLI (@doist/todoist-cli) to be installed and aut
 license: MIT
 metadata:
   author: Doist
-  version: "1.56.0"
+  version: "1.61.2"
 ---
 
 # Todoist CLI (td)
@@ -48,7 +48,7 @@ Cache only the stable name→id mapping (no `--ttl`). **Never cache task content
 - Mutating commands support `--dry-run` to preview actions without executing them.
 - Destructive commands typically require `--yes`.
 - `--quiet` / `-q` suppresses success messages. Create commands still print the bare ID for scripting (e.g. `id=$(td task add "Buy milk" --quiet)`).
-- Global flags: `--no-spinner`, `--progress-jsonl`, `-v/--verbose`, `--accessible`, `--quiet`.
+- Global flags: `--no-spinner`, `--progress-jsonl`, `-v/--verbose`, `--accessible`, `--quiet`, `--user <id|email>`.
 
 ## Authentication
 
@@ -62,6 +62,8 @@ td auth login --read-only --additional-scopes=backups
 td auth login --additional-scopes=app-management,backups
 td auth token
 td auth status
+TOKEN=$(td auth token view)
+TOKEN=$(td auth token view --user you@example.com)
 td auth logout
 ```
 
@@ -74,6 +76,24 @@ Combine freely with `--read-only` to keep data access read-only while still gran
 
 Tokens are stored in the OS credential manager when available, with fallback to `~/.config/todoist-cli/config.json`. `TODOIST_API_TOKEN` takes precedence over stored credentials.
 
+`td auth token view` writes the stored token to stdout for use in scripts. **Always capture it into a shell variable** (e.g. `TOKEN=$(td auth token view)`) — never invoke it bare in an agent transcript or piped to a shell that echoes its output, since that would leak the secret. Honors `--user <id|email>` for multi-account installs and refuses when `TODOIST_API_TOKEN` is set in the environment (the token is already available there).
+
+## Multi-user
+
+The CLI can hold credentials for multiple Todoist accounts at once.
+
+```bash
+td auth login                       # adds the account; first one becomes default
+td user list                        # all stored accounts (with default marker)
+td user use <id|email>              # set the default account (alias: td user default)
+td user current                     # show the active account
+td user remove <id|email>           # delete an account (and its token)
+td --user <id|email> task list      # one-off override for any command
+td auth logout --user <id|email>    # log out a specific account
+```
+
+Resolution order: `--user <ref>` > `user.defaultUser` from config > the only stored account. With multiple accounts and no default, commands error and ask for `--user` (or `td user use`). `<ref>` matches an exact id or email (case-insensitive on email). `TODOIST_API_TOKEN` still bypasses the resolver entirely.
+
 ## Quick Reference
 
 - Daily views: `td today`, `td inbox`, `td upcoming`, `td completed`, `td activity`
@@ -84,7 +104,7 @@ Tokens are stored in the OS credential manager when available, with fallback to 
 - Collaboration: `td comment ...`, `td notification ...`, `td reminder ...`
 - Templates and files: `td template ...`, `td attachment view <file-url>`, `td backup ...`
 - Help Center: `td hc locales/search/view`
-- Account and tooling: `td stats`, `td settings ...`, `td config view`, `td completion ...`, `td view <todoist-url>`, `td doctor`, `td update`, `td changelog`
+- Account and tooling: `td stats`, `td settings ...`, `td config view`, `td user ...`, `td completion ...`, `td view <todoist-url>`, `td doctor`, `td update`, `td changelog`
 - Developer apps: `td apps list/view` (requires `td auth login --additional-scopes=app-management`)
 - Backups: `td backup list/download` (requires `td auth login --additional-scopes=backups`)
 
@@ -172,6 +192,8 @@ td workspace update "Acme" --description "Acme Inc." --dry-run   # admin-only
 td workspace delete "Old WS" --yes                                # admin-only
 td workspace user-tasks "Acme" --user alice@example.com
 td workspace activity "Acme" --json
+td workspace use "Acme"              # persist a default; omitted refs on other workspace commands fall back to it
+td workspace use --clear             # forget the stored default
 td folder list "Acme"
 td folder view "Engineering"
 td folder create "Acme" --name "Engineering"
@@ -249,9 +271,10 @@ td reminder location get id:456
 td hc
 td hc --help
 td hc locale --set-default pt-br
+td hc view https://www.todoist.com/help/articles/introduction-to-filters-V98wIH
 ```
 
-`td hc` queries the Todoist online Help Center. Run `td hc --help` for locale discovery, article search, and article viewing details. `td hc locale --set-default <locale>` persists a preferred locale in `~/.config/todoist-cli/config.json` under `hc.defaultLocale`; the `--locale` flag on individual subcommands still overrides it.
+`td hc` queries the Todoist online Help Center. Run `td hc --help` for locale discovery, article search, and article viewing details. `td hc locale --set-default <locale>` persists a preferred locale in `~/.config/todoist-cli/config.json` under `hc.defaultLocale`; the `--locale` flag on individual subcommands still overrides it. `td hc view` accepts `id:N`, raw numeric article IDs, `get.todoist.help` URLs, and public `www.todoist.com/help/articles/...` marketing URLs (resolved to the underlying Zendesk article via slug search).
 
 ### Templates
 ```bash
