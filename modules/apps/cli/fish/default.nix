@@ -50,6 +50,7 @@ in
           goh = "cd ${globals.paths.hyprflake}";
           upgrade = "cd ${globals.paths.nixerator} && just upgrade";
           rebuild = "cd ${globals.paths.nixerator} && just rebuild";
+          notif-clear = "dms ipc notifications dismissAllPopups";
         };
 
         # Custom functions
