@@ -35,6 +35,9 @@ cache_dir() { printf '%s' "${XDG_CACHE_HOME:-$HOME/.cache}/claude-skills"; }
 
 cache_file() {
   [ -n "${1:-}" ] || die "missing <skill>"
+  case "$1" in
+    */* | *..* | . ) die "invalid skill name: $1";;
+  esac
   printf '%s/%s.json' "$(cache_dir)" "$1"
 }
 
@@ -154,6 +157,7 @@ case "$cmd" in
     [ $# -ge 2 ] || die "usage: forget <skill> <table> [<key>]"
     skill="$1"; table="$2"; key="${3:-}"
     f="$(cache_file "$skill")"
+    [ -f "$f" ] || exit 0
     if [ -n "$key" ]; then
       nkey="$(norm "$key")"
       new="$(read_cache "$f" | jq -c --arg t "$table" --arg k "$nkey" '
@@ -199,7 +203,8 @@ case "$cmd" in
 
   path)
     [ $# -eq 1 ] || die "usage: path <skill>"
-    printf '%s\n' "$(cache_file "$1")"
+    f="$(cache_file "$1")"
+    printf '%s\n' "$f"
     ;;
 
   *) die "unknown command '$cmd' (try --help)";;

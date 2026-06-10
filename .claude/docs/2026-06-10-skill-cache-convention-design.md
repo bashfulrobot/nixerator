@@ -88,8 +88,8 @@ skill-cache path   <skill>
 ```
 
 - **`get`** — exit 0 + value JSON on a fresh hit; exit 3 on miss; exit 4 on
-  expired. With `--allow-stale`, an expired entry exits 0, prints the value, and
-  warns on stderr. The non-zero exit is the skill's signal to call the API.
+  expired. With `--allow-stale`, an expired entry exits 0 and prints the value.
+  The non-zero exit is the skill's signal to call the API.
 - **`put`** — upsert. **No `--ttl` ⇒ identity tier (never expires).**
   `--ttl 7d` / `30d` / `12h` ⇒ metadata tier; `expires_at` computed at write
   time. `--alias NAME` (repeatable) registers extra lookup keys for one entry.
@@ -104,9 +104,10 @@ skill-cache path   <skill>
 ### Implementation notes
 
 - All JSON manipulation via `jq`.
-- Writes are **atomic**: write to a tempfile in the same directory, then `mv`
-  over the target. Single-user machine ⇒ atomic rename is sufficient; no lock
-  file.
+- Writes are atomic (tempfile + `mv` in the same dir) so a crash can't leave a
+  torn file. This guards file integrity, not update serialization: concurrent
+  writers to one `<skill>` can clobber each other, so the convention assumes
+  sequential per-skill writes (see the Concurrency note in the contract doc).
 - The cache directory is created on demand (`mkdir -p`).
 - Cache path is computed as `${XDG_CACHE_HOME:-$HOME/.cache}/claude-skills/<skill>.json`,
   so it works unchanged on a teammate's Linux/macOS box.
@@ -234,8 +235,9 @@ entries cover the authoring path reliably.
   identity entry never expires; metadata entry past TTL returns exit 4;
   `--allow-stale` returns exit 0 with stale value; `forget` removes a key and
   the table; alias and case-insensitive lookups hit one entry; missing/corrupt
-  file is treated as a miss, not an error; concurrent `put`s do not corrupt the
-  file (sequential atomic writes).
+  file is treated as a miss, not an error; a write leaves no torn file (atomic
+  tempfile + rename); concurrent writers are out of scope (single-writer
+  assumption).
 - **Portability check:** the vendored `scripts/skill-cache.sh` runs with only
   bash + jq + coreutils — no PATH dependency on the packaged CLI.
 - **Adoption smoke test:** follow the "add a table" recipe end-to-end for one

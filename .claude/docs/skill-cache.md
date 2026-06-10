@@ -46,6 +46,14 @@ fresh, never `put` them.
 - A missing or corrupt cache file is treated as empty — the cache is an
   optimization, never a correctness dependency.
 
+## Concurrency
+
+Each `put`/`forget` rewrites the whole per-skill file atomically (tempfile +
+rename — no torn file). Writes are **not** serialized against each other, so two
+processes writing the same `<skill>` concurrently can clobber one another. Call
+the CLI sequentially per skill — the normal case for a skill resolving
+identifiers one at a time. Do not fan out parallel `put`s to the same `<skill>`.
+
 ## Schema
 
 One file per skill; `tables` group logical record types:
