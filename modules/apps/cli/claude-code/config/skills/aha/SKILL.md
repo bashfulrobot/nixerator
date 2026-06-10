@@ -119,15 +119,46 @@ Before any POST/PUT/PATCH/DELETE:
 
 Do not batch multiple writes behind a single confirmation. One call, one yes.
 
-## Memory
+## Caching: identifiers and slow metadata
 
-This skill uses Claude Code's native auto-memory. Recall before acting; store
-what's reusable after.
+Two layers. Use the `skill-cache` warm-cache CLI for the stable identifiers you
+re-resolve on most runs; use native auto-memory for softer, contextual facts.
 
-Reusable: product reference prefixes (`DEVP` = ...), idea-portal ids the user
-works with, custom-field API keys on Kong's Aha schema, named records the user
-refers to ("the gateway initiative"), workflow-status names that differ from
-the defaults. Not reusable: one-off query results, transient ids.
+### skill-cache (stable identifiers)
+
+Before resolving a customer name to its Aha idea-organization id, or a product
+name to its reference prefix, check the cache first:
+
+```bash
+skill-cache get aha customers "<name>"   # -> {"org_id":"ACCOUNT-O-32404"} or non-zero on miss
+skill-cache get aha products  "<name>"   # -> {"ref_prefix":"DEVP"} or miss
+```
+
+On a hit, use the value -- no API call. On a miss, resolve via the API
+(`idea_organizations -q 'q=<name>'` for the org; the product list for a prefix),
+then write it back:
+
+```bash
+skill-cache put aha customers "<name>" '{"org_id":"ACCOUNT-O-32404"}' --alias "<short name>"
+skill-cache put aha products  "<name>" '{"ref_prefix":"DEVP"}'
+```
+
+When a customer's org id is cached, pass it straight to the pull-and-assess
+script to skip the search: `scripts/customer-ideas.sh --org ACCOUNT-O-32404`.
+
+Cache only stable identity -- org ids, ref prefixes, custom-field API keys (no
+`--ttl`). **Never cache idea status, endorsement counts, or vote weights**;
+those are the volatile fields you query live. If a cached id looks wrong,
+`skill-cache forget aha customers "<name>"` and re-resolve. Full convention:
+`.claude/docs/skill-cache.md`.
+
+### auto-memory (soft facts)
+
+Use Claude Code's native auto-memory for things that aren't a clean key->id
+mapping: workflow-status names that differ from the defaults, named records the
+user refers to ("the gateway initiative"), and Kong-Aha schema gotchas. Recall
+before acting; store what's reusable after. Not reusable: one-off query
+results, transient ids.
 
 ## What NOT to do
 

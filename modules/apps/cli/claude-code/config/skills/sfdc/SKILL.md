@@ -33,8 +33,39 @@ watching every step**.
 
 ## Memory
 
-This skill uses Claude Code's native auto-memory (the per-project
-`~/.claude/projects/<project>/memory/` store). Recalled memories are
+Two layers. Use the `skill-cache` warm-cache CLI for stable identifiers you
+re-resolve on most runs; use native auto-memory for softer facts (SOQL
+patterns, gotchas).
+
+### skill-cache (stable identifiers)
+
+Before resolving an account/record name to its Salesforce Id, or re-deriving a
+custom object's field API names, check the warm cache:
+
+```bash
+skill-cache get sfdc accounts "<account name>"   # -> {"id":"001..."} or non-zero miss
+skill-cache get sfdc fields    "<SObject>"        # -> {"Stage__c":"...", ...} or miss
+```
+
+On a hit, use it -- no `sf` round-trip. On a miss, resolve
+(`SELECT Id FROM Account WHERE Name = '<name>'` for an Id; a describe for field
+API names), then write back:
+
+```bash
+skill-cache put sfdc accounts "<account name>" '{"id":"001..."}' --alias "<short name>"
+skill-cache put sfdc fields    "<SObject>"      '{"Stage__c":"Stage__c"}' --ttl 30d
+```
+
+Cache stable identity -- record Ids (no `--ttl`) -- and slow schema metadata --
+custom-field API names (`--ttl 30d`, since a schema can change). **Never cache
+query results, field *values*, or record state** -- only the Id and the field
+*names*. If an Id is wrong, `skill-cache forget sfdc accounts "<name>"` and
+re-query. Full convention: `.claude/docs/skill-cache.md`.
+
+### auto-memory (soft facts)
+
+Native auto-memory (the per-project `~/.claude/projects/<project>/memory/`
+store) holds what isn't a clean key->id mapping. Recalled memories are
 surfaced automatically at session start, and you write reusable SFDC facts
 there with the normal memory workflow -- no separate database or bootstrap
 step.
