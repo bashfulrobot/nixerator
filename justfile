@@ -62,6 +62,44 @@ dev-rebuild:
     trap 'git restore --staged .' EXIT
     just rebuild
 
+# Test a local hyprflake checkout against the current host.
+#
+# Rebuilds the current host but overrides the `hyprflake` flake input to point
+# at a local working tree (default: ~/git/hyprflake) so changes can be tried
+# without committing/pushing hyprflake or bumping flake.lock. Pass an alternate
+# path to test a different checkout/worktree:
+#
+#   just hyprflake-test
+#   just hyprflake-test /home/dustin/git/.worktrees/hyprflake-feature
+#
+# Uses {{host_flake}} so it targets whichever host it runs on, like `rebuild`.
+hyprflake-test path="/home/dustin/git/hyprflake":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    if [[ ! -d "{{path}}" ]]; then
+        gum style --foreground 196 "hyprflake path not found: {{path}}"
+        exit 1
+    fi
+    log="{{rebuild_log}}"
+    rc=0
+    gum spin --spinner dot --title "Rebuilding with local hyprflake ({{path}})..." \
+        -- bash -c 'sudo nixos-rebuild switch --impure --flake {{host_flake}} --override-input hyprflake path:{{path}} &> "'"$log"'"' || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        warnings=$(grep -c -E -i 'warning:' "$log" 2>/dev/null || true)
+        if [[ "$warnings" -gt 0 ]]; then
+            gum style --foreground 220 "Rebuild succeeded with $warnings warning(s)"
+            if gum confirm "View warnings in log?"; then
+                bat --paging=always "$log"
+            fi
+        else
+            gum style --foreground 82 "Rebuild succeeded (local hyprflake override active)"
+        fi
+    else
+        gum style --foreground 196 "Rebuild FAILED (exit $rc)"
+        bat --paging=always "$log"
+        exit "$rc"
+    fi
+
 # Full system upgrade
 upgrade:
     #!/usr/bin/env bash
@@ -701,6 +739,7 @@ fetch-signatures:
 
 # === Aliases ===
 alias r := rebuild
+alias hft := hyprflake-test
 alias up := upgrade
 alias gc := clean
 alias qr := quiet-rebuild
