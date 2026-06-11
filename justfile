@@ -329,13 +329,13 @@ update-skills:
     nix flake update humanizer-skill || echo "humanizer-skill update failed (non-fatal)"
     echo "Skills updated"
 
-# Ad-hoc capture of live ~/.claude and ~/agent-os state into the repo.
+# Ad-hoc capture of live ~/.claude, ~/agent-os, and DMS (dank) state into the repo.
 #
 # Auto-capture during rebuild is gated to qbert (the designated source of
 # truth) so non-canonical hosts don't regress the repo. Use this recipe to
-# manually surface a new skill/agent/setting installed on any other host
-# (donkeykong, etc.) -- review the resulting diff and commit only the bits
-# that should propagate.
+# manually surface a new skill/agent/setting or DMS GUI change installed on any
+# other host (donkeykong, etc.) -- review the resulting diff and commit only the
+# bits that should propagate. DMS settings land in dank-profiles/<group>.json.
 #
 # When run off qbert this is a DRY-RUN by default: capture-sync still
 # computes the three-way diff and prints what would change, but does not
@@ -367,14 +367,22 @@ capture:
         if [[ "$conflicts" -gt 0 ]]; then
             echo "  conflicts   : $conflicts"
         fi
+        if command -v dank-diff >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
+            echo ""
+            echo "  DMS (dank): run 'dank-diff' to preview, 'dank-capture' to apply (or JUST_CAPTURE_FORCE=1 just capture)."
+        fi
         exit 0
     fi
     echo "Capturing Claude Code config..."
     fish -c 'claude-capture' || echo "Claude capture failed (non-fatal)"
     echo "Capturing Agent OS config..."
     fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
+    if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
+        echo "Capturing DMS (dank) settings..."
+        dank-capture || echo "DMS capture failed (non-fatal)"
+    fi
     echo ""
-    echo "Review with: git status && git diff modules/apps/cli/claude-code modules/apps/cli/agentos"
+    echo "Review with: git status && git diff modules/apps/cli/claude-code modules/apps/cli/agentos dank-profiles"
 
 # Resolve a capture-sync conflict by picking which side wins.
 # Usage: just capture-resolve skills/gsuite-edit/SKILL.md --home
@@ -400,6 +408,15 @@ upgrade_log := "/tmp/nixerator-upgrade.log"
 # Without this, any change made directly to a managed file (CLAUDE.md,
 # settings.json, agents, skills, output-styles, plugin metadata) between
 # rebuilds is silently lost when the activation script runs.
+#
+# DMS (dank) is captured here too, and the ordering is deliberate: dank-capture
+# harvests the live ~/.config/DankMaterialShell/settings.json into
+# dank-profiles/<group>.json BEFORE the rebuild evaluates the flake, so the same
+# rebuild's dank seed re-derives exactly what was captured (live == seed marker)
+# instead of tripping the seed clobber-guard's "un-captured GUI edits" warning.
+# Capturing after activation would lag a rebuild and warn. The dank module
+# preserves un-captured edits rather than wiping them, so there is no data-loss
+# risk -- this is purely to make qbert's GUI state declarative on the same pass.
 # mode: "interactive" (gum spin) or "quiet" (plain echo)
 [private]
 pre-rebuild mode="quiet":
@@ -419,11 +436,19 @@ pre-rebuild mode="quiet":
             -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Pre-capture failed (non-fatal)"
         gum spin --spinner dot --title "Capturing live Agent OS config (pre-rebuild)..." \
             -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS pre-capture failed (non-fatal)"
+        if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
+            gum spin --spinner dot --title "Capturing live DMS settings (pre-rebuild)..." \
+                -- bash -c 'dank-capture &>/dev/null' || gum style --foreground 220 "DMS pre-capture failed (non-fatal)"
+        fi
     else
         echo "Capturing live Claude Code config (pre-rebuild)..."
         fish -c 'claude-capture' &>/dev/null || echo "Pre-capture failed (non-fatal)"
         echo "Capturing live Agent OS config (pre-rebuild)..."
         fish -c 'agentos-capture' &>/dev/null || echo "Agent OS pre-capture failed (non-fatal)"
+        if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
+            echo "Capturing live DMS settings (pre-rebuild)..."
+            dank-capture &>/dev/null || echo "DMS pre-capture failed (non-fatal)"
+        fi
     fi
 
 # Post-rebuild: sync plugins, restart DMS, capture config, check for changes
@@ -527,6 +552,24 @@ post-rebuild mode="quiet":
         fi
         echo "$commit_msg" | wl-copy 2>/dev/null || true
         notify-send "Nixerator" "Captured config changed — review and commit" 2>/dev/null || true
+    fi
+
+    # DMS (dank) settings are captured in pre-rebuild (before the seed); surface
+    # any resulting change to dank-profiles/ here, on its own commit scope.
+    if $is_capture_source && [[ -n "$(git status --porcelain -- dank-profiles 2>/dev/null)" ]]; then
+        dank_msg='chore(dank): update captured DMS settings'
+        echo ""
+        if [[ "{{mode}}" == "interactive" ]]; then
+            gum style --foreground 220 --bold "DMS settings captured! Review and commit with:"
+        else
+            echo "════════════════════════════════════════════════════════════"
+            echo "  DMS settings captured! Review and commit with:"
+        fi
+        echo "  git add dank-profiles && git commit -m \"$dank_msg\""
+        if [[ "{{mode}}" != "interactive" ]]; then
+            echo "════════════════════════════════════════════════════════════"
+        fi
+        notify-send "Nixerator" "DMS settings captured — review and commit" 2>/dev/null || true
     fi
 
 # === Quiet Recipes ===
