@@ -346,11 +346,19 @@ update-skills:
 capture:
     #!/usr/bin/env bash
     set -uo pipefail
+    # DMS (dank) is host-agnostic: any workstation may capture its DMS settings
+    # into the shared dank-profiles/<group>.json, so it ALWAYS applies here --
+    # it is not gated to qbert like the claude/agentos capture below. Review the
+    # resulting dank-profiles/ diff and commit only deliberate changes (a shared
+    # full-file profile means any per-host DMS divergence shows up as a diff).
+    if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
+        echo "Capturing DMS (dank) settings..."
+        dank-capture || echo "DMS capture failed (non-fatal)"
+        echo ""
+    fi
     if [[ "$(hostname)" != "qbert" && "${JUST_CAPTURE_FORCE:-0}" != "1" ]]; then
-        echo "just capture: running on non-canonical host $(hostname) in DRY-RUN mode."
-        echo "  To actually apply, re-run with JUST_CAPTURE_FORCE=1 just capture."
-        echo "  Without the override only the dry-run summary is printed; the"
-        echo "  repo and .capture-state.json are not modified."
+        echo "just capture: claude/agentos capture is gated to qbert; on $(hostname) those run in DRY-RUN mode (DMS was captured above)."
+        echo "  To also apply claude/agentos here, re-run with JUST_CAPTURE_FORCE=1 just capture."
         echo ""
         # capture-sync respects --dry-run. Anchor paths on
         # justfile_directory() rather than $(pwd) so the recipe is safe
@@ -367,20 +375,14 @@ capture:
         if [[ "$conflicts" -gt 0 ]]; then
             echo "  conflicts   : $conflicts"
         fi
-        if command -v dank-diff >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
-            echo ""
-            echo "  DMS (dank): run 'dank-diff' to preview, 'dank-capture' to apply (or JUST_CAPTURE_FORCE=1 just capture)."
-        fi
+        echo ""
+        echo "Review DMS capture with: git diff dank-profiles"
         exit 0
     fi
     echo "Capturing Claude Code config..."
     fish -c 'claude-capture' || echo "Claude capture failed (non-fatal)"
     echo "Capturing Agent OS config..."
     fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
-    if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
-        echo "Capturing DMS (dank) settings..."
-        dank-capture || echo "DMS capture failed (non-fatal)"
-    fi
     echo ""
     echo "Review with: git status && git diff modules/apps/cli/claude-code modules/apps/cli/agentos dank-profiles"
 
@@ -416,14 +418,28 @@ upgrade_log := "/tmp/nixerator-upgrade.log"
 # instead of tripping the seed clobber-guard's "un-captured GUI edits" warning.
 # Capturing after activation would lag a rebuild and warn. The dank module
 # preserves un-captured edits rather than wiping them, so there is no data-loss
-# risk -- this is purely to make qbert's GUI state declarative on the same pass.
+# risk. Unlike claude/agentos (qbert-only), DMS capture runs on EVERY host: any
+# workstation may contribute DMS settings to the shared profile. The captures are
+# never auto-committed -- post-rebuild surfaces the diff for you to review, so a
+# host with divergent DMS state can't silently clobber the shared profile.
 # mode: "interactive" (gum spin) or "quiet" (plain echo)
 [private]
 pre-rebuild mode="quiet":
     #!/usr/bin/env bash
     set -uo pipefail
-    # Capture flows live ~/.claude state into the repo. Only qbert is the
-    # designated capture source -- other hosts (donkeykong, srv, ...) carry
+    # DMS (dank): host-agnostic, so capture BEFORE the qbert gate below. Writes
+    # the live settings into dank-profiles/ so this same rebuild seeds them.
+    if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
+        if [[ "{{mode}}" == "interactive" ]]; then
+            gum spin --spinner dot --title "Capturing live DMS settings (pre-rebuild)..." \
+                -- bash -c 'dank-capture &>/dev/null' || gum style --foreground 220 "DMS pre-capture failed (non-fatal)"
+        else
+            echo "Capturing live DMS settings (pre-rebuild)..."
+            dank-capture &>/dev/null || echo "DMS pre-capture failed (non-fatal)"
+        fi
+    fi
+    # claude/agentos capture flows live ~/.claude state into the repo. Only qbert
+    # is the designated source -- other hosts (donkeykong, srv, ...) carry
     # narrower live state and would silently regress the repo if allowed to
     # auto-capture. For ad-hoc captures from another host (e.g. a newly
     # installed skill), run `just capture` explicitly.
@@ -436,19 +452,11 @@ pre-rebuild mode="quiet":
             -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Pre-capture failed (non-fatal)"
         gum spin --spinner dot --title "Capturing live Agent OS config (pre-rebuild)..." \
             -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS pre-capture failed (non-fatal)"
-        if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
-            gum spin --spinner dot --title "Capturing live DMS settings (pre-rebuild)..." \
-                -- bash -c 'dank-capture &>/dev/null' || gum style --foreground 220 "DMS pre-capture failed (non-fatal)"
-        fi
     else
         echo "Capturing live Claude Code config (pre-rebuild)..."
         fish -c 'claude-capture' &>/dev/null || echo "Pre-capture failed (non-fatal)"
         echo "Capturing live Agent OS config (pre-rebuild)..."
         fish -c 'agentos-capture' &>/dev/null || echo "Agent OS pre-capture failed (non-fatal)"
-        if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
-            echo "Capturing live DMS settings (pre-rebuild)..."
-            dank-capture &>/dev/null || echo "DMS pre-capture failed (non-fatal)"
-        fi
     fi
 
 # Post-rebuild: sync plugins, restart DMS, capture config, check for changes
@@ -554,9 +562,10 @@ post-rebuild mode="quiet":
         notify-send "Nixerator" "Captured config changed — review and commit" 2>/dev/null || true
     fi
 
-    # DMS (dank) settings are captured in pre-rebuild (before the seed); surface
-    # any resulting change to dank-profiles/ here, on its own commit scope.
-    if $is_capture_source && [[ -n "$(git status --porcelain -- dank-profiles 2>/dev/null)" ]]; then
+    # DMS (dank) settings are captured in pre-rebuild (before the seed) on EVERY
+    # host -- not gated to qbert -- so surface any resulting change to
+    # dank-profiles/ here regardless of host, on its own commit scope.
+    if [[ -n "$(git status --porcelain -- dank-profiles 2>/dev/null)" ]]; then
         dank_msg='chore(dank): update captured DMS settings'
         echo ""
         if [[ "{{mode}}" == "interactive" ]]; then
