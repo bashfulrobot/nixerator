@@ -141,6 +141,29 @@ in
       };
     };
 
+    # DMS settings capture (hyprflake feature). Makes settings.json writable so
+    # the DankMaterialShell GUI can edit it, and rounds GUI changes back into
+    # this repo via the `dank-capture` command. Layering (per-key, lowest wins):
+    # hyprflake defaults < shared `settings` (below) < captured overrides.
+    #
+    # `group` picks the captured-overrides file at dank-profiles/<group>.json:
+    #   - default here is "workstations": donkeykong + qbert share one profile,
+    #     so a GUI change captured on either propagates to both on rebuild.
+    #   - to isolate a host, override in hosts/<host>/modules.nix with
+    #       hyprflake.desktop.dank.capture.group = config.networking.hostName;
+    #     or group a subset with e.g. ...capture.group = "laptops";
+    hyprflake.desktop.dank.capture = {
+      enable = lib.mkDefault true;
+      group = lib.mkDefault "workstations";
+      repoRoot = "${globals.paths.nixerator}/dank-profiles";
+      overridesDir = ../../../dank-profiles;
+    };
+
+    # Shared DMS settings — same on every workstation, overridable per-host in
+    # the GUI (dank-capture writes only the host-specific delta). Add keys here,
+    # e.g.:  hyprflake.desktop.dank.settings.showWorkspaceIndex = false;
+    # (Leave empty until you have a setting you want on all machines.)
+
     # Stylix font configuration - Apple fonts (SF Pro, SF Mono, New York)
     # To revert to defaults, comment out this stylix.fonts block:
     #   monospace: DejaVu Sans Mono
