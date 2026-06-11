@@ -133,6 +133,12 @@
       "/home/dustin/git/.worktrees"
     ]
   },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "`just qr` (quiet-rebuild) and `just qu` (quiet-upgrade) in ~/git/nixerator are the user's explicitly sanctioned wrappers for applying and upgrading the NixOS configuration on this personal workstation. ALLOW them, including compound forms like `cd ~/git/nixerator && just qr`. This does NOT permit raw `nixos-rebuild switch/boot/test`, which remains denied — the user's own bash-guard hook routes all rebuilds through these recipes."
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
