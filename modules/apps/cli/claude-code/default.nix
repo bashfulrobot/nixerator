@@ -31,10 +31,10 @@ let
     inherit (mcpConfig) mcpServers;
   };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
-  pluginsConfig = import ./cfg/plugins.nix {
-    inherit pkgs;
-    desiredPlugins = cfg.plugins;
-  };
+  # Declarative, SHA-pinned plugin surface (marketplaces + enabled plugins).
+  # Replaces the old imperative cfg/plugins.nix sync; merged into settings.json
+  # at activation and stripped from capture so Nix owns these keys.
+  pluginConfig = import ./cfg/plugin-config.nix { inherit pkgs; };
   skillUpdatesConfig = import ./cfg/skill-updates.nix {
     inherit pkgs;
   };
@@ -55,6 +55,7 @@ let
       homeDir
       ;
     humanizerSkillSrc = inputs.humanizer-skill;
+    pluginOverlay = pluginConfig.settingsOverlay;
   };
 
   # Status line script -- jq, curl, gawk in PATH via runtimeInputs
@@ -91,7 +92,7 @@ let
   # /run/current-system/sw/bin so a future switch to chromium / brave / vivaldi
   # is one globals.preferences.browser flip away. This intentionally couples to
   # the user's XDG-style preference slot rather than hardcoding a package.
-  hasHyperframes = lib.elem "hyperframes@hyperframes" cfg.plugins;
+  hasHyperframes = lib.elem "hyperframes@hyperframes" pluginConfig.enabledPluginIds;
   hyperframesBrowserPath = "/run/current-system/sw/bin/${globals.preferences.browser}";
 
   # Conditional env vars exported into both system and HM session scopes.
@@ -134,11 +135,6 @@ in
         type = lib.types.bool;
         default = false;
         description = "Enable claude-code CLI tool with custom configuration.";
-      };
-      plugins = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = "Plugin identifiers to install (e.g., 'ralph-loop@claude-plugins-official').";
       };
       serverProfile = lib.mkOption {
         type = lib.types.enum [
@@ -230,7 +226,6 @@ in
             # silently depends on suites.dev being co-enabled.
             (lib.hiPrio pkgs.nodejs_22)
           ]
-          ++ pluginsConfig.packages
           ++ skillUpdatesConfig.packages
           ++ reapConfig.packages;
 

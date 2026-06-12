@@ -6,6 +6,7 @@
   globals,
   homeDir,
   humanizerSkillSrc,
+  pluginOverlay,
 }:
 
 {
@@ -30,6 +31,15 @@
         -e 's|@USER_NAME@|${globals.user.name}|g' \
         -e 's|@HOME_DIR@|${globals.user.homeDirectory}|g' \
         "${configDir}/settings.json" > "$claude_home/settings.json"
+
+      # Plugin surface is owned by Nix (cfg/plugin-config.nix), not by the
+      # captured settings.json. Merge the SHA-pinned extraKnownMarketplaces and
+      # the enabledPlugins map in here so they can't drift via capture.
+      ${pkgs.jq}/bin/jq --slurpfile ov ${pluginOverlay} \
+        '.extraKnownMarketplaces = $ov[0].extraKnownMarketplaces
+         | .enabledPlugins = $ov[0].enabledPlugins' \
+        "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+      mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
       chmod 644 "$claude_home/settings.json"
     else
       $DRY_RUN_CMD "would substitute @STATUSLINE_COMMAND@ in settings.json"
@@ -87,7 +97,19 @@
     # REAP -- deploy slash commands to ~/.reap/commands/
     ${reapConfig.activation}
 
-    # Plugins -- deploy captured plugin config and cache
+    # Plugins -- known_marketplaces.json and enabledPlugins are owned
+    # declaratively (cfg/plugin-config.nix, merged into settings.json above);
+    # Claude Code reconciles the marketplace registry + installs at session
+    # start. We still deploy two runtime files that have no settings.json
+    # equivalent:
+    #
+    #   installed_plugins.json -- seeds the install record so an already-cached
+    #     host shows plugins without a re-install round-trip. SHA-stamped, so it
+    #     is captured (cfg/fish.nix) rather than authored.
+    #   blocklist.json         -- managed plugin blocklist.
+    #
+    # The plugin cache itself is not tracked; Claude Code re-downloads from the
+    # pinned marketplace SHAs on first use.
     plugins_src="${configDir}/plugins"
     if [ -d "$plugins_src" ]; then
       $DRY_RUN_CMD mkdir -p "$claude_home/plugins"
@@ -102,23 +124,11 @@
         fi
       fi
 
-      # known_marketplaces.json -- substitute @HOME_DIR@ placeholder
-      if [ -f "$plugins_src/known_marketplaces.json" ]; then
-        if [ -z "$DRY_RUN_CMD" ]; then
-          rm -f "$claude_home/plugins/known_marketplaces.json"
-          ${pkgs.gnused}/bin/sed 's|@HOME_DIR@|${homeDir}|g' \
-            "$plugins_src/known_marketplaces.json" > "$claude_home/plugins/known_marketplaces.json"
-          chmod 644 "$claude_home/plugins/known_marketplaces.json"
-        fi
-      fi
-
       # blocklist.json -- plain copy
       if [ -f "$plugins_src/blocklist.json" ]; then
         $DRY_RUN_CMD rm -f "$claude_home/plugins/blocklist.json"
         $DRY_RUN_CMD cp --no-preserve=mode "$plugins_src/blocklist.json" "$claude_home/plugins/blocklist.json"
       fi
-
-      # Plugin cache not tracked in git -- Claude Code auto-downloads from installed_plugins.json
     fi
   '';
 }

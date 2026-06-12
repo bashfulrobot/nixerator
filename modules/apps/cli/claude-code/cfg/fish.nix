@@ -70,9 +70,13 @@
         echo ""
 
         # settings.json -- replace statusline store path back to placeholder.
+        # extraKnownMarketplaces and enabledPlugins are owned declaratively by
+        # cfg/plugin-config.nix (merged in at activation), so strip them here --
+        # otherwise the captured runtime copy (bare, unpinned) would clobber the
+        # Nix-authored, SHA-pinned values on the next rebuild.
         if test -f "$claude_dir/settings.json"
           sed "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" "$claude_dir/settings.json" \
-            | jq . > "$config_dir/settings.json"
+            | jq 'del(.extraKnownMarketplaces, .enabledPlugins)' > "$config_dir/settings.json"
           echo "  settings.json"
         end
 
@@ -158,7 +162,9 @@
 
         rm -f $sync_stdout $sync_stderr
 
-        # Plugins -- placeholder substitution, kept on legacy path.
+        # Plugins -- known_marketplaces.json is no longer captured (marketplaces
+        # are owned declaratively in cfg/plugin-config.nix). Only installed_plugins.json
+        # (SHA-stamped install record) and blocklist.json are captured here.
         set -l plugins_dir "$claude_dir/plugins"
         set -l plugins_config "$config_dir/plugins"
         if test -f "$plugins_dir/installed_plugins.json"
@@ -168,12 +174,6 @@
           sed "s|$HOME|@HOME_DIR@|g" "$plugins_dir/installed_plugins.json" \
             | jq . > "$plugins_config/installed_plugins.json"
           echo "    installed_plugins.json"
-
-          if test -f "$plugins_dir/known_marketplaces.json"
-            sed "s|$HOME|@HOME_DIR@|g" "$plugins_dir/known_marketplaces.json" \
-              | jq . > "$plugins_config/known_marketplaces.json"
-            echo "    known_marketplaces.json"
-          end
 
           if test -f "$plugins_dir/blocklist.json"
             cp "$plugins_dir/blocklist.json" "$plugins_config/blocklist.json"
