@@ -159,6 +159,12 @@ in
       overridesDir = ../../../dank-profiles;
     };
 
+    # Add the primary user to the DankGreeter `greeter` group. Cosmetic only:
+    # hyprflake themes the greeter via a configHome snapshot copy (not group
+    # ACLs), so membership grants access the greeter never uses. It only
+    # silences the DMS Settings → Greeter Status "not in greeter group" line.
+    users.users."${globals.user.name}".extraGroups = [ "greeter" ];
+
     # Shared DMS settings — same on every workstation, overridable per-host in
     # the GUI (dank-capture writes only the host-specific delta). Add keys here,
     # e.g.:  hyprflake.desktop.dank.settings.showWorkspaceIndex = false;
