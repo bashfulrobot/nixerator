@@ -42,13 +42,18 @@ npx skills-installer search frontend
 npx skills-installer install @anthropics/claude-code/frontend-design
 ```
 
-## Capturing Into NixOS Config
+## Managing In NixOS Config
 
-CLI commands are useful for discovery and initial install, but the goal is to
-manage plugins/skills declaratively in nixerator so they survive rebuilds and
-stay consistent across hosts.
+The goal is to manage plugins and skills in nixerator so they survive rebuilds
+and stay consistent across hosts. The two surfaces are handled differently:
 
-After installing via CLI, capture what you want to keep:
+- **Skills** are *captured* from runtime (discover/author in `~/.claude`, then
+  `claude-capture` mirrors them into git).
+- **Plugins + marketplaces** are *authored directly in Nix* (`plugin-config.nix`,
+  SHA-pinned) and merged into the deployed `settings.json` -- they are **not**
+  captured. The `claude-plugins` / `claude plugin` CLIs above are for ad-hoc
+  discovery and experimentation only; the durable, reproducible state lives in
+  `plugin-config.nix`.
 
 1. **Skills** -- author or install in `~/.claude/skills/<name>/` and run
    `claude-capture` (or just `just qr`, which calls it as a pre-rebuild
@@ -86,5 +91,7 @@ After installing via CLI, capture what you want to keep:
    `config/skills/` and `config/plugins/installed_plugins.json` to spot
    drift between runtime and committed state.
 
-The pattern: discover or author at runtime, capture mirrors to git,
-activation re-deploys on rebuild.
+The pattern differs by surface: **skills** are discovered/authored at runtime
+and captured to git; **plugins + marketplaces** are authored in Nix
+(`plugin-config.nix`) and merged into `settings.json` at activation. Both
+re-deploy on rebuild.
