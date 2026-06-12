@@ -494,8 +494,8 @@ post-rebuild mode="quiet":
         screen_locked=true
     fi
     if [[ "{{mode}}" == "interactive" ]]; then
-        gum spin --spinner dot --title "Syncing plugins..." \
-            -- bash -c 'claude-sync-plugins &>/dev/null' || gum style --foreground 220 "Plugin sync failed (non-fatal)"
+        # Plugins are synced declaratively at activation (settings.json
+        # overlay from cfg/plugin-config.nix); no runtime sync step needed.
         # Run visibly (not inside a gum spin) so claude-skill-updates'
         # "updated N skill(s)" report reaches the terminal; the spinner's
         # &>/dev/null would otherwise swallow it. The desktop notify-send
@@ -520,8 +520,7 @@ post-rebuild mode="quiet":
                 -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS capture failed (non-fatal)"
         fi
     else
-        echo "Syncing plugins..."
-        claude-sync-plugins || echo "Plugin sync failed (non-fatal)"
+        # Plugins synced declaratively at activation; no runtime sync step.
         echo "Updating skills..."
         just update-skills || echo "Skill update failed (non-fatal)"
         if systemctl --user is-active --quiet dms.service; then
