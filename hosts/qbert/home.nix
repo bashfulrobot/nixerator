@@ -50,4 +50,20 @@
       # Add your custom bash configuration here
     '';
   };
+
+  # Declared through hyprflake.hyprland.extraLua so it loads last and this
+  # DP-3 rule wins over hyprflake's default wildcard monitor rule. Monitors
+  # are configured declaratively here (not via DMS's Display Profiles GUI,
+  # whose "Setup" button can't write hyprflake's read-only hyprland.lua).
+  # vrr = 2 is "fullscreen only" (smooth VRR in fullscreen games, steady
+  # 144Hz on the desktop — best fit for the G34WQC VA panel).
+  hyprflake.hyprland.extraLua."monitor" = ''
+    hl.monitor({
+      output = "DP-3",
+      mode = "3440x1440@144",
+      position = "auto",
+      scale = "1",
+      vrr = 2,
+    })
+  '';
 }
