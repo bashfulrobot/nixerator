@@ -178,6 +178,20 @@ in
           };
           agent_servers.claude-acp = {
             type = "registry";
+            # Zed's registry adapter (@agentclientprotocol/claude-agent-acp)
+            # drives @anthropic-ai/claude-agent-sdk, which ships a vendored,
+            # generic-linux `claude` binary requesting interpreter
+            # /lib64/ld-linux-x86-64.so.2 — absent on NixOS. The SDK spawns it,
+            # it fails to exec, and the next write to its stdin throws an
+            # unhandled EPIPE that kills the adapter, so the Agent panel hangs
+            # forever on "loading". CLAUDE_CODE_EXECUTABLE overrides
+            # pathToClaudeCodeExecutable; the SDK runs that path directly
+            # (its oH() helper only routes *.js/*.mjs/*.ts through node), so the
+            # patchelf'd Nix claude wrapper -> .claude-wrapped ELF executes
+            # natively. Same package backing apps.cli.claude-code.
+            env = {
+              CLAUDE_CODE_EXECUTABLE = "${pkgs.llm-agents.claude-code}/bin/claude";
+            };
           };
           session = {
             trust_all_worktrees = true;
