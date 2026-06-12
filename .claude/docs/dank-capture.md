@@ -23,6 +23,35 @@ Dank capture is folded into the capture flow alongside claude/agentos, but unlik
 
 So the loop on any host is: tweak DMS in the GUI → `just qr`/`just qu` (or `just capture`) → review the `dank-profiles/` diff → commit only what you intend to share.
 
+## What capture does NOT make live (Hyprland-layer keys)
+
+Capture harvests the **whole** `settings.json`, so Hyprland-affecting keys
+(`hyprlandOutputSettings`, `displayProfiles`, `hyprlandLayoutGapsOverride`,
+`hyprlandLayoutBorderSize`, `cursorSettings`, keybinds) **are** written to the
+profile and re-seeded on every workstation. But they do **not** take effect,
+because hyprflake deliberately does not `require()` the `~/.config/hypr/dms/*.lua`
+fragments DMS renders from them (its `hyprland.lua` require list has no `dms.*`
+entries). Two camps:
+
+- **DMS applies it directly** (bar, dock, widgets, clock, colours, notifications,
+  system-monitor, lock screen — ~95% of the GUI): GUI → capture → re-seed → DMS
+  reads it at runtime → **applies on every workstation.** Full round-trip works.
+- **Hyprland applies it** (monitors, gaps/border, cursor, binds): DMS only renders
+  an inert `hypr/dms/<panel>.lua`. The captured value rides along but lands dead.
+  Declare these in Nix instead — **monitors per-host** in `hosts/<host>/home.nix`
+  via `hyprflake.hyprland.extraLua."monitor"`, **shared gaps/border** in the
+  desktop suite, **cursor** via Stylix, **binds** in hyprflake. Live gaps come
+  from hyprflake's baked `hl.config`, not `dms/layout.lua`.
+
+This split is intentional: monitor layout is irreducibly per-host (a shared
+`workstations.json` carries one `hyprlandOutputSettings`, so applying it would
+force qbert's `DP-3` layout onto every host), and gaps/border/cursor already have
+a declarative owner. The DMS Displays / Appearance-layout / Keyboard-Shortcuts /
+Cursor panels are therefore **no-ops here** — their "Setup"/"Fix Now" buttons also
+fail trying to inject `require(...)` into the read-only `hyprland.lua`. See
+hyprflake `docs/architecture.md` for the per-panel mapping. The `dms/*.lua`
+fragments are safe to delete; DMS regenerates them inertly.
+
 ## Caveats
 
 - **Shared full-file profile:** if two workstations ever hold genuinely divergent DMS state (e.g. monitor/display-specific keys DMS materialises differently per host), each host's rebuild captures its own state and you'll see flip-flop diffs. The manual-commit checkpoint is the safeguard — review before committing.
