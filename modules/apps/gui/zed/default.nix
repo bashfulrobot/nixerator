@@ -337,7 +337,7 @@ in
             if test -z "$project"
               return 1
             end
-            zed "ssh://${globals.remoteEdit.user}@${globals.hosts.qbert.tailscale_ip}/$project"
+            zeditor "ssh://${globals.remoteEdit.user}@${globals.hosts.qbert.tailscale_ip}/$project"
           '';
         };
       };
