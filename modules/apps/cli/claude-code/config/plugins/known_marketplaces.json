@@ -23,14 +23,6 @@
     "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/claude-code-lsps",
     "lastUpdated": "2026-03-02T18:27:00.523Z"
   },
-  "kong-cs": {
-    "source": {
-      "source": "github",
-      "repo": "Kong/cs-skills"
-    },
-    "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/kong-cs",
-    "lastUpdated": "2026-05-07T01:35:47.396Z"
-  },
   "kong-se-skills": {
     "source": {
       "source": "git",
@@ -54,5 +46,13 @@
     },
     "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/impeccable",
     "lastUpdated": "2026-06-09T21:00:31.992Z"
+  },
+  "kong-skills": {
+    "source": {
+      "source": "github",
+      "repo": "Kong/kong-skills"
+    },
+    "installLocation": "@HOME_DIR@/.claude/plugins/marketplaces/kong-skills",
+    "lastUpdated": "2026-06-12T16:42:47.220Z"
   }
 }
