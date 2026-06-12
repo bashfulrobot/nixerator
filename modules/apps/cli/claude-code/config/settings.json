@@ -367,41 +367,6 @@
     "type": "command",
     "command": "@STATUSLINE_COMMAND@"
   },
-  "enabledPlugins": {
-    "skill-creator@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
-    "kotlin-lsp@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true,
-    "impeccable@impeccable": true,
-    "kong-skills@kong-skills": true,
-    "commit@kong-skills": true,
-    "kong-skill@kong-skills": true,
-    "kong-doc-build@kong-skills": true,
-    "feature-request@kong-skills": true
-  },
-  "extraKnownMarketplaces": {
-    "kong-se-skills": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/KongHQ-SE/se-kong-skills.git"
-      }
-    },
-    "impeccable": {
-      "source": {
-        "source": "github",
-        "repo": "pbakaus/impeccable"
-      }
-    },
-    "kong-skills": {
-      "source": {
-        "source": "github",
-        "repo": "Kong/kong-skills"
-      }
-    }
-  },
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,

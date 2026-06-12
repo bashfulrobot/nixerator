@@ -59,13 +59,27 @@ After installing via CLI, capture what you want to keep:
    capture sink and the deploy source. Skills listed in
    `config/skills/.capture-ignore` are skipped.
 
-2. **Plugins** -- inspect installed plugin content at
-   `~/.claude/plugins/marketplaces/` or `~/.claude/plugins/cache/`.
-   `claude-capture` also mirrors `installed_plugins.json`,
-   `known_marketplaces.json`, and `blocklist.json` into
-   `config/plugins/`, which the activation re-deploys on rebuild. Plugin
-   content itself is fetched by Claude Code at runtime from the recorded
-   marketplaces.
+2. **Plugins + marketplaces (declarative, SHA-pinned)** -- which marketplaces
+   are trusted and which plugins are enabled is **authored in Nix**, not
+   captured. The single source of truth is
+   `modules/apps/cli/claude-code/cfg/plugin-config.nix`: it defines
+   `extraKnownMarketplaces` (the active third-party marketplaces, each pinned to
+   a commit `sha`) and `enabledPlugins` (the full `<plugin>@<marketplace>` set).
+   The activation script merges those two keys into the deployed
+   `~/.claude/settings.json`, and `claude-capture` **strips** them from the
+   captured repo `settings.json` so the runtime copy can't clobber the pinned
+   Nix values. `claude-plugins-official` is the built-in Anthropic marketplace
+   and is intentionally **not** declared. To bump a marketplace, change its
+   `sha` in `plugin-config.nix` (like bumping `flake.lock`); to add/remove a
+   plugin, edit `enabledPlugins`.
+
+   Only two runtime files are still captured + re-deployed, because they have no
+   `settings.json` equivalent: `installed_plugins.json` (the SHA-stamped install
+   record, which seeds an already-cached host) and `blocklist.json` (managed
+   plugin blocklist). `known_marketplaces.json` is **no longer** captured or
+   deployed -- it is regenerated at session start from the declarative
+   `extraKnownMarketplaces`. Plugin content itself is fetched by Claude Code at
+   runtime from the pinned marketplace SHAs.
 
 3. **Audit installed state** -- `claude plugin list` shows installed
    plugins; `ls ~/.claude/skills` shows active skills. Compare against
