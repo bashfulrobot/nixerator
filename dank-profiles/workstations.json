@@ -1,11 +1,13 @@
 {
   "acLockTimeout": 300,
-  "acMonitorTimeout": 360,
+  "acMonitorTimeout": 600,
   "acPostLockMonitorTimeout": 0,
   "acProfileName": "",
   "acSuspendBehavior": 0,
-  "acSuspendTimeout": 600,
-  "activeDisplayProfile": {},
+  "acSuspendTimeout": 0,
+  "activeDisplayProfile": {
+    "hyprland": "auto_201b32"
+  },
   "animationSpeed": 1,
   "animationVariant": 0,
   "appDrawerSectionViewModes": {},
@@ -52,23 +54,30 @@
   "audioWheelScrollAmount": 5,
   "barConfigs": [
     {
+      "borderEnabled": false,
       "centerWidgets": [
         "music",
         "clock"
       ],
       "enabled": true,
       "fontScale": 1.15,
+      "gothCornersEnabled": false,
       "id": "default",
       "leftWidgets": [
-        "workspaceSwitcher",
-        "focusedWindow"
+        {
+          "enabled": true,
+          "id": "workspaceSwitcher"
+        }
       ],
       "name": "Main Bar",
       "noBackground": true,
       "position": 0,
       "rightWidgets": [
         "systemTray",
-        "githubNotifier",
+        {
+          "enabled": true,
+          "id": "githubNotifier"
+        },
         "clipboard",
         "cpuUsage",
         "memUsage",
@@ -81,7 +90,9 @@
       "screenPreferences": [
         "all"
       ],
-      "showOnLastDisplay": true
+      "shadowIntensity": 0,
+      "showOnLastDisplay": true,
+      "squareCorners": false
     }
   ],
   "barElevationEnabled": false,
@@ -107,12 +118,19 @@
   "brightnessDevicePins": {},
   "browserPickerViewMode": "grid",
   "browserUsageHistory": {},
-  "builtInPluginSettings": {},
+  "builtInPluginSettings": {
+    "dms_clipboard_search": {
+      "trigger": "cb"
+    },
+    "dms_settings_search": {
+      "trigger": "?"
+    }
+  },
   "buttonColorMode": "primary",
   "centeringMode": "index",
   "clipboardEnterToPaste": false,
   "clockCompactMode": false,
-  "clockDateFormat": "",
+  "clockDateFormat": "M/d",
   "configVersion": 11,
   "connectedFrameBarStyleBackups": {},
   "controlCenterShowAudioIcon": true,
@@ -235,7 +253,7 @@
   "desktopWidgetInstances": [],
   "desktopWidgetPositions": {},
   "displayNameMode": "system",
-  "displayProfileAutoSelect": false,
+  "displayProfileAutoSelect": true,
   "displayProfiles": {},
   "displayShowDisconnected": false,
   "displaySnapToEdge": true,
@@ -279,7 +297,7 @@
   "fadeToLockEnabled": true,
   "fadeToLockGracePeriod": 5,
   "filePickerUsageHistory": {},
-  "firstDayOfWeek": -1,
+  "firstDayOfWeek": 2,
   "focusedWindowCompactMode": false,
   "focusedWindowSize": 1,
   "fontScale": 1,
@@ -318,6 +336,9 @@
   "hyprlandLayoutGapsOverride": -1,
   "hyprlandLayoutRadiusOverride": -1,
   "hyprlandOutputSettings": {
+    "DP-3": {
+      "vrrFullscreenOnly": true
+    },
     "eDP-1": {
       "bitdepth": 10
     }
@@ -327,22 +348,22 @@
   "launchPrefix": "",
   "launcherLogoBrightness": 0.5,
   "launcherLogoColorInvertOnMode": false,
-  "launcherLogoColorOverride": "",
+  "launcherLogoColorOverride": "primary",
   "launcherLogoContrast": 1,
   "launcherLogoCustomPath": "",
-  "launcherLogoMode": "apps",
+  "launcherLogoMode": "os",
   "launcherLogoSizeOffset": 0,
   "launcherPluginOrder": [],
   "launcherPluginVisibility": {},
-  "launcherStyle": "full",
-  "launcherUseOverlayLayer": false,
+  "launcherStyle": "spotlight",
+  "launcherUseOverlayLayer": true,
   "lockAtStartup": false,
   "lockBeforeSuspend": true,
   "lockDateFormat": "",
   "lockScreenActiveMonitor": "all",
   "lockScreenInactiveColor": "#000000",
-  "lockScreenNotificationMode": 0,
-  "lockScreenPowerOffMonitorsOnLock": false,
+  "lockScreenNotificationMode": 2,
+  "lockScreenPowerOffMonitorsOnLock": true,
   "lockScreenShowDate": true,
   "lockScreenShowMediaPlayer": true,
   "lockScreenShowPasswordField": true,
@@ -411,7 +432,7 @@
   "motionEffect": 0,
   "muxCustomCommand": "",
   "muxSessionFilter": "",
-  "muxType": "tmux",
+  "muxType": "zellij",
   "muxUseCustomCommand": false,
   "networkPreference": "auto",
   "nightModeEnabled": false,
@@ -437,24 +458,24 @@
   "notificationHistorySaveCritical": true,
   "notificationHistorySaveLow": true,
   "notificationHistorySaveNormal": true,
-  "notificationOverlayEnabled": false,
-  "notificationPopupPosition": 0,
+  "notificationOverlayEnabled": true,
+  "notificationPopupPosition": -1,
   "notificationPopupPrivacyMode": false,
   "notificationPopupShadowEnabled": true,
   "notificationRules": [],
   "notificationTimeoutCritical": 0,
   "notificationTimeoutLow": 5000,
   "notificationTimeoutNormal": 5000,
-  "osdAlwaysShowValue": false,
+  "osdAlwaysShowValue": true,
   "osdAudioOutputEnabled": true,
   "osdBrightnessEnabled": true,
   "osdCapsLockEnabled": true,
   "osdIdleInhibitorEnabled": true,
-  "osdMediaPlaybackEnabled": false,
+  "osdMediaPlaybackEnabled": true,
   "osdMediaVolumeEnabled": true,
   "osdMicMuteEnabled": true,
   "osdPosition": 5,
-  "osdPowerProfileEnabled": false,
+  "osdPowerProfileEnabled": true,
   "osdVolumeEnabled": true,
   "padHours12Hour": false,
   "popoutAnimationSpeed": 1,
@@ -503,20 +524,20 @@
   "showMemUsage": true,
   "showMusic": true,
   "showNotificationButton": true,
-  "showOccupiedWorkspacesOnly": false,
+  "showOccupiedWorkspacesOnly": true,
   "showOnLastDisplay": {},
   "showPrivacyButton": true,
   "showSeconds": false,
   "showSystemTray": true,
   "showWeather": true,
   "showWeekNumber": false,
-  "showWorkspaceApps": false,
+  "showWorkspaceApps": true,
   "showWorkspaceIndex": true,
   "showWorkspaceName": false,
   "showWorkspacePadding": false,
   "showWorkspaceSwitcher": true,
-  "sortAppsAlphabetically": false,
-  "soundLogin": false,
+  "sortAppsAlphabetically": true,
+  "soundLogin": true,
   "soundNewNotification": true,
   "soundPluggedIn": true,
   "soundVolumeChanged": true,
