@@ -159,6 +159,12 @@ in
       overridesDir = ../../../dank-profiles;
     };
 
+    # Opt in to the DMS frosted-glass look: Hyprland layer-shell blur + slide
+    # animations for every dms:* surface (bar, popouts, modals, overview) plus
+    # DMS's own panel/wallpaper blur. hyprflake defaults this off (flat,
+    # transparent); mkDefault so a host can still drop back to flat.
+    hyprflake.desktop.dank.frostedGlass.enable = lib.mkDefault true;
+
     # Add the primary user to the DankGreeter `greeter` group. Cosmetic only:
     # hyprflake themes the greeter via a configHome snapshot copy (not group
     # ACLs), so membership grants access the greeter never uses. It only
