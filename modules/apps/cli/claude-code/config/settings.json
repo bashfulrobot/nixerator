@@ -133,12 +133,6 @@
       "/home/dustin/git/.worktrees"
     ]
   },
-  "autoMode": {
-    "allow": [
-      "$defaults",
-      "`just qr` (quiet-rebuild) and `just qu` (quiet-upgrade) in ~/git/nixerator are the user's explicitly sanctioned wrappers for applying and upgrading the NixOS configuration on this personal workstation. ALLOW them, including compound forms like `cd ~/git/nixerator && just qr`. This does NOT permit raw `nixos-rebuild switch/boot/test`, which remains denied — the user's own bash-guard hook routes all rebuilds through these recipes."
-    ]
-  },
   "hooks": {
     "PostToolUse": [
       {
@@ -379,22 +373,16 @@
     "rust-analyzer-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
     "kotlin-lsp@claude-plugins-official": true,
-    "kong-skill@kong-cs": true,
     "pyright-lsp@claude-plugins-official": true,
-    "cs-skills@kong-cs": true,
-    "commit@kong-cs": true,
-    "kong-pptx-build@kong-cs": true,
     "frontend-design@claude-plugins-official": true,
-    "feature-request@kong-cs": true,
-    "impeccable@impeccable": true
+    "impeccable@impeccable": true,
+    "kong-skills@kong-skills": true,
+    "commit@kong-skills": true,
+    "kong-skill@kong-skills": true,
+    "kong-doc-build@kong-skills": true,
+    "feature-request@kong-skills": true
   },
   "extraKnownMarketplaces": {
-    "kong-cs": {
-      "source": {
-        "source": "github",
-        "repo": "Kong/cs-skills"
-      }
-    },
     "kong-se-skills": {
       "source": {
         "source": "git",
@@ -406,11 +394,23 @@
         "source": "github",
         "repo": "pbakaus/impeccable"
       }
+    },
+    "kong-skills": {
+      "source": {
+        "source": "github",
+        "repo": "Kong/kong-skills"
+      }
     }
   },
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "`just qr` (quiet-rebuild) and `just qu` (quiet-upgrade) in ~/git/nixerator are the user's explicitly sanctioned wrappers for applying and upgrading the NixOS configuration on this personal workstation. ALLOW them, including compound forms like `cd ~/git/nixerator && just qr`. This does NOT permit raw `nixos-rebuild switch/boot/test`, which remains denied — the user's own bash-guard hook routes all rebuilds through these recipes."
+    ]
+  },
   "smallModelOverride": "haiku",
   "coAuthor": "",
   "remoteControlEnabled": true
