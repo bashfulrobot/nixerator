@@ -567,7 +567,7 @@
   "systemMonitorWidth": 320,
   "systemMonitorX": -1,
   "systemMonitorY": -1,
-  "systemTrayIconTintMode": "none",
+  "systemTrayIconTintMode": "monochrome",
   "systemTrayIconTintSaturation": 50,
   "systemTrayIconTintStrength": 135,
   "terminalsAlwaysDark": false,
