@@ -29,6 +29,15 @@ let
       type = "http";
       url = "https://ai.todoist.net/mcp";
     };
+    # Atlassian Remote MCP Server (Rovo) -- Jira / Confluence access.
+    # Streamable-HTTP "authv2" endpoint; the legacy /v1/sse endpoint is
+    # deprecated after 2026-06-30, so we pin the HTTP one. Auth is OAuth 2.1
+    # with dynamic client registration (no clientId to pre-register) -- run
+    # `/mcp` in Claude Code to complete the browser authorization flow.
+    atlassian = {
+      type = "http";
+      url = "https://mcp.atlassian.com/v1/mcp/authv2";
+    };
     # On-device search engine for notes, transcripts, docs (BM25 + vector + LLM re-ranking)
     qmd = {
       command = "${pkgs.nodejs}/bin/npx";
