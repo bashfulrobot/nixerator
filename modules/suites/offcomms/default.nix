@@ -44,6 +44,7 @@ in
       };
 
       cli = {
+        gmailctl.enable = true;
         gurk.enable = true;
         meetsum.enable = true;
         pandoc.enable = true;
@@ -84,7 +85,6 @@ in
       todoist-electron
       fractal
       zoom-us
-      gmailctl # declarative Gmail filters/labels; config lives in ~/git/gmail-filters
     ];
 
     # Force Todoist Electron to use native Wayland (avoids XWayland key
