@@ -796,6 +796,17 @@ fetch-signatures:
 fetch-gmailctl-creds:
     @./extras/helpers/fetch-gmailctl-credentials.sh
 
+# Generic form: fetch the OAuth client into an arbitrary config dir / item.
+# gmailctl picks its dir via --config (NOT cwd), so each account = its own dir.
+#   just fetch-gmailctl-creds-for ~/.gmailctl-kong gmailctl dustin@konghq.com
+fetch-gmailctl-creds-for dir item="gmailctl" account="":
+    @./extras/helpers/fetch-gmailctl-credentials.sh "{{dir}}" "{{item}}" "{{account}}"
+
+# Kong work account, reusing the SAME OAuth client item (`gmailctl`). Writes
+# ~/.gmailctl-kong/credentials.json; then run `gmailctl --config ~/.gmailctl-kong init`.
+fetch-gmailctl-creds-kong:
+    @./extras/helpers/fetch-gmailctl-credentials.sh "${HOME}/.gmailctl-kong" gmailctl dustin@konghq.com
+
 # === Aliases ===
 alias r := rebuild
 alias hft := hyprflake-test
@@ -810,5 +821,6 @@ alias ps := push-secrets
 alias cs := check-secrets
 alias fs := fetch-signatures
 alias fgc := fetch-gmailctl-creds
+alias fgck := fetch-gmailctl-creds-kong
 alias gen := generations
 alias rb := rollback

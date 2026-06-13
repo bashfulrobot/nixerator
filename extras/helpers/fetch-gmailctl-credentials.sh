@@ -35,7 +35,16 @@
 
 set -euo pipefail
 
-GMAILCTL_DIR="${HOME}/.gmailctl"
+# Parameters (all optional, defaults preserve the original personal-account
+# behaviour so existing callers / the `fetch-gmailctl-creds` recipe are unchanged):
+#   $1  config dir       (default ~/.gmailctl)              -> gmailctl --config
+#   $2  1Password item   (default gmailctl, in vault nixerator)
+#   $3  account label    (default dustin@bashfulrobot.com)  -- message only
+# Example (Kong work account, reusing the SAME OAuth client item):
+#   ./fetch-gmailctl-credentials.sh ~/.gmailctl-kong gmailctl dustin@konghq.com
+GMAILCTL_DIR="${1:-${HOME}/.gmailctl}"
+OP_ITEM="${2:-gmailctl}"
+ACCOUNT_LABEL="${3:-dustin@bashfulrobot.com}"
 CRED_PATH="${GMAILCTL_DIR}/credentials.json"
 SA_TOKEN_FILE="${HOME}/.config/op/service-account-token"
 
@@ -74,11 +83,14 @@ chmod 600 "${tmp}"
 # Reconstruct credentials.json. The two {{ op://... }} references are resolved
 # by `op inject`; the value never touches stdout or the terminal. --force
 # overwrites the mktemp-precreated file under the non-interactive SA session.
-op inject --force --out-file "${tmp}" <<'CREDENTIALS_TPL'
+# Heredoc is UNquoted so ${OP_ITEM} expands in bash (it selects which 1Password
+# item to read); the {{ op://... }} braces stay literal for `op inject`. The
+# template contains no other $/backtick metacharacters, so no secret can leak.
+op inject --force --out-file "${tmp}" <<CREDENTIALS_TPL
 {
   "installed": {
-    "client_id": "{{ op://nixerator/gmailctl/Client ID }}",
-    "client_secret": "{{ op://nixerator/gmailctl/Client Secret }}",
+    "client_id": "{{ op://nixerator/${OP_ITEM}/Client ID }}",
+    "client_secret": "{{ op://nixerator/${OP_ITEM}/Client Secret }}",
     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
     "token_uri": "https://oauth2.googleapis.com/token",
     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
@@ -90,7 +102,16 @@ chmod 600 "${tmp}"
 mv -f "${tmp}" "${CRED_PATH}"
 echo "fetch-gmailctl-credentials: wrote ${CRED_PATH} (0600)"
 
+# gmailctl selects its config dir via --config (default ~/.gmailctl), NOT the
+# current working directory. For a non-default dir, every subcommand needs the flag.
+if [[ "${GMAILCTL_DIR}" == "${HOME}/.gmailctl" ]]; then
+  CFG_FLAG=""
+else
+  CFG_FLAG=" --config ${GMAILCTL_DIR}"
+fi
+
 echo
-echo "Next: run 'gmailctl init' to complete the browser OAuth consent on"
-echo "dustin@bashfulrobot.com. That writes ~/.gmailctl/token.json. Then"
-echo "'gmailctl diff' to compare the live account against your config."
+echo "Next: run 'gmailctl${CFG_FLAG} init' to complete the browser OAuth consent"
+echo "on ${ACCOUNT_LABEL}. Pick that exact account in Google's account chooser,"
+echo "then it writes ${GMAILCTL_DIR}/token.json. Then 'gmailctl${CFG_FLAG} diff'"
+echo "to compare the live account against your config."
