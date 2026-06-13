@@ -788,6 +788,14 @@ bootstrap-secrets:
 fetch-signatures:
     @./extras/helpers/fetch-okular-signatures.sh
 
+# Fetch the gmailctl OAuth client credentials from the nixerator 1Password
+# vault (Login item `gmailctl`, Client ID + Client Secret fields) and render
+# them into ~/.gmailctl/credentials.json (0600). One-time per host after
+# `just setup-op-token`; re-run only if you rotate the OAuth client.
+# Afterwards run `gmailctl init` to create token.json.
+fetch-gmailctl-creds:
+    @./extras/helpers/fetch-gmailctl-credentials.sh
+
 # === Aliases ===
 alias r := rebuild
 alias hft := hyprflake-test
@@ -801,5 +809,6 @@ alias rs := render-secrets
 alias ps := push-secrets
 alias cs := check-secrets
 alias fs := fetch-signatures
+alias fgc := fetch-gmailctl-creds
 alias gen := generations
 alias rb := rollback

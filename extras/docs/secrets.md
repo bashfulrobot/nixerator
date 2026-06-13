@@ -7,6 +7,7 @@ two flavours of consumer:
 |----------|--------|----------------|
 | Nix flake eval (modules, hosts) | Items in the `nixerator` vault rendered via `secrets.json.tpl` + `op inject` | `~/.config/nixos-secrets/secrets.json` (0600) |
 | Okular signature stamping | Document items `okular-signature` + `okular-initials` in the `nixerator` vault | `~/.kde/share/icons/{signature,initials}.png` (0644) |
+| gmailctl OAuth client | Login item `gmailctl` (`Client ID` + `Client Secret` fields) in the `nixerator` vault, rendered via `op inject` by `just fetch-gmailctl-creds` | `~/.gmailctl/credentials.json` (0600) |
 
 Neither cached file is in the repo, in the Nix store, or available to AI
 tooling scoped to the repo working directory (both paths are on Claude
@@ -147,6 +148,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `plakar-qbert` | Secure Note | `repository` + `passphrase` | `secrets.plakar.qbert.{repository,passphrase}` |
 | `okular-signature` | Document | `file` | `~/.kde/share/icons/signature.png` (via `just fetch-signatures`) |
 | `okular-initials` | Document | `file` | `~/.kde/share/icons/initials.png` (via `just fetch-signatures`) |
+| `gmailctl` | Login | `Client ID` + `Client Secret` | `~/.gmailctl/credentials.json` (via `just fetch-gmailctl-creds`, which `op inject`s the two fields into a Desktop-app credentials.json template). Rendered straight to disk, **not** in `secrets.json` — keeps the client secret out of the Nix store. `gmailctl init` then writes `~/.gmailctl/token.json` locally. |
 
 Per-host network identity (Tailscale IPs, syncthing peer IDs) is NOT in 1P;
 those values live in `settings/globals.nix` under
