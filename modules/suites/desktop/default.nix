@@ -165,11 +165,15 @@ in
     # transparent); mkDefault so a host can still drop back to flat.
     hyprflake.desktop.dank.frostedGlass.enable = lib.mkDefault true;
 
-    # Add the primary user to the DankGreeter `greeter` group. Cosmetic only:
-    # hyprflake themes the greeter via a configHome snapshot copy (not group
-    # ACLs), so membership grants access the greeter never uses. It only
-    # silences the DMS Settings → Greeter Status "not in greeter group" line.
-    users.users."${globals.user.name}".extraGroups = [ "greeter" ];
+    # Deliberately do NOT add the primary user to the DankGreeter `greeter`
+    # group. It is cosmetic (theming uses a root-side configHome snapshot, not
+    # group ACLs — membership only silences the DMS Settings → Greeter Status
+    # "not in greeter group" line), but it has a real side effect: hyprflake
+    # guards hyprpolkitagent with `ConditionGroup=!greeter` to keep the polkit
+    # agent out of the greeter's own session, and that guard matches ANY member
+    # of the `greeter` group. Adding the primary user therefore silently
+    # disables hyprpolkitagent in the real session (no polkit auth prompts).
+    # The cosmetic checkmark is not worth losing the auth agent.
 
     # Shared DMS settings — same on every workstation, overridable per-host in
     # the GUI (dank-capture writes only the host-specific delta). Add keys here,
