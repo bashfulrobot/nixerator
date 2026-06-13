@@ -84,6 +84,7 @@ in
       todoist-electron
       fractal
       zoom-us
+      gmailctl # declarative Gmail filters/labels; config lives in ~/git/gmail-filters
     ];
 
     # Force Todoist Electron to use native Wayland (avoids XWayland key
