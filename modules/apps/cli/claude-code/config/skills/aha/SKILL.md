@@ -66,8 +66,8 @@ bash scripts/aha.sh get products/DEVP/features --paginate -q 'updated_since=2026
 # Trim the payload to the fields you need (faster, easier to read)
 bash scripts/aha.sh get ideas/PROD-I-42 -q 'fields=reference_num,name,workflow_status,endorsements_count'
 
-# Write (see the writes playbook below first)
-bash scripts/aha.sh post ideas/PROD-I-42/votes -d '{"idea_vote":{"email":"jane@customer.com","vote_weight":10}}'
+# Write (see the writes playbook below first) -- proxy vote = endorsement
+bash scripts/aha.sh post ideas/PROD-I-42/endorsements -d '{"idea_endorsement":{"email":"jane@customer.com","idea_organization_id":7210570342900669490,"value":25000}}'
 ```
 
 Key flags: `-q KEY=VALUE` (repeatable query params, values auto-encoded),

@@ -76,25 +76,52 @@ for the id, then `idea_organizations/{id}/endorsements --paginate -q
 
 ## Log a proxy vote (endorsement) on a customer's behalf
 
-This is the most common write. Confirm the idea reference, customer email, and
-vote weight with the user, then:
+This is the most common write. The endpoint is `ideas/{ref}/endorsements` (NOT
+`ideas/{ref}/votes`), the body is keyed on `idea_endorsement`, and the dollar
+field is `value` (NOT `vote_weight`). Verified live on konghq.aha.io 2026-06-15.
+
+Confirm the idea reference, the customer org, the contact email, and the value
+with the user, then:
 
 ```bash
-scripts/aha.sh post ideas/DEVP-I-42/votes \
-  -d '{"idea_vote":{"email":"jane@customer.com","vote_weight":10}}'
+scripts/aha.sh post ideas/DEVP-I-42/endorsements -d '{
+  "idea_endorsement": {
+    "email": "jane@customer.com",
+    "idea_organization_id": 7210570342900669490,
+    "value": 25000,
+    "link": "https://...",
+    "description": "<p>Why this matters to this account ...</p>"
+  }
+}'
 ```
 
-- `email` ties the endorsement to the customer contact.
-- `vote_weight` is the strength/seat count -- get it right, it feeds
-  prioritization. UNVERIFIED: confirm the exact body shape against the docs
-  (https://www.aha.io/api/resources/idea_votes/create_a_proxy_vote) if the
-  first call 422s; some accounts expect `link` or `name` too.
+- `idea_organization_id` is the numeric org id; it ties the endorsement to the
+  customer account. Resolve it from `idea_organizations`, and when a parent brand
+  has many near-identical orgs, disambiguate by the Salesforce account Id in the
+  org's `integration_fields` (`name=="Id"`, `service_name=="salesforce"`), not by
+  name.
+- `email` is create-only.
+- `value` is the dollar value. OMIT it entirely when the ask is post-deal or not
+  tied to an opportunity; do not send `0`.
+- `description` accepts HTML. The form also carries optional custom fields
+  (`reason`, `blocks_customer`, `when_does_the_customer_need_it_by`, `stage`,
+  `probability`, `close_date`) set via a `custom_fields` object keyed by field
+  key. They are optional; only set what you have a clear signal for.
+
+Caveat: many Aha tokens are reviewer-role and can POST an endorsement but get
+`403` on PUT/DELETE, and `email`/custom fields are create-time. So get the org,
+email, value, and any custom fields right on the first POST; there is no clean
+API undo.
 
 After it lands, read the idea back to confirm the endorsement count moved:
 
 ```bash
 scripts/aha.sh get ideas/DEVP-I-42 -q 'fields=reference_num,endorsements_count'
 ```
+
+For the full "file an FR document + per-customer proxy votes" workflow, use the
+`log-aha` skill, which wraps these calls (idea create, org resolution, markdown
+to HTML, the endorsement body shape, and the optional custom fields).
 
 ## Create an idea
 
@@ -153,9 +180,17 @@ scripts/aha.sh get products/DEVP/ideas --paginate --per-page 200 \
 takes a minute and counts against the 300 req/min budget -- run it once and
 work from the file.
 
-## Handoff to the feature-request skill
+## Handoff to feature-request and log-aha
 
-If the user wants a written feature-request document or per-customer proxy-vote
-write-ups, that's the `feature-request` skill's job. Use this skill to *look up*
-or *search* existing Aha ideas to avoid duplicates, then hand the references to
-feature-request for the authoring.
+Three skills, three jobs:
+
+- `feature-request` authors the artifacts: the customer-independent FR document
+  and one per-customer proxy-vote write-up.
+- `log-aha` files those artifacts into Aha: it creates the idea and attaches one
+  endorsement per customer, wrapping the calls in this reference.
+- This `aha` skill is the read/lookup layer and the raw API wrapper. Use it to
+  *look up* or *search* existing ideas (to avoid duplicates) before a filing, and
+  for any one-off read or write that the other two do not cover.
+
+So: don't author or format FR write-ups here (that's feature-request), and for
+the full file-an-FR flow prefer `log-aha` over hand-running the recipes above.
