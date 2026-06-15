@@ -11,7 +11,7 @@
 #   aha.sh get  features/DEVP-123
 #   aha.sh get  products/DEVP/ideas -q 'q=rate limiting' -q per_page=50
 #   aha.sh get  products/DEVP/ideas --paginate -q 'category=Security'
-#   aha.sh post ideas/PROD-I-42/votes -d '{"idea_vote":{"email":"a@b.com","vote_weight":5}}'
+#   aha.sh post ideas/PROD-I-42/endorsements -d '{"idea_endorsement":{"email":"a@b.com","idea_organization_id":123,"value":5000}}'
 #   aha.sh put  features/DEVP-123 -d @body.json
 #   aha.sh delete features/DEVP-123
 #

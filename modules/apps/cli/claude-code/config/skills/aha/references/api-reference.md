@@ -49,12 +49,18 @@ a product (`products/<PREFIX>/<collection>`).
 | Goals        | `goals/{id}`                | `products/{prod}/goals`             | `products/{prod}/goals` UNVERIFIED |
 | Products     | `products/{prod}`           | `products`                          | n/a |
 | Comments     | n/a                         | `<resource>/{ref}/comments`         | `<resource>/{ref}/comments` |
-| Idea votes   | n/a                         | `ideas/{ref}/endorsements` UNVERIFIED | `ideas/{ref}/votes` (proxy vote) |
+| Endorsements | `ideas/{ref}/endorsements/{id}` | `ideas/{ref}/endorsements`      | `ideas/{ref}/endorsements` (proxy vote; body keyed `idea_endorsement`, dollar field `value`) |
 | Users        | `users/{id}`                | `users`                             | n/a |
 
-The single fully verified call so far is `epics/{ref}` and
-`products/{prod}/features` (both returned live data on 2026-06-09). Treat the
-rest as the documented shape and confirm by GETting one record.
+Verified live: `epics/{ref}` and `products/{prod}/features` (2026-06-09);
+`products/{prod}/ideas` create, `ideas/{ref}/endorsements` create + list +
+get-one, and `idea_organizations` search/get (2026-06-15). Treat the rest as the
+documented shape and confirm by GETting one record.
+
+Note on writes: a reviewer-role token can create ideas and endorsements but gets
+`403` on PUT/DELETE of an endorsement (observed 2026-06-15), and endorsement
+`email`/custom fields are create-time, so there is no clean API undo. Get the
+body right on the first POST.
 
 ## Common query params (list endpoints)
 
