@@ -83,7 +83,6 @@ in
       vesktop
       slack
       todoist-electron
-      fractal
       zoom-us
     ];
 
