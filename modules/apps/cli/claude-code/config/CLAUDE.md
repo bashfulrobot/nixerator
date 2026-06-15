@@ -1,5 +1,14 @@
 # Global Instructions
 
+## Writing — always humanize (hard rule)
+
+**Any prose I will read or send MUST be run through the `humanizer` skill before you present it.** This is non-negotiable and applies regardless of project, length, or register.
+
+- **Applies to:** Slack messages, emails, PR/issue/commit bodies, docs, summaries, comments, customer-facing text, and any free-form prose you draft on my behalf.
+- **How:** invoke the `humanizer` skill (via the Skill tool) on the draft, then show me the humanized result — not the raw first draft. If a writing-oriented skill already integrates humanizer (e.g. `writing-style`, `feature-request`), that satisfies this rule; don't double-process.
+- **Does NOT apply to:** code, config, shell commands, identifiers, log output, or short mechanical acknowledgements in this chat.
+- If you're unsure whether something counts as "writing", treat it as writing and humanize it.
+
 ## File Sharing
 
 When asked to send a file to my phone, use:
