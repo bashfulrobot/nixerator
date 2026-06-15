@@ -22,17 +22,29 @@
 #     as the capability, not as a document title.
 set -euo pipefail
 fr="${1:?usage: build-idea-json.sh <fr.md> [--portal]}"
-[[ -f "$fr" ]] || { echo "ERROR: file not found: $fr" >&2; exit 2; }
+[[ -f "$fr" ]] || {
+  echo "ERROR: file not found: $fr" >&2
+  exit 2
+}
 skip_portal=true
 [[ "${2:-}" == "--portal" ]] && skip_portal=false
-command -v pandoc >/dev/null || { echo "ERROR: pandoc is required" >&2; exit 2; }
+command -v pandoc >/dev/null || {
+  echo "ERROR: pandoc is required" >&2
+  exit 2
+}
 
 name="$(grep -m1 '^# ' "$fr" | sed -e 's/^# *//' -e 's/^Feature Request: *//')"
-[[ -n "$name" ]] || { echo "ERROR: no H1 (# ...) title found in $fr" >&2; exit 2; }
+[[ -n "$name" ]] || {
+  echo "ERROR: no H1 (# ...) title found in $fr" >&2
+  exit 2
+}
 
 # Drop everything up to and including the H1 line, convert the rest to HTML.
 html="$(sed '0,/^# /d' "$fr" | pandoc -f gfm -t html --wrap=none)"
-[[ -n "$html" ]] || { echo "ERROR: FR body is empty after the H1" >&2; exit 2; }
+[[ -n "$html" ]] || {
+  echo "ERROR: FR body is empty after the H1" >&2
+  exit 2
+}
 
 jq -n --arg name "$name" --arg desc "$html" --argjson sp "$skip_portal" \
   '{idea: {name: $name, description: $desc, skip_portal: $sp}}'
