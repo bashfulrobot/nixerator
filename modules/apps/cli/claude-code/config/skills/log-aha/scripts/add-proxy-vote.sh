@@ -44,29 +44,68 @@ org="${2:?missing org_id (numeric idea_organization_id)}"
 email="${3:?missing email}"
 shift 3
 
-value=""; link=""; desc=""
+value=""
+link=""
+desc=""
 cf_json="{}"
 
 set_cf() { # key, value-as-json
   cf_json="$(printf '%s' "$cf_json" | jq --arg k "$1" --argjson v "$2" '.[$k]=$v')"
 }
 split_kv() { # "KEY=VALUE" -> sets _k and _v (value may contain '=')
-  _k="${1%%=*}"; _v="${1#*=}"
-  [[ "$1" == *=* && -n "$_k" ]] || { echo "ERROR: expected KEY=VALUE, got: $1" >&2; exit 2; }
+  _k="${1%%=*}"
+  _v="${1#*=}"
+  [[ "$1" == *=* && -n "$_k" ]] || {
+    echo "ERROR: expected KEY=VALUE, got: $1" >&2
+    exit 2
+  }
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --value)     value="$2"; shift 2 ;;
-    --link)      link="$2";  shift 2 ;;
-    --desc)      desc="$2";  shift 2 ;;
-    --desc-file) [[ -f "$2" ]] || { echo "ERROR: desc file not found: $2" >&2; exit 2; }
-                 desc="$(cat "$2")"; shift 2 ;;
-    --cf)        split_kv "$2"; set_cf "$_k" "$(jq -n --arg v "$_v" '$v')"; shift 2 ;;
-    --cf-file)   split_kv "$2"; [[ -f "$_v" ]] || { echo "ERROR: cf file not found: $_v" >&2; exit 2; }
-                 set_cf "$_k" "$(jq -Rs '.' "$_v")"; shift 2 ;;
-    --cf-num)    split_kv "$2"; set_cf "$_k" "$_v"; shift 2 ;;
-    *) echo "ERROR: unknown option: $1" >&2; exit 2 ;;
+    --value)
+      value="$2"
+      shift 2
+      ;;
+    --link)
+      link="$2"
+      shift 2
+      ;;
+    --desc)
+      desc="$2"
+      shift 2
+      ;;
+    --desc-file)
+      [[ -f "$2" ]] || {
+        echo "ERROR: desc file not found: $2" >&2
+        exit 2
+      }
+      desc="$(cat "$2")"
+      shift 2
+      ;;
+    --cf)
+      split_kv "$2"
+      set_cf "$_k" "$(jq -n --arg v "$_v" '$v')"
+      shift 2
+      ;;
+    --cf-file)
+      split_kv "$2"
+      [[ -f "$_v" ]] || {
+        echo "ERROR: cf file not found: $_v" >&2
+        exit 2
+      }
+      set_cf "$_k" "$(jq -Rs '.' "$_v")"
+      shift 2
+      ;;
+    --cf-num)
+      split_kv "$2"
+      set_cf "$_k" "$_v"
+      shift 2
+      ;;
+    *)
+      echo "ERROR: unknown option: $1" >&2
+      exit 2
+      ;;
   esac
 done
 

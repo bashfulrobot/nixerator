@@ -22,9 +22,12 @@ name="${1:?usage: resolve-org.sh \"<customer name>\" [sfdc_id]}"
 want_sfdc="${2:-}"
 
 raw="$(bash "$here/aha.sh" get idea_organizations -q "q=$name" \
-        -q 'fields=id,name' --raw)"
+  -q 'fields=id,name' --raw)"
 ids="$(printf '%s' "$raw" | jq -r '.idea_organizations[]?.id // empty')"
-[[ -n "$ids" ]] || { echo "[]"; exit 0; }
+[[ -n "$ids" ]] || {
+  echo "[]"
+  exit 0
+}
 
 out="$(
   for id in $ids; do
