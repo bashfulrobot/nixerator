@@ -669,11 +669,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1781483138,
-        "narHash": "sha256-3uixr58ula0JH5l8n2J5CMZTgfwRGr85oTTp+SaJzIs=",
+        "lastModified": 1781569924,
+        "narHash": "sha256-juWnlOtZPgQiGK02YGusZs2KwgRTCzqdK8hx8uewBcY=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "fe40762d1c2feedb57b008a6750b3e6809eefdd9",
+        "rev": "ba885ced1c4590f094d37f7089820f26f1f31ac2",
         "type": "github"
       },
       "original": {
