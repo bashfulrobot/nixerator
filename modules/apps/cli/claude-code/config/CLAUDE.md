@@ -17,6 +17,14 @@ When asked to send a file to my phone, use:
 sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 ```
 
+## Slack (hard rule)
+
+**Never post, send, schedule, or draft a Slack message via the Slack MCP server.** The Slack MCP `slack_send_message`, `slack_send_message_draft`, `slack_schedule_message`, and any other message-writing tool are off-limits for posting on my behalf — this is a hard boundary, not a preference.
+
+- **The only way to send a Slack message is the `/slack-post` skill, and only when I explicitly ask you to send one.** No skill invocation, no posting.
+- Do not send a Slack message proactively, as a side effect of another task, or because it "seems helpful". I must ask for it in that turn.
+- Read-only Slack MCP tools (search, read channel/thread/profile, list channels/users) are fine for gathering context — the prohibition is on writing/sending only.
+
 ## Secrets and 1Password
 
 **Never let a secret value enter the conversation or model context.** Secrets in my 1Password vaults (tokens, passwords, keys, credentials) must never be read into anything you can see — that data leaks into the model and can be sent off-site. This is a hard boundary, not a preference.
