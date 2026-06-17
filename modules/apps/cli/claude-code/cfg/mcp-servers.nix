@@ -38,6 +38,15 @@ let
       type = "http";
       url = "https://mcp.atlassian.com/v1/mcp/authv2";
     };
+    # Tactiq Remote MCP -- meeting transcripts, summaries, and recordings.
+    # Streamable-HTTP endpoint is the bare host (paths 404). Auth is OAuth 2.1
+    # with discovery-based dynamic client registration (no clientId to
+    # pre-register) -- run `/mcp` in Claude Code to complete the browser
+    # authorization flow.
+    tactiq = {
+      type = "http";
+      url = "https://mcp.tactiq.io";
+    };
     # On-device search engine for notes, transcripts, docs (BM25 + vector + LLM re-ranking)
     qmd = {
       command = "${pkgs.nodejs}/bin/npx";
