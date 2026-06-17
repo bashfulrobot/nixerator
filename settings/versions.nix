@@ -214,18 +214,21 @@
       };
     };
 
-    # Insomnia 13 beta -- runs side-by-side with the pinned stable above.
-    # updatePolicy = "manual": the update scripts query /releases/latest which
-    # excludes prereleases, so auto-bump would silently rewrite this to a stable
-    # tag. Bump by hand: set version, clear platformHashes, rebuild.
+    # Insomnia 13 -- runs side-by-side with the pinned 12.x stable above.
+    # Promoted from the 13.0.0-beta.0 prerelease once 13.0.0 went GA
+    # (2026-06-16); kept as a distinct `insomnia-beta` binary with its own
+    # ~/.config/insomnia-beta data dir so existing v13 data and the
+    # side-by-side workflow are preserved.
+    # updatePolicy = "manual": auto-bump can't track this entry independently of
+    # stable (same repo). Bump by hand: set version, clear platformHashes, rebuild.
     insomnia-beta = {
       source = "github-release";
       repo = "Kong/insomnia";
-      version = "13.0.0-beta.0";
+      version = "13.0.0";
       tagPrefix = "core@";
       updatePolicy = "manual";
       platformHashes = {
-        x86_64-linux = "sha256-sfEMtdNWm6wPrf8o7cHzqkkW+OV9RezLO4Qs/XA11p4=";
+        x86_64-linux = "sha256-PlcKBQnkmgU/SsLRKX7ohrGHm7B4hK9FMkplwlbFolI=";
         aarch64-darwin = ""; # placeholder -- no darwin builds currently used
         x86_64-darwin = ""; # placeholder -- no darwin builds currently used
       };

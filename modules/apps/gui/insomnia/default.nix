@@ -26,7 +26,7 @@ let
     inherit versions;
     versionKey = "insomnia-beta";
     pname = "insomnia-beta";
-    desktopName = "Insomnia 13 Beta";
+    desktopName = "Insomnia 13";
     configDir = "insomnia-beta";
   };
 in
