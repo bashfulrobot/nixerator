@@ -5,12 +5,13 @@ description: Edit Google Sheets cells and create, copy, or replace Google Docs a
 
 # gsuite-edit: edit Google Sheets, Docs, and Slides via `gws`
 
-Tightly scoped to the four edit operations users reach for most often:
+Tightly scoped to the five edit operations users reach for most often:
 
 1. Write cells into a Google Sheet.
 2. Create a new Google Doc from HTML.
 3. Replace the body of an existing Google Doc.
 4. Copy a Workspace template and fill its placeholders (Docs or Slides).
+5. Clone a branded doc and rebuild its body while keeping the theme (logo, fonts, colors).
 
 For broader Workspace work (sending mail, creating calendar events, listing Drive files, the `+workflow` helpers, one-time auth setup, or any service not in the list above), see the `gws-cli` skill. For Slides decks built from scratch with no template, see `references/slides-deep.md`. For discovering what templates exist in the org, see `references/templates.md`.
 
@@ -28,13 +29,20 @@ Run `grep -P "\x{2014}"` against any generated artifact before handing it back; 
 Run this once at the top of any workflow. It is cheap and fails loudly if auth is not set up.
 
 ```bash
-if ! gws auth status 2>/dev/null | grep -q '"storage": "keyring"\|"storage": "file"'; then
+if ! gws auth status 2>/dev/null | grep -q '"token_valid": true'; then
   echo "gws is not authenticated. Set it up via the gws-cli skill, then re-run." >&2
   exit 1
 fi
 ```
 
-`gws auth status` exits 0 even when there are no credentials (it just prints `"storage": "none"`), so check the `storage` field. If the preflight fails, do not continue, point the user at the `gws-cli` skill for one-time setup.
+`gws auth status` exits 0 even when there are no credentials, so check a field in its JSON. `token_valid` is the reliable signal. Do NOT key off `storage` alone: it can be `keyring`, `file`, or `encrypted`, and an `encrypted` keyring store is a normal authenticated state. A `keyring|file`-only grep gives a false "not authenticated" (verified: a working auth reported `"storage": "encrypted"` with `"token_valid": true`). If the preflight fails, do not continue, point the user at the `gws-cli` skill for one-time setup.
+
+## `gws` invocation gotchas (verified)
+
+Two `gws` flag behaviors bite every pattern below. They are quirks of the CLI build, not the Google APIs:
+
+- **`--json` does not accept `@file` in this build.** `--json @/tmp/x.json` fails with `Invalid --json body: expected value at line 1 column 1` (absolute and relative paths both fail). Pass JSON inline: `--json '{"...":"..."}'`. For a large body held in a file, splice it in with command substitution: `--json "$(cat /tmp/x.json)"`. Every `--json` example below uses one of these two forms.
+- **`--upload` paths must be inside the current working directory.** `--upload /tmp/body.html` fails with `resolves to '/tmp/body.html' which is outside the current directory`. Write or copy the upload file into the cwd first, then reference it relatively (`--upload ./body.html`).
 
 ## Pattern: write cells in a Sheet (`values.batchUpdate`)
 
@@ -67,7 +75,7 @@ JSON
 
 gws sheets spreadsheets values batchUpdate \
   --params "{\"spreadsheetId\":\"${SHEET_ID}\"}" \
-  --json @/tmp/update.json
+  --json "$(cat /tmp/update.json)"
 ```
 
 Field notes:
@@ -94,9 +102,10 @@ gws sheets spreadsheets values get \
 `gws drive files create` with `--upload` lets Drive convert HTML into a Doc on import. Fastest path from "I have content as HTML" to "Doc exists in My Drive."
 
 ```bash
+# the upload file must live in the cwd (see invocation gotchas)
 gws drive files create \
   --json '{"name":"My New Doc","mimeType":"application/vnd.google-apps.document"}' \
-  --upload /tmp/doc-body.html \
+  --upload ./doc-body.html \
   --upload-content-type "text/html; charset=UTF-8" \
   --params '{"supportsAllDrives":true,"fields":"id,name,webViewLink"}'
 ```
@@ -107,31 +116,35 @@ Notes:
 - The `mimeType` in the metadata tells Drive to convert HTML to a Doc. Drive supports basic HTML: headings, paragraphs, lists, tables with `border` attributes, bold/italic/code, links.
 - For a Sheet, use `application/vnd.google-apps.spreadsheet` and an HTML table or CSV body. For Slides, do **not** use this multipart-import path; the resulting deck is unstyled and fragile. Use the template-copy pattern below, or `references/slides-deep.md` for the from-scratch Slides API path.
 - The new file goes to the user's My Drive root by default. To put it in a specific folder, add `"parents": ["<folder_id>"]` to the `--json` metadata.
+- **The created doc has NO theme or branding.** Drive's HTML import applies Google's default named styles (Arial body, plain headings); it cannot carry a brand template's fonts, colors, or logo. If the output must match a branded template, do not use this path. Clone the template and rebuild the body instead (see "Pattern: clone a themed doc and rebuild its body").
 
 ## Pattern: replace the body of an existing Google Doc
 
-`gws drive files update` with `--upload` re-imports the HTML and replaces the document body. The Doc's `id`, `webViewLink`, sharing settings, and comments all persist; only the body changes.
+`gws drive files update` with `--upload` re-imports the HTML. The Doc's `id`, `webViewLink`, and sharing settings persist, but the re-import is a **full conversion**, not a body-only swap.
 
 ```bash
 DOC_ID="abc123..."
 
+# the upload file must live in the cwd (see invocation gotchas)
 gws drive files update \
   --params "{\"fileId\":\"${DOC_ID}\",\"supportsAllDrives\":true,\"fields\":\"id,modifiedTime\"}" \
-  --upload /tmp/doc-body.html \
+  --upload ./doc-body.html \
   --upload-content-type "text/html; charset=UTF-8"
 ```
 
+> **Theme warning (verified).** This re-import **resets the document theme**: named styles revert to Google defaults, so brand fonts and heading colors are lost, and **anchored images are dropped** (a template logo stored as a positioned object disappears). In testing, after an HTML re-import the logo was gone and `HEADING_1` had lost both its font (Roboto) and color. Comments may also not survive. Do NOT use this path on a branded doc, a doc with a logo, or one whose custom named styles must be kept. Use "Pattern: clone a themed doc and rebuild its body" instead.
+
 When to prefer this over `docs.documents.batchUpdate`:
-- Replacing the whole doc body and starting fresh is fine.
-- The doc has tables you would otherwise have to navigate with cell indices.
-- You have the new content as HTML or Markdown.
+- The doc is unbranded (plain default styling) and replacing the whole body is fine.
+- You have the new content as HTML or Markdown and no theme to preserve.
 
 When `docs.documents.batchUpdate` (Docs API) is better:
+- The doc is themed/branded and the styling, logo, or named styles must survive (see the clone-and-rebuild pattern below).
 - Inserting a paragraph at a specific location and the existing structure must be preserved.
-- Applying small text-substitution edits across a doc (covered in the next section, with `replaceAllText`).
+- Applying small text-substitution edits across a doc (covered with `replaceAllText`).
 - Modifying a doc with comments or suggestions you must preserve.
 
-The Docs API `batchUpdate` is much more involved (1-indexed character offsets, request-list pattern). Reach for it only when surgical edits matter. For "rewrite the whole thing," the upload above is faster and cleaner.
+The Docs API `batchUpdate` is more involved (1-indexed character offsets, request-list pattern), but it is the only way to change content while keeping a theme.
 
 ## Pattern: copy a template and fill it in
 
@@ -173,7 +186,7 @@ JSON
 
 gws docs documents batchUpdate \
   --params "{\"documentId\":\"${NEW_ID}\"}" \
-  --json @/tmp/fill.json
+  --json "$(cat /tmp/fill.json)"
 ```
 
 `replaceAllText` works across all text in the doc, including inside table cells, footnotes, and headers. It does not touch images.
@@ -183,7 +196,7 @@ For **Slides** templates, the same JSON shape works against the Slides API:
 ```bash
 gws slides presentations batchUpdate \
   --params "{\"presentationId\":\"${NEW_ID}\"}" \
-  --json @/tmp/fill.json
+  --json "$(cat /tmp/fill.json)"
 ```
 
 Slides additionally supports `replaceAllShapesWithImage` (swap a placeholder image with a real one) and `replaceAllShapesWithSheetsChart` (embed a live Sheet chart).
@@ -193,6 +206,52 @@ For **Sheets** templates, copy the file, then use the `values.batchUpdate` patte
 ### When `replaceAllText` is not enough
 
 If the template uses empty table cells instead of `{{placeholders}}` (common for HR / IDP / form templates), see `references/templates.md` for the "marker style" guidance and the structural-read fallback.
+
+## Pattern: clone a themed doc and rebuild its body (preserve theme)
+
+Use this when the user wants a NEW doc whose content differs from the template but which must keep a reference doc's branding: logo, named heading styles (font + color), page setup. This is the **only** reliable way to do that. HTML create and HTML body-replace both discard the theme (see the warnings above), and `replaceAllText` only works when the template already has `{{placeholders}}`. Here the template holds real prose, so you delete the old body and rebuild it through the Docs API, keeping the title block (which anchors the logo).
+
+### Step 1: clone the template
+
+```bash
+NEW=$(gws drive files copy \
+  --params '{"fileId":"<TEMPLATE_ID>","supportsAllDrives":true,"fields":"id,webViewLink"}' \
+  --json '{"name":"My New Themed Doc"}')
+NEW_ID=$(echo "$NEW" | jq -r .id)
+```
+
+The copy inherits the template's `namedStyles`, `positionedObjects` (the logo), and page setup. A copy of a shared-drive doc lands in the **same shared-drive folder** as the source unless you pass `"parents"`, so set `parents` (or move it afterward) to avoid leaving a draft in a customer folder.
+
+### Step 2: inspect the structure, then delete the old body but keep the title block
+
+```bash
+# find where the real content starts (e.g. the first "Overview" heading) and the body end
+gws docs documents get \
+  --params '{"documentId":"<NEW_ID>","fields":"body(content(startIndex,endIndex,paragraph(elements(textRun(content)))))"}'
+```
+
+The Kong template anchors its logo as positioned objects on the **first paragraph (index 1)**, so deleting from the first content heading to `bodyEnd - 1` keeps the letterhead and logo. Delete with `deleteContentRange` (you cannot delete the final newline, hence `end - 1`):
+
+```bash
+gws docs documents batchUpdate --params '{"documentId":"<NEW_ID>"}' \
+  --json '{"requests":[{"deleteContentRange":{"range":{"startIndex":89,"endIndex":<END-1>}}}]}'
+```
+
+### Step 3: rebuild content with named styles + real tables
+
+Docs API indices are 1-indexed and shift with every insert, so a small script (drive `gws` from Python; the indexing is fiddly by hand) is the practical way. Key requests and the rules that make them work:
+
+- **Paragraphs**: `insertText` (`text` ending in `\n`), then `updateParagraphStyle` setting `namedStyleType` to `HEADING_1/2/3` or `NORMAL_TEXT`. Because the doc is a clone, those named styles already carry the brand font/color, so headings render themed with no per-run styling.
+- **Lists**: apply `createParagraphBullets` over the WHOLE run of consecutive list paragraphs in ONE request (a separate call per item restarts numbering). For nesting, set `indentStart` / `indentFirstLine` (about 36pt per level) before the bullets call. Presets: `BULLET_DISC_CIRCLE_SQUARE` (ul), `NUMBERED_DECIMAL_ALPHA_ROMAN` (ol).
+- **Tables**: `insertTable` makes an empty table; then re-fetch the doc to read each cell's first-paragraph `startIndex`, and fill cells with `insertText` in **descending index order** (so earlier inserts do not invalidate later indices). Re-fetch once more to find the table `endIndex` and continue after it.
+- **Bold lead-ins** (the Benefits style "Label: text"): `updateTextStyle` `bold` over `[start, start + len(label) + 1]`.
+
+Sequence the build by inserting one run of paragraphs at a time, handling each table separately, and tracking a running cursor index. Verify at the end that the theme survived:
+
+```bash
+gws docs documents get --params '{"documentId":"<NEW_ID>","fields":"positionedObjects,namedStyles(styles(namedStyleType,textStyle(weightedFontFamily,foregroundColor)))"}'
+# expect: positionedObjects still present (logo), HEADING_1 font=Roboto with its brand color
+```
 
 ## Common errors and fixes
 
@@ -204,6 +263,10 @@ If the template uses empty table cells instead of `{{placeholders}}` (common for
 | `Insufficient Permission` on `files.update` | `drive.file` scope only allows editing files the app created OR explicitly opened | Re-auth with broader Drive scope via `gws-cli` |
 | HTML upload landed but tables look broken | Drive's HTML-to-Doc converter is finicky | Add explicit `border="1"` to `<table>` tags; avoid nested tables; use inline `style` attributes sparingly |
 | Sheet write succeeded but cells show `#####` | Numbers got written as text | Set `valueInputOption: "USER_ENTERED"` to make Sheets parse them, or write JSON numbers (not strings) in the `values` array |
+| `Invalid --json body: expected value at line 1 column 1` | `--json @file` is not supported in this `gws` build | Pass JSON inline, or `--json "$(cat file.json)"` |
+| `--upload '...' resolves to '...' which is outside the current directory` | `gws` restricts `--upload` to the cwd | Copy the file into the cwd and use a relative path (`--upload ./file.html`) |
+| Created or replaced doc has no branding, or its logo vanished | HTML import applies default named styles and drops positioned-object images | Clone the template and rebuild via the Docs API (see "clone a themed doc and rebuild its body") |
+| `files.delete` on a shared-drive file returns 404 although the file is visible and editable | You have editor, not content-manager/organizer, on that shared drive (`canDelete: false`); Drive answers a delete you cannot perform with 404, not 403 | Check `capabilities(canDelete,canTrash)` first. If `canTrash`, trash it: `files.update` `--json '{"trashed":true}'`. For permanent removal, ask a shared-drive manager |
 
 ## When NOT to use this skill
 
