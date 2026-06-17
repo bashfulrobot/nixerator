@@ -2,6 +2,7 @@
   globals,
   lib,
   config,
+  pkgs,
   ...
 }:
 
@@ -21,6 +22,14 @@ in
 
     # Enable OpenSSH server
     services.openssh.enable = true;
+
+    # Remote-agent interpreter for SSH-driven tools. `fresh` (and similar
+    # python-over-ssh agents) pipe a bootstrap script into `python3` on the
+    # remote side and fail with "python3 was not found on the remote host"
+    # if the interpreter is absent. Lives here rather than in suites.core so
+    # it reaches every SSH-enabled host -- including srv, which uses the
+    # claudeWorkHost archetype and never enables suites.core.
+    environment.systemPackages = [ pkgs.python3 ];
 
     # Add non-ETM MACs so iOS swift-nio-ssh clients (Echo) can negotiate; AEAD ciphers ignore the MAC anyway.
     services.openssh.settings.Macs = [
