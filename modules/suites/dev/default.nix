@@ -31,6 +31,7 @@ in
         amber.enable = true;
         direnv.enable = true;
         # cue: removed
+        fresh-editor.enable = true;
         git.enable = true;
         git-cliff.enable = true;
         helix.enable = true;
