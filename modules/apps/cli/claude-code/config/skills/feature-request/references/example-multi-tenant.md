@@ -16,6 +16,14 @@ All three files were written after running every prose section through the `huma
 **Priority:** High
 **Proxy votes:** 2 attached
 
+## Summary
+
+- **Problem and who:** platform security leads in regulated enterprise tenants need each Konnect API token bound to a defined source-IP range. Today a leaked token works from anywhere on the public internet.
+- **Requested outcome:** attach a source-IP CIDR allowlist to a Konnect API token at issuance, editable without re-issuing, so the token is rejected when presented from any other source IP and the rejection lands in the audit log.
+- **Why it matters:** renewal-blocker pattern at one account and security-review blocker at a second, with an expansion-lever pattern across the regulated-enterprise segment. Left unbuilt, a leaked token stays usable from the entire internet and at least one renewal stays blocked.
+- **Demand:** two enterprise tenants asking in this submission, one with a documented renewal-block path.
+- **Urgency:** tied to a customer security-audit cycle; at least one account has named an internal review date driving the ask.
+
 ## Detailed description
 
 An enterprise platform team operating Konnect under a corporate egress policy needs each Konnect API token (PAT, service account token) to be usable only from a defined set of source IP CIDRs. Today a leaked token works from anywhere on the public internet, which is the gap the security teams in the source material are flagging during their internal token-hygiene review. The requesting users framed this as "add an IP allowlist to API tokens"; the underlying problem is reducing the blast radius of a token leak by binding the token to the network the issuing tenant actually uses.
@@ -183,6 +191,7 @@ Globex has filed one prior AHA idea, still open (a Konnect plugin-version pinnin
 ## Notes on this example
 
 - The FR body contains zero matches for either `Northwind Financial` or `Globex Industries`, zero ARR figures, zero stakeholder names, zero dated quotes. All customer-identifying facts are pushed into the proxy votes.
+- The `## Summary` is a digest: every claim in it restates a fact already carried by a section below, it introduces nothing new, and it stays customer-independent (no account names, no ARR, generic "two enterprise tenants"). All five fields appear here because the source had real signal for demand and urgency; a thinner request would drop those two bullets rather than pad them.
 - Each proxy vote names exactly one customer in its header and body, links the FR by filename, and includes at least one dated, attributed quote.
 - The two proxy votes cross-reference each other in their respective `Open questions` sections.
 - The FR's `Proxy votes:` header line records the *count* (`2 attached`) without listing customer-slug filenames, so the FR body remains free of customer names. The back-link is one-way, each proxy vote links the FR by filename, but the FR does not name any proxy vote.
