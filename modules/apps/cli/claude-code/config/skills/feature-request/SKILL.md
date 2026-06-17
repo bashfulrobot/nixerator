@@ -46,6 +46,13 @@ Every prose section of every artifact, plus the customer-facing question list wh
     - Direct customer quotes or paraphrased quotes that name the source.
 
     Mark unsupported fields with `UNKNOWN`. Never guess.
+
+    Fill the `## Summary` block last, after the body sections exist, so it stays
+    a digest of what is actually written below it. A summary field whose body
+    section came out `UNKNOWN` is simply omitted if it is one of the conditional
+    fields (demand, urgency). If it is one of the three mandatory fields (problem
+    and who, requested outcome, why it matters), that gap is a critical gap;
+    carry it into the gap-fill decision in step 9 rather than padding the bullet.
 5. **Draft one proxy-vote document per source customer.** Use the proxy-vote template below. Every customer-specific fact from step 1 lands here, not in the FR. Each proxy-vote links to the customer-independent FR by filename in its header so the pair can be filed together.
 6. **Cross-link proxy votes in multi-customer runs.** If the source material names more than one customer asking for the same thing, every proxy-vote's `Open questions` section references the other proxy-votes by filename, so the PM can see the cluster.
 7. **Run humanizer + em-dash scrub on every prose section.** For each artifact:
@@ -58,9 +65,10 @@ Every prose section of every artifact, plus the customer-facing question list wh
     - Surface the proposed FR filename to the user via `AskUserQuestion` and confirm before any `Write` call. The user is the only party who can override a borderline case.
     - Proxy-vote files are exempt from this scan because they are *required* to carry customer-specific facts.
 9. **Decide the gap-fill path.**
-    - If the FR has enough substance for a PM to triage (problem, user, suggested solution, benefit, category, priority all present) and every proxy-vote names its customer + at least one dated quote + a filing path, present the draft set and stop.
-    - If critical fields are `UNKNOWN`, list them to the user and ask the direct questions needed to fill them in. Use the `AskUserQuestion` tool for these direct questions so the user can answer with structured choices rather than open prose; be specific in the question text ("What does today's workaround cost the customer, in time or dollars?" beats "any more details on impact?").
-    - If the user does not know, offer to generate a customer-facing question list (see format below) they can paste into Slack or email to the customer. Run that list through `humanizer` *and* the em-dash scrub before presenting.
+    - If the FR has enough substance for a PM to triage (the three mandatory summary fields, problem and who, requested outcome, why it matters, all present, plus category and priority) and every proxy-vote names its customer + at least one dated quote + a filing path, present the draft set and stop.
+    - If critical fields are `UNKNOWN`, list them to the user and ask the direct questions needed to fill them in. Treat any `UNKNOWN` mandatory summary field as a critical gap. Use the `AskUserQuestion` tool for these direct questions so the user can answer with structured choices rather than open prose; be specific in the question text ("What does today's workaround cost the customer, in time or dollars?" beats "any more details on impact?").
+    - Whenever the user cannot answer a gap themselves, offer to generate a customer-facing question list (see format below) they can paste into Slack or email to the customer, so they can go back and collect the missing data points the skill recommends having. Build the list so every `UNKNOWN` field has a question that fills it, and make sure each unanswered mandatory summary field is covered. Run that list through `humanizer` *and* the em-dash scrub before presenting.
+    - The list is an offer, never a gate. The user may always decline it and file the FR as-is with the gaps left `UNKNOWN`. A filed FR carrying honest `UNKNOWN`s is more useful than no FR at all; something is better than nothing. Never block the write on missing data: surface what is thin, mark it `UNKNOWN`, and let the user choose whether to chase the data or ship the request now.
 10. **Present the artifact set.** Show each filled template inline in the chat. If the user asks to save, write to disk per the naming rules and the write-path safety constraints in `## Outputs` below.
 11. **Optional follow-ups.** Offer to log it downstream (e.g., `/log-support-ticket` for an SFDC case linking the FR, `/log-github-issue` for an internal repo, paste-ready text for an internal product channel, or paste-ready AHA body + proxy-vote text). Do not do this without being asked.
 
@@ -73,6 +81,36 @@ Every prose section of every artifact, plus the customer-facing question list wh
 **Category:** <Usability Improvement | Integration | New functionality>
 **Priority:** <Low | Medium | High>  *(see "Priority guidance" below)*
 **Proxy votes:** <count, e.g. "2 attached" or "none on file"; do not list the proxy-vote filenames here because customer slugs in the filenames would leak account names into the FR body>
+
+## Summary
+
+A high-level digest a PM can read in isolation to grasp and triage the request
+without reading anything below. This is the only section written for the
+skimming reader; everything after it is progressive disclosure, there when more
+context is needed. The summary is a *digest, not a source*: every claim here
+must already appear, in fuller form, in a section below, and it introduces no
+new facts.
+
+One bullet per field. Always include the three mandatory fields. Include a
+conditional field only when there is real signal for it; if it would be
+`UNKNOWN`, omit the bullet rather than pad it. Never split one field across two
+bullets. Do not restate priority, category, product area, or the proxy-vote
+count here; those already sit in the metadata line above.
+
+- **Problem and who** *(mandatory)*: the persona and the job-to-be-done they
+  cannot complete today, framed as a problem, not a solution.
+- **Requested outcome** *(mandatory)*: the result the user wants, not an
+  implementation. State it in measurable terms wherever the source gives a
+  number or a target.
+- **Why it matters** *(mandatory)*: the business-impact pattern (deal, renewal,
+  adoption, support-load) and the cost of not building it, what breaks or stays
+  broken if this never ships.
+- **Demand** *(conditional)*: how many accounts are asking and the qualitative
+  weight, kept generic. Specifics (account names, ARR) live in the proxy votes,
+  never here.
+- **Urgency** *(conditional)*: the genuine driver and timing, if one exists.
+  Omit when `UNKNOWN`. Treat a customer- or sales-stated deadline skeptically;
+  anchor urgency in a real event (audit, contract clause, renewal), not pressure.
 
 ## Detailed description
 
@@ -243,23 +281,24 @@ If you cannot justify `High` from the proxy votes, downgrade to `Medium` and not
 
 ## Customer-facing question list, when the user can't answer
 
-When the user does not have the information and asks for a list to send to the customer, output a clean bullet list under a short framing line. Run the list through `humanizer` *and* the em-dash scrub before presenting. If the user has the `writing-style` skill installed, invoke it so the tone matches their voice; otherwise default to plain professional English with a generic sign-off. Keep it under ten questions; PMs and customers both trust short lists more than long ones.
+When the user does not have the information, whether they ask for a list or accept the offer from step 9, output a clean bullet list under a short framing line. Run the list through `humanizer` *and* the em-dash scrub before presenting. If the user has the `writing-style` skill installed, invoke it so the tone matches their voice; otherwise default to plain professional English with a generic sign-off. Keep it under ten questions; PMs and customers both trust short lists more than long ones.
 
-Map the questions back to the FR template fields so the user knows what each one is filling in:
+Map the questions back to the FR template fields, including the mandatory summary fields, so the user knows what each one is filling in. Include a question for every field still `UNKNOWN`; the list below is the default full set, trim it to the gaps that actually remain:
 
 ```
 Hi <name>,
 
 A few quick questions so we can write this up properly for our product team:
 
-- In your own words, what problem are you trying to solve? (detailed description)
-- Who on your team would use this, how often, and in what situation? (context and use cases)
+- In your own words, what problem are you trying to solve? (summary: problem and who; detailed description)
+- Who on your team would use this, how often, and in what situation? (summary: problem and who; context and use cases)
+- What would "done" look like for you, and is there a number that would tell you it worked? (summary: requested outcome; acceptance criteria)
+- What does this unblock or improve for your team or business? (summary: why it matters; benefits and business impact)
+- What happens if this stays unsolved, what does it block, risk, or cost you? (summary: why it matters, cost of inaction; business impact)
 - What do you do today to work around it, and what does that cost you in time or risk? (current behaviour)
-- What would "done" look like for you, how would you verify it works? (acceptance criteria)
-- What does this unblock or improve for your team or business? (benefits and business impact)
-- Is there a date by which you need this, and what is driving that date? (urgency)
+- Is there a date by which you need this, and what is driving that date? (summary: urgency)
 - Have you tried any alternatives, other Kong features, third-party tools, custom code? Why didn't they fit? (alternatives)
-- How many of your users, services, or requests are affected? (scale)
+- How many of your users, services, or requests are affected? (summary: demand; scale)
 
 Thanks,
 <your name>
@@ -271,6 +310,8 @@ Leave `<your name>` as a placeholder for the user to fill in, or substitute thei
 
 - First-person CSM voice in either artifact is fine, but keep claims grounded in the sources. Do not editorialize.
 - Be clear and concise. Atlassian's own guidance: include enough detail to be specific, but do not let the request become overwhelming.
+- Lead the FR with the `## Summary` block. It is a digest of the sections below and adds no new facts. A field earns a place in the summary only if it would change a PM's triage decision; everything that would not stays in the body as optional context. (Mind the Product: "Every required field should influence prioritization, feasibility, or delivery planning. When a field doesn't change the decision, it usually belongs as optional context.")
+- In the summary, write one bullet per covered field, omit a field rather than pad it, and never split one field across two bullets. The three mandatory fields (problem and who, requested outcome, why it matters) always appear; demand and urgency appear only with real signal. Do not restate priority, category, product area, or proxy-vote count, they live in the metadata line.
 - No em dashes anywhere in the final output. Straight quotes. No emojis.
 - Do not pad. If a section has no signal, write `UNKNOWN` and move on. A tight FR or proxy vote with three honest `UNKNOWN`s beats a padded one with three guesses.
 - Run anything customer-facing (the question list, anything you might paste back to them) through `humanizer` and the em-dash scrub.
