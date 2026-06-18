@@ -63,6 +63,38 @@ the install user doesn't yet exist on the target.
 INSTALL_USER=alice sudo ./extras/helpers/bootstrap-install-secrets.sh stage
 ```
 
+## clanker-install.sh
+
+One-shot bootstrap installer for the `clanker` VM host. Run as root from a stock
+NixOS minimal installer ISO; it installs clanker onto `/dev/vda` and seeds the
+dustin user's environment so future `just rebuild`s work with no further setup.
+
+**Prerequisites**: a stock NixOS minimal ISO with networking. The 1Password
+service-account token (`ops_...`) handy — the script prompts for it once
+(hidden). Nothing else needs to be pre-installed; the script enables
+`nix-command`/`flakes` itself and pulls `op` via `nix shell`.
+
+```bash
+# On the ISO, as root:
+nix-shell -p git --run 'git clone https://github.com/bashfulrobot/nixerator /tmp/nixerator'
+sudo bash /tmp/nixerator/extras/helpers/clanker-install.sh
+```
+
+**What it does, in order**: confirms the destructive wipe of `/dev/vda`; prompts
+(hidden) for the SA token; renders `/home/dustin/.config/nixos-secrets/secrets.json`
+(the absolute path the flake reads at eval time); builds the disko script and the
+clanker closure with `--impure` once, up front; runs disko to partition/format/mount
+at `/mnt`; installs the prebuilt closure with `nixos-install --system` (no re-eval);
+seeds the installed home (repo clone, SA token, secrets file, ed25519 key) and
+fixes ownership via `nixos-enter`. It prints the generated public key and tells
+you to add it to GitHub (auth + signing), then to `reboot` — it does NOT
+auto-reboot.
+
+The token is never echoed, never written into the repo, and never placed on a
+command line; `set -x` is deliberately not used. This is the disko-managed VM
+equivalent of the `bootstrap.txt` flow plus `bootstrap-install-secrets.sh`,
+collapsed into a single non-interactive-after-prompt run.
+
 ## setup-op-service-account.sh
 
 Installs the nixerator 1Password service-account token at
