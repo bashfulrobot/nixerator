@@ -21,7 +21,7 @@ TPL="@TPL@"
 # allow-list `justfile`'s remote-rebuild recipes use. Defends against a
 # user typing (or pasting) an attacker hostname / `user@host` string and
 # silently exfiltrating the rendered secrets via scp.
-ALLOWED_HOSTS=(qbert donkeykong srv)
+ALLOWED_HOSTS=(qbert donkeykong srv clanker)
 
 usage() {
   cat >&2 <<EOF

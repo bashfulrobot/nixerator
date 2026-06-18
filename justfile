@@ -683,10 +683,10 @@ remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
     case "{{host}}" in
-        qbert|donkeykong|srv) ;;
+        qbert|donkeykong|srv|clanker) ;;
         *)
             echo "Refusing to ssh to unrecognized host: {{host}}"
-            echo "Allowed: qbert, donkeykong, srv"
+            echo "Allowed: qbert, donkeykong, srv, clanker"
             exit 1
             ;;
     esac
@@ -708,10 +708,10 @@ remote-upgrade host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
     case "{{host}}" in
-        qbert|donkeykong|srv) ;;
+        qbert|donkeykong|srv|clanker) ;;
         *)
             echo "Refusing to ssh to unrecognized host: {{host}}"
-            echo "Allowed: qbert, donkeykong, srv"
+            echo "Allowed: qbert, donkeykong, srv, clanker"
             exit 1
             ;;
     esac
@@ -747,10 +747,10 @@ push-secrets +hosts:
     set -euo pipefail
     for host in {{hosts}}; do
         case "$host" in
-            qbert|donkeykong|srv) ;;
+            qbert|donkeykong|srv|clanker) ;;
             *)
                 echo "Refusing to push to unrecognized host: $host"
-                echo "Allowed: qbert, donkeykong, srv"
+                echo "Allowed: qbert, donkeykong, srv, clanker"
                 exit 1
                 ;;
         esac
