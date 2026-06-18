@@ -2,6 +2,7 @@
   hostname,
   globals,
   pkgs,
+  modulesPath,
   ...
 }:
 
@@ -13,7 +14,8 @@
   # disabled `mkIf` branches, which the module system still type-checks against
   # option namespaces clanker never declares.
   imports = [
-    ./hardware-configuration.nix # Hardware-specific settings
+    (modulesPath + "/profiles/qemu-guest.nix") # virtio kernel modules (replaces a generated hardware-config)
+    ./disko.nix # declarative disk layout (owns filesystems)
     ./boot.nix # Bootloader configuration
     ./vm.nix # VM guest tuning
     ./modules.nix # Module configuration
