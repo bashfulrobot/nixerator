@@ -22,6 +22,7 @@ in
       default = [
         "srv"
         "qbert"
+        "clanker"
       ];
       description = ''
         Hostnames the `work` fish function probes for zellij sessions
