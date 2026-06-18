@@ -306,9 +306,14 @@
   "fadeToLockEnabled": true,
   "fadeToLockGracePeriod": 5,
   "filePickerUsageHistory": {
+    "com.github.phase1geo.annotator": {
+      "count": 1,
+      "lastUsed": 1781738873613,
+      "name": "Annotator"
+    },
     "google-chrome": {
-      "count": 8,
-      "lastUsed": 1781563509974,
+      "count": 9,
+      "lastUsed": 1781737895272,
       "name": "Google Chrome"
     }
   },
