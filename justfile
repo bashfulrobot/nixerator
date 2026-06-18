@@ -53,6 +53,14 @@ rebuild:
         exit "$rc"
     fi
 
+# Build (not switch) an arbitrary host's system closure to verify it evaluates
+# and compiles. Works from any host and never activates. Use to validate a new
+# host config before installing it on the target machine.
+#
+#   just build-host clanker
+build-host host:
+    nixos-rebuild build --impure --flake ".#{{host}}"
+
 # Stage all, rebuild, unstage on exit
 dev-rebuild:
     #!/usr/bin/env bash
