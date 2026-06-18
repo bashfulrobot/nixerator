@@ -1,11 +1,14 @@
 _:
 
 {
-  # Single-OS VM, legacy BIOS + GRUB on the virtio disk. Regenerate/adjust if
-  # the real VM uses UEFI or a different device.
+  # Legacy BIOS GRUB on the virtio disk. Disko creates the EF02 BIOS-boot
+  # partition GRUB needs on GPT and sets `boot.loader.grub.devices` to the
+  # disk (see disko.nix). We deliberately do NOT set `device` here: the grub
+  # module would merge it into `devices`, duplicating /dev/vda and tripping
+  # the "duplicated devices in mirroredBoots" assertion.
   boot.loader.grub = {
     enable = true;
-    device = "/dev/vda";
     useOSProber = false;
+    efiSupport = false;
   };
 }

@@ -185,7 +185,10 @@
           hostname = "clanker";
           system = "x86_64-linux";
           # Plain Sway, no hyprflake/GNOME module to inject.
-          extraModules = [ ];
+          extraModules = [
+            # Disko declarative disk partitioning
+            inputs.disko.nixosModules.disko
+          ];
           homeManagerModules = [ ];
         };
       };
