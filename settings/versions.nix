@@ -146,7 +146,7 @@
       version = "0.5.1";
       tagPrefix = "v";
       hash = "sha256-DCi5T2OpYb2sQiQB3b3BXtN8CMKaZdab0BFweeuez08=";
-      vendorHash = "sha256-gmNsw0mTKnMqcHu9p2yy3GDmU+702sXGtV+giCjPrvM=";
+      vendorHash = "sha256-BLw8PXM3D+1Go/pPnJRaqXAc3wgyLI71LFmOtQYUol0=";
     };
 
     crawl4ai = {
