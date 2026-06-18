@@ -1,38 +1,77 @@
-{ hostname, globals, ... }:
+{
+  hostname,
+  globals,
+  pkgs,
+  ...
+}:
 
 {
+  # Import hardware configuration. NO `../../modules` auto-import: clanker is a
+  # headless box and follows the srv pattern of manual imports + direct enables
+  # (see hosts/srv/modules.nix). Auto-importing pulls in desktop modules that
+  # place definitions under the `hyprflake.*`/`stylix.*` namespaces inside
+  # disabled `mkIf` branches, which the module system still type-checks against
+  # option namespaces clanker never declares.
   imports = [
-    ./hardware-configuration.nix
-    ./boot.nix
-    ./vm.nix
-    ./modules.nix
-
-    # Auto-import all modules
-    ../../modules
+    ./hardware-configuration.nix # Hardware-specific settings
+    ./boot.nix # Bootloader configuration
+    ./vm.nix # VM guest tuning
+    ./modules.nix # Module configuration
   ];
 
-  # Networking
-  networking.hostName = hostname;
-
-  # Localization (timezone via services.automatic-timezoned in the core suite)
-  i18n.defaultLocale = globals.defaults.locale;
-
-  # Boot straight into a logged-in TTY1 as the primary user. The core suite
-  # sets this user's login shell to fish, whose login hook (see home.nix)
-  # `exec sway`s on TTY1. No display manager, no greeter, no password.
-  services.getty.autologinUser = globals.user.name;
-
-  # Lean Claude host: full CLI/dev tooling, minimal headless desktop. Enable the
-  # suites directly instead of the workstation archetype (which would pull
-  # browsers, av, kong, k8s, etc.). The graphical layer is the minimal headless
-  # Sway defined in home.nix, not hyprflake.
-  suites = {
-    core.enable = true; # ssh, tailscale, restic *tool* (no backup job), networking
-    terminal.enable = true; # fish (login shell), starship, zellij, zoxide
-    dev.enable = true; # claude-code, git (+ SSH commit signing), direnv, helix, go, python
+  # Networking (simple DHCP for a VM)
+  networking = {
+    hostName = hostname;
+    networkmanager.enable = true;
   };
 
-  # zellij + sshd + the `work` cross-host launcher. Makes clanker a peer in the
-  # cross-device workflow (reachable from the phone via `work`).
-  archetypes.claudeWorkHost.enable = true;
+  # Localization (from globals)
+  time.timeZone = globals.defaults.timeZone;
+  i18n.defaultLocale = globals.defaults.locale;
+
+  # User configuration (defined here since there is no core suite to do it)
+  users.users.${globals.user.name} = {
+    isNormalUser = true;
+    description = globals.user.fullName;
+    group = globals.user.name;
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+      "video"
+    ];
+    shell = pkgs.${globals.preferences.shell};
+  };
+
+  users.groups.${globals.user.name} = { };
+
+  # Passwordless sudo for wheel group (enables non-interactive `just rebuild`
+  # from Claude Code / zellij)
+  security.sudo.wheelNeedsPassword = false;
+
+  # Boot straight into a logged-in TTY1 as the primary user. fish's login hook
+  # (see home.nix) `exec sway`s on TTY1. No display manager, no greeter.
+  services.getty.autologinUser = globals.user.name;
+
+  # System packages (minimal base set, including the 1Password CLI)
+  environment.systemPackages = with pkgs; [
+    _1password-cli
+    bat
+    curl
+    eza
+    fd
+    git
+    just
+    ripgrep
+    tree
+    wget
+  ];
+
+  # Basic fonts so screenshots aren't tofu
+  fonts.packages = with pkgs; [
+    dejavu_fonts
+    nerd-fonts.iosevka
+  ];
+
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
 }
