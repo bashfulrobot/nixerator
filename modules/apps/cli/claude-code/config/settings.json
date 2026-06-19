@@ -123,10 +123,7 @@
       "Bash(nix-collect-garbage *)"
     ],
     "ask": [
-      "Bash(rm *)",
-      "Bash(sudo *)",
-      "Bash(kill *)",
-      "Bash(pkill *)"
+      "Bash(sudo *)"
     ],
     "defaultMode": "auto",
     "additionalDirectories": [
@@ -273,6 +270,15 @@
             "type": "command",
             "command": "/nix/store/zqvy2y6ifjz5j9x5s2b8wisn9wshsr97-tmux-claude-unstable-2025-06-20/scripts/hook.sh",
             "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "@AUTO_GATE_COMMAND@"
           }
         ]
       }

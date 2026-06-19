@@ -54,6 +54,7 @@ let
       pkgs
       configDir
       statusLineScript
+      autoGateScript
       reapConfig
       globals
       homeDir
@@ -71,6 +72,20 @@ let
       pkgs.gawk
     ];
     text = builtins.readFile ./statusline.sh;
+  };
+
+  # PreToolUse permission gate for /auto autonomous sessions. Sole arbiter for
+  # rm/kill/pkill, gated by the session-bound ~/.claude/.auto-mode-active
+  # sentinel (see config/skills/auto/references/permission-model.md). jq + grep
+  # on PATH via runtimeInputs.
+  autoGateScript = pkgs.writeShellApplication {
+    name = "claude-auto-gate";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.gnugrep
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/auto-gate.sh;
   };
 
   # Shell scripts -- read from files, substitute placeholders

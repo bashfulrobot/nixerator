@@ -2,6 +2,7 @@
   pkgs,
   configDir,
   statusLineScript,
+  autoGateScript,
   reapConfig,
   globals,
   homeDir,
@@ -28,6 +29,7 @@
       rm -f "$claude_home/settings.json"
       ${pkgs.gnused}/bin/sed \
         -e 's|@STATUSLINE_COMMAND@|${statusLineScript}/bin/claude-statusline|g' \
+        -e 's|@AUTO_GATE_COMMAND@|${autoGateScript}/bin/claude-auto-gate|g' \
         -e 's|@USER_NAME@|${globals.user.name}|g' \
         -e 's|@HOME_DIR@|${globals.user.homeDirectory}|g' \
         "${configDir}/settings.json" > "$claude_home/settings.json"

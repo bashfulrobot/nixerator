@@ -1,26 +1,24 @@
-# Stale Overlay Cleanup
+# Stale sentinel cleanup
 
-If `~/.claude/.auto-mode-active` exists at the start of a new `/auto` run,
-a prior run crashed without teardown. Restore order:
+If `~/.claude/.auto-mode-active` exists at the start of a new `/auto` run, a
+prior run crashed without teardown. There is no settings file to restore (this
+skill never edits settings -- see `permission-model.md`); the only artifact is
+the sentinel, so cleanup is just removing it.
 
-1. Read the sentinel:
+1. Read the sentinel to see which run was orphaned:
    ```bash
    cat ~/.claude/.auto-mode-active
    ```
-2. Restore the backed-up settings:
-   ```bash
-   if [ -f ~/.claude/settings.local.json.auto-backup ]; then
-     mv ~/.claude/settings.local.json.auto-backup ~/.claude/settings.local.json
-   fi
-   ```
-3. Remove the sentinel:
+2. Remove it:
    ```bash
    rm -f ~/.claude/.auto-mode-active
    ```
-4. Log the cleanup to `~/.claude/autonomous-runs/cleanup-$(date -u +%Y%m%dT%H%M%SZ).md`
-   noting which prior run was orphaned (from sentinel content).
+3. Log the cleanup to
+   `~/.claude/autonomous-runs/cleanup-$(date -u +%Y%m%dT%H%M%SZ).md`, noting the
+   orphaned run from the sentinel content.
 
-This in-skill cleanup is the primary recovery mechanism. There is no
-SessionStart hook for this — a crashed `/auto` run is recovered the
-next time `/auto` is invoked (or you can run the steps above by hand
-if you spot a leftover `.auto-mode-active` sentinel).
+Note: a stale sentinel is already inert in any *other* session, because the
+`claude-auto-gate` hook only elevates when the sentinel's `session_id` matches
+the running session. This cleanup keeps things tidy and covers the rare case of
+a reused session id. This in-skill sweep is the recovery mechanism; there is no
+SessionStart hook for it.
