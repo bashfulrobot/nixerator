@@ -29,7 +29,6 @@
       rm -f "$claude_home/settings.json"
       ${pkgs.gnused}/bin/sed \
         -e 's|@STATUSLINE_COMMAND@|${statusLineScript}/bin/claude-statusline|g' \
-        -e 's|@AUTO_GATE_COMMAND@|${autoGateScript}/bin/claude-auto-gate|g' \
         -e 's|@USER_NAME@|${globals.user.name}|g' \
         -e 's|@HOME_DIR@|${globals.user.homeDirectory}|g' \
         "${configDir}/settings.json" > "$claude_home/settings.json"
@@ -40,6 +39,20 @@
       ${pkgs.jq}/bin/jq --slurpfile ov ${pluginOverlay} \
         '.extraKnownMarketplaces = $ov[0].extraKnownMarketplaces
          | .enabledPlugins = $ov[0].enabledPlugins' \
+        "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+      mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+
+      # The /auto permission gate is Nix-owned (stripped from capture in
+      # cfg/fish.nix), mirroring the plugin overlay above. Pin the ask list and
+      # inject the sentinel-gated auto-gate PreToolUse hook with its store path
+      # so a captured or runtime-rewritten settings.json can't drift them. This
+      # injection (not a source placeholder) is required because pre-rebuild
+      # capture would wipe a brand-new source key before it is ever built.
+      ${pkgs.jq}/bin/jq \
+        '.permissions.ask = ["Bash(sudo *)"]
+         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))
+             + [{matcher: "Bash", hooks: [{type: "command", command: "${autoGateScript}/bin/claude-auto-gate"}]}])' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
       chmod 644 "$claude_home/settings.json"

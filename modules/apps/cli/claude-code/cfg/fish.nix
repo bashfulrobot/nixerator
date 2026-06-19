@@ -76,7 +76,8 @@
         # Nix-authored, SHA-pinned values on the next rebuild.
         if test -f "$claude_dir/settings.json"
           sed "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" "$claude_dir/settings.json" \
-            | jq 'del(.extraKnownMarketplaces, .enabledPlugins)' > "$config_dir/settings.json"
+            | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask)
+                  | .hooks.PreToolUse = ((.hooks.PreToolUse // []) | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))' > "$config_dir/settings.json"
           echo "  settings.json"
         end
 
