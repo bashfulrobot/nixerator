@@ -1396,11 +1396,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1782016549,
-        "narHash": "sha256-zrNOe83LujWm16BX3Ylj59gLDsv1vQduaWe+0vu5u6k=",
+        "lastModified": 1782026033,
+        "narHash": "sha256-9P/D+rZFv7lkemnZeBje8Bwn88dFq8JkZfyyUCWBGCM=",
         "owner": "bashfulrobot",
         "repo": "upsight-go",
-        "rev": "bd79c4aa6956fabadeab7be08d83dc829056cf27",
+        "rev": "bb1356000439b318bfdd0e740ef12eed5dd9486f",
         "type": "github"
       },
       "original": {
