@@ -2,37 +2,59 @@
   pkgs,
   config,
   lib,
+  globals,
   ...
 }:
 let
   cfg = config.apps.cli.restic;
   bcfg = cfg.backup;
 
+  profile = bcfg.secretsProfile;
+  secretsFile = bcfg.secretsFile;
+  jqBin = "${pkgs.jq}/bin/jq";
+
   backup-mgr = ''
     #!/run/current-system/sw/bin/env fish
 
     set -x RESTIC_BIN "/run/current-system/sw/bin/restic"
-
     set -x RESTIC_HOST (hostname)
-    set -x RESTIC_REPOSITORY "${bcfg.repository}"
-    set -x AWS_ACCESS_KEY_ID "${bcfg.awsAccessKeyId}"
-    set -x AWS_SECRET_ACCESS_KEY "${bcfg.awsSecretAccessKey}"
-    set -x AWS_DEFAULT_REGION "${bcfg.awsRegion}"
-    set -x RESTIC_PASSWORD "${bcfg.password}"
+
+    # Credentials are NOT baked into this script (it lives world-readable in
+    # /nix/store, on every user's PATH). load_secrets reads them at runtime
+    # from the off-store, 0600 file written by render-secrets, so the B2 keys
+    # and restic password never enter the store. See extras/docs/secrets.md.
+    function load_secrets
+      set -l secrets_file "${secretsFile}"
+      if not test -r "$secrets_file"
+        echo "backup-mgr: secrets file $secrets_file is missing or unreadable." >&2
+        echo "Run 'just render-secrets' (or push from a peer) and retry." >&2
+        exit 1
+      end
+      set -l jq "${jqBin}"
+      set -gx RESTIC_REPOSITORY ($jq -r '.restic.${profile}.restic_repository' "$secrets_file")
+      set -gx AWS_ACCESS_KEY_ID ($jq -r '.restic.${profile}.b2_account_id' "$secrets_file")
+      set -gx AWS_SECRET_ACCESS_KEY ($jq -r '.restic.${profile}.b2_account_key' "$secrets_file")
+      set -gx AWS_DEFAULT_REGION ($jq -r '.restic.${profile}.region' "$secrets_file")
+      set -gx RESTIC_PASSWORD ($jq -r '.restic.${profile}.restic_password' "$secrets_file")
+    end
 
     function init_repo
+      load_secrets
       $RESTIC_BIN -r $RESTIC_REPOSITORY init
     end
 
     function restore_backup
+      load_secrets
       $RESTIC_BIN -r $RESTIC_REPOSITORY restore latest --target ${bcfg.restorePath}
     end
 
     function list_backups
+      load_secrets
       $RESTIC_BIN -r $RESTIC_REPOSITORY snapshots
     end
 
     function run_backup
+      load_secrets
       $RESTIC_BIN -r $RESTIC_REPOSITORY backup ${lib.concatStringsSep " " bcfg.backupPaths}
       $RESTIC_BIN -r $RESTIC_REPOSITORY forget --prune --host $RESTIC_HOST --keep-daily ${toString bcfg.keepDaily} --keep-weekly ${toString bcfg.keepWeekly} --keep-monthly ${toString bcfg.keepMonthly} --keep-yearly ${toString bcfg.keepYearly}
     end
@@ -109,29 +131,24 @@ in
           description = "Enable scheduled restic backups with backup-mgr.";
         };
 
-        repository = lib.mkOption {
+        secretsProfile = lib.mkOption {
           type = lib.types.str;
-          description = "Restic repository URL (e.g., s3:s3.us-west-000.backblazeb2.com/bucket-name).";
+          description = ''
+            Key under `.restic` in the rendered secrets file selecting this
+            host's credential set (e.g. "srv" or "workstation"). The
+            repository, password, B2 keys, and region are read from
+            `<secretsFile>.restic.<secretsProfile>.*` at runtime by backup-mgr,
+            so they never enter the world-readable /nix/store.
+          '';
         };
 
-        password = lib.mkOption {
+        secretsFile = lib.mkOption {
           type = lib.types.str;
-          description = "Restic repository password.";
-        };
-
-        awsAccessKeyId = lib.mkOption {
-          type = lib.types.str;
-          description = "AWS/B2 access key ID.";
-        };
-
-        awsSecretAccessKey = lib.mkOption {
-          type = lib.types.str;
-          description = "AWS/B2 secret access key.";
-        };
-
-        awsRegion = lib.mkOption {
-          type = lib.types.str;
-          description = "AWS/B2 region.";
+          default = "${globals.user.homeDirectory}/.config/nixos-secrets/secrets.json";
+          description = ''
+            Path to the off-store JSON secrets file (rendered by
+            render-secrets) that backup-mgr reads credentials from at runtime.
+          '';
         };
 
         backupPaths = lib.mkOption {

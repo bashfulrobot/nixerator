@@ -1,4 +1,4 @@
-{ secrets, ... }:
+{ ... }:
 
 {
   # Adopt the Claude work-host archetype (symmetric peer to srv): zellij
@@ -15,11 +15,7 @@
     # Apps
     restic.backup = {
       enable = true;
-      repository = secrets.restic.workstation.restic_repository;
-      password = secrets.restic.workstation.restic_password;
-      awsAccessKeyId = secrets.restic.workstation.b2_account_id;
-      awsSecretAccessKey = secrets.restic.workstation.b2_account_key;
-      awsRegion = secrets.restic.workstation.region;
+      secretsProfile = "workstation";
       backupPaths = [
         "/home/dustin/Desktop"
         "/home/dustin/dev"

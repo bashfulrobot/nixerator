@@ -132,6 +132,11 @@ an `EnvironmentFile` / decrypted paths at runtime (or adopting the upstream
 which secrets tool you pick — even reading from the existing `secrets.json` at
 runtime instead of baking values in would be an improvement.
 
+**Done (2026-06-21):** `backup-mgr` now reads the repo/password/B2 keys/region
+from the off-store `secrets.json` at runtime via `jq` (host call sites pass a
+`secretsProfile` instead of the values), so they no longer land in the
+world-readable store script. No new tool, 1Password unchanged.
+
 Shared values (`b2-credentials`, `restic-password`) currently fan out to
 srv/qbert/donkeykong via the JSON blob. agenix would push you to one `.age`
 file per (host × value) or duplicate; sops keeps the single-doc fan-out.
