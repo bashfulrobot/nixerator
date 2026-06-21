@@ -137,6 +137,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `gemini` | API Credential | `credential` | `secrets.gemini.apiKey` |
 | `snyk` | API Credential | `credential` | `secrets.snyk.token` |
 | `tailscale-caddy-authkey` | API Credential | `credential` | `secrets.tailscale.caddyAuthKey` |
+| `tailscale-node-authkey` | API Credential | `credential` | `secrets.tailscale.nodeAuthKey` (reusable, pre-approved tailnet auth key for host auto-join; materialized to a 0600 runtime file by the `tailscale` module — issue #107) |
 | `github-pat` | API Credential | `credential` | `secrets.github.accessToken` |
 | `todoist` | API Credential | `credential` | `secrets.todoist_token` |
 | `cloudflare-ddns` | API Credential | `credential` | `secrets.cloudflareDdns.apiToken` (scope: `Zone / DNS / Edit` on the target zones only) |
