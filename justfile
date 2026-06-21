@@ -551,41 +551,78 @@ post-rebuild mode="quiet":
         fi
     fi
 
-    captured=(modules/apps/cli/claude-code/config modules/apps/cli/agentos/config)
-    if $is_capture_source && [[ -n "$(git status --porcelain -- "${captured[@]}" 2>/dev/null)" ]]; then
-        commit_msg='chore(claude-code): update captured config state'
-        echo ""
-        if [[ "{{mode}}" == "interactive" ]]; then
-            gum style --foreground 220 --bold "Captured config changed! Review and commit with:"
-        else
-            echo "════════════════════════════════════════════════════════════"
-            echo "  Captured config changed! Review and commit with:"
-        fi
-        echo "  git add ${captured[*]} && git commit -m \"$commit_msg\""
-        if [[ "{{mode}}" != "interactive" ]]; then
-            echo "════════════════════════════════════════════════════════════"
-        fi
-        echo "$commit_msg" | wl-copy 2>/dev/null || true
-        notify-send "Nixerator" "Captured config changed — review and commit" 2>/dev/null || true
-    fi
+    # Auto-commit + push captured state so a rebuild leaves nothing uncommitted.
+    #
+    # Branch gate: we only auto-commit + push when HEAD is `main`. On any other
+    # branch we fall back to surfacing the diff for manual review, so capture
+    # commits never land on an unrelated feature branch.
+    #
+    # Scope: commits use the pathspec form `git commit -- <paths>`, which records
+    # ONLY the named capture paths. This is load-bearing — `quiet-rebuild` runs
+    # `git add -A` (so the flake sees untracked files) before calling this
+    # recipe, so a bare `git commit` would sweep the entire index into the
+    # capture commit. The pathspec form ignores everything staged for other
+    # paths; the preceding `git add -- <paths>` only ensures new/modified capture
+    # files are staged. Net effect: scoped commit regardless of what else is
+    # staged, and never a `git add -A` commit.
+    #
+    # Host gate: claude/agentos capture stays gated to the capture source
+    # (qbert) via is_capture_source; DMS (dank) settings commit on every host.
+    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)
+    on_main=false
+    [[ "$branch" == "main" ]] && on_main=true
+    did_commit=false
 
-    # DMS (dank) settings are captured in pre-rebuild (before the seed) on EVERY
-    # host -- not gated to qbert -- so surface any resulting change to
-    # dank-profiles/ here regardless of host, on its own commit scope.
-    if [[ -n "$(git status --porcelain -- dank-profiles 2>/dev/null)" ]]; then
-        dank_msg='chore(dank): update captured DMS settings'
+    notice() { if [[ "{{mode}}" == "interactive" ]]; then gum style --foreground 82 "$1"; else echo "$1"; fi; }
+    warn()   { if [[ "{{mode}}" == "interactive" ]]; then gum style --foreground 220 "$1"; else echo "$1"; fi; }
+
+    # commit_captures <label> <commit-msg> <path>...
+    # On main: stage + pathspec-commit exactly the given paths, set did_commit.
+    # Off main: surface the diff for manual review (the pre-auto-commit behaviour).
+    commit_captures() {
+        local label="$1" msg="$2"; shift 2
+        local paths=("$@")
+        [[ -z "$(git status --porcelain -- "${paths[@]}" 2>/dev/null)" ]] && return 0
         echo ""
-        if [[ "{{mode}}" == "interactive" ]]; then
-            gum style --foreground 220 --bold "DMS settings captured! Review and commit with:"
+        if $on_main; then
+            if git add -- "${paths[@]}" && git commit -q -m "$msg" -- "${paths[@]}"; then
+                did_commit=true
+                notice "$label captured and committed: $msg"
+                notify-send "Nixerator" "$label captured and committed" 2>/dev/null || true
+            else
+                warn "$label captured but commit failed — commit manually:"
+                warn "  git add ${paths[*]} && git commit -m \"$msg\" -- ${paths[*]}"
+                notify-send "Nixerator" "$label capture commit failed" 2>/dev/null || true
+            fi
         else
-            echo "════════════════════════════════════════════════════════════"
-            echo "  DMS settings captured! Review and commit with:"
+            warn "$label captured (on branch '$branch', not main) — review and commit manually:"
+            warn "  git add ${paths[*]} && git commit -m \"$msg\" -- ${paths[*]}"
+            notify-send "Nixerator" "$label captured — review and commit" 2>/dev/null || true
         fi
-        echo "  git add dank-profiles && git commit -m \"$dank_msg\""
-        if [[ "{{mode}}" != "interactive" ]]; then
-            echo "════════════════════════════════════════════════════════════"
+    }
+
+    if $is_capture_source; then
+        commit_captures "Claude/Agent OS config" \
+            'chore(claude-code): update captured config state' \
+            modules/apps/cli/claude-code/config modules/apps/cli/agentos/config
+    fi
+    # DMS (dank) settings are captured in pre-rebuild (before the seed) on EVERY
+    # host -- not gated to qbert -- so commit any change on its own scope here.
+    commit_captures "DMS settings" \
+        'chore(dank): update captured DMS settings' \
+        dank-profiles
+
+    # Push once if anything was committed. did_commit is only ever set on main,
+    # so this only pushes main. A failed push (diverged remote, no upstream) is
+    # non-fatal: keep the local commit(s), warn, and let the rebuild finish.
+    if $did_commit; then
+        if git push -q origin main 2>/dev/null; then
+            notice "Pushed captured config to origin/main"
+            notify-send "Nixerator" "Captured config pushed to origin/main" 2>/dev/null || true
+        else
+            warn "Capture commit(s) made but push failed — resolve with: just sync-git"
+            notify-send "Nixerator" "Capture push failed — run just sync-git" 2>/dev/null || true
         fi
-        notify-send "Nixerator" "DMS settings captured — review and commit" 2>/dev/null || true
     fi
 
 # === Quiet Recipes ===
