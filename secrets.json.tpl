@@ -51,8 +51,7 @@
     "apiKey": "{{ op://nixerator/gemini/credential }}"
   },
   "tailscale": {
-    "caddyAuthKey": "{{ op://nixerator/tailscale-caddy-authkey/credential }}",
-    "nodeAuthKey": "{{ op://nixerator/tailscale-node-authkey/credential }}"
+    "caddyAuthKey": "{{ op://nixerator/tailscale-caddy-authkey/credential }}"
   },
   "harmonia": {
     "privateKey": "{{ op://nixerator/harmonia-signing-key/credential }}"
