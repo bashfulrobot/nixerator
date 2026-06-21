@@ -224,7 +224,9 @@ in
           enable = true;
           serviceConfig = {
             Type = "simple";
-            ExecStart = "/run/current-system/sw/bin/fish /run/current-system/sw/bin/backup-mgr";
+            # Pass -backup so the timer actually runs a backup; with no
+            # argument backup-mgr falls through to show_help and does nothing.
+            ExecStart = "/run/current-system/sw/bin/fish /run/current-system/sw/bin/backup-mgr -backup";
           };
           wantedBy = [ "multi-user.target" ];
         };
