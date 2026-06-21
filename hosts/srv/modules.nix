@@ -34,7 +34,7 @@
     ../../modules/system/ssh
   ];
 
-  # Adopts the Claude work-host archetype: zellij (no web, no mosh),
+  # Adopts the Claude work-host archetype: zellij (no web; mosh via system.ssh),
   # sshd, work-launcher. Sessions live on srv until killed; attach from
   # anywhere on the tailnet via `work` or `ssh srv zellij attach`.
   archetypes.claudeWorkHost.enable = true;

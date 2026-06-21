@@ -46,7 +46,7 @@
     ../../modules/archetypes/claudeWorkHost
   ];
 
-  # Adopts the Claude work-host archetype: zellij (no web, no mosh), sshd,
+  # Adopts the Claude work-host archetype: zellij (no web; mosh via system.ssh), sshd,
   # work-launcher. This already enables zellij + work-launcher + system.ssh,
   # so those three are NOT enabled separately below (the module dirs are still
   # imported above, exactly as srv does).

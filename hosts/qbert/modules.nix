@@ -9,7 +9,7 @@ _:
   };
 
   # Adopt the Claude work-host archetype (symmetric peer to srv): zellij
-  # (no web, no mosh), sshd, and the work launcher. Sessions live on
+  # (no web; mosh via system.ssh), sshd, and the work launcher. Sessions live on
   # qbert until killed; attach from anywhere on the tailnet via `work`
   # or `ssh qbert zellij attach`.
   archetypes.claudeWorkHost.enable = true;
