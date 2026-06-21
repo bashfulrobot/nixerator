@@ -8,7 +8,7 @@ in
     type = lib.types.bool;
     default = false;
     description = ''
-      Enable the Claude work-host archetype: zellij (no web, no mosh),
+      Enable the Claude work-host archetype: zellij (no web; mosh via system.ssh),
       sshd, and the work launcher. Sessions started on this host stay on
       this host and are attachable from any peer via the `work` fish
       function or directly via SSH + `zellij attach`.

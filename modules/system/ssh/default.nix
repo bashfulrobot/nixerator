@@ -23,6 +23,12 @@ in
     # Enable OpenSSH server
     services.openssh.enable = true;
 
+    # Mosh: a roaming remote shell offered ALONGSIDE SSH, not replacing it. It
+    # does the initial handshake over OpenSSH (above) and then runs the session
+    # over UDP, so it survives IP changes, suspend/resume, and flaky links.
+    # programs.mosh installs the package and opens UDP 60000-61000 by default.
+    programs.mosh.enable = true;
+
     # Authorize key-based login for the primary user. With Tailscale SSH
     # retired (issue #107), regular OpenSSH is the only SSH path, so the login
     # key must be declared here -- otherwise the only way in is password auth.
