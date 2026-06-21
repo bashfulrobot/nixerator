@@ -7,6 +7,16 @@ rec {
     fullName = "Dustin Krysak";
     email = "dustin@bashfulrobot.com";
     homeDirectory = "/home/dustin";
+
+    # Public keys permitted to log in over regular OpenSSH (issue #107: moved
+    # off the Tailscale SSH server). Reuses the ed25519 key also used for git
+    # commit signing (git.gitPubSigningKey) -- the public half of the
+    # ~/.ssh/id_ed25519 pair SSH'd with on the workstations. Add more keys
+    # here as needed. VERIFY this matches the private key you actually SSH
+    # with before disabling password auth.
+    sshAuthorizedKeys = [
+      git.gitPubSigningKey
+    ];
   };
 
   # Common repository and development paths
