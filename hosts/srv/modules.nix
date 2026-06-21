@@ -1,4 +1,4 @@
-{ secrets, globals, ... }:
+{ globals, ... }:
 
 {
   # Import only modules that srv used in nixcfg, plus the cherry-picked
@@ -191,11 +191,7 @@
     enable = true;
     backup = {
       enable = true;
-      repository = secrets.restic.srv.restic_repository;
-      password = secrets.restic.srv.restic_password;
-      awsAccessKeyId = secrets.restic.srv.b2_account_id;
-      awsSecretAccessKey = secrets.restic.srv.b2_account_key;
-      awsRegion = secrets.restic.srv.region;
+      secretsProfile = "srv";
       backupPaths = [ "/srv/nfs" ];
       restorePath = "/srv/nfs/restores";
       schedule = "*-*-* 03:00:00";
