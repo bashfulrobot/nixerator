@@ -10,7 +10,7 @@ let
   bcfg = cfg.backup;
 
   profile = bcfg.secretsProfile;
-  secretsFile = bcfg.secretsFile;
+  inherit (bcfg) secretsFile;
   jqBin = "${pkgs.jq}/bin/jq";
 
   backup-mgr = ''
