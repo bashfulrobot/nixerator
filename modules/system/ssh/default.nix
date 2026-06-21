@@ -28,8 +28,7 @@ in
     # key must be declared here -- otherwise the only way in is password auth.
     # Password auth stays enabled as a fallback; disable it once key login is
     # verified on every host.
-    users.users.${globals.user.name}.openssh.authorizedKeys.keys =
-      globals.user.sshAuthorizedKeys;
+    users.users.${globals.user.name}.openssh.authorizedKeys.keys = globals.user.sshAuthorizedKeys;
 
     # Remote-agent interpreter for SSH-driven tools. `fresh` (and similar
     # python-over-ssh agents) pipe a bootstrap script into `python3` on the
