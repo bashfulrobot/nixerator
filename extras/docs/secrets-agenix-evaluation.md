@@ -5,6 +5,25 @@
 > nixerator actually needs secrets today, then asks whether agenix or sops-nix
 > would cover those cases — and whether the move is worth it.
 
+## Decision (2026-06-21): stay on 1Password as-is
+
+Evaluated agenix and sops-nix; **decided not to migrate.** Rationale:
+
+- The current 1Password + `render-secrets` flow is the only mechanism that
+  covers **100%** of nixerator's use cases, because it produces secret
+  *values* (which can go into files, env vars, inline config, or syncthing)
+  rather than *file paths* (which can't cover the env-var / inline-config /
+  syncthing cases). agenix/sops cover ~70% cleanly and would require building
+  adapter glue to re-cover the rest — strictly more work for less coverage.
+- The only property the current model lacks is plaintext-out-of-`/nix/store`,
+  which is a local-read exposure that barely matters on single-user hosts.
+- Migrating would also cost the 1Password UX (biometrics, one-place rotation,
+  no ciphertext-in-git history tail).
+
+**Revisit only if** a fresh host must bootstrap with **no 1Password available**
+(decrypt everything from just its host key). Until that's a real requirement,
+no change. The analysis below is retained as the reasoning record.
+
 ## TL;DR
 
 - **The one thing a move buys you:** plaintext secrets out of `/nix/store`.
