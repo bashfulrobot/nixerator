@@ -1,6 +1,13 @@
 { secrets, ... }:
 
 {
+  apps.gui = {
+    # Go rewrite (primary), kept alongside the original Kotlin app (installed
+    # as `upsight-kotlin`) for side-by-side comparison.
+    upsight.enable = true;
+    upsight-kotlin.enable = true;
+  };
+
   apps.cli = {
     # Render Nix-eval secrets locally from 1Password (and push to headless
     # peers via `render-secrets --push`). Gated on 1Password being available.
