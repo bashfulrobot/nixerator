@@ -151,10 +151,19 @@ upgrade:
     else
         gum style --foreground 82 "Upgrade complete"
     fi
-    # Auto-commit the refreshed lock so it never lingers uncommitted.
+    # Auto-commit + push the refreshed lock so it never lingers uncommitted or
+    # unpushed. Push is gated to main (post-rebuild only pushes main too) and
+    # non-fatal: a failed push keeps the local commit and warns.
     if ! git diff --quiet flake.lock; then
         if git add flake.lock && git commit -q -m "chore(flake): update flake lock"; then
             gum style --foreground 82 "Committed flake.lock"
+            if [[ "$(git branch --show-current 2>/dev/null)" == "main" ]]; then
+                if git push -q origin main 2>/dev/null; then
+                    gum style --foreground 82 "Pushed flake.lock to origin/main"
+                else
+                    gum style --foreground 220 "flake.lock committed but push failed — push manually"
+                fi
+            fi
         else
             gum style --foreground 220 "flake.lock updated but commit failed — commit it manually"
         fi
@@ -692,10 +701,19 @@ quiet-upgrade:
     } &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Upgrade succeeded. Full log: {{upgrade_log}}"
-        # Auto-commit the refreshed lock so it never lingers uncommitted.
+        # Auto-commit + push the refreshed lock so it never lingers uncommitted
+        # or unpushed. Push is gated to main (post-rebuild only pushes main too)
+        # and non-fatal: a failed push keeps the local commit and warns.
         if ! git diff --quiet flake.lock; then
             if git add flake.lock && git commit -q -m "chore(flake): update flake lock"; then
                 echo "Committed flake.lock."
+                if [[ "$(git branch --show-current 2>/dev/null)" == "main" ]]; then
+                    if git push -q origin main 2>/dev/null; then
+                        echo "Pushed flake.lock to origin/main."
+                    else
+                        echo "⚠ flake.lock committed but push failed — push manually."
+                    fi
+                fi
             else
                 echo "⚠ flake.lock updated but commit failed — commit it manually."
             fi
