@@ -372,5 +372,6 @@
   },
   "smallModelOverride": "haiku",
   "coAuthor": "",
-  "remoteControlEnabled": true
+  "remoteControlEnabled": true,
+  "skipWorkflowUsageWarning": true
 }
