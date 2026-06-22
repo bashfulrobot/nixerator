@@ -585,13 +585,24 @@ post-rebuild mode="quiet":
         [[ -z "$(git status --porcelain -- "${paths[@]}" 2>/dev/null)" ]] && return 0
         echo ""
         if $on_main; then
-            if git add -- "${paths[@]}" && git commit -q -m "$msg" -- "${paths[@]}"; then
+            git add -- "${paths[@]}" 2>/dev/null || true
+            # `git commit -- <pathspec>` aborts the WHOLE commit if any pathspec
+            # matches no tracked files (e.g. agentos/config when the capture
+            # produced no diffs and the dir holds nothing git-known). Commit only
+            # the paths that actually have staged changes so one empty capture
+            # path can't sink a sibling path's real changes.
+            local committable=()
+            for p in "${paths[@]}"; do
+                git diff --cached --quiet -- "$p" 2>/dev/null || committable+=("$p")
+            done
+            [[ ${#committable[@]} -eq 0 ]] && return 0
+            if git commit -q -m "$msg" -- "${committable[@]}"; then
                 did_commit=true
                 notice "$label captured and committed: $msg"
                 notify-send "Nixerator" "$label captured and committed" 2>/dev/null || true
             else
                 warn "$label captured but commit failed — commit manually:"
-                warn "  git add ${paths[*]} && git commit -m \"$msg\" -- ${paths[*]}"
+                warn "  git add ${committable[*]} && git commit -m \"$msg\" -- ${committable[*]}"
                 notify-send "Nixerator" "$label capture commit failed" 2>/dev/null || true
             fi
         else
