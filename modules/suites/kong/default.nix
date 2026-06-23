@@ -30,7 +30,7 @@ in
 
       # Kong web applications
       webapps = {
-        calendar.enable = false;
+        calendar.enable = true;
         clari.enable = false;
         kong-docs.enable = false;
         mail.enable = false;
