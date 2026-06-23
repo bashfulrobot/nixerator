@@ -1,21 +1,40 @@
 {
-  "createdBy": "Redirector v5.0",
-  "createdAt": "2025-12-16T17:06:05.369Z",
-  "redirects": [
-    {
-      "description": "Zoom web client",
-      "exampleUrl": "https://sub.zoom.us/j/123456?pwd=pass",
-      "exampleResult": "https://sub.zoom.us/wc/join/123456?pwd=pass",
-      "error": null,
-      "includePattern": "*//*.zoom.us/j/*",
-      "excludePattern": "",
-      "patternDesc": "",
-      "redirectUrl": "$1//$2.zoom.us/wc/join/$3",
-      "patternType": "W",
-      "processMatches": "noProcessing",
-      "disabled": false,
-      "grouped": false,
-      "appliesTo": ["main_frame"]
-    }
-  ]
+    "createdBy": "Redirector v5.0",
+    "createdAt": "2026-06-23T20:21:18.589Z",
+    "redirects": [
+        {
+            "description": "Zoom web client",
+            "exampleUrl": "https://sub.zoom.us/j/123456?pwd=pass",
+            "exampleResult": "https://sub.zoom.us/wc/join/123456?pwd=pass",
+            "error": null,
+            "includePattern": "*//*.zoom.us/j/*",
+            "excludePattern": "",
+            "patternDesc": "",
+            "redirectUrl": "$1//$2.zoom.us/wc/join/$3",
+            "patternType": "W",
+            "processMatches": "noProcessing",
+            "disabled": false,
+            "grouped": false,
+            "appliesTo": [
+                "main_frame"
+            ]
+        },
+        {
+            "description": "Clari to Zoom web client",
+            "exampleUrl": "https://go.copilot.clari.com/zoom/123456789/s/EXAMPLEtok",
+            "exampleResult": "https://app.zoom.us/wc/join/123456789?pwd=EXAMPLEtok",
+            "error": null,
+            "includePattern": "*//go.copilot.clari.com/zoom/*/s/*",
+            "excludePattern": "",
+            "patternDesc": "",
+            "redirectUrl": "$1//app.zoom.us/wc/join/$2?pwd=$3",
+            "patternType": "W",
+            "processMatches": "noProcessing",
+            "disabled": false,
+            "grouped": false,
+            "appliesTo": [
+                "main_frame"
+            ]
+        }
+    ]
 }
