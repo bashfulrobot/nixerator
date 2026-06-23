@@ -40,7 +40,7 @@ in
         salesforce.enable = false;
         slack.enable = false;
         teams.enable = false;
-        zoom.enable = false;
+        zoom.enable = true;
       };
 
       cli = {
