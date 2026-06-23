@@ -35,7 +35,7 @@ in
       # Web apps for office reference desktop
       webapps = {
         mail.enable = false;
-        calendar.enable = false;
+        calendar.enable = true;
         instapaper.enable = false;
         salesforce.enable = false;
         slack.enable = false;
