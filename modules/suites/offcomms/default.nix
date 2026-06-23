@@ -83,7 +83,9 @@ in
       vesktop
       slack
       todoist-electron
-      zoom-us
+      # Native Zoom client disabled in favour of the browser-wrapped Zoom web
+      # app (apps.webapps.zoom). Re-add `zoom-us` here to restore the desktop client.
+      # zoom-us
     ];
 
     # Force Todoist Electron to use native Wayland (avoids XWayland key
