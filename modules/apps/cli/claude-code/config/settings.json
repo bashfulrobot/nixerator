@@ -362,6 +362,7 @@
     "command": "@STATUSLINE_COMMAND@"
   },
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "autoMode": {
@@ -373,5 +374,5 @@
   "smallModelOverride": "haiku",
   "coAuthor": "",
   "remoteControlEnabled": true,
-  "skipWorkflowUsageWarning": true
+  "tui": "fullscreen"
 }
