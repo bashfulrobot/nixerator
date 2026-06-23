@@ -114,6 +114,10 @@ if [ -z "$id" ]; then
   exit 1
 fi
 
+# Path form: the web client only auto-joins when the meeting number is in the
+# path (the ?confno= query form lands on an empty Join box). The id therefore
+# ends up in the derived Wayland app-id (chrome-app.zoom.us__wc_join_<id>-...),
+# so the alt-tab icon is handled at the switcher layer, not via a desktop entry.
 target="https://${host}/wc/join/${id}"
 [ -n "$pwd" ] && target="${target}?pwd=${pwd}"
 
