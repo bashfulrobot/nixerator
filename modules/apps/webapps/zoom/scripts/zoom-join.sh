@@ -28,11 +28,11 @@ PROFILE="@profile@"
 
 NOTIFY_TAG="zoom-join"
 
-notify()       { "$NOTIFY" "Zoom" "$1" --icon=camera-web --hint=string:x-dunst-stack-tag:"$NOTIFY_TAG" 2>/dev/null || true; }
+notify() { "$NOTIFY" "Zoom" "$1" --icon=camera-web --hint=string:x-dunst-stack-tag:"$NOTIFY_TAG" 2>/dev/null || true; }
 notify_error() { "$NOTIFY" "Zoom" "$1" --icon=dialog-error --hint=string:x-dunst-stack-tag:"$NOTIFY_TAG" 2>/dev/null || true; }
 
 host_of() { printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://([^/?#]+).*#\1#'; }
-qparam()  { printf '%s' "$1" | grep -oE "[?&]$2=[^&#]*" | head -n1 | sed -E "s/^[?&]$2=//" || true; }
+qparam() { printf '%s' "$1" | grep -oE "[?&]$2=[^&#]*" | head -n1 | sed -E "s/^[?&]$2=//" || true; }
 
 # Input: explicit arg wins, else clipboard, else primary selection.
 input="${1:-}"
@@ -48,17 +48,19 @@ if [ -z "$input" ]; then
   exit 1
 fi
 
-host=""; id=""; pwd=""
+host=""
+id=""
+pwd=""
 case "$input" in
   zoommtg://*)
     host="app.zoom.us"
     id="$(qparam "$input" confno)"
     pwd="$(qparam "$input" pwd)"
     ;;
-  http://*|https://*)
+  http://* | https://*)
     h="$(host_of "$input")"
     case "$h" in
-      zoom.us|*.zoom.us)
+      zoom.us | *.zoom.us)
         host="$h"
         id="$(printf '%s' "$input" | sed -nE 's#^https?://[^/]+/(j|wc/join|s)/([0-9]+).*#\2#p')"
         [ -z "$id" ] && id="$(printf '%s' "$input" | sed -nE 's#^https?://[^/]+/wc/([0-9]+)/join.*#\1#p')"
