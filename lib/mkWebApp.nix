@@ -26,14 +26,26 @@ let
   userDataDir = "${globals.user.homeDirectory}/.config/google-chrome-${name}";
   # Escape % as %% for desktop entry field code validation
   escapedUrl = builtins.replaceStrings [ "%" ] [ "%%" ] url;
+  # Pin Chromium's os_crypt backend to the GNOME keyring (Secret Service).
+  # Under Hyprland, XDG_CURRENT_DESKTOP is an "OTHER" desktop that Chromium
+  # does not recognise, so its password-store autodetection is unstable: it
+  # flip-flops between libsecret and the plaintext "basic" store across
+  # launches. Cookies encrypted under one key can't be decrypted under the
+  # other, so every wrapped app silently drops its session and appears logged
+  # out on relaunch / after reboot. Forcing gnome-libsecret makes the cookie
+  # encryption key deterministic (keyring is auto-unlocked at login via PAM —
+  # see hyprflake modules/system/keyring). Mirrors the same flag on the VSCode
+  # and Signal modules. Both exec lines must use it: the app window and the
+  # Manage window share one --user-data-dir, so they must share one backend.
+  passwordStore = "--password-store=gnome-libsecret";
   execLine =
-    ''${browser} --no-first-run --new-instance --app="${escapedUrl}" --class=${wmClass} --name=${wmClass} --user-data-dir=${userDataDir} --wayland-text-input-version=3''
+    ''${browser} --no-first-run --new-instance --app="${escapedUrl}" --class=${wmClass} --name=${wmClass} --user-data-dir=${userDataDir} ${passwordStore} --wayland-text-input-version=3''
     + lib.optionalString (extraArgs != "") " ${extraArgs}"
     + " %u";
   # Opens the PWA's profile as a normal browser window (URL bar + extensions
   # toolbar visible) so extensions can be installed and service logins
   # performed. The PWA inherits everything because it shares the user-data-dir.
-  manageExecLine = "${browser} --no-first-run --user-data-dir=${userDataDir} --wayland-text-input-version=3";
+  manageExecLine = "${browser} --no-first-run --user-data-dir=${userDataDir} ${passwordStore} --wayland-text-input-version=3";
 in
 {
   options.apps.webapps.${name}.enable = lib.mkEnableOption "${displayName} web app";
