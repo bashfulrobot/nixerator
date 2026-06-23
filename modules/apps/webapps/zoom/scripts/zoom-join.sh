@@ -14,9 +14,12 @@
 #   https://go.copilot.clari.com/zoom/<id>/s/<tok>
 #   <id>  bare meeting id, e.g. 123-4567-8901 or "123 4567 8901"
 #
-# For *.zoom.us inputs the original subdomain is preserved (most reliable for
-# region-pinned meetings); hostless inputs (zoommtg / Clari / bare id) use
-# app.zoom.us. Passcode is passed through when present.
+# Whatever the source host, the meeting is always joined via app.zoom.us — the
+# host the Zoom PWA is logged into. Session cookies are scoped per-host, so
+# joining on a vanity host (e.g. konghq.zoom.us) lands you as an unauthenticated
+# guest; app.zoom.us reuses the wrap's login so you join as yourself. Meeting
+# numbers are global, so app.zoom.us joins a meeting hosted on any vanity
+# domain. Passcode is passed through when present.
 #
 # DRY=1 prints the launch command instead of running it (for testing).
 set -uo pipefail
@@ -33,6 +36,8 @@ notify_error() { "$NOTIFY" "Zoom" "$1" --icon=dialog-error --hint=string:x-dunst
 
 host_of() { printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://([^/?#]+).*#\1#'; }
 qparam() { printf '%s' "$1" | grep -oE "[?&]$2=[^&#]*" | head -n1 | sed -E "s/^[?&]$2=//" || true; }
+# Decode %XX escapes (e.g. the percent-encoded link inside a Google wrapper).
+urldecode() { printf '%b' "${1//%/\\x}"; }
 
 # Input: explicit arg wins, else clipboard, else primary selection.
 input="${1:-}"
@@ -48,6 +53,15 @@ if [ -z "$input" ]; then
   exit 1
 fi
 
+# Unwrap Google Calendar / google.com/url redirect wrappers: the real meeting
+# link rides in the (often percent-encoded) q= parameter.
+case "$input" in
+  *//www.google.com/url* | *//google.com/url*)
+    q="$(qparam "$input" q)"
+    [ -n "$q" ] && input="$(urldecode "$q")"
+    ;;
+esac
+
 host=""
 id=""
 pwd=""
@@ -61,7 +75,10 @@ case "$input" in
     h="$(host_of "$input")"
     case "$h" in
       zoom.us | *.zoom.us)
-        host="$h"
+        # Always join via app.zoom.us (the logged-in PWA host), never the
+        # source vanity host — see header. $h is parsed only to confirm it's a
+        # zoom link.
+        host="app.zoom.us"
         id="$(printf '%s' "$input" | sed -nE 's#^https?://[^/]+/(j|wc/join|s)/([0-9]+).*#\2#p')"
         [ -z "$id" ] && id="$(printf '%s' "$input" | sed -nE 's#^https?://[^/]+/wc/([0-9]+)/join.*#\1#p')"
         pwd="$(qparam "$input" pwd)"
