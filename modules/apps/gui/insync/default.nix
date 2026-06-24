@@ -30,14 +30,34 @@ in
       with pkgs;
       [ insync ] ++ lib.optionals cfg.nautilusIntegration [ insync-nautilus ];
 
-    # Autostart insync. The Lua backend has no `exec-once` keyword — register a
-    # `hyprland.start` event handler, declared through hyprflake.hyprland.extraLua.
+    # Autostart insync as a systemd user service rather than a hyprland
+    # `exec-once`/lua hook. A lua hook has no supervision and no ordering, so
+    # insync could launch before DankMaterialShell's tray host
+    # (`StatusNotifierWatcher`, provided by `dms.service`) was up — leaving the
+    # app running but with no system-tray icon. Binding to
+    # `graphical-session.target` and ordering `After = dms.service` makes login
+    # autostart reliable and ensures the tray host exists before insync
+    # registers its icon. `--no-daemon` keeps the process in the foreground so
+    # systemd (Type=simple) supervises it directly.
     home-manager.users.${globals.user.name} = {
-      hyprflake.hyprland.extraLua."insync-autostart" = ''
-        hl.on("hyprland.start", function()
-          hl.exec_cmd("insync start --no-daemon")
-        end)
-      '';
+      systemd.user.services.insync = {
+        Unit = {
+          Description = "Insync Google Drive sync client";
+          After = [
+            "graphical-session.target"
+            "dms.service"
+          ];
+          PartOf = [ "graphical-session.target" ];
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+        Service = {
+          ExecStart = "${pkgs.insync}/bin/insync start --no-daemon";
+          ExecStop = "${pkgs.insync}/bin/insync quit";
+          Restart = "on-failure";
+          RestartSec = 5;
+          TimeoutStopSec = 20;
+        };
+      };
     };
   };
 }
