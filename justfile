@@ -740,6 +740,9 @@ bump-upsight:
     set -uo pipefail
     just pre-rebuild quiet
     echo "Bumping upsight input + rebuilding (quiet mode)..."
+    # Back up the lock so a failed bump reverts cleanly and never leaves the tree
+    # pinned to a broken upsight commit (an un-buildable next rebuild).
+    cp flake.lock flake.lock-backup-bump
     rc=0
     # &&-chain so a failed input update aborts instead of rebuilding on the old
     # lock (a bare `;` group would mask its exit status).
@@ -748,6 +751,7 @@ bump-upsight:
             && sudo nixos-rebuild switch --impure --flake {{host_flake}}
     } &> {{rebuild_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
+        rm -f flake.lock-backup-bump
         echo "upsight bumped + rebuilt. Full log: {{rebuild_log}}"
         # Auto-commit + push the refreshed lock so it never lingers uncommitted
         # or unpushed. Push is gated to main and non-fatal: a failed push keeps
@@ -769,6 +773,10 @@ bump-upsight:
 
         just post-rebuild quiet
     else
+        # Revert the failed bump so flake.lock isn't left pointing at a broken
+        # upsight commit; the system stays buildable on the prior good pin.
+        mv -f flake.lock-backup-bump flake.lock
+        echo "Reverted flake.lock (bump failed) — tree left on the prior good pin."
         filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{rebuild_log}} | head -80)
         {
             echo "=== FILTERED ERRORS/WARNINGS ==="
