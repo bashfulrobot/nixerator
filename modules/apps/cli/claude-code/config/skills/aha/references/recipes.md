@@ -80,17 +80,17 @@ This is the most common write. The endpoint is `ideas/{ref}/endorsements` (NOT
 `ideas/{ref}/votes`), the body is keyed on `idea_endorsement`, and the dollar
 field is `value` (NOT `vote_weight`). Verified live on konghq.aha.io 2026-06-15.
 
-Confirm the idea reference, the customer org, the contact email, and the value
-with the user, then:
+Confirm the idea reference, the customer org, the submitting Kong user's email,
+and the value with the user, then:
 
 ```bash
 scripts/aha.sh post ideas/DEVP-I-42/endorsements -d '{
   "idea_endorsement": {
-    "email": "jane@customer.com",
+    "email": "you@konghq.com",
     "idea_organization_id": 7210570342900669490,
     "value": 25000,
     "link": "https://...",
-    "description": "<p>Why this matters to this account ...</p>"
+    "description": "<p>Account: Acme. Why this matters to this account ...</p>"
   }
 }'
 ```
@@ -99,8 +99,17 @@ scripts/aha.sh post ideas/DEVP-I-42/endorsements -d '{
   customer account. Resolve it from `idea_organizations`, and when a parent brand
   has many near-identical orgs, disambiguate by the Salesforce account Id in the
   org's `integration_fields` (`name=="Id"`, `service_name=="salesforce"`), not by
-  name.
-- `email` is create-only.
+  name. Known alias: a bare "Sony" means **Sony Interactive Entertainment LLC**
+  (Salesforce Id `0011K000029btLYQAY`, Aha org id `7210570342900669490`), not the
+  dozens of other Sony orgs; the `skill-cache aha customers` entry resolves it.
+- `email` sets the vote's owner -- the "Created by" shown in the Aha Votes panel
+  -- and is **create-only**. A proxy vote is logged BY a Kong employee ON BEHALF
+  OF the account, so this is the **submitting Kong user's own email** (e.g.
+  `you@konghq.com`), NEVER the customer's. Putting a customer address here makes
+  the vote read as if the customer cast it themselves, which is wrong. The
+  customer is identified by `idea_organization_id` and named in the `description`
+  body, not by `email`. (If you don't know the Kong user's address, ask; do not
+  fall back to the customer contact.)
 - `value` is the dollar value. OMIT it entirely when the ask is post-deal or not
   tied to an opportunity; do not send `0`.
 - `description` accepts HTML. The form also carries optional custom fields
@@ -110,8 +119,11 @@ scripts/aha.sh post ideas/DEVP-I-42/endorsements -d '{
 
 Caveat: many Aha tokens are reviewer-role and can POST an endorsement but get
 `403` on PUT/DELETE, and `email`/custom fields are create-time. So get the org,
-email, value, and any custom fields right on the first POST; there is no clean
-API undo.
+email (the Kong submitter, see above), value, and any custom fields right on the
+first POST; there is no clean API undo. A wrong owner cannot be fixed via the API
+with a reviewer token: the only remedy is the user deleting the bad vote in the
+Aha UI and re-creating it, which double-counts the account until they do. Getting
+the owner right on the first POST avoids that cleanup entirely.
 
 After it lands, read the idea back to confirm the endorsement count moved:
 
