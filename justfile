@@ -734,6 +734,54 @@ quiet-upgrade:
         exit "$rc"
     fi
 
+# Bump the `upsight` input (github:bashfulrobot/upsight-go) to latest + rebuild current host; commits + pushes flake.lock to main. For iterating on the app.
+bump-upsight:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    just pre-rebuild quiet
+    echo "Bumping upsight input + rebuilding (quiet mode)..."
+    rc=0
+    # &&-chain so a failed input update aborts instead of rebuilding on the old
+    # lock (a bare `;` group would mask its exit status).
+    {
+        nix flake update upsight \
+            && sudo nixos-rebuild switch --impure --flake {{host_flake}}
+    } &> {{rebuild_log}} || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        echo "upsight bumped + rebuilt. Full log: {{rebuild_log}}"
+        # Auto-commit + push the refreshed lock so it never lingers uncommitted
+        # or unpushed. Push is gated to main and non-fatal: a failed push keeps
+        # the local commit and warns.
+        if ! git diff --quiet flake.lock; then
+            if git add flake.lock && git commit -q -m "chore(flake): bump upsight input"; then
+                echo "Committed flake.lock."
+                if [[ "$(git branch --show-current 2>/dev/null)" == "main" ]]; then
+                    if git push -q origin main 2>/dev/null; then
+                        echo "Pushed flake.lock to origin/main."
+                    else
+                        echo "⚠ flake.lock committed but push failed — push manually."
+                    fi
+                fi
+            else
+                echo "⚠ flake.lock updated but commit failed — commit it manually."
+            fi
+        fi
+
+        just post-rebuild quiet
+    else
+        filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{rebuild_log}} | head -80)
+        {
+            echo "=== FILTERED ERRORS/WARNINGS ==="
+            echo "$filtered"
+            echo ""
+            echo "=== FULL BUILD LOG ==="
+            cat {{rebuild_log}}
+        } > {{rebuild_log}}.tmp
+        mv {{rebuild_log}}.tmp {{rebuild_log}}
+        echo "upsight bump FAILED (exit $rc). Use a Nix subagent to diagnose {{rebuild_log}} and fix the issue."
+        exit "$rc"
+    fi
+
 # Remote rebuild — pull and rebuild on another nixerator host over SSH.
 #
 # Workflow: commit + push from this machine, then `just remote-rebuild qbert`.
@@ -888,6 +936,7 @@ alias up := upgrade
 alias gc := clean
 alias qr := quiet-rebuild
 alias qu := quiet-upgrade
+alias ub := bump-upsight
 alias rr := remote-rebuild
 alias ru := remote-upgrade
 alias rs := render-secrets
