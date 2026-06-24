@@ -67,7 +67,8 @@ bash scripts/aha.sh get products/DEVP/features --paginate -q 'updated_since=2026
 bash scripts/aha.sh get ideas/PROD-I-42 -q 'fields=reference_num,name,workflow_status,endorsements_count'
 
 # Write (see the writes playbook below first) -- proxy vote = endorsement
-bash scripts/aha.sh post ideas/PROD-I-42/endorsements -d '{"idea_endorsement":{"email":"jane@customer.com","idea_organization_id":7210570342900669490,"value":25000}}'
+# email = the Kong submitter logging the vote, NOT the customer; the account is set by idea_organization_id
+bash scripts/aha.sh post ideas/PROD-I-42/endorsements -d '{"idea_endorsement":{"email":"you@konghq.com","idea_organization_id":7210570342900669490,"value":25000}}'
 ```
 
 Key flags: `-q KEY=VALUE` (repeatable query params, values auto-encoded),
@@ -111,8 +112,11 @@ Before any POST/PUT/PATCH/DELETE:
 
 1. Show the user the exact call you intend to run: method, full path, and the
    JSON body, with the target account (`konghq.aha.io`) stated explicitly.
-2. For a proxy vote, confirm the idea reference, the customer email, and the
-   vote weight -- a wrong weight skews prioritization.
+2. For a proxy vote, confirm the idea reference, the customer org, the
+   submitting Kong user's email (the vote is logged by a Kong employee on behalf
+   of the account, so `email` is the Kong submitter's address, never the
+   customer's), and the value -- a wrong value skews prioritization. See the
+   proxy vote recipe in `references/recipes.md`.
 3. Get an explicit "yes" for *this* call. Approval of one write is not approval
    of the next.
 4. Run it, then GET the record back to confirm the change landed.
