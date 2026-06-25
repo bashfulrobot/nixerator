@@ -747,7 +747,10 @@ bump-upsight:
     # &&-chain so a failed input update aborts instead of rebuilding on the old
     # lock (a bare `;` group would mask its exit status).
     {
-        nix flake update upsight \
+        # --refresh bypasses Nix's tarball-ttl (default 1h) so back-to-back
+        # iterations always re-query GitHub HEAD instead of re-locking to a
+        # cached commit (which silently no-ops the rebuild).
+        nix flake update upsight --refresh \
             && sudo nixos-rebuild switch --impure --flake {{host_flake}}
     } &> {{rebuild_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
