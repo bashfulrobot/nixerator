@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kong Deck</title>
+
+  <!-- Vendored reveal.js core (offline, no CDN) -->
+  <link rel="stylesheet" href="vendor/reveal.min.css" />
+  <!-- Kong theme — complete replacement for any reveal built-in theme -->
+  <link rel="stylesheet" href="kong.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides"><!-- slides are built from deck.js by theme.js --></div>
+  </div>
+
+  <!-- 1. reveal core (defines window.Reveal) -->
+  <script src="vendor/reveal.min.js"></script>
+  <!-- 2. plugins (define globals used at init) -->
+  <script src="vendor/notes.min.js"></script>
+  <script src="kong-footer-plugin.js"></script>
+  <!-- 3. your content -->
+  <script src="deck.js"></script>
+  <!-- 4. render engine — reads window.DECK, builds slides, starts reveal -->
+  <script src="theme.js"></script>
+</body>
+</html>

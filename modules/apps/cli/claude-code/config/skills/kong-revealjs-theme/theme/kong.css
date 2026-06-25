@@ -1,30 +1,20 @@
 /**
- * Kong Brand Theme for Reveal.js
- * Based on official Kong Inc. PowerPoint template
+ * Kong Brand Theme for reveal.js — 1920×1080 canvas
+ * Reproduced from the official "Kong [Theme] template slides 2026 [dark]" deck.
  *
- * Colors:
- *   Background:    #000000 (near-black)
- *   Primary text:  #FFFFFF
- *   Accent green:  #CCFF00 (Kong Neon Green)
- *   Secondary:     #AAB4BB
- *   Muted:         #8A8F89
- *   Card fill:     #30352F
- *   Dark card:     #0D1A0E
- *   Border green:  #1A3A1A
- *
- * Fonts: Funnel Sans (primary), Funnel Display (hero titles)
+ * Accent: #CCFF00 is the ONLY accent colour. Type: Funnel Sans / Funnel Display.
+ * Layouts are driven by theme.js; classes here also work for hand-authored
+ * (freeform) slides.
  */
 
-/* ─── Google Fonts Import ─────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700;800&display=swap');
 
-/* ─── CSS Custom Properties ───────────────────────────────────────────────── */
 :root {
   --kong-black:        #000000;
-  --kong-bg:           #050A05;
-  --kong-green:        #CCFF00;
+  --kong-bg:           #07120A;   /* dark-green canvas behind the black panel */
+  --kong-green:        #CCFF00;   /* the only accent */
   --kong-dark-green:   #0D1A0E;
-  --kong-border-green: #1A3A1A;
+  --kong-border-green: #1F3D1F;
   --kong-card:         #30352F;
   --kong-card-dark:    #0D1A0E;
   --kong-white:        #FFFFFF;
@@ -32,52 +22,69 @@
   --kong-muted:        #8A8F89;
   --kong-font-main:    'Funnel Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --kong-font-display: 'Funnel Display', 'Funnel Sans', 'Helvetica Neue', sans-serif;
+
+  --frame:    34px;   /* inset of the black panel / green frame */
+  --footer-h: 70px;
+  --pad-x:    104px;  /* content inset from slide edge */
+  --pad-t:    86px;
 }
 
-/* ─── Base Reveal Overrides ───────────────────────────────────────────────── */
+/* ─── Viewport surround ───────────────────────────────────────────────── */
 .reveal-viewport {
-  /* Outer viewport — visible around the slide when the browser window is
-     wider/taller than the 1280×720 slide. A subtle dark charcoal so it
-     reads as a neutral surround that won't clash with any slide content. */
-  background: #0a0a0a;
+  background: #060606;
   background-image:
     linear-gradient(rgba(204,255,0,0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(204,255,0,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-size: 48px 48px;
 }
 
 .reveal {
   font-family: var(--kong-font-main);
-  font-size: 38px;
-  font-weight: normal;
+  font-size: 57px;
+  font-weight: 400;
   color: var(--kong-white);
 }
 
-/* ─── Slide Base ──────────────────────────────────────────────────────────── */
+/* ─── Slide base + green frame + crosshairs ───────────────────────────── */
 .reveal .slides section {
-  background-color: var(--kong-black);
+  background-color: var(--kong-bg);
   color: var(--kong-white);
   height: 100%;
+  text-align: left;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* Dark green border frame that appears on all slides */
+/* Black content panel with the dark-green frame border. */
 .reveal .slides section::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: var(--frame) var(--frame) var(--footer-h) var(--frame);
+  background: var(--kong-black);
   border: 2px solid var(--kong-border-green);
+  z-index: -1;
   pointer-events: none;
-  z-index: 200;
 }
 
-/* ─── Typography ──────────────────────────────────────────────────────────── */
-.reveal h1,
-.reveal h2,
-.reveal h3,
-.reveal h4,
-.reveal h5,
-.reveal h6 {
+/* Corner crosshairs */
+.kong-frame { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
+.kong-frame i {
+  position: absolute;
+  width: 22px; height: 22px;
+}
+.kong-frame i::before, .kong-frame i::after {
+  content: ''; position: absolute; background: var(--kong-green);
+}
+.kong-frame i::before { left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%); }
+.kong-frame i::after  { top: 0; bottom: 0; left: 50%; width: 2px; transform: translateX(-50%); }
+.kong-frame i:nth-child(1) { top: calc(var(--frame) - 11px);  left: calc(var(--frame) - 11px); }
+.kong-frame i:nth-child(2) { top: calc(var(--frame) - 11px);  right: calc(var(--frame) - 11px); }
+.kong-frame i:nth-child(3) { bottom: calc(var(--footer-h) - 11px); left: calc(var(--frame) - 11px); }
+.kong-frame i:nth-child(4) { bottom: calc(var(--footer-h) - 11px); right: calc(var(--frame) - 11px); }
+.kong-frame.inv i::before, .kong-frame.inv i::after { background: var(--kong-black); }
+
+/* ─── Typography ──────────────────────────────────────────────────────── */
+.reveal h1, .reveal h2, .reveal h3, .reveal h4 {
   font-family: var(--kong-font-main);
   font-weight: 700;
   color: var(--kong-white);
@@ -87,663 +94,346 @@
   margin: 0 0 0.4em 0;
   text-shadow: none;
 }
-
-.reveal h1 { font-size: 2.2em; font-family: var(--kong-font-display); }
-.reveal h2 { font-size: 1.6em; }
-.reveal h3 { font-size: 1.1em; }
-
-.reveal p {
-  font-size: 0.55em;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--kong-silver);
-  margin: 0 0 0.5em 0;
-}
-
+.reveal h1 { font-family: var(--kong-font-display); font-size: 2.6em; font-weight: 800; letter-spacing: -0.03em; }
+.reveal h2 { font-size: 1.55em; }
+.reveal h3 { font-size: 0.9em; }
+.reveal p  { font-size: 0.5em; font-weight: 400; line-height: 1.5; color: var(--kong-silver); margin: 0 0 0.5em 0; }
 .reveal strong { color: var(--kong-white); font-weight: 700; }
-.reveal em     { font-style: normal; color: var(--kong-green); font-weight: 700; }
+.reveal em { font-style: normal; color: var(--kong-green); font-weight: inherit; }
 
-/* Neon green accent — use <span class="accent"> or <em> */
-.reveal .accent,
-.reveal em {
-  color: var(--kong-green);
-  font-style: normal;
-}
+.reveal a { color: var(--kong-green); text-decoration: none; }
+.reveal a:hover { text-decoration: underline; }
 
-/* Section label — small caps uppercase above a title */
-.reveal .section-label {
+.section-label {
   display: block;
-  font-family: var(--kong-font-main);
-  font-size: 0.28em;
+  font-size: 0.26em;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--kong-green);
-  margin-bottom: 0.6em;
+  margin-bottom: 0.7em;
 }
 
-/* ─── Links ───────────────────────────────────────────────────────────────── */
-.reveal a {
-  color: var(--kong-green);
-  text-decoration: none;
-}
-.reveal a:hover { text-decoration: underline; }
-
-/* ─── Lists ───────────────────────────────────────────────────────────────── */
-.reveal ul,
-.reveal ol {
-  font-size: 0.52em;
-  color: var(--kong-silver);
-  line-height: 1.6;
-  text-align: left;
-  margin: 0;
-  padding-left: 1.2em;
-}
-
-.reveal ul li::marker { color: var(--kong-green); }
-.reveal ol li::marker { color: var(--kong-green); font-weight: 700; }
-
-/* ─── Slide Footer Bar ────────────────────────────────────────────────────── */
-/* Applied via data-footer or the .kong-footer class on section */
-.kong-footer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 52px;
-  background: var(--kong-black);
-  border-top: 1px solid var(--kong-border-green);
-  display: flex;
-  align-items: center;
-  padding: 0 28px;
-  gap: 10px;
-  z-index: 50;
-}
-
-.kong-footer .footer-mark {
-  width: 22px;
-  height: auto;
-  flex-shrink: 0;
-}
-
-.kong-footer .footer-label {
-  font-family: var(--kong-font-main);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--kong-green);
-  line-height: 1.1;
-}
-
-.kong-footer .footer-copy {
-  font-size: 9px;
-  color: var(--kong-muted);
-  margin-left: 18px;
-}
-
-.kong-footer .footer-right {
-  display: none;
-}
-
-/* ─── Slide Number ────────────────────────────────────────────────────────── */
-.reveal .slide-number {
-  font-family: var(--kong-font-main);
-  font-size: 11px;
-  color: var(--kong-muted);
-  background: transparent;
-  bottom: 16px;
-  right: 28px;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  SLIDE LAYOUT CLASSES                                                        */
-/* ─────────────────────────────────────────────────────────────────────────── */
-
-/* ── 1. Title / Hero Slide ─────────────────────────────────────────────────── */
-.reveal .slides section.slide-title {
-  background-color: var(--kong-black);
-  text-align: left;
-  padding: 0;
-}
-
-/* Background image — inline <img> positioned inside the slide so it is
-   clipped by the slide boundary. The PNG has gradient fades baked into its
-   alpha channel, so it blends into black at left/top/bottom edges naturally.
-   Right edge stays fully opaque (flush to the slide right side). */
-.slide-title-bg {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 64%;
-  height: 100%;
-  object-fit: cover;
-  object-position: left center;
-  z-index: 0;
-  pointer-events: none;
-  display: block;
-}
-
-.slide-title .title-content {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 58%;
-  height: calc(100% - 52px);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 48px 52px;
-  box-sizing: border-box;
-  z-index: 1;
-}
-
-.slide-title .title-logo {
-  position: absolute;
-  top: 32px;
-  left: 44px;
-  height: 40px;
-  width: auto;
-  z-index: 1;
-}
-
-.slide-title h1 {
-  font-family: var(--kong-font-display);
-  font-size: 2.8em;
-  font-weight: 800;
-  color: var(--kong-white);
-  line-height: 1.0;
-  margin: 0 0 0.1em 0;
-  letter-spacing: -0.03em;
-}
-
-.slide-title .product-tag {
-  font-size: 0.42em;
-  font-weight: 700;
-  color: var(--kong-green);
-  margin-bottom: 0.15em;
-}
-
-.slide-title .subtitle {
-  font-size: 0.45em;
-  font-weight: 400;
-  color: var(--kong-silver);
-  margin: 0.3em 0 0 0;
-}
-
-.slide-title .meta-bar {
-  position: absolute;
-  bottom: 52px;
-  left: 0;
-  width: 58%;
-  display: flex;
-  align-items: center;
-  border-top: 1px solid var(--kong-border-green);
-  padding: 16px 52px;
-  gap: 0;
-  box-sizing: border-box;
-  z-index: 1;
-}
-
-.slide-title .meta-date {
-  font-size: 0.3em;
-  font-weight: 700;
-  color: var(--kong-green);
-  letter-spacing: 0.06em;
-  min-width: 160px;
-  border-right: 1px solid var(--kong-border-green);
-  padding-right: 24px;
-}
-
-.slide-title .meta-speaker {
-  font-size: 0.3em;
-  font-weight: 600;
-  color: var(--kong-white);
-  padding-left: 24px;
-}
-
-/* ── 2. Section Divider ────────────────────────────────────────────────────── */
-.reveal .slides section.slide-divider {
-  background-color: var(--kong-black);
-  text-align: left;
-  padding: 0;
-}
-
-/* Full-bleed background image, clipped to slide bounds */
-.slide-divider-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  z-index: 0;
-  pointer-events: none;
-  display: block;
-}
-
-.slide-divider .divider-content {
-  position: absolute;
-  top: 50%;
-  left: 5%;
-  right: 5%;
-  transform: translateY(-50%);
-  background: rgba(10, 20, 10, 0.72);
-  padding: 52px 60px;
-  z-index: 1;
-}
-
-.slide-divider h2 {
-  font-size: 2.2em;
-  font-weight: 800;
-  color: var(--kong-white);
-  line-height: 1.05;
-  margin: 0;
-}
-
-/* ── 3. Content Slide (standard) ───────────────────────────────────────────── */
-.reveal .slides section.slide-content {
-  background-color: var(--kong-black);
-  text-align: left;
-  padding: 52px 52px 70px 52px;
-}
-
-.slide-content .slide-header {
-  margin-bottom: 36px;
-}
-
-/* ── 4. Two-Column Slide ───────────────────────────────────────────────────── */
-.reveal .slides section.slide-two-col {
-  text-align: left;
-  padding: 0 0 52px 0;
-}
-
-.slide-two-col .col-left,
-.slide-two-col .col-right {
-  position: absolute;
-  top: 0;
-  bottom: 52px;
-  width: 48%;
-  padding: 52px 40px;
-  box-sizing: border-box;
-}
-
-.slide-two-col .col-left  { left: 0; border-right: 1px solid var(--kong-border-green); }
-.slide-two-col .col-right { right: 0; }
-
-/* ── 5. Stats / Metrics Grid ───────────────────────────────────────────────── */
-.reveal .slides section.slide-stats {
-  text-align: left;
-  padding: 44px 44px 70px 44px;
-}
-
-.kong-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
-  margin-top: 20px;
-}
-
-.kong-stat-cell {
-  background: var(--kong-card-dark);
-  padding: 32px 28px;
-  box-sizing: border-box;
-}
-
-.kong-stat-cell.highlight {
-  background: linear-gradient(135deg, var(--kong-card-dark) 0%, #1a2e10 100%);
-}
-
-.kong-stat-value {
-  display: block;
-  font-family: var(--kong-font-display);
-  font-size: 1.6em;
-  font-weight: 800;
-  color: var(--kong-green);
-  line-height: 1;
-  margin-bottom: 12px;
-}
-
-.kong-stat-desc {
-  font-size: 0.36em;
-  color: var(--kong-silver);
-  line-height: 1.45;
-}
-
-/* ── 6. Agenda Slide ───────────────────────────────────────────────────────── */
-.reveal .slides section.slide-agenda {
-  text-align: left;
-  padding: 0;
-}
-
-.slide-agenda .agenda-left {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 46%;
-  bottom: 52px;
-  background-color: var(--kong-black);
-  background-image: url('assets/images/bg-torus.png');
-  background-size: 110% auto;
-  background-position: center right;
-  background-repeat: no-repeat;
-  padding: 52px 44px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.slide-agenda .agenda-right {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 54%;
-  bottom: 52px;
-  background: var(--kong-black);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0;
-}
-
-.agenda-item {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid var(--kong-border-green);
-  padding: 22px 44px;
-  gap: 28px;
-}
-
-.agenda-item:first-child { border-top: 1px solid var(--kong-border-green); }
-
-.agenda-num {
-  font-family: var(--kong-font-display);
-  font-size: 1.0em;
-  font-weight: 800;
-  color: var(--kong-green);
-  min-width: 36px;
-  flex-shrink: 0;
-}
-
-.agenda-title {
-  font-size: 0.52em;
-  font-weight: 500;
-  color: var(--kong-white);
-}
-
-/* ── 7. Quote / Callout ────────────────────────────────────────────────────── */
-.kong-quote {
-  background: linear-gradient(135deg, var(--kong-dark-green) 0%, #162a16 100%);
-  border-left: 3px solid var(--kong-green);
-  padding: 28px 32px;
-  margin: 16px 0;
-}
-
-.kong-quote p {
-  font-size: 0.6em;
-  font-weight: 700;
-  color: var(--kong-white);
-  font-style: italic;
-  margin: 0 0 12px 0;
-}
-
-.kong-quote .quote-source {
-  font-size: 0.38em;
-  color: var(--kong-green);
-  font-style: normal;
-  font-weight: 400;
-}
-
-/* ── 8. Thank You / Closing ────────────────────────────────────────────────── */
-.reveal .slides section.slide-thankyou {
-  background-color: var(--kong-black);
-  text-align: left;
-  padding: 0;
-  overflow: hidden;
-}
-
-.slide-thankyou .ty-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 46%;
-  background: var(--kong-black);
-  border-bottom: 1px solid var(--kong-border-green);
-  display: flex;
-  align-items: center;
-  padding: 0 52px;
-  gap: 60px;
-}
-
-.slide-thankyou .ty-headline {
-  font-size: 1.6em;
-  font-weight: 800;
-  color: var(--kong-white);
-  margin: 0;
-  flex-shrink: 0;
-}
-
-.slide-thankyou .ty-cta h3 {
-  font-size: 0.65em;
-  color: var(--kong-green);
-  margin: 0 0 4px 0;
-}
-
-.slide-thankyou .ty-cta p {
-  font-size: 0.38em;
-  color: var(--kong-silver);
-  margin: 0;
-}
-
-.slide-thankyou .ty-contact {
-  margin-left: auto;
-  text-align: left;
-}
-
-.slide-thankyou .ty-contact p {
-  font-size: 0.35em;
-  line-height: 1.6;
-  color: var(--kong-silver);
-  margin: 0;
-}
-
-.slide-thankyou .ty-contact a {
-  color: var(--kong-green);
-}
-
-.slide-thankyou .ty-wordmark {
-  position: absolute;
-  bottom: 52px;
-  left: 0;
-  right: 0;
-  height: 54%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.slide-thankyou .ty-wordmark-text {
-  font-family: var(--kong-font-display);
-  font-size: 10em;
-  font-weight: 800;
-  color: var(--kong-green);
-  letter-spacing: -0.04em;
-  line-height: 1;
-  white-space: nowrap;
-  position: relative;
-  z-index: 2;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  UTILITY CLASSES                                                              */
-/* ─────────────────────────────────────────────────────────────────────────── */
-
-/* Card / panel */
-.kong-card {
-  background: var(--kong-card-dark);
-  padding: 28px 28px;
-  box-sizing: border-box;
-}
-
-.kong-card-muted {
-  background: var(--kong-card);
-  padding: 24px 24px;
-}
-
-/* Divider line */
-.kong-divider {
-  border: none;
-  border-top: 1px solid var(--kong-border-green);
-  margin: 20px 0;
-}
-
-/* Green bullet squares (matching PPTX) */
-.reveal ul.kong-bullets { list-style: none; padding: 0; }
+/* ─── Bullets ─────────────────────────────────────────────────────────── */
+.reveal ul.kong-bullets { list-style: none; padding: 0; margin: 0; }
 .reveal ul.kong-bullets li {
-  padding: 6px 0 6px 24px;
   position: relative;
+  padding: 0.28em 0 0.28em 1.1em;
   font-size: 0.5em;
+  line-height: 1.45;
   color: var(--kong-silver);
 }
 .reveal ul.kong-bullets li::before {
-  content: '■';
-  position: absolute;
-  left: 0;
-  color: var(--kong-green);
-  font-size: 0.7em;
-  top: 8px;
+  content: '■'; position: absolute; left: 0; top: 0.42em;
+  color: var(--kong-green); font-size: 0.55em;
 }
 
-/* Highlight box for a keyword in titles */
+/* ─── Footer ──────────────────────────────────────────────────────────── */
+.kong-footer {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: var(--footer-h);
+  background: var(--kong-black);
+  border-top: 1px solid var(--kong-border-green);
+  display: flex; align-items: center;
+  padding: 0 96px 0 38px; gap: 14px;
+  z-index: 40;
+}
+.kong-footer .footer-mark { width: 30px; height: auto; flex-shrink: 0; }
+.kong-footer .footer-label {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--kong-green);
+}
+.kong-footer .footer-copy { font-size: 13px; color: var(--kong-muted); margin-left: 22px; }
+.kong-footer .footer-right { margin-left: auto; font-size: 13px; letter-spacing: 0.04em; color: var(--kong-muted); }
+
+.reveal .slide-number {
+  font-family: var(--kong-font-main); font-size: 14px;
+  color: var(--kong-muted); background: transparent;
+  right: 40px; bottom: 26px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   LAYOUTS
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── title ────────────────────────────────────────────────────────────── */
+.slide-title::before { display: none; } /* title is full-bleed inside frame */
+.slide-title { background: var(--kong-black); }
+.kong-title-bg {
+  position: absolute; top: var(--frame); right: var(--frame); bottom: var(--footer-h);
+  width: 60%; object-fit: cover; object-position: left center; z-index: 0; pointer-events: none;
+}
+.kong-title-brand { position: absolute; top: 60px; left: var(--pad-x); display: flex; align-items: center; gap: 28px; z-index: 3; }
+.kong-title-wordmark { height: 52px; }
+.kong-title-sep { width: 1px; height: 46px; background: var(--kong-border-green); }
+.kong-title-cobrand { height: 40px; }
+.kong-title-panel {
+  position: absolute; left: var(--frame); top: 26%; max-width: 58%; z-index: 3;
+  background: var(--kong-black); padding: 28px var(--pad-x) 28px;
+}
+.slide-title h1 { font-size: 2.7em; line-height: 0.98; margin: 0; }
+.kong-title-info { position: absolute; left: var(--pad-x); bottom: 220px; z-index: 3; }
+.kong-title-tag { font-size: 0.5em; font-weight: 700; color: var(--kong-white); margin: 0 0 0.2em 0; }
+.kong-title-tag em { color: var(--kong-green); }
+.kong-title-sub { font-size: 0.42em; color: var(--kong-silver); margin: 0; }
+.kong-title-meta {
+  position: absolute; left: var(--pad-x); bottom: 120px; width: 58%;
+  display: flex; align-items: center; gap: 0; z-index: 3;
+  border-top: 1px solid var(--kong-border-green); padding-top: 26px;
+}
+.kong-meta-date { font-size: 0.3em; font-weight: 700; color: var(--kong-green); letter-spacing: 0.06em; padding-right: 32px; border-right: 1px solid var(--kong-border-green); }
+.kong-meta-speaker { font-size: 0.3em; font-weight: 600; color: var(--kong-white); padding-left: 32px; }
+.kong-title-meta.cobrand { width: 70%; align-items: center; gap: 28px; border-top: none; padding-top: 0; }
+.kong-title-meta.cobrand .kong-meta-date { margin-left: auto; border-right: none; padding-right: 0; }
+.kong-title-photo { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; }
+.kong-title-person { display: flex; flex-direction: column; gap: 4px; }
+.kong-meta-position { font-size: 0.26em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--kong-green); }
+
+/* ── agenda ───────────────────────────────────────────────────────────── */
+.slide-agenda::before { display: none; }
+.kong-agenda-left {
+  position: absolute; top: var(--frame); left: var(--frame); bottom: var(--footer-h); width: 44%;
+  background: var(--kong-black) url('assets/images/bg-torus.png') no-repeat center right / 120% auto;
+  display: flex; flex-direction: column; justify-content: center; padding: 0 72px; z-index: 2;
+}
+.kong-agenda-left h2 { font-size: 1.9em; margin: 0; }
+.kong-agenda-right {
+  position: absolute; top: var(--frame); right: var(--frame); bottom: var(--footer-h); width: 52%;
+  background: var(--kong-black); display: flex; flex-direction: column; justify-content: center; z-index: 2;
+}
+.agenda-item { display: flex; align-items: center; gap: 34px; padding: 30px 64px; border-bottom: 1px solid var(--kong-border-green); }
+.agenda-item:first-child { border-top: 1px solid var(--kong-border-green); }
+.agenda-num { font-family: var(--kong-font-display); font-size: 0.9em; font-weight: 800; color: var(--kong-green); min-width: 42px; }
+.agenda-title { font-size: 0.5em; font-weight: 500; color: var(--kong-white); }
+
+/* ── divider ──────────────────────────────────────────────────────────── */
+.slide-divider::before { display: none; }
+.slide-divider { background: var(--kong-black); }
+.kong-divider-bg { position: absolute; top: var(--frame); left: var(--frame); right: var(--frame); bottom: var(--footer-h); width: auto; height: auto; object-fit: cover; z-index: 0; }
+.kong-divider-content { position: absolute; left: 9%; right: 9%; top: 50%; transform: translateY(-50%); z-index: 3; }
+.kong-divider-content h2 { font-size: 2.05em; font-weight: 800; line-height: 1.06; margin: 0; }
+
+/* ── section-statement ────────────────────────────────────────────────── */
+.kong-ss-main { position: absolute; left: var(--pad-x); top: var(--pad-t); width: 46%; z-index: 2; }
+.kong-ss-main h2 { font-size: 1.9em; line-height: 1.04; }
+.kong-ss-body { position: absolute; left: var(--pad-x); bottom: 150px; width: 40%; z-index: 2; border-left: 3px solid var(--kong-green); padding-left: 28px; }
+.kong-ss-body p { font-size: 0.46em; line-height: 1.55; }
+.kong-ss-cobrand { height: 64px; margin-top: 20px; }
+
+/* ── content ──────────────────────────────────────────────────────────── */
+.slide-content { padding: var(--pad-t) var(--pad-x) calc(var(--footer-h) + 40px) var(--pad-x); }
+.slide-content .slide-header { margin-bottom: 40px; }
+.slide-content .slide-header h2 { font-size: 1.7em; }
+.kong-bodytext { max-width: 70%; }
+.kong-bodytext p { font-size: 0.52em; line-height: 1.55; }
+.slide-content.has-img .kong-bullets, .slide-content.has-img .kong-bodytext,
+.slide-content.has-img .slide-header { max-width: 58%; }
+
+/* ── big-stat ─────────────────────────────────────────────────────────── */
+.slide-big-stat { padding: var(--pad-t) var(--pad-x) var(--footer-h) var(--pad-x); }
+.kong-bigstat-head h2 { font-size: 1.7em; }
+.slide-big-stat .kong-bullets { max-width: 52%; margin-top: 24px; }
+.kong-bigstat-num { position: absolute; left: var(--pad-x); bottom: 90px; z-index: 2; }
+.kong-bigstat-label { display: block; font-size: 0.3em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--kong-white); margin-bottom: 0.1em; }
+.kong-bigstat-value { font-family: var(--kong-font-display); font-size: 2.6em; font-weight: 800; color: var(--kong-green); line-height: 0.9; }
+
+/* ── stats-grid ───────────────────────────────────────────────────────── */
+.slide-stats-grid { padding: var(--pad-t) var(--pad-x) calc(var(--footer-h) + 30px) var(--pad-x); }
+.kong-stats-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 26px; }
+.kong-stats-head h2 { font-size: 1.45em; max-width: 60%; }
+.kong-stats-note { font-size: 0.4em; color: var(--kong-silver); max-width: 30%; text-align: left; }
+.kong-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.kong-stat-cell { background: var(--kong-card-dark); padding: 40px 36px; }
+.kong-stat-cell.highlight { background: radial-gradient(120% 120% at 100% 0%, #2a3f12 0%, var(--kong-card-dark) 60%); }
+.kong-stat-value { display: block; font-family: var(--kong-font-display); font-size: 1.5em; font-weight: 800; color: var(--kong-green); line-height: 1; margin-bottom: 16px; }
+.kong-stat-desc { font-size: 0.34em; color: var(--kong-silver); line-height: 1.45; }
+
+/* ── value-cards ──────────────────────────────────────────────────────── */
+.slide-value-cards { padding: var(--pad-t) var(--pad-x) var(--footer-h) var(--pad-x); }
+.kong-vc-head { margin-bottom: 30px; max-width: 80%; }
+.kong-vc-head h2 { font-size: 1.4em; }
+.kong-vc-grid { display: grid; gap: 4px; }
+.kong-vc-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.kong-vc-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.kong-vc-card { background: var(--kong-card-dark); padding: 44px 36px; min-height: 340px; display: flex; flex-direction: column; }
+.kong-vc-num { font-family: var(--kong-font-display); font-size: 1.7em; font-weight: 800; color: var(--kong-green); line-height: 1; }
+.kong-vc-text { margin-top: auto; }
+.kong-vc-text h3 { font-size: 0.62em; color: var(--kong-white); margin: 0 0 0.4em 0; }
+.kong-vc-text p { font-size: 0.4em; color: var(--kong-silver); line-height: 1.45; margin: 0; }
+
+/* ── team ─────────────────────────────────────────────────────────────── */
+.slide-team::before { display: none; }
+.kong-team-head { position: absolute; top: var(--frame); left: var(--frame); right: var(--frame); height: 150px; background: var(--kong-black); display: flex; align-items: center; padding: 0 var(--pad-x); z-index: 2; }
+.kong-team-head h2 { font-size: 1.4em; margin: 0; }
+.kong-team-grid { position: absolute; top: calc(var(--frame) + 150px); left: var(--frame); right: var(--frame); bottom: var(--footer-h); display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; background: var(--kong-bg); }
+.kong-team-grid.title-left { grid-template-columns: repeat(3, 1fr); top: var(--frame); left: 40%; }
+.kong-team-cell { background: var(--kong-black); position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
+.kong-team-photo { flex: 1; background-size: cover; background-position: center; }
+.kong-team-photo.empty { background: #0a140a; }
+.kong-team-meta { padding: 16px 18px; }
+.kong-team-name { display: block; font-size: 0.32em; font-weight: 700; color: var(--kong-green); }
+.kong-team-role { display: block; font-size: 0.28em; color: var(--kong-silver); }
+
+/* ── timeline ─────────────────────────────────────────────────────────── */
+.slide-timeline { padding: var(--pad-t) var(--pad-x) var(--footer-h) var(--pad-x); }
+.kong-tl-head h2 { font-size: 1.5em; margin-bottom: 50px; }
+.kong-tl-track { display: flex; align-items: center; justify-content: space-between; position: relative; margin-bottom: 40px; }
+.kong-tl-track::before { content: ''; position: absolute; left: 40px; right: 40px; top: 50%; border-top: 2px dotted var(--kong-border-green); z-index: 0; }
+.kong-tl-node { z-index: 1; }
+.kong-tl-circle { display: flex; align-items: center; justify-content: center; width: 86px; height: 86px; border-radius: 50%; border: 2px solid var(--kong-green); color: var(--kong-green); font-family: var(--kong-font-display); font-size: 0.9em; font-weight: 800; background: var(--kong-black); }
+.kong-tl-node:first-child .kong-tl-circle { background: var(--kong-green); color: var(--kong-black); }
+.kong-tl-cols { display: grid; grid-template-columns: repeat(5, 1fr); gap: 30px; }
+.kong-tl-cols h4 { font-size: 0.56em; color: var(--kong-green); margin: 0 0 0.4em 0; }
+.kong-tl-cols p { font-size: 0.38em; color: var(--kong-silver); line-height: 1.45; }
+.kong-tl-tags { display: grid; grid-template-columns: repeat(5, 1fr); gap: 30px; margin-top: 36px; }
+.kong-tl-tag { font-size: 0.34em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--kong-green); }
+.kong-tl-tag.first { background: var(--kong-green); color: var(--kong-black); padding: 8px 18px; border-radius: 20px; justify-self: start; }
+/* timeline cards variant */
+.slide-timeline.v-cards::before { display: none; }
+.slide-timeline.v-cards { background: var(--kong-black); }
+.kong-tl-bg { position: absolute; top: var(--frame); left: var(--frame); right: var(--frame); bottom: var(--footer-h); width: auto; height: auto; object-fit: cover; z-index: 0; opacity: 0.9; }
+.kong-tl-head { position: relative; z-index: 2; }
+.kong-tl-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; position: relative; z-index: 2; }
+.kong-tl-card { background: rgba(0,0,0,0.86); padding: 34px 28px; min-height: 220px; }
+.kong-tl-cardnum { font-family: var(--kong-font-display); font-size: 1.1em; font-weight: 800; color: var(--kong-green); }
+.kong-tl-card h4 { font-size: 0.5em; color: var(--kong-white); margin: 0.3em 0; }
+.kong-tl-card p { font-size: 0.34em; color: var(--kong-silver); line-height: 1.4; }
+
+/* ── partnerships ─────────────────────────────────────────────────────── */
+.slide-partnerships { padding: var(--pad-t) var(--pad-x) var(--footer-h) var(--pad-x); }
+.kong-pt-head h2 { font-size: 1.5em; margin-bottom: 44px; }
+.kong-pt-grid { display: grid; gap: 4px; }
+.kong-pt-grid.cols-2 { grid-template-columns: repeat(2, 1fr); gap: 40px; }
+.kong-pt-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.kong-pt-card { background: var(--kong-card-dark); padding: 40px 34px; }
+.kong-pt-logo { display: inline-flex; align-items: center; justify-content: center; width: 110px; height: 60px; border: 1px solid var(--kong-green); border-radius: 30px; font-size: 0.26em; color: var(--kong-silver); margin-bottom: 26px; }
+.kong-pt-card h3 { font-size: 0.7em; color: var(--kong-green); margin: 0; }
+.kong-pt-when { font-size: 0.38em; color: var(--kong-white); font-weight: 700; margin: 0.2em 0 0.8em 0; }
+.kong-pt-body { font-size: 0.38em; color: var(--kong-silver); line-height: 1.45; }
+.kong-pt-pill { display: inline-flex; align-items: center; background: var(--kong-green); color: var(--kong-black); font-size: 0.34em; font-weight: 700; padding: 12px 24px; border-radius: 24px; margin-top: 18px; }
+
+/* ── green-inverted ───────────────────────────────────────────────────── */
+.reveal .slides section.slide-green-inverted { background: var(--kong-green); }
+.reveal .slides section.slide-green-inverted::before { background: var(--kong-green); border-color: rgba(0,0,0,0.22); }
+/* The vendored torus asset is dark-toned; on an inverted (neon-green) slide a
+   solid green panel is the faithful, robust choice. Hidden by default; a deck
+   can re-enable a green-on-green texture by overriding this. */
+.kong-gi-bg { display: none; }
+.kong-gi-content { position: absolute; left: var(--pad-x); bottom: 130px; width: 70%; z-index: 3; }
+.kong-gi-eyebrow { display: inline-block; background: var(--kong-black); color: var(--kong-white); font-size: 0.26em; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 18px; margin-bottom: 22px; }
+.kong-gi-content h2 { color: var(--kong-black); font-size: 1.8em; line-height: 1.05; }
+.slide-green-inverted .kong-footer { background: var(--kong-green); border-top-color: rgba(0,0,0,0.25); }
+.slide-green-inverted .kong-footer .footer-label { color: var(--kong-black); }
+.slide-green-inverted .kong-footer .footer-copy,
+.slide-green-inverted .kong-footer .footer-right { color: rgba(0,0,0,0.6); }
+
+/* ── thank-you ────────────────────────────────────────────────────────── */
+.slide-thank-you::before { display: none; }
+.slide-thank-you { background: var(--kong-black); }
+.kong-ty-top { position: absolute; top: var(--frame); left: var(--frame); right: var(--frame); height: 44%; background: var(--kong-black); border-bottom: 1px solid var(--kong-border-green); display: flex; align-items: center; gap: 80px; padding: 0 var(--pad-x); z-index: 2; }
+.kong-ty-headline { font-size: 1.9em; margin: 0; }
+.kong-ty-cta h3 { font-size: 0.62em; color: var(--kong-green); margin: 0 0 0.3em 0; }
+.kong-ty-cta p { font-size: 0.4em; color: var(--kong-silver); margin: 0; }
+.kong-ty-contact { margin-left: auto; }
+.kong-ty-contact p { font-size: 0.36em; line-height: 1.6; color: var(--kong-silver); margin: 0; }
+.kong-ty-wordmark { position: absolute; left: var(--frame); right: var(--frame); top: calc(var(--frame) + 44%); bottom: var(--footer-h); display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background-image: radial-gradient(rgba(204,255,0,0.10) 1px, transparent 1px); background-size: 14px 14px; }
+.kong-ty-wordmark span { font-family: var(--kong-font-display); font-size: 9.5em; font-weight: 800; color: var(--kong-green); letter-spacing: -0.04em; line-height: 1; }
+
+/* ── awards-grid ──────────────────────────────────────────────────────── */
+.slide-awards-grid { padding: var(--pad-t) var(--pad-x) calc(var(--footer-h) + 24px) var(--pad-x); }
+.kong-aw-head h2 { font-size: 1.3em; max-width: 70%; margin-bottom: 30px; }
+.kong-aw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.kong-aw-cell { background: var(--kong-card-dark); padding: 34px 30px; display: flex; flex-direction: column; justify-content: center; }
+.kong-aw-cell.metric .kong-stat-value { font-size: 1.4em; }
+.kong-aw-dot { width: 40px; height: 40px; border-radius: 50%; background: var(--kong-green); margin-bottom: 18px; }
+.kong-aw-cell h4 { font-size: 0.52em; color: var(--kong-white); margin: 0; }
+.kong-aw-cell p { font-size: 0.36em; color: var(--kong-silver); }
+.kong-aw-cell.quote { background: radial-gradient(120% 120% at 100% 100%, #2a3f12 0%, var(--kong-card-dark) 60%); }
+.kong-aw-cell.quote .q { font-size: 0.46em; font-weight: 700; color: var(--kong-white); margin-bottom: 0.6em; }
+.kong-aw-cell.quote .q::first-letter { color: var(--kong-green); }
+.kong-aw-cell.quote a { font-size: 0.36em; }
+
+/* ── mixed-stats ──────────────────────────────────────────────────────── */
+.slide-mixed-stats { padding: var(--pad-t) var(--pad-x) var(--footer-h) var(--pad-x); }
+.kong-mx-head { position: relative; margin-bottom: 36px; }
+.kong-mx-head h2 { font-size: 1.5em; max-width: 50%; }
+.kong-mx-body { position: absolute; top: 0; right: 0; width: 40%; font-size: 0.42em; }
+.kong-mx-cobrand { height: 56px; margin-top: 16px; }
+.kong-mx-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.kong-mx-card { background: var(--kong-card-dark); padding: 38px 32px; min-height: 230px; display: flex; flex-direction: column; justify-content: flex-end; }
+.kong-mx-card.fill { background: var(--kong-green); }
+.kong-mx-card.fill .kong-stat-value, .kong-mx-card.fill h4 { color: var(--kong-black); }
+.kong-mx-card.fill p { color: rgba(0,0,0,0.7); }
+.kong-mx-card h4 { font-size: 0.5em; color: var(--kong-white); margin: 0.3em 0 0.2em; }
+.kong-mx-card p { font-size: 0.34em; color: var(--kong-silver); }
+
+/* ── persona ──────────────────────────────────────────────────────────── */
+.slide-persona { padding: var(--pad-t) var(--pad-x) var(--footer-h) var(--pad-x); }
+.kong-pe-head { margin-bottom: 20px; }
+.kong-pe-grid { display: grid; grid-template-columns: 1fr 1.1fr 1.1fr; gap: 4px; }
+.kong-pe-grid > div { background: var(--kong-card-dark); padding: 30px 28px; }
+.kong-pe-seg h3 { font-size: 0.62em; color: var(--kong-white); }
+.kong-pe-mid h4, .kong-pe-right h4 { font-size: 0.46em; color: var(--kong-white); margin: 0 0 0.4em; }
+.kong-pe-mid h4 + ul { margin-bottom: 22px; }
+.kong-pe-bar { margin-bottom: 18px; }
+.kong-pe-bar span { font-size: 0.34em; color: var(--kong-silver); }
+.kong-pe-track { height: 14px; background: #2a2f29; border-radius: 8px; margin-top: 8px; overflow: hidden; }
+.kong-pe-fill { height: 100%; background: var(--kong-green); }
+.kong-pe-purchase { display: flex; align-items: center; gap: 12px; font-size: 0.34em; color: var(--kong-silver); margin-bottom: 10px; }
+.kong-pe-chip { height: 14px; background: var(--kong-green); border-radius: 7px; display: inline-block; }
+
+/* ── charts ───────────────────────────────────────────────────────────── */
+.slide-charts { padding: var(--pad-t) var(--pad-x) var(--footer-h) var(--pad-x); }
+.kong-ch-head { width: 42%; }
+.kong-ch-head h2 { font-size: 1.6em; }
+.kong-ch-head p { font-size: 0.42em; line-height: 1.5; margin-top: 20px; }
+.kong-ch-vis { position: absolute; right: var(--pad-x); top: 50%; transform: translateY(-50%); display: flex; align-items: flex-end; gap: 80px; z-index: 2; }
+.kong-ch-outer { width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, #1c2a0e 0%, #0c140a 70%); display: flex; align-items: flex-start; justify-content: center; position: relative; }
+.kong-ch-olabel { font-size: 0.34em; color: var(--kong-white); text-align: center; padding-top: 40px; }
+.kong-ch-inner { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 150px; height: 150px; border-radius: 50%; border: 3px solid var(--kong-green); display: flex; align-items: center; justify-content: center; }
+.kong-ch-inner span { font-size: 0.3em; color: var(--kong-green); text-align: center; }
+.kong-ch-bars { display: flex; align-items: flex-end; gap: 22px; height: 320px; }
+.kong-ch-bar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.kong-ch-barval { font-size: 0.32em; color: var(--kong-white); margin-bottom: 8px; }
+.kong-ch-barfill { width: 60px; background: var(--kong-green); }
+.kong-ch-bar:first-child .kong-ch-barfill { background: #4a5a20; }
+.kong-ch-baryear { font-size: 0.28em; color: var(--kong-silver); margin-top: 8px; }
+.kong-ch-caption { display: block; text-align: center; font-size: 0.34em; font-weight: 700; color: var(--kong-white); margin-top: 18px; }
+
+/* ── architecture ─────────────────────────────────────────────────────── */
+.slide-architecture { padding: var(--pad-t) var(--pad-x) var(--footer-h) var(--pad-x); }
+.kong-ar-head h2 { font-size: 1.45em; margin-bottom: 40px; }
+.kong-ar-flow { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.kong-ar-col { display: flex; flex-direction: column; gap: 18px; align-items: center; }
+.kong-ar-collabel { font-size: 0.3em; font-weight: 700; color: var(--kong-white); }
+.kong-ar-node { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 120px; min-height: 56px; padding: 10px 16px; font-size: 0.3em; text-align: center; }
+.kong-ar-node.box { background: var(--kong-card); color: var(--kong-white); }
+.kong-ar-node.kong { background: var(--kong-green); color: var(--kong-black); font-weight: 700; }
+.kong-ar-node.kong img { height: 26px; }
+.kong-ar-node.dollar { width: 52px; height: 52px; min-width: 0; min-height: 0; border-radius: 50%; background: var(--kong-card); color: var(--kong-green); font-weight: 700; }
+.kong-ar-node.bot { width: 70px; height: 70px; min-width: 0; background: var(--kong-white); font-size: 0.6em; }
+
+/* ── freeform-panel ───────────────────────────────────────────────────── */
+.slide-freeform-panel { padding: var(--pad-t) var(--pad-x) calc(var(--footer-h) + 30px) var(--pad-x); }
+.kong-ff { width: 100%; height: 100%; }
+
+/* ─── Utility classes (for freeform / hand-authored slides) ───────────── */
+.kong-card { background: var(--kong-card-dark); padding: 32px; }
+.kong-card-muted { background: var(--kong-card); padding: 28px; }
+.kong-divider-line { border: none; border-top: 1px solid var(--kong-border-green); margin: 24px 0; }
+.kong-badge { display: inline-block; background: var(--kong-green); color: var(--kong-black); font-size: 0.26em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 16px; }
+.kong-quote { background: linear-gradient(135deg, var(--kong-dark-green), #162a16); border-left: 3px solid var(--kong-green); padding: 32px 36px; }
+.kong-quote p { font-size: 0.56em; font-weight: 700; color: var(--kong-white); font-style: italic; }
 .kong-highlight { color: var(--kong-green); }
+.kong-step { display: flex; align-items: flex-start; gap: 22px; margin-bottom: 22px; }
+.kong-step-num { font-family: var(--kong-font-display); font-size: 1.1em; font-weight: 800; color: var(--kong-green); min-width: 40px; }
+.kong-step-body h4 { font-size: 0.5em; color: var(--kong-white); margin: 0 0 0.2em; }
+.kong-step-body p { font-size: 0.38em; color: var(--kong-silver); margin: 0; }
 
-/* Tag / badge */
-.kong-badge {
-  display: inline-block;
-  background: var(--kong-green);
-  color: var(--kong-black);
-  font-size: 0.28em;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 4px 12px;
-  vertical-align: middle;
-}
+.reveal pre { background: #0a150a; border: 1px solid var(--kong-border-green); border-radius: 0; font-size: 0.42em; box-shadow: none; width: 100%; }
+.reveal code { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a150a; color: var(--kong-green); padding: 2px 6px; font-size: 0.85em; }
 
-/* Numbered step item */
-.kong-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.kong-step-num {
-  font-family: var(--kong-font-display);
-  font-size: 1.2em;
-  font-weight: 800;
-  color: var(--kong-green);
-  line-height: 1;
-  min-width: 36px;
-  flex-shrink: 0;
-}
-
-.kong-step-body h4 {
-  font-size: 0.5em;
-  font-weight: 700;
-  color: var(--kong-white);
-  margin: 0 0 4px 0;
-}
-
-.kong-step-body p {
-  font-size: 0.4em;
-  color: var(--kong-silver);
-  margin: 0;
-}
-
-/* ─── Reveal.js Fragment Animations ──────────────────────────────────────── */
-.reveal .fragment.highlight-kong {
-  opacity: 1;
-  visibility: inherit;
-}
-
-.reveal .fragment.highlight-kong.visible {
-  color: var(--kong-green);
-}
-
-/* ─── Code blocks ─────────────────────────────────────────────────────────── */
-.reveal pre {
-  background: #0a150a;
-  border: 1px solid var(--kong-border-green);
-  border-radius: 0;
-  font-size: 0.42em;
-  box-shadow: none;
-  width: 100%;
-}
-
-.reveal code {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  background: #0a150a;
-  color: var(--kong-green);
-  padding: 2px 6px;
-  font-size: 0.85em;
-}
-
-/* ─── Tables ──────────────────────────────────────────────────────────────── */
-.reveal table {
-  font-size: 0.46em;
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.reveal table th {
-  background: var(--kong-card-dark);
-  color: var(--kong-green);
-  font-weight: 700;
-  padding: 10px 16px;
-  text-align: left;
-  border-bottom: 2px solid var(--kong-border-green);
-  font-size: 0.9em;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.reveal table td {
-  padding: 10px 16px;
-  color: var(--kong-silver);
-  border-bottom: 1px solid var(--kong-border-green);
-}
-
-.reveal table tr:hover td { background: rgba(204, 255, 0, 0.04); }
-
-/* ─── Progress Bar ────────────────────────────────────────────────────────── */
-.reveal .progress {
-  background: var(--kong-dark-green);
-  color: var(--kong-green);
-  height: 3px;
-}
-
-.reveal .progress span {
-  background: var(--kong-green);
-  -webkit-transition: width 800ms cubic-bezier(0.26, 0.86, 0.44, 0.985);
-          transition: width 800ms cubic-bezier(0.26, 0.86, 0.44, 0.985);
-}
-
-/* ─── Controls ────────────────────────────────────────────────────────────── */
+::selection { background: var(--kong-green); color: var(--kong-black); text-shadow: none; }
 .reveal .controls { color: var(--kong-green); }
-
-/* ─── Selection ───────────────────────────────────────────────────────────── */
-::selection {
-  background: var(--kong-green);
-  color: var(--kong-black);
-  text-shadow: none;
-}
-
-::-moz-selection {
-  background: var(--kong-green);
-  color: var(--kong-black);
-  text-shadow: none;
-}
+.reveal .progress { color: var(--kong-green); }
