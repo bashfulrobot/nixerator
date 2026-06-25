@@ -1,0 +1,19 @@
+reveal.js vendored locally — pinned, no build step, no CDN.
+
+Pinned version: 5.1.0
+Vendored files:
+  reveal.min.js    core
+  reveal.min.css   core stylesheet
+  notes.min.js     speaker-notes plugin (presenter view, press "S")
+
+You do NOT need to update this periodically. A pinned copy renders your decks
+identically forever and needs no network. Update only if you want a newer
+reveal.js feature or bugfix.
+
+To update (rare):
+  cd src/theme/vendor
+  V=5.1.0   # change to the version you want
+  curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/reveal.js/$V/reveal.min.js   -o reveal.min.js
+  curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/reveal.js/$V/reveal.min.css  -o reveal.min.css
+  curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/reveal.js/$V/plugin/notes/notes.min.js -o notes.min.js
+  # then open presentation.html with the example deck and confirm it renders.
