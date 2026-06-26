@@ -58,6 +58,9 @@ _:
 
   # Server modules
   server = {
+    # POC: always-on Claude Code Remote Control session ("noclaw") -- qbert only.
+    noclaw.enable = true;
+
     # Serve qbert's /nix/store as a binary cache for donkeykong (and any
     # future LAN peer). Donkeykong enables the consumer side via
     # system.qbert-cache.enable.
