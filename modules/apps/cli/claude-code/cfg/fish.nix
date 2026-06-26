@@ -6,10 +6,36 @@
 
 {
   functions = {
-    # Wrapper that offers to clean up project .mcp.json on exit
+    # Bare `claude` in a folder -> start a NAMED background session and attach
+    # to it, so every session I start is a citizen of the agent-view board
+    # (visible across all projects, git or not). Anything with args -- claude
+    # agents / -r / -p / mcp / --bg ... -- passes straight through unchanged.
+    # Escape hatch: `command claude` runs a plain foreground session.
     claude = {
       wraps = "claude";
       body = ''
+        if test (count $argv) -eq 0; and isatty stdin
+            set -l default_name (basename $PWD)
+            if not read -P "New background session -- name [$default_name] (Ctrl-D cancels): " name
+                echo "Cancelled."
+                return 0
+            end
+            test -z "$name"; and set name $default_name
+
+            set -l out (command claude --bg --name "$name")
+            printf '%s\n' $out
+            set -l id (string match -rg 'claude attach (\S+)' -- $out)
+            if test -n "$id"
+                command claude attach $id
+            else
+                echo "claude: could not parse session id; open it from 'claude agents'." >&2
+                return 1
+            end
+            return
+        end
+
+        # Foreground / subcommand path: run as-is, then offer to clean up a
+        # leftover project .mcp.json on exit.
         command claude $argv
         set -l exit_code $status
         if test -f .mcp.json
@@ -274,7 +300,7 @@
     cls = {
       description = "List Claude sessions (id / state / name / cwd)";
       body = ''
-        claude agents --json --all \
+        command claude agents --json --all \
           | ${pkgs.jq}/bin/jq -r '.[] | "\(.id // "-")\t\(.state // .status)\t\(.name // "(unnamed)")\t\(.cwd)"' \
           | ${pkgs.util-linux}/bin/column -t -s \t
       '';
@@ -286,15 +312,23 @@
     crm = {
       description = "Pick background Claude session(s) with fzf and remove them";
       body = ''
-        set -l rows (claude agents --json --all \
-          | ${pkgs.jq}/bin/jq -r '.[] | select(.id) | "\(.id)\t\(.name // "(unnamed)")\t\(.state // .status)\t\(.cwd)"' \
+        set -l rows (command claude agents --json --all 2>/dev/null \
+          | ${pkgs.jq}/bin/jq -r '.[] | select(.id) | "\(.id)\t\(.name // "(unnamed)")\t\(.state // .status)\t\(.cwd)"')
+        if test -z "$rows"
+          echo "No background sessions to remove."
+          return 0
+        end
+        set -l picks (printf '%s\n' $rows \
           | ${pkgs.fzf}/bin/fzf --multi --delimiter=\t --with-nth=2.. \
-              --header='TAB=multi-select  ENTER=claude rm  (push/merge first!)')
-        or return
-        for line in $rows
+              --header='TAB=multi-select  ENTER=claude rm  ESC=cancel  (push/merge first!)')
+        if test -z "$picks"
+          echo "Cancelled -- nothing removed."
+          return 0
+        end
+        for line in $picks
           set -l id (string split \t -- $line)[1]
           echo "-> claude rm $id"
-          claude rm $id
+          command claude rm $id
         end
       '';
     };
