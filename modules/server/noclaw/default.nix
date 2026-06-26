@@ -23,6 +23,11 @@
 #     flag yet, #30447), so the service runs it under a `script(1)` pty.
 #   * `--spawn session` keeps it to a single session; `--name noclaw` is the
 #     title shown at claude.ai/code.
+#   * Server mode shows a *cloud* icon in the app, not the computer/green-dot
+#     icon the docs attach to Remote Control. This is cosmetic: execution is
+#     local (verified 2026-06-26 via hostname + an on-disk nonce read back from
+#     the phone). The interactive form (`claude --remote-control`) shows the
+#     computer icon, but we intentionally keep server mode and don't chase it.
 #   * A lingering systemd *user* service gives always-on + boot-survival while
 #     running as the user, so it uses ~/.claude OAuth credentials and inherits
 #     the workspace trust + project config (.claude/) recorded for the directory.
@@ -90,8 +95,12 @@ in
             Restart = "always";
             RestartSec = "15";
 
-            # The agent shells out to git and friends, and the project's
-            # PreToolUse guardrail hook needs jq, so give it a usable PATH.
+            # Pin the tools the harness itself needs (the `claude` binary, and
+            # jq for the PreToolUse hook) from the nix store first. Then append
+            # the host system + user-profile paths so approved bin/ programs can
+            # use host-level tooling (hostname, etc.). The gate-bash hook still
+            # confines the agent to ./bin, so this broad PATH is only ever
+            # reachable through a reviewed program -- never an ad-hoc command.
             Environment = [
               "PATH=${
                 lib.makeBinPath [
@@ -104,7 +113,7 @@ in
                   pkgs.findutils
                   pkgs.jq
                 ]
-              }"
+              }:/run/current-system/sw/bin:/etc/profiles/per-user/${user}/bin"
             ];
           };
 
