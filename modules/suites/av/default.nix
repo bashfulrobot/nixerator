@@ -20,6 +20,7 @@ in
   config = lib.mkIf cfg.enable {
     apps.gui = {
       # affinity: removed
+      budslink.enable = true;
       cameractrls.enable = true;
       comics.enable = true;
     };
