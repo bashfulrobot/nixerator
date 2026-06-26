@@ -142,7 +142,7 @@
     "skills/wave-invoicing/tests/package-evidence.bats": "2ccc2a157213799a1fbd6976557e80bd5c56e9d7c616aca7194a9eddb081111d",
     "skills/wave-invoicing/tests/payload.bats": "fc3cc968cd64f49ba1801af1dd84ecde216454ead7e76130765620595a9bfbd9",
     "skills/wave-invoicing/tests/reconcile.bats": "40202392600279f57031454b316066469917001ada20d066be0932a4ae5cd641",
-    "skills/writing-style/SKILL.md": "dde62ab1f71962c43cf637a0c89c743a69d09a26f4fde709aa5d172d3e4d160a"
+    "skills/writing-style/SKILL.md": "a292007bfdfb67b9bbf30617fb191bae926c2be1ddcc4297db4e652b10b43152"
   },
   "version": 1
 }
