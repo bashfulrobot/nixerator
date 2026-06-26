@@ -265,6 +265,54 @@
         end
       '';
     };
+
+    # ── Background-session ("agent view") helpers ──────────────────────
+    # Background Claude sessions carry short job ids that don't tab-complete.
+    # These wrap `claude agents --json` so you pick a session by name instead.
+
+    # List every tracked session (interactive + background), readable.
+    cls = {
+      description = "List Claude sessions (id / state / name / cwd)";
+      body = ''
+        claude agents --json --all \
+          | ${pkgs.jq}/bin/jq -r '.[] | "\(.id // "-")\t\(.state // .status)\t\(.name // "(unnamed)")\t\(.cwd)"' \
+          | ${pkgs.util-linux}/bin/column -t -s \t
+      '';
+    };
+
+    # fzf-pick background session(s) and `claude rm` them. Only background
+    # sessions (those with a job id) are removable; push or merge first --
+    # a clean Claude-created worktree is removed along with the session.
+    crm = {
+      description = "Pick background Claude session(s) with fzf and remove them";
+      body = ''
+        set -l rows (claude agents --json --all \
+          | ${pkgs.jq}/bin/jq -r '.[] | select(.id) | "\(.id)\t\(.name // "(unnamed)")\t\(.state // .status)\t\(.cwd)"' \
+          | ${pkgs.fzf}/bin/fzf --multi --delimiter=\t --with-nth=2.. \
+              --header='TAB=multi-select  ENTER=claude rm  (push/merge first!)')
+        or return
+        for line in $rows
+          set -l id (string split \t -- $line)[1]
+          echo "-> claude rm $id"
+          claude rm $id
+        end
+      '';
+    };
+
+    # Prune stale worktree admin entries and list Claude-created git
+    # worktrees under ~/git and ~/dev so leftovers are easy to spot.
+    cwt-sweep = {
+      description = "Prune + list Claude-created git worktrees across repos";
+      body = ''
+        for wt in (${pkgs.findutils}/bin/find ~/git ~/dev -type d -path '*/.claude/worktrees' 2>/dev/null)
+          set -l repo (dirname (dirname $wt))
+          test -d $repo/.git; or continue
+          echo "── $repo ──"
+          git -C $repo worktree prune
+          git -C $repo worktree list
+        end
+      '';
+    };
   };
 
   # Fish abbreviations
