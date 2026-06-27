@@ -34,7 +34,11 @@
       "mitigations=off" # Disable Spectre/Meltdown mitigations for single-user workstation
     ];
 
-    # Zen kernel for better desktop performance
-    kernelPackages = pkgs.linuxPackages_zen;
+    # XanMod kernel: performance/low-latency desktop kernel (same tier as zen).
+    # Switched off linuxPackages_zen on 2026-06-27 because zen 7.0.12 hit a kernel
+    # x86 install bug (image lands as $out/vmlinuz not $out/bzImage, failing the
+    # systemd-boot kernelFile check) on nixos-unstable >= e73de5b. xanmod builds
+    # bzImage cleanly from cache; revisit zen once upstream fixes the install path.
+    kernelPackages = pkgs.linuxPackages_xanmod_latest;
   };
 }
