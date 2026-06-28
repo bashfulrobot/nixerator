@@ -330,6 +330,14 @@ in
         "firewall.service"
         "container@noclaw.service"
       ];
+      # Restarting the container recreates ve-noclaw with a fresh /32 host
+      # address. bind-dynamic does NOT reliably rebind that IPv4 on its own (it
+      # re-grabs only the veth's IPv6 link-local), so the container's resolver
+      # silently goes to "connection refused" and all egress -- 1Password auth,
+      # Todoist -- fails. partOf propagates the container's restart to dnsmasq;
+      # combined with the `after` ordering above, dnsmasq comes back up after the
+      # new veth exists and rebinds 10.231.136.1:53.
+      partOf = [ "container@noclaw.service" ];
     };
 
     # Writable scratch volume for the container's runtime output.
