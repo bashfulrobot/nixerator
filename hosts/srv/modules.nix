@@ -30,6 +30,7 @@
     ../../modules/server/kvm
     ../../modules/server/netboot-xyz
     ../../modules/server/nfs
+    ../../modules/server/noclaw
     ../../modules/system/caddy
     ../../modules/system/ssh
   ];
@@ -96,6 +97,19 @@
 
   # Server-specific modules
   server = {
+    # Always-on Claude Code Remote Control session ("noclaw"), contained in a
+    # systemd-nspawn container. Moved here from qbert.
+    noclaw = {
+      enable = true;
+      # srv routes to the internet via enp3s0 (default gateway lives there);
+      # masquerade the container subnet out that interface.
+      wanInterface = "enp3s0";
+      # Render the scoped 1Password service-account token (op://nixerator/
+      # noclaw-op-token/credential) into the container from the nixos-secrets
+      # cached file. Provision the value with `just render-secrets`.
+      renderOpTokenFromNixosSecrets = true;
+    };
+
     # IPv4-only DDNS: manages the A record for home.bashfulrobot.com.
     # ip6Provider = "none" because srv has no public IPv6; without it the
     # both-stack `domains` option would try (and fail) to manage AAAA.

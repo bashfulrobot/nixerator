@@ -58,15 +58,6 @@ _:
 
   # Server modules
   server = {
-    # POC: always-on Claude Code Remote Control session ("noclaw") -- qbert only.
-    noclaw = {
-      enable = true;
-      # Render the scoped 1Password service-account token (op://nixerator/
-      # noclaw-op-token/credential) into the container from the nixos-secrets
-      # cached file. Provision the value with `just render-secrets`.
-      renderOpTokenFromNixosSecrets = true;
-    };
-
     # Serve qbert's /nix/store as a binary cache for donkeykong (and any
     # future LAN peer). Donkeykong enables the consumer side via
     # system.qbert-cache.enable.
