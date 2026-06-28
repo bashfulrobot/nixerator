@@ -1,4 +1,9 @@
-{ globals, ... }:
+{
+  lib,
+  secrets,
+  globals,
+  ...
+}:
 
 {
   # Import only modules that srv used in nixcfg, plus the cherry-picked
@@ -214,6 +219,18 @@
       keepMonthly = 12;
       keepYearly = 2;
     };
+  };
+
+  # GitHub access token for nix. srv deliberately does NOT import
+  # modules/system/nix (that module is tuned for interactive workstations:
+  # desktop-responsive max-jobs/cores and the hyprland cachix substituter).
+  # All srv needs from it is the token so `nix flake update` (`just qu`) can
+  # resolve the PRIVATE bashfulrobot/upsight* flake inputs via the GitHub API
+  # (an unauthenticated resolve 404s). Gated on the secret exactly as the
+  # system/nix module is; the value comes from secrets.github.accessToken and
+  # never enters Nix eval output.
+  nix.settings = lib.optionalAttrs ((secrets.github.accessToken or null) != null) {
+    access-tokens = "github.com=${secrets.github.accessToken}";
   };
 
   # Allow unfree packages
