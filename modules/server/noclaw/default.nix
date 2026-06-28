@@ -64,6 +64,15 @@ let
   # the value never enters Nix eval or the store.
   secretsJsonPath = "${homeDir}/.config/nixos-secrets/secrets.json";
   renderedOpEnv = "/run/noclaw-op.env";
+  # Pinned uid/gid for the in-container `noclaw` user. No user namespacing is in
+  # effect (privateUsers off), so a container uid equals the host uid of the same
+  # number. Pinning to a value that is free on the host lets the host-side token
+  # oneshot grant read by group (root:noclaw-gid, 0640) while the file stays
+  # root-only on the host. The user was auto-allocated to 999 before, and an
+  # unprivileged process at 999 cannot read the root-owned 0600 token file, so the
+  # `op` shim silently got no token. See noclaw-op-token and opWrapped.
+  noclawUid = 968;
+  noclawGid = 968;
   effectiveOpTokenFile = if cfg.renderOpTokenFromNixosSecrets then renderedOpEnv else cfg.opTokenFile;
   opTokenEnabled = effectiveOpTokenFile != null;
 
@@ -360,7 +369,11 @@ in
             printf 'OP_SERVICE_ACCOUNT_TOKEN=%s\n' "$tok" > ${renderedOpEnv}
           fi
         fi
-        chmod 0600 ${renderedOpEnv}
+        # root owns; the container `noclaw` group (gid ${toString noclawGid}) gets
+        # read. No host group has this gid, so the file stays root-only on the
+        # host while the in-container shim (running as noclaw) can source it.
+        chown 0:${toString noclawGid} ${renderedOpEnv}
+        chmod 0640 ${renderedOpEnv}
       '';
     };
 
@@ -435,13 +448,16 @@ in
 
             users.users.noclaw = {
               isSystemUser = true;
+              uid = noclawUid;
               group = "noclaw";
               home = "/var/lib/noclaw";
               # script(1) execs the account's login shell; a system user defaults
               # to nologin ("account is currently not available"), so give it bash.
               shell = pkgs.bashInteractive;
             };
-            users.groups.noclaw = { };
+            users.groups.noclaw = {
+              gid = noclawGid;
+            };
 
             systemd.services.noclaw = {
               description = "noclaw Remote Control endpoint (contained)";
