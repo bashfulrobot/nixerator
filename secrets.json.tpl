@@ -62,5 +62,8 @@
   "todoist_token": "{{ op://nixerator/todoist/credential }}",
   "cloudflareDdns": {
     "apiToken": "{{ op://nixerator/cloudflare-ddns/credential }}"
+  },
+  "noclaw": {
+    "opToken": "{{ op://nixerator/noclaw-op-token/credential }}"
   }
 }
