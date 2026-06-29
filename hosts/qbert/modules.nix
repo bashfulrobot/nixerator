@@ -1,4 +1,4 @@
-_:
+{ lib, ... }:
 
 {
   apps.gui = {
@@ -15,6 +15,12 @@ _:
   archetypes.claudeWorkHost.enable = true;
 
   apps.cli = {
+    # Docker is retired on qbert in favour of Incus (it runs system containers,
+    # OCI/application containers and QEMU VMs). The workstation archetype's
+    # infrastructure suite turns docker on, so force it off here. mkForce beats
+    # the suite's unprefixed `true`.
+    docker.enable = lib.mkForce false;
+
     # Render Nix-eval secrets locally from 1Password (and push to headless
     # peers via `render-secrets --push`). Gated on 1Password being available.
     render-secrets.enable = true;
@@ -75,22 +81,16 @@ _:
       enable = true;
       vulkan = true;
     };
-    kvm = {
+    # Virtualisation on qbert moved from libvirt/KVM to Incus. The old
+    # server.kvm block (libvirtd + virt-manager + iptables NAT routing for
+    # virbr1-7 and proxy ARP on ens2) is retired here; srv and donkeykong keep
+    # server.kvm for now. Incus brings its own managed NAT bridge and supervises
+    # both system containers and QEMU VMs, so the manual routing is gone.
+    incus = {
       enable = true;
-      routing = {
-        enable = true;
-        externalInterface = "enp34s0";
-        internalInterfaces = [
-          "virbr1"
-          "virbr2"
-          "virbr3"
-          "virbr4"
-          "virbr5"
-          "virbr6"
-          "virbr7"
-        ];
-        proxyArpInterfaces = [ "ens2" ];
-      };
+      ui.enable = true;
+      storage.driver = "btrfs";
+      network.ipv4Address = "10.100.0.1/24";
     };
   };
 }

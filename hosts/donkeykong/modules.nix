@@ -1,4 +1,4 @@
-_:
+{ lib, ... }:
 
 {
   apps.gui = {
@@ -9,6 +9,11 @@ _:
   };
 
   apps.cli = {
+    # Docker is retired on donkeykong in favour of Incus, matching qbert. The
+    # workstation archetype's infrastructure suite turns docker on, so force it
+    # off here. mkForce beats the suite's unprefixed `true`.
+    docker.enable = lib.mkForce false;
+
     # Render Nix-eval secrets locally from 1Password (and push to headless
     # peers via `render-secrets --push`). Gated on 1Password being available.
     render-secrets.enable = true;
@@ -64,22 +69,16 @@ _:
 
   # Server modules
   server = {
-    kvm = {
+    # Virtualisation on donkeykong moved from libvirt/KVM to Incus, matching
+    # qbert. The old server.kvm block (libvirtd + virt-manager + iptables NAT
+    # routing for virbr1-7 and proxy ARP on wlp0s0f3) is retired; srv keeps
+    # server.kvm for now. Incus brings its own managed NAT bridge and runs both
+    # system containers and QEMU VMs, so the manual routing is gone.
+    incus = {
       enable = true;
-      routing = {
-        enable = true;
-        externalInterface = "wlp0s0f3";
-        internalInterfaces = [
-          "virbr1"
-          "virbr2"
-          "virbr3"
-          "virbr4"
-          "virbr5"
-          "virbr6"
-          "virbr7"
-        ];
-        proxyArpInterfaces = [ "wlp0s0f3" ];
-      };
+      ui.enable = true;
+      storage.driver = "btrfs";
+      network.ipv4Address = "10.100.0.1/24";
     };
   };
 }
