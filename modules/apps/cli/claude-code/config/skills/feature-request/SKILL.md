@@ -283,10 +283,25 @@ If you cannot justify `High` from the proxy votes, downgrade to `Medium` and not
 
 When the user does not have the information, whether they ask for a list or accept the offer from step 9, output a clean bullet list under a short framing line. Run the list through `humanizer` *and* the em-dash scrub before presenting. If the user has the `writing-style` skill installed, invoke it so the tone matches their voice; otherwise default to plain professional English with a generic sign-off. Keep it under ten questions; PMs and customers both trust short lists more than long ones.
 
+Always open the list with the expectation-setting preamble shown below, swapping `<the issue>` for the specific feature or problem. It does two jobs: it tells the customer honestly that logging a request is not a promise to build it, and it explains why their detail matters (good data is what gets a request prioritized). Keep the preamble in the same `humanizer` and em-dash pass as the questions, and do not make it longer or more salesy than the version below.
+
+Before writing any question, check it against the source material. If the source already answers it, drop it. If the source answers it partially or implies a preference, downgrade the open question to a one-line confirmation ("You mentioned X, confirming that is still the case?") instead of asking as if it were unknown. Re-asking something the customer already told you reads as not listening and burns space on the short list. State which source line answered or partially answered each question you trim, so the user can sanity-check the call.
+
+Keep every question succinct: one ask per bullet, one sentence wherever possible. Do not pad a question with stacked examples ("such as a production rollout or a platform standard") or with interpretive detail the customer never stated (a cost, risk, or driver you inferred). Examples and inferences belong in your own analysis to the user, not in the words handed to the customer. The target for each bullet is the genuine gap, phrased no wider than the source supports.
+
+Be precise about provenance. Distinguish what the customer actually said from what Kong, the PM, or the idea body proposed. Never word a question so it attributes a preference, proposal, or claim to the customer that the source shows came from the Kong side. When an option or solution originated internally (in the idea body or from a Kong rep), present it neutrally ("the idea proposes X or Y, do you have a preference?") rather than as the customer's stated choice. Before finalizing, be ready to cite the exact source line behind every factual premise and every attribution in each question; if a premise has no source, cut it or flag it to the user as your inference, never bake it into the customer's words. This is the same customer-voice-versus-Kong-voice separation the skill already enforces at the artifact level (customer facts in the proxy vote, generic facts in the FR), applied down to the wording of a single question.
+
 Map the questions back to the FR template fields, including the mandatory summary fields, so the user knows what each one is filling in. Include a question for every field still `UNKNOWN`; the list below is the default full set, trim it to the gaps that actually remain:
 
 ```
 Hi <name>,
+
+I'm pulling the details together on <the issue> so I can take it to our product
+team with a solid case and advocate to get it prioritized and delivered. Quick
+bit of context on why I'm asking for all this. Logging a feature request doesn't
+guarantee it gets built. No vendor can deliver every request that comes in, so
+the ones backed by clear, specific data tend to be the ones that get prioritized.
+The more detail you can give me, the stronger the case I can make on your behalf.
 
 A few quick questions so we can write this up properly for our product team:
 
