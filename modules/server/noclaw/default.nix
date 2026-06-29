@@ -323,26 +323,6 @@ in
         cache-size = 1000;
       };
     };
-    systemd.services.dnsmasq = lib.mkIf cfg.egress.lockdown {
-      # Order after the firewall so the ipset exists before dnsmasq populates it,
-      # and after the container so the veth (and its address) is up to bind to.
-      after = [
-        "firewall.service"
-        "container@noclaw.service"
-      ];
-      # Restarting the container recreates ve-noclaw with a fresh /32 host
-      # address. bind-dynamic does NOT reliably rebind that IPv4 on its own (it
-      # re-grabs only the veth's IPv6 link-local), so the container's resolver
-      # silently goes to "connection refused" and all egress -- 1Password auth,
-      # Todoist -- fails. partOf propagates the container's restart to dnsmasq;
-      # combined with the `after` ordering above, dnsmasq comes back up after the
-      # new veth exists and rebinds 10.231.136.1:53.
-      partOf = [ "container@noclaw.service" ];
-    };
-
-    # Writable scratch volume for the container's runtime output.
-    systemd.tmpfiles.rules = [ "d /var/lib/noclaw-data 0750 root root -" ];
-
     assertions = [
       {
         assertion = !(cfg.renderOpTokenFromNixosSecrets && cfg.opTokenFile != null);
@@ -350,39 +330,61 @@ in
       }
     ];
 
-    # Render the OP service-account token env file from the nixos-secrets cached
-    # JSON before the container starts. Runs as root (default), reads the 0600
-    # cached file off disk (no 1Password call), and writes ONLY
-    # OP_SERVICE_ACCOUNT_TOKEN=<value> via a command substitution -- the value
-    # is never printed or logged. If the key is absent (operator hasn't
-    # provisioned noclaw-op-token yet) an EMPTY file is written so the
-    # container's read-only bind mount still succeeds; `op` then fails auth
-    # cleanly, which is the documented "token not wired yet" state.
-    systemd.services.noclaw-op-token = lib.mkIf cfg.renderOpTokenFromNixosSecrets {
-      description = "Render noclaw OP service-account token env file from nixos-secrets";
-      before = [ "container@noclaw.service" ];
-      requiredBy = [ "container@noclaw.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        UMask = "0077";
+    systemd = {
+      services.dnsmasq = lib.mkIf cfg.egress.lockdown {
+        # Order after the firewall so the ipset exists before dnsmasq populates it,
+        # and after the container so the veth (and its address) is up to bind to.
+        after = [
+          "firewall.service"
+          "container@noclaw.service"
+        ];
+        # Restarting the container recreates ve-noclaw with a fresh /32 host
+        # address. bind-dynamic does NOT reliably rebind that IPv4 on its own (it
+        # re-grabs only the veth's IPv6 link-local), so the container's resolver
+        # silently goes to "connection refused" and all egress -- 1Password auth,
+        # Todoist -- fails. partOf propagates the container's restart to dnsmasq;
+        # combined with the `after` ordering above, dnsmasq comes back up after the
+        # new veth exists and rebinds 10.231.136.1:53.
+        partOf = [ "container@noclaw.service" ];
       };
-      script = ''
-        set -euo pipefail
-        umask 077
-        install -m 0600 /dev/null ${renderedOpEnv}
-        if [ -r ${secretsJsonPath} ]; then
-          tok="$(${pkgs.jq}/bin/jq -r '.noclaw.opToken // empty' ${secretsJsonPath})"
-          if [ -n "$tok" ]; then
-            printf 'OP_SERVICE_ACCOUNT_TOKEN=%s\n' "$tok" > ${renderedOpEnv}
+
+      # Writable scratch volume for the container's runtime output.
+      tmpfiles.rules = [ "d /var/lib/noclaw-data 0750 root root -" ];
+
+      # Render the OP service-account token env file from the nixos-secrets cached
+      # JSON before the container starts. Runs as root (default), reads the 0600
+      # cached file off disk (no 1Password call), and writes ONLY
+      # OP_SERVICE_ACCOUNT_TOKEN=<value> via a command substitution -- the value
+      # is never printed or logged. If the key is absent (operator hasn't
+      # provisioned noclaw-op-token yet) an EMPTY file is written so the
+      # container's read-only bind mount still succeeds; `op` then fails auth
+      # cleanly, which is the documented "token not wired yet" state.
+      services.noclaw-op-token = lib.mkIf cfg.renderOpTokenFromNixosSecrets {
+        description = "Render noclaw OP service-account token env file from nixos-secrets";
+        before = [ "container@noclaw.service" ];
+        requiredBy = [ "container@noclaw.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          UMask = "0077";
+        };
+        script = ''
+          set -euo pipefail
+          umask 077
+          install -m 0600 /dev/null ${renderedOpEnv}
+          if [ -r ${secretsJsonPath} ]; then
+            tok="$(${pkgs.jq}/bin/jq -r '.noclaw.opToken // empty' ${secretsJsonPath})"
+            if [ -n "$tok" ]; then
+              printf 'OP_SERVICE_ACCOUNT_TOKEN=%s\n' "$tok" > ${renderedOpEnv}
+            fi
           fi
-        fi
-        # root owns; the container `noclaw` group (gid ${toString noclawGid}) gets
-        # read. No host group has this gid, so the file stays root-only on the
-        # host while the in-container shim (running as noclaw) can source it.
-        chown 0:${toString noclawGid} ${renderedOpEnv}
-        chmod 0640 ${renderedOpEnv}
-      '';
+          # root owns; the container `noclaw` group (gid ${toString noclawGid}) gets
+          # read. No host group has this gid, so the file stays root-only on the
+          # host while the in-container shim (running as noclaw) can source it.
+          chown 0:${toString noclawGid} ${renderedOpEnv}
+          chmod 0640 ${renderedOpEnv}
+        '';
+      };
     };
 
     containers.noclaw = {
@@ -444,25 +446,27 @@ in
         lib.mkMerge [
           {
             system.stateVersion = "25.11";
-            networking.firewall.enable = false;
-            # In lockdown the container's ONLY resolver is the host dnsmasq, which
-            # resolves just the allowlisted domains and populates the egress
-            # ipset; pointing anywhere else would let it resolve names the
-            # firewall then drops. Open mode uses public resolvers.
-            networking.nameservers =
-              if cfg.egress.lockdown then
-                [ hostAddr ]
-              else
-                [
-                  "1.1.1.1"
-                  "9.9.9.9"
-                ];
-            # nspawn otherwise feeds the container the HOST's /etc/resolv.conf
-            # (its 127.0.0.1 stub + Tailscale search domain), which has no
-            # resolver inside the container's netns -- so networking.nameservers
-            # above is ignored and all DNS fails. Force the container to write
-            # its own resolv.conf from nameservers, and keep resolved out of it.
-            networking.useHostResolvConf = lib.mkForce false;
+            networking = {
+              firewall.enable = false;
+              # In lockdown the container's ONLY resolver is the host dnsmasq, which
+              # resolves just the allowlisted domains and populates the egress
+              # ipset; pointing anywhere else would let it resolve names the
+              # firewall then drops. Open mode uses public resolvers.
+              nameservers =
+                if cfg.egress.lockdown then
+                  [ hostAddr ]
+                else
+                  [
+                    "1.1.1.1"
+                    "9.9.9.9"
+                  ];
+              # nspawn otherwise feeds the container the HOST's /etc/resolv.conf
+              # (its 127.0.0.1 stub + Tailscale search domain), which has no
+              # resolver inside the container's netns -- so networking.nameservers
+              # above is ignored and all DNS fails. Force the container to write
+              # its own resolv.conf from nameservers, and keep resolved out of it.
+              useHostResolvConf = lib.mkForce false;
+            };
             services.resolved.enable = false;
             environment.systemPackages = containerTools;
 
