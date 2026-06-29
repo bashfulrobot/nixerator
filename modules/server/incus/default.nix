@@ -81,17 +81,17 @@ in
         storage_pools = [
           {
             name = "default";
-            driver = cfg.storage.driver;
+            inherit (cfg.storage) driver;
             # Loop-backed pools need a size; the dir driver must not carry one.
             config = lib.optionalAttrs (cfg.storage.driver != "dir") {
-              size = cfg.storage.size;
+              inherit (cfg.storage) size;
             };
           }
         ];
 
         networks = [
           {
-            name = cfg.network.name;
+            inherit (cfg.network) name;
             type = "bridge";
             config = {
               "ipv4.address" = cfg.network.ipv4Address;
