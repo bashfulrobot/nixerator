@@ -180,6 +180,13 @@ scripts/aha.sh post features/DEVP-123/comments \
   -d '{"comment":{"body":"<p>Note from CSM: customer X is blocked on this.</p>"}}'
 ```
 
+The body key is `comment` (with an HTML `body`) for every commentable type,
+including ideas. Do not use a resource-prefixed root: `ideas/{ref}/comments`
+with `{"idea_comment":{...}}` is rejected with "Editor content cannot be blank".
+For bodies with quotes, angle brackets, or links, write the HTML to a file and
+build the JSON with `jq -Rs '{comment:{body:.}}' file.html > payload.json`, then
+post with `-d @payload.json` to avoid shell-escaping issues.
+
 ## Pull everything (full dump) for offline analysis
 
 ```bash
