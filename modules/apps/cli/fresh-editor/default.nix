@@ -109,6 +109,7 @@ in
         extraPackages = with pkgs; [
           nixd
           nixfmt
+          harper # provides harper-ls (prose/grammar checker)
         ];
 
         # Schema: github.com/sinelaw/fresh config-schema.json
@@ -145,6 +146,22 @@ in
               {
                 command = "nixd";
                 auto_start = true;
+              }
+            ];
+            # Harper prose/grammar checker for Markdown, matching the helix and
+            # zed setups. initialization_options is forwarded as the LSP
+            # initializationOptions, where harper-ls reads its config (Canadian
+            # dialect to match the rest of the stack).
+            markdown = [
+              {
+                command = "harper-ls";
+                args = [ "--stdio" ];
+                auto_start = true;
+                initialization_options = {
+                  "harper-ls" = {
+                    dialect = "Canadian";
+                  };
+                };
               }
             ];
           };
