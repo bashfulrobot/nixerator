@@ -127,6 +127,7 @@
       "/home/dustin/git/.worktrees"
     ]
   },
+  "model": "opus",
   "hooks": {
     "PostToolUse": [
       {
@@ -361,6 +362,7 @@
     "type": "command",
     "command": "@STATUSLINE_COMMAND@"
   },
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "agentPushNotifEnabled": true,
@@ -373,6 +375,5 @@
   },
   "smallModelOverride": "haiku",
   "coAuthor": "",
-  "remoteControlEnabled": true,
-  "tui": "fullscreen"
+  "remoteControlEnabled": true
 }
