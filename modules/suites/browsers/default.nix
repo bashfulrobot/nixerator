@@ -15,7 +15,7 @@ in
   config = lib.mkIf cfg.enable {
     # Browser applications
     apps.gui = {
-      # brave: disabled
+      # Brave Origin replaces the retired stock-brave module.
       brave-origin.enable = true;
       google-chrome.enable = true;
       # google-chrome.enableDev = true;
