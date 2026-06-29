@@ -109,6 +109,23 @@ in
         exposure.
       '';
     };
+
+    trustedBridgePrefix = lib.mkOption {
+      type = lib.types.str;
+      default = "tbr-";
+      example = "tbr-";
+      description = ''
+        Interface-name prefix for Terraform-created per-cluster Incus bridges.
+        Any bridge whose name starts with this prefix is trusted in the host
+        firewall with a single wildcard rule (iifname "<prefix>*" accept), so new
+        clusters need no change here as long as their bridge follows the
+        convention. The terraform-talos module names its bridge
+        <bridge_prefix><cluster_name> (e.g. tbr-spitfire); keep this equal to
+        that bridge_prefix. Set to "" to disable the wildcard and trust bridges
+        only via the explicit trustedBridges list. See trustedBridges for why
+        this firewall trust is needed at all.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -191,8 +208,16 @@ in
     # DHCP/DNS. Without this the nixos-fw input chain (policy drop) silently eats
     # the instances' DHCP requests even though Incus's own nftables table accepts
     # them, and instances boot but never get an address. Covers the managed
-    # bridge plus any Terraform-created per-cluster bridges (trustedBridges).
+    # bridge plus any explicitly-named Terraform bridges (trustedBridges).
     networking.firewall.trustedInterfaces = [ cfg.network.name ] ++ cfg.trustedBridges;
+
+    # And trust every per-cluster bridge sharing the naming convention with one
+    # wildcard rule, so a new Terraform cluster (e.g. tbr-darkstar) works without
+    # editing this module. trustedInterfaces can't express a wildcard, so this
+    # goes in as a raw input rule.
+    networking.firewall.extraInputRules = lib.optionalString (cfg.trustedBridgePrefix != "") ''
+      iifname "${cfg.trustedBridgePrefix}*" accept comment "trust Incus per-cluster bridges"
+    '';
 
     # Desktop launcher for the web UI. Opens the local daemon's UI (loopback
     # always works on the host); browsing from another device uses the tailnet
