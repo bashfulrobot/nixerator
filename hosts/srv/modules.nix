@@ -113,6 +113,14 @@
       # noclaw-op-token/credential) into the container from the nixos-secrets
       # cached file. Provision the value with `just render-secrets`.
       renderOpTokenFromNixosSecrets = true;
+      # No nightly recycle. `claude remote-control` mints a NEW session id on
+      # every process start (no upstream way to reuse one across restarts -- see
+      # anthropics/claude-code#29748), so each restart leaves another dead
+      # "noclaw" entry in the phone's Code list. The container HOME is already
+      # wiped+restaged on every actual restart (reboot/deploy), so the daily
+      # context-flush restart bought almost nothing while costing a duplicate
+      # entry per day. Off => one durable entry until a real reboot/deploy.
+      recycle.enable = false;
     };
 
     # IPv4-only DDNS: manages the A record for home.bashfulrobot.com.
