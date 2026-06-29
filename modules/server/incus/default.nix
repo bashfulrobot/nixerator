@@ -86,6 +86,29 @@ in
         '';
       };
     };
+
+    trustedBridges = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "spitfire" ];
+      description = ''
+        Extra Incus-managed bridges to trust in the host firewall, on top of the
+        managed bridge (network.name). Use this for bridges created outside Nix
+        — e.g. the per-cluster NAT bridge the terraform-talos module makes, named
+        after the cluster (cluster_name).
+
+        Why this is needed: the NixOS firewall (table inet nixos-fw) hooks the
+        input chain with policy drop and only trusts loopback. Incus adds its own
+        accept rules in table inet incus, but both tables filter input
+        independently and a drop in either is fatal, so nixos-fw silently drops
+        DHCP/DNS from instances before dnsmasq on the bridge can answer. The
+        result is instances that boot fine but never get a lease (anything trying
+        to reach them sees "no route to host"). Trusting the bridge interface
+        lets that intra-bridge traffic through. These are internal NAT bridges
+        carrying only local instance traffic, so trusting them adds no external
+        exposure.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -163,6 +186,13 @@ in
     networking.firewall.interfaces.${cfg.ui.tailscaleInterface}.allowedTCPPorts =
       lib.mkIf cfg.ui.enable
         [ cfg.ui.port ];
+
+    # Trust the Incus NAT bridges so instances can reach the host's dnsmasq for
+    # DHCP/DNS. Without this the nixos-fw input chain (policy drop) silently eats
+    # the instances' DHCP requests even though Incus's own nftables table accepts
+    # them, and instances boot but never get an address. Covers the managed
+    # bridge plus any Terraform-created per-cluster bridges (trustedBridges).
+    networking.firewall.trustedInterfaces = [ cfg.network.name ] ++ cfg.trustedBridges;
 
     # Desktop launcher for the web UI. Opens the local daemon's UI (loopback
     # always works on the host); browsing from another device uses the tailnet
