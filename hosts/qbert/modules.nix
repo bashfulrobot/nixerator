@@ -91,10 +91,10 @@
       ui.enable = true;
       storage.driver = "btrfs";
       network.ipv4Address = "10.100.0.1/24";
-      # Per-cluster NAT bridge that terraform-talos creates (named after the
-      # cluster, cluster_name = "spitfire"). Trusting it in the firewall lets the
-      # Talos nodes complete DHCP against the host's dnsmasq.
-      trustedBridges = [ "spitfire" ];
+      # terraform-talos names each cluster bridge tbr-<cluster> (blackhole,
+      # spitfire, darkstar, darkstone). The default trustedBridgePrefix ("tbr-")
+      # trusts them all in the firewall via one wildcard rule, so the Talos nodes
+      # can complete DHCP. No per-cluster entry needed.
     };
   };
 }
