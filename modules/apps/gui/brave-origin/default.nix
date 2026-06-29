@@ -30,12 +30,13 @@ let
   # Chrome Web Store update endpoint (Brave proxies the CWS).
   cwsUpdateUrl = "https://clients2.google.com/service/update2/crx";
 
-  # Extensions auto-installed via the ExtensionInstallForcelist managed policy.
-  # Curated to mirror the google-chrome "Default" profile so the daily-driver
-  # set carries over to Brave Origin. IDs are Chrome Web Store extension IDs.
-  # To prune, drop the line; to make them user-removable instead of pinned,
-  # switch the policy below to ExtensionSettings with installation_mode
-  # "normal_installed".
+  # Extensions auto-installed via the ExtensionSettings managed policy with
+  # installation_mode "normal_installed": each is seeded on first launch but
+  # stays user-managed (you can disable or remove any of them, and the policy
+  # won't force it back). Curated to mirror the google-chrome "Default" profile
+  # so the daily-driver set carries over to Brave Origin. IDs are Chrome Web
+  # Store extension IDs; to prune, drop the line. For mandatory/pinned
+  # extensions instead, switch the policy below to ExtensionInstallForcelist.
   defaultExtensions = [
     "aeblfdkhhhdcdjpifhhbdiojplfjncoa" # 1Password – Password Manager
     "apadglapdamclpaedknbefnbcajfebgh" # Smart Mute
@@ -83,9 +84,11 @@ in
       example = [ "aeblfdkhhhdcdjpifhhbdiojplfjncoa" ];
       description = ''
         Chrome Web Store extension IDs to auto-install into Brave Origin via the
-        ExtensionInstallForcelist managed policy (written to
-        /etc/brave/policies/managed/). Defaults to the set mirrored from the
-        google-chrome profile. Set to [ ] to disable managed extensions.
+        ExtensionSettings managed policy with installation_mode
+        "normal_installed" (written to /etc/brave/policies/managed/). They are
+        seeded on first launch but remain user-managed. Defaults to the set
+        mirrored from the google-chrome profile. Set to [ ] to disable managed
+        extensions.
       '';
     };
   };
@@ -101,7 +104,10 @@ in
         # answer to Brave Sync not reliably carrying extensions across devices.
         "brave/policies/managed/extensions.json" = lib.mkIf (cfg.extensions != [ ]) {
           text = builtins.toJSON {
-            ExtensionInstallForcelist = map (id: "${id};${cwsUpdateUrl}") cfg.extensions;
+            ExtensionSettings = lib.genAttrs cfg.extensions (_: {
+              installation_mode = "normal_installed";
+              update_url = cwsUpdateUrl;
+            });
           };
         };
 
