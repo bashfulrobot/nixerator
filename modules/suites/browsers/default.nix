@@ -16,6 +16,7 @@ in
     # Browser applications
     apps.gui = {
       # brave: disabled
+      brave-origin.enable = true;
       google-chrome.enable = true;
       # google-chrome.enableDev = true;
       helium.enable = true;

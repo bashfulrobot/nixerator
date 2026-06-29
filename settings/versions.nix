@@ -242,6 +242,18 @@
       hash = "sha256-+UE+JqQtxbA5szPvAohapXlES21VBOdNsV6Ej1dRRfs=";
     };
 
+    # Brave Origin — minimalist standalone Brave. Only the nightly channel
+    # ships Linux artifacts. Asset: brave-origin-nightly-<version>-linux-amd64.zip
+    # under release tag v<version>. The package build (modules/apps/gui/
+    # brave-origin/build) consumes this entry.
+    brave-origin = {
+      source = "github-release";
+      repo = "brave/brave-browser";
+      version = "1.94.12";
+      tagPrefix = "v";
+      hash = "sha256-nIxk3zEEW+6QqAguAlmoEkeLENy9Ee779CI3sCxsXt0=";
+    };
+
     nimbalyst = {
       source = "github-release";
       repo = "Nimbalyst/nimbalyst";
