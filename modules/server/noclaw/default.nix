@@ -387,6 +387,18 @@ in
 
     containers.noclaw = {
       autoStart = true;
+      # Do NOT bounce the container on a host `nixos-rebuild switch`. By default
+      # (restartIfChanged = true) any rebuild that changes the container's
+      # closure restarts container@noclaw -> restarts the RC service -> mints a
+      # NEW remote-control session, which leaves another dead "noclaw" in the
+      # phone's Code list (remote-control cannot reuse a session id across a
+      # restart; see anthropics/claude-code#29748). false => the running session
+      # survives every host rebuild; container/config changes (new claude
+      # version, edited scripts) apply on a DELIBERATE `systemctl restart
+      # container@noclaw` or a reboot, which is the only time a fresh entry
+      # appears. Trade-off: after editing this module you must restart the
+      # container by hand for it to take effect.
+      restartIfChanged = false;
       privateNetwork = true;
       hostAddress = hostAddr;
       localAddress = localAddr;
