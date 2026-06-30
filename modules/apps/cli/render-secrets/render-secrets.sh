@@ -25,18 +25,39 @@ ALLOWED_HOSTS=(qbert donkeykong srv clanker)
 
 # Document-backed files materialized from the `nixerator` vault onto this host,
 # alongside the rendered secrets.json. Each entry is pipe-separated:
-#   "<op document title>|<dest path>|<file mode>|<dir mode>|<guard path>"
+#   "<op document title>|<dest path>|<file mode>|<dir mode>|<guard>"
+# The guard scopes WHERE a file lands:
+#   - empty            -> every host that runs render-secrets.
+#   - a path           -> only if that path exists (e.g. the consuming repo).
+#   - "host:h1,h2,..." -> only on those hostnames.
 # Behaviour per entry:
-#   - guard non-empty and missing  -> skip entirely (the consumer, e.g. the
-#     homelab repo, is not on this host, so it never pulls the file).
-#   - dest already exists           -> fix dest+dir perms, skip the fetch.
-#   - otherwise                     -> op document get -> atomic write -> chmod.
+#   - guard fails        -> skip entirely (file never lands on this host).
+#   - dest already there -> fix dest+dir perms, skip the fetch (never clobber).
+#   - otherwise          -> op document get -> atomic write -> chmod.
 # These are host-local identity files; --push never copies them (it only moves
-# the rendered secrets.json). To add an SSH key: upload it as a Document item to
-# the nixerator vault, then add a row like
-#   "my-ssh-key|${HOME}/.ssh/id_ed25519|600|700|"   (the .pub uses 644)
+# the rendered secrets.json). To add another, upload it as a Document item to the
+# nixerator vault and add a row.
+#
+# Workstation hosts (archetypes.workstation.enable = true). Private SSH keys and
+# per-repo git-crypt keys are scoped to these, so the pure server never gets them.
+_WS="host:donkeykong,nixerator,qbert"
 MATERIALIZE=(
   "homelab git-crypt key|${HOME}/.config/git-crypt/homelab.key|600|700|${HOME}/git/homelab"
+
+  # SSH private keys (workstations only)
+  "id_ed25519|${HOME}/.ssh/id_ed25519|600|700|${_WS}"
+  "id_ed25519_np|${HOME}/.ssh/id_ed25519_np|600|700|${_WS}"
+  "id_rsa|${HOME}/.ssh/id_rsa|600|700|${_WS}"
+  # SSH public keys
+  "id_ed25519.pub|${HOME}/.ssh/id_ed25519.pub|644|700|${_WS}"
+  "id_rsa.pub|${HOME}/.ssh/id_rsa.pub|644|700|${_WS}"
+  "id_rsa_np.pub|${HOME}/.ssh/id_rsa_np.pub|644|700|${_WS}"
+
+  # Per-repo git-crypt keys (workstations only)
+  "mixerator-git-crypt-key|${HOME}/.ssh/mixerator-git-crypt-key|600|700|${_WS}"
+  "nixcfg-git-crypt-key|${HOME}/.ssh/nixcfg-git-crypt-key|600|700|${_WS}"
+  "nixerator-git-crypt-key|${HOME}/.ssh/nixerator-git-crypt-key|600|700|${_WS}"
+  "talos-vms-git-crypt-key|${HOME}/.ssh/talos-vms-git-crypt-key|600|700|${_WS}"
 )
 
 usage() {
@@ -201,17 +222,37 @@ render_to() {
   trap - RETURN
 }
 
+# guard_ok GUARD — true if GUARD is empty, a path that exists, or a
+# "host:h1,h2,..." list that contains this hostname.
+guard_ok() {
+  local guard="$1"
+  [[ -z "${guard}" ]] && return 0
+  case "${guard}" in
+    host:*)
+      local cur hn _guard_hosts
+      cur="$(hostname)"
+      IFS=',' read -ra _guard_hosts <<<"${guard#host:}"
+      for hn in "${_guard_hosts[@]}"; do
+        [[ "${hn}" == "${cur}" ]] && return 0
+      done
+      return 1
+      ;;
+    *)
+      [[ -e "${guard}" ]] && return 0
+      return 1
+      ;;
+  esac
+}
+
 # materialize_one TITLE DEST FMODE DMODE [GUARD] — restore a 1Password Document
 # item to DEST when it is not already there. Always fixes dir/file perms; never
-# clobbers an existing DEST. If GUARD is non-empty and absent, do nothing.
+# clobbers an existing DEST. Skipped if GUARD does not pass (see guard_ok).
 # Returns non-zero on a fetch failure so the caller can warn without aborting
 # the (already-written) secrets render.
 materialize_one() {
   local title="$1" dest="$2" fmode="$3" dmode="$4" guard="${5:-}"
   local dir tmp
-  if [[ -n "${guard}" && ! -e "${guard}" ]]; then
-    return 0
-  fi
+  guard_ok "${guard}" || return 0
   dir="$(dirname "${dest}")"
   mkdir -p "${dir}"
   chmod "${dmode}" "${dir}"
