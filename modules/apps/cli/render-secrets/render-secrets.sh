@@ -305,8 +305,8 @@ echo "render-secrets: wrote ${DEST}"
 materialize_failed=()
 for _m in "${MATERIALIZE[@]}"; do
   IFS='|' read -r _t _d _fm _dm _g <<<"${_m}"
-  materialize_one "${_t}" "${_d}" "${_fm}" "${_dm}" "${_g}" \
-    || materialize_failed+=("${_d}")
+  materialize_one "${_t}" "${_d}" "${_fm}" "${_dm}" "${_g}" ||
+    materialize_failed+=("${_d}")
 done
 if [[ ${#materialize_failed[@]} -gt 0 ]]; then
   echo "render-secrets: FAILED to materialize: ${materialize_failed[*]}" >&2
