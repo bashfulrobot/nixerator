@@ -55,6 +55,12 @@ let
       configDir
       statusLineScript
       autoGateScript
+      precompactScript
+      reinjectScript
+      remindersFile
+      remindersScript
+      guardGeneratedPathsScript
+      guardRawNixScript
       reapConfig
       globals
       homeDir
@@ -86,6 +92,61 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/auto-gate.sh;
+  };
+
+  # Context-rot survival. PreCompact writes a recovery snapshot + a per-session
+  # sentinel; the next UserPromptSubmit re-injects the hard rules once and clears
+  # it. Both are injected at activation and stripped on capture (cfg/fish.nix),
+  # so their volatile store paths are never committed (the dead tmux-claude bug).
+  precompactScript = pkgs.writeShellApplication {
+    name = "claude-precompact-checkpoint";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.git
+      pkgs.coreutils
+      pkgs.findutils
+    ];
+    text = builtins.readFile ./cfg/scripts/precompact-checkpoint.sh;
+  };
+  reinjectScript = pkgs.writeShellApplication {
+    name = "claude-post-compact-reinject";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/post-compact-reinject.sh;
+  };
+
+  # SessionStart date-gated maintenance reminders, read from the Nix-rendered
+  # registry deployed to ~/.claude/reminders.json (cfg/reminders.nix).
+  remindersFile = import ./cfg/reminders.nix { inherit pkgs; };
+  remindersScript = pkgs.writeShellApplication {
+    name = "claude-session-reminders";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/reminders.sh;
+  };
+
+  # Hardened PostToolUse guards (warn-level): editing Nix-generated ~/.claude
+  # files, and raw `nix` commands outside justfile recipes.
+  guardGeneratedPathsScript = pkgs.writeShellApplication {
+    name = "claude-guard-generated-paths";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/guard-generated-paths.sh;
+  };
+  guardRawNixScript = pkgs.writeShellApplication {
+    name = "claude-guard-raw-nix";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.gnugrep
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/guard-raw-nix.sh;
   };
 
   # Shell scripts -- read from files, substitute placeholders

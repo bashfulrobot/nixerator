@@ -3,6 +3,12 @@
   configDir,
   statusLineScript,
   autoGateScript,
+  precompactScript,
+  reinjectScript,
+  remindersFile,
+  remindersScript,
+  guardGeneratedPathsScript,
+  guardRawNixScript,
   reapConfig,
   globals,
   homeDir,
@@ -22,6 +28,11 @@
     # CLAUDE.md -- global instructions
     $DRY_RUN_CMD rm -f "$claude_home/CLAUDE.md"
     $DRY_RUN_CMD cp --no-preserve=mode "${configDir}/CLAUDE.md" "$claude_home/CLAUDE.md"
+
+    # reminders.json -- Nix-rendered maintenance-reminder registry (cfg/reminders.nix),
+    # read at SessionStart by claude-session-reminders.
+    $DRY_RUN_CMD rm -f "$claude_home/reminders.json"
+    $DRY_RUN_CMD cp --no-preserve=mode "${remindersFile}" "$claude_home/reminders.json"
 
     # settings.json -- substitute statusline store path
     # Remove first in case it's a stale symlink into the nix store (read-only)
@@ -53,6 +64,27 @@
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))
              + [{matcher: "Bash", hooks: [{type: "command", command: "${autoGateScript}/bin/claude-auto-gate"}]}])' \
+        "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+      mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+
+      # Context-rot, reminder, and hardened-guard hooks are Nix-owned, same as
+      # the auto-gate above: injected here with their store paths and stripped on
+      # capture (cfg/fish.nix). Each clause is idempotent -- it first drops any
+      # existing entry carrying its command marker, then appends the current one.
+      ${pkgs.jq}/bin/jq \
+        '.hooks.PreCompact = (((.hooks.PreCompact // [])
+             | map(select((.hooks[0].command // "") | test("claude-precompact-checkpoint") | not)))
+             + [{hooks: [{type: "command", command: "${precompactScript}/bin/claude-precompact-checkpoint"}]}])
+         | .hooks.UserPromptSubmit = (((.hooks.UserPromptSubmit // [])
+             | map(select((.hooks[0].command // "") | test("claude-post-compact-reinject") | not)))
+             + [{hooks: [{type: "command", command: "${reinjectScript}/bin/claude-post-compact-reinject"}]}])
+         | .hooks.SessionStart = (((.hooks.SessionStart // [])
+             | map(select((.hooks[0].command // "") | test("claude-session-reminders") | not)))
+             + [{hooks: [{type: "command", command: "${remindersScript}/bin/claude-session-reminders"}]}])
+         | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-guard-generated-paths|claude-guard-raw-nix") | not)))
+             + [{matcher: "Edit|Write|MultiEdit", hooks: [{type: "command", command: "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths"}]},
+                {matcher: "Bash", hooks: [{type: "command", command: "${guardRawNixScript}/bin/claude-guard-raw-nix"}]}])' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
       chmod 644 "$claude_home/settings.json"

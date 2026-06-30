@@ -104,13 +104,27 @@ if [ -f "$settings_path" ]; then
   [ "$thinking_val" = "true" ] && thinking_on=true
 fi
 
-# ===== LINE 1: Model | tokens | % used | % remain | thinking =====
+# Context-rot meter: grade the context-window fill like the rate-limit bars so
+# the rot zone is visible at a glance (green <50, orange 50-70, yellow 70-90,
+# red >=90 -- matching build_bar's thresholds). Compaction looms in the red.
+if [ "$pct_used" -ge 90 ]; then
+  ctx_color="$red"
+elif [ "$pct_used" -ge 70 ]; then
+  ctx_color="$yellow"
+elif [ "$pct_used" -ge 50 ]; then
+  ctx_color="$orange"
+else
+  ctx_color="$green"
+fi
+ctx_bar=$(build_bar "$pct_used" 10)
+
+# ===== LINE 1: Model | tokens | ctx-bar % used | % remain | thinking =====
 line1=""
 line1+="${blue}${model_name}${reset}"
 line1+=" ${dim}|${reset} "
 line1+="${orange}${used_tokens} / ${total_tokens}${reset}"
 line1+=" ${dim}|${reset} "
-line1+="${green}${pct_used}% used ${orange}${used_comma}${reset}"
+line1+="${ctx_bar} ${ctx_color}${pct_used}% used ${used_comma}${reset}"
 line1+=" ${dim}|${reset} "
 line1+="${cyan}${pct_remain}% remain ${blue}${remain_comma}${reset}"
 line1+=" ${dim}|${reset} "
