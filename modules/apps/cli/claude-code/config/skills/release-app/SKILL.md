@@ -52,13 +52,21 @@ Adding a new app = append a row.
 
 | App | Source repo | Downstream repo | Version anchor | Lock-refresh command | Apply recipe |
 |-----|-------------|-----------------|----------------|----------------------|--------------|
-| `upsight` | `~/git/upsight` | `~/git/nixerator` | `flake.nix` line `url = "github:bashfulrobot/upsight/vX.Y.Z";` under the `upsight` input | `nix flake lock --update-input upsight` | `just qr` |
+| `upsight` | `~/git/upsight-go` | `~/git/nixerator` | *branch-tracked* — the `upsight` input follows `github:bashfulrobot/upsight-go` with no tag pin, so there is no `flake.nix` line to edit | `nix flake lock --update-input upsight` | `just qr` |
 | `meetsum` | `~/git/meetsum` | *(release-only — not yet wired into nixerator)* | — | — | — |
 
 A row whose downstream half is `—` means **release-only**: the skill cuts
 the release in the source repo and stops. When meetsum is later added to
 nixerator, fill in the four blank columns and the propagation step kicks
 in automatically — no other change to this skill is needed.
+
+A **branch-tracked** version anchor (like `upsight`) means the downstream
+input follows a git branch, not a version tag. Skip Step 4's `flake.nix`
+sed entirely — there is nothing to rewrite — and propagate with the
+lock-refresh command alone (`nix flake lock --update-input <name>` re-locks
+the branch to its newest commit, which is the just-released tag's commit
+since the release pushes to that branch). The release tag is still cut in
+the source repo for history; the downstream just doesn't pin to it.
 
 If the user invokes the skill from a CWD that doesn't match any source
 repo in the registry, ask once for the missing fields, append a row, and
