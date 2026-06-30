@@ -8,6 +8,7 @@ two flavours of consumer:
 | Nix flake eval (modules, hosts) | Items in the `nixerator` vault rendered via `secrets.json.tpl` + `op inject` | `~/.config/nixos-secrets/secrets.json` (0600) |
 | Okular signature stamping | Document items `okular-signature` + `okular-initials` in the `nixerator` vault | `~/.kde/share/icons/{signature,initials}.png` (0644) |
 | gmailctl OAuth client | Login item `gmailctl` (`Client ID` + `Client Secret` fields) in the `nixerator` vault, rendered via `op inject` by `just fetch-gmailctl-creds` | `~/.gmailctl/credentials.json` (0600) |
+| homelab git-crypt key | Document item `homelab git-crypt key` in the `nixerator` vault, materialized by `render-secrets` when `~/git/homelab` is present (skipped if already on disk) | `~/.config/git-crypt/homelab.key` (0600) |
 
 Neither cached file is in the repo, in the Nix store, or available to AI
 tooling scoped to the repo working directory (both paths are on Claude
@@ -66,6 +67,43 @@ This mirrors the identical global rule in `~/.claude/CLAUDE.md`.
    ```
 
 All three are idempotent — safe to re-run any time.
+
+## Materialized host files
+
+Besides the rendered `secrets.json`, `render-secrets` restores a small set of
+**document-backed files** from the `nixerator` vault straight onto the host:
+binary secrets that have to live at a specific path, like a git-crypt key. The
+list is the `MATERIALIZE` table at the top of
+`modules/apps/cli/render-secrets/render-secrets.sh`.
+
+For each entry, `render-secrets`:
+
+- skips it entirely if the entry's **guard** path is set and missing (so a host
+  without the consuming repo never pulls that file);
+- **skips the fetch but fixes permissions** if the destination already exists
+  (it never clobbers a key already on disk);
+- otherwise fetches the 1Password Document and writes it atomically with the
+  declared mode.
+
+These files are host-local and are **not** copied by `--push` (that moves only
+`secrets.json`). They are restored on a plain `just render-secrets`, so a fresh
+host gets them as part of the normal secrets step.
+
+Current entries:
+
+| Document item | Restored to | Mode | Guard |
+|---------------|-------------|------|-------|
+| `homelab git-crypt key` | `~/.config/git-crypt/homelab.key` | 0600 | `~/git/homelab` |
+
+After the homelab key lands, unlock the repo once so its state decrypts:
+
+```bash
+cd ~/git/homelab && git-crypt unlock ~/.config/git-crypt/homelab.key
+```
+
+To add another (an SSH key, or another repo's git-crypt key): upload the file as
+a Document item to the `nixerator` vault, then add a `MATERIALIZE` row
+`"<item title>|<dest>|<file mode>|<dir mode>|<guard or empty>"`.
 
 ## Daily workflow
 
@@ -148,6 +186,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `plakar-qbert` | Secure Note | `repository` + `passphrase` | `secrets.plakar.qbert.{repository,passphrase}` |
 | `okular-signature` | Document | `file` | `~/.kde/share/icons/signature.png` (via `just fetch-signatures`) |
 | `okular-initials` | Document | `file` | `~/.kde/share/icons/initials.png` (via `just fetch-signatures`) |
+| `homelab git-crypt key` | Document | `file` | `~/.config/git-crypt/homelab.key` (via `render-secrets`) |
 | `gmailctl` | Login | `Client ID` + `Client Secret` | `~/.gmailctl/credentials.json` (via `just fetch-gmailctl-creds`, which `op inject`s the two fields into a Desktop-app credentials.json template). Rendered straight to disk, **not** in `secrets.json` — keeps the client secret out of the Nix store. `gmailctl init` then writes `~/.gmailctl/token.json` locally. |
 
 Per-host network identity (Tailscale IPs, syncthing peer IDs) is NOT in 1P;
