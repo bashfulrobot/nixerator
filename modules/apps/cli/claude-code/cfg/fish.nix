@@ -100,10 +100,24 @@
         # cfg/plugin-config.nix (merged in at activation), so strip them here --
         # otherwise the captured runtime copy (bare, unpinned) would clobber the
         # Nix-authored, SHA-pinned values on the next rebuild.
+        #
+        # Hooks: every Nix-owned hook is injected at activation (cfg/activation.nix)
+        # with its /nix/store path, so it MUST be stripped from capture or its
+        # volatile store hash would be committed and go stale (the exact bug the
+        # dead tmux-claude hook had). The alternation below strips:
+        #   - claude-auto-gate          (the /auto PreToolUse permission gate)
+        #   - tmux-claude               (retired; self-healing removal of any stray)
+        #   - claude-precompact-checkpoint / claude-post-compact-reinject (context-rot)
+        #   - claude-session-reminders  (SessionStart maintenance reminders)
+        #   - claude-guard-*            (PostToolUse hardened guards)
+        # After stripping, any event array left empty is dropped entirely.
         if test -f "$claude_dir/settings.json"
           sed "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" "$claude_dir/settings.json" \
             | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask)
-                  | .hooks.PreToolUse = ((.hooks.PreToolUse // []) | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))' > "$config_dir/settings.json"
+                  | .hooks = ((.hooks // {})
+                      | map_values(map(select((.hooks[0].command // "")
+                          | test("claude-auto-gate|tmux-claude|claude-precompact-checkpoint|claude-post-compact-reinject|claude-session-reminders|claude-guard-generated-paths|claude-guard-raw-nix") | not)))
+                      | with_entries(select(.value | length > 0)))' > "$config_dir/settings.json"
           echo "  settings.json"
         end
 
