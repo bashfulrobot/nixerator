@@ -23,6 +23,22 @@ TPL="@TPL@"
 # silently exfiltrating the rendered secrets via scp.
 ALLOWED_HOSTS=(qbert donkeykong srv clanker)
 
+# Document-backed files materialized from the `nixerator` vault onto this host,
+# alongside the rendered secrets.json. Each entry is pipe-separated:
+#   "<op document title>|<dest path>|<file mode>|<dir mode>|<guard path>"
+# Behaviour per entry:
+#   - guard non-empty and missing  -> skip entirely (the consumer, e.g. the
+#     homelab repo, is not on this host, so it never pulls the file).
+#   - dest already exists           -> fix dest+dir perms, skip the fetch.
+#   - otherwise                     -> op document get -> atomic write -> chmod.
+# These are host-local identity files; --push never copies them (it only moves
+# the rendered secrets.json). To add an SSH key: upload it as a Document item to
+# the nixerator vault, then add a row like
+#   "my-ssh-key|${HOME}/.ssh/id_ed25519|600|700|"   (the .pub uses 644)
+MATERIALIZE=(
+  "homelab git-crypt key|${HOME}/.config/git-crypt/homelab.key|600|700|${HOME}/git/homelab"
+)
+
 usage() {
   cat >&2 <<EOF
 Usage: render-secrets [--check] [--tpl PATH] [--push HOST [HOST...]]
@@ -185,6 +201,35 @@ render_to() {
   trap - RETURN
 }
 
+# materialize_one TITLE DEST FMODE DMODE [GUARD] — restore a 1Password Document
+# item to DEST when it is not already there. Always fixes dir/file perms; never
+# clobbers an existing DEST. If GUARD is non-empty and absent, do nothing.
+# Returns non-zero on a fetch failure so the caller can warn without aborting
+# the (already-written) secrets render.
+materialize_one() {
+  local title="$1" dest="$2" fmode="$3" dmode="$4" guard="${5:-}"
+  local dir tmp
+  if [[ -n "${guard}" && ! -e "${guard}" ]]; then
+    return 0
+  fi
+  dir="$(dirname "${dest}")"
+  mkdir -p "${dir}"
+  chmod "${dmode}" "${dir}"
+  if [[ -e "${dest}" ]]; then
+    chmod "${fmode}" "${dest}"
+    echo "render-secrets: ${dest} present (perms ${fmode}, skip fetch)"
+    return 0
+  fi
+  tmp="$(mktemp -p "${dir}" .materialize.XXXXXX)"
+  if ! op document get "${title}" --vault nixerator --out-file "${tmp}" --force; then
+    rm -f "${tmp}"
+    return 1
+  fi
+  chmod "${fmode}" "${tmp}"
+  mv -f "${tmp}" "${dest}"
+  echo "render-secrets: materialized ${dest}"
+}
+
 if [[ "${CHECK}" -eq 1 ]]; then
   if [[ ! -f "${DEST}" ]]; then
     echo "render-secrets --check: no live file at ${DEST}" >&2
@@ -213,6 +258,18 @@ mkdir -p "${DEST_DIR}"
 chmod 700 "${DEST_DIR}"
 render_to "${DEST}"
 echo "render-secrets: wrote ${DEST}"
+
+# Restore document-backed host files (git-crypt keys, SSH keys, ...). Local
+# only; a failure here warns but does not undo the secrets.json just rendered.
+materialize_failed=()
+for _m in "${MATERIALIZE[@]}"; do
+  IFS='|' read -r _t _d _fm _dm _g <<<"${_m}"
+  materialize_one "${_t}" "${_d}" "${_fm}" "${_dm}" "${_g}" \
+    || materialize_failed+=("${_d}")
+done
+if [[ ${#materialize_failed[@]} -gt 0 ]]; then
+  echo "render-secrets: FAILED to materialize: ${materialize_failed[*]}" >&2
+fi
 
 if [[ ${#PUSH[@]} -gt 0 ]]; then
   # Track per-host outcome so a mid-list failure doesn't silently skip the
@@ -248,4 +305,9 @@ if [[ ${#PUSH[@]} -gt 0 ]]; then
     echo "render-secrets: push failures: ${failed_hosts[*]}" >&2
     exit 1
   fi
+fi
+
+# Surface a materialize failure in the exit status, after any push handling.
+if [[ ${#materialize_failed[@]} -gt 0 ]]; then
+  exit 1
 fi
