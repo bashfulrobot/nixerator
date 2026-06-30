@@ -8,7 +8,7 @@ two flavours of consumer:
 | Nix flake eval (modules, hosts) | Items in the `nixerator` vault rendered via `secrets.json.tpl` + `op inject` | `~/.config/nixos-secrets/secrets.json` (0600) |
 | Okular signature stamping | Document items `okular-signature` + `okular-initials` in the `nixerator` vault | `~/.kde/share/icons/{signature,initials}.png` (0644) |
 | gmailctl OAuth client | Login item `gmailctl` (`Client ID` + `Client Secret` fields) in the `nixerator` vault, rendered via `op inject` by `just fetch-gmailctl-creds` | `~/.gmailctl/credentials.json` (0600) |
-| homelab git-crypt key | Document item `homelab git-crypt key` in the `nixerator` vault, materialized by `render-secrets` when `~/git/homelab` is present (skipped if already on disk) | `~/.config/git-crypt/homelab.key` (0600) |
+| homelab git-crypt key | Document item `homelab git-crypt key` in the `nixerator` vault, materialized by `render-secrets` when `~/git/iac` is present (skipped if already on disk) | `~/.config/git-crypt/homelab.key` (0600) |
 | SSH + per-repo git-crypt keys | Document items in the `nixerator` vault, materialized by `render-secrets` on workstation hosts (skipped if already on disk) | `~/.ssh/*` (0600 private / 0644 public) |
 
 Neither cached file is in the repo, in the Nix store, or available to AI
@@ -95,7 +95,7 @@ Current entries:
 
 | Document item | Restored to | Mode | Guard |
 |---------------|-------------|------|-------|
-| `homelab git-crypt key` | `~/.config/git-crypt/homelab.key` | 0600 | `~/git/homelab` present |
+| `homelab git-crypt key` | `~/.config/git-crypt/homelab.key` | 0600 | `~/git/iac` present |
 | `id_ed25519`, `id_ed25519_np`, `id_rsa` | `~/.ssh/<name>` | 0600 | workstation hosts |
 | `id_ed25519.pub`, `id_rsa.pub`, `id_rsa_np.pub` | `~/.ssh/<name>` | 0644 | workstation hosts |
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | `~/.ssh/<name>` | 0600 | workstation hosts |
@@ -107,7 +107,7 @@ never receives the SSH or per-repo git-crypt keys.
 After the homelab key lands, unlock the repo once so its state decrypts:
 
 ```bash
-cd ~/git/homelab && git-crypt unlock ~/.config/git-crypt/homelab.key
+cd ~/git/iac && git-crypt unlock ~/.config/git-crypt/homelab.key
 ```
 
 To add another (an SSH key, or another repo's git-crypt key): upload the file as

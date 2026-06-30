@@ -42,7 +42,7 @@ ALLOWED_HOSTS=(qbert donkeykong srv clanker)
 # per-repo git-crypt keys are scoped to these, so the pure server never gets them.
 _WS="host:donkeykong,nixerator,qbert"
 MATERIALIZE=(
-  "homelab git-crypt key|${HOME}/.config/git-crypt/homelab.key|600|700|${HOME}/git/homelab"
+  "homelab git-crypt key|${HOME}/.config/git-crypt/homelab.key|600|700|${HOME}/git/iac"
 
   # SSH private keys (workstations only)
   "id_ed25519|${HOME}/.ssh/id_ed25519|600|700|${_WS}"
