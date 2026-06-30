@@ -9,6 +9,7 @@ two flavours of consumer:
 | Okular signature stamping | Document items `okular-signature` + `okular-initials` in the `nixerator` vault | `~/.kde/share/icons/{signature,initials}.png` (0644) |
 | gmailctl OAuth client | Login item `gmailctl` (`Client ID` + `Client Secret` fields) in the `nixerator` vault, rendered via `op inject` by `just fetch-gmailctl-creds` | `~/.gmailctl/credentials.json` (0600) |
 | homelab git-crypt key | Document item `homelab git-crypt key` in the `nixerator` vault, materialized by `render-secrets` when `~/git/homelab` is present (skipped if already on disk) | `~/.config/git-crypt/homelab.key` (0600) |
+| SSH + per-repo git-crypt keys | Document items in the `nixerator` vault, materialized by `render-secrets` on workstation hosts (skipped if already on disk) | `~/.ssh/*` (0600 private / 0644 public) |
 
 Neither cached file is in the repo, in the Nix store, or available to AI
 tooling scoped to the repo working directory (both paths are on Claude
@@ -78,8 +79,9 @@ list is the `MATERIALIZE` table at the top of
 
 For each entry, `render-secrets`:
 
-- skips it entirely if the entry's **guard** path is set and missing (so a host
-  without the consuming repo never pulls that file);
+- skips it entirely if the entry's **guard** fails. A guard is a path that must
+  exist (e.g. the consuming repo) or a `host:h1,h2` list of hostnames, so a file
+  only lands where it belongs;
 - **skips the fetch but fixes permissions** if the destination already exists
   (it never clobbers a key already on disk);
 - otherwise fetches the 1Password Document and writes it atomically with the
@@ -93,7 +95,14 @@ Current entries:
 
 | Document item | Restored to | Mode | Guard |
 |---------------|-------------|------|-------|
-| `homelab git-crypt key` | `~/.config/git-crypt/homelab.key` | 0600 | `~/git/homelab` |
+| `homelab git-crypt key` | `~/.config/git-crypt/homelab.key` | 0600 | `~/git/homelab` present |
+| `id_ed25519`, `id_ed25519_np`, `id_rsa` | `~/.ssh/<name>` | 0600 | workstation hosts |
+| `id_ed25519.pub`, `id_rsa.pub`, `id_rsa_np.pub` | `~/.ssh/<name>` | 0644 | workstation hosts |
+| `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | `~/.ssh/<name>` | 0600 | workstation hosts |
+
+"Workstation hosts" are those with `archetypes.workstation.enable = true`
+(donkeykong, nixerator, qbert), matched by the `host:` guard. The pure server
+never receives the SSH or per-repo git-crypt keys.
 
 After the homelab key lands, unlock the repo once so its state decrypts:
 
@@ -187,6 +196,8 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `okular-signature` | Document | `file` | `~/.kde/share/icons/signature.png` (via `just fetch-signatures`) |
 | `okular-initials` | Document | `file` | `~/.kde/share/icons/initials.png` (via `just fetch-signatures`) |
 | `homelab git-crypt key` | Document | `file` | `~/.config/git-crypt/homelab.key` (via `render-secrets`) |
+| `id_ed25519{,_np,.pub}`, `id_rsa{,.pub}`, `id_rsa_np.pub` | Document | `file` | `~/.ssh/<name>` on workstation hosts (via `render-secrets`) |
+| `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | Document | `file` | `~/.ssh/<name>` on workstation hosts (via `render-secrets`) |
 | `gmailctl` | Login | `Client ID` + `Client Secret` | `~/.gmailctl/credentials.json` (via `just fetch-gmailctl-creds`, which `op inject`s the two fields into a Desktop-app credentials.json template). Rendered straight to disk, **not** in `secrets.json` — keeps the client secret out of the Nix store. `gmailctl init` then writes `~/.gmailctl/token.json` locally. |
 
 Per-host network identity (Tailscale IPs, syncthing peer IDs) is NOT in 1P;
