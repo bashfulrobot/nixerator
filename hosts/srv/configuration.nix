@@ -61,9 +61,6 @@
     extraGroups = [
       "docker"
       "wheel"
-      "kvm"
-      "qemu-libvirtd"
-      "libvirtd"
       "networkmanager"
     ];
     shell = pkgs.${globals.preferences.shell};
