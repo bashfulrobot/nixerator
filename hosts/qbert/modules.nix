@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ globals, ... }:
 
 {
   apps.gui = {
@@ -15,11 +15,12 @@
   archetypes.claudeWorkHost.enable = true;
 
   apps.cli = {
-    # Docker is retired on qbert in favour of Incus (it runs system containers,
-    # OCI/application containers and QEMU VMs). The workstation archetype's
-    # infrastructure suite turns docker on, so force it off here. mkForce beats
-    # the suite's unprefixed `true`.
-    docker.enable = lib.mkForce false;
+    # Docker is intentionally left enabled on the workstations (via the
+    # workstation archetype's infrastructure suite) for ad-hoc container
+    # testing, running alongside Incus. The two were previously kept mutually
+    # exclusive out of caution; srv validated that docker + Incus + nftables
+    # coexist -- docker's published-port DNAT survives the nftables flip Incus
+    # forces on -- so the earlier `docker.enable = lib.mkForce false` is dropped.
 
     # Render Nix-eval secrets locally from 1Password (and push to headless
     # peers via `render-secrets --push`). Gated on 1Password being available.
@@ -83,9 +84,9 @@
     };
     # Virtualisation on qbert moved from libvirt/KVM to Incus. The old
     # server.kvm block (libvirtd + virt-manager + iptables NAT routing for
-    # virbr1-7 and proxy ARP on ens2) is retired here; srv and donkeykong keep
-    # server.kvm for now. Incus brings its own managed NAT bridge and supervises
-    # both system containers and QEMU VMs, so the manual routing is gone.
+    # virbr1-7 and proxy ARP on ens2) is retired here; donkeykong and srv are on
+    # Incus too now. Incus brings its own managed NAT bridge and supervises both
+    # system containers and QEMU VMs, so the manual routing is gone.
     incus = {
       enable = true;
       ui.enable = true;
@@ -95,6 +96,14 @@
       # spitfire, darkstar, darkstone). The default trustedBridgePrefix ("tbr-")
       # trusts them all in the firewall via one wildcard rule, so the Talos nodes
       # can complete DHCP. No per-cluster entry needed.
+      # Launcher for srv's Incus UI over Tailscale (qbert serves its own locally).
+      ui.remotes = [
+        {
+          name = "srv";
+          label = "Incus (srv)";
+          address = globals.hosts.srv.tailscale_ip;
+        }
+      ];
     };
   };
 }

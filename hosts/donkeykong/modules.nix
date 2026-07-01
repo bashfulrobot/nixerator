@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ globals, ... }:
 
 {
   apps.gui = {
@@ -9,10 +9,12 @@
   };
 
   apps.cli = {
-    # Docker is retired on donkeykong in favour of Incus, matching qbert. The
-    # workstation archetype's infrastructure suite turns docker on, so force it
-    # off here. mkForce beats the suite's unprefixed `true`.
-    docker.enable = lib.mkForce false;
+    # Docker is intentionally left enabled on the workstations (via the
+    # workstation archetype's infrastructure suite) for ad-hoc container
+    # testing, running alongside Incus, matching qbert. The two were previously
+    # kept mutually exclusive out of caution; srv validated that docker + Incus
+    # + nftables coexist -- docker's published-port DNAT survives the nftables
+    # flip Incus forces on -- so the earlier `mkForce false` is dropped.
 
     # Render Nix-eval secrets locally from 1Password (and push to headless
     # peers via `render-secrets --push`). Gated on 1Password being available.
@@ -71,14 +73,28 @@
   server = {
     # Virtualisation on donkeykong moved from libvirt/KVM to Incus, matching
     # qbert. The old server.kvm block (libvirtd + virt-manager + iptables NAT
-    # routing for virbr1-7 and proxy ARP on wlp0s0f3) is retired; srv keeps
-    # server.kvm for now. Incus brings its own managed NAT bridge and runs both
-    # system containers and QEMU VMs, so the manual routing is gone.
+    # routing for virbr1-7 and proxy ARP on wlp0s0f3) is retired; srv is on Incus
+    # too now. Incus brings its own managed NAT bridge and runs both system
+    # containers and QEMU VMs, so the manual routing is gone.
     incus = {
       enable = true;
       ui.enable = true;
       storage.driver = "btrfs";
       network.ipv4Address = "10.100.0.1/24";
+      # Launchers for the srv and qbert Incus UIs over Tailscale (donkeykong
+      # serves its own locally).
+      ui.remotes = [
+        {
+          name = "srv";
+          label = "Incus (srv)";
+          address = globals.hosts.srv.tailscale_ip;
+        }
+        {
+          name = "qbert";
+          label = "Incus (qbert)";
+          address = globals.hosts.qbert.tailscale_ip;
+        }
+      ];
     };
   };
 }
