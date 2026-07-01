@@ -1,6 +1,6 @@
 {
   "kong": {
-    "kongKonnectPAT": "{{ op://nixerator/kong-konnect-pat/credential }}"
+    "kongKonnectPAT": "{{ op://nixerator/kong-konnect-pat/lab-pat-2026-06 }}"
   },
   "aha": {
     "apiToken": "{{ op://nixerator/aha/credential }}"
