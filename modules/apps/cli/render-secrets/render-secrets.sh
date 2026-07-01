@@ -58,6 +58,11 @@ MATERIALIZE=(
   "nixcfg-git-crypt-key|${HOME}/.ssh/nixcfg-git-crypt-key|600|700|${_WS}"
   "nixerator-git-crypt-key|${HOME}/.ssh/nixerator-git-crypt-key|600|700|${_WS}"
   "talos-vms-git-crypt-key|${HOME}/.ssh/talos-vms-git-crypt-key|600|700|${_WS}"
+
+  # Incus browser client certificate (PKCS12 bundle — private key inside).
+  # Workstations only: needed for importing into a browser to authenticate
+  # against the Incus web UI. srv is headless and has no browser.
+  "incus-client.pfx|${HOME}/.config/incus/client.pfx|600|700|${_WS}"
 )
 
 usage() {
