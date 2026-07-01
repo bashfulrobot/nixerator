@@ -35,6 +35,26 @@
           # Allow unfree packages (e.g., Google Chrome)
           nixpkgs.config.allowUnfree = true;
 
+          # TEMPORARY insecure-package permit. pnpm 10.29.2 (pulled by
+          # apps.cli.pnpm in suites.dev on the workstations) is flagged by
+          # nixpkgs for CVE-2026-48995 / 50014 / 50015 / 50016 (plus 50017 /
+          # 50573 / 55699 in newer revs), so every workstation rebuild fails
+          # without this. srv/clanker never evaluate pnpm, so the entry is inert
+          # there. nixpkgs already ships secure pnpm_10 (10.34.4) and pnpm_11
+          # (11.9.0); the real fix is letting the default `pnpm` alias advance
+          # past 10.29.2 on the next `just qu` (flake update), then deleting this
+          # (or, sooner, pointing apps.cli.pnpm at pkgs.pnpm_11).
+          #
+          # REVISIT after any nixpkgs bump: remove this line and run
+          # `just build-host qbert` WITHOUT NIXPKGS_ALLOW_INSECURE. If it builds,
+          # the permit is stale and stays gone. The exact version string is
+          # deliberate: if pnpm bumps to another flagged version this stops
+          # matching and the build fails, forcing a fresh look instead of an
+          # ever-growing allowlist.
+          nixpkgs.config.permittedInsecurePackages = [
+            "pnpm-10.29.2"
+          ];
+
           # Apply custom package overlays
           nixpkgs.overlays = [
             # llm-agents packages (exposes pkgs.llm-agents.<name>)
