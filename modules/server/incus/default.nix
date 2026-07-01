@@ -7,6 +7,34 @@
 }:
 let
   cfg = config.server.incus;
+
+  # Build a desktop launcher that opens an Incus web UI at `url` via xdg-open.
+  # Shared by the local daemon (loopback) and any remote peers (over Tailscale)
+  # so both kinds of launcher stay identical apart from name/label/target.
+  mkIncusLauncher =
+    {
+      name,
+      desktopName,
+      comment,
+      url,
+    }:
+    pkgs.makeDesktopItem {
+      inherit name desktopName comment;
+      genericName = "Container and VM Manager";
+      exec = "${pkgs.xdg-utils}/bin/xdg-open ${url}";
+      icon = "incus";
+      categories = [
+        "System"
+        "Settings"
+      ];
+      keywords = [
+        "incus"
+        "container"
+        "vm"
+        "virtual"
+        "lxc"
+      ];
+    };
 in
 {
   options.server.incus = {
@@ -39,6 +67,41 @@ in
         type = lib.types.bool;
         default = true;
         description = "Install a desktop launcher that opens the web UI in the default browser. Turn off on headless hosts.";
+      };
+
+      remotes = lib.mkOption {
+        type = lib.types.listOf (
+          lib.types.submodule {
+            options = {
+              name = lib.mkOption {
+                type = lib.types.str;
+                description = "Short id used for the .desktop filename (incus-web-ui-<name>).";
+              };
+              label = lib.mkOption {
+                type = lib.types.str;
+                description = ''Launcher display name, e.g. "Incus (srv)".'';
+              };
+              address = lib.mkOption {
+                type = lib.types.str;
+                description = ''
+                  Host or IP serving the remote Incus UI, reached at
+                  https://<address>:<ui.port>. Use a Tailscale IP or MagicDNS name
+                  so the launcher resolves from anywhere on the tailnet.
+                '';
+              };
+            };
+          }
+        );
+        default = [ ];
+        example = lib.literalExpression ''
+          [ { name = "srv"; label = "Incus (srv)"; address = "100.64.187.14"; } ]
+        '';
+        description = ''
+          Desktop launchers for remote Incus web UIs (peer hosts over Tailscale).
+          Independent of ui.enable/desktopEntry, which govern only this host's own
+          launcher: a workstation can front peers' UIs without serving its own.
+          All remotes are assumed to listen on ui.port.
+        '';
       };
     };
 
@@ -219,31 +282,27 @@ in
       iifname "${cfg.trustedBridgePrefix}*" accept comment "trust Incus per-cluster bridges"
     '';
 
-    # Desktop launcher for the web UI. Opens the local daemon's UI (loopback
-    # always works on the host); browsing from another device uses the tailnet
-    # address instead. First open prompts for a client certificate: run
-    # `incus config trust add browser` and paste the token, a one-time per-client
-    # step that can't be baked into the image.
-    environment.systemPackages = lib.optional (cfg.ui.enable && cfg.ui.desktopEntry) (
-      pkgs.makeDesktopItem {
+    # Desktop launchers for the web UI. The local entry opens this host's daemon
+    # over loopback (always works on the host). Each ui.remotes entry adds a
+    # launcher for a peer's UI over Tailscale, so a workstation can reach srv's
+    # and qbert's UIs without leaving the desktop. First open of any UI prompts
+    # for a client certificate: run `incus config trust add browser` and paste
+    # the token, a one-time per-client step that can't be baked into the image.
+    environment.systemPackages =
+      lib.optional (cfg.ui.enable && cfg.ui.desktopEntry) (mkIncusLauncher {
         name = "incus-web-ui";
         desktopName = "Incus";
-        genericName = "Container and VM Manager";
         comment = "Manage Incus system containers and virtual machines";
-        exec = "${pkgs.xdg-utils}/bin/xdg-open https://localhost:${toString cfg.ui.port}";
-        icon = "incus";
-        categories = [
-          "System"
-          "Settings"
-        ];
-        keywords = [
-          "incus"
-          "container"
-          "vm"
-          "virtual"
-          "lxc"
-        ];
-      }
-    );
+        url = "https://localhost:${toString cfg.ui.port}";
+      })
+      ++ map (
+        r:
+        mkIncusLauncher {
+          name = "incus-web-ui-${r.name}";
+          desktopName = r.label;
+          comment = "Open the Incus web UI on ${r.name} (${r.address})";
+          url = "https://${r.address}:${toString cfg.ui.port}";
+        }
+      ) cfg.ui.remotes;
   };
 }
