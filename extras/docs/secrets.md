@@ -99,6 +99,7 @@ Current entries:
 | `id_ed25519`, `id_ed25519_np`, `id_rsa` | `~/.ssh/<name>` | 0600 | workstation hosts |
 | `id_ed25519.pub`, `id_rsa.pub`, `id_rsa_np.pub` | `~/.ssh/<name>` | 0644 | workstation hosts |
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | `~/.ssh/<name>` | 0600 | workstation hosts |
+| `incus-client.pfx` | `~/.config/incus/client.pfx` | 0600 | workstation hosts |
 
 "Workstation hosts" are those with `archetypes.workstation.enable = true`
 (donkeykong, nixerator, qbert), matched by the `host:` guard. The pure server
@@ -199,6 +200,8 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `id_ed25519{,_np,.pub}`, `id_rsa{,.pub}`, `id_rsa_np.pub` | Document | `file` | `~/.ssh/<name>` on workstation hosts (via `render-secrets`) |
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | Document | `file` | `~/.ssh/<name>` on workstation hosts (via `render-secrets`) |
 | `gmailctl` | Login | `Client ID` + `Client Secret` | `~/.gmailctl/credentials.json` (via `just fetch-gmailctl-creds`, which `op inject`s the two fields into a Desktop-app credentials.json template). Rendered straight to disk, **not** in `secrets.json` — keeps the client secret out of the Nix store. `gmailctl init` then writes `~/.gmailctl/token.json` locally. |
+| `incus-client-cert` | Secure Note | `certificate` | `secrets.incus.clientCert` — PEM text of the browser client certificate injected into the Incus preseed on all Incus hosts so the same browser cert is trusted across qbert, srv, etc. Public key only; private key never enters the Nix store. |
+| `incus-client.pfx` | Document | `file` | `~/.config/incus/client.pfx` on workstations (via `render-secrets` MATERIALIZE). PKCS12 bundle containing both certificate and private key; import into a browser to authenticate against any Incus web UI. Workstations only — srv is headless. |
 
 Per-host network identity (Tailscale IPs, syncthing peer IDs) is NOT in 1P;
 those values live in `settings/globals.nix` under

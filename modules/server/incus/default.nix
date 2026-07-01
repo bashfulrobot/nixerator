@@ -3,6 +3,7 @@
   pkgs,
   config,
   lib,
+  secrets,
   ...
 }:
 let
@@ -213,6 +214,20 @@ in
           "core.https_address" = ":${toString cfg.ui.port}";
         };
 
+        # Browser client certificate trusted for the web UI and API. The PEM
+        # content comes from 1Password (nixerator/incus-client-cert/certificate)
+        # via secrets.json so the private key never touches the Nix store —
+        # only the public certificate reaches the preseed. The matching PFX
+        # (private key included) is materialized to ~/.config/incus/client.pfx
+        # on workstations by render-secrets for browser import.
+        # Gated on the secret being present so hosts without secrets.json
+        # (e.g. a bootstrap NixOS live USB) still evaluate cleanly.
+        certificates = lib.optional ((secrets.incus.clientCert or null) != null) {
+          name = "browser";
+          type = "client";
+          certificate = secrets.incus.clientCert;
+        };
+
         storage_pools = [
           {
             name = "default";
@@ -285,9 +300,9 @@ in
     # Desktop launchers for the web UI. The local entry opens this host's daemon
     # over loopback (always works on the host). Each ui.remotes entry adds a
     # launcher for a peer's UI over Tailscale, so a workstation can reach srv's
-    # and qbert's UIs without leaving the desktop. First open of any UI prompts
-    # for a client certificate: run `incus config trust add browser` and paste
-    # the token, a one-time per-client step that can't be baked into the image.
+    # and qbert's UIs without leaving the desktop. The browser client certificate
+    # is declared in the preseed above; import ~/.config/incus/client.pfx into
+    # the browser once (render-secrets materializes it from 1Password).
     environment.systemPackages =
       lib.optional (cfg.ui.enable && cfg.ui.desktopEntry) (mkIncusLauncher {
         name = "incus-web-ui";
