@@ -60,14 +60,28 @@ MATERIALIZE=(
   "talos-vms-git-crypt-key|${HOME}/.ssh/talos-vms-git-crypt-key|600|700|${_WS}"
 
   # Incus browser client certificate — public CRT, all Incus hosts.
-  # read by the Nix module via builtins.readFile at eval time to populate
-  # the preseed trust store. 644 because it is a public key.
+  # Read by the Nix module via builtins.readFile at eval time to populate
+  # the preseed trust store. 644 because it is a public key. Also listed
+  # in PUSH_ALONGSIDE so --push propagates it alongside secrets.json.
   "incus-client.crt|${HOME}/.config/incus/client.crt|644|700|"
 
   # Incus browser client certificate (PKCS12 bundle — private key inside).
   # Workstations only: needed for importing into a browser to authenticate
   # against the Incus web UI. srv is headless and has no browser.
   "incus-client.pfx|${HOME}/.config/incus/client.pfx|600|700|${_WS}"
+)
+
+# Files pushed alongside secrets.json when --push is used. Format per entry:
+#   "<local src path>|<remote file mode>"
+# Covers files needed at remote Nix eval time that MATERIALIZE only places
+# locally. Each file is pushed only if it exists on the source host; missing
+# files are silently skipped (bootstrap-safe). Atomic: staged as .tmp then
+# mv'd, so a partial transfer never clobbers the live remote file.
+PUSH_ALONGSIDE=(
+  # Incus browser client CRT: needed on every Incus host at nix eval time
+  # so builtins.readFile in the incus module can populate the preseed trust
+  # store. MATERIALIZE places it locally; PUSH_ALONGSIDE carries it to peers.
+  "${HOME}/.config/incus/client.crt|644"
 )
 
 usage() {
@@ -83,7 +97,8 @@ Usage: render-secrets [--check] [--tpl PATH] [--push HOST [HOST...]]
                    arbitrary 1Password vault fields. Use this only when
                    intentionally editing the template in a worktree.
   --push HOST...   After rendering, scp the rendered file to each HOST at the
-                   same path with 600 perms. HOST must be one of: ${ALLOWED_HOSTS[*]}.
+                   same path with 600 perms, then push any PUSH_ALONGSIDE files
+                   that exist locally. HOST must be one of: ${ALLOWED_HOSTS[*]}.
 
 Notes:
   --push requires at least one non-flag HOST immediately after it.
@@ -342,6 +357,30 @@ if [[ ${#PUSH[@]} -gt 0 ]]; then
     fi
     if [[ $rc -eq 0 ]]; then
       echo "render-secrets: pushed to ${host}:${DEST}"
+      # Push any PUSH_ALONGSIDE files that exist locally. Failures are
+      # tracked in failed_hosts but don't abort the remaining hosts.
+      for _pa in "${PUSH_ALONGSIDE[@]}"; do
+        IFS='|' read -r _pa_src _pa_mode <<<"${_pa}"
+        [[ -f "${_pa_src}" ]] || continue
+        _pa_dir="$(dirname "${_pa_src}")"
+        _pa_rc=0
+        ssh -o BatchMode=yes -o ConnectTimeout=5 -- "${host}" \
+          "mkdir -p '${_pa_dir}'" || _pa_rc=$?
+        if [[ $_pa_rc -eq 0 ]]; then
+          scp -q -o BatchMode=yes -o ConnectTimeout=5 -- \
+            "${_pa_src}" "${host}:${_pa_src}.tmp" || _pa_rc=$?
+        fi
+        if [[ $_pa_rc -eq 0 ]]; then
+          ssh -o BatchMode=yes -o ConnectTimeout=5 -- "${host}" \
+            "chmod ${_pa_mode} '${_pa_src}.tmp' && mv -f '${_pa_src}.tmp' '${_pa_src}'" || _pa_rc=$?
+        fi
+        if [[ $_pa_rc -eq 0 ]]; then
+          echo "render-secrets: pushed $(basename "${_pa_src}") to ${host}"
+        else
+          failed_hosts+=("${host}:$(basename "${_pa_src}")")
+          echo "render-secrets: FAILED push of $(basename "${_pa_src}") to ${host} (exit ${_pa_rc})" >&2
+        fi
+      done
     else
       failed_hosts+=("${host}")
       echo "render-secrets: FAILED push to ${host} (exit ${rc})" >&2

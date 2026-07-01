@@ -87,11 +87,13 @@ For each entry, `render-secrets`:
 - otherwise fetches the 1Password Document and writes it atomically with the
   declared mode.
 
-These files are host-local and are **not** copied by `--push` (that moves only
-`secrets.json`). They are restored on a plain `just render-secrets`, so a fresh
-host gets them as part of the normal secrets step.
+These files are host-local. Most are **not** copied by `--push`; they are
+restored on a plain `just render-secrets`, so a fresh host gets them as part
+of the normal secrets step. Files in the `PUSH_ALONGSIDE` table (below) are
+the exception — they are also pushed alongside `secrets.json` so remote hosts
+have them at Nix eval time without a manual `scp`.
 
-Current entries:
+Current MATERIALIZE entries:
 
 | Document item | Restored to | Mode | Guard |
 |---------------|-------------|------|-------|
@@ -101,6 +103,12 @@ Current entries:
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | `~/.ssh/<name>` | 0600 | workstation hosts |
 | `incus-client.crt` | `~/.config/incus/client.crt` | 0644 | all hosts |
 | `incus-client.pfx` | `~/.config/incus/client.pfx` | 0600 | workstation hosts |
+
+Current PUSH_ALONGSIDE entries (also pushed to remotes by `--push`):
+
+| Local path | Remote mode | Why |
+|------------|-------------|-----|
+| `~/.config/incus/client.crt` | 0644 | Needed at Nix eval time on every Incus host so `builtins.readFile` in the incus module can populate the preseed trust store |
 
 "Workstation hosts" are those with `archetypes.workstation.enable = true`
 (donkeykong, nixerator, qbert), matched by the `host:` guard. The pure server
