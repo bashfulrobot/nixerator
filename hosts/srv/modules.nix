@@ -32,7 +32,7 @@
     # the `nixerator/cloudflare-ddns` 1Password item; enabled below under
     # `server.cloudflareDdns`.
     ../../modules/server/cloudflare-ddns
-    ../../modules/server/kvm
+    ../../modules/server/incus
     ../../modules/server/netboot-xyz
     ../../modules/server/nfs
     ../../modules/server/noclaw
@@ -104,8 +104,15 @@
   server = {
     # Always-on Claude Code Remote Control session ("noclaw"), contained in a
     # systemd-nspawn container. Moved here from qbert.
+    #
+    # TEMPORARILY DISABLED for the Incus migration. Incus forces the host
+    # firewall onto nftables, and noclaw's masquerade + egress-lockdown rules go
+    # in via networking.firewall.extraCommands, which the nftables firewall
+    # rejects at build time. noclaw is development-only on srv and not actively
+    # used, so it is off during the cutover and gets re-ported to nftables-native
+    # (networking.nat + dnsmasq nftset + extraForwardRules) as a fast-follow.
     noclaw = {
-      enable = true;
+      enable = false;
       # srv routes to the internet via enp3s0 (default gateway lives there);
       # masquerade the container subnet out that interface.
       wanInterface = "enp3s0";
@@ -132,26 +139,41 @@
       ip6Provider = "none";
     };
 
-    kvm = {
+    # Virtualisation on srv moved from libvirt/KVM to Incus (matching qbert and
+    # donkeykong's direction). srv had zero VM domains defined, so there was
+    # nothing to migrate; the old server.kvm block (libvirtd + virt-manager +
+    # iptables NAT routing for virbr1-7 and proxy ARP on ens2) is retired. Incus
+    # brings its own managed NAT bridge and supervises both system containers and
+    # QEMU VMs, so the manual routing is gone. Incus also switches the host
+    # firewall to nftables (see modules/server/incus/default.nix).
+    incus = {
       enable = true;
-      routing = {
-        enable = true;
-        externalInterface = "enp3s0";
-        internalInterfaces = [
-          "virbr1"
-          "virbr2"
-          "virbr3"
-          "virbr4"
-          "virbr5"
-          "virbr6"
-          "virbr7"
-        ];
-        proxyArpInterfaces = [ "ens2" ];
-      };
+      ui.enable = true;
+      # srv is headless: no desktop launcher (the default suits workstations).
+      ui.desktopEntry = false;
+      storage.driver = "btrfs";
+      # Loop-backed pool image on the nvme root. The 3.6T data-disk is a slow USB
+      # disk, so it is deliberately NOT used for VM/container storage.
+      storage.size = "100GiB";
+      # Clear of the LAN (192.168.168.0/23), the docker bridge (172.17+), and the
+      # retired libvirt ranges, so the managed bridge coexists with everything
+      # docker is still running.
+      network.ipv4Address = "10.100.0.1/24";
+      # terraform-talos names each cluster bridge tbr-<cluster>; the default
+      # prefix trusts them all via one wildcard firewall rule, so a future prod
+      # cluster on srv needs no change here.
+      trustedBridgePrefix = "tbr-";
     };
 
+    # TEMPORARILY DISABLED for the Incus migration. blockBridges installs its
+    # PREROUTING RETURN rules via networking.firewall.extraCommands, which the
+    # nftables firewall (forced on by Incus) rejects at build time. netboot.xyz
+    # is development-only on srv and not actively used, so it is off during the
+    # cutover and gets re-ported to a native nft prerouting rule (repointed at
+    # incusbr0 / tbr-*) as a fast-follow. Options below are retained inert so
+    # re-enabling is a one-line flip.
     netbootXyz = {
-      enable = true;
+      enable = false;
       # NB: pairs with `virtualisation.docker.daemon.settings.userland-proxy
       # = false` below. Without that, docker-proxy opens a real userspace
       # listener on `192.168.168.1:3000` that bypasses the PREROUTING RETURN
@@ -204,14 +226,19 @@
 
   };
 
-  # Disable docker-proxy on srv: Docker's userspace fallback for published
-  # ports would otherwise open a real listening socket on the published host
-  # IPs (e.g. 192.168.168.1:3000), which a cross-interface guest packet
-  # delivered to INPUT would still hit -- bypassing the nat/PREROUTING
-  # RETURN rules installed by server.netbootXyz.blockBridges. With this
-  # flag off Docker uses iptables NAT exclusively, so the RETURN rule is
-  # actually load-bearing. Scoped to srv because workstations rely on
-  # docker-proxy for localhost-to-published-port patterns in dev.
+  # Disable docker-proxy on srv: with docker-proxy off, Docker publishes ports
+  # through iptables NAT exclusively instead of opening a real userspace
+  # listening socket on the published host IPs (e.g. 192.168.168.1:3000). This
+  # was originally load-bearing for server.netbootXyz.blockBridges: the userspace
+  # listener would otherwise bypass the nat/PREROUTING RETURN rules that keep a
+  # cross-interface guest packet from reaching the netboot admin UI.
+  #
+  # netbootXyz is TEMPORARILY DISABLED for the Incus migration, so blockBridges
+  # is not currently installing those rules. This flag stays off regardless: it
+  # is srv's current running behaviour (no dataplane change at cutover), it is
+  # benign on its own (NAT-only publishing), and it becomes load-bearing again
+  # the moment netbootXyz is re-ported and re-enabled. Scoped to srv because
+  # workstations rely on docker-proxy for localhost-to-published-port dev flows.
   virtualisation.docker.daemon.settings.userland-proxy = false;
 
   apps.cli.restic = {
