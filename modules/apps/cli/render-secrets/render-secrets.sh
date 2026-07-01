@@ -59,6 +59,11 @@ MATERIALIZE=(
   "nixerator-git-crypt-key|${HOME}/.ssh/nixerator-git-crypt-key|600|700|${_WS}"
   "talos-vms-git-crypt-key|${HOME}/.ssh/talos-vms-git-crypt-key|600|700|${_WS}"
 
+  # Incus browser client certificate — public CRT, all Incus hosts.
+  # read by the Nix module via builtins.readFile at eval time to populate
+  # the preseed trust store. 644 because it is a public key.
+  "incus-client.crt|${HOME}/.config/incus/client.crt|644|700|"
+
   # Incus browser client certificate (PKCS12 bundle — private key inside).
   # Workstations only: needed for importing into a browser to authenticate
   # against the Incus web UI. srv is headless and has no browser.
