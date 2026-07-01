@@ -65,8 +65,5 @@
   },
   "noclaw": {
     "opToken": "{{ op://nixerator/noclaw-op-token/credential }}"
-  },
-  "incus": {
-    "clientCert": "{{ op://nixerator/incus-client-cert/certificate }}"
   }
 }

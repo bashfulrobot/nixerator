@@ -3,11 +3,18 @@
   pkgs,
   config,
   lib,
-  secrets,
   ...
 }:
 let
   cfg = config.server.incus;
+  # Path where render-secrets materializes the browser client certificate from
+  # the `incus-client.crt` 1Password Document. Read at Nix eval time so the
+  # cert lands in the preseed without going through secrets.json (which can't
+  # embed multi-line PEM values). Absent before first render-secrets run →
+  # certificates list is empty and no trust entry is added.
+  _clientCertPath = "${globals.user.homeDirectory}/.config/incus/client.crt";
+  _clientCert =
+    if builtins.pathExists _clientCertPath then builtins.readFile _clientCertPath else null;
 
   # Build a desktop launcher that opens an Incus web UI at `url` via xdg-open.
   # Shared by the local daemon (loopback) and any remote peers (over Tailscale)
@@ -214,18 +221,14 @@ in
           "core.https_address" = ":${toString cfg.ui.port}";
         };
 
-        # Browser client certificate trusted for the web UI and API. The PEM
-        # content comes from 1Password (nixerator/incus-client-cert/certificate)
-        # via secrets.json so the private key never touches the Nix store —
-        # only the public certificate reaches the preseed. The matching PFX
-        # (private key included) is materialized to ~/.config/incus/client.pfx
-        # on workstations by render-secrets for browser import.
-        # Gated on the secret being present so hosts without secrets.json
-        # (e.g. a bootstrap NixOS live USB) still evaluate cleanly.
-        certificates = lib.optional ((secrets.incus.clientCert or null) != null) {
+        # Browser client certificate trusted for the web UI and API. Read
+        # directly from the path where render-secrets materializes it; absent
+        # before the first render-secrets run so the list is empty and no
+        # trust entry is added (safe for bootstrap).
+        certificates = lib.optional (_clientCert != null) {
           name = "browser";
           type = "client";
-          certificate = secrets.incus.clientCert;
+          certificate = _clientCert;
         };
 
         storage_pools = [
