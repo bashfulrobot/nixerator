@@ -428,7 +428,7 @@
   "muxSessionFilter": "",
   "muxType": "tmux",
   "muxUseCustomCommand": false,
-  "networkPreference": "auto",
+  "networkPreference": "wifi",
   "nightModeEnabled": false,
   "niriLayoutBorderSize": -1,
   "niriLayoutGapsOverride": -1,
