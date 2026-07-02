@@ -12,6 +12,7 @@
 let
   cfg = config.apps.cli.claude-code;
   kubernetesMcpServer = pkgs.callPackage ./build { inherit versions; };
+  isoTopologyPkg = pkgs.callPackage ../iso-topology/build { inherit versions; };
   homeDir = globals.user.homeDirectory;
   kubeconfigFile = "${homeDir}/.kube/mcp-viewer.kubeconfig";
 
@@ -22,6 +23,7 @@ let
       pkgs
       secrets
       kubernetesMcpServer
+      isoTopologyPkg
       kubeconfigFile
       ;
     inherit (cfg) serverProfile;

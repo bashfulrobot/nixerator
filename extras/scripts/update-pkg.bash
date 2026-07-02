@@ -170,6 +170,13 @@ update_github_release() {
         update_hash "$name" ""
         warn "$name: version updated to $latest, hash cleared -- rebuild to get correct hash"
     fi
+
+    # Check if package uses vendorHash (Go modules)
+    local vendor_hash
+    vendor_hash=$(echo "$pkg_json" | jq -r '.vendorHash // empty' 2>/dev/null) || true
+    if [[ -n "$vendor_hash" ]]; then
+        warn "$name: has vendorHash -- also set vendorHash = \"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\" in versions.nix, then rebuild twice (source hash first, vendor hash second)"
+    fi
 }
 
 update_npm() {

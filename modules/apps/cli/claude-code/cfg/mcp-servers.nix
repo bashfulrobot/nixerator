@@ -3,6 +3,7 @@
   pkgs,
   secrets,
   kubernetesMcpServer,
+  isoTopologyPkg,
   kubeconfigFile,
   serverProfile,
 }:
@@ -65,6 +66,34 @@ let
     };
   }
   // lib.optionalAttrs (serverProfile == "full") {
+    # iso-topology MCP server -- generate isometric 2.5D architecture diagrams
+    # from a text DSL. Exposes capabilities, validate, evaluate, render, and
+    # preview tools so agents can discover the DSL and produce design-grade SVGs
+    # without any external service call. Workstation-only: headless hosts have
+    # no use for SVG generation.
+    #
+    # Sandboxed with bubblewrap: read-only filesystem view (icon: DSL can read
+    # local images but cannot write), network namespace isolated (no exfiltration
+    # path even if the read path is exploited). The output_dir write path is
+    # intentionally disabled in the sandbox; SVG content is returned inline in
+    # MCP responses instead.
+    iso-topology = {
+      command = "${pkgs.bubblewrap}/bin/bwrap";
+      args = [
+        "--ro-bind"
+        "/"
+        "/"
+        "--dev"
+        "/dev"
+        "--proc"
+        "/proc"
+        "--tmpfs"
+        "/tmp"
+        "--unshare-net"
+        "--"
+        "${isoTopologyPkg}/bin/isotopo-mcp"
+      ];
+    };
     # kubernetes-mcp-server requires a host-local kubeconfig at ${kubeconfigFile};
     # omitted on minimal-profile hosts (e.g. headless servers) where no
     # cluster access is wired.
