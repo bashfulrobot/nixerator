@@ -249,42 +249,40 @@ in
 
   config = lib.mkIf cfg.enable {
     # System packages for MCP tooling and LSP servers
-    environment.systemPackages = [
-      isoTopologyPkg # isotopo CLI + isotopo-mcp server
-    ]
-    ++ (with pkgs; [
-      (writeScriptBin "mcp-pick" mcpPick)
-      llm-agents.claude-plugins # Plugin & skills manager
-      fzf
-      jq
-      rsync # used by claude-capture + activation to mirror skills
+    environment.systemPackages =
+      (with pkgs; [
+        (writeScriptBin "mcp-pick" mcpPick)
+        llm-agents.claude-plugins # Plugin & skills manager
+        fzf
+        jq
+        rsync # used by claude-capture + activation to mirror skills
 
-      # Language servers for Claude Code LSP integration
-      bash-language-server
-      dart
-      gopls
-      lua-language-server
-      pyright
-      rust-analyzer
-      terraform-ls
-      vtsls
-      yaml-language-server
-    ])
-    ++ lib.optionals (cfg.serverProfile == "full") [
-      # k8s-mcp-setup is the operator script that wires kubernetes-mcp-server
-      # against a host-local kubeconfig. Pointless on minimal-profile hosts
-      # where the kubernetes MCP server itself is gated out.
-      (pkgs.writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
-    ]
-    ++ lib.optionals hasHyperframes [
-      # Hyperframes plugin invokes `npx hyperframes` which spawns ffmpeg
-      # for rendering and a Chromium-family browser via puppeteer for HTML
-      # capture. The browser binary itself is whatever the user nominates
-      # via `globals.preferences.browser` (provisioned by suites.browsers
-      # or equivalent) -- not added here. Puppeteer is pointed at it via
-      # PUPPETEER_EXECUTABLE_PATH below.
-      pkgs.ffmpeg-full
-    ];
+        # Language servers for Claude Code LSP integration
+        bash-language-server
+        dart
+        gopls
+        lua-language-server
+        pyright
+        rust-analyzer
+        terraform-ls
+        vtsls
+        yaml-language-server
+      ])
+      ++ lib.optionals (cfg.serverProfile == "full") [
+        # k8s-mcp-setup is the operator script that wires kubernetes-mcp-server
+        # against a host-local kubeconfig. Pointless on minimal-profile hosts
+        # where the kubernetes MCP server itself is gated out.
+        (pkgs.writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
+      ]
+      ++ lib.optionals hasHyperframes [
+        # Hyperframes plugin invokes `npx hyperframes` which spawns ffmpeg
+        # for rendering and a Chromium-family browser via puppeteer for HTML
+        # capture. The browser binary itself is whatever the user nominates
+        # via `globals.preferences.browser` (provisioned by suites.browsers
+        # or equivalent) -- not added here. Puppeteer is pointed at it via
+        # PUPPETEER_EXECUTABLE_PATH below.
+        pkgs.ffmpeg-full
+      ];
 
     # Gemini API key for generate-images / visual-explainer skills.
     # Puppeteer env vars only applied when the hyperframes plugin is enabled --

@@ -64,15 +64,16 @@ let
       type = "http";
       url = "https://gitmcp.io/docs";
     };
+  }
+  // lib.optionalAttrs (serverProfile == "full") {
     # iso-topology MCP server -- generate isometric 2.5D architecture diagrams
     # from a text DSL. Exposes capabilities, validate, evaluate, render, and
     # preview tools so agents can discover the DSL and produce design-grade SVGs
-    # without any external service call.
+    # without any external service call. Workstation-only: headless hosts have
+    # no use for SVG generation.
     iso-topology = {
       command = "${isoTopologyPkg}/bin/isotopo-mcp";
     };
-  }
-  // lib.optionalAttrs (serverProfile == "full") {
     # kubernetes-mcp-server requires a host-local kubeconfig at ${kubeconfigFile};
     # omitted on minimal-profile hosts (e.g. headless servers) where no
     # cluster access is wired.

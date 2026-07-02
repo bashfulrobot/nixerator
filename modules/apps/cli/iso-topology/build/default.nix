@@ -33,13 +33,12 @@ buildGoModule rec {
     "-w"
   ];
 
-  doCheck = false;
+  doCheck = false; # upstream test suite requires network access
 
   meta = with lib; {
     description = "Isometric 2.5D architecture diagrams from a text DSL, with an MCP server for agent use";
     homepage = "https://github.com/MarkovWangRR/iso-topology";
     license = licenses.asl20;
-    maintainers = [ ];
     mainProgram = "isotopo";
   };
 }
