@@ -5,7 +5,9 @@
   "acProfileName": "",
   "acSuspendBehavior": 0,
   "acSuspendTimeout": 600,
-  "activeDisplayProfile": {},
+  "activeDisplayProfile": {
+    "hyprland": "auto_5af6115"
+  },
   "animationSpeed": 1,
   "animationVariant": 0,
   "appDrawerSectionViewModes": {},
