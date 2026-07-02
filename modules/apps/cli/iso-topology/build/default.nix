@@ -33,7 +33,7 @@ buildGoModule rec {
     "-w"
   ];
 
-  doCheck = false; # upstream test suite requires network access
+  doCheck = false; # d2 rendering dependency fetches fonts/assets; tests fail in sandbox
 
   meta = with lib; {
     description = "Isometric 2.5D architecture diagrams from a text DSL, with an MCP server for agent use";
