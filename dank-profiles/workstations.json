@@ -61,8 +61,7 @@
       "fontScale": 1.15,
       "id": "default",
       "leftWidgets": [
-        "workspaceSwitcher",
-        "focusedWindow"
+        "workspaceSwitcher"
       ],
       "name": "Main Bar",
       "noBackground": true,
@@ -533,7 +532,7 @@
   "showSystemTray": true,
   "showWeather": true,
   "showWeekNumber": false,
-  "showWorkspaceApps": false,
+  "showWorkspaceApps": true,
   "showWorkspaceIndex": true,
   "showWorkspaceName": false,
   "showWorkspacePadding": false,
