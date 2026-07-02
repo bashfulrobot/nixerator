@@ -142,7 +142,7 @@
 
     "iso-topology" = {
       source = "github-release";
-      repo = "MarkovWangRR/iso-topology";
+      repo = "bashfulrobot/iso-topology"; # fork of MarkovWangRR/iso-topology; audited at v0.15.0
       version = "0.15.0";
       tagPrefix = "v";
       hash = "sha256-nOn144kK6iFvuDOzTGhaX5p5YRHTO2NWFD6xRk1UDW0=";
