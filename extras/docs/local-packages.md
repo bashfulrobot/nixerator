@@ -6,6 +6,7 @@ Package derivations live next to the modules that consume them:
 - `modules/apps/cli/claude-code/build/default.nix` (kubernetes-mcp-server)
 - `modules/apps/cli/claude-code/build/gsd/default.nix`
 - `modules/apps/cli/cpx/build/default.nix`
+- `modules/apps/cli/iso-topology/build/default.nix`
 - `modules/apps/cli/lswt/build/default.nix`
 - `modules/apps/cli/meetsum/build/default.nix`
 - `modules/apps/cli/restic/build/lazyrestic.nix`
@@ -73,3 +74,75 @@ just setup::update-pkg --all       # update all release-tracked packages
 just setup::update-pkg --all --include-commits   # also update commit-pinned packages
 just qr                            # rebuild to verify
 ```
+
+### Go modules (two-rebuild cycle)
+
+When `update-pkg` bumps a Go package that has `vendorHash` in `versions.nix`, the source hash and the vendor hash must be refreshed separately. The script warns you, but will not clear `vendorHash` automatically.
+
+After running `update-pkg <name>`:
+
+1. In `settings/versions.nix`, set `vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";` for the package.
+2. `just qr` -- fails with the correct source hash. Copy it into `hash`.
+3. `just qr` -- fails with the correct vendor hash. Copy it into `vendorHash`.
+4. `just qr` -- passes.
+
+## Forked Packages
+
+Some packages are pinned through a personal fork rather than the upstream repo. The fork is used when the upstream author is unverified or the supply-chain risk warrants an audit gate before pulling in changes.
+
+Current forked packages:
+
+| Package | Fork | Upstream | Audited at |
+|---------|------|----------|------------|
+| iso-topology | `bashfulrobot/iso-topology` | `MarkovWangRR/iso-topology` | v0.15.0 |
+
+### Why fork instead of pointing directly at upstream
+
+A fork gives a fixed, auditable point in the graph. The `repo` field in `versions.nix` points to the fork, so `check-updates` and `update-pkg` operate against controlled releases on that fork. Nothing changes unless you explicitly pull from upstream and tag the fork.
+
+### Security-sensitive files for iso-topology
+
+Before accepting any upstream release, diff these three files between the old and new version:
+
+- `icons.go` -- contains `inlineLocalIcon`, which reads arbitrary image files from the filesystem via the `icon:` DSL field. Watch for new read paths or any exec calls.
+- `cmd/isotopo-mcp/main.go` -- the MCP server entry point. Watch for new tools, new shell exec calls, or changes to the `output_dir` parameter (which controls write targets).
+- `go.mod` -- tracks all transitive dependencies. Watch for new modules that weren't there before.
+
+If any of these change in a way that expands attack surface, read the full diff before proceeding.
+
+### Updating a forked package
+
+```bash
+# 1. Check whether upstream has a new release
+gh release list -R MarkovWangRR/iso-topology --limit 5
+
+# 2. Review the diff on the three sensitive files between old and new version
+#    (substitute OLD and NEW version tags)
+gh api repos/MarkovWangRR/iso-topology/compare/vOLD...vNEW \
+  --jq '.files[] | select(.filename | test("icons.go|cmd/isotopo-mcp/main.go|go.mod")) | .filename'
+
+# 2a. Run govulncheck against the new source tree to catch CVEs in transitive deps
+#     (requires govulncheck: nix shell nixpkgs#govulncheck)
+cd /tmp && gh repo clone MarkovWangRR/iso-topology iso-topology-audit -- --branch vNEW --depth 1
+cd iso-topology-audit && govulncheck ./...
+cd /tmp && rm -rf iso-topology-audit
+
+# 3. If the diff is acceptable, sync the fork's default branch
+gh repo sync bashfulrobot/iso-topology
+
+# 4. Create a matching release on the fork (this creates the tag the update
+#    scripts look for)
+gh release create vNEW \
+  --repo bashfulrobot/iso-topology \
+  --title "vNEW" \
+  --notes "Synced from upstream MarkovWangRR/iso-topology vNEW. Audited: icons.go, cmd/isotopo-mcp/main.go, go.mod."
+
+# 5. In settings/versions.nix set vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+#    then run the standard update workflow
+just setup::update-pkg iso-topology   # bumps version, clears source hash
+just qr                                # get correct source hash, update versions.nix
+just qr                                # get correct vendor hash, update versions.nix
+just qr                                # passes
+```
+
+After the rebuild passes, update the `# fork of ...; audited at vNEW` comments in both `settings/versions.nix` and `modules/apps/cli/iso-topology/build/default.nix`.
