@@ -121,6 +121,12 @@ gh release list -R MarkovWangRR/iso-topology --limit 5
 gh api repos/MarkovWangRR/iso-topology/compare/vOLD...vNEW \
   --jq '.files[] | select(.filename | test("icons.go|cmd/isotopo-mcp/main.go|go.mod")) | .filename'
 
+# 2a. Run govulncheck against the new source tree to catch CVEs in transitive deps
+#     (requires govulncheck: nix shell nixpkgs#govulncheck)
+cd /tmp && gh repo clone MarkovWangRR/iso-topology iso-topology-audit -- --branch vNEW --depth 1
+cd iso-topology-audit && govulncheck ./...
+cd /tmp && rm -rf iso-topology-audit
+
 # 3. If the diff is acceptable, sync the fork's default branch
 gh repo sync bashfulrobot/iso-topology
 
