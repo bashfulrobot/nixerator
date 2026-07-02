@@ -278,12 +278,10 @@ in
     # by the upstream module; this just enrolls the primary user.
     users.users."${globals.user.name}".extraGroups = [ "incus-admin" ];
 
-    # Expose the UI/API port on the tailnet interface only. The daemon binds all
-    # interfaces (core.https_address above), so this firewall rule is what keeps
-    # it off the LAN/Wi-Fi while leaving it reachable over Tailscale and loopback.
-    networking.firewall.interfaces.${cfg.ui.tailscaleInterface}.allowedTCPPorts =
-      lib.mkIf cfg.ui.enable
-        [ cfg.ui.port ];
+    # Open the Incus API/UI port on all interfaces. The daemon already binds
+    # all interfaces (core.https_address above), so this makes it reachable
+    # on LAN, Tailscale, and loopback without per-host firewall overrides.
+    networking.firewall.allowedTCPPorts = lib.mkIf cfg.ui.enable [ cfg.ui.port ];
 
     # Trust the Incus NAT bridges so instances can reach the host's dnsmasq for
     # DHCP/DNS. Without this the nixos-fw input chain (policy drop) silently eats
