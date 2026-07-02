@@ -140,6 +140,15 @@
       hash = "sha256-ZFSUnZlp+BGIfJGs8V/K2YSmBtJrvmjplmRhxlC0o7g=";
     };
 
+    "iso-topology" = {
+      source = "github-release";
+      repo = "MarkovWangRR/iso-topology";
+      version = "0.15.0";
+      tagPrefix = "v";
+      hash = "sha256-nOn144kK6iFvuDOzTGhaX5p5YRHTO2NWFD6xRk1UDW0=";
+      vendorHash = "sha256-V/8PjfqwofxIXY89reSu3sY3UAMOxApzYCwqCwYMxh8=";
+    };
+
     graymatter = {
       source = "github-release";
       repo = "angelnicolasc/graymatter";

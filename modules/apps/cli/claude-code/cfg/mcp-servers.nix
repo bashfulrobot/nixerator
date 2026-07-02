@@ -3,6 +3,7 @@
   pkgs,
   secrets,
   kubernetesMcpServer,
+  isoTopologyPkg,
   kubeconfigFile,
   serverProfile,
 }:
@@ -62,6 +63,13 @@ let
     gitmcp = {
       type = "http";
       url = "https://gitmcp.io/docs";
+    };
+    # iso-topology MCP server -- generate isometric 2.5D architecture diagrams
+    # from a text DSL. Exposes capabilities, validate, evaluate, render, and
+    # preview tools so agents can discover the DSL and produce design-grade SVGs
+    # without any external service call.
+    iso-topology = {
+      command = "${isoTopologyPkg}/bin/isotopo-mcp";
     };
   }
   // lib.optionalAttrs (serverProfile == "full") {
