@@ -333,6 +333,33 @@ for _m in "${MATERIALIZE[@]}"; do
   materialize_one "${_t}" "${_d}" "${_fm}" "${_dm}" "${_g}" ||
     materialize_failed+=("${_d}")
 done
+
+# Fallback: if incus client.crt failed to fetch from 1Password but client.pfx
+# is present on disk, extract the certificate from the PKCS12 bundle. Incus
+# generates the pfx with no passphrase. On workstations the pfx is materialized
+# above; on headless hosts the crt must arrive via --push instead.
+_incus_crt="${HOME}/.config/incus/client.crt"
+_incus_pfx="${HOME}/.config/incus/client.pfx"
+if [[ ! -f "${_incus_crt}" ]] && [[ -f "${_incus_pfx}" ]]; then
+  if command -v openssl >/dev/null 2>&1; then
+    _crt_tmp="$(mktemp -p "$(dirname "${_incus_crt}")" .incus-crt.XXXXXX)"
+    if openssl pkcs12 -in "${_incus_pfx}" -nokeys -passin pass: \
+         -out "${_crt_tmp}" 2>/dev/null && [[ -s "${_crt_tmp}" ]]; then
+      chmod 644 "${_crt_tmp}"
+      mv -f "${_crt_tmp}" "${_incus_crt}"
+      echo "render-secrets: derived ${_incus_crt} from client.pfx"
+      _mf_new=()
+      for _f in "${materialize_failed[@]+"${materialize_failed[@]}"}"; do
+        [[ "${_f}" != "${_incus_crt}" ]] && _mf_new+=("${_f}")
+      done
+      materialize_failed=("${_mf_new[@]+"${_mf_new[@]}"}")
+    else
+      rm -f "${_crt_tmp}"
+      echo "render-secrets: WARNING: openssl could not extract cert from client.pfx" >&2
+    fi
+  fi
+fi
+
 if [[ ${#materialize_failed[@]} -gt 0 ]]; then
   echo "render-secrets: FAILED to materialize: ${materialize_failed[*]}" >&2
 fi
