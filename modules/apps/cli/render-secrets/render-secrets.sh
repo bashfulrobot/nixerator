@@ -343,10 +343,20 @@ _incus_pfx="${HOME}/.config/incus/client.pfx"
 if [[ ! -f "${_incus_crt}" ]] && [[ -f "${_incus_pfx}" ]]; then
   if command -v openssl >/dev/null 2>&1; then
     _crt_tmp="$(mktemp -p "$(dirname "${_incus_crt}")" .incus-crt.XXXXXX)"
-    if openssl pkcs12 -in "${_incus_pfx}" -nokeys -passin pass: \
-         -out "${_crt_tmp}" 2>/dev/null && [[ -s "${_crt_tmp}" ]]; then
+    trap 'rm -f "${_crt_tmp:-}"' EXIT
+    # Try modern PKCS12 first; fall back to -legacy for bundles built with
+    # older go-pkcs12 (RC2-40-CBC encryption, rejected by OpenSSL 3.x by default).
+    # Capture legacy stderr only; the first attempt's errors are expected noise
+    # when the bundle is actually legacy-format, so swallow them.
+    _ssl_err=""
+    openssl pkcs12 -in "${_incus_pfx}" -nokeys -passin pass: \
+        -out "${_crt_tmp}" 2>/dev/null \
+    || _ssl_err="$(openssl pkcs12 -in "${_incus_pfx}" -nokeys -passin pass: \
+        -legacy -out "${_crt_tmp}" 2>&1 || true)"
+    if [[ -s "${_crt_tmp}" ]]; then
       chmod 644 "${_crt_tmp}"
       mv -f "${_crt_tmp}" "${_incus_crt}"
+      trap - EXIT
       echo "render-secrets: derived ${_incus_crt} from client.pfx"
       _mf_new=()
       for _f in "${materialize_failed[@]+"${materialize_failed[@]}"}"; do
@@ -355,8 +365,11 @@ if [[ ! -f "${_incus_crt}" ]] && [[ -f "${_incus_pfx}" ]]; then
       materialize_failed=("${_mf_new[@]+"${_mf_new[@]}"}")
     else
       rm -f "${_crt_tmp}"
-      echo "render-secrets: WARNING: openssl could not extract cert from client.pfx" >&2
+      trap - EXIT
+      echo "render-secrets: WARNING: openssl could not extract cert from client.pfx${_ssl_err:+: ${_ssl_err}}" >&2
     fi
+  else
+    echo "render-secrets: WARNING: openssl not in PATH; cannot derive ${_incus_crt} from client.pfx" >&2
   fi
 fi
 
