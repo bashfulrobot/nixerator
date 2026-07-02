@@ -61,16 +61,6 @@ in
         description = "Port for the Incus HTTPS API / web UI listener.";
       };
 
-      tailscaleInterface = lib.mkOption {
-        type = lib.types.str;
-        default = "tailscale0";
-        description = ''
-          Interface the UI port is firewall-restricted to. The daemon listens on
-          all interfaces, but only this one is allowed through the firewall, so
-          the UI is reachable over the tailnet (and loopback) and nowhere else.
-        '';
-      };
-
       desktopEntry = lib.mkOption {
         type = lib.types.bool;
         default = true;
