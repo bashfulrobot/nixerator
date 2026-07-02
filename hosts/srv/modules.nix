@@ -165,6 +165,11 @@
       trustedBridgePrefix = "tbr-";
     };
 
+    # Incus API is available on both the tailnet (via the module's ui.tailscaleInterface
+    # rule) and the LAN, so Terraform can reach it at 192.168.168.1:8443 without
+    # routing through Tailscale.
+    networking.firewall.interfaces.enp3s0.allowedTCPPorts = [ 8443 ];
+
     # TEMPORARILY DISABLED for the Incus migration. blockBridges installs its
     # PREROUTING RETURN rules via networking.firewall.extraCommands, which the
     # nftables firewall (forced on by Incus) rejects at build time. netboot.xyz
