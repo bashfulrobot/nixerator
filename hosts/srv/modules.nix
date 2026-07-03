@@ -219,7 +219,7 @@
         spitfire = {
           path = "/exports/spitfire";
           bindMount = "/srv/nfs/spitfire";
-          exportConfig = "172.16.166.0/24(rw,sync,no_subtree_check,no_root_squash,all_squash,anonuid=1000,anongid=100)";
+          exportConfig = "192.168.168.0/23(rw,sync,no_subtree_check,no_root_squash,all_squash,anonuid=1000,anongid=100)";
           uid = 1000;
           gid = 100;
         };
