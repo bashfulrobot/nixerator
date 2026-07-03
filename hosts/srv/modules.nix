@@ -36,6 +36,7 @@
     ../../modules/server/netboot-xyz
     ../../modules/server/nfs
     ../../modules/server/noclaw
+    ../../modules/server/postgres
     ../../modules/system/caddy
     ../../modules/system/ssh
   ];
@@ -201,6 +202,14 @@
       # collide with shiori.
       adminPort = 3030;
       httpPort = 18080;
+    };
+
+    postgres = {
+      enable = true;
+      # Allow connections from the spitfire k8s cluster (172.16.166.0/24).
+      # Individual databases and roles are added here as cluster services are
+      # deployed; localhost is always trusted for local admin use.
+      allowedCIDRs = [ "172.16.166.0/24" ];
     };
 
     nfs = {
