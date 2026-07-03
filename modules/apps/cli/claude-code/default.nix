@@ -304,7 +304,6 @@ in
             with pkgs;
             [
               libnotify # for notify-send in Stop hook (workstation-only)
-              libreoffice # soffice on PATH -- required for marp-slides skill's --pptx-editable export (workstation-only)
               sox # rec on PATH -- required for Claude Code /voice audio recording (workstation-only)
             ]
           )
