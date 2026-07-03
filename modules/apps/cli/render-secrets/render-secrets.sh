@@ -351,10 +351,10 @@ if [[ ! -f "${_incus_crt}" ]] && [[ -f "${_incus_pfx}" ]]; then
     _ssl_err1=""
     _ssl_err2=""
     if ! openssl pkcs12 -in "${_incus_pfx}" -nokeys -clcerts -passin pass: \
-           -out "${_crt_tmp}" 2>"${_ssl_err_file}"; then
+      -out "${_crt_tmp}" 2>"${_ssl_err_file}"; then
       _ssl_err1="$(cat "${_ssl_err_file}" 2>/dev/null)"
       _ssl_err2="$(openssl pkcs12 -in "${_incus_pfx}" -nokeys -clcerts -passin pass: \
-          -legacy -out "${_crt_tmp}" 2>&1 || true)"
+        -legacy -out "${_crt_tmp}" 2>&1 || true)"
     fi
     rm -f "${_ssl_err_file}"
     _ssl_err_file=""
