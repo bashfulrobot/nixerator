@@ -333,6 +333,52 @@ for _m in "${MATERIALIZE[@]}"; do
   materialize_one "${_t}" "${_d}" "${_fm}" "${_dm}" "${_g}" ||
     materialize_failed+=("${_d}")
 done
+
+# Fallback: if incus client.crt failed to fetch from 1Password but client.pfx
+# is present on disk, extract the certificate from the PKCS12 bundle. Incus
+# generates the pfx with no passphrase. On workstations the pfx is materialized
+# above; on headless hosts the crt must arrive via --push instead.
+_incus_crt="${HOME}/.config/incus/client.crt"
+_incus_pfx="${HOME}/.config/incus/client.pfx"
+if [[ ! -f "${_incus_crt}" ]] && [[ -f "${_incus_pfx}" ]]; then
+  if command -v openssl >/dev/null 2>&1; then
+    _crt_tmp="$(mktemp -p "$(dirname "${_incus_crt}")" .incus-crt.XXXXXX)"
+    _ssl_err_file="${_crt_tmp}.err"
+    trap 'rm -f "${_crt_tmp:-}" "${_ssl_err_file:-}"' EXIT
+    # Try modern PKCS12 first; fall back to -legacy for bundles built with
+    # older go-pkcs12 (RC2-40-CBC encryption, rejected by OpenSSL 3.x by default).
+    # -clcerts: filter to client certs only, excluding CA bags from the bundle.
+    _ssl_err1=""
+    _ssl_err2=""
+    if ! openssl pkcs12 -in "${_incus_pfx}" -nokeys -clcerts -passin pass: \
+           -out "${_crt_tmp}" 2>"${_ssl_err_file}"; then
+      _ssl_err1="$(cat "${_ssl_err_file}" 2>/dev/null)"
+      _ssl_err2="$(openssl pkcs12 -in "${_incus_pfx}" -nokeys -clcerts -passin pass: \
+          -legacy -out "${_crt_tmp}" 2>&1 || true)"
+    fi
+    rm -f "${_ssl_err_file}"
+    _ssl_err_file=""
+    if grep -q '-----BEGIN CERTIFICATE-----' "${_crt_tmp}" 2>/dev/null; then
+      chmod 644 "${_crt_tmp}"
+      mv -f "${_crt_tmp}" "${_incus_crt}"
+      trap - EXIT
+      echo "render-secrets: derived ${_incus_crt} from client.pfx"
+      _mf_new=()
+      for _f in "${materialize_failed[@]+"${materialize_failed[@]}"}"; do
+        [[ "${_f}" != "${_incus_crt}" ]] && _mf_new+=("${_f}")
+      done
+      materialize_failed=("${_mf_new[@]+"${_mf_new[@]}"}")
+    else
+      rm -f "${_crt_tmp}"
+      trap - EXIT
+      _ssl_combined="${_ssl_err1:+modern: ${_ssl_err1}}${_ssl_err1:+${_ssl_err2:+; }}${_ssl_err2:+legacy: ${_ssl_err2}}"
+      echo "render-secrets: WARNING: openssl could not extract cert from client.pfx${_ssl_combined:+: ${_ssl_combined}}" >&2
+    fi
+  else
+    echo "render-secrets: WARNING: openssl not in PATH; cannot derive ${_incus_crt} from client.pfx" >&2
+  fi
+fi
+
 if [[ ${#materialize_failed[@]} -gt 0 ]]; then
   echo "render-secrets: FAILED to materialize: ${materialize_failed[*]}" >&2
 fi
