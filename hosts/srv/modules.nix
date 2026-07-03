@@ -219,7 +219,11 @@
         spitfire = {
           path = "/exports/spitfire";
           bindMount = "/srv/nfs/spitfire";
-          exportConfig = "192.168.168.0/23(rw,sync,no_subtree_check,no_root_squash,all_squash,anonuid=1000,anongid=100)";
+          clients = [ "192.168.168.0/23" ];
+          # root_squash (default): root on k8s nodes maps to nobody; pods
+          # running as non-root UIDs pass through unmapped, so each workload
+          # owns its files with its actual UID rather than a shared anonuid.
+          squash = "root_squash";
           uid = 1000;
           gid = 100;
         };
