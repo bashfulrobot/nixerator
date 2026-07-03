@@ -343,17 +343,22 @@ _incus_pfx="${HOME}/.config/incus/client.pfx"
 if [[ ! -f "${_incus_crt}" ]] && [[ -f "${_incus_pfx}" ]]; then
   if command -v openssl >/dev/null 2>&1; then
     _crt_tmp="$(mktemp -p "$(dirname "${_incus_crt}")" .incus-crt.XXXXXX)"
-    trap 'rm -f "${_crt_tmp:-}"' EXIT
+    _ssl_err_file="${_crt_tmp}.err"
+    trap 'rm -f "${_crt_tmp:-}" "${_ssl_err_file:-}"' EXIT
     # Try modern PKCS12 first; fall back to -legacy for bundles built with
     # older go-pkcs12 (RC2-40-CBC encryption, rejected by OpenSSL 3.x by default).
-    # Capture legacy stderr only; the first attempt's errors are expected noise
-    # when the bundle is actually legacy-format, so swallow them.
-    _ssl_err=""
-    openssl pkcs12 -in "${_incus_pfx}" -nokeys -passin pass: \
-        -out "${_crt_tmp}" 2>/dev/null \
-    || _ssl_err="$(openssl pkcs12 -in "${_incus_pfx}" -nokeys -passin pass: \
-        -legacy -out "${_crt_tmp}" 2>&1 || true)"
-    if [[ -s "${_crt_tmp}" ]]; then
+    # -clcerts: filter to client certs only, excluding CA bags from the bundle.
+    _ssl_err1=""
+    _ssl_err2=""
+    if ! openssl pkcs12 -in "${_incus_pfx}" -nokeys -clcerts -passin pass: \
+           -out "${_crt_tmp}" 2>"${_ssl_err_file}"; then
+      _ssl_err1="$(cat "${_ssl_err_file}" 2>/dev/null)"
+      _ssl_err2="$(openssl pkcs12 -in "${_incus_pfx}" -nokeys -clcerts -passin pass: \
+          -legacy -out "${_crt_tmp}" 2>&1 || true)"
+    fi
+    rm -f "${_ssl_err_file}"
+    _ssl_err_file=""
+    if grep -q '-----BEGIN CERTIFICATE-----' "${_crt_tmp}" 2>/dev/null; then
       chmod 644 "${_crt_tmp}"
       mv -f "${_crt_tmp}" "${_incus_crt}"
       trap - EXIT
@@ -366,7 +371,8 @@ if [[ ! -f "${_incus_crt}" ]] && [[ -f "${_incus_pfx}" ]]; then
     else
       rm -f "${_crt_tmp}"
       trap - EXIT
-      echo "render-secrets: WARNING: openssl could not extract cert from client.pfx${_ssl_err:+: ${_ssl_err}}" >&2
+      _ssl_combined="${_ssl_err1:+modern: ${_ssl_err1}}${_ssl_err1:+${_ssl_err2:+; }}${_ssl_err2:+legacy: ${_ssl_err2}}"
+      echo "render-secrets: WARNING: openssl could not extract cert from client.pfx${_ssl_combined:+: ${_ssl_combined}}" >&2
     fi
   else
     echo "render-secrets: WARNING: openssl not in PATH; cannot derive ${_incus_crt} from client.pfx" >&2
