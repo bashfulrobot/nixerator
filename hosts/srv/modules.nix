@@ -206,10 +206,11 @@
 
     postgres = {
       enable = true;
-      # Allow connections from the spitfire k8s cluster (172.16.166.0/24).
-      # Individual databases and roles are added here as cluster services are
-      # deployed; localhost is always trusted for local admin use.
-      allowedCIDRs = [ "172.16.166.0/24" ];
+      # Allow connections from the LAN so k8s nodes on 192.168.168.0/23 can
+      # reach PostgreSQL. Individual databases and roles are added here as
+      # cluster services are deployed; localhost is always trusted for local
+      # admin use.
+      allowedCIDRs = [ "192.168.168.0/23" ];
     };
 
     nfs = {
