@@ -80,11 +80,11 @@ in
       enable = true;
       inherit (cfg)
         package
-        port
         ensureDatabases
         ensureUsers
-        settings
         ;
+      # port was renamed to settings.port in NixOS 25.11+
+      settings = cfg.settings // lib.optionalAttrs (cfg.port != 5432) { port = cfg.port; };
       dataDir = lib.mkIf (cfg.dataDir != null) cfg.dataDir;
       enableTCPIP = cfg.allowedCIDRs != [ ];
 
