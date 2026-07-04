@@ -47,6 +47,42 @@
       address = "192.168.169.1";
       interface = "enp3s0";
     };
+
+    # Macvlan sibling for K8s NFS access. Macvlan children (K8s VMs) cannot ARP-resolve the
+    # parent NIC's IP (192.168.168.1) due to kernel macvlan isolation. A macvlan sibling on
+    # the same parent gets its own MAC and CAN communicate peer-to-peer with the K8s VMs.
+    macvlans."mv-k8s" = {
+      interface = "enp3s0";
+      mode = "bridge";
+    };
+
+    interfaces."mv-k8s" = {
+      ipv4.addresses = [
+        {
+          address = "192.168.169.200";
+          prefixLength = 23;
+        }
+      ];
+    };
+
+    # Open NFS ports for the K8s subnet. NixOS does not auto-open these.
+    firewall.allowedTCPPorts = [
+      111
+      2049
+    ];
+    firewall.allowedUDPPorts = [
+      111
+      2049
+    ];
+
+    # Source-based routing: replies originating from 192.168.169.200 must leave via mv-k8s so
+    # the response MAC is the macvlan sibling's MAC. Without this, Linux routes replies to
+    # 192.168.168.x via enp3s0 (the more-specific /24 wins), but macvlan children drop frames
+    # from the parent NIC's MAC — the TCP SYN-ACK silently disappears.
+    localCommands = ''
+      ip rule add from 192.168.169.200 lookup 200 priority 100 2>/dev/null || true
+      ip route replace 192.168.168.0/23 dev mv-k8s table 200 2>/dev/null || true
+    '';
   };
 
   # Localization (from globals)
