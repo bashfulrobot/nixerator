@@ -64,10 +64,18 @@ in
               };
 
               clients = lib.mkOption {
-                type = lib.types.listOf lib.types.str;
+                type = lib.types.listOf (
+                  lib.types.addCheck lib.types.str (s: builtins.match ".*[[:space:]].*" s == null)
+                );
                 default = [ ];
                 example = [ "192.168.168.0/23" ];
-                description = "CIDR blocks allowed to mount this export. Must be non-empty; an empty list produces an inaccessible export that no client can mount (caught at eval time).";
+                description = ''
+                  CIDR blocks allowed to mount this export. Must be non-empty;
+                  an empty list produces an inaccessible export that no client
+                  can mount (caught at eval time). Values must not contain
+                  whitespace or newlines; the check is enforced at eval time to
+                  prevent exports(5) injection via multi-line strings.
+                '';
               };
 
               readOnly = lib.mkOption {
@@ -95,7 +103,10 @@ in
                   UID/GID squash mode.
                   - root_squash: map root (UID 0) to anonuid/anongid; other UIDs pass through. Default; safe for k8s workloads where pods run as non-root.
                   - all_squash: map every client UID/GID to anonuid/anongid. Simple but breaks pods that expect to own their files with a specific UID.
-                  - no_root_squash: pass root through unmapped. Not recommended.
+                  - no_root_squash: pass root through unmapped. Privilege escalation
+                    risk: root on any client in the `clients` CIDR list can write files
+                    as root on the NFS server, including setuid binaries. Only use with
+                    a tightly scoped `/32` client list and a clear operational reason.
                 '';
               };
 

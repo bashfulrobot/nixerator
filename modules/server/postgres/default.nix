@@ -33,12 +33,16 @@ in
     };
 
     allowedCIDRs = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
+      type = lib.types.listOf (
+        lib.types.addCheck lib.types.str (s: builtins.match ".*[[:space:]].*" s == null)
+      );
       default = [ ];
-      example = [ "172.16.166.0/24" ];
+      example = [ "192.168.168.0/23" ];
       description = ''
         CIDR blocks allowed to connect over TCP/IP using scram-sha-256.
         Localhost connections are always trusted regardless of this list.
+        Values must not contain whitespace or newlines; the check is enforced
+        at eval time to prevent config-injection via multi-line strings.
       '';
     };
 
@@ -95,10 +99,17 @@ in
       dataDir = lib.mkIf (cfg.dataDir != null) cfg.dataDir;
       enableTCPIP = cfg.allowedCIDRs != [ ];
 
-      # localhost is always trusted; each entry in allowedCIDRs gets a
-      # scram-sha-256 host line so remote k8s workloads authenticate with a
-      # password rather than trust.
-      authentication = lib.mkOverride 10 (
+      # Local connections (Unix socket and loopback TCP) use trust so the
+      # postgres admin can connect without a password for maintenance and so
+      # NixOS ensureUsers/ensureDatabases can run at service start. This is
+      # intentional for a single-user homelab: the trust boundary is the OS
+      # user boundary, not PostgreSQL. If srv ever hosts multi-tenant
+      # workloads, harden to `peer` on the socket and `scram-sha-256` on
+      # loopback, then set passwords for all application roles.
+      # mkOverride 900: beats the NixOS upstream default (1000) but yields to
+      # user config (100) and lib.mkForce (50), so other modules can still
+      # extend pg_hba.conf without being silently discarded.
+      authentication = lib.mkOverride 900 (
         ''
           local all all               trust
           host  all all 127.0.0.1/32  trust
@@ -108,9 +119,22 @@ in
       );
     };
 
-    # Open the PostgreSQL port for remote connections. Source-IP enforcement
-    # is handled by pg_hba.conf above; the firewall rule is intentionally
-    # broad so we do not need per-host rules when the cluster grows.
-    networking.firewall.allowedTCPPorts = lib.mkIf (cfg.allowedCIDRs != [ ]) [ cfg.port ];
+    # Open the PostgreSQL port only to the configured CIDRs. Uses
+    # extraInputRules (nftables) rather than allowedTCPPorts so that the
+    # firewall enforces the same CIDR list as pg_hba.conf instead of opening
+    # the port globally. Requires nftables to be active (Incus forces this on
+    # srv). Non-allowedCIDRs sources get an explicit reject so they see
+    # "connection refused" rather than a silent timeout.
+    networking.firewall.extraInputRules = lib.mkIf (cfg.allowedCIDRs != [ ]) (
+      lib.concatMapStrings (
+        cidr:
+        let
+          isIPv6 = lib.hasInfix ":" cidr;
+          family = if isIPv6 then "ip6" else "ip";
+        in
+        "${family} saddr ${cidr} tcp dport ${toString cfg.port} accept\n"
+      ) cfg.allowedCIDRs
+      + "tcp dport ${toString cfg.port} reject\n"
+    );
   };
 }
