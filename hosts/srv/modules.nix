@@ -36,6 +36,7 @@
     ../../modules/server/netboot-xyz
     ../../modules/server/nfs
     ../../modules/server/noclaw
+    ../../modules/server/postgres
     ../../modules/system/caddy
     ../../modules/system/ssh
   ];
@@ -203,13 +204,26 @@
       httpPort = 18080;
     };
 
+    postgres = {
+      enable = true;
+      # Allow connections from the LAN so k8s nodes on 192.168.168.0/23 can
+      # reach PostgreSQL. Individual databases and roles are added here as
+      # cluster services are deployed; localhost is always trusted for local
+      # admin use.
+      allowedCIDRs = [ "192.168.168.0/23" ];
+    };
+
     nfs = {
       enable = true;
       exports = {
         spitfire = {
           path = "/exports/spitfire";
           bindMount = "/srv/nfs/spitfire";
-          exportConfig = "172.16.166.0/24(rw,sync,no_subtree_check,no_root_squash,all_squash,anonuid=1000,anongid=100)";
+          clients = [ "192.168.168.0/23" ];
+          # root_squash (default): root on k8s nodes maps to nobody; pods
+          # running as non-root UIDs pass through unmapped, so each workload
+          # owns its files with its actual UID rather than a shared anonuid.
+          squash = "root_squash";
           uid = 1000;
           gid = 100;
         };
