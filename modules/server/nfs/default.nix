@@ -20,7 +20,7 @@ let
       rwFlag = if e.readOnly then "ro" else "rw";
       syncFlag = if e.sync then "sync" else "async";
       subtreeFlag = if e.subtreeCheck then "subtree_check" else "no_subtree_check";
-      anonFlags = lib.optionalString (e.squash == "all_squash") (
+      anonFlags = lib.optionalString (e.squash == "all_squash" || e.squash == "root_squash") (
         (lib.optionalString (e.anonUid != null) ",anonuid=${toString e.anonUid}")
         + (lib.optionalString (e.anonGid != null) ",anongid=${toString e.anonGid}")
       );
@@ -30,6 +30,8 @@ let
   # Build one exports(5) line for an export.
   mkExportLine =
     exportCfg:
+    assert lib.assertMsg (exportCfg.clients != [ ])
+      "server.nfs: export ${exportCfg.path} has an empty clients list; an empty list produces an inaccessible export that no client can mount";
     let
       opts = mkExportOptions exportCfg;
       clientEntries = lib.concatMapStringsSep " " (cidr: "${cidr}(${opts})") exportCfg.clients;
@@ -65,7 +67,7 @@ in
                 type = lib.types.listOf lib.types.str;
                 default = [ ];
                 example = [ "192.168.168.0/23" ];
-                description = "CIDR blocks allowed to mount this export.";
+                description = "CIDR blocks allowed to mount this export. Must be non-empty; an empty list produces an inaccessible export that no client can mount (caught at eval time).";
               };
 
               readOnly = lib.mkOption {

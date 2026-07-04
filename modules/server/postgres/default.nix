@@ -65,7 +65,14 @@ in
         }
       );
       default = [ ];
-      description = "Roles to create on first start if they do not already exist.";
+      description = ''
+        Roles to create on first start if they do not already exist.
+
+        NixOS creates these roles with no password (CREATE ROLE ... WITH LOGIN).
+        Because this module enforces scram-sha-256 for all allowedCIDRs, a role
+        created here cannot authenticate from the cluster until a password is set
+        out-of-band: ALTER ROLE <name> PASSWORD '''...''';
+      '';
     };
 
     settings = lib.mkOption {
