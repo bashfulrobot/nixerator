@@ -95,7 +95,7 @@ in
         ensureUsers
         ;
       # port was renamed to settings.port in NixOS 25.11+
-      settings = cfg.settings // lib.optionalAttrs (cfg.port != 5432) { port = cfg.port; };
+      settings = cfg.settings // lib.optionalAttrs (cfg.port != 5432) { inherit (cfg) port; };
       dataDir = lib.mkIf (cfg.dataDir != null) cfg.dataDir;
       enableTCPIP = cfg.allowedCIDRs != [ ];
 
