@@ -227,6 +227,14 @@
           uid = 1000;
           gid = 100;
         };
+        darkstar = {
+          path = "/exports/darkstar";
+          bindMount = "/srv/nfs/darkstar";
+          clients = [ "192.168.168.0/23" ];
+          squash = "root_squash";
+          uid = 1000;
+          gid = 100;
+        };
       };
       additionalPaths = [
         {
