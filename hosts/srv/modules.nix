@@ -231,7 +231,9 @@
           path = "/exports/darkstar";
           bindMount = "/srv/nfs/darkstar";
           clients = [ "192.168.168.0/23" ];
-          squash = "root_squash";
+          # CSI driver runs as root and creates subdirs under the export root.
+          # no_root_squash passes root through so provisioning works.
+          squash = "no_root_squash";
           uid = 1000;
           gid = 100;
         };
