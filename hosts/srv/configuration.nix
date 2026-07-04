@@ -78,10 +78,27 @@
     # Source-based routing: replies originating from 192.168.169.200 must leave via mv-k8s so
     # the response MAC is the macvlan sibling's MAC. Without this, Linux routes replies to
     # 192.168.168.x via enp3s0 (the more-specific /24 wins), but macvlan children drop frames
-    # from the parent NIC's MAC — the TCP SYN-ACK silently disappears.
+    # from the parent NIC's MAC causing TCP SYN-ACK to silently disappear.
+    # The rule is added by localCommands; the routes live in a dedicated systemd unit so they
+    # run strictly after network-setup (when mv-k8s already has its address).
     localCommands = ''
       ip rule add from 192.168.169.200 lookup 200 priority 100 2>/dev/null || true
-      ip route replace 192.168.168.0/23 dev mv-k8s table 200 2>/dev/null || true
+    '';
+  };
+
+  # Source routing table 200 for mv-k8s: runs after network-setup so mv-k8s has its address.
+  systemd.services."mv-k8s-routes" = {
+    description = "Populate routing table 200 for mv-k8s NFS source routing";
+    after = [ "network-setup.service" ];
+    requires = [ "network-setup.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      ${pkgs.iproute2}/bin/ip route replace 192.168.168.0/23 dev mv-k8s src 192.168.169.200 table 200
+      ${pkgs.iproute2}/bin/ip route replace default via 192.168.169.1 dev enp3s0 table 200
     '';
   };
 
