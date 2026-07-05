@@ -140,6 +140,7 @@
     gnupg
     just
     keychain
+    kubectl
     nixfmt
     pass
     pinentry-tty
