@@ -94,6 +94,17 @@
     superpowers.enable = true;
   };
 
+  # Tailscale subnet router: advertise the home LAN so qbert and donkeykong
+  # can reach k8s VM IPs (192.168.168.x) via the tailnet when off the
+  # physical LAN. Once applied, approve the route in the Tailscale admin
+  # console (or via ACL autoApprovers). useRoutingFeatures="server" enables
+  # IP forwarding and the firewall bypass; the /24 main-table route in
+  # configuration.nix directs forwarded packets to macvlan children via mv-k8s.
+  services.tailscale = {
+    useRoutingFeatures = "server";
+    extraSetFlags = [ "--advertise-routes=192.168.168.0/23" ];
+  };
+
   # System modules
   system.ssh.enable = true;
   # ssh-agent is managed by `keychain` (see hosts/srv/home.nix) so it
