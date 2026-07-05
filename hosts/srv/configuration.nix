@@ -82,6 +82,7 @@
     # covers the forward direction (srv→k8s), so kubectl and ping also work.
     localCommands = ''
       ip rule add from 192.168.169.200 lookup 200 priority 100 2>/dev/null || true
+      ip rule add iif tailscale0 lookup 200 priority 99 2>/dev/null || true
     '';
   };
 
