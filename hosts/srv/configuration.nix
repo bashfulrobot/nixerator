@@ -76,19 +76,18 @@
     ];
 
     # Source-based routing: replies originating from 192.168.169.200 must leave via mv-k8s so
-    # the response MAC is the macvlan sibling's MAC. Without this, Linux routes replies to
-    # 192.168.168.x via enp3s0 (the more-specific /24 wins), but macvlan children drop frames
-    # from the parent NIC's MAC causing TCP SYN-ACK to silently disappear.
-    # The rule is added by localCommands; the routes live in a dedicated systemd unit so they
-    # run strictly after network-setup (when mv-k8s already has its address).
+    # the response MAC is the macvlan sibling's MAC. Without this, Linux routes NFS replies via
+    # enp3s0 (the parent MAC), which macvlan children silently drop. The ip rule here covers
+    # the NFS server reply direction. The mv-k8s-routes unit adds a /24 main-table route that
+    # covers the forward direction (srv→k8s), so kubectl and ping also work.
     localCommands = ''
       ip rule add from 192.168.169.200 lookup 200 priority 100 2>/dev/null || true
     '';
   };
 
-  # Source routing table 200 for mv-k8s: runs after network-setup so mv-k8s has its address.
+  # Routing for mv-k8s: runs after network-setup so mv-k8s has its address.
   systemd.services."mv-k8s-routes" = {
-    description = "Populate routing table 200 for mv-k8s NFS source routing";
+    description = "Populate routing tables for mv-k8s macvlan sibling";
     after = [ "network-setup.service" ];
     requires = [ "network-setup.service" ];
     wantedBy = [ "multi-user.target" ];
@@ -97,8 +96,17 @@
       RemainAfterExit = true;
     };
     script = ''
+      # Table 200: used by the ip rule "from 192.168.169.200 lookup 200" so that
+      # NFS reply packets (src 192.168.169.200) leave via mv-k8s.
       ${pkgs.iproute2}/bin/ip route replace 192.168.168.0/23 dev mv-k8s src 192.168.169.200 table 200
       ${pkgs.iproute2}/bin/ip route replace default via 192.168.169.1 dev enp3s0 table 200
+
+      # Main table: route all 192.168.168.x traffic via mv-k8s. A /24 beats the
+      # /23-via-enp3s0, so packets to macvlan children (VIP .9, CPs .10-.12,
+      # workers .20-.21, Cilium LB .240/28) leave from the sibling MAC, not the
+      # parent MAC (which children silently drop). 192.168.168.1 (srv) is a local
+      # address and is unaffected.
+      ${pkgs.iproute2}/bin/ip route replace 192.168.168.0/24 dev mv-k8s src 192.168.169.200
     '';
   };
 
