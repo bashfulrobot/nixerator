@@ -34,6 +34,16 @@ in
           set fish_greeting
         '';
 
+        # Load 1Password service account token from the rendered secrets blob
+        # so it never enters the Nix store. Allows headless `op read` over SSH
+        # without session prompts. render-secrets must be run first.
+        interactiveShellInit = ''
+          set -l _secrets ~/.config/nixos-secrets/secrets.json
+          if test -f $_secrets && command -q jq
+            set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
+          end
+        '';
+
         # Shell aliases (for programmatic/script-facing use)
         shellAliases = {
           glow = "glow -p";

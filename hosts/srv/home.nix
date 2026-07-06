@@ -27,5 +27,6 @@
         source $_kc_env
       end
     end
+
   '';
 }
