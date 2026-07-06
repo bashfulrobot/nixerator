@@ -307,7 +307,11 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-  # 1Password CLI: needed on srv for render-secrets and manual vault queries.
-  # The SA token is loaded by the fish module from secrets.json.
-  environment.systemPackages = [ pkgs._1password-cli ];
+  # 1Password CLI. programs._1password also creates ~/.config/op with
+  # mode 700 via tmpfiles, which op requires. The SA token is loaded by
+  # the fish module from secrets.json. No GUI or polkit needed on headless srv.
+  programs._1password = {
+    enable = true;
+    package = pkgs._1password-cli;
+  };
 }
