@@ -31,7 +31,6 @@ let
             lib.makeBinPath [
               pkgs._1password-cli
               pkgs.openssh
-              pkgs.openssl
               pkgs.diffutils
               pkgs.coreutils
               pkgs.git
