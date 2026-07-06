@@ -32,12 +32,11 @@ in
         shellInit = ''
           # Disable greeting
           set fish_greeting
-        '';
 
-        # Load 1Password service account token from the rendered secrets blob
-        # so it never enters the Nix store. Allows headless `op read` over SSH
-        # without session prompts. render-secrets must be run first.
-        interactiveShellInit = ''
+          # Load 1Password service account token from the rendered secrets blob
+          # so it never enters the Nix store. Allows headless `op read` over SSH
+          # without session prompts. Runs for all shells (not just interactive)
+          # so `fish -c` invocations and scripts also authenticate.
           set -l _secrets ~/.config/nixos-secrets/secrets.json
           if test -f $_secrets && command -q jq
             set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
