@@ -65,5 +65,8 @@
   },
   "noclaw": {
     "opToken": "{{ op://nixerator/noclaw-op-token/credential }}"
+  },
+  "onepassword": {
+    "serviceAccountToken": "{{ op://nixerator/4wf5q2nwg2noclodny3ysgo7qe/credential }}"
   }
 }
