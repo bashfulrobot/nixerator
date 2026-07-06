@@ -63,12 +63,12 @@ MATERIALIZE=(
   # Read by the Nix module via builtins.readFile at eval time to populate
   # the preseed trust store. 644 because it is a public key. Also listed
   # in PUSH_ALONGSIDE so --push propagates it alongside secrets.json.
-  "incus-client.crt|${HOME}/.config/incus/client.crt|644|700|"
+  "incus-ui.crt|${HOME}/.config/incus/client.crt|644|700|"
 
   # Incus browser client certificate (PKCS12 bundle — private key inside).
   # Workstations only: needed for importing into a browser to authenticate
   # against the Incus web UI. srv is headless and has no browser.
-  "incus-client.pfx|${HOME}/.config/incus/client.pfx|600|700|${_WS}"
+  "incus-ui.pfx|${HOME}/.config/incus/client.pfx|600|700|${_WS}"
 )
 
 # Files pushed alongside secrets.json when --push is used. Format per entry:
