@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   secrets,
   globals,
   ...
@@ -305,4 +306,8 @@
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
+
+  # 1Password CLI: needed on srv for render-secrets and manual vault queries.
+  # The SA token is loaded by the fish module from secrets.json.
+  environment.systemPackages = [ pkgs._1password-cli ];
 }
