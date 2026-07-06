@@ -268,6 +268,27 @@ in
     # by the upstream module; this just enrolls the primary user.
     users.users."${globals.user.name}".extraGroups = [ "incus-admin" ];
 
+    # The upstream module's incus-preseed unit is not idempotent: `incus admin
+    # init --preseed` exits 1 if a certificate in the preseed is already in the
+    # trust store, even though storage pools/networks/profiles re-apply cleanly.
+    # That fails every subsequent rebuild once the "browser" cert has been
+    # trusted once. Wrap the same command (re-deriving cfg.package and the
+    # preseed YAML the way the upstream module does) and tolerate only that one
+    # already-trusted error, so a real preseed failure still fails the unit.
+    systemd.services.incus-preseed.script = lib.mkForce ''
+      set +e
+      out=$(${config.virtualisation.incus.package}/bin/incus admin init --preseed \
+        <${
+          (pkgs.formats.yaml { }).generate "incus-preseed.yaml" config.virtualisation.incus.preseed
+        } 2>&1)
+      rc=$?
+      echo "$out"
+      if [ "$rc" -ne 0 ] && ! echo "$out" | grep -q 'already in trust store'; then
+        exit "$rc"
+      fi
+      exit 0
+    '';
+
     # Open the Incus API/UI port on all interfaces. The daemon already binds
     # all interfaces (core.https_address above), so this makes it reachable
     # on LAN, Tailscale, and loopback without per-host firewall overrides.
