@@ -68,7 +68,7 @@ MATERIALIZE=(
   # Incus browser client certificate (PKCS12 bundle — private key inside).
   # Workstations only: needed for importing into a browser to authenticate
   # against the Incus web UI. srv is headless and has no browser.
-  "incus-client.pfx|${HOME}/.config/incus/client.pfx|600|700|${_WS}"
+  "incus-ui.pfx|${HOME}/.config/incus/client.pfx|600|700|${_WS}"
 )
 
 # Files pushed alongside secrets.json when --push is used. Format per entry:
