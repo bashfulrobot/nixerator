@@ -37,6 +37,16 @@ in
       }
     ];
 
+    # SYSTEMD_SULOGIN_FORCE=1 hands out an unauthenticated root shell to
+    # anyone who selects this entry from the boot menu (no boot-loader
+    # password is set on any host this module targets). Accepted risk: none
+    # of srv/donkeykong/qbert expose a network-reachable BMC/IPMI/remote-KVM,
+    # so reaching this entry requires physical presence at the machine, which
+    # already implies unencrypted-disk access on qbert/srv (no LUKS) and a
+    # LUKS passphrase prompt on donkeykong. If this module is ever applied to
+    # a host with remote out-of-band console access, gate this specialisation
+    # behind a systemd-boot menu password first.
+    #
     # rescue.target only requires sysinit.target + rescue.service -- it never
     # reaches boot-complete.target, so systemd-bless-boot.service never runs
     # for this specialisation's own boot entry. Its tries-left counter will
@@ -59,9 +69,18 @@ in
     # Bundled as one flag rather than three independent sub-options: all
     # three current consumers (srv, donkeykong, qbert) want all three
     # features identically, and nothing today needs a different `tries`
-    # value or a subset. Split this up if a host ever needs to diverge --
-    # don't build that flexibility speculatively.
+    # value or a subset. Split this up if a host ever needs to diverge, or if
+    # a host with a different physical/console-access trust model than these
+    # three (e.g. shared or colocated hardware) adopts this module and needs
+    # the rescue specialisation without the other two -- don't build that
+    # flexibility speculatively before it's needed.
     boot.loader.systemd-boot = {
+      # netboot.xyz's iPXE chainload requires deliberately selecting this
+      # menu entry (never an automatic/default choice) and LAN position to
+      # intercept, so the exposure is limited to a manual boot on a
+      # compromised/hostile network. Acceptable for these hosts' trust model;
+      # revisit if this module is ever applied to a host on a shared or
+      # untrusted LAN.
       netbootxyz.enable = true;
       bootCounting = {
         enable = true;
