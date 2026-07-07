@@ -103,6 +103,33 @@ in
             end
           '';
 
+          gwscfg = ''
+            # "work" (the default gws config dir, ~/.config/gws) is always offered.
+            # Any other profile is a subdirectory of gws-profiles, each holding its
+            # own client_secret.json + credentials.enc for a separate Google account.
+            set -l profiles_dir "$HOME/.config/gws-profiles"
+            set -l choices work
+
+            if test -d "$profiles_dir"
+              set -a choices (find "$profiles_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n')
+            end
+
+            set -l selected (printf '%s\n' $choices | fzf --prompt="Select gws profile: " --height=40% --border)
+
+            if test -z "$selected"
+              echo "No selection made"
+              return 1
+            end
+
+            if test "$selected" = work
+              set -e -U GOOGLE_WORKSPACE_CLI_CONFIG_DIR
+              echo "✓ Activated gws profile: work (default ~/.config/gws)"
+            else
+              set -Ux GOOGLE_WORKSPACE_CLI_CONFIG_DIR "$profiles_dir/$selected"
+              echo "✓ Activated gws profile: $selected"
+            end
+          '';
+
           copy = ''
             if test (count $argv) -gt 0
               if not test -f "$argv[1]"
