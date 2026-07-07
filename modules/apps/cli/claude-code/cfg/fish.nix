@@ -11,6 +11,10 @@
     # (visible across all projects, git or not). Anything with args -- claude
     # agents / -r / -p / mcp / --bg ... -- passes straight through unchanged.
     # Escape hatch: `command claude` runs a plain foreground session.
+    #
+    # --remote-control "$name" rides along with --bg under the same name, so
+    # the session is also picked up by claude.ai/code and the iOS app without
+    # a separate czj/zellij launch.
     claude = {
       wraps = "claude";
       body = ''
@@ -22,7 +26,7 @@
             end
             test -z "$name"; and set name $default_name
 
-            set -l out (command claude --bg --name "$name")
+            set -l out (command claude --bg --name "$name" --remote-control "$name")
             printf '%s\n' $out
             set -l id (string match -rg 'claude attach (\S+)' -- $out)
             if test -n "$id"
