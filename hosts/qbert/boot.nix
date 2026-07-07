@@ -40,6 +40,4 @@
       "bluetooth"
     ];
   };
-
-  system.resilient-boot.enable = true;
 }

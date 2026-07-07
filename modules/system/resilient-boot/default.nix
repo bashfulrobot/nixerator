@@ -37,6 +37,16 @@ in
       }
     ];
 
+    # rescue.target only requires sysinit.target + rescue.service -- it never
+    # reaches boot-complete.target, so systemd-bless-boot.service never runs
+    # for this specialisation's own boot entry. Its tries-left counter will
+    # therefore always run down to 0 ("bad") after normal use, regardless of
+    # whether the rescue boot itself "worked". This is harmless: per
+    # systemd-boot(7)'s BOOT COUNTING section, a "bad" entry stays fully
+    # manually selectable forever, it's only deprioritized for *automatic*
+    # default-entry selection and menu ordering (bad entries sort first, not
+    # hidden). Nothing to fix here, just don't be surprised by the rescue
+    # entry showing as "bad" after a few uses.
     specialisation.rescue.configuration = {
       system.nixos.tags = [ "rescue-mode" ];
       boot.loader.systemd-boot.sortKey = "o_rescue-mode";
@@ -46,10 +56,18 @@ in
       ];
     };
 
+    # Bundled as one flag rather than three independent sub-options: all
+    # three current consumers (srv, donkeykong, qbert) want all three
+    # features identically, and nothing today needs a different `tries`
+    # value or a subset. Split this up if a host ever needs to diverge --
+    # don't build that flexibility speculatively.
     boot.loader.systemd-boot = {
       netbootxyz.enable = true;
       bootCounting = {
         enable = true;
+        # Matches the nixpkgs default; set explicitly since the option is
+        # what this module exists to turn on, and an explicit value survives
+        # a future upstream default change unnoticed.
         tries = 3;
       };
     };

@@ -14,6 +14,9 @@
   # or `ssh qbert zellij attach`.
   archetypes.claudeWorkHost.enable = true;
 
+  # System modules
+  system.resilient-boot.enable = true;
+
   apps.cli = {
     # Docker is intentionally left enabled on the workstations (via the
     # workstation archetype's infrastructure suite) for ad-hoc container
