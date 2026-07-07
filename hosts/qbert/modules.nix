@@ -85,28 +85,17 @@
       enable = true;
       vulkan = true;
     };
-    # Virtualisation on qbert moved from libvirt/KVM to Incus. The old
-    # server.kvm block (libvirtd + virt-manager + iptables NAT routing for
-    # virbr1-7 and proxy ARP on ens2) is retired here; donkeykong and srv are on
-    # Incus too now. Incus brings its own managed NAT bridge and supervises both
-    # system containers and QEMU VMs, so the manual routing is gone.
-    incus = {
+    # Virtualisation on qbert moved back from Incus to libvirt/KVM: Talos VMs
+    # need real QEMU block-device semantics and a working qemu-guest-agent
+    # channel that Incus VMs don't provide (system extensions, in-place
+    # upgrades, and the agent itself all broke under Incus). qbert is
+    # WiFi-connected, so spitfire stays on a libvirt-managed NAT network
+    # (bridge/macvtap modes don't work over 802.11 regardless of hypervisor) —
+    # trustedBridgePrefix trusts that network's firewall traffic the same way
+    # Incus's did.
+    kvm = {
       enable = true;
-      ui.enable = true;
-      storage.driver = "btrfs";
-      network.ipv4Address = "10.100.0.1/24";
-      # terraform-talos names each cluster bridge tbr-<cluster> (blackhole,
-      # spitfire, darkstar, darkstone). The default trustedBridgePrefix ("tbr-")
-      # trusts them all in the firewall via one wildcard rule, so the Talos nodes
-      # can complete DHCP. No per-cluster entry needed.
-      # Launcher for srv's Incus UI over Tailscale (qbert serves its own locally).
-      ui.remotes = [
-        {
-          name = "srv";
-          label = "Incus (srv)";
-          address = globals.hosts.srv.tailscale_ip;
-        }
-      ];
+      trustedBridgePrefix = "vbr-";
     };
   };
 }
