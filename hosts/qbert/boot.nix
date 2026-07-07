@@ -1,6 +1,6 @@
 { pkgs, ... }:
 
-# Boot configuration for qbert with bcachefs (no encryption)
+# Boot configuration for qbert with ext4 (no encryption)
 
 {
   # Boot configuration

@@ -11,7 +11,7 @@
   imports = [
     ./hardware-configuration.nix # Hardware-specific settings (generated with --no-filesystems)
     ./disko.nix # Disko declarative disk partitioning
-    ./boot.nix # Bootloader with bcachefs support
+    ./boot.nix # Bootloader configuration
     ./gpu.nix # AMD GPU configuration
     ./power-management.nix # Power management workarounds for AMD GPU suspend and USB wakeup
     ./reboot-windows.nix # Desktop entry for rebooting to Windows
