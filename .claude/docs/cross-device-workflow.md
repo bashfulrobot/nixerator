@@ -11,6 +11,10 @@ The zellij module ships two wrappers, installed wherever `apps.cli.zellij.enable
 - `zj` — tight zellij wrapper. `zj s` list, `zj a [<name>]` attach, `zj n <name>` new (or `zj n <name> -- <cmd>`), `zj d` delete. Anything else passes through to `zellij`.
 - `czj` — `zj` layered for Claude. Starts a zellij session whose first pane is `claude` with a remote-control endpoint already attached, so the same session is usable locally **and** from claude.ai/code without a separate control-tower service.
 
+### bare `claude`
+
+The claude-code module's fish wrapper (`modules/apps/cli/claude-code/cfg/fish.nix`) intercepts a bare `claude` invocation (no args, interactive TTY): it prompts for a session name, then runs `claude --bg --name "$name" --remote-control "$name"`. `--bg` and `--remote-control` combine on one invocation — the session is a background agent (manageable via `claude agents`/`claude attach <id>`) that *also* registers a Remote Control endpoint under the same name, so it shows up in claude.ai/code and the iOS app without a separate zellij launch. This works outside zellij too (any host, not just `archetypes.claudeWorkHost` peers).
+
 ### `work` (cross-host picker)
 
 The `work` fish function is installed on every host (workstations + peers). Use it when you want to attach to a session that lives on another host without remembering which one.
@@ -25,7 +29,7 @@ Sessions are named per-repo by convention: zellij session name = repo basename (
 
 ## iPhone
 
-- **Spawn or resume from claude.ai/code:** czj sessions register their own remote-control endpoints, so claude.ai/code's session list picks them up directly. No separate control-tower service.
+- **Spawn or resume from claude.ai/code:** czj sessions and bare-`claude` background sessions both register their own remote-control endpoints, so claude.ai/code's session list picks them up directly. No separate control-tower service.
 - **SSH fallback (rarely needed):** Termius / Blink / Prompt over Tailscale → `ssh srv` (or `qbert` / `clanker`) → `zj a <name>` or `work`. SSH only — no mosh, no zellij-web.
 
 ## /github-issue
