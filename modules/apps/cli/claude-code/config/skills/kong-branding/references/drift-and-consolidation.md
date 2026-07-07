@@ -1,39 +1,28 @@
 # Drift between this skill and other Kong-branded skills
 
-This skill was built directly from Kong's official **2026 v1.1** Brand Guidelines PDF and Press Kit. Several Kong-branded skills already in this environment predate that refresh (or copy-pasted values that drifted from it independently) and disagree with it in places. This file exists so that:
+This skill was built directly from Kong's official **2026 v1.1** Brand Guidelines PDF and Press Kit. Several Kong-branded skills already in this environment predate that refresh (or copy-pasted values that drifted from it independently). This file records what was actually found on inspection, and what was changed.
 
-1. You know which value to trust when two Kong skills disagree (**this one**).
-2. A future pass can point those skills at `assets/tokens/kong-brand.{json,css}` and the logo files here instead of re-deriving values inline.
+**Don't assume a mismatch is a mistake.** The first pass through this file (see git history) flagged several values as drift before actually inspecting the artifacts behind them. On closer inspection two of those flags were wrong: `kong-success-plan-pptx`'s binary template turned out to already use the *exact* official hex codes, and "Funnel Display"/"Urbanist" turned out to be real Google Fonts genuinely used in authentic Kong-authored templates, not fabrications. Verify before "fixing."
 
-This consolidation was deliberately *not* done as part of building this skill — the deck-producing skills (`kong-pptx`, `kong-revealjs-theme`, binary `.pptx` templates) carry real production risk if their brand values change out from under existing decks. Treat this as a scoped follow-up, not an oversight.
+## Findings, by skill
 
-## Known mismatches
+### `kong-success-plan-pptx` — already correct, no changes made
+Inspected `templates/kong-success-plan-template.pptx` directly (`ppt/slides/*.xml`, not just `build.py`, since the brand values live in the binary template, not the script). It uses `#000F06` and `#001408` (both correct — see the canonical-value note in `colors.md`) and `#B7BDB5` (Bay) directly on shapes, plus Funnel Sans / Funnel Sans ExtraBold / Funnel Sans Medium / Space Grotesk / Urbanist as fonts. This is the most accurate Kong-branded artifact in this environment. `build.py` only replaces text via shape IDs — it never touches color or font, so there was nothing to change.
 
-| Value | Official (this skill) | `kong-revealjs-theme` | `kong-pptx` | `renewal-projection` | `kong-doc-build` (plugin marketplace) |
-|---|---|---|---|---|---|
-| Dark base | `#000F06` | `#07120A` (bg), `#0D1A0E` (card-dark) | — (uses `000000` as bg) | `0D1A0E` (cardDark) | `001408` |
-| Border green | `#4A4D49` (neutral-700) | `#1F3D1F` | — | `1A3A1A` | — |
-| Body gray (light theme) | neutral-900 `#101110` | — | `42453E` | — | `434343` |
-| Accent | `#CCFF00` ✅ | `#CCFF00` ✅ | `CCFF00` ✅ | `CCFF00` ✅ | `CCFF00` ✅ |
-| Primary typeface | Funnel Sans ✅ | Funnel Sans + **Funnel Display** (not in official guide) | Funnel Sans + **Funnel Display** + **Urbanist** (neither in official guide) | Funnel Sans ✅ | Funnel Sans ✅ |
-| Code typeface | Roboto Mono | **JetBrains Mono, Fira Code** | — | — | — |
-| Button typeface | Space Grotesk | — (not distinguished) | — (not distinguished) | — | — |
-| Footer right-side notice | *(not specified by official guide — house style)* | "NOT TO BE SHARED EXTERNALLY" | "NOT TO BE SHARED EXTERNALLY" | "INTERNAL DRAFT · NOT FOR EXTERNAL USE" | — |
+### `kong-revealjs-theme` — one real fix (code font), rest is intentional
+`theme/kong.css` opens with: *"Reproduced from the official 'Kong \[Theme] template slides 2026 \[dark]' deck."* That's a real official source, not a guess — so its `--kong-bg: #07120A`, `--kong-border-green: #1F3D1F`, `--kong-card-dark: #0D1A0E` were left **unchanged**. These sit a shade lighter than the guidelines PDF's flat `#000F06` because the actual template uses a near-black (`#000000`) content panel with a dark-green *frame* around it — the frame color needs to read as distinct from pure black on screen, which the guidelines PDF's single flat swatch doesn't have to account for. Overwriting it to `#000F06` would likely make the frame invisible against the panel. A code comment now points to `kong-branding/references/colors.md` so this isn't mistaken for drift again.
 
-Everything agrees on the accent `#CCFF00` and on Funnel Sans as the base typeface — those were never in question. The drift is concentrated in the *dark* end of the palette (three different "near-black-green" values across four skills) and in typefaces the official 2026 guide doesn't actually specify (Funnel Display, Urbanist, JetBrains Mono, Fira Code) — those were presumably reasonable choices at the time, made before this brand refresh existed or without the official guide to check against.
+What *was* wrong: the code block font-family was `'JetBrains Mono', 'Fira Code'` — neither is Kong's typeface. The official guide is unambiguous that **Roboto Mono** is the code typeface, and nothing about this deck theme suggested JetBrains Mono was an intentional substitution (unlike the dark-green shades, there's no "reproduced from an official deck" note attached to it). Fixed: swapped to `'Roboto Mono'`, added it to the Google Fonts `@import`, and added a `--kong-font-button: 'Space Grotesk', ...` variable applied to the CTA-style badge/pill classes (`.kong-badge`, `.kong-pt-pill`, `.kong-gi-eyebrow`) per the guide's explicit "buttons/CTAs only" role for Space Grotesk.
 
-## Known gaps (not drift, just broken)
+### `kong-pptx` — the dangling reference is now real
+`SKILL.md` pointed at `references/kong-theme.md` for the full palette/font stack/footer code, but that file never existed. Created it, carrying forward the palette this skill already documented in `SKILL.md` (dark theme near-black `000000`/light theme warm gray-green `D7DED4` — pptx-specific choices for slide-background contrast, left as-is for the same "reproduced from a real template, not a guess" reasoning as the reveal theme) plus the confirmed Funnel Display / Urbanist supplementary faces and the `addKongFooter()` helper the SKILL.md already referenced but never defined. Points to `kong-branding` for the base logos/tokens.
 
-- `kong-pptx/SKILL.md` instructs the reader to open `references/kong-theme.md` for the full palette/font stack/footer code/`addKongFooter()` helper — **that file doesn't exist** in `modules/apps/cli/claude-code/config/skills/kong-pptx/`. Fix: either create it as a thin pointer to `kong-branding`'s tokens, or update the pointer.
-- `kong-doc-build`'s `assets/brand/MANIFEST.json` (plugin marketplace copy) is a schema/comment with no actual image entries populated — a logo/asset registry with nothing registered.
+### `renewal-projection` — internal inconsistency, now fixed
+Its `deck-build.md` palette object used `border: "1A3A1A"`, but the skill it explicitly says it inherits from (`kong-revealjs-theme` / `kong-pptx`) uses `1F3D1F`. This wasn't drift from the official guide (the guide doesn't specify a border color at all) — it was two of *your own* skills disagreeing with each other despite one claiming to borrow from the other. Fixed: aligned to `1F3D1F` to match `kong-revealjs-theme`'s value, since that's the skill renewal-projection cites as its source.
 
-## Suggested alignment checklist (future pass, not done here)
+### `kong-doc-build` — out of scope, different repository
+Lives in the `kong-skills` plugin marketplace (`Kong/kong-skills` on GitHub per `cfg/plugin-config.nix`), not in this `nixerator` repo. Its `assets/brand/MANIFEST.json` is still an empty registry with no images populated — flagged here for whoever owns that repo, not fixed in this pass since it isn't this repo's code to change.
 
-1. Point `kong-revealjs-theme/theme/kong.css`, `kong-pptx/SKILL.md`'s inline palette, and `renewal-projection/references/deck-build.md`'s JS palette object at `kong-branding/assets/tokens/kong-brand.json` (or copy the resolved values in, with a comment citing this file) rather than each carrying its own numbers.
-2. Reconcile the dark-base and border-green values to the official `#000F06` / neutral ramp, or explicitly document why the deck skills intentionally use a darker/more saturated variant for on-screen contrast (a real possibility — `#000F06` at large fill can look flat on some displays, and `07120A`/`0D1A0E` may have been a considered adjustment, not a mistake). Don't silently overwrite without checking whether that was intentional.
-3. Copy or symlink the logomark/wordmark PNGs from `kong-branding/assets/logos/` into the deck skills' `assets/images/` if they should be pulling from a single source rather than maintaining separate exports.
-4. Fix the dangling `kong-pptx/references/kong-theme.md` reference.
-5. Either populate `kong-doc-build`'s `MANIFEST.json` from this skill's logo set, or point it at this skill directly.
-6. Standardize the footer confidentiality notice wording across decks, or confirm the differences ("NOT TO BE SHARED EXTERNALLY" vs "INTERNAL DRAFT · NOT FOR EXTERNAL USE") are intentionally different for different document sensitivity levels — in which case document that as a house convention rather than drift.
+## Remaining open question
 
-None of this blocks using `kong-branding` today — it's additive. It just means an audit run with `scripts/brand-audit.py` against an *existing* Kong deck built with one of these older skills may flag values that were fine under the old internal convention but don't match the official 2026 guide. Use judgment: flag it, but don't treat every flagged hex as an error until you've checked this table.
+Neither `kong-pptx`'s near-black `000000` slide background nor `kong-revealjs-theme`'s `#07120A`/`#0D1A0E` panel/frame colors were forced to the guidelines PDF's flat `#000F06`. Both are plausibly deliberate on-screen adaptations backed by real templates, and changing them would risk visually altering decks already built with these themes for essentially no benefit (the guidelines PDF's swatch page is a print/summary reference, not a pixel-exact screen spec). If you have access to an actual current "Kong template slides 2026" Google Slides file, diffing its exported colors against these CSS variables would settle this definitively — until then, treat the difference as intentional, not a bug.

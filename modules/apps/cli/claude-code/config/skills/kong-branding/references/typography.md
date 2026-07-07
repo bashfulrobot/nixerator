@@ -2,7 +2,7 @@
 
 Source: Kong Brand Guidelines PDF, "Typography" section. Font binaries bundled at `assets/fonts/`, all SIL Open Font License (each family carries its own `OFL.txt`).
 
-## The three typefaces
+## The three canonical typefaces
 
 | Typeface | Role | Weights bundled |
 |---|---|---|
@@ -16,6 +16,15 @@ Google Fonts CDN, if you'd rather link than bundle:
 - `https://fonts.googleapis.com/css2?family=Funnel+Sans:ital,wght@0,300;0,400;0,700;0,800;1,400&display=swap`
 - `https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,700;1,400&display=swap`
 - `https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&display=swap`
+
+## Confirmed supplementary typefaces
+
+The public Brand Guidelines PDF only calls out the three faces above, but Kong's actual production artifacts use two more in specific supporting roles. Both are legitimate Google Fonts (verified live), and both are attested by real Kong-authored material — not an invention by any skill in this environment:
+
+- **Funnel Display** — a display cut of the Funnel family, used for large hero/headline moments (72px+) where a slightly more expressive letterform reads better than body-duty Funnel Sans at scale. Seen in `kong-revealjs-theme`'s CSS, which was reproduced from an official "Kong template slides 2026 [dark]" deck.
+- **Urbanist** — a secondary typeface used sparingly, confirmed present in the official Kong CS success-plan Google Slides template (`kong-success-plan-pptx/templates/kong-success-plan-template.pptx` — inspect its `ppt/slides/*.xml` directly if you want to see it in an authentic artifact).
+
+Treat these as legitimate options for their specific roles (large display headlines; occasional secondary emphasis), not as a license to freelance — Funnel Sans/Roboto Mono/Space Grotesk remain correct for everything the guidelines PDF actually covers. If you're unsure whether a given use is "display" enough to warrant Funnel Display, default to Funnel Sans ExtraBold instead.
 
 ## Type hierarchy
 

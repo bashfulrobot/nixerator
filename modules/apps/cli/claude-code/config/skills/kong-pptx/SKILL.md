@@ -66,72 +66,9 @@ Use when no template or reference presentation is available. Always apply the Ko
 
 ## Design Rules (Kong-Branded)
 
-The full Kong brand spec lives in [references/kong-theme.md](references/kong-theme.md). Here is the summary:
+The full Kong brand spec — palette, fonts, typography scale, footer bar code, logo assets, slide types, and things to avoid — lives in [references/kong-theme.md](references/kong-theme.md). Read it before creating any new presentation; don't rely on memory of a prior read, since it's the single place these values are maintained.
 
-### Core Palette
-
-**Dark theme (default):**
-- Background: `000000` (near-black)
-- Primary text: `FFFFFF` (white)
-- Accent: `CCFF00` (Kong Neon Green)
-- Secondary text: `AAB4BB` (silver)
-- Muted text: `8A8F89`
-- Card fills: `30352F`
-
-**Light theme:**
-- Background: `D7DED4` (warm gray-green)
-- Primary text: `42453E` (dark charcoal-green)
-- Accent: `CCFF00` (Kong Neon Green)
-- Secondary text: `737772`
-- Muted text: `666666`
-- Card fills: `42453E`
-
-### Fonts
-
-Primary family: **Funnel Sans** (SemiBold for titles, Medium for subheadings, Regular for body, Light for captions). Hero titles on title slides can use **Funnel Display**. Secondary: **Urbanist** (sparingly).
-
-### Typography Scale
-
-| Element | Size | Weight |
-|---------|------|--------|
-| Hero title | 60-72pt | Bold |
-| Slide title | 36pt | Bold |
-| Section label | 9-10pt | Bold, uppercase, accent color |
-| Subtitle | 22-24pt | Bold |
-| Body | 14-16pt | Regular |
-| Stats | 48-72pt | Bold, accent color |
-| Footer | 7-8pt | Light |
-
-### Layout Patterns
-
-Every content slide gets a **Kong footer bar** at y=5.27" with: Kong logo mark, "AI CONNECTIVITY" in green, "© Kong Inc.", confidentiality notice, and slide number. See kong-theme.md for the reusable `addKongFooter()` function.
-
-**Slide types to use:**
-- Title slide (hero text, Kong logo, subtitle, date, speaker)
-- Section divider (bold statement, one word highlighted in green)
-- Stats/metrics grid (large green numbers, muted descriptions)
-- Content slides (section label + title + body)
-- Numbered steps / values (1, 2, 3 in green with descriptions)
-- Timeline (horizontal milestones)
-- Closing / Thank You (contact info, Kong wordmark background)
-
-### Accent Color Usage
-
-The neon green `CCFF00` is the ONLY accent color. Use it for: key words in titles, stat numbers, section labels, icons, CTAs, and the Kong logo. Never introduce additional accent colors.
-
-### Avoid (Common Mistakes)
-
-- **Do not use generic color palettes** -- always use Kong colors
-- **Do not use Arial, Times, or other non-Kong fonts** as primary
-- **Do not repeat the same layout** -- vary columns, cards, and callouts across slides
-- **Do not center body text** -- left-align paragraphs and lists; center only titles
-- **Do not default to bullets on white** -- every slide needs visual elements
-- **Do not add underline accents under titles** -- hallmark of AI-generated slides
-- **Do not use stock photography** -- use solid backgrounds or branded imagery only
-- **Do not introduce secondary accent colors** beyond the Kong palette
-- **Do not use rounded rectangles with accent borders**
-- **Do not forget the Kong footer bar** on content slides
-- **Do not skip text box padding reset** -- set `margin: 0` when aligning text with shapes
+The one-line version: dark theme is near-black `000000` with `CCFF00` as the only accent and white/silver/muted text; light theme is warm gray-green `D7DED4` with dark charcoal-green text. Funnel Sans is the primary typeface everywhere except code (Roboto Mono) and CTAs (Space Grotesk). Base brand documentation (colors, full type system, logo files, trademark rules) lives in the `kong-branding` skill — `kong-theme.md` is this skill's pptx-specific application of it.
 
 ---
 
