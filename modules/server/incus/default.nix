@@ -112,7 +112,7 @@ in
         ];
         default = "btrfs";
         description = ''
-          Backing driver for the default storage pool. The qbert host root is
+          Backing driver for the default storage pool. The srv host root is
           ext4, so btrfs/zfs are created as a loop-backed pool (a single image
           file under /var/lib/incus) which still gives snapshots and
           copy-on-write clones that Incus and Terraform lean on. `dir` is the
@@ -312,8 +312,8 @@ in
     # Desktop launchers for the web UI. The local entry opens this host's daemon
     # over loopback (always works on the host). Each ui.remotes entry adds a
     # launcher for a peer's UI over Tailscale, so a workstation can reach srv's
-    # and qbert's UIs without leaving the desktop. The browser client certificate
-    # is declared in the preseed above; import ~/.config/incus/client.pfx into
+    # UI without leaving the desktop. The browser client certificate is
+    # declared in the preseed above; import ~/.config/incus/client.pfx into
     # the browser once (render-secrets materializes it from 1Password).
     environment.systemPackages =
       lib.optional (cfg.ui.enable && cfg.ui.desktopEntry) (mkIncusLauncher {

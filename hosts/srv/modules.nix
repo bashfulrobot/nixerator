@@ -158,7 +158,7 @@
       ip6Provider = "none";
     };
 
-    # Virtualisation on srv moved from libvirt/KVM to Incus (matching qbert and
+    # Virtualisation on srv moved from libvirt/KVM to Incus (matching
     # donkeykong's direction). srv had zero VM domains defined, so there was
     # nothing to migrate; the old server.kvm block (libvirtd + virt-manager +
     # iptables NAT routing for virbr1-7 and proxy ARP on ens2) is retired. Incus
