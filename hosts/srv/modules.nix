@@ -33,7 +33,7 @@
     # the `nixerator/cloudflare-ddns` 1Password item; enabled below under
     # `server.cloudflareDdns`.
     ../../modules/server/cloudflare-ddns
-    ../../modules/server/incus
+    ../../modules/server/kvm
     ../../modules/server/netboot-xyz
     ../../modules/server/nfs
     ../../modules/server/noclaw
@@ -100,8 +100,9 @@
   # can reach k8s VM IPs (192.168.168.x) via the tailnet when off the
   # physical LAN. Once applied, approve the route in the Tailscale admin
   # console (or via ACL autoApprovers). useRoutingFeatures="server" enables
-  # IP forwarding and the firewall bypass; the /24 main-table route in
-  # configuration.nix directs forwarded packets to macvlan children via mv-k8s.
+  # IP forwarding and the firewall bypass; forwarded packets reach VMs
+  # directly over br0 (a true bridge, unlike the old Incus macvlan setup,
+  # needs no sibling device or policy-routing workaround for this).
   services.tailscale = {
     useRoutingFeatures = "server";
     extraSetFlags = [ "--advertise-routes=192.168.168.0/23" ];
@@ -158,31 +159,12 @@
       ip6Provider = "none";
     };
 
-    # Virtualisation on srv moved from libvirt/KVM to Incus (matching
-    # donkeykong's direction). srv had zero VM domains defined, so there was
-    # nothing to migrate; the old server.kvm block (libvirtd + virt-manager +
-    # iptables NAT routing for virbr1-7 and proxy ARP on ens2) is retired. Incus
-    # brings its own managed NAT bridge and supervises both system containers and
-    # QEMU VMs, so the manual routing is gone. Incus also switches the host
-    # firewall to nftables (see modules/server/incus/default.nix).
-    incus = {
-      enable = true;
-      ui.enable = true;
-      # srv is headless: no desktop launcher (the default suits workstations).
-      ui.desktopEntry = false;
-      storage.driver = "btrfs";
-      # Loop-backed pool image on the nvme root. The 3.6T data-disk is a slow USB
-      # disk, so it is deliberately NOT used for VM/container storage.
-      storage.size = "100GiB";
-      # Clear of the LAN (192.168.168.0/23), the docker bridge (172.17+), and the
-      # retired libvirt ranges, so the managed bridge coexists with everything
-      # docker is still running.
-      network.ipv4Address = "10.100.0.1/24";
-      # terraform-talos names each cluster bridge tbr-<cluster>; the default
-      # prefix trusts them all via one wildcard firewall rule, so a future prod
-      # cluster on srv needs no change here.
-      trustedBridgePrefix = "tbr-";
-    };
+    # Virtualisation on srv moved back from Incus to libvirt/KVM (matching
+    # qbert's direction): Talos VMs need real QEMU block-device semantics and
+    # a working qemu-guest-agent channel that Incus VMs don't provide. darkstar
+    # attaches to br0 (see configuration.nix), an existing Linux bridge — no
+    # NAT-network options needed here.
+    kvm.enable = true;
 
     # TEMPORARILY DISABLED for the Incus migration. blockBridges installs its
     # PREROUTING RETURN rules via networking.firewall.extraCommands, which the
