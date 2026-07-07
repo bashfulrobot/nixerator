@@ -33,11 +33,29 @@
       "127.0.0.1" = [ "localhost" ];
     };
 
-    interfaces.enp3s0 = {
+    # enp3s0 is now a bridge member, not directly addressed — br0 carries the
+    # host's L3 config instead. libvirt VMs (darkstar's Talos nodes) attach to
+    # br0 directly, appearing as first-class LAN devices, same as the previous
+    # Incus macvlan setup. Unlike macvlan, a real bridge lets the host talk to
+    # its own bridged VMs directly, so the previous mv-k8s macvlan sibling +
+    # policy-routing workaround (needed only to work around that macvlan
+    # limitation) is retired entirely below.
+    bridges."br0".interfaces = [ "enp3s0" ];
+
+    interfaces.enp3s0.useDHCP = false;
+    interfaces."br0" = {
       useDHCP = false;
       ipv4.addresses = [
         {
           address = "192.168.168.1";
+          prefixLength = 23;
+        }
+        # NFS server address for K8s CSI provisioning (nfs-darkstar
+        # StorageClass). Previously bound to the mv-k8s macvlan sibling;
+        # now lives directly on the bridge since the host can reach VMs
+        # across br0 without a sibling device.
+        {
+          address = "192.168.169.200";
           prefixLength = 23;
         }
       ];
@@ -45,24 +63,7 @@
 
     defaultGateway = {
       address = "192.168.169.1";
-      interface = "enp3s0";
-    };
-
-    # Macvlan sibling for K8s NFS access. Macvlan children (K8s VMs) cannot ARP-resolve the
-    # parent NIC's IP (192.168.168.1) due to kernel macvlan isolation. A macvlan sibling on
-    # the same parent gets its own MAC and CAN communicate peer-to-peer with the K8s VMs.
-    macvlans."mv-k8s" = {
-      interface = "enp3s0";
-      mode = "bridge";
-    };
-
-    interfaces."mv-k8s" = {
-      ipv4.addresses = [
-        {
-          address = "192.168.169.200";
-          prefixLength = 23;
-        }
-      ];
+      interface = "br0";
     };
 
     # Open NFS ports for the K8s subnet. NixOS does not auto-open these.
@@ -74,41 +75,6 @@
       111
       2049
     ];
-
-    # Source-based routing: replies originating from 192.168.169.200 must leave via mv-k8s so
-    # the response MAC is the macvlan sibling's MAC. Without this, Linux routes NFS replies via
-    # enp3s0 (the parent MAC), which macvlan children silently drop. The ip rule here covers
-    # the NFS server reply direction. The mv-k8s-routes unit adds a /24 main-table route that
-    # covers the forward direction (srv→k8s), so kubectl and ping also work.
-    localCommands = ''
-      ip rule add from 192.168.169.200 lookup 200 priority 100 2>/dev/null || true
-      ip rule add iif tailscale0 lookup 200 priority 99 2>/dev/null || true
-    '';
-  };
-
-  # Routing for mv-k8s: runs after network-setup so mv-k8s has its address.
-  systemd.services."mv-k8s-routes" = {
-    description = "Populate routing tables for mv-k8s macvlan sibling";
-    after = [ "network-setup.service" ];
-    requires = [ "network-setup.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      # Table 200: used by the ip rule "from 192.168.169.200 lookup 200" so that
-      # NFS reply packets (src 192.168.169.200) leave via mv-k8s.
-      ${pkgs.iproute2}/bin/ip route replace 192.168.168.0/23 dev mv-k8s src 192.168.169.200 table 200
-      ${pkgs.iproute2}/bin/ip route replace default via 192.168.169.1 dev enp3s0 table 200
-
-      # Main table: route all 192.168.168.x traffic via mv-k8s. A /24 beats the
-      # /23-via-enp3s0, so packets to macvlan children (VIP .9, CPs .10-.12,
-      # workers .20-.21, Cilium LB .240/28) leave from the sibling MAC, not the
-      # parent MAC (which children silently drop). 192.168.168.1 (srv) is a local
-      # address and is unaffected.
-      ${pkgs.iproute2}/bin/ip route replace 192.168.168.0/24 dev mv-k8s src 192.168.169.200
-    '';
   };
 
   # Localization (from globals)
