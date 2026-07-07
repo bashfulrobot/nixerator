@@ -1,6 +1,6 @@
 {
   "files": {
-    "CLAUDE.md": "f59a476d92cf514c97f296c56555708b0304e2368a92f1f7205614f20b5469d7",
+    "CLAUDE.md": "d987ec865d7774875edebbb5c6443730ea3a2222fc5d7cb84c55646ae2232290",
     "agents/api.md": "2fc8f227733d7252a22ff122b48f3d31a9a2e864022419f0b2fc860fe34832f7",
     "agents/bash.md": "bc2d02d4960eea6f2c5b6e8269d7a3e28778a878ed45b9c932806c605aba1ff0",
     "agents/compose-desktop.md": "5c32940be194f5ccbc1178144aaac3f844592aecc65b2b3312030b6986434d98",
@@ -130,6 +130,8 @@
     "skills/svg-specialist/references/animation.md": "bddd06587ee411def0f9aa515b4b725538090354b270ad7b180310ad05998c23",
     "skills/svg-specialist/references/optimization.md": "18d7df7eaab4533401fab389ff1d4362260bee3d1228c3ea1382c313c6b1c3ee",
     "skills/svg-specialist/references/styling-and-filters.md": "5ab009646ddeac8058a722762cbe6078f5c7e822b474f2b2db73c3e357444be1",
+    "skills/tableau/SKILL.md": "f0d303b5950b49d710fb920526d4eba601a74faf78679c9cc02e99fff828b4b3",
+    "skills/tableau/references/content-map.md": "8d94b2d963d6bb4fb348abb3da2e2845f94b94fc4a30b26cd8bf949ca66ddd67",
     "skills/todoist-cli/SKILL.md": "f603be436f60116e1a53a29e429a70d77fbd8c09070baf93a4f54c9426315154",
     "skills/wave-invoicing/SKILL.md": "731504e7d9bffc9a87ab1b9024aeee6fab4cb25e9ffef05800cde606875836da",
     "skills/wave-invoicing/config.json": "a0b149480e2b6b99b8b1f02b9519a9bffa49500974f5646085ee87f42388943e",
