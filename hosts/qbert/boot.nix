@@ -11,7 +11,6 @@
       systemd-boot = {
         enable = true;
         consoleMode = "max"; # Ensure Windows and other OSes are found in boot menu
-        netbootxyz.enable = false;
       };
     };
 
@@ -41,4 +40,6 @@
       "bluetooth"
     ];
   };
+
+  system.resilient-boot.enable = true;
 }
