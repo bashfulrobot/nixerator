@@ -60,7 +60,7 @@ When I say "git cleanup" (or an unambiguous equivalent, e.g. "clean up the git s
 
 - This phrase is scoped to whatever we were just working on, not a sweep of every stale worktree or open PR in the repo. If it's ambiguous which branch I mean, ask.
 - Outside of this phrase, the default still holds: push the branch and open a PR, but stop there, don't merge unprompted.
-- **Background sessions still cannot merge, this phrase doesn't lift that.** If you're running as a background job when I say this, do everything through step 1, then hand me the exact `gh pr merge` command instead of merging yourself or silently skipping it.
+- **Background sessions still cannot merge, this phrase doesn't lift that.** If you're running as a background job when I say this, do everything through step 1, then hand me the exact `gh pr merge` command instead of merging yourself or silently skipping it. Pipe that command through `wl-copy` (best-effort, ignore failures) so it's on my clipboard, and still print it as plain text in the reply — the clipboard is local to whatever machine you're running on, so if I'm remote (phone, another device) the printed text is the only copy I can actually use.
 
 ### Merge Conflicts (mergiraf)
 
