@@ -94,30 +94,46 @@ same workbook. `references/content-map.md` already tells you which views
 are confirmed to return real data vs. confirmed dashboard shells for the
 Kong 360 and Book of Business workbooks.
 
-**4. A 400 on a specific sheet usually means it needs a filter -- and
-`Account Name` is the confirmed field caption to try first.** Some sheets
-(e.g. `Firmographics` in Kong360 Summary) are driven by a dashboard
-action or parameter and won't render standalone. The `Account 360`
-workbook (see the content map) uses one global filter across all its
-tabs, and `Account Name` is confirmed live -- passing a nonexistent value
-via `viewFilters: {"Account Name": "..."}` returned zero rows instead of
-the default dataset, proving the field was recognized and applied, not
-ignored. Try `Account Name` on any unfamiliar parameter-driven view
-before guessing at other field names. If it doesn't resolve the account
-you need, the underlying doc for Account 360 (see content map) also
-mentions `SFDC Account ID`, `Domain`, and `Konnect Organization ID` as UI
-filter options, though those haven't been independently confirmed against
-the API's exact caption yet.
+**4. A 400 on a specific sheet usually means it needs an account
+identifier -- and for Account 360, that's the `Account ID Parameter`
+Tableau Parameter, not an `Account Name` data filter.** Some sheets (e.g.
+`Firmographics` in Kong360 Summary) are driven by a dashboard action or
+parameter and won't render standalone. The `Account 360` workbook (see
+the content map) uses one global control across all its tabs -- **a
+Tableau Parameter named `Account ID Parameter`, which takes the raw SFDC
+Account ID**, confirmed from a live dashboard URL
+(`?Account%20ID%20Parameter=<id>`) and verified end-to-end against a real
+account (returned data included the account name and a known contact
+verbatim). Pass it the same way as a regular filter --
+`viewFilters: {"Account ID Parameter": "<SFDC Account ID>"}` -- the
+MCP tool doesn't distinguish parameters from filters. **`Account Name`
+does NOT work here** -- every attempt with real name variants or the
+SFDC Account ID under that key returned zero rows; an earlier version of
+this doc claimed otherwise based on a false-positive test (a nonexistent
+value also returned zero, but because the account wasn't in scope under
+that key, not because the field caption was right). If `Account ID
+Parameter` doesn't resolve the account you need, get the live dashboard
+URL from the user or the Tableau UI and read the actual parameter/filter
+name off the query string rather than guessing at more field-name
+variants -- `SFDC Account ID`, `Domain`, and `Konnect Organization ID`
+mentioned in the companion doc as alternative UI filter options are
+unverified via the API and may have the same parameter-vs-filter trap.
 
-**5. Row-level security scopes some content to the querying identity.**
-`Churn_Risk_Score` in Kong360 Churn Risk returned exactly one row with no
-filters applied -- almost certainly the account(s) tied to whoever the
-PAT belongs to, not the full customer base. Assume "Book of Business" and
-similar my-portfolio dashboards behave the same way. Don't be surprised
-if a request to look up a customer *outside* the current user's book
-returns nothing from these particular views -- that's the security model
-working as intended, not a bug. If you need another CSM's book, that's a
-different credential, not a different query.
+**5. Row-level security scopes some content to the querying identity --
+and on Kong360 Churn Risk, it isn't overridable at all.** `Churn_Risk_Score`,
+`Churn_Risk_Attributes`, and `Churn_Risk_Comments` in Kong360 Churn Risk
+return exactly one row -- the account tied to whoever the PAT belongs to
+-- regardless of what you pass as `Account Name`: a real value, a made-up
+nonexistent value, and no filter at all all return byte-identical output.
+Verify this with a nonexistent-value test before trusting a non-empty
+result from these three views as being about the account you asked for.
+Assume "Book of Business" and similar my-portfolio dashboards behave
+similarly (RLS-scoped), though Account 360's `Account ID Parameter` (rule
+4) *does* successfully override the default for a different named
+account -- so RLS-scoping and "filter doesn't work" aren't the same
+failure mode, and it's worth testing which one you're hitting. If you
+need another CSM's book, that's a different credential, not a different
+query.
 
 **6. "No X found" from Pulse tools can mean genuine absence, not an
 error.** `list-all-pulse-metric-definitions` and
@@ -152,9 +168,10 @@ extracted from its URL) rather than a generic web fetch, which will 401.
 - **A specific customer's account health/renewal/consumption/churn/
   contracts/support/PS engagement** -> the **Account 360** workbook
   (`references/content-map.md`) is the primary, actively-maintained
-  source -- start there. It's one workbook, one global filter
-  (`viewFilters: {"Account Name": "<customer>"}`, confirmed working --
-  see rule 4), and one tab per topic (Active Contract, Bookings &
+  source -- start there. It's one workbook, one global control
+  (`viewFilters: {"Account ID Parameter": "<SFDC Account ID>"}`, a
+  Tableau Parameter, confirmed working -- see rule 4; `Account Name`
+  does NOT work), and one tab per topic (Active Contract, Bookings &
   Opportunities, Konnect Subscription, Konnect Plus, Kong Enterprise
   On-Prem, Konnect Capacity Consumption, Account Engagement, Support,
   Customer Health & Risks, Professional Services). Only fall back to the
