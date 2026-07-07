@@ -68,5 +68,8 @@
   },
   "onepassword": {
     "serviceAccountToken": "{{ op://nixerator/6k3rotvuocczmaxrquy62yl7mi/credential }}"
+  },
+  "grafana": {
+    "dashboardsToken": "{{ op://automation/grafana-cloud-dashboards/token }}"
   }
 }

@@ -40,6 +40,7 @@ in
           set -l _secrets ~/.config/nixos-secrets/secrets.json
           if test -f $_secrets && command -q jq
             set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
+            set -gx GRAFANA_TOKEN (jq -r '.grafana.dashboardsToken' $_secrets)
           end
         '';
 
