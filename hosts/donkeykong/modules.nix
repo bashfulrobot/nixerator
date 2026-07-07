@@ -1,4 +1,4 @@
-{ globals, ... }:
+{ ... }:
 
 {
   apps.gui = {
@@ -75,23 +75,14 @@
   server = {
     # Virtualisation on donkeykong moved from libvirt/KVM to Incus. The old
     # server.kvm block (libvirtd + virt-manager + iptables NAT routing for
-    # virbr1-7 and proxy ARP on wlp0s0f3) is retired; srv is on Incus too now.
-    # Incus brings its own managed NAT bridge and runs both system containers
-    # and QEMU VMs, so the manual routing is gone.
+    # virbr1-7 and proxy ARP on wlp0s0f3) is retired. Incus brings its own
+    # managed NAT bridge and runs both system containers and QEMU VMs, so the
+    # manual routing is gone.
     incus = {
       enable = true;
       ui.enable = true;
       storage.driver = "btrfs";
       network.ipv4Address = "10.100.0.1/24";
-      # Launcher for the srv Incus UI over Tailscale (donkeykong serves its
-      # own locally).
-      ui.remotes = [
-        {
-          name = "srv";
-          label = "Incus (srv)";
-          address = globals.hosts.srv.tailscale_ip;
-        }
-      ];
     };
   };
 }
