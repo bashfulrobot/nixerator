@@ -147,30 +147,37 @@ in
       )
     );
 
-    networking = lib.mkMerge [
-      # Trust every per-cluster libvirt NAT network sharing the naming
-      # convention with one wildcard rule, so a new Terraform NAT-mode
-      # cluster (e.g. vbr-blackhole) works without editing this module.
-      # Mirrors modules/server/incus's trustedBridgePrefix for the same
-      # underlying reason: nixos-fw's default-drop input policy silently
-      # eats DHCP/DNS replies on the bridge unless the interface is
-      # explicitly trusted.
-      {
-        firewall.extraInputRules = lib.optionalString (cfg.trustedBridgePrefix != "") ''
-          iifname "${cfg.trustedBridgePrefix}*" accept comment "trust libvirt per-cluster NAT networks"
-        '';
-      }
+    networking = {
+      nat = lib.mkIf cfg.routing.enable {
+        enable = true;
+        inherit (cfg.routing) externalInterface;
+        # Note
+        # - for every routed network created in Terraform, you need to add a new internal interface here
+        # - and a static route needs to be added to the LAN router for the new network
+        inherit (cfg.routing) internalInterfaces;
+      };
 
-      (lib.mkIf cfg.routing.enable {
-        nat = {
-          enable = true;
-          inherit (cfg.routing) externalInterface;
-          # Note
-          # - for every routed network created in Terraform, you need to add a new internal interface here
-          # - and a static route needs to be added to the LAN router for the new network
-          inherit (cfg.routing) internalInterfaces;
-        };
-        firewall = {
+      # mkMerge (not a plain assignment) because networking.firewall gets two
+      # independent contributions here: the unconditional trustedBridgePrefix
+      # wildcard rule below, and the routing.enable-gated block (allowPing,
+      # allowedTCPPorts, extraCommands, etc.) further down. Writing both as
+      # plain `firewall = { ... }` attrsets would be a duplicate-attribute
+      # definition error.
+      firewall = lib.mkMerge [
+        # Trust every per-cluster libvirt NAT network sharing the naming
+        # convention with one wildcard rule, so a new Terraform NAT-mode
+        # cluster (e.g. vbr-blackhole) works without editing this module.
+        # Mirrors modules/server/incus's trustedBridgePrefix for the same
+        # underlying reason: nixos-fw's default-drop input policy silently
+        # eats DHCP/DNS replies on the bridge unless the interface is
+        # explicitly trusted.
+        {
+          extraInputRules = lib.optionalString (cfg.trustedBridgePrefix != "") ''
+            iifname "${cfg.trustedBridgePrefix}*" accept comment "trust libvirt per-cluster NAT networks"
+          '';
+        }
+
+        (lib.mkIf cfg.routing.enable {
           enable = true;
           allowPing = true;
           allowedTCPPorts = [ ]; # Empty since we're allowing all traffic
@@ -181,9 +188,9 @@ in
             iptables -A OUTPUT -j ACCEPT
             iptables -A FORWARD -j ACCEPT
           '';
-        };
-      })
-    ];
+        })
+      ];
+    };
 
   };
 }
