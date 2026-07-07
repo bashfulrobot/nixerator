@@ -38,7 +38,7 @@ Everything else Kong-branded — web pages, HTML/CSS/SVG, images, social graphic
 2. **Pull the machine-readable tokens** rather than retyping hex codes or font names by hand:
    - `assets/tokens/kong-brand.css` — `:root` custom properties + `@font-face` declarations pointing at the bundled fonts. Drop this into an HTML/CSS project directly.
    - `assets/tokens/kong-brand.json` — the same data as structured tokens, for anything that isn't CSS (a design tool, a codegen step, a non-web target).
-3. **Pull the logo.** `assets/logos/for-light-backgrounds/` or `assets/logos/for-dark-backgrounds/` — pick by the actual background color behind the logo, not your overall theme. SVG for anything digital, PNG as a fallback, EPS/AI for print handoff. Full variant guide: [references/logo-usage.md](references/logo-usage.md).
+3. **Pull the logo.** `assets/logos/for-light-backgrounds/` or `assets/logos/for-dark-backgrounds/` — pick by the actual background color behind the logo, not your overall theme. SVG for anything digital, PNG as a fallback, EPS/AI for print handoff. Building a deck/slide footer instead? Use `assets/logos/deck-optimized/` — small, pre-sized raster exports proven to render correctly in Kong-branded decks. Full variant guide: [references/logo-usage.md](references/logo-usage.md).
 4. **Respect the constraints that make it read as Kong, not "dark background with a green accent":**
    - One accent, used once (or once per major section) — not on every heading.
    - Funnel Sans everywhere except code (Roboto Mono) and buttons (Space Grotesk).

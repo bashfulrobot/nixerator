@@ -16,12 +16,17 @@ The press kit's own organization is preserved (it splits by *what background you
 ```
 assets/logos/
 ├── for-light-backgrounds/{svg,png,eps,ai}/   # logos meant to sit on a light surface
-└── for-dark-backgrounds/{svg,png,eps,ai}/    # logos meant to sit on a dark surface
+├── for-dark-backgrounds/{svg,png,eps,ai}/    # logos meant to sit on a dark surface
+└── deck-optimized/                           # pre-sized raster exports, see below
 ```
 
-Each folder has `Kong-Logomark[-transparent]` and `Kong-Logotype[-transparent]` in each format, plus the `secondary-*-transparent` PNGs and the `primary-*-BG` combined lockups in the light-background SVG/PNG set. Prefer SVG for anything digital (scales cleanly, small file size); PNG when the target doesn't support vectors; EPS/AI only for print production handoff.
+Each `for-*-backgrounds` folder has `Kong-Logomark[-transparent]` and `Kong-Logotype[-transparent]` in each format, plus the `secondary-*-transparent` PNGs and the `primary-*-BG` combined lockups in the light-background SVG/PNG set. Prefer SVG for anything digital (scales cleanly, small file size); PNG when the target doesn't support vectors; EPS/AI only for print production handoff.
 
 Pick the folder by the actual background color behind the logo, not by your product's overall dark/light theme — a logo on a white card inside an otherwise-dark page still needs the light-background version.
+
+### `deck-optimized/` — for slide/deck footers and title-slide lockups
+
+`kong-wordmark.png` (512×164), `kong-mark.png` (121×108), `kong-mark-footer.png` (121×108) — small, pre-sized raster exports proven to render correctly in Kong-branded decks (footer bars, title-slide lockups, corner marks). These aren't fresh press-kit exports; they're the exact files `kong-revealjs-theme` bundles in its own `theme/assets/images/` for its self-contained render pipeline, published here as well so `kong-pptx` and `renewal-projection` have a proper shared location to point at instead of reaching into another skill's internal assets folder. If Kong ever updates the logo, refresh both copies together — `kong-revealjs-theme`'s theme payload must stay self-contained (it gets copied wholesale into a working directory to build a deck, so it can't depend on another skill's folder at build time), while everything else should point here.
 
 ## Themes
 

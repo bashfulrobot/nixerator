@@ -59,7 +59,7 @@ All five are legitimate Google Fonts confirmed in Kong's own production template
 
 ## Logo assets
 
-`kong-pptx` doesn't bundle its own logo images — use the wordmark/mark PNGs already vendored in `kong-revealjs-theme/theme/assets/images/` (`kong-wordmark.png`, `kong-mark.png`, `kong-mark-footer.png`), which are pre-sized raster exports proven to work in decks. If you need a size or format those don't cover, the vector originals are in `kong-branding/assets/logos/` (SVG/PNG/EPS/AI, light and dark background variants) — render from there instead of asking the user for a logo file.
+`kong-pptx` doesn't bundle its own logo images — use the wordmark/mark PNGs in `kong-branding/assets/logos/deck-optimized/` (`kong-wordmark.png` 512×164, `kong-mark.png` 121×108, `kong-mark-footer.png` 121×108), pre-sized raster exports proven to work in decks. If you need a size or format those don't cover, the vector originals are in `kong-branding/assets/logos/for-light-backgrounds/` and `for-dark-backgrounds/` (SVG/PNG/EPS/AI) — render from there instead of asking the user for a logo file.
 
 ## Footer bar
 
