@@ -39,6 +39,7 @@
     ../../modules/server/noclaw
     ../../modules/server/postgres
     ../../modules/system/caddy
+    ../../modules/system/resilient-boot
     ../../modules/system/ssh
   ];
 
@@ -107,6 +108,11 @@
   };
 
   # System modules
+  # Note: this is unrelated to `server.netbootXyz` below (a self-hosted
+  # netboot.xyz admin UI, currently disabled). This enables the systemd-boot
+  # loader's own netboot.xyz menu entry (chainloads netboot.xyz over the
+  # network), one of three features under system.resilient-boot.
+  system.resilient-boot.enable = true;
   system.ssh.enable = true;
   # ssh-agent is managed by `keychain` (see hosts/srv/home.nix) so it
   # persists across SSH sessions on this headless box. Do NOT also set

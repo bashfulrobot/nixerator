@@ -1,6 +1,6 @@
 { pkgs, ... }:
 
-# Boot configuration for qbert with bcachefs (no encryption)
+# Boot configuration for qbert with ext4 (no encryption)
 
 {
   # Boot configuration
@@ -11,7 +11,6 @@
       systemd-boot = {
         enable = true;
         consoleMode = "max"; # Ensure Windows and other OSes are found in boot menu
-        netbootxyz.enable = false;
       };
     };
 

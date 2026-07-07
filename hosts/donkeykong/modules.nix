@@ -69,6 +69,8 @@
   # in modules/system/nix (plus cache.nixos.org) are used.
   system.qbert-cache.enable = false;
 
+  system.resilient-boot.enable = true;
+
   # Server modules
   server = {
     # Virtualisation on donkeykong moved from libvirt/KVM to Incus, matching
