@@ -73,9 +73,9 @@
     "dashboardsToken": "{{ op://automation/grafana-cloud-dashboards/token }}"
   },
   "tableau": {
-    "server": "{{ op://nixerator/Tableau PAT/hostname }}",
-    "siteName": "{{ op://nixerator/Tableau PAT/Site Name }}",
-    "patName": "{{ op://nixerator/Tableau PAT/username }}",
-    "patValue": "{{ op://nixerator/Tableau PAT/credential }}"
+    "server": "{{ op://nixerator/Tableau-PAT/hostname }}",
+    "siteName": "{{ op://nixerator/Tableau-PAT/Site-Name }}",
+    "patName": "{{ op://nixerator/Tableau-PAT/username }}",
+    "patValue": "{{ op://nixerator/Tableau-PAT/credential }}"
   }
 }

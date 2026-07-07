@@ -150,7 +150,7 @@ let
     # Self-hosted/local (PAT-based) mode, not the hosted OAuth mcp.tableau.com
     # endpoint, matching the Claude Desktop setup already in use against
     # Kong's Tableau Cloud site. All four values (server, site, PAT name/value)
-    # live on the "Tableau PAT" 1Password item.
+    # live on the "Tableau-PAT" 1Password item.
     #
     # Workstation-only, same as chrome-devtools/playwright above: `npx -y
     # @tableau/mcp-server` fetches and executes npm code at run time, and
