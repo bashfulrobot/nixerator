@@ -122,9 +122,10 @@ in
     # Open the PostgreSQL port only to the configured CIDRs. Uses
     # extraInputRules (nftables) rather than allowedTCPPorts so that the
     # firewall enforces the same CIDR list as pg_hba.conf instead of opening
-    # the port globally. Requires nftables to be active (Incus forces this on
-    # srv). Non-allowedCIDRs sources get an explicit reject so they see
-    # "connection refused" rather than a silent timeout.
+    # the port globally. Requires nftables to be active (forced on by
+    # whichever virtualisation module — server.incus or server.kvm — is
+    # enabled on the host). Non-allowedCIDRs sources get an explicit reject so
+    # they see "connection refused" rather than a silent timeout.
     networking.firewall.extraInputRules = lib.mkIf (cfg.allowedCIDRs != [ ]) (
       lib.concatMapStrings (
         cidr:
