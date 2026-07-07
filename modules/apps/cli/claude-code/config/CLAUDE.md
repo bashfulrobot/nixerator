@@ -50,6 +50,18 @@ sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 - No mentions of Claude, Anthropic, AI, or "generated" in commit messages, PR bodies, or issue comments.
 - The user's git identity is the sole author.
 
+### Git Cleanup (phrase-triggered)
+
+When I say "git cleanup" (or an unambiguous equivalent, e.g. "clean up the git stuff", "wrap this branch up"), treat it as my standing, explicit authorization to, in order:
+
+1. Make sure the current work is committed and pushed, opening a PR if one doesn't exist yet.
+2. Merge that PR into `main` (squash, delete the remote branch). This phrase itself is the explicit request that satisfies "ask before merging" — don't re-confirm.
+3. Remove the worktree(s) and local branch(es) tied to that work.
+
+- This phrase is scoped to whatever we were just working on, not a sweep of every stale worktree or open PR in the repo. If it's ambiguous which branch I mean, ask.
+- Outside of this phrase, the default still holds: push the branch and open a PR, but stop there, don't merge unprompted.
+- **Background sessions still cannot merge, this phrase doesn't lift that.** If you're running as a background job when I say this, do everything through step 1, then hand me the exact `gh pr merge` command instead of merging yourself or silently skipping it.
+
 ### Merge Conflicts (mergiraf)
 
 `mergiraf` is installed globally as a syntax-aware merge driver and runs automatically for every `git merge`, `rebase`, `cherry-pick`, `revert`, and `stash pop` on supported file types (Nix, Kotlin, TS/JS, Go, Rust, Python, TOML, YAML, JSON, HCL, Markdown, etc. — full list in `~/.config/git/attributes`). Conflict style is `diff3` so mergiraf can read all three sides.
