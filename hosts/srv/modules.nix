@@ -100,9 +100,10 @@
   # can reach k8s VM IPs (192.168.168.x) via the tailnet when off the
   # physical LAN. Once applied, approve the route in the Tailscale admin
   # console (or via ACL autoApprovers). useRoutingFeatures="server" enables
-  # IP forwarding and the firewall bypass; forwarded packets reach VMs
-  # directly over br0 (a true bridge, unlike the old Incus macvlan setup,
-  # needs no sibling device or policy-routing workaround for this).
+  # IP forwarding and the firewall bypass; forwarded packets will reach VMs
+  # directly over br0 once the enp3s0→br0 bridge conversion lands (a true
+  # bridge, unlike the old Incus macvlan setup, has no sibling-device/
+  # policy-routing workaround to worry about).
   services.tailscale = {
     useRoutingFeatures = "server";
     extraSetFlags = [ "--advertise-routes=192.168.168.0/23" ];
@@ -161,9 +162,11 @@
 
     # Virtualisation on srv moved back from Incus to libvirt/KVM (matching
     # qbert's direction): Talos VMs need real QEMU block-device semantics and
-    # a working qemu-guest-agent channel that Incus VMs don't provide. darkstar
-    # attaches to br0 (see configuration.nix), an existing Linux bridge — no
-    # NAT-network options needed here.
+    # a working qemu-guest-agent channel that Incus VMs don't provide (system
+    # extensions, in-place upgrades, and the agent itself all broke under
+    # Incus). darkstar will attach to br0, a true Linux bridge replacing the
+    # current enp3s0 setup — a separate, not-yet-landed networking change to
+    # configuration.nix. No NAT-network options needed here either way.
     kvm.enable = true;
 
     # TEMPORARILY DISABLED for the Incus migration. blockBridges installs its
