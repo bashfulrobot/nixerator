@@ -39,6 +39,7 @@
     ../../modules/server/noclaw
     ../../modules/server/postgres
     ../../modules/system/caddy
+    ../../modules/system/resilient-boot
     ../../modules/system/ssh
   ];
 
