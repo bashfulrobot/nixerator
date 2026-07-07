@@ -7,10 +7,12 @@ description: >-
   tools, and more). Use this whenever the user asks about Tableau,
   dashboards, or reports on the Kong site -- especially customer health
   score, renewal risk, consumption/usage, churn risk, NPS/CSAT, bookings,
-  or pipeline data pulled from Tableau. Also trigger for "Kong 360",
-  "book of business", "pull up the churn risk dashboard", "what's this
-  account's health score in Tableau", "check the renewal pipeline",
-  "Kong Command Center", or any request to list/search/export a Tableau
+  or pipeline data pulled from Tableau. Also trigger for "Account 360",
+  "Kong 360", "book of business", "pull up the churn risk dashboard",
+  "what's this account's health score in Tableau", "check the renewal
+  pipeline", "Kong Command Center", "active contract", "Konnect
+  subscription usage", "Konnect capacity consumption", or any request to
+  list/search/export a Tableau
   workbook, view, or data source, even if the user doesn't say the word
   "Tableau" explicitly but clearly means the CS/RevOps reporting site
   (e.g. "what does the dashboard say about Acme's renewal risk"). Do NOT
@@ -92,14 +94,20 @@ same workbook. `references/content-map.md` already tells you which views
 are confirmed to return real data vs. confirmed dashboard shells for the
 Kong 360 and Book of Business workbooks.
 
-**4. A 400 on a specific sheet usually means it needs a filter.** Some
-sheets (e.g. `Firmographics` in Kong360 Summary) are driven by a
-dashboard action or parameter and won't render standalone. If
-`get-view-data` 400s on a view that's confirmed to be a real
-worksheet, try again with a `viewFilters` value -- most likely an account
-name/id field. You may need to open the dashboard in a browser once to
-learn the filter's exact display name; once you know it, note it in
-auto-memory so you don't have to rediscover it.
+**4. A 400 on a specific sheet usually means it needs a filter -- and
+`Account Name` is the confirmed field caption to try first.** Some sheets
+(e.g. `Firmographics` in Kong360 Summary) are driven by a dashboard
+action or parameter and won't render standalone. The `Account 360`
+workbook (see the content map) uses one global filter across all its
+tabs, and `Account Name` is confirmed live -- passing a nonexistent value
+via `viewFilters: {"Account Name": "..."}` returned zero rows instead of
+the default dataset, proving the field was recognized and applied, not
+ignored. Try `Account Name` on any unfamiliar parameter-driven view
+before guessing at other field names. If it doesn't resolve the account
+you need, the underlying doc for Account 360 (see content map) also
+mentions `SFDC Account ID`, `Domain`, and `Konnect Organization ID` as UI
+filter options, though those haven't been independently confirmed against
+the API's exact caption yet.
 
 **5. Row-level security scopes some content to the querying identity.**
 `Churn_Risk_Score` in Kong360 Churn Risk returned exactly one row with no
@@ -123,7 +131,7 @@ same session.
 
 `references/content-map.md` has the project/workbook/view/datasource
 inventory as of the last survey, with confirmed-working view ids for
-Kong 360 (Churn Risk) and known gaps for Book of Business
+Account 360, Kong 360 (Churn Risk), and known gaps for Book of Business
 (Pipeline & Renewals). Read it before falling back to
 `list-projects`/`list-workbooks` from scratch -- it'll usually get you
 straight to the right workbook id. It's a snapshot, not a live source of
@@ -131,16 +139,27 @@ truth: if something's missing or renamed, the tools are still
 authoritative, and it's worth updating the file once you've confirmed the
 change.
 
+Some dashboards have a companion Google Doc explaining what each tab
+means (the content map links the one for Account 360). These usually
+require Kong Workspace auth that a plain fetch won't have -- use the
+Google Drive MCP tools (`read_file_content` with the doc's file id,
+extracted from its URL) rather than a generic web fetch, which will 401.
+
 ## Workflow
 
 ### Step 1: Classify the request
 
-- **A specific customer's account health/renewal/consumption/churn** ->
-  Kong 360 project. Go to `references/content-map.md`, find the workbook
-  that covers the metric asked about (Churn Risk for health/renewal/NPS/
-  CSAT/escalations/consumption numbers, Bookings & Opportunities for deal
-  data, Customer Support for case data), then `get-view-data` on the
-  specific sheet-type view -- not the workbook's "Shell" dashboard.
+- **A specific customer's account health/renewal/consumption/churn/
+  contracts/support/PS engagement** -> the **Account 360** workbook
+  (`references/content-map.md`) is the primary, actively-maintained
+  source -- start there. It's one workbook, one global filter
+  (`viewFilters: {"Account Name": "<customer>"}`, confirmed working --
+  see rule 4), and one tab per topic (Active Contract, Bookings &
+  Opportunities, Konnect Subscription, Konnect Plus, Kong Enterprise
+  On-Prem, Konnect Capacity Consumption, Account Engagement, Support,
+  Customer Health & Risks, Professional Services). Only fall back to the
+  older "Kong 360" project if Account 360 doesn't cover what was asked
+  (it has no direct equivalent for Marketing Campaigns or Engagement).
 - **"My" pipeline/renewals/usage/prospecting across the whole book** ->
   Book of Business project. Be aware of the known gap noted in the
   content map (the Pipeline & Renewals views haven't yielded real tabular

@@ -11,11 +11,65 @@ workbooks at survey time. Only CSM-relevant projects are enumerated in
 detail below; everything else is listed by name only -- use
 `list-workbooks --filter projectName:eq:<name>` to explore those live.
 
-## Kong 360 -- per-account 360 profile
+## Account 360 -- CURRENT primary per-account dashboard (start here)
+
+Workbook id `1191812c-b476-49e6-be56-05238baab800`, project `3. Production`
+(`21dd15ca-49f5-4171-9203-7ceaa0ca0b3f`, under RevOps). This is the tool to
+reach for first for "what does Tableau say about customer X" -- it's a
+single workbook with one tab per topic, actively maintained (last updated
+2026-07-07 at survey time, tabs added as recently as 2024-09), and by far
+the most-used per-account content on the site: `Active Contract` alone has
+9,469 total views vs. 463 for the entire Kong 360 project's Churn Risk
+workbook. Treat the separate "Kong 360" project below as the prior
+generation -- check there only if Account 360 is missing something.
+
+Documented in a Google Doc ("Revenue Operations -- Account 360", last
+updated 2024-06-01, file id `1B4xrNs6YOg64KqslNvFbhrplmAbQyQFGZzYOBS01-E4`,
+readable via the Google Drive MCP tools) for every tab except
+`Professional Services`, which was added after the doc's last update.
+
+### Global filter (confirmed working)
+
+The whole workbook is driven by one account-level filter, applied via
+`viewFilters` on `get-view-data`. **Confirmed via live test**: passing
+`{"Account Name": "<nonexistent value>"}` to the `Active Contract` view
+returned zero rows instead of the default unfiltered dataset -- proof the
+`Account Name` field caption is exactly right, not a guess. The doc also
+describes `SFDC Account ID`, `Domain`, and `Konnect Organization ID` as
+alternative filter fields in the Tableau UI (use one at a time; the UI
+flow is "Clear Filters" on the others, then "Apply Filters" on the one
+you want) -- these three haven't been independently confirmed against the
+API's exact `viewFilters` caption yet, so try `Account Name` first and
+fall back to the others only if it doesn't resolve the account you need.
+
+**Without any filter**, every tab returns data already scoped to a single
+account (confirmed on `Active Contract` and `Konnect Subscription`) --
+consistent with the row-level security pattern seen elsewhere on this
+site (see the main SKILL.md). Don't assume an unfiltered call returns
+"nothing" or "everything"; it returns *something specific* by default.
+
+### Tabs
+
+| Tab | id | What it shows (per the doc) | Live-tested? |
+|---|---|---|---|
+| Active Contract | `62469a27-0042-44e3-930b-fb8ac1049423` | Current active contract value, segment value, product breakdown, and Konnect contract utilization (API requests/Gateway services used vs. contracted) | **Yes** -- returns real daily running-sum consumption vs. contracted volume |
+| Bookings & Opportunities | `3211c9ce-f5ba-4091-955b-156b05045f0e` | Lifetime contract value (TCV), active contract/segment value, visible open pipeline, closed-lost pipeline, closed bookings detail, open pipeline detail | Not yet |
+| Konnect Subscription | `d55db5a6-5274-4514-8b70-457e55de49e8` | 12-month usage trend by feature (API Requests, Gateway Services, Cloud Gateways), MoM breakdown, org details for multi-org accounts | **Yes** -- returns real monthly running-sum usage |
+| Konnect Plus | `ebb18efa-08a1-4504-85d5-617ef9c2bb6b` | Konnect Plus signups, invoices, credit consumption by feature and by month (credits measured in USD), per-org detail | Not yet |
+| Kong Enterprise (On-Prem) | `6e1343eb-9cc0-4188-af93-30cf04b0846e` | On-prem usage -- same data as Gainsight, uploaded by the field team, not live-collected. Includes a "usage last updated" timestamp -- check it before trusting the numbers | Not yet |
+| Konnect Capacity Consumption | `df384fab-9eee-4e54-a505-28af794ebc84` | Capacity purchased vs. used, overage/underage, consumption run rate, days-until-overage, breakdown by product and by month | Not yet |
+| Account Engagement | `8dbd7695-c617-4e4d-87c8-d6589fb94625` | Marketing campaign responses, MQLs, web visits, job-level breakdown of engaged contacts, PQL list of active product users | Not yet |
+| Support | `6fed0e82-3d5a-402e-99b7-ac44b28335f3` | Case volume by priority, case-creation timeline, full case detail (links to SFDC case record) | Not yet |
+| Customer Health & Risks | `5cfeda2f-e7a0-41e5-a159-c2d6ec4e2c7a` | Overall health score, CSM sentiment score, renewal likelihood, open renewal opportunities, health-score factor breakdown, CSM renewal sentiment/comments | Not yet -- likely the single richest tab for churn/renewal-risk conversations, check this alongside (or instead of) Kong360 Churn Risk |
+| Professional Services | `cb67dec3-1934-47f5-845b-8e6e08858b6a` | Not in the doc (added 2024-09-30, after the doc's last update) | **Tested, thin result**: unfiltered call returned only 2 columns (`Customer Stage`, `ORIGINAL_CONTRACT_DATE`) and 1 row for this identity's default-scoped account. Either PS content is genuinely sparse for that account, or the richer detail lives in a part of the dashboard this call didn't reach -- re-test against an account known to have active PS engagement before concluding this tab is data-poor. |
+
+## Kong 360 (legacy) -- per-account 360 profile, prior generation
 
 Project id `32bd0076-c9e8-4b1f-9220-737aa0f986fe`. One workbook per topic,
-all meant to be looked at for a single named account. This is the project
-to reach for when the ask is "what does Tableau say about customer X".
+all meant to be looked at for a single named account. Superseded in
+practice by Account 360 above (much lower usage across the board) but
+still live -- check here if Account 360 doesn't have what you need, e.g.
+it has no direct equivalent for Marketing Campaigns or Engagement.
 
 | Workbook | id | Key views |
 |---|---|---|
@@ -48,9 +102,10 @@ VizQL Data Service is unavailable here, see the main SKILL.md):
 
 `Firmographics` (`f4a50b98-...`) returned HTTP 400 when queried without
 filters -- it's likely a dashboard-action/parameter-driven sheet that
-needs an account identifier passed via `viewFilters` to render. The exact
-filter field name hasn't been confirmed; try the view in a browser once,
-note the filter's display name, and use that as the `viewFilters` key.
+needs an account identifier passed via `viewFilters` to render. Account
+360 (above) uses `Account Name` as its confirmed-working filter field
+caption -- try that here first before assuming this workbook uses a
+different field name.
 
 ## Book of Business -- the CSM's own portfolio
 
@@ -108,7 +163,7 @@ Project id `21dd15ca-49f5-4171-9203-7ceaa0ca0b3f` (under RevOps). Houses
 | Workbook | id | Notes |
 |---|---|---|
 | Kong Command Center | `856dcbbe-13c4-438e-b6a2-fe5098dfa0e0` | **Site-wide most-used workbook** (21,083 total views, 1,097 in the last month at survey time). Sales/pipeline command center -- Summary, Closed Bookings, Renewal Analysis, Pipeline Generation QTD/YTD Overview, Pipeline Generation Deep Dive, Pipeline Progression, Pipeline Conversions, Forecast Health, AE Forecast Health, AE Weekly Deep Dive, Productivity, Ramping Productivity Deep Dive, Account Penetration, MQL Overview. Skews sales-leadership/AE-productivity, but `Renewal Analysis` and `Account Penetration` are CS-relevant. Backed by `Funnel Metrics Cohort Detail` and `MQL Funnel Conversion Trend` datasources. |
-| Account 360 | `1191812c-b476-49e6-be56-05238baab800` | Not yet probed -- name suggests it may overlap with or supersede the "Kong 360" project's per-account workbooks; worth comparing before assuming Kong 360 is the only per-account source. |
+| Account 360 | `1191812c-b476-49e6-be56-05238baab800` | **See the dedicated "Account 360" section above** -- this is the current primary per-account workbook, fully documented with tab ids and a confirmed-working filter. |
 | Win Wire | `aaf801e2-7eca-4981-90bb-3d59f2ac8fcf` | Not yet probed |
 | Income Revenue | `3e19b196-5b98-44a3-9d3e-252aa8c718e3` | Not yet probed |
 | AE 2x2 for QBRs | `837e839c-10f9-49bc-9ebb-d429152343c0` | QBR-prep dashboard, worth checking when prepping a QBR |
