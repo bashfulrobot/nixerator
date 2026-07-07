@@ -19,6 +19,25 @@ in
         description = "Enable KVM and virt manager.";
       };
 
+      trustedBridgePrefix = lib.mkOption {
+        type = lib.types.str;
+        default = "vbr-";
+        example = "vbr-";
+        description = ''
+          Interface-name prefix for Terraform-created per-cluster libvirt NAT
+          networks. Any bridge whose name starts with this prefix is trusted
+          in the host firewall with a single wildcard rule
+          (iifname "<prefix>*" accept), so new NAT-mode clusters need no
+          change here as long as their network follows the convention. The
+          terraform-talos module names its NAT network's bridge
+          "vbr-<cluster_name>" (e.g. vbr-spitfire) via the libvirt_network
+          resource's bridge.name — keep this equal to that prefix. Set to ""
+          to disable the wildcard. Irrelevant for bridge-mode clusters (e.g.
+          darkstar on srv), which attach to an existing host bridge (br0)
+          instead of a libvirt-managed NAT network.
+        '';
+      };
+
       routing = {
         enable = lib.mkOption {
           type = lib.types.bool;
@@ -128,28 +147,43 @@ in
       )
     );
 
-    networking = lib.mkIf cfg.routing.enable {
-      nat = {
-        enable = true;
-        inherit (cfg.routing) externalInterface;
-        # Note
-        # - for every routed network created in Terraform, you need to add a new internal interface here
-        # - and a static route needs to be added to the LAN router for the new network
-        inherit (cfg.routing) internalInterfaces;
-      };
-      firewall = {
-        enable = true;
-        allowPing = true;
-        allowedTCPPorts = [ ]; # Empty since we're allowing all traffic
-        allowedUDPPorts = [ ]; # Empty since we're allowing all traffic
-        extraCommands = lib.mkBefore ''
-          # Allow all incoming and outgoing traffic on all interfaces
-          iptables -A INPUT -j ACCEPT
-          iptables -A OUTPUT -j ACCEPT
-          iptables -A FORWARD -j ACCEPT
+    networking = lib.mkMerge [
+      # Trust every per-cluster libvirt NAT network sharing the naming
+      # convention with one wildcard rule, so a new Terraform NAT-mode
+      # cluster (e.g. vbr-blackhole) works without editing this module.
+      # Mirrors modules/server/incus's trustedBridgePrefix for the same
+      # underlying reason: nixos-fw's default-drop input policy silently
+      # eats DHCP/DNS replies on the bridge unless the interface is
+      # explicitly trusted.
+      {
+        firewall.extraInputRules = lib.optionalString (cfg.trustedBridgePrefix != "") ''
+          iifname "${cfg.trustedBridgePrefix}*" accept comment "trust libvirt per-cluster NAT networks"
         '';
-      };
-    };
+      }
+
+      (lib.mkIf cfg.routing.enable {
+        nat = {
+          enable = true;
+          inherit (cfg.routing) externalInterface;
+          # Note
+          # - for every routed network created in Terraform, you need to add a new internal interface here
+          # - and a static route needs to be added to the LAN router for the new network
+          inherit (cfg.routing) internalInterfaces;
+        };
+        firewall = {
+          enable = true;
+          allowPing = true;
+          allowedTCPPorts = [ ]; # Empty since we're allowing all traffic
+          allowedUDPPorts = [ ]; # Empty since we're allowing all traffic
+          extraCommands = lib.mkBefore ''
+            # Allow all incoming and outgoing traffic on all interfaces
+            iptables -A INPUT -j ACCEPT
+            iptables -A OUTPUT -j ACCEPT
+            iptables -A FORWARD -j ACCEPT
+          '';
+        };
+      })
+    ];
 
   };
 }
