@@ -144,13 +144,19 @@ let
       };
     };
   }
-  // lib.optionalAttrs (secrets.tableau.patValue or null != null) {
+  // lib.optionalAttrs (serverProfile == "full" && (secrets.tableau.patValue or null) != null) {
     # Tableau MCP -- query/explore Tableau Cloud content (workbooks, views,
     # datasources) via natural language: https://github.com/tableau/tableau-mcp
     # Self-hosted/local (PAT-based) mode, not the hosted OAuth mcp.tableau.com
     # endpoint, matching the Claude Desktop setup already in use against
     # Kong's Tableau Cloud site. All four values (server, site, PAT name/value)
     # live on the "Tableau PAT" 1Password item.
+    #
+    # Workstation-only, same as chrome-devtools/playwright above: `npx -y
+    # @tableau/mcp-server@latest` fetches and executes arbitrary npm code at
+    # run time, and secrets.json is pushed identically to every host, so
+    # without this gate the entry would activate on headless hosts (srv,
+    # clanker) the moment the secret exists in the vault.
     tableau = {
       command = "${pkgs.nodejs}/bin/npx";
       args = [
