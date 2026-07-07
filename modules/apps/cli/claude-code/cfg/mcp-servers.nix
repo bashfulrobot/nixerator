@@ -143,6 +143,27 @@ let
         Authorization = "Bearer ${secrets.kong.kongKonnectPAT}";
       };
     };
+  }
+  // lib.optionalAttrs (secrets.tableau.patValue or null != null) {
+    # Tableau MCP -- query/explore Tableau Cloud content (workbooks, views,
+    # datasources) via natural language: https://github.com/tableau/tableau-mcp
+    # Self-hosted/local (PAT-based) mode, not the hosted OAuth mcp.tableau.com
+    # endpoint, matching the Claude Desktop setup already in use against
+    # Kong's Tableau Cloud site. All four values (server, site, PAT name/value)
+    # live on the "Tableau PAT" 1Password item.
+    tableau = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "@tableau/mcp-server@latest"
+      ];
+      env = {
+        SERVER = secrets.tableau.server;
+        SITE_NAME = secrets.tableau.siteName;
+        PAT_NAME = secrets.tableau.patName;
+        PAT_VALUE = secrets.tableau.patValue;
+      };
+    };
   };
 
   mkMcpServerJson =
