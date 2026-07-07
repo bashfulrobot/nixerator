@@ -125,11 +125,12 @@
     # Always-on Claude Code Remote Control session ("noclaw"), contained in a
     # systemd-nspawn container. Moved here from qbert.
     #
-    # TEMPORARILY DISABLED for the Incus migration. Incus forces the host
-    # firewall onto nftables, and noclaw's masquerade + egress-lockdown rules go
-    # in via networking.firewall.extraCommands, which the nftables firewall
-    # rejects at build time. noclaw is development-only on srv and not actively
-    # used, so it is off during the cutover and gets re-ported to nftables-native
+    # TEMPORARILY DISABLED. The host's virtualisation module (previously
+    # Incus, now server.kvm) forces the host firewall onto nftables, and
+    # noclaw's masquerade + egress-lockdown rules go in via
+    # networking.firewall.extraCommands, which the nftables firewall rejects
+    # at build time. noclaw is development-only on srv and not actively used,
+    # so it stays off until it's re-ported to nftables-native
     # (networking.nat + dnsmasq nftset + extraForwardRules) as a fast-follow.
     noclaw = {
       enable = false;
@@ -168,13 +169,13 @@
     # needed here either way.
     kvm.enable = true;
 
-    # TEMPORARILY DISABLED for the Incus migration. blockBridges installs its
-    # PREROUTING RETURN rules via networking.firewall.extraCommands, which the
-    # nftables firewall (forced on by Incus) rejects at build time. netboot.xyz
-    # is development-only on srv and not actively used, so it is off during the
-    # cutover and gets re-ported to a native nft prerouting rule (repointed at
-    # incusbr0 / tbr-*) as a fast-follow. Options below are retained inert so
-    # re-enabling is a one-line flip.
+    # TEMPORARILY DISABLED. blockBridges installs its PREROUTING RETURN rules
+    # via networking.firewall.extraCommands, which the nftables firewall
+    # (forced on by server.kvm, previously by Incus) rejects at build time.
+    # netboot.xyz is development-only on srv and not actively used, so it
+    # stays off until it's re-ported to a native nft prerouting rule
+    # (repointed at vbr-*) as a fast-follow. Options below are retained inert
+    # so re-enabling is a one-line flip.
     netbootXyz = {
       enable = false;
       # NB: pairs with `virtualisation.docker.daemon.settings.userland-proxy
