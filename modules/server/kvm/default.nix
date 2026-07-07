@@ -147,6 +147,14 @@ in
       )
     );
 
+    # extraInputRules (used just below for trustedBridgePrefix, and by
+    # server.postgres.allowedCIDRs) is only ever emitted into the ruleset by
+    # the nftables firewall backend module; the iptables backend declares the
+    # option but silently ignores it. Force nftables on here the same way
+    # modules/server/incus does, so both modules' firewall rules actually take
+    # effect. mkDefault lets a host that manages nftables elsewhere win.
+    networking.nftables.enable = lib.mkDefault true;
+
     networking = {
       nat = lib.mkIf cfg.routing.enable {
         enable = true;
