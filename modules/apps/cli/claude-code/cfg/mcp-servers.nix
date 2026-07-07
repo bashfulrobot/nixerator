@@ -143,6 +143,44 @@ let
         Authorization = "Bearer ${secrets.kong.kongKonnectPAT}";
       };
     };
+  }
+  // lib.optionalAttrs (serverProfile == "full" && (secrets.tableau.patValue or null) != null) {
+    # Tableau MCP -- query/explore Tableau Cloud content (workbooks, views,
+    # datasources) via natural language: https://github.com/tableau/tableau-mcp
+    # Self-hosted/local (PAT-based) mode, not the hosted OAuth mcp.tableau.com
+    # endpoint, matching the Claude Desktop setup already in use against
+    # Kong's Tableau Cloud site. All four values (server, site, PAT name/value)
+    # live on the "Tableau PAT" 1Password item.
+    #
+    # Workstation-only, same as chrome-devtools/playwright above: `npx -y
+    # @tableau/mcp-server` fetches and executes npm code at run time, and
+    # secrets.json is pushed identically to every host, so without this gate
+    # the entry would activate on headless hosts (srv, clanker) the moment
+    # the secret exists in the vault. Unlike those two, this server holds a
+    # live Tableau Cloud credential in its process environment, so the
+    # version is pinned rather than tracking @latest, to bound the blast
+    # radius of a compromised npm release. Bump deliberately after checking
+    # https://github.com/tableau/tableau-mcp/releases.
+    #
+    # ADMIN_TOOLS_ENABLED is intentionally left unset (defaults to false
+    # upstream): it gates both the destructive tools (delete-workbook,
+    # delete-datasource, etc.) and the whole Admin Insights read/query group
+    # at tool registration time (see e.g. `disabled: !config.adminToolsEnabled`
+    # in tableau-mcp's getStaleContentReport.ts), so none of that surface is
+    # even exposed to the MCP client with this config.
+    tableau = {
+      command = "${pkgs.nodejs}/bin/npx";
+      args = [
+        "-y"
+        "@tableau/mcp-server@2.22.0"
+      ];
+      env = {
+        SERVER = secrets.tableau.server;
+        SITE_NAME = secrets.tableau.siteName;
+        PAT_NAME = secrets.tableau.patName;
+        PAT_VALUE = secrets.tableau.patValue;
+      };
+    };
   };
 
   mkMcpServerJson =
