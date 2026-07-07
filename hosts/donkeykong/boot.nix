@@ -41,4 +41,6 @@
     # bzImage cleanly from cache; revisit zen once upstream fixes the install path.
     kernelPackages = pkgs.linuxPackages_xanmod_latest;
   };
+
+  system.resilient-boot.enable = true;
 }
