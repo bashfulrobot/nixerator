@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schemastore.org/design-tokens.json",
+  "_meta": {
+    "source": "Kong Brand Guidelines 2026 v1.1",
+    "sourceUrls": [
+      "https://konghq.com/company/branding",
+      "https://assets.prd.mktg.konghq.com/files/2026/02/6983c36f-kong-brand-2026.pdf",
+      "https://assets.prd.mktg.konghq.com/files/2026/04/69d575c7-kong-press-kit.zip"
+    ],
+    "note": "Canonical Kong brand tokens. Treat this file as the source of truth over any other Kong-branded skill's inline hex/font values."
+  },
+  "color": {
+    "brand": {
+      "darkGreen":  { "value": "#000F06", "pantone": "Black 3 U",  "role": "primary dark / canvas" },
+      "electricLime": { "value": "#CCFF00", "pantone": "2297 U",     "role": "the single accent — never combine with a second accent color" },
+      "bay":        { "value": "#B7BDB5", "pantone": "7527 U",     "role": "warm neutral, equals neutral.300" },
+      "white":      { "value": "#FFFFFF", "pantone": "White U",    "role": "surface / reversed text" }
+    },
+    "neutral": {
+      "50":  "#E7EDE5",
+      "100": "#D7DED4",
+      "200": "#CDD4CB",
+      "300": "#B7BDB5",
+      "400": "#A1A69F",
+      "500": "#858983",
+      "600": "#676B66",
+      "700": "#4A4D49",
+      "800": "#2D2E2C",
+      "900": "#101110"
+    },
+    "semantic": {
+      "canvas":       { "value": "{color.brand.darkGreen}", "usage": "default background for dark-theme (priority) surfaces" },
+      "canvasLight":  { "value": "{color.brand.white}",     "usage": "background for white-theme surfaces" },
+      "accent":       { "value": "{color.brand.electricLime}", "usage": "the one accent color; use for a single emphasized word, CTA, or highlight per composition — never as a full-surface fill or in a gradient" },
+      "textOnDark":   { "value": "{color.brand.white}" },
+      "textOnLight":  { "value": "{color.neutral.900}" },
+      "border":       { "value": "{color.neutral.700}", "usage": "hairlines on dark surfaces" }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "primary": { "value": "Funnel Sans", "role": "headings and body text — the default for everything", "fallback": "Helvetica Neue, Helvetica, Arial, sans-serif" },
+      "code":    { "value": "Roboto Mono", "role": "code and technical/monospace expression", "fallback": "SFMono-Regular, Menlo, monospace" },
+      "button":  { "value": "Space Grotesk", "role": "buttons and CTAs only — not for headings or body copy", "fallback": "Helvetica Neue, Helvetica, Arial, sans-serif" }
+    },
+    "weights": {
+      "funnelSans": [300, 400, 700, 800],
+      "funnelSansItalic": [400],
+      "robotoMono": [300, 400, 700],
+      "robotoMonoItalic": [400],
+      "spaceGrotesk": [300, 400, 700]
+    },
+    "scale": {
+      "headingXL": { "fontFamily": "{typography.fontFamily.primary}", "weight": 700, "size": "72px", "lineHeight": "78px" },
+      "headingL":  { "fontFamily": "{typography.fontFamily.primary}", "weight": 700, "size": "32px", "lineHeight": "38px" },
+      "bodyL":     { "fontFamily": "{typography.fontFamily.primary}", "weight": 400, "size": "20px", "lineHeight": "28px" },
+      "label":     { "fontFamily": "{typography.fontFamily.primary}", "weight": 700, "size": "14px", "lineHeight": "16px" },
+      "button":    { "fontFamily": "{typography.fontFamily.button}",  "weight": 400 }
+    }
+  },
+  "logo": {
+    "themes": ["dark", "electric", "bay", "white"],
+    "priorityThemes": ["dark", "electric"],
+    "variants": ["logomark", "logotype"],
+    "clearSpace": "1x the logomark's key unit, on all sides",
+    "rules": [
+      "Never edit, distort, recolor, or reconfigure the logo in any way.",
+      "Never incorporate the Kong logo into another logo or lockup.",
+      "Keep your own brand's name/logo more prominent than Kong's in any co-branded placement.",
+      "Check with Kong (design@konghq.com) before external product, packaging, or commercial use."
+    ]
+  }
+}
