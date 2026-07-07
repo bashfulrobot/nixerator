@@ -118,7 +118,7 @@
     <mxCell id="qb-hw" value="hardware-configuration.nix" style="rounded=1;whiteSpace=wrap;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="qbert">
       <mxGeometry x="10" y="35" width="240" height="22" as="geometry"/>
     </mxCell>
-    <mxCell id="qb-disko" value="disko.nix (bcachefs)" style="rounded=1;whiteSpace=wrap;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="qbert">
+    <mxCell id="qb-disko" value="disko.nix (ext4)" style="rounded=1;whiteSpace=wrap;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="qbert">
       <mxGeometry x="10" y="62" width="240" height="22" as="geometry"/>
     </mxCell>
     <mxCell id="qb-modules" value="modules.nix (host enables)" style="rounded=1;whiteSpace=wrap;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="qbert">
