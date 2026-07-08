@@ -28,19 +28,34 @@ updated 2024-06-01, file id `1B4xrNs6YOg64KqslNvFbhrplmAbQyQFGZzYOBS01-E4`,
 readable via the Google Drive MCP tools) for every tab except
 `Professional Services`, which was added after the doc's last update.
 
-### Global filter (confirmed working)
+### Global filter (confirmed working -- corrected 2026-07-07)
 
-The whole workbook is driven by one account-level filter, applied via
-`viewFilters` on `get-view-data`. **Confirmed via live test**: passing
-`{"Account Name": "<nonexistent value>"}` to the `Active Contract` view
-returned zero rows instead of the default unfiltered dataset -- proof the
-`Account Name` field caption is exactly right, not a guess. The doc also
-describes `SFDC Account ID`, `Domain`, and `Konnect Organization ID` as
-alternative filter fields in the Tableau UI (use one at a time; the UI
-flow is "Clear Filters" on the others, then "Apply Filters" on the one
-you want) -- these three haven't been independently confirmed against the
-API's exact `viewFilters` caption yet, so try `Account Name` first and
-fall back to the others only if it doesn't resolve the account you need.
+**The real mechanism is a Tableau Parameter called `Account ID Parameter`,
+not a data filter on `Account Name`.** A user-shared dashboard URL exposed
+it directly: `.../ActiveContract?Account%20ID%20Parameter=<SFDC Account ID>`.
+Passed the same way through `viewFilters` on `get-view-data` (the tool
+doesn't distinguish parameters from filters -- both go in the same dict),
+it works correctly: `{"Account ID Parameter": "<SFDC Account ID>"}`
+returns real per-account data, and a nonexistent ID returns zero rows
+(confirmed discriminating, not silently ignored). Verified end-to-end on
+Sony Interactive Entertainment LLC (`0011K000029btLYQAY`) -- the returned
+data included the account name and a known contact (Nirvana Dogra)
+verbatim, proving it's real and not a default/RLS fallback.
+
+**`{"Account Name": "<value>"}` does NOT work on this workbook** despite
+earlier notes claiming it did -- every attempt (real name variants, exact
+SFDC Account ID under that key) returned zero rows. The original "confirmed
+via live test" claim below was a false positive: a nonexistent value also
+returns zero *because the account truly isn't in scope under that key*,
+not because the field caption is right. Use `Account ID Parameter` with
+the raw SFDC Account ID instead. `SFDC Account ID`, `Domain`, and `Konnect
+Organization ID` mentioned in the companion doc as alternative *filter*
+fields are unverified and likely also wrong for the same reason -- they
+may need the same "it's actually a Parameter" treatment. If `Account ID
+Parameter` doesn't resolve an account, get the exact URL from the
+Tableau UI (share/copy link) rather than guessing at more field-name
+variants -- it'll show the true parameter name and value format in the
+query string.
 
 **Without any filter**, every tab returns data already scoped to a single
 account (confirmed on `Active Contract` and `Konnect Subscription`) --
@@ -52,16 +67,16 @@ site (see the main SKILL.md). Don't assume an unfiltered call returns
 
 | Tab | id | What it shows (per the doc) | Live-tested? |
 |---|---|---|---|
-| Active Contract | `62469a27-0042-44e3-930b-fb8ac1049423` | Current active contract value, segment value, product breakdown, and Konnect contract utilization (API requests/Gateway services used vs. contracted) | **Yes** -- returns real daily running-sum consumption vs. contracted volume |
-| Bookings & Opportunities | `3211c9ce-f5ba-4091-955b-156b05045f0e` | Lifetime contract value (TCV), active contract/segment value, visible open pipeline, closed-lost pipeline, closed bookings detail, open pipeline detail | Not yet |
-| Konnect Subscription | `d55db5a6-5274-4514-8b70-457e55de49e8` | 12-month usage trend by feature (API Requests, Gateway Services, Cloud Gateways), MoM breakdown, org details for multi-org accounts | **Yes** -- returns real monthly running-sum usage |
-| Konnect Plus | `ebb18efa-08a1-4504-85d5-617ef9c2bb6b` | Konnect Plus signups, invoices, credit consumption by feature and by month (credits measured in USD), per-org detail | Not yet |
+| Active Contract | `62469a27-0042-44e3-930b-fb8ac1049423` | Current active contract value, segment value, product breakdown, and Konnect contract utilization (API requests/Gateway services used vs. contracted) | **Yes** -- with `Account ID Parameter` set, returns real daily running-sum consumption vs. contracted volume |
+| Bookings & Opportunities | `3211c9ce-f5ba-4091-955b-156b05045f0e` | Lifetime contract value (TCV), active contract/segment value, visible open pipeline, closed-lost pipeline, closed bookings detail, open pipeline detail | **Yes** -- with `Account ID Parameter` set, returns active product ACV, total product ACV, contract start/end dates |
+| Konnect Subscription | `d55db5a6-5274-4514-8b70-457e55de49e8` | 12-month usage trend by feature (API Requests, Gateway Services, Cloud Gateways), MoM breakdown, org details for multi-org accounts | **Yes** -- with `Account ID Parameter` set, returns real monthly running-sum usage |
+| Konnect Plus | `ebb18efa-08a1-4504-85d5-617ef9c2bb6b` | Konnect Plus signups, invoices, credit consumption by feature and by month (credits measured in USD), per-org detail | **Yes** -- with `Account ID Parameter` set, returns per-org rows including account name, org name/id, signup contact, invoice amounts -- good corroboration that the parameter is resolving the right account |
 | Kong Enterprise (On-Prem) | `6e1343eb-9cc0-4188-af93-30cf04b0846e` | On-prem usage -- same data as Gainsight, uploaded by the field team, not live-collected. Includes a "usage last updated" timestamp -- check it before trusting the numbers | Not yet |
-| Konnect Capacity Consumption | `df384fab-9eee-4e54-a505-28af794ebc84` | Capacity purchased vs. used, overage/underage, consumption run rate, days-until-overage, breakdown by product and by month | Not yet |
+| Konnect Capacity Consumption | `df384fab-9eee-4e54-a505-28af794ebc84` | Capacity purchased vs. used, overage/underage, consumption run rate, days-until-overage, breakdown by product and by month | **Tested, empty**: returns zero rows both with `Account ID Parameter` set and unfiltered -- unlike the other tabs, this one doesn't even show a default RLS-scoped row, so it may need a different parameter/filter name, or may just be a dashboard-shell view not exposed as data via the API |
 | Account Engagement | `8dbd7695-c617-4e4d-87c8-d6589fb94625` | Marketing campaign responses, MQLs, web visits, job-level breakdown of engaged contacts, PQL list of active product users | Not yet |
-| Support | `6fed0e82-3d5a-402e-99b7-ac44b28335f3` | Case volume by priority, case-creation timeline, full case detail (links to SFDC case record) | Not yet |
-| Customer Health & Risks | `5cfeda2f-e7a0-41e5-a159-c2d6ec4e2c7a` | Overall health score, CSM sentiment score, renewal likelihood, open renewal opportunities, health-score factor breakdown, CSM renewal sentiment/comments | Not yet -- likely the single richest tab for churn/renewal-risk conversations, check this alongside (or instead of) Kong360 Churn Risk |
-| Professional Services | `cb67dec3-1934-47f5-845b-8e6e08858b6a` | Not in the doc (added 2024-09-30, after the doc's last update) | **Tested, thin result**: unfiltered call returned only 2 columns (`Customer Stage`, `ORIGINAL_CONTRACT_DATE`) and 1 row for this identity's default-scoped account. Either PS content is genuinely sparse for that account, or the richer detail lives in a part of the dashboard this call didn't reach -- re-test against an account known to have active PS engagement before concluding this tab is data-poor. |
+| Support | `6fed0e82-3d5a-402e-99b7-ac44b28335f3` | Case volume by priority, case-creation timeline, full case detail (links to SFDC case record) | **Yes** -- with `Account ID Parameter` set, returns real per-case rows (owner, subject, priority, open/closed, dates) |
+| Customer Health & Risks | `5cfeda2f-e7a0-41e5-a159-c2d6ec4e2c7a` | Overall health score, CSM sentiment score, renewal likelihood, open renewal opportunities, health-score factor breakdown, CSM renewal sentiment/comments | **Tested, thin result**: only returns a `Last Updated Date` column even with `Account ID Parameter` set -- likely a dashboard-type view where `get-view-data` only reaches one sub-object (see rule 3 in the main SKILL.md); the real health-score detail probably needs `get-view-image` or a more specific underlying sheet id not yet found |
+| Professional Services | `cb67dec3-1934-47f5-845b-8e6e08858b6a` | Not in the doc (added 2024-09-30, after the doc's last update) | **Yes** -- with `Account ID Parameter` set, returns `Customer Stage` and `ORIGINAL_CONTRACT_DATE` (2 columns, 1 row) -- thin but real; matches the account's known contract start date, so this tab is just genuinely sparse, not broken |
 
 ## Kong 360 (legacy) -- per-account 360 profile, prior generation
 
@@ -77,7 +92,7 @@ it has no direct equivalent for Marketing Campaigns or Engagement.
 | Kong360 Summary | `b3035d7f-4a7c-451a-b36d-55b2de2bdef9` | Firmographics `f4a50b98-e43d-4eb2-b029-5a37d78c2f46`, Key Contacts `76b6ba40-2cbf-488a-b8f2-68b379cd54e9`, Active Contracts `decf6c23-a522-4588-a6ad-816c02574074` |
 | Kong360 Bookings & Opportunities | `cc4292e4-98cd-42b8-aa87-3c3b936098cb` | not yet probed for individual sheet ids |
 | Kong360 Consumption | `804d0711-fbc1-4082-ae06-f060021f26ae` | only the "Kong360 Shell" dashboard view was found (`5105f743-...`); no separate data sheet located yet -- check the workbook live with `get-workbook` for any tabs added since |
-| Kong360 Churn Risk | `54e0faed-38e1-4861-9d89-b78f59e6a780` | **confirmed working**: `Churn_Risk_Score` `22dcc980-a668-4b15-a6cd-f8faed79bb44` returns real per-account data (see fields below). Also `Churn_Risk_Attributes` `87b7b9e2-f8f8-4aba-80ca-77dad9eb9937`, `Churn_Risk_Comments` `ead788b2-1321-4e65-abf2-34c958b4e1d0` |
+| Kong360 Churn Risk | `54e0faed-38e1-4861-9d89-b78f59e6a780` | Returns real data, but **`Account Name` viewFilters is silently ignored on all three sheets** -- confirmed by passing a nonexistent account name and getting the exact same row back as unfiltered. These sheets only ever show whichever single account is RLS-locked to the querying identity; they cannot be used to look up a different named account. `Churn_Risk_Score` `22dcc980-a668-4b15-a6cd-f8faed79bb44`, `Churn_Risk_Attributes` `87b7b9e2-f8f8-4aba-80ca-77dad9eb9937`, `Churn_Risk_Comments` `ead788b2-1321-4e65-abf2-34c958b4e1d0` (this one's free-text comments name the RLS-locked account explicitly, e.g. contact names/company mentioned in the notes -- a good way to identify which account you're actually looking at) |
 | Kong360 Marketing Campaigns | `21ff5029-864e-4cb5-9a35-0ca7f4bb49c7` | not yet probed |
 | Kong360 Engagement | `88b0cea1-7a30-41d7-ae8e-aae8f291f077` | not yet probed |
 | Kong360 Customer Support | `790ca451-ce75-4434-9c0a-62502199863b` | not yet probed |
@@ -103,9 +118,9 @@ VizQL Data Service is unavailable here, see the main SKILL.md):
 `Firmographics` (`f4a50b98-...`) returned HTTP 400 when queried without
 filters -- it's likely a dashboard-action/parameter-driven sheet that
 needs an account identifier passed via `viewFilters` to render. Account
-360 (above) uses `Account Name` as its confirmed-working filter field
-caption -- try that here first before assuming this workbook uses a
-different field name.
+360's working key is the `Account ID Parameter` Tableau Parameter (see
+the corrected "Global filter" note above), not `Account Name` -- try that
+here first before assuming this workbook uses a different field name.
 
 ## Book of Business -- the CSM's own portfolio
 
