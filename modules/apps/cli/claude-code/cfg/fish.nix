@@ -365,6 +365,35 @@
         end
       '';
     };
+
+    # fzf cheat sheet over installed Claude Code skills (~/.claude/skills),
+    # read-only: fuzzy-search name/description, preview renders the full
+    # SKILL.md via glow. ENTER and ESC both just quit -- nothing is invoked.
+    skills = {
+      description = "Fuzzy-search installed Claude Code skills, preview full SKILL.md";
+      body = ''
+        set -l dir ~/.claude/skills
+        set -l rows
+        for f in $dir/*/SKILL.md
+          set -l meta (${pkgs.yq-go}/bin/yq --front-matter=extract -o=json '.' $f 2>/dev/null)
+          test -z "$meta"; and continue
+          set -l name (echo $meta | ${pkgs.jq}/bin/jq -r '.name // empty')
+          set -l desc (echo $meta | ${pkgs.jq}/bin/jq -r '.description // empty')
+          test -z "$name"; and continue
+          set -a rows "$name\t$desc"
+        end
+        if test -z "$rows"
+          echo "No skills found in $dir"
+          return 0
+        end
+        printf '%s\n' $rows | sort \
+          | ${pkgs.fzf}/bin/fzf --delimiter=\t --with-nth=1,2 \
+              --header='Claude Code skills  (type to filter, ENTER/ESC to quit)' \
+              --preview="${pkgs.glow}/bin/glow $dir/{1}/SKILL.md" \
+              --preview-window=right:60% \
+          > /dev/null
+      '';
+    };
   };
 
   # Fish abbreviations
