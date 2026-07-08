@@ -14,6 +14,12 @@
   "use strict";
 
   var DECK = window.DECK || { slides: [] };
+  // kong-wordmark.png / kong-mark.png / kong-mark-footer.png below are bundled
+  // here (not referenced from another skill) because this theme payload gets
+  // copied wholesale into a working directory to build a deck, so it must be
+  // self-contained. These same files are also published at
+  // kong-branding/assets/logos/deck-optimized/ for other skills to use — if
+  // Kong ever updates the logo, refresh both copies together.
   var IMG  = 'assets/images/';
 
   /* ---- helpers ---------------------------------------------------------- */

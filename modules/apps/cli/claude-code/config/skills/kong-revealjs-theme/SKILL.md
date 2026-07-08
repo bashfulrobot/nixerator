@@ -99,7 +99,9 @@ Any layout takes an optional transparent image that auto-hides when omitted:
 
 - `#CCFF00` is the only accent colour. No gradients, no second accent. One accented word per
   heading via `*asterisks*`.
-- Type is Funnel Sans / Funnel Display, loaded by the theme.
+- Type is Funnel Sans (body/headings) / Funnel Display (large hero moments) / Roboto Mono
+  (code) / Space Grotesk (CTA pills like `kong-pt-pill` only), loaded by the theme. Full
+  brand documentation, tokens, and logos live in the `kong-branding` skill.
 - The footer bar and corner frame appear on every slide. Per-slide `noFooter: true` removes
   the footer; `footerNotice` overrides the right-hand notice.
 - Body text is left-aligned; only full-screen statement slides are centred.

@@ -26,17 +26,21 @@ separates ground truth from forecast.
 
 ## Generator skeleton (pptxgenjs, dark Kong theme)
 
-`npm install pptxgenjs` locally, then a `generate.js` like this. Kong logo assets come from the
-`kong-pptx` / `kong-revealjs-theme` skill (`assets/images/` — wordmark, footer mark, rays bg);
-point `IMG` at wherever you copied them. Palette: black `000000`, white `FFFFFF`, neon `CCFF00`,
-silver `AAB4BB`, muted `8A8F89`, card `30352F`, dark card `0D1A0E`, border `1A3A1A`. Font `Funnel Sans`.
+`npm install pptxgenjs` locally, then a `generate.js` like this. Kong logo assets (wordmark, mark,
+footer mark) come from `kong-branding/assets/logos/deck-optimized/`; background art (rays, etc.)
+comes from `kong-revealjs-theme/theme/assets/images/` since that's deck-specific texture, not a
+brand logo. Point `IMG` at wherever you copied them. Palette below matches `kong-revealjs-theme/theme/kong.css`
+exactly (this deck should stay in lockstep with that skill's values, not drift its own) — full
+brand documentation lives in the `kong-branding` skill: black `000000`, white `FFFFFF`, neon
+`CCFF00`, silver `AAB4BB`, muted `8A8F89`, card `30352F`, dark card `0D1A0E`, border `1F3D1F`.
+Font `Funnel Sans`.
 
 ```js
 const pptxgen = require("pptxgenjs");
 const path = require("path");
 const IMG = path.join(__dirname, "assets", "images");
 const C = { black:"000000", white:"FFFFFF", green:"CCFF00", silver:"AAB4BB",
-            muted:"8A8F89", card:"30352F", cardDark:"0D1A0E", border:"1A3A1A" };
+            muted:"8A8F89", card:"30352F", cardDark:"0D1A0E", border:"1F3D1F" };
 const FONT = "Funnel Sans";
 const pres = new pptxgen(); pres.layout = "LAYOUT_16x9"; // 10 x 5.625
 

@@ -2,12 +2,25 @@
  * Kong Brand Theme for reveal.js — 1920×1080 canvas
  * Reproduced from the official "Kong [Theme] template slides 2026 [dark]" deck.
  *
- * Accent: #CCFF00 is the ONLY accent colour. Type: Funnel Sans / Funnel Display.
+ * Accent: #CCFF00 is the ONLY accent colour. Type: Funnel Sans (body/headings),
+ * Funnel Display (large hero moments), Roboto Mono (code), Space Grotesk
+ * (buttons/CTAs). Full brand documentation, tokens, and logos: see the
+ * `kong-branding` skill.
+ *
+ * A note on the dark-green values below: the official Brand Guidelines PDF's
+ * flat swatch for dark green is #000F06. The values here run a shade lighter
+ * because this deck's content panel is pure black (--kong-black) with a
+ * dark-green *frame* around it — the frame needs to read as distinct from
+ * that black on screen, which a single flat swatch doesn't have to account
+ * for. This is an intentional on-screen adaptation reproduced from the real
+ * template cited above, not drift — see kong-branding/references/colors.md
+ * and kong-branding/references/drift-and-consolidation.md before "fixing" it.
+ *
  * Layouts are driven by theme.js; classes here also work for hand-authored
  * (freeform) slides.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap');
 
 :root {
   --kong-black:        #000000;
@@ -22,6 +35,8 @@
   --kong-muted:        #8A8F89;
   --kong-font-main:    'Funnel Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --kong-font-display: 'Funnel Display', 'Funnel Sans', 'Helvetica Neue', sans-serif;
+  --kong-font-mono:    'Roboto Mono', 'SFMono-Regular', Menlo, monospace;
+  --kong-font-button:  'Space Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
   --frame:    34px;   /* inset of the black panel / green frame */
   --footer-h: 70px;
@@ -310,7 +325,7 @@
 .kong-pt-card h3 { font-size: 0.7em; color: var(--kong-green); margin: 0; }
 .kong-pt-when { font-size: 0.38em; color: var(--kong-white); font-weight: 700; margin: 0.2em 0 0.8em 0; }
 .kong-pt-body { font-size: 0.38em; color: var(--kong-silver); line-height: 1.45; }
-.kong-pt-pill { display: inline-flex; align-items: center; background: var(--kong-green); color: var(--kong-black); font-size: 0.34em; font-weight: 700; padding: 12px 24px; border-radius: 24px; margin-top: 18px; }
+.kong-pt-pill { display: inline-flex; align-items: center; background: var(--kong-green); color: var(--kong-black); font-family: var(--kong-font-button); font-size: 0.34em; font-weight: 700; padding: 12px 24px; border-radius: 24px; margin-top: 18px; }
 
 /* ── green-inverted ───────────────────────────────────────────────────── */
 .reveal .slides section.slide-green-inverted { background: var(--kong-green); }
@@ -432,7 +447,7 @@
 .kong-step-body p { font-size: 0.38em; color: var(--kong-silver); margin: 0; }
 
 .reveal pre { background: #0a150a; border: 1px solid var(--kong-border-green); border-radius: 0; font-size: 0.42em; box-shadow: none; width: 100%; }
-.reveal code { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a150a; color: var(--kong-green); padding: 2px 6px; font-size: 0.85em; }
+.reveal code { font-family: var(--kong-font-mono); background: #0a150a; color: var(--kong-green); padding: 2px 6px; font-size: 0.85em; }
 
 ::selection { background: var(--kong-green); color: var(--kong-black); text-shadow: none; }
 .reveal .controls { color: var(--kong-green); }

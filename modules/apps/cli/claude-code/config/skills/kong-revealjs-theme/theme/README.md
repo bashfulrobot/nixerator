@@ -128,7 +128,8 @@ die-cut images on a transparent background.
 These are brand rules; the theme enforces them.
 
 - `#CCFF00` is the only accent colour. One word per heading may be accented with it.
-- Type is Funnel Sans / Funnel Display.
+- Type is Funnel Sans (body/headings) / Funnel Display (hero moments) / Roboto Mono (code) /
+  Space Grotesk (CTA pills only). See the `kong-branding` skill for the full brand system.
 - The footer bar and corner frame appear on every slide.
 - Body text is left-aligned; only full-screen statement slides are centred.
 

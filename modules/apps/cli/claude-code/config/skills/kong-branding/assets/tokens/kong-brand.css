@@ -1,0 +1,125 @@
+/*
+ * Kong Brand Guidelines 2026 v1.1 — design tokens as CSS custom properties.
+ * Mirrors kong-brand.json. Source: https://konghq.com/company/branding
+ * Treat this as the source of truth over any other Kong-branded skill's inline hex values.
+ */
+
+@font-face {
+  font-family: "Funnel Sans";
+  src: url("../fonts/funnel-sans/FunnelSans-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Funnel Sans";
+  src: url("../fonts/funnel-sans/FunnelSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Funnel Sans";
+  src: url("../fonts/funnel-sans/FunnelSans-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Funnel Sans";
+  src: url("../fonts/funnel-sans/FunnelSans-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Funnel Sans";
+  src: url("../fonts/funnel-sans/FunnelSans-ExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Roboto Mono";
+  src: url("../fonts/roboto-mono/RobotoMono-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Roboto Mono";
+  src: url("../fonts/roboto-mono/RobotoMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Roboto Mono";
+  src: url("../fonts/roboto-mono/RobotoMono-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Roboto Mono";
+  src: url("../fonts/roboto-mono/RobotoMono-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("../fonts/space-grotesk/SpaceGrotesk-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("../fonts/space-grotesk/SpaceGrotesk-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("../fonts/space-grotesk/SpaceGrotesk-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+:root {
+  /* Brand colors */
+  --kong-dark-green: #000F06;
+  --kong-electric-lime: #CCFF00; /* the single accent */
+  --kong-bay: #B7BDB5;
+  --kong-white: #FFFFFF;
+
+  /* Neutral ramp */
+  --kong-neutral-50: #E7EDE5;
+  --kong-neutral-100: #D7DED4;
+  --kong-neutral-200: #CDD4CB;
+  --kong-neutral-300: #B7BDB5; /* == --kong-bay */
+  --kong-neutral-400: #A1A69F;
+  --kong-neutral-500: #858983;
+  --kong-neutral-600: #676B66;
+  --kong-neutral-700: #4A4D49;
+  --kong-neutral-800: #2D2E2C;
+  --kong-neutral-900: #101110;
+
+  /* Semantic aliases */
+  --kong-canvas: var(--kong-dark-green);
+  --kong-canvas-light: var(--kong-white);
+  --kong-accent: var(--kong-electric-lime);
+  --kong-text-on-dark: var(--kong-white);
+  --kong-text-on-light: var(--kong-neutral-900);
+  --kong-border: var(--kong-neutral-700);
+
+  /* Typography */
+  --kong-font-primary: "Funnel Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --kong-font-code: "Roboto Mono", "SFMono-Regular", Menlo, monospace;
+  --kong-font-button: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Type scale */
+  --kong-heading-xl-size: 72px;
+  --kong-heading-xl-line: 78px;
+  --kong-heading-xl-weight: 700;
+  --kong-heading-l-size: 32px;
+  --kong-heading-l-line: 38px;
+  --kong-heading-l-weight: 700;
+  --kong-body-l-size: 20px;
+  --kong-body-l-line: 28px;
+  --kong-body-l-weight: 400;
+  --kong-label-size: 14px;
+  --kong-label-line: 16px;
+  --kong-label-weight: 700;
+}
