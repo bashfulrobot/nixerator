@@ -24,7 +24,7 @@ Renders a 3- or 4-slide PPTX from a JSON content file:
 3. **Workstreams and Milestones** — four numbered initiatives (title, date, status, 1-3 bullets each), with a key-success-indicators footer and a status-color legend.
 4. **Initiative Deep Dive** *(optional)* — same four-up layout, but used to surface the bottleneck and play for each initiative. Only emitted when the JSON contains a `deep_dive` section.
 
-Layout, fonts, footer bar, and Kong brand styling are inherited from the bundled template. The script only replaces text; it never edits the template's geometry or theme.
+Layout, fonts, footer bar, and Kong brand styling are inherited from the bundled template. The script only replaces text; it never edits the template's geometry or theme. The bundled template was checked against Kong's official 2026 v1.1 brand system (see the `kong-branding` skill) and already uses the correct colors (`#000F06`, `#B7BDB5`) and fonts (Funnel Sans, Space Grotesk, Urbanist) directly — no drift to correct here.
 
 ## How to use
 
