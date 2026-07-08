@@ -306,6 +306,11 @@
   "fadeToLockEnabled": true,
   "fadeToLockGracePeriod": 5,
   "filePickerUsageHistory": {
+    "brave-origin-nightly": {
+      "count": 3,
+      "lastUsed": 1783466895534,
+      "name": "Brave Origin (Nightly)"
+    },
     "com.github.phase1geo.annotator": {
       "count": 1,
       "lastUsed": 1781738873613,
