@@ -50,17 +50,23 @@ sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 - No mentions of Claude, Anthropic, AI, or "generated" in commit messages, PR bodies, or issue comments.
 - The user's git identity is the sole author.
 
+### Merge and push-to-main authorization
+
+- Merging a PR into `main` or pushing straight to `main` is authorized only when I explicitly ask for that specific action in the same turn: something like "merge PR #42" or "push this to main," said right now, not inferred from context or a standing preference.
+- That gate is the same in every session type, foreground or background. The test is "did I ask for this, right now," not "is this a background job." A background session that gets an explicit in-turn ask to merge or push to main should just do it, not hand back a command for me to run myself.
+- Without that explicit in-turn ask, merging or pushing to main stays off-limits, no matter how obviously correct it looks as the next step. Surface it as an option instead and let me decide.
+- Force-pushes and other destructive git operations (`git reset --hard`, discarding branches, etc.) are a separate, narrower case: they always need explicit confirmation, in every session, independent of the merge/push-to-main rule above.
+
 ### Git Cleanup (phrase-triggered)
 
 When I say "git cleanup" (or an unambiguous equivalent, e.g. "clean up the git stuff", "wrap this branch up"), treat it as my standing, explicit authorization to, in order:
 
 1. Make sure the current work is committed and pushed, opening a PR if one doesn't exist yet.
-2. Merge that PR into `main` (squash, delete the remote branch). This phrase itself is the explicit request that satisfies "ask before merging" — don't re-confirm.
+2. Merge that PR into `main` (squash, delete the remote branch). This phrase itself is the explicit, in-turn request that satisfies the merge-authorization rule above: don't re-confirm, and don't hand back a command instead of running it, background session or not.
 3. Remove the worktree(s) and local branch(es) tied to that work.
 
 - This phrase is scoped to whatever we were just working on, not a sweep of every stale worktree or open PR in the repo. If it's ambiguous which branch I mean, ask.
 - Outside of this phrase, the default still holds: push the branch and open a PR, but stop there, don't merge unprompted.
-- **Background sessions still cannot merge, this phrase doesn't lift that.** If you're running as a background job when I say this, do everything through step 1, then hand me the exact `gh pr merge` command instead of merging yourself or silently skipping it. Pipe that command through `wl-copy` (best-effort, ignore failures) so it's on my clipboard, and still print it as plain text in the reply — the clipboard is local to whatever machine you're running on, so if I'm remote (phone, another device) the printed text is the only copy I can actually use.
 
 ### Merge Conflicts (mergiraf)
 
