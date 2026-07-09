@@ -173,7 +173,7 @@ For "build/refresh <customer>'s FR dashboard", "update the feature request
 sheet for X", or "send me a PDF of X's feature requests": don't reimplement
 this here. Use the `aha-fr-report` package deployed via nixerator
 (`~/git/nixerator/modules/apps/cli/aha-fr-report/`), installed on PATH on
-this workstation and on srv (which also runs it daily on a systemd timer):
+this workstation. qbert also runs it daily on a systemd user timer (09:30):
 
 ```bash
 aha-fr-report-one "HealthEquity"   # one customer, on demand
@@ -191,7 +191,7 @@ print the Sheet URL and the PDF's Drive link when done.
 If the command isn't found, nixerator hasn't been rebuilt on this host yet
 (`apps.cli.aha-fr-report.enable = true` in the relevant host's
 `modules.nix`, activated via `just rebuild`). To add a new customer to the
-daily srv run, add a line to
+daily qbert run, add a line to
 `~/git/nixerator/modules/apps/cli/aha-fr-report/customers.txt` and rebuild.
 
 ## What NOT to do
