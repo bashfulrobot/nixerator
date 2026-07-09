@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Look up CSM-curated per-idea tracking data from the upsight-go CRM's local
+# SQLite database, keyed by Aha idea reference number, for one or more Aha
+# idea-organization ids (a customer may have more than one pinned org -- see
+# customers.txt).
+#
+# Usage:
+#   idea-tracking-lookup.sh ORG_ID [ORG_ID...]
+#
+# Prints a JSON object keyed by reference number, e.g.:
+#   {"REF-123": {"rank": 1, "production_blocker": 1, "target_release": "3.16",
+#                "use_case": "Shared Gateway Migration",
+#                "source_url": "https://...", "notes": "...",
+#                "requester_name": "Chris Fulara",
+#                "requester_email": "chris.fulara@example.com"}, ...}
+# Every field is independently nullable -- an idea with only a rank set (or
+# nothing at all) is just missing the other keys' values, not an error.
+# requester_name/requester_email are resolved from upsight-go's contacts
+# table via idea_ranks.requester_contact_id, not stored as free text.
+#
+# Schema dependency: this reads six columns added to idea_ranks by
+# bashfulrobot/upsight-go#60 (requester_contact_id, production_blocker,
+# target_release, use_case, source_url, notes). Until that migration has
+# run on a given upsight.db, those columns don't exist yet -- this script
+# degrades to "{}" on any SQLite error (including "no such column"), same
+# as every other graceful-miss path here, so running against an
+# un-migrated database just means blank cells, not a broken report.
+#
+# Degrades to "{}" (non-fatal) when sqlite3 isn't on PATH, the upsight
+# database doesn't exist, the schema predates upsight-go#60, or none of the
+# given orgs have any tracked ideas.
+#
+# Config via environment:
+#   UPSIGHT_DB   Path to upsight.db (default: ~/.local/share/upsight/upsight.db,
+#                upsight-go's own XDG default).
+
+# Deliberately no -e: a query failure (e.g. a not-yet-migrated schema) must
+# degrade to "{}", not abort the caller.
+set -uo pipefail
+
+UPSIGHT_DB="${UPSIGHT_DB:-$HOME/.local/share/upsight/upsight.db}"
+
+[[ $# -ge 1 ]] || {
+  echo '{}'
+  exit 0
+}
+command -v sqlite3 >/dev/null 2>&1 || {
+  echo '{}'
+  exit 0
+}
+[[ -r "$UPSIGHT_DB" ]] || {
+  echo '{}'
+  exit 0
+}
+
+declare -a quoted=()
+for id in "$@"; do
+  quoted+=("'${id//\'/\'\'}'")
+done
+IFS=,
+placeholders="${quoted[*]}"
+unset IFS
+
+sqlite3 -readonly -json "$UPSIGHT_DB" "
+  SELECT
+    aic.reference_num                   AS ref,
+    ir.rank                             AS rank,
+    ir.production_blocker               AS production_blocker,
+    ir.target_release                   AS target_release,
+    ir.use_case                         AS use_case,
+    ir.source_url                       AS source_url,
+    ir.notes                            AS notes,
+    c.first_name || ' ' || c.last_name  AS requester_name,
+    c.email                             AS requester_email
+  FROM idea_ranks ir
+  JOIN aha_idea_cache aic ON aic.id = ir.aha_idea_id
+  JOIN accounts acc ON acc.id = ir.account_id
+  LEFT JOIN contacts c ON c.id = ir.requester_contact_id
+  WHERE acc.aha_organization_id IN (${placeholders})
+    AND (ir.rank IS NOT NULL
+         OR ir.production_blocker IS NOT NULL
+         OR ir.target_release IS NOT NULL
+         OR ir.use_case IS NOT NULL
+         OR ir.source_url IS NOT NULL
+         OR ir.notes IS NOT NULL)
+  ORDER BY (ir.rank IS NULL), ir.rank ASC;
+" 2>/dev/null | jq -s '(add // []) | map({(.ref): del(.ref)}) | add // {}' 2>/dev/null || true
+# The || true above matters: with pipefail, a sqlite3 query failure (e.g.
+# "no such column" on a pre-upsight-go#60 schema) makes the pipeline report
+# a non-zero exit even though jq still printed a correct "{}" -- and the
+# caller (fetch-ideas.sh) runs this under `set -e` in a plain assignment,
+# so a non-zero exit here would abort it despite valid output already
+# having been produced.
