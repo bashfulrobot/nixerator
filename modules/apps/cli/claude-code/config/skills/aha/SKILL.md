@@ -167,6 +167,33 @@ user refers to ("the gateway initiative"), and Kong-Aha schema gotchas. Recall
 before acting; store what's reusable after. Not reusable: one-off query
 results, transient ids.
 
+## Per-customer FR dashboards (Sheet + PDF)
+
+For "build/refresh <customer>'s FR dashboard", "update the feature request
+sheet for X", or "send me a PDF of X's feature requests": don't reimplement
+this here. Use the `aha-fr-report` package deployed via nixerator
+(`~/git/nixerator/modules/apps/cli/aha-fr-report/`), installed on PATH on
+this workstation. qbert also runs it daily on a systemd user timer (09:30):
+
+```bash
+aha-fr-report-one "HealthEquity"   # one customer, on demand
+aha-fr-report                      # every customer in customers.txt
+```
+
+This writes an internal Google Sheet into `<Customer>/CS/FRs/` in Kong's
+"Customers" shared drive (reused across runs, same link every time) and a
+Kong-branded PDF snapshot into `<Customer>/CS/FRs/exports/`. That shared
+drive enforces `domainUsersOnly` (verified live against the API), so the PDF
+is not itself externally link-shareable -- download it and attach to an
+email or Slack message to actually get it to the customer. Both commands
+print the Sheet URL and the PDF's Drive link when done.
+
+If the command isn't found, nixerator hasn't been rebuilt on this host yet
+(`apps.cli.aha-fr-report.enable = true` in the relevant host's
+`modules.nix`, activated via `just rebuild`). To add a new customer to the
+daily qbert run, add a line to
+`~/git/nixerator/modules/apps/cli/aha-fr-report/customers.txt` and rebuild.
+
 ## What NOT to do
 
 - Do not hardcode or echo the API token. The script reads it from

@@ -1,6 +1,6 @@
 {
   "files": {
-    "CLAUDE.md": "d987ec865d7774875edebbb5c6443730ea3a2222fc5d7cb84c55646ae2232290",
+    "CLAUDE.md": "b85a4f508a1fa3b3fb192b53eda6fc8483321659ca31dcdeba0ee01964cf97f8",
     "agents/api.md": "2fc8f227733d7252a22ff122b48f3d31a9a2e864022419f0b2fc860fe34832f7",
     "agents/bash.md": "bc2d02d4960eea6f2c5b6e8269d7a3e28778a878ed45b9c932806c605aba1ff0",
     "agents/compose-desktop.md": "5c32940be194f5ccbc1178144aaac3f844592aecc65b2b3312030b6986434d98",
@@ -15,7 +15,7 @@
     "agents/rust.md": "14201942b5b6d0824c659fa22443827e42b68bc6b0b09b6859e089439192ffe6",
     "agents/testing.md": "f3d77cd852410cb456289fe9492a3936d03eae2c668c2c89b4280dbff66bcbfc",
     "output-styles/compact.md": "3247d7ec1d114d95bd5bc1204534f101ae437f65f5684bf89e176beee5c149e6",
-    "skills/aha/SKILL.md": "8011746dfc3dc9679e02e05d9ac166fa7b84a6a910c1408bcb48184952e5ee9c",
+    "skills/aha/SKILL.md": "186ad379b4c8a2c9dcd397f2258f461c489a1690da5600deea6e755e7f4aab28",
     "skills/aha/references/api-reference.md": "ec885d07ff0dfa43d4848782c26a3f571576b2ba933fd315a4af9022c364c8aa",
     "skills/aha/references/recipes.md": "902fa04b0955674447adf50ca0abf85b991a2e8dceea8774f7e11e71cdaf9905",
     "skills/aha/scripts/aha.sh": "23f6b02282fa978afe76ded7baf33f387dc7f5b198429eff7b722541bc3761a6",
@@ -36,6 +36,9 @@
     "skills/compose-desktop/references/security.md": "f3c5bc33cee027b21f533cb2507aa02bdb797b0a342a83883c462019a6a6f508",
     "skills/compose-desktop/references/testing-patterns.md": "8349e17ac79f0286bd9d82ed2162f28cef276a509dae25759f4a5387a380f31d",
     "skills/contract-reviewer/SKILL.md": "2673d86708a6d2bd7766f486049dacbedec72430770acf9bf32b2d071bf47059",
+    "skills/cs-webinars-publish/SKILL.md": "dd915aa9675ae2511aaabe1f6038816620d607d55652dfc85316b250f35faa7c",
+    "skills/cs-webinars-publish/references/github-actions.md": "f2e3acbc80fb6e34e6aa5626330215386455fb2a55746fb31dcbf1b8faae05ce",
+    "skills/cs-webinars-publish/references/secret-scan.md": "a54101a3243dc8cb22ffc37c8a57a9c69fd0fd693dbed5653492cdad51d2884e",
     "skills/csat/SKILL.md": "499ac92eda92fa5125ce80d41fcb8494da1400083e548c1241172d4f2e331f60",
     "skills/difficult-conversation-prep/SKILL.md": "18fe4b34de88991c370277bd8cb07db9609e999eeb554e0ee994a4720dbdc1a9",
     "skills/email-drafter/SKILL.md": "208383249788a1b2cb8b7bafad885d306788d2cef99e71abeb869ab60459598c",
