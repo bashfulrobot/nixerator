@@ -123,6 +123,32 @@ in
             end
           '';
 
+          just = {
+            description = "Cluster-aware wrapper around `just`. In a repo with a just/_shared.just (the homelab fleet), if the requested recipe depends on _require-cluster and $CLUSTER isn't already set, fzf-prompts for a cluster and re-execs with it. Every other repo, and every already-CLUSTER-set or non-gated invocation, passes straight through to the real `just` untouched -- recipe output is never buffered, so interactive recipes (e.g. a `tofu apply` approval prompt) still stream live.";
+            body = ''
+              set -l repo_root (git rev-parse --show-toplevel 2>/dev/null)
+              if test -n "$CLUSTER"; or test -z "$repo_root"; or not test -f "$repo_root/just/_shared.just"
+                command just $argv
+                return $status
+              end
+
+              set -l recipe $argv[1]
+              if test -n "$recipe" && not string match -q -- "-*" "$recipe" && command just --show $recipe 2>/dev/null | string match -q "*_require-cluster*"
+                set -l picked (find "$repo_root/clusters" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | fzf --prompt="Select cluster: " --height=40% --border)
+                if test -z "$picked"
+                  echo "just: no cluster selected, aborting" >&2
+                  return 1
+                end
+                echo "→ CLUSTER=$picked just $argv"
+                set -lx CLUSTER $picked
+                command just $argv
+                return $status
+              end
+
+              command just $argv
+            '';
+          };
+
           gwscfg = ''
             # "work" (the default gws config dir, ~/.config/gws) is always offered.
             # Any other profile is a subdirectory of gws-profiles, each holding its
