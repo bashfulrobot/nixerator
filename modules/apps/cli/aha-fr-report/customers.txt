@@ -1,0 +1,5 @@
+# One customer name per line, matching the Aha! idea-organization name
+# (searched via vendor/customer-ideas.sh) and the Drive folder name under
+# the Customers shared drive. Lines starting with # and blank lines are
+# ignored. run-all.sh processes every customer here on each scheduled run.
+HealthEquity

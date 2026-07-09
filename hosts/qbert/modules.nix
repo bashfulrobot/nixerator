@@ -29,6 +29,19 @@
     # peers via `render-secrets --push`). Gated on 1Password being available.
     render-secrets.enable = true;
 
+    # aha-fr-report-one / aha-fr-report on demand, plus a daily user-session
+    # timer here on qbert (this workstation is logged into all day, so it
+    # reuses the interactive gws session's keyring instead of a separate
+    # headless credential on srv). gws + wkhtmltopdf already come from the
+    # workstation archetype's suites.core / suites.offcomms.
+    aha-fr-report = {
+      enable = true;
+      schedule = {
+        enable = true;
+        onCalendar = "*-*-* 09:30:00";
+      };
+    };
+
     # Apps
     restic.backup = {
       enable = true;

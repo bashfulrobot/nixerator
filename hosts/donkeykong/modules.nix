@@ -20,6 +20,13 @@ _:
     # peers via `render-secrets --push`). Gated on 1Password being available.
     render-secrets.enable = true;
 
+    # On-demand aha-fr-report-one / aha-fr-report commands (no schedule here
+    # -- qbert's daily user-session timer is the scheduled copy; this just
+    # makes the same binary available for ad hoc / Claude-skill-triggered
+    # runs). gws + wkhtmltopdf already come from the workstation archetype's
+    # suites.core / suites.offcomms.
+    aha-fr-report.enable = true;
+
     # Attach-only: install the `work` fish function so donkeykong can attach
     # to zellij sessions on srv or qbert. Does NOT expose sessions to peers
     # in v1 — donkeykong is a workstation, not a work-host peer. Promotable
