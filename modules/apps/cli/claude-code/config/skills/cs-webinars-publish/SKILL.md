@@ -54,12 +54,14 @@ Create `docs/zola/content/webinars/<slug>.md` so the session shows up on the sit
 title = "<Webinar title>"
 date = <YYYY-MM-01>
 [extra]
+tags = ["Konnect", "Security"]
 recording_url = "<link>"
 +++
 <One or two sentences from the registration page describing what the session covered.>
 ```
 
 - `title` is the session's title; `date` is the first of the month (step 1).
+- `tags` under `[extra]` drive the filter chips on the webinars page. It's one pool that mixes Kong products (`Konnect`, `Gateway`, `Mesh`, `AI Gateway`, `Insomnia`) with themes (`Security`, `Observability`, `Migration`, `Getting Started`); list all that apply, so a security-focused Konnect session is `["Konnect", "Security"]`. Use the exact names from the `tags` list in the repo's `docs/zola/config.toml` so the chips stay consistent, and add a new tag there first if you need one that doesn't exist yet. Omit the line for an untagged session, though tagging is what makes it filterable.
 - `recording_url` under `[extra]` is optional. Include it if there's a recording — it renders a "Watch" button on the card. Point it at the on-demand registration page if that's where the recording lives. Omit the whole line if there's no recording.
 - **The download link is computed by the site from the asset filename** — the same slug used for the release tag and zip name. There is no placeholder to fill in and nothing to hand-wire.
 - **Body copy is reused from the registration page, not freshly written.** Use the registration description close to verbatim. Do not run it through the `humanizer` skill and do not invent marketing copy — it should match what attendees already read. (The *PR description* you write in step 6 is your own prose, so that one does get humanized.)
