@@ -64,7 +64,13 @@ n="$(echo "$ideas_json" | jq 'length')"
 echo "Got ${n} idea(s)." >&2
 
 # --- Step 3: build the 2D values array (header + rows) --------------------
+# customer-ideas.sh's assessed array is already sorted open-first,
+# closed-last (see its own sort_by), and fetch-ideas.sh's rank-merge
+# preserves that order -- so the Closed rows always land as one contiguous
+# block at the bottom, which Step 5 relies on to group/collapse them.
 header='["State","Ref","Idea","Status","Stack Rank","Aha Link","Proxy Vote Link"]'
+open_count="$(echo "$ideas_json" | jq '[.[] | select(.state == "open")] | length')"
+closed_count="$(echo "$ideas_json" | jq '[.[] | select(.state != "open")] | length')"
 rows="$(echo "$ideas_json" | jq --argjson header "$header" '
   [$header] + (
     map([
@@ -90,37 +96,84 @@ gws sheets spreadsheets values batchUpdate \
   --params "{\"spreadsheetId\":\"${sheet_id}\"}" \
   --json "$update_body" >/dev/null
 
-# --- Step 5: light formatting -- bold+frozen header, auto-width columns ----
-# Idempotent, so it's cheap to just reapply on every run rather than only on
-# sheet creation.
+# --- Step 5: formatting -- bold+frozen header, banded (zebra) rows,
+# auto-width columns, Closed rows collapsed into a hidden-by-default group,
+# Kong-lime tab color. Idempotent, so it's cheap to just reapply on every
+# run rather than only on sheet creation. Existing bandings/row-groups are
+# deleted and recreated each time rather than reused, since the exact row
+# range shifts as the idea count changes run to run.
 echo "Applying formatting..." >&2
 n_cols="$(echo "$header" | jq 'length')"
-grid_sheet_id="$(gws sheets spreadsheets get \
-  --params "{\"spreadsheetId\":\"${sheet_id}\",\"fields\":\"sheets.properties\"}" 2>/dev/null |
-  jq '.sheets[0].properties.sheetId')"
+sheet_state="$(gws sheets spreadsheets get \
+  --params "{\"spreadsheetId\":\"${sheet_id}\",\"fields\":\"sheets.properties,sheets.bandedRanges,sheets.rowGroups\"}" 2>/dev/null |
+  jq '.sheets[0]')"
+grid_sheet_id="$(echo "$sheet_state" | jq '.properties.sheetId')"
 
-format_body="$(jq -n --argjson gsid "$grid_sheet_id" --argjson n_cols "$n_cols" '{
-  requests: [
-    {
-      repeatCell: {
-        range: {sheetId: $gsid, startRowIndex: 0, endRowIndex: 1},
-        cell: {userEnteredFormat: {textFormat: {bold: true}, backgroundColor: {red: 0.843, green: 0.871, blue: 0.831}}},
-        fields: "userEnteredFormat(textFormat,backgroundColor)"
+format_body="$(jq -n \
+  --argjson gsid "$grid_sheet_id" \
+  --argjson n_cols "$n_cols" \
+  --argjson open_count "$open_count" \
+  --argjson closed_count "$closed_count" \
+  --argjson state "$sheet_state" \
+  '
+  ($state.bandedRanges // [] | map({deleteBanding: {bandedRangeId: .bandedRangeId}})) as $delete_bandings
+  | ($state.rowGroups // [] | map({deleteDimensionGroup: {range: (.range + {dimension: "ROWS"})}})) as $delete_groups
+  | [
+      {
+        repeatCell: {
+          range: {sheetId: $gsid, startRowIndex: 0, endRowIndex: 1},
+          cell: {userEnteredFormat: {textFormat: {bold: true}}},
+          fields: "userEnteredFormat(textFormat)"
+        }
+      },
+      {
+        updateSheetProperties: {
+          properties: {sheetId: $gsid, gridProperties: {frozenRowCount: 1}, tabColor: {red: 0.8, green: 1.0, blue: 0.0}},
+          fields: "gridProperties.frozenRowCount,tabColor"
+        }
+      },
+      {
+        autoResizeDimensions: {
+          dimensions: {sheetId: $gsid, dimension: "COLUMNS", startIndex: 0, endIndex: $n_cols}
+        }
+      },
+      {
+        addBanding: {
+          bandedRange: {
+            range: {sheetId: $gsid, startRowIndex: 0, endRowIndex: (1 + $open_count + $closed_count), startColumnIndex: 0, endColumnIndex: $n_cols},
+            rowProperties: {
+              headerColor: {red: 0.843, green: 0.871, blue: 0.831},
+              firstBandColor: {red: 1, green: 1, blue: 1},
+              secondBandColor: {red: 0.906, green: 0.929, blue: 0.898}
+            }
+          }
+        }
       }
-    },
-    {
-      updateSheetProperties: {
-        properties: {sheetId: $gsid, gridProperties: {frozenRowCount: 1}},
-        fields: "gridProperties.frozenRowCount"
-      }
-    },
-    {
-      autoResizeDimensions: {
-        dimensions: {sheetId: $gsid, dimension: "COLUMNS", startIndex: 0, endIndex: $n_cols}
-      }
-    }
-  ]
-}')"
+    ] as $format_requests
+  | (if $closed_count > 0 then [
+        {
+          addDimensionGroup: {
+            range: {sheetId: $gsid, dimension: "ROWS", startIndex: (1 + $open_count), endIndex: (1 + $open_count + $closed_count)}
+          }
+        },
+        {
+          updateDimensionGroup: {
+            dimensionGroup: {
+              range: {sheetId: $gsid, dimension: "ROWS", startIndex: (1 + $open_count), endIndex: (1 + $open_count + $closed_count)},
+              depth: 1,
+              collapsed: true
+            },
+            fields: "collapsed"
+          }
+        }
+      ] else [] end) as $group_requests
+  | {requests: ($delete_bandings + $delete_groups + $format_requests + $group_requests)}
+  ')"
+
+# The jq above intentionally reorders so every delete* request runs before
+# any add*/repeatCell/etc -- deleting a stale banding/group after re-adding
+# a new one at an overlapping range is what triggers "already grouped"
+# errors from the Sheets API.
 gws sheets spreadsheets batchUpdate \
   --params "{\"spreadsheetId\":\"${sheet_id}\"}" \
   --json "$format_body" >/dev/null 2>&1 || echo "  (formatting failed, non-fatal -- data is still written)" >&2
