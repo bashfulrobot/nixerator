@@ -26,6 +26,11 @@
 # actual column count every run) -- reapplied on every run (idempotent),
 # not just on first creation.
 #
+# Row order: Open ideas first, Closed ideas last (needed for the
+# collapsed-closed-rows group below). Within each of those, ranked ideas
+# come first sorted by Stack Rank ascending (1 at the top), then unranked
+# ideas after.
+#
 # Requires: gws (authenticated), fetch-ideas.sh (and in turn
 # customer-ideas.sh, AHA_API_TOKEN), jq.
 
@@ -71,10 +76,19 @@ n="$(echo "$ideas_json" | jq 'length')"
 echo "Got ${n} idea(s)." >&2
 
 # --- Step 3: build the 2D values array (header + rows) --------------------
-# customer-ideas.sh's assessed array is already sorted open-first,
-# closed-last (see its own sort_by), and fetch-ideas.sh's rank-merge
-# preserves that order -- so the Closed rows always land as one contiguous
-# block at the bottom, which Step 5 relies on to group/collapse them.
+# Re-sort on top of customer-ideas.sh's open-first/closed-last order:
+# within each state, ranked ideas come first (Stack Rank 1 at the top,
+# ascending from there), unranked ideas follow. State still comes first
+# in the sort key so Closed rows stay one contiguous block at the bottom,
+# which Step 5 relies on to group/collapse them.
+ideas_json="$(echo "$ideas_json" | jq '
+  sort_by([
+    (if .state == "open" then 0 else 1 end),
+    (if .rank == null then 1 else 0 end),
+    (.rank // 0)
+  ])
+')"
+
 header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Production Blocker","Target Release","Notes","Aha Link","Proxy Vote Link","Source Link"]'
 open_count="$(echo "$ideas_json" | jq '[.[] | select(.state == "open")] | length')"
 closed_count="$(echo "$ideas_json" | jq '[.[] | select(.state != "open")] | length')"
