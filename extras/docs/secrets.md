@@ -103,9 +103,6 @@ Current MATERIALIZE entries:
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | `~/.ssh/<name>` | 0600 | workstation hosts |
 | `incus-ui.crt` | `~/.config/incus/client.crt` | 0644 | all hosts |
 | `incus-ui.pfx` | `~/.config/incus/client.pfx` | 0600 | workstation hosts |
-| `gws-client-secret` | `~/.config/gws/client_secret.json` | 0600 | `host:srv` |
-| `gws-credentials` | `~/.config/gws/credentials.enc` | 0600 | `host:srv` |
-| `gws-encryption-key` | `~/.config/gws/.encryption_key` | 0600 | `host:srv` |
 
 Current PUSH_ALONGSIDE entries (also pushed to remotes by `--push`):
 
@@ -116,23 +113,6 @@ Current PUSH_ALONGSIDE entries (also pushed to remotes by `--push`):
 "Workstation hosts" are those with `archetypes.workstation.enable = true`
 (donkeykong, nixerator, qbert), matched by the `host:` guard. The pure server
 never receives the SSH or per-repo git-crypt keys.
-
-`gws-client-secret`, `gws-credentials`, and `gws-encryption-key` are a
-straight copy of the interactive workstation `gws` session's own OAuth
-client, refresh-token blob, and the file-backend keyring's symmetric key
-(upload the local `~/.config/gws/{client_secret.json,credentials.enc,
-.encryption_key}` as Document items via `op document create <path> --vault
-nixerator --title "..."` — this never prints the file contents). All three
-are required together: `credentials.enc` is encrypted at rest, and
-`.encryption_key` is what decrypts it under the file backend (confirmed via
-`GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file gws auth status`, which only
-reports `encryption_valid: true` when both files are present). They exist
-only so the `aha-fr-report` systemd timer on headless srv can call
-Drive/Sheets with no browser and no session keyring available (the service
-sets `GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file`, see
-`modules/apps/cli/aha-fr-report/default.nix`). This is the full personal
-scope grant, not a narrower service-specific credential — rotate or scope it
-down later if that becomes a concern.
 
 After the homelab key lands, unlock the repo once so its state decrypts:
 

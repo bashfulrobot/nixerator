@@ -21,9 +21,9 @@ _:
     render-secrets.enable = true;
 
     # On-demand aha-fr-report-one / aha-fr-report commands (no schedule here
-    # -- srv's daily systemd timer is the scheduled copy; this just makes
-    # the same binary available for ad hoc / Claude-skill-triggered runs).
-    # gws + wkhtmltopdf already come from the workstation archetype's
+    # -- qbert's daily user-session timer is the scheduled copy; this just
+    # makes the same binary available for ad hoc / Claude-skill-triggered
+    # runs). gws + wkhtmltopdf already come from the workstation archetype's
     # suites.core / suites.offcomms.
     aha-fr-report.enable = true;
 

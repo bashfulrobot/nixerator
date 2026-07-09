@@ -69,22 +69,6 @@ MATERIALIZE=(
   # Workstations only: needed for importing into a browser to authenticate
   # against the Incus web UI. srv is headless and has no browser.
   "incus-ui.pfx|${HOME}/.config/incus/client.pfx|600|700|${_WS}"
-
-  # gws (Google Workspace CLI) OAuth client + refresh-token blob, needed so
-  # the aha-fr-report systemd timer can call Drive/Sheets on headless srv,
-  # where there's no browser to run `gws auth login` and no session keyring
-  # (the systemd service sets GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file —
-  # see modules/apps/cli/aha-fr-report/default.nix). This is a straight copy
-  # of the same personal credential the interactive workstation session
-  # already uses (not a separate scoped credential or service account), so
-  # it carries that session's full scope grant, not just drive+sheets.
-  # srv-only: workstations already have their own interactive gws session.
-  "gws-client-secret|${HOME}/.config/gws/client_secret.json|600|700|host:srv"
-  "gws-credentials|${HOME}/.config/gws/credentials.enc|600|700|host:srv"
-  # The file-backend keyring stores its symmetric key here; credentials.enc
-  # is unreadable without it (verified: GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file
-  # only reports encryption_valid=true when this file is present alongside it).
-  "gws-encryption-key|${HOME}/.config/gws/.encryption_key|600|700|host:srv"
 )
 
 # Files pushed alongside secrets.json when --push is used. Format per entry:

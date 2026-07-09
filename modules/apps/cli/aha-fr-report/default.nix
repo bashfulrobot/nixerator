@@ -96,7 +96,13 @@ in
       enable = lib.mkOption {
         type = lib.types.bool;
         default = false;
-        description = "Run aha-fr-report on a systemd timer (all customers.txt entries).";
+        description = ''
+          Run aha-fr-report (all customers.txt entries) on a systemd user
+          timer bound to the desktop session, so gws can use the same
+          session keyring interactive use already relies on. Only makes
+          sense on a workstation host with a graphical session and
+          home-manager.
+        '';
       };
 
       onCalendar = lib.mkOption {
@@ -116,33 +122,33 @@ in
     })
 
     (lib.mkIf (cfg.enable && cfg.schedule.enable) {
-      systemd.timers.aha-fr-report = {
-        description = "aha-fr-report timer";
-        enable = true;
-        wantedBy = [ "timers.target" ];
-        partOf = [ "aha-fr-report.service" ];
-        timerConfig = {
-          Persistent = "true";
-          OnCalendar = cfg.schedule.onCalendar;
+      # A user-session timer, not a system one: it runs inside the desktop
+      # session so gws can reach the already-unlocked session keyring, the
+      # same one interactive `aha-fr-report-one` calls already use. No
+      # separate headless credential (no MATERIALIZE copy, no file-backend
+      # keyring) needed. Trade-off: it only fires while logged into a
+      # graphical session. Persistent = true means a run missed because the
+      # machine was asleep/logged-out at OnCalendar fires as soon as the
+      # session comes back up, not skipped outright.
+      home-manager.users.${globals.user.name} = {
+        systemd.user.timers.aha-fr-report = {
+          Unit.Description = "aha-fr-report timer";
+          Timer = {
+            Persistent = true;
+            OnCalendar = cfg.schedule.onCalendar;
+          };
+          Install.WantedBy = [ "timers.target" ];
         };
-      };
 
-      systemd.services.aha-fr-report = {
-        description = "Refresh per-customer Aha! FR reports (Sheet + PDF)";
-        enable = true;
-        serviceConfig = {
-          Type = "oneshot";
-          User = globals.user.name;
-          ExecStart = "${aha-fr-report}/bin/aha-fr-report";
-          # This service block only ever runs where schedule.enable is set
-          # (srv), which has no desktop session / session keyring -- force
-          # gws onto its encrypted-file credential backend. Interactive use
-          # of aha-fr-report-one on workstations is unaffected: this
-          # Environment= only applies to this systemd unit, not the shared
-          # script text both commands run.
-          Environment = [ "GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file" ];
+        systemd.user.services.aha-fr-report = {
+          Unit = {
+            Description = "Refresh per-customer Aha! FR reports (Sheet + PDF)";
+            After = [ "graphical-session.target" ];
+            PartOf = [ "graphical-session.target" ];
+          };
+          Service.Type = "oneshot";
+          Service.ExecStart = "${aha-fr-report}/bin/aha-fr-report";
         };
-        wantedBy = [ "multi-user.target" ];
       };
     })
   ];

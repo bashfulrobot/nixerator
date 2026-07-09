@@ -12,11 +12,6 @@
   imports = [
     ../../modules/apps/cli/agent-scan
     ../../modules/apps/cli/agentos
-    # gws + wkhtmltopdf: srv doesn't get these transitively (it imports
-    # individual apps/cli modules directly rather than the workstation
-    # archetype's suites/core + suites/offcomms), so aha-fr-report needs
-    # them listed explicitly here.
-    ../../modules/apps/cli/aha-fr-report
     ../../modules/apps/cli/claude-code
     ../../modules/apps/cli/docker
     ../../modules/apps/cli/fish
@@ -24,7 +19,6 @@
     ../../modules/apps/cli/gemini-cli
     ../../modules/apps/cli/git
     ../../modules/apps/cli/graymatter
-    ../../modules/apps/cli/gws
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/restic
     ../../modules/apps/cli/skillfish
@@ -32,7 +26,6 @@
     ../../modules/apps/cli/superpowers
     ../../modules/apps/cli/tailscale
     ../../modules/apps/cli/vscode-server
-    ../../modules/apps/cli/wkhtmltopdf
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
@@ -60,24 +53,10 @@
     docker.enable = true;
     fish.enable = true;
     git.enable = true;
-    gws.enable = true;
     helix.enable = true;
     starship.enable = true;
     tailscale.enable = true;
     vscode-server.enable = false;
-    wkhtmltopdf.enable = true;
-
-    # Daily-scheduled per-customer Aha! FR report (internal Sheet + Kong PDF
-    # snapshot). Reuses the personal gws credential materialized to this
-    # host (see extras/docs/secrets.md's MATERIALIZE table) rather than a
-    # separate service account -- see the aha-fr-report module for details.
-    aha-fr-report = {
-      enable = true;
-      schedule = {
-        enable = true;
-        onCalendar = "*-*-* 07:00:00";
-      };
-    };
 
     # Claude Code stack (cherry-picked from suites/ai for headless srv)
     agent-scan.enable = true;
