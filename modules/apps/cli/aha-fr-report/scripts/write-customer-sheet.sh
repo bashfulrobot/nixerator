@@ -4,7 +4,12 @@
 # every subsequent run.
 #
 # Usage:
-#   write-customer-sheet.sh "HealthEquity" <frs_folder_id>
+#   write-customer-sheet.sh "HealthEquity" <frs_folder_id> [--org ID ...]
+#
+# CUSTOMER_NAME is used for the Sheet title and (unless --org overrides it)
+# as the Aha! search term. Pass one or more --org ID when the Drive folder
+# name and the Aha idea-organization name/id diverge, or when a plain name
+# search would be ambiguous (see customer-ideas.sh --org). Repeatable.
 #
 # Prints "sheet_id<TAB>sheet_url" on stdout when done.
 #
@@ -22,8 +27,9 @@ die() {
   exit 2
 }
 
-customer_name="${1:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID}"
-frs_folder_id="${2:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID}"
+customer_name="${1:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--org ID ...]}"
+frs_folder_id="${2:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--org ID ...]}"
+shift 2
 
 [[ -x "$AHA_CUSTOMER_IDEAS" ]] || die "customer-ideas.sh not found/executable at $AHA_CUSTOMER_IDEAS"
 command -v jq >/dev/null 2>&1 || die "'jq' is required but not on PATH"
@@ -44,7 +50,10 @@ fi
 
 # --- Step 2: pull the customer's ideas from Aha! ---------------------------
 echo "Pulling ideas for ${customer_name} from Aha!..." >&2
-ideas_json="$("$AHA_CUSTOMER_IDEAS" "$customer_name" --json)"
+# customer-ideas.sh ignores $customer_name for search purposes once any
+# --org is present (see its own arg parsing), so it's safe to always pass
+# both -- --org just takes precedence.
+ideas_json="$("$AHA_CUSTOMER_IDEAS" "$customer_name" --json "$@")"
 n="$(echo "$ideas_json" | jq 'length')"
 echo "Got ${n} idea(s)." >&2
 

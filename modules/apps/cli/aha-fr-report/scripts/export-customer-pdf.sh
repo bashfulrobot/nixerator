@@ -3,7 +3,12 @@
 # upload it into their FRs/exports Drive folder.
 #
 # Usage:
-#   export-customer-pdf.sh "HealthEquity" <exports_folder_id>
+#   export-customer-pdf.sh "HealthEquity" <exports_folder_id> [--org ID ...]
+#
+# CUSTOMER_NAME is used for the PDF title/filename and (unless --org
+# overrides it) as the Aha! search term. Pass one or more --org ID when the
+# Drive folder name and the Aha idea-organization name/id diverge, or when a
+# plain name search would be ambiguous (see customer-ideas.sh --org).
 #
 # Prints "pdf_file_id<TAB>pdf_webViewLink" on stdout when done.
 #
@@ -20,8 +25,9 @@ die() {
   exit 2
 }
 
-customer_name="${1:?usage: export-customer-pdf.sh CUSTOMER_NAME EXPORTS_FOLDER_ID}"
-exports_folder_id="${2:?usage: export-customer-pdf.sh CUSTOMER_NAME EXPORTS_FOLDER_ID}"
+customer_name="${1:?usage: export-customer-pdf.sh CUSTOMER_NAME EXPORTS_FOLDER_ID [--org ID ...]}"
+exports_folder_id="${2:?usage: export-customer-pdf.sh CUSTOMER_NAME EXPORTS_FOLDER_ID [--org ID ...]}"
+shift 2
 
 command -v wkhtmltopdf >/dev/null 2>&1 || die "'wkhtmltopdf' is required but not on PATH"
 [[ -x "$AHA_CUSTOMER_IDEAS" ]] || die "customer-ideas.sh not found/executable at $AHA_CUSTOMER_IDEAS"
@@ -30,7 +36,10 @@ workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
 echo "Pulling ideas for ${customer_name} from Aha!..." >&2
-"$AHA_CUSTOMER_IDEAS" "$customer_name" --json >"$workdir/ideas.json"
+# customer-ideas.sh ignores $customer_name for search purposes once any
+# --org is present (see its own arg parsing), so it's safe to always pass
+# both -- --org just takes precedence.
+"$AHA_CUSTOMER_IDEAS" "$customer_name" --json "$@" >"$workdir/ideas.json"
 
 echo "Rendering Kong-branded HTML..." >&2
 python3 "$here/render_report.py" "$customer_name" <"$workdir/ideas.json" >"$workdir/report.html"
