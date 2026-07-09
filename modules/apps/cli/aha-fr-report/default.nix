@@ -36,6 +36,7 @@ let
     pkgs.python3
     pkgs.wkhtmltopdf
     pkgs.curl
+    pkgs.sqlite
     gws
   ];
 

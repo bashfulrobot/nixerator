@@ -197,12 +197,14 @@ def rows_html(items):
     for it in items:
         badge_cls = "open" if it.get("state") == "open" else "closed"
         badge_text = "Open" if it.get("state") == "open" else "Closed"
+        rank = it.get("rank")
         out.append(
             "<tr>"
             f"<td><span class='badge {badge_cls}'>{badge_text}</span></td>"
             f"<td class='ref'>{esc(it.get('ref'))}</td>"
             f"<td>{esc(it.get('name'))}</td>"
             f"<td>{esc(it.get('status'))}</td>"
+            f"<td>{esc(rank if rank is not None else '')}</td>"
             f"<td>{esc(it.get('total_endorsements'))}</td>"
             "</tr>"
         )
@@ -215,7 +217,7 @@ def section(title, items):
     return f"""
     <h2>{esc(title)} ({len(items)})</h2>
     <table>
-      <thead><tr><th></th><th>Ref</th><th>Idea</th><th>Status</th><th>Total votes</th></tr></thead>
+      <thead><tr><th></th><th>Ref</th><th>Idea</th><th>Status</th><th>Stack Rank</th><th>Total votes</th></tr></thead>
       <tbody>{rows_html(items)}</tbody>
     </table>
     """
