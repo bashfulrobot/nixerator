@@ -65,6 +65,26 @@ in
 
         # Custom functions
         functions = {
+          op-toggle = {
+            description = "Toggle `op` between the service-account token (default on every new shell, via shellInit above) and interactive desktop-client auth. Shell-local -- open a new shell to get back to the service-account default.";
+            body = ''
+              if set -q OP_SERVICE_ACCOUNT_TOKEN
+                set -e OP_SERVICE_ACCOUNT_TOKEN
+                echo "→ op: switching to desktop-client (interactive) auth..."
+                op signin | source
+                echo "✓ op: now on desktop-client auth for this shell -- run op-toggle again to switch back"
+              else
+                set -l _secrets ~/.config/nixos-secrets/secrets.json
+                if not test -f $_secrets
+                  echo "op-toggle: $_secrets not found -- run 'just render-secrets' first" >&2
+                  return 1
+                end
+                set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
+                echo "✓ op: back to service-account auth"
+              end
+            '';
+          };
+
           kcfg = ''
             set -l clusters_dir "$HOME/.kube/clusters"
             set -l active_config "$HOME/.kube/config"
