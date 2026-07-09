@@ -1,6 +1,6 @@
 {
   "files": {
-    "CLAUDE.md": "d987ec865d7774875edebbb5c6443730ea3a2222fc5d7cb84c55646ae2232290",
+    "CLAUDE.md": "b85a4f508a1fa3b3fb192b53eda6fc8483321659ca31dcdeba0ee01964cf97f8",
     "agents/api.md": "2fc8f227733d7252a22ff122b48f3d31a9a2e864022419f0b2fc860fe34832f7",
     "agents/bash.md": "bc2d02d4960eea6f2c5b6e8269d7a3e28778a878ed45b9c932806c605aba1ff0",
     "agents/compose-desktop.md": "5c32940be194f5ccbc1178144aaac3f844592aecc65b2b3312030b6986434d98",
@@ -15,7 +15,7 @@
     "agents/rust.md": "14201942b5b6d0824c659fa22443827e42b68bc6b0b09b6859e089439192ffe6",
     "agents/testing.md": "f3d77cd852410cb456289fe9492a3936d03eae2c668c2c89b4280dbff66bcbfc",
     "output-styles/compact.md": "3247d7ec1d114d95bd5bc1204534f101ae437f65f5684bf89e176beee5c149e6",
-    "skills/aha/SKILL.md": "8011746dfc3dc9679e02e05d9ac166fa7b84a6a910c1408bcb48184952e5ee9c",
+    "skills/aha/SKILL.md": "1251646a204509949e3dc66b5ee48eb2efb004dffd2cbc2f75276e70b7ccb63b",
     "skills/aha/references/api-reference.md": "ec885d07ff0dfa43d4848782c26a3f571576b2ba933fd315a4af9022c364c8aa",
     "skills/aha/references/recipes.md": "902fa04b0955674447adf50ca0abf85b991a2e8dceea8774f7e11e71cdaf9905",
     "skills/aha/scripts/aha.sh": "23f6b02282fa978afe76ded7baf33f387dc7f5b198429eff7b722541bc3761a6",
