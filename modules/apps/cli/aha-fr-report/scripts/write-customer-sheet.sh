@@ -17,7 +17,10 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AHA_CUSTOMER_IDEAS="$here/../vendor/customer-ideas.sh"
 source "$here/drive-lib.sh"
 
-die() { echo "ERROR: $*" >&2; exit 2; }
+die() {
+  echo "ERROR: $*" >&2
+  exit 2
+}
 
 customer_name="${1:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID}"
 frs_folder_id="${2:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID}"

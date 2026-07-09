@@ -17,7 +17,10 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$here/drive-lib.sh"
 
-die() { echo "ERROR: $*" >&2; exit 2; }
+die() {
+  echo "ERROR: $*" >&2
+  exit 2
+}
 
 customer_name="${1:?usage: customer-fr-report.sh \"Customer Name\"}"
 

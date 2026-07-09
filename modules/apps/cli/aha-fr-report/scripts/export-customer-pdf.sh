@@ -15,7 +15,10 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AHA_CUSTOMER_IDEAS="$here/../vendor/customer-ideas.sh"
 
-die() { echo "ERROR: $*" >&2; exit 2; }
+die() {
+  echo "ERROR: $*" >&2
+  exit 2
+}
 
 customer_name="${1:?usage: export-customer-pdf.sh CUSTOMER_NAME EXPORTS_FOLDER_ID}"
 exports_folder_id="${2:?usage: export-customer-pdf.sh CUSTOMER_NAME EXPORTS_FOLDER_ID}"
