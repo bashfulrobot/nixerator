@@ -13,14 +13,18 @@
 #
 # Prints "sheet_id<TAB>sheet_url" on stdout when done.
 #
-# Columns written: State, Ref, Idea, Status, Stack Rank (from upsight-go,
-# blank if untracked), Aha Link (the idea's own public link, shown as
-# "View idea"), and Proxy Vote Link (this customer's own org page in Aha,
-# shown as "View proxy vote") -- see fetch-ideas.sh. Both link columns are
+# Columns written: State, Ref, Idea, Status, Stack Rank, Use Case,
+# Requester, Production Blocker, Target Release, Notes (all from
+# upsight-go, blank if untracked -- see fetch-ideas.sh and
+# idea-tracking-lookup.sh), Aha Link (the idea's own public link, shown as
+# "View idea"), Proxy Vote Link (this customer's own org page in Aha, shown
+# as "View proxy"), and Source Link (where the request was first gathered,
+# e.g. a Slack thread, shown as "View source"). All three link columns are
 # HYPERLINK() formulas (values written with USER_ENTERED, not RAW, so
 # Sheets evaluates them) rather than bare URLs. The header row is bolded,
-# shaded, and frozen, and columns are auto-width -- reapplied on every run
-# (idempotent), not just on first creation.
+# shaded, and frozen, and columns are auto-width (recomputed from the
+# actual column count every run) -- reapplied on every run (idempotent),
+# not just on first creation.
 #
 # Requires: gws (authenticated), fetch-ideas.sh (and in turn
 # customer-ideas.sh, AHA_API_TOKEN), jq.
@@ -71,7 +75,7 @@ echo "Got ${n} idea(s)." >&2
 # closed-last (see its own sort_by), and fetch-ideas.sh's rank-merge
 # preserves that order -- so the Closed rows always land as one contiguous
 # block at the bottom, which Step 5 relies on to group/collapse them.
-header='["State","Ref","Idea","Status","Stack Rank","Aha Link","Proxy Vote Link"]'
+header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Production Blocker","Target Release","Notes","Aha Link","Proxy Vote Link","Source Link"]'
 open_count="$(echo "$ideas_json" | jq '[.[] | select(.state == "open")] | length')"
 closed_count="$(echo "$ideas_json" | jq '[.[] | select(.state != "open")] | length')"
 rows="$(echo "$ideas_json" | jq --argjson header "$header" '
@@ -82,8 +86,14 @@ rows="$(echo "$ideas_json" | jq --argjson header "$header" '
       .name,
       .status,
       (.rank // ""),
+      (.use_case // ""),
+      (.requester_name // ""),
+      (if .production_blocker == 1 then "Yes" elif .production_blocker == 0 then "No" else "" end),
+      (.target_release // ""),
+      (.notes // ""),
       (if (.url // "") != "" then "=HYPERLINK(\"\(.url)\",\"View idea\")" else "" end),
-      (if (.org_url // "") != "" then "=HYPERLINK(\"\(.org_url)\",\"View proxy vote\")" else "" end)
+      (if (.org_url // "") != "" then "=HYPERLINK(\"\(.org_url)\",\"View proxy\")" else "" end),
+      (if (.source_url // "") != "" then "=HYPERLINK(\"\(.source_url)\",\"View source\")" else "" end)
     ])
   )
 ')"
