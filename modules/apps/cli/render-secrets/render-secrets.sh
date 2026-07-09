@@ -59,6 +59,14 @@ MATERIALIZE=(
   "nixerator-git-crypt-key|${HOME}/.ssh/nixerator-git-crypt-key|600|700|${_WS}"
   "talos-vms-git-crypt-key|${HOME}/.ssh/talos-vms-git-crypt-key|600|700|${_WS}"
 
+  # Read-only GitHub deploy key for homelab's Flux CD GitOps sync (any
+  # cluster's FluxInstance points at the same repo URL, so one key covers
+  # all of them). Workstations only: this is what `just bootstrap-flux-
+  # deploy-key` in homelab reads from disk to build each cluster's
+  # flux-system Secret. See homelab's docs/flux-darkstar-adoption.md.
+  "homelab-flux-deploy-key|${HOME}/.ssh/homelab-flux-deploy-key|600|700|${_WS}"
+  "homelab-flux-deploy-key.pub|${HOME}/.ssh/homelab-flux-deploy-key.pub|644|700|${_WS}"
+
   # Incus browser client certificate — public CRT, all Incus hosts.
   # Read by the Nix module via builtins.readFile at eval time to populate
   # the preseed trust store. 644 because it is a public key. Also listed
