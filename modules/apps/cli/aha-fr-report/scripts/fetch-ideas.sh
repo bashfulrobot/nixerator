@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
 # Shared idea-fetch step for write-customer-sheet.sh and
 # export-customer-pdf.sh: pulls a customer's assessed Aha! ideas, then
-# annotates each with its upsight-go Stack Rank (if any), so the Sheet and
-# the PDF are always built from the identical merged data set.
+# annotates each with its upsight-go tracking data (if any), so the Sheet
+# and the PDF are always built from the identical merged data set.
 #
 # Usage:
 #   fetch-ideas.sh CUSTOMER_NAME [--org ID ...]
 #
-# Prints the merged ideas JSON array on stdout -- each element gains a
-# "rank" field (an integer, or null if unranked / no upsight-go data).
+# Prints the merged ideas JSON array on stdout -- each element gains: rank,
+# production_blocker, target_release, use_case, source_url, notes,
+# requester_name, requester_email. Every one of those is independently
+# nullable -- an untracked idea, or a customer with no upsight-go data at
+# all, just gets all-null fields, not an error.
 #
-# Requires: the vendored customer-ideas.sh, AHA_API_TOKEN, jq, and (for rank
-# data) stack-rank-lookup.sh -- see that script for its own graceful-miss
-# behavior when upsight-go isn't installed or has no data for this customer.
+# Requires: the vendored customer-ideas.sh, AHA_API_TOKEN, jq, and (for the
+# tracking fields) idea-tracking-lookup.sh -- see that script for its own
+# graceful-miss behavior when upsight-go isn't installed, has no data for
+# this customer, or predates the schema these fields depend on
+# (bashfulrobot/upsight-go#60).
 
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AHA_CUSTOMER_IDEAS="$here/../vendor/customer-ideas.sh"
-STACK_RANK_LOOKUP="$here/stack-rank-lookup.sh"
+IDEA_TRACKING_LOOKUP="$here/idea-tracking-lookup.sh"
 
 die() {
   echo "ERROR: $*" >&2
@@ -34,8 +39,8 @@ command -v jq >/dev/null 2>&1 || die "'jq' is required but not on PATH"
 ideas_json="$("$AHA_CUSTOMER_IDEAS" "$customer_name" --json "$@")"
 
 # Pull the org id(s) back out of "$@" (whatever was forwarded to
-# customer-ideas.sh) so the rank lookup targets the same org(s) the ideas
-# actually came from, without re-resolving anything.
+# customer-ideas.sh) so the tracking lookup targets the same org(s) the
+# ideas actually came from, without re-resolving anything.
 declare -a org_ids=()
 prev=""
 for arg in "$@"; do
@@ -43,11 +48,20 @@ for arg in "$@"; do
   prev="$arg"
 done
 
-ranks_json='{}'
+tracking_json='{}'
 if [[ ${#org_ids[@]} -gt 0 ]]; then
-  ranks_json="$(bash "$STACK_RANK_LOOKUP" "${org_ids[@]}")"
+  tracking_json="$(bash "$IDEA_TRACKING_LOOKUP" "${org_ids[@]}")"
 fi
 
-echo "$ideas_json" | jq --argjson ranks "$ranks_json" '
-  map(. + {rank: ($ranks[.ref] // null)})
+echo "$ideas_json" | jq --argjson tracking "$tracking_json" '
+  ($tracking | map_values(. + {
+     rank: (.rank // null), production_blocker: (.production_blocker // null),
+     target_release: (.target_release // null), use_case: (.use_case // null),
+     source_url: (.source_url // null), notes: (.notes // null),
+     requester_name: (.requester_name // null), requester_email: (.requester_email // null)
+   })) as $tracking
+  | map(. + ($tracking[.ref] // {
+      rank: null, production_blocker: null, target_release: null, use_case: null,
+      source_url: null, notes: null, requester_name: null, requester_email: null
+    }))
 '

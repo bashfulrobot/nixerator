@@ -192,6 +192,14 @@ def esc(s):
     )
 
 
+def blocker_text(v):
+    if v == 1 or v is True:
+        return "Yes"
+    if v == 0 or v is False:
+        return "No"
+    return ""
+
+
 def rows_html(items):
     out = []
     for it in items:
@@ -205,6 +213,11 @@ def rows_html(items):
             f"<td>{esc(it.get('name'))}</td>"
             f"<td>{esc(it.get('status'))}</td>"
             f"<td>{esc(rank if rank is not None else '')}</td>"
+            f"<td>{esc(it.get('use_case'))}</td>"
+            f"<td>{esc(it.get('requester_name'))}</td>"
+            f"<td>{esc(blocker_text(it.get('production_blocker')))}</td>"
+            f"<td>{esc(it.get('target_release'))}</td>"
+            f"<td>{esc(it.get('notes'))}</td>"
             f"<td>{esc(it.get('total_endorsements'))}</td>"
             "</tr>"
         )
@@ -214,10 +227,13 @@ def rows_html(items):
 def section(title, items):
     if not items:
         return ""
+    headers = ("", "Ref", "Idea", "Status", "Stack Rank", "Use Case", "Requester",
+               "Production Blocker", "Target Release", "Notes", "Total votes")
+    head_html = "".join(f"<th>{esc(h)}</th>" for h in headers)
     return f"""
     <h2>{esc(title)} ({len(items)})</h2>
     <table>
-      <thead><tr><th></th><th>Ref</th><th>Idea</th><th>Status</th><th>Stack Rank</th><th>Total votes</th></tr></thead>
+      <thead><tr>{head_html}</tr></thead>
       <tbody>{rows_html(items)}</tbody>
     </table>
     """
