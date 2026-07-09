@@ -17,6 +17,10 @@
 #
 # Then it prints an open-vs-closed table (or JSON with --json).
 #
+# --json output includes org_url per idea: the resolved idea organization's
+# own page in Aha (the customer's proxy-vote/endorsement page), not any
+# individual idea's public link.
+#
 # Usage:
 #   customer-ideas.sh "HealthEquity"
 #   customer-ideas.sh "HealthEquity" --open          # only still-open ideas
@@ -102,20 +106,22 @@ command -v jq >/dev/null 2>&1 || die "'jq' is required but not on PATH"
 aha() { $AHA "$@"; }
 
 # --- Step 1: resolve organizations -----------------------------------------
-# Each entry is "id<TAB>name".
+# Each entry is "id<TAB>name<TAB>url" -- url is the org's own page in Aha
+# (https://konghq.aha.io/ideas/idea_organizations/ACCOUNT-O-nnnn), i.e. the
+# customer-specific link, not any individual idea's public link.
 declare -a orgs=()
 
 if [[ ${#org_refs[@]} -gt 0 ]]; then
   for ref in "${org_refs[@]}"; do
-    row="$(aha get "idea_organizations/$ref" -q 'fields=id,name' --raw 2>/dev/null |
-      jq -r '.idea_organization | select(.id) | "\(.id)\t\(.name)"' || true)"
+    row="$(aha get "idea_organizations/$ref" -q 'fields=id,name,url' --raw 2>/dev/null |
+      jq -r '.idea_organization | select(.id) | "\(.id)\t\(.name)\t\(.url // "")"' || true)"
     [[ -n "$row" ]] || die "idea organization not found: $ref"
     orgs+=("$row")
   done
 else
   search_orgs() {
-    aha get idea_organizations -q "q=$1" -q 'fields=id,name' -q per_page=50 --raw 2>/dev/null |
-      jq -r '.idea_organizations[] | "\(.id)\t\(.name)"'
+    aha get idea_organizations -q "q=$1" -q 'fields=id,name,url' -q per_page=50 --raw 2>/dev/null |
+      jq -r '.idea_organizations[] | "\(.id)\t\(.name)\t\(.url // "")"'
   }
   mapfile -t orgs < <(search_orgs "$name")
   # Retry without spaces -- "Health Equity" finds nothing; "HealthEquity" does.
@@ -126,7 +132,8 @@ else
     lc_name="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
     declare -a kept=()
     for o in "${orgs[@]}"; do
-      onm="$(printf '%s' "${o#*$'\t'}" | tr '[:upper:]' '[:lower:]')"
+      IFS=$'\t' read -r _ oname _ <<<"$o"
+      onm="$(printf '%s' "$oname" | tr '[:upper:]' '[:lower:]')"
       [[ "$onm" == "$lc_name" ]] && kept+=("$o")
     done
     orgs=("${kept[@]:-}")
@@ -136,22 +143,30 @@ else
 fi
 
 echo "Matched ${#orgs[@]} organization(s):" >&2
-for o in "${orgs[@]}"; do echo "  - ${o#*$'\t'}  (id ${o%%$'\t'*})" >&2; done
+for o in "${orgs[@]}"; do
+  IFS=$'\t' read -r oid oname _ <<<"$o"
+  echo "  - ${oname}  (id ${oid})" >&2
+done
 
 # --- Step 2: one paginated endorsements pass per org -----------------------
 # Embeds idea ref + name + the customer's vote weight; no per-idea call here.
+# Also stamps each endorsement with the org's own Aha link, so it survives
+# into the per-idea aggregation below as the "proxy vote link" (the org's
+# page in Aha, as opposed to an individual idea's public link).
 endt="$(mktemp)"
 trap 'rm -f "$endt"' EXIT
 for o in "${orgs[@]}"; do
-  oid="${o%%$'\t'*}"
+  IFS=$'\t' read -r oid _ ourl <<<"$o"
   aha get "idea_organizations/$oid/endorsements" --paginate -q per_page=100 -q 'fields=idea,weight' 2>/dev/null |
-    jq -c '.[] | select(.idea != null and .idea.reference_num != null)
-             | {ref:.idea.reference_num, name:.idea.name, weight:(.weight // 1)}' >>"$endt"
+    jq -c --arg org_url "$ourl" '.[] | select(.idea != null and .idea.reference_num != null)
+             | {ref:.idea.reference_num, name:.idea.name, weight:(.weight // 1), org_url: $org_url}' >>"$endt"
 done
 
-# Aggregate by idea: sum the customer's weight, count endorsements.
+# Aggregate by idea: sum the customer's weight, count endorsements. All
+# endorsements for a given idea+customer share the same org_url except in
+# the rare case of >1 pinned org for one customer, where the first wins.
 agg="$(jq -s 'group_by(.ref) | map({ref:.[0].ref, name:.[0].name,
-              cust_weight:(map(.weight)|add), cust_votes:length})' "$endt")"
+              cust_weight:(map(.weight)|add), cust_votes:length, org_url:.[0].org_url})' "$endt")"
 n_ideas="$(echo "$agg" | jq 'length')"
 if [[ "$n_ideas" -eq 0 ]]; then
   echo "No endorsed ideas found for this customer." >&2

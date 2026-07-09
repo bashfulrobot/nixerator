@@ -1,5 +1,25 @@
-# One customer name per line, matching the Aha! idea-organization name
-# (searched via vendor/customer-ideas.sh) and the Drive folder name under
-# the Customers shared drive. Lines starting with # and blank lines are
-# ignored. run-all.sh processes every customer here on each scheduled run.
-HealthEquity
+# One customer per line:
+#   Drive folder name[|aha_org_id[,aha_org_id2,...]]
+#
+# The part before "|" must be the EXACT existing top-level folder name under
+# the Customers shared drive (folder lookup is exact-match, not fuzzy -- see
+# find_customer_folder in scripts/drive-lib.sh) and doubles as the Sheet
+# title, PDF filename, and Aha! search term when no org id is given.
+#
+# The optional "|org_id" pins the Aha! idea-organization explicitly instead
+# of a plain name search -- use it whenever the Drive folder name and the
+# right Aha org diverge, or a plain search would be too broad/ambiguous
+# (e.g. "X Corporation" fuzzy-matches dozens of unrelated "*Corporation"
+# orgs in Aha with no exact-match guard by default). Repeatable
+# (comma-separated) for a customer with more than one legitimate Aha org.
+#
+# Lines starting with # and blank lines are ignored. run-all.sh processes
+# every customer here on each scheduled run.
+HealthEquity|7201237090137915419
+Lululemon|7239113931934373789
+Nordstrom, Inc.|7190055603084906157
+PayPal|7303720534328744758
+Sony Interactive Entertainment|7210570342900669490
+Standard Insurance|7190054349922059587
+x.ai|7210568074903643759
+Zillow|7431985914424870034
