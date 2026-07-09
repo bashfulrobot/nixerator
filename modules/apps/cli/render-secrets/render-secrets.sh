@@ -81,6 +81,10 @@ MATERIALIZE=(
   # srv-only: workstations already have their own interactive gws session.
   "gws-client-secret|${HOME}/.config/gws/client_secret.json|600|700|host:srv"
   "gws-credentials|${HOME}/.config/gws/credentials.enc|600|700|host:srv"
+  # The file-backend keyring stores its symmetric key here; credentials.enc
+  # is unreadable without it (verified: GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file
+  # only reports encryption_valid=true when this file is present alongside it).
+  "gws-encryption-key|${HOME}/.config/gws/.encryption_key|600|700|host:srv"
 )
 
 # Files pushed alongside secrets.json when --push is used. Format per entry:
