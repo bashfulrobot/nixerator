@@ -15,7 +15,7 @@
 #
 # Lines starting with # and blank lines are ignored. run-all.sh processes
 # every customer here on each scheduled run.
-HealthEquity
+HealthEquity|7201237090137915419
 Lululemon|7239113931934373789
 Nordstrom, Inc.|7190055603084906157
 PayPal|7303720534328744758

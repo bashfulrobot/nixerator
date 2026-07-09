@@ -13,13 +13,17 @@
 #
 # Prints "sheet_id<TAB>sheet_url" on stdout when done.
 #
-# Requires: gws (authenticated), the aha skill's customer-ideas.sh,
-# AHA_API_TOKEN, jq.
+# Columns written: State, Ref, Idea, Status, Stack Rank (from upsight-go,
+# blank if untracked), Aha Link (the idea's own public link), and Proxy Vote
+# Link (this customer's own org page in Aha) -- see fetch-ideas.sh.
+#
+# Requires: gws (authenticated), fetch-ideas.sh (and in turn
+# customer-ideas.sh, AHA_API_TOKEN), jq.
 
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AHA_CUSTOMER_IDEAS="$here/../vendor/customer-ideas.sh"
+FETCH_IDEAS="$here/fetch-ideas.sh"
 source "$here/drive-lib.sh"
 
 die() {
@@ -31,7 +35,7 @@ customer_name="${1:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [
 frs_folder_id="${2:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--org ID ...]}"
 shift 2
 
-[[ -x "$AHA_CUSTOMER_IDEAS" ]] || die "customer-ideas.sh not found/executable at $AHA_CUSTOMER_IDEAS"
+[[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
 command -v jq >/dev/null 2>&1 || die "'jq' is required but not on PATH"
 
 sheet_name="${customer_name} - Feature Requests"
@@ -48,17 +52,17 @@ else
   echo "Reusing existing sheet ${sheet_id}" >&2
 fi
 
-# --- Step 2: pull the customer's ideas from Aha! ---------------------------
+# --- Step 2: pull the customer's ideas from Aha!, with Stack Rank ----------
 echo "Pulling ideas for ${customer_name} from Aha!..." >&2
-# customer-ideas.sh ignores $customer_name for search purposes once any
-# --org is present (see its own arg parsing), so it's safe to always pass
-# both -- --org just takes precedence.
-ideas_json="$("$AHA_CUSTOMER_IDEAS" "$customer_name" --json "$@")"
+# customer-ideas.sh (called inside fetch-ideas.sh) ignores $customer_name for
+# search purposes once any --org is present (see its own arg parsing), so
+# it's safe to always pass both -- --org just takes precedence.
+ideas_json="$("$FETCH_IDEAS" "$customer_name" "$@")"
 n="$(echo "$ideas_json" | jq 'length')"
 echo "Got ${n} idea(s)." >&2
 
 # --- Step 3: build the 2D values array (header + rows) --------------------
-header='["State","Ref","Idea","Status","Customer Votes","Customer Weight","Total Endorsements","Aha Link"]'
+header='["State","Ref","Idea","Status","Stack Rank","Aha Link","Proxy Vote Link"]'
 rows="$(echo "$ideas_json" | jq --argjson header "$header" '
   [$header] + (
     map([
@@ -66,10 +70,9 @@ rows="$(echo "$ideas_json" | jq --argjson header "$header" '
       .ref,
       .name,
       .status,
-      .cust_votes,
-      .cust_weight,
-      .total_endorsements,
-      (.url // "")
+      (.rank // ""),
+      (.url // ""),
+      (.org_url // "")
     ])
   )
 ')"
