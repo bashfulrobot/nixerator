@@ -15,7 +15,9 @@
 #
 # Columns written: State, Ref, Idea, Status, Stack Rank (from upsight-go,
 # blank if untracked), Aha Link (the idea's own public link), and Proxy Vote
-# Link (this customer's own org page in Aha) -- see fetch-ideas.sh.
+# Link (this customer's own org page in Aha) -- see fetch-ideas.sh. The header
+# row is bolded, shaded, and frozen, and columns are auto-width -- reapplied
+# on every run (idempotent), not just on first creation.
 #
 # Requires: gws (authenticated), fetch-ideas.sh (and in turn
 # customer-ideas.sh, AHA_API_TOKEN), jq.
@@ -87,6 +89,41 @@ update_body="$(jq -n --argjson values "$rows" '{valueInputOption:"RAW", data:[{r
 gws sheets spreadsheets values batchUpdate \
   --params "{\"spreadsheetId\":\"${sheet_id}\"}" \
   --json "$update_body" >/dev/null
+
+# --- Step 5: light formatting -- bold+frozen header, auto-width columns ----
+# Idempotent, so it's cheap to just reapply on every run rather than only on
+# sheet creation.
+echo "Applying formatting..." >&2
+n_cols="$(echo "$header" | jq 'length')"
+grid_sheet_id="$(gws sheets spreadsheets get \
+  --params "{\"spreadsheetId\":\"${sheet_id}\",\"fields\":\"sheets.properties\"}" 2>/dev/null |
+  jq '.sheets[0].properties.sheetId')"
+
+format_body="$(jq -n --argjson gsid "$grid_sheet_id" --argjson n_cols "$n_cols" '{
+  requests: [
+    {
+      repeatCell: {
+        range: {sheetId: $gsid, startRowIndex: 0, endRowIndex: 1},
+        cell: {userEnteredFormat: {textFormat: {bold: true}, backgroundColor: {red: 0.843, green: 0.871, blue: 0.831}}},
+        fields: "userEnteredFormat(textFormat,backgroundColor)"
+      }
+    },
+    {
+      updateSheetProperties: {
+        properties: {sheetId: $gsid, gridProperties: {frozenRowCount: 1}},
+        fields: "gridProperties.frozenRowCount"
+      }
+    },
+    {
+      autoResizeDimensions: {
+        dimensions: {sheetId: $gsid, dimension: "COLUMNS", startIndex: 0, endIndex: $n_cols}
+      }
+    }
+  ]
+}')"
+gws sheets spreadsheets batchUpdate \
+  --params "{\"spreadsheetId\":\"${sheet_id}\"}" \
+  --json "$format_body" >/dev/null 2>&1 || echo "  (formatting failed, non-fatal -- data is still written)" >&2
 
 sheet_url="https://docs.google.com/spreadsheets/d/${sheet_id}/edit"
 printf '%s\t%s\n' "$sheet_id" "$sheet_url"
