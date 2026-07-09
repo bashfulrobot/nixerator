@@ -159,6 +159,26 @@ Useful task flags:
 - `--parent`, `--section`, `--project`, `--workspace`, `--assignee`, `--labels`, `--due`, `--deadline`, `--duration`, and `--priority` cover most task workflows.
 - `td task complete --forever` stops recurrence; `td task update --no-due` clears the due date and `--no-deadline` clears deadlines; `td task move --no-parent` and `--no-section` detach from hierarchy.
 
+### Task Granularity: Subtasks vs. Checklist Comments
+
+A request with several related action items can become Todoist tasks three different ways. Pick deliberately instead of defaulting to "one task per action item":
+
+1. **Separate top-level tasks.** Each step is its own task, with its own due date, priority, and reminder, and shows as its own row in Today/Upcoming and on the project board. Use this when the steps genuinely need independent scheduling or ownership, or the user asks for "a task for X."
+2. **Todoist subtasks** (`td task add ... --parent <ref>`). Steps become real, independently completable child tasks nested under a parent. Use this when steps need their own due date or assignee but should visually group under one umbrella task.
+3. **Markdown checklist in a single comment.** Steps are `- [ ] item` / `- [x] item` lines in one comment on one task. Todoist renders these as tickable checkboxes in the comment thread. Use this when the steps are a work breakdown of one task: same due date, same priority, same owner and same underlying conversation or deliverable.
+
+Default to the checklist comment (option 3) when several closely related action items share one due date, one priority, and one initiative, for example three people to talk to about the same rollout, or three sub-steps of one event. Splitting those into separate top-level tasks clutters Today/Upcoming views and buries the thread that ties them together. Reserve separate tasks or subtasks for steps that need independent due dates, independent reminders, or independent completion tracking outside the parent task.
+
+Checklist comment syntax: one comment, one `-` bullet per line, `[ ]` for open and `[x]` for done.
+```bash
+td comment add "Plan sprint" --content "- [ ] Draft the proposal
+- [ ] Get sign-off from lead
+- [ ] Socialize with team"
+```
+Keep the checklist itself terse (imperative phrasing, no elaboration), and put the why/how (context, ideas, approaches, source links, citations) in a second, separate comment on the same task rather than folding it into the checklist. There is no "check the box" command: to update progress, re-send the full checklist text with the relevant line(s) toggled to `[x]` via `td comment update id:<comment-id> --content "..."`.
+
+When 4 or more action items come out of one request and it is not obvious whether they are independent to-dos or sub-steps of one initiative, ask the user, or make a judgment call and say which grouping you chose and why, rather than silently creating one task per item. Favor grouping when the items share a due date, serve one named deliverable, or route through the same small set of people. Favor separate tasks when owners or due dates differ, or the user names each one as its own task.
+
 ### Projects And Workspaces
 ```bash
 td project list --personal
