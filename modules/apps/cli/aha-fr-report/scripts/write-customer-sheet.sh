@@ -14,10 +14,13 @@
 # Prints "sheet_id<TAB>sheet_url" on stdout when done.
 #
 # Columns written: State, Ref, Idea, Status, Stack Rank (from upsight-go,
-# blank if untracked), Aha Link (the idea's own public link), and Proxy Vote
-# Link (this customer's own org page in Aha) -- see fetch-ideas.sh. The header
-# row is bolded, shaded, and frozen, and columns are auto-width -- reapplied
-# on every run (idempotent), not just on first creation.
+# blank if untracked), Aha Link (the idea's own public link, shown as
+# "View idea"), and Proxy Vote Link (this customer's own org page in Aha,
+# shown as "View proxy vote") -- see fetch-ideas.sh. Both link columns are
+# HYPERLINK() formulas (values written with USER_ENTERED, not RAW, so
+# Sheets evaluates them) rather than bare URLs. The header row is bolded,
+# shaded, and frozen, and columns are auto-width -- reapplied on every run
+# (idempotent), not just on first creation.
 #
 # Requires: gws (authenticated), fetch-ideas.sh (and in turn
 # customer-ideas.sh, AHA_API_TOKEN), jq.
@@ -79,8 +82,8 @@ rows="$(echo "$ideas_json" | jq --argjson header "$header" '
       .name,
       .status,
       (.rank // ""),
-      (.url // ""),
-      (.org_url // "")
+      (if (.url // "") != "" then "=HYPERLINK(\"\(.url)\",\"View idea\")" else "" end),
+      (if (.org_url // "") != "" then "=HYPERLINK(\"\(.org_url)\",\"View proxy vote\")" else "" end)
     ])
   )
 ')"
@@ -91,7 +94,7 @@ gws sheets spreadsheets values clear \
   --params "{\"spreadsheetId\":\"${sheet_id}\",\"range\":\"A1:Z1000\"}" \
   --json '{}' >/dev/null 2>&1 || true
 
-update_body="$(jq -n --argjson values "$rows" '{valueInputOption:"RAW", data:[{range:"A1", majorDimension:"ROWS", values:$values}]}')"
+update_body="$(jq -n --argjson values "$rows" '{valueInputOption:"USER_ENTERED", data:[{range:"A1", majorDimension:"ROWS", values:$values}]}')"
 gws sheets spreadsheets values batchUpdate \
   --params "{\"spreadsheetId\":\"${sheet_id}\"}" \
   --json "$update_body" >/dev/null
