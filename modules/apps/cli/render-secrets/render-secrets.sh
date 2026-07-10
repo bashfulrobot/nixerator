@@ -77,6 +77,13 @@ MATERIALIZE=(
   # Workstations only: needed for importing into a browser to authenticate
   # against the Incus web UI. srv is headless and has no browser.
   "incus-ui.pfx|${HOME}/.config/incus/client.pfx|600|700|${_WS}"
+
+  # FileBot lifetime license. Materializes here on any host that runs
+  # render-secrets (unused outside srv, same pattern as incus-ui.crt above)
+  # so PUSH_ALONGSIDE below has a local source file to scp to srv, the only
+  # host that runs filebot (modules/apps/cli/media-rename). Dest path matches
+  # nixpkgs' filebot package.nix substituteInPlace of APP_DATA/.license.
+  "filebot-license|${HOME}/.local/share/filebot/data/.license|600|700|"
 )
 
 # Files pushed alongside secrets.json when --push is used. Format per entry:
@@ -90,6 +97,11 @@ PUSH_ALONGSIDE=(
   # so builtins.readFile in the incus module can populate the preseed trust
   # store. MATERIALIZE places it locally; PUSH_ALONGSIDE carries it to peers.
   "${HOME}/.config/incus/client.crt|644"
+
+  # FileBot lifetime license: srv is headless (no 1Password CLI, never runs
+  # render-secrets directly), so it only gets the license via --push from a
+  # workstation that materialized it locally above.
+  "${HOME}/.local/share/filebot/data/.license|600"
 )
 
 usage() {
