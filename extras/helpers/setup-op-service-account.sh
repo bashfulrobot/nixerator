@@ -13,17 +13,26 @@
 # auto-source from the file with NO further biometric prompts -- this
 # helper's one `op read` is the only biometric you'll see.
 #
-# How it works: the SA token itself is stored in your Personal 1Password
-# vault. We use `op read` to fetch it via the desktop biometric session,
-# then atomically install it at the canonical path with 0600 perms.
+# How it works: the SA token itself is stored in 1Password at the SAME
+# item secrets.json.tpl's onepassword.serviceAccountToken reads from --
+# this script extracts that op:// reference from the template rather than
+# hardcoding its own copy, so there's one place to update when the item
+# changes (e.g. a full SA regeneration, not just a token rotation). We use
+# `op read` to fetch it via the desktop biometric session, then atomically
+# install it at the canonical path with 0600 perms.
+#
+# Rotating the token? Use `just rotate-op-token` instead of running this
+# script by hand -- it walks the full sequence (1Password steps, install,
+# an explicit-token render that bypasses op-toggle's chicken-and-egg
+# fallback, and verification) end to end.
 #
 # Usage (preferred path):
 #   ./extras/helpers/setup-op-service-account.sh
 #     Requires: 1Password CLI on PATH (nix-shell pulls it), signed-in
-#     desktop session (`op signin`), read access to the Personal vault
-#     item below.
+#     desktop session (`op signin`), read access to the item
+#     secrets.json.tpl's onepassword.serviceAccountToken points at.
 #
-# Override the source reference (e.g. token moved to another vault):
+# Override the source reference (e.g. testing against a different item):
 #   OP_TOKEN_REF=op://Vault/Item/field ./extras/helpers/setup-op-service-account.sh
 #
 # Bypass `op read` and paste / pipe / env-supply the token directly --
@@ -46,10 +55,17 @@ set -euo pipefail
 # --dest for live-USB bootstrap (writing into /home/dustin/... from root).
 DEST="${HOME}/.config/op/service-account-token"
 
-# Canonical reference for the SA token in 1Password. Pinned to the item ID
-# (not name) so renames don't break this script.
-TOKEN_REF_DEFAULT="op://Personal/r6auiogd4j3xaapmfn6bh7ul6m/credential"
-TOKEN_REF="${OP_TOKEN_REF:-${TOKEN_REF_DEFAULT}}"
+# Canonical reference for the SA token in 1Password. Derived from
+# secrets.json.tpl's own onepassword.serviceAccountToken entry (pinned to
+# an item ID there, not a name) so this script and the template can never
+# drift to two different items. OP_TOKEN_REF still overrides explicitly.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TPL_DEFAULT="${SCRIPT_DIR}/../../secrets.json.tpl"
+TOKEN_REF_FROM_TPL=""
+if [[ -f "${TPL_DEFAULT}" ]]; then
+  TOKEN_REF_FROM_TPL="$(sed -n 's#.*"serviceAccountToken": *"{{ *\(op://[^ ]*\) *}}".*#\1#p' "${TPL_DEFAULT}")"
+fi
+TOKEN_REF="${OP_TOKEN_REF:-${TOKEN_REF_FROM_TPL}}"
 
 MANUAL=0
 FORCE=0
@@ -73,7 +89,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h | --help)
-      sed -n '4,38p' "$0"
+      sed -n '4,50p' "$0"
       exit 0
       ;;
     *)
@@ -109,6 +125,11 @@ read_token() {
     read -r t
   else
     # Default: fetch via `op read` (one biometric prompt on the desktop).
+    if [[ -z "${TOKEN_REF}" ]]; then
+      echo "setup-op-service-account: couldn't find onepassword.serviceAccountToken in ${TPL_DEFAULT}" >&2
+      echo "  Set OP_TOKEN_REF=op://Vault/Item/field explicitly, or use --manual / OP_TOKEN= / stdin." >&2
+      exit 1
+    fi
     if ! op whoami >/dev/null 2>&1; then
       echo "setup-op-service-account: 'op' not signed in." >&2
       echo "  Run:  op signin" >&2
