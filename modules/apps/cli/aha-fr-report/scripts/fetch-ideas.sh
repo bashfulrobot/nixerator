@@ -13,6 +13,11 @@
 # nullable -- an untracked idea, or a customer with no upsight-go data at
 # all, just gets all-null fields, not an error.
 #
+# Row order (shared by both the Sheet and the PDF, since both consume this
+# script's output directly): Open ideas first, Closed ideas last. Within
+# each of those, ranked ideas come first sorted by Stack Rank ascending (1
+# at the top), then unranked ideas after.
+#
 # Requires: the vendored customer-ideas.sh, AHA_API_TOKEN, jq, and (for the
 # tracking fields) idea-tracking-lookup.sh -- see that script for its own
 # graceful-miss behavior when upsight-go isn't installed, has no data for
@@ -64,4 +69,9 @@ echo "$ideas_json" | jq --argjson tracking "$tracking_json" '
       rank: null, production_blocker: null, target_release: null, use_case: null,
       source_url: null, notes: null, requester_name: null, requester_email: null
     }))
+  | sort_by([
+      (if .state == "open" then 0 else 1 end),
+      (if .rank == null then 1 else 0 end),
+      (.rank // 0)
+    ])
 '
