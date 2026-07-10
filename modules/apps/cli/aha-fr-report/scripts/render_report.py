@@ -250,7 +250,7 @@ def main():
     closed_items = [i for i in items if i.get("state") != "open"]
     shipped = [i for i in closed_items if "shipped" in (i.get("status") or "").lower()]
 
-    generated = datetime.date.today().isoformat()
+    generated = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     html = f"""<!doctype html>
 <html>
@@ -263,7 +263,7 @@ def main():
   <img src="file://{LOGO}" alt="Kong">
   <div class="meta">
     <h1>Feature Request Status</h1>
-    <p class="subtitle">{esc(customer_name)} &middot; generated {generated}</p>
+    <p class="subtitle">{esc(customer_name)} &middot; last generated {generated}</p>
   </div>
 </header>
 
