@@ -14,7 +14,10 @@
 # Prints "sheet_id<TAB>sheet_url" on stdout when done.
 #
 # Columns written: State, Ref, Idea, Status, Stack Rank, Use Case,
-# Requester, Production Blocker, Target Release, Notes (all from
+# Requester, Team (the requester's configured team, derived from
+# upsight-go's contacts.team_id -> teams.id -> teams.team_name -- not a
+# free-text field, blank if the requester has no team set or there is no
+# requester), Production Blocker, Target Release, Notes (all from
 # upsight-go, blank if untracked -- see fetch-ideas.sh and
 # idea-tracking-lookup.sh), Aha Link (the idea's own public link, shown as
 # "View idea"), Proxy Vote Link (this customer's own org page in Aha, shown
@@ -86,7 +89,7 @@ echo "Got ${n} idea(s)." >&2
 # at the bottom, which Step 5 relies on to group/collapse them.
 timestamp="$(date -u +'%Y-%m-%d %H:%M UTC')"
 timestamp_row="$(jq -n --arg t "Last updated: ${timestamp}" '[$t]')"
-header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Production Blocker","Target Release","Notes","Aha Link","Proxy Vote Link","Source Link","Internal Discussion Link"]'
+header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Team","Production Blocker","Target Release","Notes","Aha Link","Proxy Vote Link","Source Link","Internal Discussion Link"]'
 open_count="$(echo "$ideas_json" | jq '[.[] | select(.state == "open")] | length')"
 closed_count="$(echo "$ideas_json" | jq '[.[] | select(.state != "open")] | length')"
 rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" '
@@ -99,6 +102,7 @@ rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_r
       (.rank // ""),
       (.use_case // ""),
       (.requester_name // ""),
+      (.team_name // ""),
       (if .production_blocker == 1 then "Yes" elif .production_blocker == 0 then "No" else "" end),
       (.target_release // ""),
       (.notes // ""),

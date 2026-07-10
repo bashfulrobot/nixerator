@@ -13,11 +13,13 @@
 #                "source_url": "https://...", "notes": "...",
 #                "internal_discussion_url": "https://kong.slack.com/...",
 #                "requester_name": "Chris Fulara",
-#                "requester_email": "chris.fulara@example.com"}, ...}
+#                "requester_email": "chris.fulara@example.com",
+#                "team_name": "Platform Engineering"}, ...}
 # Every field is independently nullable -- an idea with only a rank set (or
 # nothing at all) is just missing the other keys' values, not an error.
-# requester_name/requester_email are resolved from upsight-go's contacts
-# table via idea_ranks.requester_contact_id, not stored as free text.
+# requester_name/requester_email/team_name are resolved from upsight-go's
+# contacts (and, for team_name, teams) tables via
+# idea_ranks.requester_contact_id, not stored as free text.
 #
 # Schema dependency: this reads seven columns added to idea_ranks by
 # bashfulrobot/upsight-go#60 (requester_contact_id, production_blocker,
@@ -28,6 +30,9 @@
 # degrades to "{}" on any SQLite error (including "no such column"), same
 # as every other graceful-miss path here, so running against an
 # un-migrated database just means blank cells, not a broken report.
+# team_name has no idea_ranks column of its own -- it's derived the same way
+# upsight-go#65 derives it in the app UI: requester_contact_id ->
+# contacts.team_id -> teams.id -> teams.team_name.
 #
 # Degrades to "{}" (non-fatal) when sqlite3 isn't on PATH, the upsight
 # database doesn't exist, the schema predates upsight-go#60/#61, or none of
@@ -75,11 +80,13 @@ sqlite3 -readonly -json "$UPSIGHT_DB" "
     ir.notes                            AS notes,
     ir.internal_discussion_url          AS internal_discussion_url,
     c.first_name || ' ' || c.last_name  AS requester_name,
-    c.email                             AS requester_email
+    c.email                             AS requester_email,
+    t.team_name                         AS team_name
   FROM idea_ranks ir
   JOIN aha_idea_cache aic ON aic.id = ir.aha_idea_id
   JOIN accounts acc ON acc.id = ir.account_id
   LEFT JOIN contacts c ON c.id = ir.requester_contact_id
+  LEFT JOIN teams t ON t.id = c.team_id
   WHERE acc.aha_organization_id IN (${placeholders})
     AND (ir.rank IS NOT NULL
          OR ir.production_blocker IS NOT NULL
