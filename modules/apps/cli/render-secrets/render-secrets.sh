@@ -108,9 +108,10 @@ PUSH_ALONGSIDE=(
   # store. MATERIALIZE places it locally; PUSH_ALONGSIDE carries it to peers.
   "${HOME}/.config/incus/client.crt|644"
 
-  # FileBot lifetime license: srv is headless (no 1Password CLI, never runs
-  # render-secrets directly), so it only gets the license via --push from a
-  # workstation that materialized it locally above.
+  # FileBot lifetime license: kept here as a bootstrap-safe fallback so a
+  # workstation can seed srv before srv has rendered its own copy. srv now
+  # runs render-secrets itself (it has the 1Password CLI), so it normally
+  # materializes this locally; the push is harmless and idempotent.
   "${HOME}/.local/share/filebot/data/.license|600"
 )
 
