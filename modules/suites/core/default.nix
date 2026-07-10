@@ -76,7 +76,15 @@ in
 
     # Networking defaults
     networking = {
-      networkmanager.enable = lib.mkDefault true;
+      networkmanager = {
+        enable = lib.mkDefault true;
+        # WiFi power-saving drops/delays inbound frames (including TCP SYNs)
+        # while the radio dozes between beacon intervals, breaking anything
+        # that expects this host to be reliably reachable from LAN peers
+        # (e.g. LocalSend discovery/transfer on 53317). No effect on wired
+        # NICs, so safe as a suite-wide default.
+        wifi.powersave = lib.mkDefault false;
+      };
       firewall = {
         enable = lib.mkDefault true;
         allowedTCPPorts = lib.mkDefault [ 22 ]; # SSH
