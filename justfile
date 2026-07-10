@@ -255,51 +255,6 @@ rollback gen="":
     echo "Active generation now:"
     sudo nix-env --profile /nix/var/nix/profiles/system --list-generations | grep "(current)"
 
-# Smart push/pull — detects git state and acts accordingly
-sync-git:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    current_branch=$(git rev-parse --abbrev-ref HEAD)
-
-    # Pause syncthing during git operations
-    systemctl --user stop syncthing || true
-    trap 'systemctl --user start syncthing || true' EXIT
-
-    git fetch origin
-
-    local_only=$(git log "origin/$current_branch..$current_branch" --oneline 2>/dev/null || true)
-    remote_only=$(git log "$current_branch..origin/$current_branch" --oneline 2>/dev/null || true)
-
-    if [[ -n "$local_only" && -n "$remote_only" ]]; then
-        echo "Diverged — local and remote both have commits:"
-        echo ""
-        echo "Local:"
-        echo "$local_only"
-        echo ""
-        echo "Remote:"
-        echo "$remote_only"
-        echo ""
-        echo "Resolve manually (rebase, merge, or force-push)."
-        exit 1
-
-    elif [[ -n "$local_only" ]]; then
-        echo "Pushing unpushed commits..."
-        git push origin "$current_branch"
-        echo "Pushed to origin/$current_branch"
-
-    elif [[ -n "$remote_only" ]]; then
-        echo "Aligning git state with remote..."
-        git reset --hard "origin/$current_branch"
-        git clean -fd
-        echo "Git state aligned with origin/$current_branch"
-
-    else
-        echo "Already in sync with origin/$current_branch"
-    fi
-
-    git status --short
-
 # Check code health with deadnix and statix
 health:
     #!/usr/bin/env bash
@@ -640,8 +595,8 @@ post-rebuild mode="quiet":
             notice "Pushed captured config to origin/main"
             notify-send "Nixerator" "Captured config pushed to origin/main" 2>/dev/null || true
         else
-            warn "Capture commit(s) made but push failed — resolve with: just sync-git"
-            notify-send "Nixerator" "Capture push failed — run just sync-git" 2>/dev/null || true
+            warn "Capture commit(s) made but push failed — resolve manually: git pull --rebase origin main && git push origin main"
+            notify-send "Nixerator" "Capture push failed — resolve manually" 2>/dev/null || true
         fi
     fi
 

@@ -26,7 +26,6 @@
     ../../modules/apps/cli/starship
     ../../modules/apps/cli/superpowers
     ../../modules/apps/cli/tailscale
-    ../../modules/apps/cli/vscode-server
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
@@ -58,7 +57,6 @@
     media-rename.enable = true;
     starship.enable = true;
     tailscale.enable = true;
-    vscode-server.enable = false;
 
     # Claude Code stack (cherry-picked from suites/ai for headless srv)
     agent-scan.enable = true;

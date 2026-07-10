@@ -2,10 +2,15 @@
 #
 # Uses denful/import-tree (via `inputs.import-tree`) instead of a hand-rolled
 # recursive importer. The `.filterNot` chain reproduces the legacy exclusion
-# set (disabled/build/cfg/reference) so subdirectories holding local helpers
-# stay opt-out without renaming them. The self-match (`isSelf`) skips this
-# dispatcher file so import-tree does not recurse into itself; nested
+# set (disabled/build/cfg/reference/archive) so subdirectories holding local
+# helpers stay opt-out without renaming them. The self-match (`isSelf`) skips
+# this dispatcher file so import-tree does not recurse into itself; nested
 # `default.nix` files (with a directory prefix) are still picked up.
+#
+# `archive/` holds modules retired from active use but kept for reference —
+# code we might want back later without digging through git history. Move a
+# module there with its original relative path preserved under
+# `archive/<original path>` so restoring it later is a plain `git mv` back.
 #
 # import-tree's current convention passes the predicate root-relative paths
 # (e.g. `/apps/cli/foo.nix`, and `/default.nix` for the dispatcher). To stay
@@ -34,6 +39,7 @@ let
     || lib.hasInfix "/disabled/" s
     || lib.hasInfix "/build/" s
     || lib.hasInfix "/cfg/" s
-    || lib.hasInfix "/reference/" s;
+    || lib.hasInfix "/reference/" s
+    || lib.hasInfix "/archive/" s;
 in
 (inputs.import-tree.filterNot isExcluded) ./.
