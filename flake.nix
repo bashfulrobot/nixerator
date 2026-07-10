@@ -78,9 +78,19 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Deliberately NOT following nixerator's nixpkgs (unlike most inputs).
+    # nixos-vscode-server's flake.nix builds `nixpkgs.legacyPackages.${system}`
+    # for every system in its own pinned (pre-2023) flake-utils' default
+    # system list, which includes x86_64-darwin. Because that eachSystem
+    # helper strictly folds every system's outputs together, evaluating ANY
+    # of its outputs (e.g. importing nixosModules.default below) forces
+    # evaluation of the darwin legacyPackages too. Nixpkgs 26.11 dropped
+    # x86_64-darwin support and throws on that instantiation, breaking the
+    # Linux-only rebuild even though nothing here touches darwin. Following
+    # our nixpkgs previously worked only because it hadn't reached that drop
+    # yet; pinning this input's own nixpkgs avoids the collision entirely.
     nixos-vscode-server = {
       url = "github:nix-community/nixos-vscode-server";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     browser-previews = {
