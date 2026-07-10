@@ -19,11 +19,11 @@
 # idea-tracking-lookup.sh), Aha Link (the idea's own public link, shown as
 # "View idea"), Proxy Vote Link (this customer's own org page in Aha, shown
 # as "View proxy"), Source Link (where the request was first gathered, e.g.
-# a customer Slack thread, shown as "View source"), and Internal Discussion
-# Link (the separate Kong-internal Slack thread about the request, shown as
-# "View discussion"). All four link columns are HYPERLINK() formulas
-# (values written with USER_ENTERED, not RAW, so Sheets evaluates them)
-# rather than bare URLs. The header row is bolded,
+# a customer Slack thread, shown as "Customer thread"), and Internal
+# Discussion Link (the separate Kong-internal Slack thread about the
+# request, shown as "Internal thread"). All four link columns are
+# HYPERLINK() formulas (values written with USER_ENTERED, not RAW, so
+# Sheets evaluates them) rather than bare URLs. The header row is bolded,
 # shaded, and frozen, and columns are auto-width (recomputed from the
 # actual column count every run) -- reapplied on every run (idempotent),
 # not just on first creation. Row order (Open first, ranked-then-unranked
@@ -97,8 +97,8 @@ rows="$(echo "$ideas_json" | jq --argjson header "$header" '
       (.notes // ""),
       (if (.url // "") != "" then "=HYPERLINK(\"\(.url)\",\"View idea\")" else "" end),
       (if (.org_url // "") != "" then "=HYPERLINK(\"\(.org_url)\",\"View proxy\")" else "" end),
-      (if (.source_url // "") != "" then "=HYPERLINK(\"\(.source_url)\",\"View source\")" else "" end),
-      (if (.internal_discussion_url // "") != "" then "=HYPERLINK(\"\(.internal_discussion_url)\",\"View discussion\")" else "" end)
+      (if (.source_url // "") != "" then "=HYPERLINK(\"\(.source_url)\",\"Customer thread\")" else "" end),
+      (if (.internal_discussion_url // "") != "" then "=HYPERLINK(\"\(.internal_discussion_url)\",\"Internal thread\")" else "" end)
     ])
   )
 ')"
