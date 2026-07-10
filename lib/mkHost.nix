@@ -130,6 +130,36 @@
                   };
                 });
             })
+
+            # Work around a broken pytest check in python3.14Packages.click-threading.
+            #
+            # click-threading's own test suite collects docs/conf.py as a test
+            # module (a stray sphinx config picked up by pytest's default
+            # collection), which imports pkg_resources. This nixpkgs revision's
+            # python3.14 doesn't propagate setuptools' pkg_resources by default,
+            # so collection errors out with ModuleNotFoundError and the whole
+            # build fails -- even though click-threading itself works fine.
+            # vdirsyncer depends on it (pulled in transitively by hyprflake's
+            # desktop.dank.calendar module on the workstations), so this broke
+            # every donkeykong/qbert rebuild.
+            #
+            # Remove once nixpkgs fixes click-threading's pytest collection (or
+            # adds setuptools as a checkInput upstream).
+            #
+            # Uses `pythonPackagesExtensions` (folded into every interpreter's
+            # package set, e.g. python314Packages) rather than overriding the
+            # `python3` alias directly -- vdirsyncer/khal may resolve
+            # click-threading through the version-numbered set, which a
+            # `python3.override` wouldn't reach.
+            (_final: prev: {
+              pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+                (_pyFinal: pyPrev: {
+                  click-threading = pyPrev.click-threading.overridePythonAttrs (_old: {
+                    doCheck = false;
+                  });
+                })
+              ];
+            })
           ];
 
           nix = {

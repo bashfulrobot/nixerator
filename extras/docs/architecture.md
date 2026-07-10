@@ -34,6 +34,7 @@ nixerator/
 - `build/` -- module-local package derivations
 - `cfg/` -- configuration fragments
 - `reference/` -- reference docs
+- `archive/` -- retired modules kept for reference, not evaluated (original relative path preserved under `archive/<path>` for easy restore)
 
 Mechanism: `inputs.import-tree.filterNot <predicate> ./.` (see [denful/import-tree](https://github.com/denful/import-tree)). The `.filterNot` predicate in `modules/default.nix` carries the exclusion list above; add a pattern there to introduce a new convention. import-tree also silently skips anything containing `/_` in its path (upstream default).
 

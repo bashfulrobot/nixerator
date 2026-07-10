@@ -45,8 +45,6 @@ in
         worktree-flow.enable = true;
       };
       gui = {
-        vscode.enable = false;
-        vscode.nautilusIntegration = false;
         upsight.enable = true;
         zed.enable = true;
         zed.nautilusIntegration = true;
