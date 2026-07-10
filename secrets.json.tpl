@@ -67,7 +67,7 @@
     "opToken": "{{ op://nixerator/noclaw-op-token/credential }}"
   },
   "onepassword": {
-    "serviceAccountToken": "{{ op://nixerator/ijut33dfmteltpb4qe52votusq/credential }}"
+    "serviceAccountToken": "{{ op://nixerator/6k3rotvuocczmaxrquy62yl7mi/credential }}"
   },
   "grafana": {
     "dashboardsToken": "{{ op://automation/grafana-cloud-dashboards/token }}"
