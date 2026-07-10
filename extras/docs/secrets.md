@@ -123,12 +123,14 @@ Current MATERIALIZE entries:
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | `~/.ssh/<name>` | 0600 | workstation hosts |
 | `incus-ui.crt` | `~/.config/incus/client.crt` | 0644 | all hosts |
 | `incus-ui.pfx` | `~/.config/incus/client.pfx` | 0600 | workstation hosts |
+| `filebot-license` | `~/.local/share/filebot/data/.license` | 0600 | all hosts (unused outside srv) |
 
 Current PUSH_ALONGSIDE entries (also pushed to remotes by `--push`):
 
 | Local path | Remote mode | Why |
 |------------|-------------|-----|
 | `~/.config/incus/client.crt` | 0644 | Needed at Nix eval time on every Incus host so `builtins.readFile` in the incus module can populate the preseed trust store |
+| `~/.local/share/filebot/data/.license` | 0600 | srv is headless (no 1Password CLI); the license only reaches it via `--push` from a workstation that materialized it locally |
 
 "Workstation hosts" are those with `archetypes.workstation.enable = true`
 (donkeykong, nixerator, qbert), matched by the `host:` guard. The pure server
@@ -232,6 +234,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `gmailctl` | Login | `Client ID` + `Client Secret` | `~/.gmailctl/credentials.json` (via `just fetch-gmailctl-creds`, which `op inject`s the two fields into a Desktop-app credentials.json template). Rendered straight to disk, **not** in `secrets.json` — keeps the client secret out of the Nix store. `gmailctl init` then writes `~/.gmailctl/token.json` locally. |
 | `incus-ui.crt` | Document | `file` | `~/.config/incus/client.crt` on all hosts (via `render-secrets` MATERIALIZE, 0644). Public certificate read by the Incus module via `builtins.readFile` at Nix eval time and injected into the preseed trust store. All Incus hosts; safe to be world-readable. |
 | `incus-ui.pfx` | Document | `file` | `~/.config/incus/client.pfx` on workstations (via `render-secrets` MATERIALIZE, 0600). PKCS12 bundle with private key; import into a browser to authenticate against any Incus web UI. Workstations only — srv is headless. |
+| `filebot-license` | Document | `file` | `~/.local/share/filebot/data/.license` on srv (via `render-secrets` MATERIALIZE + PUSH_ALONGSIDE, 0600). FileBot lifetime license (`.psm`) used by `dlm`/`dltv` (`modules/apps/cli/media-rename`) to rename/organize media. Materializes on any host running `render-secrets` but is only meaningful on srv, which gets it via `just push-secrets srv`. |
 
 Per-host network identity (Tailscale IPs, syncthing peer IDs) is NOT in 1P;
 those values live in `settings/globals.nix` under
