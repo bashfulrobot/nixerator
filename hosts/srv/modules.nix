@@ -21,6 +21,7 @@
     ../../modules/apps/cli/graymatter
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/media-rename
+    ../../modules/apps/cli/render-secrets
     ../../modules/apps/cli/restic
     ../../modules/apps/cli/skillfish
     ../../modules/apps/cli/starship
@@ -55,6 +56,11 @@
     git.enable = true;
     helix.enable = true;
     media-rename.enable = true;
+    # srv renders its own document-backed secrets (feral-arr download-sync key,
+    # incus cert, filebot license) via its 1Password CLI, rather than only
+    # receiving them by `just push-secrets srv`. Needs a valid SA token on the
+    # host; see extras/docs/secrets.md.
+    render-secrets.enable = true;
     starship.enable = true;
     tailscale.enable = true;
 
