@@ -240,6 +240,26 @@
           uid = 1000;
           gid = 100;
         };
+        jellyfin-media = {
+          path = "/exports/jellyfin-media";
+          bindMount = "/home/dustin/data-disk/media";
+          clients = [ "192.168.168.0/23" ];
+          # Jellyfin's pod runs as UID 1000 (fsGroup), matching the on-disk
+          # owner already -- this is a static PV pointed straight at
+          # existing files, not a CSI provisioner creating subdirs as root,
+          # so root_squash (not darkstar's no_root_squash) is correct.
+          squash = "root_squash";
+          uid = 1000;
+          gid = 100;
+        };
+        jellyfin-config = {
+          path = "/exports/jellyfin-config";
+          bindMount = "/home/dustin/docker/jellyfin-official";
+          clients = [ "192.168.168.0/23" ];
+          squash = "root_squash";
+          uid = 1000;
+          gid = 100;
+        };
       };
       additionalPaths = [
         {
