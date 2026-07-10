@@ -9,9 +9,9 @@
 #
 # Prints the merged ideas JSON array on stdout -- each element gains: rank,
 # production_blocker, target_release, use_case, source_url, notes,
-# requester_name, requester_email. Every one of those is independently
-# nullable -- an untracked idea, or a customer with no upsight-go data at
-# all, just gets all-null fields, not an error.
+# internal_discussion_url, requester_name, requester_email. Every one of
+# those is independently nullable -- an untracked idea, or a customer with
+# no upsight-go data at all, just gets all-null fields, not an error.
 #
 # Row order (shared by both the Sheet and the PDF, since both consume this
 # script's output directly): Open ideas first, Closed ideas last. Within
@@ -63,11 +63,13 @@ echo "$ideas_json" | jq --argjson tracking "$tracking_json" '
      rank: (.rank // null), production_blocker: (.production_blocker // null),
      target_release: (.target_release // null), use_case: (.use_case // null),
      source_url: (.source_url // null), notes: (.notes // null),
+     internal_discussion_url: (.internal_discussion_url // null),
      requester_name: (.requester_name // null), requester_email: (.requester_email // null)
    })) as $tracking
   | map(. + ($tracking[.ref] // {
       rank: null, production_blocker: null, target_release: null, use_case: null,
-      source_url: null, notes: null, requester_name: null, requester_email: null
+      source_url: null, notes: null, internal_discussion_url: null,
+      requester_name: null, requester_email: null
     }))
   | sort_by([
       (if .state == "open" then 0 else 1 end),
