@@ -141,6 +141,12 @@ in
       };
     };
 
+    # Recovers Hyprland's "lockscreen died" black-screen fallback (DMS's
+    # quickshell lock client dies mid-lock) by forcing a lock/unlock
+    # handshake via `dms ipc`, plus a best-effort VT-switch kick for a stuck
+    # DRM scanout. Runnable headless over SSH -- see `dank-unstick --help`.
+    apps.cli.dank-unstick.enable = true;
+
     # DMS settings capture (hyprflake feature). Makes settings.json writable so
     # the DankMaterialShell GUI can edit it, and rounds GUI changes back into
     # this repo via the `dank-capture` command. Layering (per-key, lowest wins):
