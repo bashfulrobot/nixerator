@@ -8,6 +8,7 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 - **Don't run `nix build` directly to test configurations.** The justfile is the only sanctioned interface.
 - **Quiet variants capture output:** `just quiet-rebuild` writes to `/tmp/nixerator-rebuild.log`; `just quiet-upgrade` writes to `/tmp/nixerator-upgrade.log`. **On failure, spawn a Nix subagent** to read the log and propose a fix — do **not** read the log in the main context (they're noisy and burn tokens).
 - **Testing local hyprflake changes:** `just hyprflake-test` (alias `just hft`) rebuilds the current host with the `hyprflake` flake input overridden to a local working tree, so hyprflake changes can be tried without committing/pushing hyprflake or bumping `flake.lock`. Defaults to `~/git/hyprflake`; pass a path to test a different checkout/worktree (e.g. `just hft /home/dustin/git/.worktrees/hyprflake-feature`). It wraps `sudo nixos-rebuild switch --impure --flake .#<host> --override-input hyprflake path:<path>` and targets whichever host it runs on, like `just rebuild`.
+- **Verifying a wrapped package's script content:** packages built with `wrapProgram`/`makeWrapper` (e.g. `render-secrets`) move the real script to `bin/.<name>-wrapped` and leave a tiny PATH-prefixing stub at `bin/<name>`. Grep the wrapped payload (or the derivation's `src`), never `bin/<name>`. The stub never holds the script body, so it always looks empty and will send you chasing a phantom "stale build".
 
 ## Upgrades
 

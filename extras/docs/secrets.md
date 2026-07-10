@@ -121,6 +121,8 @@ Current MATERIALIZE entries:
 | `id_ed25519`, `id_ed25519_np`, `id_rsa` | `~/.ssh/<name>` | 0600 | workstation hosts |
 | `id_ed25519.pub`, `id_rsa.pub`, `id_rsa_np.pub` | `~/.ssh/<name>` | 0644 | workstation hosts |
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | `~/.ssh/<name>` | 0600 | workstation hosts |
+| `feral-arr` | `~/.ssh/feral-arr` | 0600 | srv + workstation hosts |
+| `feral-arr.pub` | `~/.ssh/feral-arr.pub` | 0644 | srv + workstation hosts |
 | `incus-ui.crt` | `~/.config/incus/client.crt` | 0644 | all hosts |
 | `incus-ui.pfx` | `~/.config/incus/client.pfx` | 0600 | workstation hosts |
 | `filebot-license` | `~/.local/share/filebot/data/.license` | 0600 | all hosts (unused outside srv) |
@@ -134,7 +136,11 @@ Current PUSH_ALONGSIDE entries (also pushed to remotes by `--push`):
 
 "Workstation hosts" are those with `archetypes.workstation.enable = true`
 (donkeykong, nixerator, qbert), matched by the `host:` guard. The pure server
-never receives the SSH or per-repo git-crypt keys.
+never receives the identity SSH keys or per-repo git-crypt keys. The one
+exception is `feral-arr`/`feral-arr.pub`: a single-purpose key for the
+darkstar arr download-sync CronJob's rsync from the feralhosting seedbox,
+explicitly scoped to srv as well (srv is the dlm/dltv revert path and where
+the rsync is exercised by hand).
 
 After the homelab key lands, unlock the repo once so its state decrypts:
 
@@ -145,6 +151,16 @@ cd ~/git/iac && git-crypt unlock ~/.config/git-crypt/homelab.key
 To add another (an SSH key, or another repo's git-crypt key): upload the file as
 a Document item to the `nixerator` vault, then add a `MATERIALIZE` row
 `"<item title>|<dest>|<file mode>|<dir mode>|<guard or empty>"`.
+
+**A MATERIALIZE row only takes effect once it reaches the deployed script.** The
+row is baked into the `render-secrets` binary at build time, so the commit adding
+it has to land on `main` (or whatever branch you rebuild from) and the host has
+to rebuild before the entry exists. A row sitting on an unmerged or unpushed
+branch renders nothing: no error, the entry is just absent from the output. To
+confirm a row is live, run `render-secrets` and look for the file in its output,
+or grep the source `render-secrets.sh` or the wrapped payload. Don't grep
+`bin/render-secrets` itself; `wrapProgram` leaves only a PATH-prefixing stub
+there, so it always looks empty (see `.claude/docs/conventions.md`).
 
 ## Daily workflow
 
@@ -231,6 +247,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `homelab git-crypt key` | Document | `file` | `~/.config/git-crypt/homelab.key` (via `render-secrets`) |
 | `id_ed25519{,_np,.pub}`, `id_rsa{,.pub}`, `id_rsa_np.pub` | Document | `file` | `~/.ssh/<name>` on workstation hosts (via `render-secrets`) |
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | Document | `file` | `~/.ssh/<name>` on workstation hosts (via `render-secrets`) |
+| `feral-arr`, `feral-arr.pub` | Document | `file` | `~/.ssh/feral-arr{,.pub}` on srv + workstation hosts (via `render-secrets`). Single-purpose key for darkstar's arr download-sync CronJob rsync from the feralhosting seedbox; also consumed in-cluster by homelab's `just workloads::create-arr-ssh-secret`, which reads the same 1Password document. |
 | `gmailctl` | Login | `Client ID` + `Client Secret` | `~/.gmailctl/credentials.json` (via `just fetch-gmailctl-creds`, which `op inject`s the two fields into a Desktop-app credentials.json template). Rendered straight to disk, **not** in `secrets.json` — keeps the client secret out of the Nix store. `gmailctl init` then writes `~/.gmailctl/token.json` locally. |
 | `incus-ui.crt` | Document | `file` | `~/.config/incus/client.crt` on all hosts (via `render-secrets` MATERIALIZE, 0644). Public certificate read by the Incus module via `builtins.readFile` at Nix eval time and injected into the preseed trust store. All Incus hosts; safe to be world-readable. |
 | `incus-ui.pfx` | Document | `file` | `~/.config/incus/client.pfx` on workstations (via `render-secrets` MATERIALIZE, 0600). PKCS12 bundle with private key; import into a browser to authenticate against any Incus web UI. Workstations only — srv is headless. |
@@ -336,6 +353,17 @@ secrets-related steps:
 - **`render-secrets: ~/.config/op/service-account-token perms are NNN, must be 600`**
   → `chmod 600 ~/.config/op/service-account-token`. The token grants vault
   read access; loose perms = any local process can read your nixerator vault.
+- **`(403) ... Service Account Deleted` on a bare `render-secrets` right after
+  rotating the token** → `render-secrets` (through op-toggle) reads its token from
+  the *rendered* `secrets.json`, which still holds the old, dead token until you
+  re-render once with an explicit override. Run
+  `OP_SERVICE_ACCOUNT_TOKEN="$(<~/.config/op/service-account-token)" render-secrets`
+  (what `just rotate-op-token` step 3 does for you). A bare `render-secrets` works
+  again afterward, since `secrets.json` now carries the fresh token.
+- **A new `MATERIALIZE` key never appears** → check that the row reached the
+  deployed binary: the commit has to be merged to `main` and the host rebuilt
+  (see "Materialized host files" above). Verify by grepping the source or the
+  wrapped payload, not `bin/render-secrets`.
 - **`"Personal" isn't a vault in this account`** under SA mode → you're on a
   stale branch where `secrets.json.tpl` still references `op://Personal/…`;
   rebase onto main.
