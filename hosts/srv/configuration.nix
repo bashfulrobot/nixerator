@@ -10,6 +10,7 @@
   imports = [
     ./hardware-configuration.nix # Hardware-specific settings
     ./boot.nix # Bootloader configuration
+    ./gpu.nix # Intel iGPU hardware video acceleration
     ./modules.nix # Module configuration
   ];
 
