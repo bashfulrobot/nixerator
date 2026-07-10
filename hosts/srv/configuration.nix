@@ -108,6 +108,7 @@
     dust
     eza
     fd
+    filebot
     gdu
     git
     git-crypt
