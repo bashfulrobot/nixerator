@@ -31,6 +31,11 @@
 # details; Closed rows land as one contiguous block at the bottom, which
 # the row-group collapse below relies on.
 #
+# Row 1 is a "Last updated" timestamp banner (UTC, set when the script
+# runs), merged across all columns, above the frozen header row -- so
+# anyone opening the Sheet can tell at a glance how fresh the data is
+# without checking Drive's file-revision metadata.
+#
 # Requires: gws (authenticated), fetch-ideas.sh (and in turn
 # customer-ideas.sh, AHA_API_TOKEN), jq.
 
@@ -75,15 +80,17 @@ ideas_json="$("$FETCH_IDEAS" "$customer_name" "$@")"
 n="$(echo "$ideas_json" | jq 'length')"
 echo "Got ${n} idea(s)." >&2
 
-# --- Step 3: build the 2D values array (header + rows) --------------------
+# --- Step 3: build the 2D values array (timestamp banner + header + rows) --
 # fetch-ideas.sh already returns ideas sorted open-first/closed-last, ranked
 # ascending within each state -- Closed rows land as one contiguous block
 # at the bottom, which Step 5 relies on to group/collapse them.
+timestamp="$(date -u +'%Y-%m-%d %H:%M UTC')"
+timestamp_row="$(jq -n --arg t "Last updated: ${timestamp}" '[$t]')"
 header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Production Blocker","Target Release","Notes","Aha Link","Proxy Vote Link","Source Link","Internal Discussion Link"]'
 open_count="$(echo "$ideas_json" | jq '[.[] | select(.state == "open")] | length')"
 closed_count="$(echo "$ideas_json" | jq '[.[] | select(.state != "open")] | length')"
-rows="$(echo "$ideas_json" | jq --argjson header "$header" '
-  [$header] + (
+rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" '
+  [$timestamp_row, $header] + (
     map([
       (if .state == "open" then "Open" else "Closed" end),
       .ref,
@@ -114,16 +121,22 @@ gws sheets spreadsheets values batchUpdate \
   --params "{\"spreadsheetId\":\"${sheet_id}\"}" \
   --json "$update_body" >/dev/null
 
-# --- Step 5: formatting -- bold+frozen header, banded (zebra) rows,
-# auto-width columns, Closed rows collapsed into a hidden-by-default group,
-# Kong-lime tab color. Idempotent, so it's cheap to just reapply on every
-# run rather than only on sheet creation. Existing bandings/row-groups are
-# deleted and recreated each time rather than reused, since the exact row
-# range shifts as the idea count changes run to run.
+# --- Step 5: formatting -- timestamp banner, bold+frozen header, banded
+# (zebra) rows, auto-width columns, Closed rows collapsed into a
+# hidden-by-default group, Kong-lime tab color. Idempotent, so it's cheap to
+# just reapply on every run rather than only on sheet creation. Existing
+# merges/bandings/row-groups are deleted and recreated each time rather than
+# reused, since the exact row/column range shifts as the idea count or
+# column count changes run to run.
+#
+# header_offset accounts for the two banner+header rows above the data
+# (row 0 = timestamp banner, row 1 = column header) -- every row index
+# below that used to reference open/closed data is shifted by it.
 echo "Applying formatting..." >&2
 n_cols="$(echo "$header" | jq 'length')"
+header_offset=2
 sheet_state="$(gws sheets spreadsheets get \
-  --params "{\"spreadsheetId\":\"${sheet_id}\",\"fields\":\"sheets.properties,sheets.bandedRanges,sheets.rowGroups\"}" 2>/dev/null |
+  --params "{\"spreadsheetId\":\"${sheet_id}\",\"fields\":\"sheets.properties,sheets.bandedRanges,sheets.rowGroups,sheets.merges\"}" 2>/dev/null |
   jq '.sheets[0]')"
 grid_sheet_id="$(echo "$sheet_state" | jq '.properties.sheetId')"
 
@@ -132,21 +145,36 @@ format_body="$(jq -n \
   --argjson n_cols "$n_cols" \
   --argjson open_count "$open_count" \
   --argjson closed_count "$closed_count" \
+  --argjson header_offset "$header_offset" \
   --argjson state "$sheet_state" \
   '
   ($state.bandedRanges // [] | map({deleteBanding: {bandedRangeId: .bandedRangeId}})) as $delete_bandings
   | ($state.rowGroups // [] | map({deleteDimensionGroup: {range: (.range + {dimension: "ROWS"})}})) as $delete_groups
+  | ($state.merges // [] | map({unmergeCells: {range: .}})) as $delete_merges
   | [
+      {
+        mergeCells: {
+          range: {sheetId: $gsid, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: $n_cols},
+          mergeType: "MERGE_ALL"
+        }
+      },
       {
         repeatCell: {
           range: {sheetId: $gsid, startRowIndex: 0, endRowIndex: 1},
+          cell: {userEnteredFormat: {textFormat: {italic: true, foregroundColor: {red: 0.522, green: 0.537, blue: 0.514}}}},
+          fields: "userEnteredFormat(textFormat)"
+        }
+      },
+      {
+        repeatCell: {
+          range: {sheetId: $gsid, startRowIndex: 1, endRowIndex: 2},
           cell: {userEnteredFormat: {textFormat: {bold: true}}},
           fields: "userEnteredFormat(textFormat)"
         }
       },
       {
         updateSheetProperties: {
-          properties: {sheetId: $gsid, gridProperties: {frozenRowCount: 1}, tabColor: {red: 0.8, green: 1.0, blue: 0.0}},
+          properties: {sheetId: $gsid, gridProperties: {frozenRowCount: $header_offset}, tabColor: {red: 0.8, green: 1.0, blue: 0.0}},
           fields: "gridProperties.frozenRowCount,tabColor"
         }
       },
@@ -158,7 +186,7 @@ format_body="$(jq -n \
       {
         addBanding: {
           bandedRange: {
-            range: {sheetId: $gsid, startRowIndex: 0, endRowIndex: (1 + $open_count + $closed_count), startColumnIndex: 0, endColumnIndex: $n_cols},
+            range: {sheetId: $gsid, startRowIndex: 1, endRowIndex: ($header_offset + $open_count + $closed_count), startColumnIndex: 0, endColumnIndex: $n_cols},
             rowProperties: {
               headerColor: {red: 0.843, green: 0.871, blue: 0.831},
               firstBandColor: {red: 1, green: 1, blue: 1},
@@ -171,13 +199,13 @@ format_body="$(jq -n \
   | (if $closed_count > 0 then [
         {
           addDimensionGroup: {
-            range: {sheetId: $gsid, dimension: "ROWS", startIndex: (1 + $open_count), endIndex: (1 + $open_count + $closed_count)}
+            range: {sheetId: $gsid, dimension: "ROWS", startIndex: ($header_offset + $open_count), endIndex: ($header_offset + $open_count + $closed_count)}
           }
         },
         {
           updateDimensionGroup: {
             dimensionGroup: {
-              range: {sheetId: $gsid, dimension: "ROWS", startIndex: (1 + $open_count), endIndex: (1 + $open_count + $closed_count)},
+              range: {sheetId: $gsid, dimension: "ROWS", startIndex: ($header_offset + $open_count), endIndex: ($header_offset + $open_count + $closed_count)},
               depth: 1,
               collapsed: true
             },
@@ -185,13 +213,13 @@ format_body="$(jq -n \
           }
         }
       ] else [] end) as $group_requests
-  | {requests: ($delete_bandings + $delete_groups + $format_requests + $group_requests)}
+  | {requests: ($delete_merges + $delete_bandings + $delete_groups + $format_requests + $group_requests)}
   ')"
 
-# The jq above intentionally reorders so every delete* request runs before
-# any add*/repeatCell/etc -- deleting a stale banding/group after re-adding
-# a new one at an overlapping range is what triggers "already grouped"
-# errors from the Sheets API.
+# The jq above intentionally reorders so every delete*/unmerge* request runs
+# before any add*/repeatCell/etc -- deleting a stale merge/banding/group
+# after re-adding a new one at an overlapping range is what triggers
+# "already grouped" (or overlapping-merge) errors from the Sheets API.
 gws sheets spreadsheets batchUpdate \
   --params "{\"spreadsheetId\":\"${sheet_id}\"}" \
   --json "$format_body" >/dev/null 2>&1 || echo "  (formatting failed, non-fatal -- data is still written)" >&2
