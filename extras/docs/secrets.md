@@ -152,6 +152,16 @@ To add another (an SSH key, or another repo's git-crypt key): upload the file as
 a Document item to the `nixerator` vault, then add a `MATERIALIZE` row
 `"<item title>|<dest>|<file mode>|<dir mode>|<guard or empty>"`.
 
+**A MATERIALIZE row only takes effect once it reaches the deployed script.** The
+row is baked into the `render-secrets` binary at build time, so the commit adding
+it has to land on `main` (or whatever branch you rebuild from) and the host has
+to rebuild before the entry exists. A row sitting on an unmerged or unpushed
+branch renders nothing: no error, the entry is just absent from the output. To
+confirm a row is live, run `render-secrets` and look for the file in its output,
+or grep the source `render-secrets.sh` or the wrapped payload. Don't grep
+`bin/render-secrets` itself; `wrapProgram` leaves only a PATH-prefixing stub
+there, so it always looks empty (see `.claude/docs/conventions.md`).
+
 ## Daily workflow
 
 Rebuilds **do not re-fetch anything from 1Password.** They read the cached
@@ -343,6 +353,17 @@ secrets-related steps:
 - **`render-secrets: ~/.config/op/service-account-token perms are NNN, must be 600`**
   → `chmod 600 ~/.config/op/service-account-token`. The token grants vault
   read access; loose perms = any local process can read your nixerator vault.
+- **`(403) ... Service Account Deleted` on a bare `render-secrets` right after
+  rotating the token** → `render-secrets` (through op-toggle) reads its token from
+  the *rendered* `secrets.json`, which still holds the old, dead token until you
+  re-render once with an explicit override. Run
+  `OP_SERVICE_ACCOUNT_TOKEN="$(<~/.config/op/service-account-token)" render-secrets`
+  (what `just rotate-op-token` step 3 does for you). A bare `render-secrets` works
+  again afterward, since `secrets.json` now carries the fresh token.
+- **A new `MATERIALIZE` key never appears** → check that the row reached the
+  deployed binary: the commit has to be merged to `main` and the host rebuilt
+  (see "Materialized host files" above). Verify by grepping the source or the
+  wrapped payload, not `bin/render-secrets`.
 - **`"Personal" isn't a vault in this account`** under SA mode → you're on a
   stale branch where `secrets.json.tpl` still references `op://Personal/…`;
   rebase onto main.
