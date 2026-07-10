@@ -253,7 +253,6 @@ The `justfile` provides ergonomic shortcuts:
 | `just gc-nuclear` | Full cleanup: old gens + GC + store optimize |
 | `just health` | Run deadnix + statix linters |
 | `just fmt` | Format all Nix files |
-| `just sync-git` | Smart push/pull with syncthing pause |
 | `just quiet-rebuild` | Silent rebuild, logs to /tmp on failure |
 
 ---
