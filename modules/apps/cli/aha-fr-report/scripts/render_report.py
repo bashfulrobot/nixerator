@@ -215,6 +215,7 @@ def rows_html(items):
             f"<td>{esc(rank if rank is not None else '')}</td>"
             f"<td>{esc(it.get('use_case'))}</td>"
             f"<td>{esc(it.get('requester_name'))}</td>"
+            f"<td>{esc(it.get('team_name'))}</td>"
             f"<td>{esc(blocker_text(it.get('production_blocker')))}</td>"
             f"<td>{esc(it.get('target_release'))}</td>"
             f"<td>{esc(it.get('notes'))}</td>"
@@ -227,7 +228,7 @@ def rows_html(items):
 def section(title, items):
     if not items:
         return ""
-    headers = ("", "Ref", "Idea", "Status", "Stack Rank", "Use Case", "Requester",
+    headers = ("", "Ref", "Idea", "Status", "Stack Rank", "Use Case", "Requester", "Team",
                "Production Blocker", "Target Release", "Notes", "Total votes")
     head_html = "".join(f"<th>{esc(h)}</th>" for h in headers)
     return f"""
