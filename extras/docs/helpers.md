@@ -103,9 +103,11 @@ on a host, `render-secrets`, `render-secrets-bootstrap.sh`, and the justfile
 recipes all run with no biometric prompts.
 
 **Prerequisites**: Nix with flakes. The default path (preferred) needs
-1Password CLI signed in (`op signin`) and Personal vault read access. The
-helper does `op read op://Personal/<item>/credential` to fetch the SA token
-once, triggering one desktop-biometric prompt.
+1Password CLI signed in (`op signin`) and read access to the item
+`secrets.json.tpl`'s `onepassword.serviceAccountToken` points at. The helper
+extracts that `op://` reference from the template itself (rather than
+hardcoding its own copy) and does one `op read`, triggering one
+desktop-biometric prompt.
 
 ```bash
 # Recommended -- fetch the SA token from your Personal vault:
@@ -125,8 +127,12 @@ Idempotent: if the existing token matches the input, the helper just repairs
 perms and exits success. Refuses to replace a different existing token unless
 `--force`. Refuses any input that doesn't start with `ops_`.
 
-**Token rotation**: regenerate the SA in 1Password, update the Personal
-vault item, then re-run with `--force` on each host.
+**Token rotation**: don't run this script by hand for a rotation — use
+`just rotate-op-token` (below). Rotating just the token value is
+straightforward with this script alone (regenerate in 1Password, update the
+item, `--force` on each host), but a full SA regeneration also needs the
+render-secrets/op-toggle sequence the rotate script automates; doing it by
+hand is exactly what caused a multi-hour outage the first time.
 
 **Live-USB use** (writes from root into the target user's home, before
 `nixos-install`):
@@ -138,6 +144,51 @@ sudo ./extras/helpers/setup-op-service-account.sh \
 
 The `bootstrap-install-secrets.sh stage` subcommand wraps this for you
 along with the corresponding secrets render.
+
+## rotate-op-service-account.sh
+
+Walks through rotating (or fully regenerating) the nixerator 1Password
+service account, end to end, on the host you run it from. This exists
+because rotating by hand is failure-prone in a specific, non-obvious way:
+
+- The token has to agree in three places: the SA's own vault grants
+  (`nixerator` + `automation`), the 1Password item `secrets.json.tpl` /
+  `setup-op-service-account.sh` read from, and the local file at
+  `~/.config/op/service-account-token` on this host.
+- `op-toggle`'s "back to service-account" path reads its token from the
+  *rendered* `secrets.json`, not that local file. Until you've rendered at
+  least once with an **explicit** token override, a successful rotation
+  still looks broken — every command keeps re-loading the stale, dead
+  token baked into the old render, and the error ("Service Account
+  Deleted") gives no hint that the fix already worked.
+
+```bash
+just rotate-op-token             # op read (default, preferred)
+just rotate-op-token --manual    # interactive paste
+# or directly:
+./extras/helpers/rotate-op-service-account.sh
+```
+
+What it does:
+
+1. Prints the manual 1Password steps (rotate/regenerate the SA, confirm
+   both vault grants, update the credential item) and waits for Enter.
+2. Installs the token locally via `setup-op-service-account.sh --force`.
+3. Renders `secrets.json` with `OP_SERVICE_ACCOUNT_TOKEN` set explicitly
+   from the just-installed file — bypassing `op-toggle` entirely, so the
+   fresh token is what actually lands in the render.
+4. Verifies with `op whoami` / `op vault list` (metadata only, never prints
+   the token) and warns if any secrets.json field known to need the
+   `automation` vault came back empty.
+5. Prints — but does not run — the `just push-secrets <hosts>` command to
+   propagate to the rest of the fleet. Fleet propagation is left as a
+   deliberate manual step.
+
+If a full SA regeneration produced a *new* 1Password item (not just a new
+token value in the existing item), update `secrets.json.tpl`'s
+`onepassword.serviceAccountToken` reference first — the script re-reads the
+template on each run, so both it and `setup-op-service-account.sh` pick up
+the new item automatically once the template is updated.
 
 ## render-secrets-bootstrap.sh
 

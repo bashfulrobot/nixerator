@@ -891,18 +891,36 @@ check-secrets:
 # (0600), so render-secrets / push-secrets / check-secrets run with zero
 # biometric prompts thereafter. One-time per host.
 #
-# Default behaviour: `op read` fetches the token from your Personal vault
-# (one biometric on the desktop). Pass-through args support the helper's
-# alternate inputs:
+# Default behaviour: `op read` fetches the token from the same 1Password item
+# secrets.json.tpl's onepassword.serviceAccountToken points at (one biometric
+# on the desktop). Pass-through args support the helper's alternate inputs:
 #
 #   just setup-op-token                            # op read (default, preferred)
 #   just setup-op-token --manual                   # interactive paste
 #   just setup-op-token --force                    # overwrite an existing different token
 #   OP_TOKEN=ops_... just setup-op-token           # from env var (no prompts)
 #
+# Rotating the token, not just re-installing it on a new host? Use
+# `just rotate-op-token` instead -- see below.
+#
 # See extras/docs/helpers.md for the full helper docs.
 setup-op-token *args:
     @./extras/helpers/setup-op-service-account.sh {{args}}
+
+# Walks through rotating the nixerator 1Password service-account token,
+# end to end, on this host: prints the manual 1Password steps and waits,
+# installs the new token locally, renders secrets.json with an EXPLICIT
+# token override (bypassing op-toggle's chicken-and-egg fallback to a
+# stale render), then verifies auth and reports which vaults are visible.
+# Does NOT push to the fleet automatically -- it prints that command for
+# you to run once you're happy with the verification output.
+#
+#   just rotate-op-token             # op read (default, preferred)
+#   just rotate-op-token --manual    # interactive paste
+#
+# See extras/docs/helpers.md for the full helper docs.
+rotate-op-token *args:
+    @./extras/helpers/rotate-op-service-account.sh {{args}}
 
 # Pre-rebuild bootstrap render: writes ~/.config/nixos-secrets/secrets.json
 # WITHOUT needing render-secrets on PATH yet. Use ONLY on a fresh machine
@@ -954,6 +972,7 @@ alias rs := render-secrets
 alias ps := push-secrets
 alias cs := check-secrets
 alias fs := fetch-signatures
+alias rot := rotate-op-token
 alias fgc := fetch-gmailctl-creds
 alias fgck := fetch-gmailctl-creds-kong
 alias gen := generations

@@ -69,6 +69,26 @@ This mirrors the identical global rule in `~/.claude/CLAUDE.md`.
 
 All three are idempotent — safe to re-run any time.
 
+## Rotating the service account
+
+Don't rotate the SA token by hand — use `just rotate-op-token` (alias
+`rot`). Rotating it manually is failure-prone: the token has to agree
+across the SA's own vault grants, the 1Password item the template reads
+from, and the local file on each host, and `op-toggle` reads its
+service-account fallback from the *rendered* `secrets.json` rather than
+that local file — so a stale render makes a successful rotation look like
+it silently didn't take (you'll see `(403) Forbidden (Service Account
+Deleted)` even though the new token is fine).
+
+```bash
+just rotate-op-token             # walks the full sequence, one host
+```
+
+See `extras/docs/helpers.md`'s `rotate-op-service-account.sh` section for
+what it does step by step. It prints — but does not run — the
+`push-secrets` command for the rest of the fleet; run that yourself once
+you're happy with the verification output.
+
 ## Materialized host files
 
 Besides the rendered `secrets.json`, `render-secrets` restores a small set of
