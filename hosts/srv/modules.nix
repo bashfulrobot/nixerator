@@ -20,6 +20,7 @@
     ../../modules/apps/cli/git
     ../../modules/apps/cli/graymatter
     ../../modules/apps/cli/helix
+    ../../modules/apps/cli/media-rename
     ../../modules/apps/cli/restic
     ../../modules/apps/cli/skillfish
     ../../modules/apps/cli/starship
@@ -54,6 +55,7 @@
     fish.enable = true;
     git.enable = true;
     helix.enable = true;
+    media-rename.enable = true;
     starship.enable = true;
     tailscale.enable = true;
     vscode-server.enable = false;
