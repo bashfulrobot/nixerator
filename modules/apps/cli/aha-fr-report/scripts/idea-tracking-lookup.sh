@@ -11,6 +11,7 @@
 #   {"REF-123": {"rank": 1, "production_blocker": 1, "target_release": "3.16",
 #                "use_case": "Shared Gateway Migration",
 #                "source_url": "https://...", "notes": "...",
+#                "internal_discussion_url": "https://kong.slack.com/...",
 #                "requester_name": "Chris Fulara",
 #                "requester_email": "chris.fulara@example.com"}, ...}
 # Every field is independently nullable -- an idea with only a rank set (or
@@ -18,17 +19,19 @@
 # requester_name/requester_email are resolved from upsight-go's contacts
 # table via idea_ranks.requester_contact_id, not stored as free text.
 #
-# Schema dependency: this reads six columns added to idea_ranks by
+# Schema dependency: this reads seven columns added to idea_ranks by
 # bashfulrobot/upsight-go#60 (requester_contact_id, production_blocker,
-# target_release, use_case, source_url, notes). Until that migration has
-# run on a given upsight.db, those columns don't exist yet -- this script
+# target_release, use_case, source_url, notes) and #61
+# (internal_discussion_url, the Kong-internal Slack thread, kept distinct
+# from source_url's customer-facing link). Until those migrations have run
+# on a given upsight.db, those columns don't exist yet -- this script
 # degrades to "{}" on any SQLite error (including "no such column"), same
 # as every other graceful-miss path here, so running against an
 # un-migrated database just means blank cells, not a broken report.
 #
 # Degrades to "{}" (non-fatal) when sqlite3 isn't on PATH, the upsight
-# database doesn't exist, the schema predates upsight-go#60, or none of the
-# given orgs have any tracked ideas.
+# database doesn't exist, the schema predates upsight-go#60/#61, or none of
+# the given orgs have any tracked ideas.
 #
 # Config via environment:
 #   UPSIGHT_DB   Path to upsight.db (default: ~/.local/share/upsight/upsight.db,
@@ -70,6 +73,7 @@ sqlite3 -readonly -json "$UPSIGHT_DB" "
     ir.use_case                         AS use_case,
     ir.source_url                       AS source_url,
     ir.notes                            AS notes,
+    ir.internal_discussion_url          AS internal_discussion_url,
     c.first_name || ' ' || c.last_name  AS requester_name,
     c.email                             AS requester_email
   FROM idea_ranks ir
@@ -82,7 +86,8 @@ sqlite3 -readonly -json "$UPSIGHT_DB" "
          OR ir.target_release IS NOT NULL
          OR ir.use_case IS NOT NULL
          OR ir.source_url IS NOT NULL
-         OR ir.notes IS NOT NULL)
+         OR ir.notes IS NOT NULL
+         OR ir.internal_discussion_url IS NOT NULL)
   ORDER BY (ir.rank IS NULL), ir.rank ASC;
 " 2>/dev/null | jq -s '(add // []) | map({(.ref): del(.ref)}) | add // {}' 2>/dev/null || true
 # The || true above matters: with pipefail, a sqlite3 query failure (e.g.
