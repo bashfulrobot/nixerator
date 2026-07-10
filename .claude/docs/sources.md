@@ -24,7 +24,6 @@ Use `mcp__gitmcp__fetch_generic_documentation` with owner + repo for:
 - `gmodena/nix-flatpak`
 - `Lyndeno/apple-fonts.nix`
 - `Gerg-L/spicetify-nix`
-- `nix-community/nixos-vscode-server`
 
 ## Reading source code (any GitHub repo)
 

@@ -14,5 +14,4 @@ These are the primary upstreams referenced in the flake inputs. Use them in spec
 - `spicetify-nix` - Spotify theming via Spicetify.
 - `affinity-nix` - Affinity suite (Photo/Designer/Publisher) on Linux.
 - `apple-fonts` - Apple font packages (SF Pro, SF Mono, NY).
-- `nixos-vscode-server` - VS Code remote server support.
 - `browser-previews` - Browser preview/beta builds.
