@@ -127,7 +127,7 @@
       "/home/dustin/git/.worktrees"
     ]
   },
-  "model": "opusplan",
+  "model": "opus",
   "hooks": {
     "PostToolUse": [
       {
