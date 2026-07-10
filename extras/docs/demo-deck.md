@@ -140,7 +140,7 @@ modules/
 ```nix
 # suites/dev enables:
 apps.cli.claude-code, apps.cli.git, apps.cli.helix,
-apps.gui.vscode, apps.gui.zed, dev.go ...
+apps.gui.zed, dev.go ...
 ```
 
 <br>

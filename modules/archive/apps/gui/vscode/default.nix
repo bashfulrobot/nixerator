@@ -1,3 +1,8 @@
+# ARCHIVED 2026-07-10: retired, not evaluated (excluded via modules/default.nix's
+# `/archive/` filter). Not used -- zed/helix/fresh-editor cover editing. Kept
+# in case it's ever wanted back: `git mv modules/archive/apps/gui/vscode
+# modules/apps/gui/vscode` and restore the two `gui.vscode.*` lines removed
+# from modules/suites/dev/default.nix.
 {
   pkgs,
   config,

@@ -115,6 +115,7 @@
     git-crypt
     gnumake
     gnupg
+    gum
     just
     keychain
     kubectl
