@@ -48,10 +48,20 @@ MATERIALIZE=(
   "id_ed25519|${HOME}/.ssh/id_ed25519|600|700|${_WS}"
   "id_ed25519_np|${HOME}/.ssh/id_ed25519_np|600|700|${_WS}"
   "id_rsa|${HOME}/.ssh/id_rsa|600|700|${_WS}"
+
+  # Dedicated single-purpose key for the darkstar arr download-sync CronJob's
+  # rsync from the feralhosting seedbox. Unlike the identity keys above it is
+  # scoped to srv as well as the workstations: srv is the dlm/dltv revert path
+  # and where the rsync is exercised by hand. Because it is single-purpose (and
+  # can be locked to a forced rsync command on feral), the wider placement is a
+  # bounded risk. Consumed in-cluster by homelab's
+  # `just workloads::create-arr-ssh-secret`, which reads this same document.
+  "feral-arr|${HOME}/.ssh/feral-arr|600|700|host:donkeykong,nixerator,qbert,srv"
   # SSH public keys
   "id_ed25519.pub|${HOME}/.ssh/id_ed25519.pub|644|700|${_WS}"
   "id_rsa.pub|${HOME}/.ssh/id_rsa.pub|644|700|${_WS}"
   "id_rsa_np.pub|${HOME}/.ssh/id_rsa_np.pub|644|700|${_WS}"
+  "feral-arr.pub|${HOME}/.ssh/feral-arr.pub|644|700|host:donkeykong,nixerator,qbert,srv"
 
   # Per-repo git-crypt keys (workstations only)
   "mixerator-git-crypt-key|${HOME}/.ssh/mixerator-git-crypt-key|600|700|${_WS}"
