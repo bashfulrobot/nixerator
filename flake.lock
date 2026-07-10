@@ -1408,11 +1408,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1783654742,
-        "narHash": "sha256-cTgXZfPIMZC0/8oKl7TpTbg6sZs4rW8DeZ0XfAfRX+s=",
+        "lastModified": 1783703777,
+        "narHash": "sha256-lENdwEH/tJApD0wl3WMUpus7ZpbSGbI0fbes/NSFdx4=",
         "owner": "bashfulrobot",
         "repo": "upsight-go",
-        "rev": "ec995d633f293a6e3472749ee84c6c5d6361eeb4",
+        "rev": "29f5d57aaf9248afc1e5906d2fd3b2cd3f5674e1",
         "type": "github"
       },
       "original": {
