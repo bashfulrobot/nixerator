@@ -150,9 +150,9 @@ in
     # extraInputRules (used just below for trustedBridgePrefix, and by
     # server.postgres.allowedCIDRs) is only ever emitted into the ruleset by
     # the nftables firewall backend module; the iptables backend declares the
-    # option but silently ignores it. Force nftables on here the same way
-    # modules/server/incus does, so both modules' firewall rules actually take
-    # effect. mkDefault lets a host that manages nftables elsewhere win.
+    # option but silently ignores it. Force nftables on here so this module's
+    # firewall rules actually take effect. mkDefault lets a host that manages
+    # nftables elsewhere win.
     networking.nftables.enable = lib.mkDefault true;
 
     networking = {
@@ -175,10 +175,10 @@ in
         # Trust every per-cluster libvirt NAT network sharing the naming
         # convention with one wildcard rule, so a new Terraform NAT-mode
         # cluster (e.g. vbr-blackhole) works without editing this module.
-        # Mirrors modules/server/incus's trustedBridgePrefix for the same
-        # underlying reason: nixos-fw's default-drop input policy silently
-        # eats DHCP/DNS replies on the bridge unless the interface is
-        # explicitly trusted.
+        # Same underlying reason the archived Incus module trusted its own
+        # NAT bridge: nixos-fw's default-drop input policy silently eats
+        # DHCP/DNS replies on the bridge unless the interface is explicitly
+        # trusted.
         {
           extraInputRules = lib.optionalString (cfg.trustedBridgePrefix != "") ''
             iifname "${cfg.trustedBridgePrefix}*" accept comment "trust libvirt per-cluster NAT networks"

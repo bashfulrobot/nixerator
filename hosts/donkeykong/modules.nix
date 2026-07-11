@@ -80,16 +80,18 @@ _:
 
   # Server modules
   server = {
-    # Virtualisation on donkeykong moved from libvirt/KVM to Incus. The old
-    # server.kvm block (libvirtd + virt-manager + iptables NAT routing for
-    # virbr1-7 and proxy ARP on wlp0s0f3) is retired. Incus brings its own
-    # managed NAT bridge and runs both system containers and QEMU VMs, so the
-    # manual routing is gone.
-    incus = {
+    # Virtualisation on donkeykong moved back from Incus to libvirt/KVM,
+    # matching qbert and srv: Talos VMs need real QEMU block-device semantics
+    # and a working qemu-guest-agent channel that Incus VMs don't provide
+    # (system extensions, in-place upgrades, and the agent itself all broke
+    # under Incus). donkeykong is WiFi-connected like qbert, so any future
+    # Talos cluster here would stay on a libvirt-managed NAT network
+    # (bridge/macvtap modes don't work over 802.11 regardless of hypervisor)
+    # — trustedBridgePrefix trusts that network's firewall traffic the same
+    # way Incus's did.
+    kvm = {
       enable = true;
-      ui.enable = true;
-      storage.driver = "btrfs";
-      network.ipv4Address = "10.100.0.1/24";
+      trustedBridgePrefix = "vbr-";
     };
   };
 }
