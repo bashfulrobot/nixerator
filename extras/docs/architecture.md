@@ -22,7 +22,7 @@ nixerator/
 │   ├── system/            # System services (ssh, flatpak, nix)
 │   ├── server/            # Server modules (kvm, nfs, restic)
 │   └── dev/               # Dev environments (go, ...)
-├── hosts/                 # Per-host configs (donkeykong, qbert, srv, nixerator)
+├── hosts/                 # Per-host configs (donkeykong, qbert, srv)
 └── extras/                # Docs, helper scripts
 ```
 
@@ -109,7 +109,7 @@ nixosConfigurations.donkeykong = lib.mkHost {
 };
 ```
 
-Active outputs: `donkeykong`, `qbert`, `srv`. The `hosts/nixerator/` directory is reusable VM profile material, not a standalone output.
+Active outputs: `donkeykong`, `qbert`, `srv`.
 
 ## Per-Host File Layout
 
