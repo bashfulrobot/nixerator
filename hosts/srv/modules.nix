@@ -258,14 +258,6 @@
           uid = 1000;
           gid = 100;
         };
-        jellyfin-config = {
-          path = "/exports/jellyfin-config";
-          bindMount = "/home/dustin/docker/jellyfin-official";
-          clients = [ "192.168.168.0/23" ];
-          squash = "root_squash";
-          uid = 1000;
-          gid = 100;
-        };
       };
       additionalPaths = [
         {
