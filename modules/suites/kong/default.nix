@@ -33,7 +33,6 @@ in
         calendar.enable = true;
         clari.enable = false;
         kong-docs.enable = false;
-        mail.enable = false;
       };
     };
   };

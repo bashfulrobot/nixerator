@@ -52,7 +52,7 @@ sudo chown -R "$CURRENT_USER:$CURRENT_GROUP" "$REPO_PATH"
 cd "$REPO_PATH" && sudo nixos-rebuild switch --impure --flake ".#$CURRENT_HOST"
 ```
 
-After first rebuild, mount is persistent (configured in `hosts/nixerator/vm.nix`):
+After first rebuild, mount is persistent (add this to the VM host's `vm.nix` or `configuration.nix`):
 
 ```nix
 fileSystems.${globals.paths.nixerator} = {
@@ -72,5 +72,5 @@ fileSystems.${globals.paths.nixerator} = {
 
 - **`mount: no such device`** -- virtiofs not configured in XML. Fully shut down VM (`virsh shutdown` / `virsh destroy`), edit XML, restart.
 - **Permission denied** -- `sudo chown -R "$CURRENT_USER:$CURRENT_GROUP" "$REPO_PATH"`
-- **Mount gone after reboot** -- run `nixos-rebuild switch` at least once with VM host target; ensure `hosts/nixerator/vm.nix` is imported.
+- **Mount gone after reboot** -- run `nixos-rebuild switch` at least once with VM host target; ensure the `fileSystems` entry above is imported into that host's config.
 - **Slow performance** -- ensure 4GB+ RAM, SSD, verify `ps aux | grep virtiofsd` on host.

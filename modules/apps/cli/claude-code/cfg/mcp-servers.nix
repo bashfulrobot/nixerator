@@ -155,7 +155,7 @@ let
     # Workstation-only, same as chrome-devtools/playwright above: `npx -y
     # @tableau/mcp-server` fetches and executes npm code at run time, and
     # secrets.json is pushed identically to every host, so without this gate
-    # the entry would activate on headless hosts (srv, clanker) the moment
+    # the entry would activate on the headless host (srv) the moment
     # the secret exists in the vault. Unlike those two, this server holds a
     # live Tableau Cloud credential in its process environment, so the
     # version is pinned rather than tracking @latest, to bound the blast

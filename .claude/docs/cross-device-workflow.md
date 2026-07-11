@@ -1,6 +1,6 @@
 # Cross-device Claude workflow
 
-Three peer work hosts: `srv` (always-on), `qbert` (workstation, occasional direct-use), and `clanker` (always-on headless Claude VM). All run zellij and are reachable over SSH on the tailnet. Sessions live on the host where they were started; no cross-host state sync.
+Two peer work hosts: `srv` (always-on) and `qbert` (workstation, occasional direct-use). Both run zellij and are reachable over SSH on the tailnet. Sessions live on the host where they were started; no cross-host state sync.
 
 ## Verbs
 
@@ -30,7 +30,7 @@ Sessions are named per-repo by convention: zellij session name = repo basename (
 ## iPhone
 
 - **Spawn or resume from claude.ai/code:** czj sessions and bare-`claude` background sessions both register their own remote-control endpoints, so claude.ai/code's session list picks them up directly. No separate control-tower service.
-- **SSH fallback (rarely needed):** Termius / Blink / Prompt over Tailscale → `ssh srv` (or `qbert` / `clanker`) → `zj a <name>` or `work`. SSH only — no mosh, no zellij-web.
+- **SSH fallback (rarely needed):** Termius / Blink / Prompt over Tailscale → `ssh srv` (or `qbert`) → `zj a <name>` or `work`. SSH only — no mosh, no zellij-web.
 
 ## /github-issue
 
@@ -38,8 +38,8 @@ Auto-renames the zellij session to `<repo>#<N>` when invoked inside zellij. An i
 
 ## Components
 
-- `archetypes.claudeWorkHost` (enabled on srv + qbert + clanker) — bundles zellij + ssh + work-launcher.
-- `apps.cli.work-launcher` (enabled on srv + qbert + donkeykong + clanker) — ships the `work` fish function. `peers` defaults to `[ "srv" "qbert" "clanker" ]`.
+- `archetypes.claudeWorkHost` (enabled on srv + qbert) — bundles zellij + ssh + work-launcher.
+- `apps.cli.work-launcher` (enabled on srv + qbert + donkeykong) — ships the `work` fish function. `peers` defaults to `[ "srv" "qbert" ]`.
 - `apps.cli.zellij` (enabled by the archetype) — provides `zj` and `czj` wrappers.
 
 donkeykong is **attach-only** in v1: it has the `work` function but does NOT host sessions for peers. Promotable later by flipping `archetypes.claudeWorkHost.enable = true;` and adding it to the peers list.

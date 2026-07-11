@@ -39,7 +39,7 @@
           # apps.cli.pnpm in suites.dev on the workstations) is flagged by
           # nixpkgs for CVE-2026-48995 / 50014 / 50015 / 50016 (plus 50017 /
           # 50573 / 55699 in newer revs), so every workstation rebuild fails
-          # without this. srv/clanker never evaluate pnpm, so the entry is inert
+          # without this. srv never evaluates pnpm, so the entry is inert
           # there. nixpkgs already ships secure pnpm_10 (10.34.4) and pnpm_11
           # (11.9.0); the real fix is letting the default `pnpm` alias advance
           # past 10.29.2 on the next `just qu` (flake update), then deleting this

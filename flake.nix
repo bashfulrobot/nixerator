@@ -184,18 +184,6 @@
           extraModules = [ ];
           homeManagerModules = [ ];
         };
-
-        clanker = lib.mkHost {
-          inherit globals versions;
-          hostname = "clanker";
-          system = "x86_64-linux";
-          # Plain Sway, no hyprflake/GNOME module to inject.
-          extraModules = [
-            # Disko declarative disk partitioning
-            inputs.disko.nixosModules.disko
-          ];
-          homeManagerModules = [ ];
-        };
       };
 
       # Formatter for `nix fmt`
