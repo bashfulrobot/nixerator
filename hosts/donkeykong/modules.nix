@@ -42,8 +42,6 @@ _:
       host.donkeykong = true;
     };
 
-    # ollama.acceleration = "vulkan";
-
     restic.backup = {
       enable = true;
       secretsProfile = "workstation";

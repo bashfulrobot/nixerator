@@ -267,9 +267,9 @@ The `justfile` provides ergonomic shortcuts:
 
 | Category | Count | Examples |
 |----------|-------|---------|
-| **CLI** | 33+ | fish, helix, git, docker, claude-code, ollama, pandoc |
-| **GUI** | 20+ | 1Password, Chrome, Obsidian, Signal, Ghostty, VS Code, Zed |
-| **WebApps** | 10 | Gmail, Calendar, Slack, Zoom (Chrome PWAs via mkWebApp) |
+| **CLI** | 33+ | fish, helix, git, docker, claude-code, pandoc |
+| **GUI** | 20+ | 1Password, Chrome, Obsidian, Signal, VS Code, Zed |
+| **WebApps** | 10 | Gmail, Calendar, Zoom (Chrome PWAs via mkWebApp) |
 | **System** | 7 | SSH, Flatpak, Nix settings, special workspaces, fonts |
 | **Server** | 4 | KVM, NFS, Restic backup, Whisper server |
 

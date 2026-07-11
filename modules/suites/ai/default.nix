@@ -66,10 +66,6 @@ in
         superpowers.enable = true;
         skillfish.enable = true;
         skill-cache.enable = true;
-        ollama = {
-          enable = false;
-          loadModels = [ "glm-5:cloud" ];
-        };
       };
     };
   };
