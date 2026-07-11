@@ -18,7 +18,6 @@
     ../../modules/apps/cli/gcmt
     ../../modules/apps/cli/gemini-cli
     ../../modules/apps/cli/git
-    ../../modules/apps/cli/graymatter
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/media-rename
     ../../modules/apps/cli/render-secrets

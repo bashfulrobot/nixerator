@@ -75,8 +75,6 @@
       enable = true;
       host.qbert = true;
     };
-
-    # ollama.acceleration = "rocm";
   };
 
   # Server modules
