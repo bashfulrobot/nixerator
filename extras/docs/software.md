@@ -25,7 +25,6 @@ Complete inventory of software managed by this NixOS configuration.
 | Meetsum               | AI-powered meeting summarizer using Claude with file browser                          | Local build                      |
 | Nix tooling           | cachix, comma, deadnix, nix-index, nixd, nixfmt, statix, nh                           | nixpkgs                          |
 | Nix Search TV         | Fuzzy search for Nix packages across multiple indexes with fzf                        | nixpkgs                          |
-| Ollama                | Local LLM server with configurable acceleration (CPU/CUDA/ROCm/Vulkan)                | nixpkgs                          |
 | Pandoc                | Document converter with LaTeX/PDF support and `md2pdf` fish function                  | nixpkgs                          |
 | Percollate            | Web-to-PDF converter with sitemap support and `web2pdf` fish function                 | nixpkgs                          |
 | Plannotator           | Interactive plan review and annotation tool for AI coding agents                      | Local build                      |
@@ -60,7 +59,6 @@ Complete inventory of software managed by this NixOS configuration.
 | Insync         | Google Drive sync client with optional Nautilus integration                   | nixpkgs                        |
 | LocalSend      | Local file sharing utility with firewall integration and tray autostart       | nixpkgs                        |
 | Obsidian       | Notes application with obsidian-export tool                                   | nixpkgs                        |
-| Okular         | PDF viewer with signature/initials stamp support; default PDF handler         | nixpkgs (KDE)                  |
 | Signal Desktop | Encrypted messaging app with optional GNOME libsecret integration             | nixpkgs                        |
 | Spicetify      | Spotify desktop client with theming                                           | nixpkgs (spicetify-nix input)  |
 | Typora         | Markdown editor with optional Nautilus context menu integration               | nixpkgs                        |
@@ -118,7 +116,6 @@ Modules that exist but are currently disabled (set to `false` or commented out i
 | ------------------- | ----------------------------------------- |
 | Brave               | Disabled in browsers suite                |
 | GSD (Get Shit Done) | Disabled; removed from claude-code module |
-| Ollama              | Disabled in AI suite                      |
 | OpenSpec            | Disabled in AI suite                      |
 | Termly              | Disabled in AI suite                      |
 | VS Code             | Disabled in dev suite (using Zed)         |
