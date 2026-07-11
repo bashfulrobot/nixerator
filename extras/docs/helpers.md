@@ -161,6 +161,11 @@ because rotating by hand is failure-prone in a specific, non-obvious way:
   still looks broken — every command keeps re-loading the stale, dead
   token baked into the old render, and the error ("Service Account
   Deleted") gives no hint that the fix already worked.
+- The nastiest variant is **drift** between the 1Password item and the local
+  file: update one but not the other (easy across several rotations) and
+  op-toggle / `push-secrets` read the dead token forever, silently. The
+  script now writes the token to both itself and self-checks the op-toggle
+  path, so this can't pass unnoticed.
 
 ```bash
 just rotate-op-token             # op read (default, preferred)
@@ -172,17 +177,25 @@ just rotate-op-token --manual    # interactive paste
 What it does:
 
 1. Prints the manual 1Password steps (rotate/regenerate the SA, confirm
-   both vault grants, update the credential item) and waits for Enter.
+   both vault grants) and waits for Enter. You no longer update the
+   credential item by hand — step 3 does it.
 2. Installs the token locally via `setup-op-service-account.sh --force`.
-3. Renders `secrets.json` with `OP_SERVICE_ACCOUNT_TOKEN` set explicitly
+3. Writes that same token into the 1Password item the template reads from,
+   using your desktop session (one biometric prompt) — a blind copy, so the
+   value never hits stdout. Keeps the item and the local file in lockstep.
+   Warns (and prints the manual `op item edit` one-liner) if the desktop
+   session isn't signed in or lacks write access.
+4. Renders `secrets.json` with `OP_SERVICE_ACCOUNT_TOKEN` set explicitly
    from the just-installed file — bypassing `op-toggle` entirely, so the
    fresh token is what actually lands in the render.
-4. Verifies with `op whoami` / `op vault list` (metadata only, never prints
-   the token) and warns if any secrets.json field known to need the
-   `automation` vault came back empty.
-5. Prints — but does not run — the `just push-secrets <hosts>` command to
-   propagate to the rest of the fleet. Fleet propagation is left as a
-   deliberate manual step.
+5. Verifies with `op whoami` / `op vault list` (metadata only, never prints
+   the token), warns if any secrets.json field known to need the
+   `automation` vault came back empty, and runs a bare `render-secrets
+   --check` (the op-toggle path) to confirm the token embedded in
+   `secrets.json` authenticates. If it doesn't, the rotation **exits
+   non-zero** with the exact `op item edit` fix — the item still holds the
+   wrong token. On success it prints (but does not run) the
+   `just push-secrets <hosts>` command for the rest of the fleet.
 
 If a full SA regeneration produced a *new* 1Password item (not just a new
 token value in the existing item), update `secrets.json.tpl`'s

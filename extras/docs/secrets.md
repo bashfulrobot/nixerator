@@ -82,12 +82,22 @@ Deleted)` even though the new token is fine).
 
 ```bash
 just rotate-op-token             # walks the full sequence, one host
+just rotate-op-token --manual    # paste the token instead of op read
 ```
 
+The script writes the new token to **both** the local file and the
+1Password item (step 3, via your desktop session — one biometric prompt),
+so the two can't drift. That drift is the classic silent failure: the file
+gets the new token but the item keeps the old one, and every op-toggle /
+`push-secrets` call then reads the dead token with nothing to warn you. To
+catch it regardless, step 5 runs a bare `render-secrets --check` (the
+op-toggle path) and **fails the rotation** if the embedded token doesn't
+authenticate, printing the exact `op item edit` one-liner to fix it.
+
 See `extras/docs/helpers.md`'s `rotate-op-service-account.sh` section for
-what it does step by step. It prints — but does not run — the
-`push-secrets` command for the rest of the fleet; run that yourself once
-you're happy with the verification output.
+the full step-by-step. It prints — but does not run — the `push-secrets`
+command for the rest of the fleet; run that yourself once you're happy with
+the verification output.
 
 ## Materialized host files
 
