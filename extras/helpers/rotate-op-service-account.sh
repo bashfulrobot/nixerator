@@ -132,7 +132,7 @@ echo "(desktop 1Password session -- may prompt for biometric approval)."
 item_synced=0
 if env -u OP_SERVICE_ACCOUNT_TOKEN op whoami >/dev/null 2>&1; then
   if env -u OP_SERVICE_ACCOUNT_TOKEN op item edit "${op_item}" \
-       "${op_field}=$(<"${CANONICAL}")" --vault "${op_vault}" >/dev/null 2>&1; then
+    "${op_field}=$(<"${CANONICAL}")" --vault "${op_vault}" >/dev/null 2>&1; then
     echo "  item updated: file and 1Password item now hold the same token."
     item_synced=1
   else
