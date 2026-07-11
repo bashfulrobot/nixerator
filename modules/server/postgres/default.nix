@@ -123,9 +123,9 @@ in
     # extraInputRules (nftables) rather than allowedTCPPorts so that the
     # firewall enforces the same CIDR list as pg_hba.conf instead of opening
     # the port globally. Requires nftables to be active (forced on by
-    # whichever virtualisation module — server.incus or server.kvm — is
-    # enabled on the host). Non-allowedCIDRs sources get an explicit reject so
-    # they see "connection refused" rather than a silent timeout.
+    # server.kvm, the fleet's virtualisation module, when enabled on the
+    # host). Non-allowedCIDRs sources get an explicit reject so they see
+    # "connection refused" rather than a silent timeout.
     networking.firewall.extraInputRules = lib.mkIf (cfg.allowedCIDRs != [ ]) (
       lib.concatMapStrings (
         cidr:
