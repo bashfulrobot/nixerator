@@ -74,15 +74,3 @@ Raw `zellij` reference, in case you want it:
 | `zellij attach -c <name>`         | create-if-missing      |
 | `zellij kill-session <name>`      | kill one               |
 | `zellij delete-all-sessions`      | nuke exited sessions   |
-
-## Web client (this host)
-
-| Action            | Command                                          |
-|-------------------|--------------------------------------------------|
-| Create token      | `zellij web --create-token`                      |
-| List token names  | `zellij web --list-tokens`                       |
-| Revoke one        | `zellij web --revoke-token <name>`               |
-| Revoke all        | `zellij web --revoke-all-tokens`                 |
-| Server status     | `zellij web --status`                            |
-
-URL: <https://zellij.goat-cloud.ts.net/>

@@ -8,7 +8,6 @@
 
 let
   cfg = config.apps.cli.zellij;
-  caddyCfg = config.system.caddy;
 
   # Path to the rendered cheat sheet on the system. Kept on /etc so the
   # zellij keybind can reference it from any user, and so the file is
@@ -537,20 +536,6 @@ in
       '';
     };
 
-    tsnetNode = lib.mkOption {
-      type = lib.types.str;
-      default = "zellij";
-      description = "Tailnet node name Caddy joins as for zellij web (URL: https://<node>.<tailnetDomain>/).";
-    };
-
-    internalPort = lib.mkOption {
-      type = lib.types.port;
-      default = 8082;
-      description = "Loopback port where zellij web listens (proxied by Caddy via tsnet).";
-    };
-
-    service.enable = lib.mkEnableOption "zellij web persistent server (systemd user service + Caddy tsnet vhost)";
-
     mosh.enable = lib.mkEnableOption ''
       Mosh server alongside zellij. Both solve the "remote-dev session
       that survives the network" problem from different layers — mosh
@@ -661,54 +646,6 @@ in
             "fish/completions/zj.fish".text = zjCompletions;
             "fish/completions/czj.fish".text = czjCompletions;
             "fish/conf.d/zellij-augment.fish".text = zellijAugmentCompletions;
-          };
-        };
-      })
-
-      (lib.mkIf cfg.service.enable {
-        system.caddy = {
-          enable = true;
-          tsnetNodes = [ cfg.tsnetNode ];
-        };
-
-        services.caddy.virtualHosts."https://${cfg.tsnetNode}.${caddyCfg.tailnetDomain}" = {
-          extraConfig = ''
-            bind tailscale/${cfg.tsnetNode}
-            header {
-              # Strip Referer on outbound responses so the bearer token in any
-              # initial ?token= URL never leaks to a third-party site clicked
-              # from inside the terminal.
-              Referrer-Policy "no-referrer"
-              # Defense in depth: prevent the zellij origin from being framed
-              # by another tsnet vhost and from sourcing arbitrary scripts.
-              # zellij-web's own assets are same-origin, so this is safe.
-              Content-Security-Policy "frame-ancestors 'none'; form-action 'self'"
-              X-Frame-Options "DENY"
-            }
-            reverse_proxy 127.0.0.1:${toString cfg.internalPort}
-          '';
-        };
-
-        home-manager.users.${globals.user.name} = {
-          systemd.user.services.zellij-web = {
-            Unit = {
-              Description = "Zellij web client (browser-accessible terminal multiplexer)";
-              After = [ "network.target" ];
-            };
-            Service = {
-              ExecStart = lib.concatStringsSep " " [
-                "${pkgs.zellij}/bin/zellij"
-                "web"
-                "--start"
-                "--ip 127.0.0.1"
-                "--port ${toString cfg.internalPort}"
-              ];
-              Restart = "on-failure";
-              RestartSec = 5;
-            };
-            Install = {
-              WantedBy = [ "default.target" ];
-            };
           };
         };
       })
