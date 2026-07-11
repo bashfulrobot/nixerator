@@ -18,7 +18,6 @@ modules/apps/webapps/
 ```nix
 apps.webapps = {
   calendar.enable = true;
-  clari.enable = true;
   zoom.enable = true;
 };
 ```
