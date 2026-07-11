@@ -8,7 +8,7 @@
 
 {
   # Import only modules that srv used in nixcfg, plus the cherry-picked
-  # Claude Code + zellij web stack.
+  # Claude Code + zellij stack.
   imports = [
     ../../modules/apps/cli/agent-scan
     ../../modules/apps/cli/agentos
@@ -39,12 +39,11 @@
     ../../modules/server/nfs
     ../../modules/server/noclaw
     ../../modules/server/postgres
-    ../../modules/system/caddy
     ../../modules/system/resilient-boot
     ../../modules/system/ssh
   ];
 
-  # Adopts the Claude work-host archetype: zellij (no web; mosh via system.ssh),
+  # Adopts the Claude work-host archetype: zellij + mosh via system.ssh,
   # sshd, work-launcher. Sessions live on srv until killed; attach from
   # anywhere on the tailnet via `work` or `ssh srv zellij attach`.
   archetypes.claudeWorkHost.enable = true;
