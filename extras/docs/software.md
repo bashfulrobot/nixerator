@@ -79,8 +79,6 @@ Declarative web app wrappers created via `mkWebApp` with desktop entries and cus
 | Calendar  | Google Calendar                     |
 | Clari     | Clari revenue intelligence platform |
 | Kong Docs | Kong API gateway documentation      |
-| Mail      | Gmail                               |
-| Slack     | kongstrong.slack.com                |
 | Zoom      | Zoom video conferencing             |
 
 ## Suites (Module Aggregators)

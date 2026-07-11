@@ -21,14 +21,6 @@ Active `nixosConfigurations` outputs: `donkeykong`, `qbert`, `srv`.
 - nixos-hardware: `lenovo-thinkpad-t14-intel-gen6`
 - `usb-wakeup.nix`, Syncthing, KVM with WiFi routing
 
-## nixerator (VM Profile)
-
-Reusable VM profile files -- not a standalone `nixosConfigurations` output.
-
-- `hosts/nixerator/vm.nix` -- virtiofs shared-folder setup
-- `hosts/nixerator/home.nix` -- Home Manager profile
-- Import `vm.nix` into a VM host configuration to enable
-
 ## srv (Home Server)
 
 **Hardware**: Home server, static IP 192.168.168.1

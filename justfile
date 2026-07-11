@@ -57,7 +57,7 @@ rebuild:
 # and compiles. Works from any host and never activates. Use to validate a new
 # host config before installing it on the target machine.
 #
-#   just build-host clanker
+#   just build-host srv
 build-host host:
     nixos-rebuild build --impure --flake ".#{{host}}"
 
@@ -763,10 +763,10 @@ remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
     case "{{host}}" in
-        qbert|donkeykong|srv|clanker) ;;
+        qbert|donkeykong|srv) ;;
         *)
             echo "Refusing to ssh to unrecognized host: {{host}}"
-            echo "Allowed: qbert, donkeykong, srv, clanker"
+            echo "Allowed: qbert, donkeykong, srv"
             exit 1
             ;;
     esac
@@ -788,10 +788,10 @@ remote-upgrade host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
     case "{{host}}" in
-        qbert|donkeykong|srv|clanker) ;;
+        qbert|donkeykong|srv) ;;
         *)
             echo "Refusing to ssh to unrecognized host: {{host}}"
-            echo "Allowed: qbert, donkeykong, srv, clanker"
+            echo "Allowed: qbert, donkeykong, srv"
             exit 1
             ;;
     esac
@@ -827,10 +827,10 @@ push-secrets +hosts:
     set -euo pipefail
     for host in {{hosts}}; do
         case "$host" in
-            qbert|donkeykong|srv|clanker) ;;
+            qbert|donkeykong|srv) ;;
             *)
                 echo "Refusing to push to unrecognized host: $host"
-                echo "Allowed: qbert, donkeykong, srv, clanker"
+                echo "Allowed: qbert, donkeykong, srv"
                 exit 1
                 ;;
         esac

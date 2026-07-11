@@ -19,7 +19,7 @@ modules/apps/webapps/
 apps.webapps = {
   calendar.enable = true;
   clari.enable = true;
-  mail.enable = true;
+  zoom.enable = true;
 };
 ```
 
