@@ -54,13 +54,11 @@ Complete inventory of software managed by this NixOS configuration.
 | 1Password      | Password manager with native browser messaging (Chromium, Zen)                | nixpkgs                        |
 | Cameractrls    | Camera controls utility for Linux webcams                                     | Flatpak                        |
 | Comics         | Komikku manga reader + comics-downloader for downloading comics/manga         | nixpkgs + local build          |
-| Ghostty        | Modern terminal emulator with Fish integration and Bat syntax highlighting    | nixpkgs                        |
 | Google Chrome  | Web browser with Stylix-generated Dark Reader theme; stable and Dev channels  | Flake input (browser-previews) |
 | Helium         | Privacy-focused Chromium-based browser (beta) with 1Password integration      | Local build                    |
 | Insomnia       | API client (Kong) with local package override for newer versions              | Local build                    |
 | Insync         | Google Drive sync client with optional Nautilus integration                   | nixpkgs                        |
 | LocalSend      | Local file sharing utility with firewall integration and tray autostart       | nixpkgs                        |
-| Morgen         | Calendar application with Hyprland window tiling rule                         | nixpkgs                        |
 | Obsidian       | Notes application with obsidian-export tool                                   | nixpkgs                        |
 | Okular         | PDF viewer with signature/initials stamp support; default PDF handler         | nixpkgs (KDE)                  |
 | Signal Desktop | Encrypted messaging app with optional GNOME libsecret integration             | nixpkgs                        |
@@ -77,15 +75,13 @@ Declarative web app wrappers created via `mkWebApp` with desktop entries and cus
 | App       | URL Target                          |
 | --------- | ----------------------------------- |
 | Calendar  | Google Calendar                     |
-| Clari     | Clari revenue intelligence platform |
-| Kong Docs | Kong API gateway documentation      |
 | Zoom      | Zoom video conferencing             |
 
 ## Suites (Module Aggregators)
 
 | Suite          | Packages Included                                                                                            |
 | -------------- | ------------------------------------------------------------------------------------------------------------ |
-| Terminal       | Ghostty, Fish, Starship, Zoxide, bat, dust, eza, fd, ripgrep, tokei, procs, sd, bottom, hyperfine            |
+| Terminal       | Fish, Starship, Zoxide, bat, dust, eza, fd, ripgrep, tokei, procs, sd, bottom, hyperfine                     |
 | Kubernetes     | kubectl, talosctl, omnictl, cilium-cli, eksctl, fluxcd, helm, kubeseal, kustomize, minikube, k9s             |
 | Infrastructure | Docker, jwtx, cloud-utils, AWS IAM authenticator, Google Cloud SDK, OpenTofu, Pulumi, Terraform, wake-on-LAN |
 | Security       | 1Password GUI and CLI                                                                                        |

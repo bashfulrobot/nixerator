@@ -70,12 +70,6 @@ _:
     };
   };
 
-  # Pull from qbert's harmonia cache: LAN first, then tailscale, then the
-  # upstream caches declared in modules/system/nix.
-  # Disabled: self-hosted caching turned off; only the public substituters
-  # in modules/system/nix (plus cache.nixos.org) are used.
-  system.qbert-cache.enable = false;
-
   system.resilient-boot.enable = true;
 
   # Server modules

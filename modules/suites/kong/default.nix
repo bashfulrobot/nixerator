@@ -31,8 +31,6 @@ in
       # Kong web applications
       webapps = {
         calendar.enable = true;
-        clari.enable = false;
-        kong-docs.enable = false;
       };
     };
   };
