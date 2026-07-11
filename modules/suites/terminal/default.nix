@@ -18,12 +18,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Terminal emulator. Ghostty's module is kept available but disabled; the
-    # desktop suite uses hyprflake's Stylix-themed kitty module as the terminal.
-    apps.gui = {
-      ghostty.enable = false;
-    };
-
     # Shell and prompt
     apps.cli = {
       fish.enable = true;
