@@ -34,9 +34,7 @@
     # `server.cloudflareDdns`.
     ../../modules/server/cloudflare-ddns
     ../../modules/server/kvm
-    ../../modules/server/netboot-xyz
     ../../modules/server/nfs
-    ../../modules/server/noclaw
     ../../modules/server/postgres
     ../../modules/system/resilient-boot
     ../../modules/system/ssh
@@ -113,10 +111,10 @@
   };
 
   # System modules
-  # Note: this is unrelated to `server.netbootXyz` below (a self-hosted
-  # netboot.xyz admin UI, currently disabled). This enables the systemd-boot
-  # loader's own netboot.xyz menu entry (chainloads netboot.xyz over the
-  # network), one of three features under system.resilient-boot.
+  # Note: this is unrelated to the self-hosted netboot.xyz admin UI that
+  # used to live at `server.netbootXyz` (archived, unused). This enables the
+  # systemd-boot loader's own netboot.xyz menu entry (chainloads netboot.xyz
+  # over the network), one of three features under system.resilient-boot.
   system.resilient-boot.enable = true;
   system.ssh.enable = true;
   # ssh-agent is managed by `keychain` (see hosts/srv/home.nix) so it
@@ -126,35 +124,6 @@
 
   # Server-specific modules
   server = {
-    # Always-on Claude Code Remote Control session ("noclaw"), contained in a
-    # systemd-nspawn container. Moved here from qbert.
-    #
-    # TEMPORARILY DISABLED. The host's virtualisation module (previously
-    # Incus, now server.kvm) forces the host firewall onto nftables, and
-    # noclaw's masquerade + egress-lockdown rules go in via
-    # networking.firewall.extraCommands, which the nftables firewall rejects
-    # at build time. noclaw is development-only on srv and not actively used,
-    # so it stays off until it's re-ported to nftables-native
-    # (networking.nat + dnsmasq nftset + extraForwardRules) as a fast-follow.
-    noclaw = {
-      enable = false;
-      # srv routes to the internet via enp3s0 (default gateway lives there);
-      # masquerade the container subnet out that interface.
-      wanInterface = "enp3s0";
-      # Render the scoped 1Password service-account token (op://nixerator/
-      # noclaw-op-token/credential) into the container from the nixos-secrets
-      # cached file. Provision the value with `just render-secrets`.
-      renderOpTokenFromNixosSecrets = true;
-      # No nightly recycle. `claude remote-control` mints a NEW session id on
-      # every process start (no upstream way to reuse one across restarts -- see
-      # anthropics/claude-code#29748), so each restart leaves another dead
-      # "noclaw" entry in the phone's Code list. The container HOME is already
-      # wiped+restaged on every actual restart (reboot/deploy), so the daily
-      # context-flush restart bought almost nothing while costing a duplicate
-      # entry per day. Off => one durable entry until a real reboot/deploy.
-      recycle.enable = false;
-    };
-
     # IPv4-only DDNS: manages the A record for home.bashfulrobot.com.
     # ip6Provider = "none" because srv has no public IPv6; without it the
     # both-stack `domains` option would try (and fail) to manage AAAA.
@@ -172,44 +141,6 @@
     # Linux bridge replacing the former enp3s0 setup. No NAT-network options
     # needed here either way.
     kvm.enable = true;
-
-    # TEMPORARILY DISABLED. blockBridges installs its PREROUTING RETURN rules
-    # via networking.firewall.extraCommands, which the nftables firewall
-    # (forced on by server.kvm, previously by Incus) rejects at build time.
-    # netboot.xyz is development-only on srv and not actively used, so it
-    # stays off until it's re-ported to a native nft prerouting rule
-    # (repointed at vbr-*) as a fast-follow. Options below are retained inert
-    # so re-enabling is a one-line flip.
-    netbootXyz = {
-      enable = false;
-      # NB: pairs with `virtualisation.docker.daemon.settings.userland-proxy
-      # = false` below. Without that, docker-proxy opens a real userspace
-      # listener on `192.168.168.1:3000` that bypasses the PREROUTING RETURN
-      # rule installed by `blockBridges`.
-      # Bind container ports to specific host IPs. Listener-binding is the
-      # primary exposure control on srv because the kvm module's INPUT-
-      # accept override neuters per-interface firewall scoping. LAN ports
-      # bind to enp3s0; admin UI binds LAN + Tailscale.
-      lanAddress = "192.168.168.1";
-      adminAddresses = [
-        "192.168.168.1"
-        globals.hosts.srv.tailscale_ip
-      ];
-      # Docker's published-port DNAT in nat/PREROUTING does not filter by
-      # input interface, so a libvirt guest routing through srv toward
-      # 192.168.168.1 would otherwise reach the unauthenticated admin UI.
-      # blockBridges installs PREROUTING RETURN rules that bypass Docker's
-      # DNAT for traffic arriving on any virbr*, so guest VMs cannot hit
-      # the netboot.xyz listeners.
-      blockBridges = [ "virbr+" ];
-      # Default ports (3000, 8080) collide with the docker-compose stack on
-      # srv -- forgejo owns 3000, shiori owns 8080. Move netboot.xyz to free
-      # host ports. httpPort only matters once localMirror.enable is set,
-      # but we still want a free default so flipping that flag doesn't
-      # collide with shiori.
-      adminPort = 3030;
-      httpPort = 18080;
-    };
 
     postgres = {
       enable = true;
@@ -272,16 +203,13 @@
   # Disable docker-proxy on srv: with docker-proxy off, Docker publishes ports
   # through iptables NAT exclusively instead of opening a real userspace
   # listening socket on the published host IPs (e.g. 192.168.168.1:3000). This
-  # was originally load-bearing for server.netbootXyz.blockBridges: the userspace
-  # listener would otherwise bypass the nat/PREROUTING RETURN rules that keep a
-  # cross-interface guest packet from reaching the netboot admin UI.
-  #
-  # netbootXyz is TEMPORARILY DISABLED for the Incus migration, so blockBridges
-  # is not currently installing those rules. This flag stays off regardless: it
-  # is srv's current running behaviour (no dataplane change at cutover), it is
-  # benign on its own (NAT-only publishing), and it becomes load-bearing again
-  # the moment netbootXyz is re-ported and re-enabled. Scoped to srv because
-  # workstations rely on docker-proxy for localhost-to-published-port dev flows.
+  # was originally load-bearing for the (now-archived) netboot.xyz module's
+  # blockBridges option: the userspace listener would otherwise bypass the
+  # nat/PREROUTING RETURN rules that kept a cross-interface guest packet from
+  # reaching the netboot admin UI. Kept regardless: it's srv's current running
+  # behaviour and benign on its own (NAT-only publishing). Scoped to srv
+  # because workstations rely on docker-proxy for localhost-to-published-port
+  # dev flows.
   virtualisation.docker.daemon.settings.userland-proxy = false;
 
   apps.cli.restic = {

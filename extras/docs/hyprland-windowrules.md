@@ -1,86 +1,106 @@
 # Hyprland Window Rules
 
-## Syntax (0.53+)
+hyprflake's hyprland module sets `configType = "lua"`, which replaces
+`hyprland.conf` with a Lua-driven config end to end. Under this backend,
+`.conf` files dropped into `conf.d/` are never read: window rules, binds,
+and exec-once-equivalents must be written as Lua and declared through
+`hyprflake.hyprland.extraLua`.
 
-Hyprland 0.53+ uses a **block syntax** for window rules. The old single-line
-`windowrulev2 = RULE, MATCH` syntax is deprecated and will error.
+## Declaring a snippet
 
-### Block syntax
-
+```nix
+home-manager.users.${globals.user.name} = {
+  hyprflake.hyprland.extraLua."my-app-windowrule" = ''
+    hl.window_rule({
+      name = "my-app-tile",
+      match = { class = "^(MyApp)$" },
+      tile = true,
+    })
+  '';
+};
 ```
-windowrule {
-    name = my-rule-name
-    match:class = ^(MyApp)$
-    tile = on
-}
+
+`hyprflake.hyprland.extraLua` writes the Lua file and requires it at the
+end of `hyprland.lua` for you. A hand-written `xdg.configFile."hypr/conf.d/
+<name>.lua"` entry is never sourced this way and will silently do nothing
+-- do not use it.
+
+## Window rules
+
+```lua
+hl.window_rule({
+  name = "my-app-tile",
+  match = { class = "^(MyApp)$" },
+  tile = true,
+})
 ```
 
 **Required fields:**
 
 - `name` -- unique identifier for the rule
-- At least one `match:` field
+- `match` -- a table with at least one match field
 
-**Common match fields:**
+**Common `match` fields:**
 
-| Field             | Description          | Example         |
-| ----------------- | -------------------- | --------------- |
-| `match:class`     | Window class (regex) | `^([Mm]orgen)$` |
-| `match:title`     | Window title (regex) | `^Settings$`    |
-| `match:xwayland`  | XWayland window      | `true`          |
-| `match:float`     | Floating state       | `false`         |
-| `match:workspace` | Workspace match      | `w[tv1]`        |
+| Field       | Description          | Example         |
+| ----------- | --------------------- | --------------- |
+| `class`     | Window class (regex)  | `^([Mm]orgen)$` |
+| `title`     | Window title (regex)  | `^Settings$`    |
+| `xwayland`  | XWayland window        | `true`          |
+| `float`     | Floating state         | `false`         |
+| `workspace` | Workspace match        | `"w[tv1]"`      |
 
 **Common rule fields:**
 
-| Field            | Description     | Example            |
-| ---------------- | --------------- | ------------------ |
-| `tile`           | Force tiling    | `on`               |
-| `float`          | Force floating  | `on`               |
-| `opacity`        | Window opacity  | `0.9 0.8`          |
-| `move`           | Position        | `20 monitor_h-120` |
-| `size`           | Window size     | `800 600`          |
-| `suppress_event` | Suppress events | `maximize`         |
+| Field    | Description    | Example              |
+| -------- | --------------- | --------------------- |
+| `tile`   | Force tiling    | `true`                |
+| `float`  | Force floating  | `true`                |
+| `opacity`| Window opacity  | `"0.9 0.8"` (string)  |
+| `move`   | Position        | `"20 monitor_h-120"`  |
+| `size`   | Window size     | `"800 600"`           |
+| `pin`    | Pin to all workspaces | `true`          |
 
-## conf.d Pattern
+Booleans (`tile`, `float`, `pin`) are Lua `true`/`false`, not the hyprlang
+`on`/`off` strings. `opacity`, `move`, and `size` stay strings.
 
-Window rules go in `xdg.configFile."hypr/conf.d/<name>.conf"` inside a
-`home-manager.users` block. Do not use `wayland.windowManager.hyprland.settings`.
+## Keybinds
 
-### Example module
+```lua
+hl.bind("SUPER + SHIFT + Z",
+  hl.dsp.exec_cmd("my-script"), { description = "Run my script" })
+```
 
-```nix
-home-manager.users.${globals.user.name} = {
-  xdg.configFile."hypr/conf.d/morgen-windowrule.conf".text = ''
-    windowrule {
-        name = morgen-tile
-        match:class = ^([Mm]orgen)$
-        tile = on
-    }
-  '';
-};
+## Exec-once equivalents
+
+The Lua backend has no `exec-once` keyword. Run something once at startup
+with `hl.on`:
+
+```lua
+hl.on("hyprland.start", function() hl.exec_cmd("my-startup-command") end)
 ```
 
 ## Common mistakes
 
-1. **Using `windowrulev2`** -- Deprecated. Use `windowrule { }` block syntax.
-2. **Using single-line syntax** -- `windowrule = tile, class:Foo` no longer works
-   for rules that take values. Use block syntax instead.
-3. **Missing `name` field** -- Every windowrule block needs a unique `name`.
-4. **Missing value on rule fields** -- Fields like `tile` require a value
-   (e.g., `tile = on`, not just `tile`).
+1. **Using hyprlang `windowrule { }` or `windowrulev2 = ...`** -- Both are
+   native Hyprland syntax, not Lua. Neither works under `configType = "lua"`.
+2. **Dropping a `.conf` (or hand-written `.lua`) file straight into
+   `conf.d/`** -- Only files declared via `hyprflake.hyprland.extraLua` get
+   required by `hyprland.lua`; anything else in `conf.d/` is inert.
+3. **Using `on`/`off` for boolean rule fields** -- Lua wants `true`/`false`.
+4. **Missing the `match` table on a window rule** -- every rule needs at
+   least one match field inside `match = { ... }`.
 
-## Flat syntax (still works for simple directives)
+## Real examples in this repo
 
-Some Hyprland directives still accept flat key-value syntax:
-
-```
-exec-once = insync start --no-daemon
-bind = SUPER CTRL, S, exec, my-script
-```
-
-These do not need block syntax. Only `windowrule` requires the block format.
+- `modules/apps/cli/text-uppercase/default.nix` -- a keybind via `hl.bind`
+- `modules/apps/webapps/zoom/clipboard-join.nix` -- a keybind via `hl.bind`
+  + `hl.dsp.exec_cmd`
+- `modules/system/special-workspaces/default.nix` -- keybinds driving
+  `hl.dsp.workspace.toggle_special`
+- `hosts/qbert/home.nix` -- a monitor rule via `hl.monitor`
 
 ## Reference
 
 - [Hyprland wiki: Window Rules](https://wiki.hyprland.org/Configuring/Window-Rules/)
-- Working examples in `~/.config/hypr/hyprland.conf.backup`
+  (hyprlang syntax -- useful for field semantics, not Lua syntax)

@@ -228,7 +228,7 @@ The `lib/mkHost.nix` builder wires everything together:
     editor = "helix";
     shell = "fish";
     browser = "google-chrome-stable";
-    terminal = "ghostty";
+    terminal = "kitty";
   };
 
   tailscale = {
