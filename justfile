@@ -20,6 +20,12 @@ timestamp := `date +%Y-%m-%d_%H-%M-%S`
 default:
     @just --list --unsorted
 
+# Open the visual repo tour (extras/docs/index.html) in a browser
+docs:
+    #!/usr/bin/env bash
+    if command -v xdg-open >/dev/null 2>&1; then xdg-open extras/docs/index.html
+    else open extras/docs/index.html; fi
+
 # === Core Recipes ===
 # Production rebuild of the current host
 rebuild:

@@ -60,7 +60,7 @@ rec {
   };
 
   # Per-host network identity. These are NOT secrets -- they're already
-  # published in extras/docs/{termly-remote,demo-deck}.md and don't grant
+  # published in extras/docs/{termly-remote.md,index.html} and don't grant
   # access on their own (you'd need a tailscale auth key, which IS in 1P).
   # Lives here instead of in the nixerator 1P vault so adding/removing a
   # host doesn't require an op item create/delete.

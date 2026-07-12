@@ -5,7 +5,8 @@ running the DankMaterialShell (DMS) shell.
 
 ## Architecture
 
-![Nixerator Architecture](extras/docs/nixerator-architecture.png)
+See [Repo tour](extras/docs/index.html) — a self-contained, single-page visual
+map of the repo (open in a browser).
 
 ## Status
 
@@ -60,6 +61,7 @@ Enable modules via options:
 
 ## Documentation
 
+- **[Repo tour](extras/docs/index.html)** - Single-page visual map: the file layout, module anatomy, rebuild pipeline, hosts, and secrets flow
 - **[Architecture](extras/docs/architecture.md)** - Directory structure, modules, and design principles
 - **[Module Development](extras/docs/module-development.md)** - Creating new modules
 - **[Adding Hosts](extras/docs/adding-hosts.md)** - Adding a new NixOS host
