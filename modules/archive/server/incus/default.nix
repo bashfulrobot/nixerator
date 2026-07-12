@@ -190,11 +190,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Incus on NixOS is unsupported on iptables; the upstream module asserts
-    # nftables. Switch the host firewall backend here so enabling this module is
-    # self-contained. mkDefault lets a host that manages nftables elsewhere win.
-    networking.nftables.enable = lib.mkDefault true;
-
     virtualisation.incus = {
       enable = true;
       ui.enable = cfg.ui.enable;
@@ -289,25 +284,34 @@ in
       exit 0
     '';
 
-    # Open the Incus API/UI port on all interfaces. The daemon already binds
-    # all interfaces (core.https_address above), so this makes it reachable
-    # on LAN, Tailscale, and loopback without per-host firewall overrides.
-    networking.firewall.allowedTCPPorts = lib.mkIf cfg.ui.enable [ cfg.ui.port ];
+    networking = {
+      # Incus on NixOS is unsupported on iptables; the upstream module asserts
+      # nftables. Switch the host firewall backend here so enabling this module is
+      # self-contained. mkDefault lets a host that manages nftables elsewhere win.
+      nftables.enable = lib.mkDefault true;
 
-    # Trust the Incus NAT bridges so instances can reach the host's dnsmasq for
-    # DHCP/DNS. Without this the nixos-fw input chain (policy drop) silently eats
-    # the instances' DHCP requests even though Incus's own nftables table accepts
-    # them, and instances boot but never get an address. Covers the managed
-    # bridge plus any explicitly-named Terraform bridges (trustedBridges).
-    networking.firewall.trustedInterfaces = [ cfg.network.name ] ++ cfg.trustedBridges;
+      firewall = {
+        # Open the Incus API/UI port on all interfaces. The daemon already binds
+        # all interfaces (core.https_address above), so this makes it reachable
+        # on LAN, Tailscale, and loopback without per-host firewall overrides.
+        allowedTCPPorts = lib.mkIf cfg.ui.enable [ cfg.ui.port ];
 
-    # And trust every per-cluster bridge sharing the naming convention with one
-    # wildcard rule, so a new Terraform cluster (e.g. tbr-darkstar) works without
-    # editing this module. trustedInterfaces can't express a wildcard, so this
-    # goes in as a raw input rule.
-    networking.firewall.extraInputRules = lib.optionalString (cfg.trustedBridgePrefix != "") ''
-      iifname "${cfg.trustedBridgePrefix}*" accept comment "trust Incus per-cluster bridges"
-    '';
+        # Trust the Incus NAT bridges so instances can reach the host's dnsmasq for
+        # DHCP/DNS. Without this the nixos-fw input chain (policy drop) silently eats
+        # the instances' DHCP requests even though Incus's own nftables table accepts
+        # them, and instances boot but never get an address. Covers the managed
+        # bridge plus any explicitly-named Terraform bridges (trustedBridges).
+        trustedInterfaces = [ cfg.network.name ] ++ cfg.trustedBridges;
+
+        # And trust every per-cluster bridge sharing the naming convention with one
+        # wildcard rule, so a new Terraform cluster (e.g. tbr-darkstar) works without
+        # editing this module. trustedInterfaces can't express a wildcard, so this
+        # goes in as a raw input rule.
+        extraInputRules = lib.optionalString (cfg.trustedBridgePrefix != "") ''
+          iifname "${cfg.trustedBridgePrefix}*" accept comment "trust Incus per-cluster bridges"
+        '';
+      };
+    };
 
     # Desktop launchers for the web UI. The local entry opens this host's daemon
     # over loopback (always works on the host). Each ui.remotes entry adds a
