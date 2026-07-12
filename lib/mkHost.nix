@@ -57,8 +57,14 @@
 
           # Apply custom package overlays
           nixpkgs.overlays = [
-            # llm-agents packages (exposes pkgs.llm-agents.<name>)
-            inputs.llm-agents.overlays.default
+            # llm-agents packages (exposes pkgs.llm-agents.<name>).
+            # Upstream dropped its `overlays` flake output (as of rev
+            # eacaf2df, 2026-07-12) in favor of exposing packages.<system>
+            # directly, so we wire it back into an overlay ourselves rather
+            # than touching every pkgs.llm-agents.<name> call site.
+            (final: _prev: {
+              llm-agents = inputs.llm-agents.packages.${final.system};
+            })
 
             # Work around a nixpkgs bug that breaks `google-cloud-sdk.withExtraComponents`.
             #
