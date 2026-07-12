@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nixerator — repo tour</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#30363d;
+    --tx:#c9d1d9; --mut:#8b949e; --teal:#2dd4bf; --blue:#58a6ff;
+    --purple:#bc8cff; --amber:#e3b341; --green:#3fb950; --pink:#f778ba;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font:15px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .wrap{max-width:1040px;margin:0 auto;padding:40px 22px 80px}
+  h1{font-size:34px;margin:0 0 4px;letter-spacing:-.5px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--mut);
+    margin:54px 0 16px;font-weight:600}
+  .sub{color:var(--mut);margin:0 0 18px;font-size:16px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:4px 12px;font-size:12.5px;color:var(--mut)}
+  .chip b{color:var(--tx);font-weight:600}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:740px){.g2,.g3{grid-template-columns:1fr}}
+
+  /* file tree */
+  pre.tree{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;overflow:auto;font-size:13.5px;line-height:1.9;margin:0}
+  .tree .d{color:var(--blue);font-weight:600}      /* dir */
+  .tree .f{color:var(--tx)}                          /* file */
+  .tree .an{color:var(--mut)}                        /* annotation */
+  .tree .ac{color:var(--teal)}                       /* accent annotation */
+  .tree .gi{color:var(--amber)}                      /* archived / disabled note */
+
+  /* pipeline */
+  .pipe{display:flex;flex-direction:column;gap:0}
+  .step{display:grid;grid-template-columns:34px 1fr;gap:14px;position:relative;padding:0 0 18px}
+  .step:not(:last-child)::before{content:"";position:absolute;left:16px;top:30px;bottom:-2px;
+    width:2px;background:var(--line)}
+  .num{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+    background:var(--panel2);border:1px solid var(--line);color:var(--teal);font-weight:700;font-size:13px;z-index:1}
+  .step .body{padding-top:4px}
+  .step .t{font-weight:600}
+  .step .t .res{color:var(--purple);font-family:ui-monospace,monospace;font-size:12.5px}
+  .step .d{color:var(--mut);font-size:13.5px}
+
+  /* horizontal flow */
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .node{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;min-width:0;text-align:center}
+  .node .h{font-weight:600;font-size:13.5px}
+  .node .s{color:var(--mut);font-size:11.5px;margin-top:2px}
+  .arrow{display:grid;place-items:center;color:var(--mut);padding:0 10px;font-size:18px}
+  .arrow small{display:block;font-size:10px;line-height:1;margin-top:2px;color:var(--teal)}
+
+  /* concept cards */
+  .card .k{font-weight:600;margin:0 0 6px}
+  .card .k .ic{color:var(--teal);margin-right:6px}
+  .card p{margin:0;color:var(--mut);font-size:13.5px}
+  .kbd{background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:6px;padding:1px 6px;font-size:12.5px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
+  .tag.live{background:rgba(63,185,80,.15);color:var(--green)}
+  .tag.soon{background:rgba(227,179,65,.15);color:var(--amber)}
+  .lead{color:var(--mut);font-size:14px;margin:-6px 0 16px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:12px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .srow{display:flex;align-items:center;gap:8px;font-family:ui-monospace,monospace;font-size:13px;padding:3px 0}
+  .mk{width:16px;display:inline-block;text-align:center;font-weight:700}
+  .mk.ok{color:var(--green)} .mk.no{color:var(--amber)}
+  .note{color:var(--mut);font-size:12.5px}
+  .sflow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;font-size:13px}
+  .sflow .b{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px}
+  .vrule{width:1px;background:var(--line);align-self:stretch;margin:0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>nixerator</h1>
+  <p class="sub">Dustin's NixOS / home-manager flake: three hosts, one repo.</p>
+  <div class="chips">
+    <span class="chip"><b>Nix flakes</b> declarative config</span>
+    <span class="chip"><b>home-manager</b> user-level config</span>
+    <span class="chip"><b>hyprflake</b> Hyprland desktop</span>
+    <span class="chip"><b>1Password</b> secrets, no git-crypt</span>
+    <span class="chip"><b>import-tree</b> auto-discovery</span>
+    <span class="chip"><b>just</b> day-2</span>
+  </div>
+
+  <!-- MAP -->
+  <h2>The map</h2>
+  <pre class="tree">
+<span class="d">nixerator/</span>
+├─ <span class="f">flake.nix</span><span class="an">              inputs · </span><span class="ac">nixosConfigurations</span><span class="an"> for donkeykong, qbert, srv</span>
+├─ <span class="f">justfile</span><span class="an">              rebuild · upgrade · secrets · capture, one command set</span>
+├─ <span class="d">settings/</span>
+│   ├─ <span class="f">globals.nix</span><span class="an">        user, paths, timezone, editor/shell/terminal prefs</span>
+│   └─ <span class="f">versions.nix</span><span class="an">       centralized version pins for locally-built packages</span>
+├─ <span class="d">lib/</span>
+│   ├─ <span class="f">mkHost.nix</span><span class="an">         host builder: wires globals + versions + secrets into every module</span>
+│   └─ <span class="f">mkWebApp.nix</span><span class="an">       Chrome-PWA module factory for apps/webapps/*</span>
+├─ <span class="d">modules/</span><span class="ac">              the bulk of the repo — every feature is a module</span>
+│   ├─ <span class="d">archetypes/</span><span class="an">       workstation · server · claudeWorkHost — machine profiles</span>
+│   ├─ <span class="d">suites/</span><span class="an">           12 feature bundles (core, dev, desktop, kong, ai, ...)</span>
+│   ├─ <span class="d">apps/cli/</span><span class="an">         60 CLI tools, package builds in each module's build/</span>
+│   ├─ <span class="d">apps/gui/</span><span class="an">         19 GUI apps</span>
+│   ├─ <span class="d">apps/webapps/</span><span class="an">     2 Chrome-PWA wraps via mkWebApp</span>
+│   ├─ <span class="d">system/</span><span class="an">           8 system-level services (ssh, flatpak, nix config)</span>
+│   ├─ <span class="d">server/</span><span class="an">           5 server modules (kvm, nfs, restic, postgres)</span>
+│   ├─ <span class="d">dev/</span><span class="an">              2 dev environments</span>
+│   └─ <span class="d">archive/</span><span class="gi">          retired modules, same relative path, excluded from eval</span>
+├─ <span class="d">hosts/</span><span class="an">                donkeykong · qbert · srv — per-host config</span>
+├─ <span class="d">secrets.json.tpl</span><span class="an">      op:// template rendered per host, git-crypt retired</span>
+└─ <span class="d">extras/</span><span class="an">                docs, helper scripts, secrets render logic</span>
+  </pre>
+
+  <!-- MODULE ANATOMY -->
+  <h2>Every feature is a module</h2>
+  <p class="lead">Same shape everywhere: an <span class="kbd">enable</span> option and a <span class="kbd">config = lib.mkIf cfg.enable</span> block. Drop a <span class="mono">default.nix</span> in the right directory — nothing to register.</p>
+  <div class="panel">
+    <pre class="tree" style="line-height:1.7">
+<span class="an">{ lib, pkgs, config, globals, ... }:</span>
+
+<span class="an">let</span>
+  cfg = config.<span class="ac">apps.cli.APPNAME</span>;
+<span class="an">in</span>
+{
+  options.<span class="ac">apps.cli.APPNAME</span>.enable = lib.mkEnableOption "APPNAME";
+
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ pkgs.APPNAME ];
+  };
+}
+    </pre>
+    <p class="note" style="margin-top:14px">Namespace mirrors the directory path: <span class="mono">apps/cli/foo/</span> → <span class="mono">apps.cli.foo.enable</span>. <span class="mono">apps/gui/one-password/</span> → <span class="mono">apps.gui.one-password.enable</span> (the option name doesn't always match the folder name — read the module, don't assume).</p>
+  </div>
+
+  <!-- COMPOSITION -->
+  <h2>One archetype, many suites, many modules</h2>
+  <p class="lead">A host sets <b>one</b> archetype flag. Everything else cascades from there.</p>
+  <div class="panel">
+    <div class="flow" style="justify-content:center;align-items:center">
+      <div class="node" style="border-color:var(--teal)">
+        <div class="h" style="color:var(--teal)">archetypes.workstation</div>
+        <div class="s">donkeykong · qbert</div>
+      </div>
+      <div class="arrow">→<small>enables</small></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="node"><div class="h">12 suites</div><div class="s">core, desktop, terminal, dev, ai, kong, av...</div></div>
+      </div>
+      <div class="arrow">→<small>enables</small></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="node"><div class="h">~90 leaf modules</div><div class="s">apps.cli.*, apps.gui.*, system.*</div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:16px">srv skips the archetype-cascade for most things — it hand-picks its own import list in <span class="mono">hosts/srv/modules.nix</span> and enables just <span class="mono">archetypes.claudeWorkHost</span> for the zellij/mosh/work-launcher stack. See <span class="mono">extras/docs/architecture.md</span> for the full suite table.</p>
+  </div>
+
+  <!-- AUTO-IMPORT -->
+  <h2>Auto-import, and the archive convention</h2>
+  <p class="lead"><span class="mono">modules/default.nix</span> recursively imports every <span class="mono">default.nix</span> under <span class="mono">modules/</span> via <a href="https://github.com/denful/import-tree" style="color:var(--blue)">denful/import-tree</a>. No manual import list on workstations.</p>
+  <div class="panel">
+    <div class="grid g2">
+      <div>
+        <div class="mono" style="font-weight:600;margin-bottom:8px;color:var(--blue)">excluded from auto-import</div>
+        <div class="srow"><span class="mk no">–</span> disabled/ <span class="note">parked modules</span></div>
+        <div class="srow"><span class="mk no">–</span> build/ <span class="note">module-local package derivations</span></div>
+        <div class="srow"><span class="mk no">–</span> cfg/ <span class="note">config fragments, local helpers</span></div>
+        <div class="srow"><span class="mk no">–</span> reference/ <span class="note">reference material</span></div>
+        <div class="srow"><span class="mk no">–</span> archive/ <span class="note">retired, kept for restore</span></div>
+        <div class="srow"><span class="mk no">–</span> <span class="mono">/_*</span> <span class="note">any path segment starting with _</span></div>
+      </div>
+      <div>
+        <div class="mono" style="font-weight:600;margin-bottom:8px;color:var(--teal)">retiring a module</div>
+        <p style="color:var(--mut);font-size:13.5px;margin:0 0 8px">
+          <span class="mono">git mv modules/apps/cli/foo modules/archive/apps/cli/foo</span>
+        </p>
+        <p style="color:var(--mut);font-size:13.5px;margin:0">Same relative path under <span class="mono">archive/</span>, so restoring later is the same <span class="mono">git mv</span> in reverse. 27 modules live there today — decommissioned webapps, superseded desktop tools, and features paused pending an nftables-native rewrite.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- REBUILD PIPELINE -->
+  <h2>How a rebuild happens</h2>
+  <p class="lead"><span class="kbd">just rebuild</span> (or <span class="kbd">just qr</span> for the quiet/logged variant) runs this, in order:</p>
+  <div class="panel pipe">
+    <div class="step"><div class="num">1</div><div class="body"><div class="t">pre-rebuild capture</div><div class="d">Live DankMaterialShell settings captured into <span class="mono">dank-profiles/</span> on any host; live Claude Code + Agent OS state captured on qbert only (the designated capture source), so this same rebuild re-seeds them.</div></div></div>
+    <div class="step"><div class="num">2</div><div class="body"><div class="t"><span class="res">nixos-rebuild switch</span> --impure --flake .#&lt;host&gt;</div><div class="d">The actual build + activation. <span class="mono">--impure</span> is needed for the 1Password secrets read at eval time.</div></div></div>
+    <div class="step"><div class="num">3</div><div class="body"><div class="t">post-rebuild sync</div><div class="d">Skillfish skill updates, a DMS service bounce (skipped if the screen is locked — restarting DMS mid-lock would strand the session), and the same capture flow as step 1 run again to catch anything the rebuild itself changed.</div></div></div>
+    <div class="step"><div class="num">4</div><div class="body"><div class="t">auto-commit + push</div><div class="d">If capture produced a diff, it's committed and pushed to <span class="mono">origin/main</span> automatically — a failed push is non-fatal, just a warning to resolve manually.</div></div></div>
+  </div>
+
+  <!-- HOSTS -->
+  <h2>Three hosts, one repo</h2>
+  <div class="panel">
+    <div class="grid g3">
+      <div>
+        <div class="mono" style="font-weight:600;margin-bottom:8px;color:var(--blue)">donkeykong</div>
+        <div class="srow"><span class="mk ok">✓</span> workstation <span class="note">laptop</span></div>
+        <div class="srow"><span class="mk ok">✓</span> libvirt/KVM <span class="note">Talos VMs</span></div>
+        <div class="srow mono" style="font-size:11.5px;color:var(--mut)">100.117.210.113</div>
+        <div class="note" style="margin-top:6px">Often powered off — validate with <span class="mono">just build-host donkeykong</span>, not a live SSH check.</div>
+      </div>
+      <div>
+        <div class="mono" style="font-weight:600;margin-bottom:8px;color:var(--blue)">qbert</div>
+        <div class="srow"><span class="mk ok">✓</span> workstation <span class="note">desktop</span></div>
+        <div class="srow"><span class="mk ok">✓</span> libvirt/KVM <span class="note">Talos VMs</span></div>
+        <div class="srow mono" style="font-size:11.5px;color:var(--mut)">100.74.137.95</div>
+        <div class="note" style="margin-top:6px">The designated capture source for Claude Code + Agent OS config. Usually up.</div>
+      </div>
+      <div>
+        <div class="mono" style="font-weight:600;margin-bottom:8px;color:var(--blue)">srv</div>
+        <div class="srow"><span class="mk ok">✓</span> claudeWorkHost <span class="note">headless</span></div>
+        <div class="srow"><span class="mk ok">✓</span> zellij + mosh + work-launcher</div>
+        <div class="srow mono" style="font-size:11.5px;color:var(--mut)">100.64.187.14</div>
+        <div class="note" style="margin-top:6px">Always-on. Hand-picks its own module imports in <span class="mono">modules.nix</span> instead of the repo-wide auto-import.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECRETS -->
+  <h2>Secrets: 1Password, not git-crypt</h2>
+  <p class="lead">Nix-eval secrets render from 1Password into a local file <b>before</b> a rebuild reads them — nothing sensitive ever enters the Nix store.</p>
+  <div class="panel">
+    <div class="sflow">
+      <span class="b mono">op://nixerator/*</span><span style="color:var(--mut)">→</span>
+      <span class="b mono">op inject</span><span style="color:var(--mut)">(secrets.json.tpl)</span><span style="color:var(--mut)">→</span>
+      <span class="b mono">~/.config/nixos-secrets/secrets.json</span><span style="color:var(--mut)">→</span>
+      <span class="b">read at eval, --impure</span>
+    </div>
+    <p class="note" style="margin-top:16px">This repo <b style="color:var(--tx)">used to</b> use git-crypt for secrets in the tree; that was retired in favour of the 1Password + <span class="mono">render-secrets</span> flow because it produces secret <b>values</b> (usable in files, env vars, or inline config) rather than just file paths. <span class="mono">just render-secrets</span> renders locally; <span class="mono">just push-secrets &lt;hosts&gt;</span> pushes the rendered file to headless peers over SSH.</p>
+  </div>
+
+  <!-- DAY 2 -->
+  <h2>Day-2, from one justfile</h2>
+  <div class="panel">
+    <div class="grid g2">
+      <div><div class="mono" style="color:var(--teal)">just rebuild / r</div><div class="s" style="color:var(--mut);font-size:13px">production rebuild with spinner + warning summary</div></div>
+      <div><div class="mono" style="color:var(--teal)">just build-host &lt;host&gt;</div><div class="s" style="color:var(--mut);font-size:13px">cross-evaluate any host from anywhere, never activates</div></div>
+      <div><div class="mono" style="color:var(--teal)">just upgrade / up</div><div class="s" style="color:var(--mut);font-size:13px">flake update + rebuild + post-setup</div></div>
+      <div><div class="mono" style="color:var(--teal)">just qr / qu</div><div class="s" style="color:var(--mut);font-size:13px">quiet rebuild / upgrade, logs to /tmp on failure only</div></div>
+      <div><div class="mono" style="color:var(--teal)">just fmt, just health</div><div class="s" style="color:var(--mut);font-size:13px">nixfmt everything; deadnix + statix lint</div></div>
+      <div><div class="mono" style="color:var(--teal)">just clean N / gc, gc-nuclear</div><div class="s" style="color:var(--mut);font-size:13px">GC generations older than N days, or full nuke + optimize</div></div>
+      <div><div class="mono" style="color:var(--teal)">just remote-rebuild / remote-upgrade &lt;host&gt;</div><div class="s" style="color:var(--mut);font-size:13px">rebuild a headless peer over SSH</div></div>
+      <div><div class="mono" style="color:var(--teal)">just render-secrets, push-secrets, check-secrets</div><div class="s" style="color:var(--mut);font-size:13px">the 1Password secrets flow</div></div>
+      <div><div class="mono" style="color:var(--teal)">just capture</div><div class="s" style="color:var(--mut);font-size:13px">ad-hoc Claude Code / Agent OS capture from any host</div></div>
+      <div><div class="mono" style="color:var(--teal)">just rollback [gen]</div><div class="s" style="color:var(--mut);font-size:13px">boot a prior generation</div></div>
+    </div>
+  </div>
+
+  <!-- DISTINCTIVE -->
+  <h2>Built to grow</h2>
+  <div class="grid g2">
+    <div class="panel card">
+      <p class="k">Cross-device Claude Code sessions <span class="tag live">live</span></p>
+      <p>The <span class="mono">work</span> fish function + <span class="mono">archetypes.claudeWorkHost</span> let a zellij session started on srv (or qbert) be attached from any peer over Tailscale — pick a session up on a different machine, or from a phone. See <span class="mono">.claude/docs/cross-device-workflow.md</span>.</p>
+    </div>
+    <div class="panel card">
+      <p class="k">Server virtualisation <span class="tag soon">settling</span></p>
+      <p>donkeykong, qbert, and srv all moved back to libvirt/KVM after an Incus detour — Talos VMs need real QEMU block-device semantics and a working qemu-guest-agent channel that Incus didn't provide. <span class="mono">server.noclaw</span> and <span class="mono">server.netbootXyz</span> stay archived rather than nftables-ported, since neither was in active use.</p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--blue)"></span>directory</span>
+    <span><span class="dot" style="background:var(--purple)"></span>Nix option path</span>
+    <span><span class="dot" style="background:var(--teal)"></span>the key idea</span>
+    <span><span class="dot" style="background:var(--amber)"></span>archived / disabled</span>
+    <span><span class="dot" style="background:var(--green)"></span>enabled, active</span>
+  </div>
+
+</div>
+</body>
+</html>
