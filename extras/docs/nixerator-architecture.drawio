@@ -202,10 +202,10 @@
     <mxCell id="apps-cli" value="apps/cli/ (~35+ modules)&#xa;&#xa;tailscale, fish, starship, zoxide,&#xa;git, helix, claude-code,&#xa;kubectl, amber, direnv, spotify,&#xa;restic, plakar, cpx, gws..." style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">
       <mxGeometry x="30" y="250" width="230" height="110" as="geometry"/>
     </mxCell>
-    <mxCell id="apps-gui" value="apps/gui/ (~15+ modules)&#xa;&#xa;ghostty, brave, google-chrome,&#xa;1password, signal, obsidian,&#xa;zed, insomnia, upsight,&#xa;cameractrls, web-app-hub..." style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">
+    <mxCell id="apps-gui" value="apps/gui/ (~19 modules)&#xa;&#xa;helium, brave-origin, google-chrome,&#xa;1password, signal, obsidian,&#xa;zed, insomnia, upsight,&#xa;cameractrls, web-app-hub..." style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">
       <mxGeometry x="280" y="250" width="230" height="110" as="geometry"/>
     </mxCell>
-    <mxCell id="apps-webapps" value="apps/webapps/&#xa;&#xa;calendar, mail, slack,&#xa;zoom, todoist, linear,&#xa;kong-docs, meet..." style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">
+    <mxCell id="apps-webapps" value="apps/webapps/&#xa;&#xa;calendar, zoom" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">
       <mxGeometry x="530" y="250" width="180" height="110" as="geometry"/>
     </mxCell>
     <mxCell id="system-mods" value="system/&#xa;&#xa;SSH, Flatpak,&#xa;GNOME Online Accounts,&#xa;Apple Fonts, Nix config,&#xa;special-workspaces" style="rounded=1;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="modules-container">
