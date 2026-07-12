@@ -17,4 +17,6 @@ See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where cu
 
 ## Reference docs
 
+For a one-scroll visual overview — file map, module anatomy, the rebuild pipeline, the three hosts, secrets flow — open `extras/docs/index.html` (`just docs`). When building or editing that page, read `extras/docs/CLAUDE.md`.
+
 For deep-dive topics — directory structure, hosts, adding hosts, modules, packages, secrets, SSH, GPU, hyprland, VM dev, bootstrap — browse `extras/docs/` (one `.md` per topic). Start with `extras/docs/architecture.md` for the layout map.
