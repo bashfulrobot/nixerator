@@ -286,6 +286,49 @@ update_github_commit() {
     fi
 }
 
+update_apt() {
+    local name="$1" apt_repo="$2" package="$3" version="$4"
+
+    local latest
+    latest=$(curl -sf "$apt_repo/dists/stable/main/binary-amd64/Packages" 2>/dev/null \
+        | awk -v p="$package" '
+            /^Package:/ { cur = $2 }
+            /^Version:/ { if (cur == p) print $2 }
+          ' | sort -V | tail -n1) || true
+
+    if [[ -z "$latest" ]]; then
+        err "$name -- failed to read apt Packages index at $apt_repo"
+        return 1
+    fi
+
+    if [[ "$version" == "$latest" ]]; then
+        ok "$name $version is already up to date"
+        return 0
+    fi
+
+    info "$name: $version -> $latest"
+
+    # Debian pool layout: pool/main/<first-letter>/<package>/<package>_<ver>_<arch>.deb
+    local pool_url raw_hash="" sri_hash=""
+    pool_url="$apt_repo/pool/main/${package:0:1}/$package/${package}_${latest}_amd64.deb"
+    info "$name: prefetching $pool_url ..."
+    raw_hash=$(nix-prefetch-url "$pool_url" 2>/dev/null) || true
+
+    if [[ -n "$raw_hash" ]]; then
+        sri_hash=$(nix hash convert --hash-algo sha256 --to sri "$raw_hash" 2>/dev/null) || true
+    fi
+
+    if [[ -n "$sri_hash" ]]; then
+        update_version "$name" "$latest"
+        update_hash "$name" "$sri_hash"
+        ok "$name: updated to $latest with hash $sri_hash"
+    else
+        update_version "$name" "$latest"
+        update_hash "$name" ""
+        warn "$name: version updated to $latest, hash prefetch failed -- rebuild to get correct hash"
+    fi
+}
+
 # --- Single package update ---
 
 update_single() {
@@ -333,6 +376,13 @@ update_single() {
             ;;
         sourcehut)
             warn "$name: sourcehut packages require manual update"
+            ;;
+        apt)
+            local version apt_repo package
+            version=$(echo "$pkg_json" | jq -r '.version')
+            apt_repo=$(echo "$pkg_json" | jq -r '.aptRepo')
+            package=$(echo "$pkg_json" | jq -r '.package')
+            update_apt "$name" "$apt_repo" "$package" "$version"
             ;;
         *)
             err "$name: unknown source type '$source'"
@@ -392,6 +442,13 @@ update_all() {
                     ;;
                 sourcehut)
                     info "$pkg: skipping sourcehut (manual update required)"
+                    ;;
+                apt)
+                    local version apt_repo package
+                    version=$(echo "$pkg_json" | jq -r '.version')
+                    apt_repo=$(echo "$pkg_json" | jq -r '.aptRepo')
+                    package=$(echo "$pkg_json" | jq -r '.package')
+                    update_apt "$pkg" "$apt_repo" "$package" "$version" || had_failure=true
                     ;;
                 *)
                     err "$pkg: unknown source type '$source'"
