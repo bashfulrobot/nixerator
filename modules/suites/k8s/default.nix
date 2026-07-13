@@ -34,6 +34,7 @@ in
       kubernetes-helm # Kubernetes package manager (Helm)
       kubeseal # K8s secrets management
       kustomize # Kubernetes configuration management
+      kubeconform # Kubernetes manifest schema validation
     ];
 
     # Home Manager configuration
