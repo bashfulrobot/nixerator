@@ -34,7 +34,6 @@ in
       kubernetes-helm # Kubernetes package manager (Helm)
       kubeseal # K8s secrets management
       kustomize # Kubernetes configuration management
-      minikube # Local k8s cluster
     ];
 
     # Home Manager configuration
