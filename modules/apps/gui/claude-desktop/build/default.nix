@@ -179,10 +179,19 @@ stdenv.mkDerivation {
     # xdg-utils on PATH lets the app open claude:// and external links. The
     # ozone flags enable native Wayland only when the session opts in via
     # NIXOS_OZONE_WL (matches how slack/brave-origin are wrapped in this repo).
+    #
+    # --password-store=gnome-libsecret forces Electron's safeStorage onto the
+    # libsecret/Secret Service backend (gnome-keyring here). Without it, Electron
+    # auto-detects the backend from XDG_CURRENT_DESKTOP, which is "Hyprland" on
+    # this compositor -- not GNOME/KDE -- so it falls back to plaintext and warns
+    # that sign-in "won't be saved on this device." The workstations run
+    # gnome-keyring (org.freedesktop.secrets), so pinning the backend makes the
+    # keyring persist the session.
     rm $out/bin/claude-desktop
     makeWrapper $out/lib/claude-desktop/claude-desktop $out/bin/claude-desktop \
       --prefix XDG_DATA_DIRS : "$GSETTINGS_SCHEMAS_PATH" \
       --suffix PATH : ${lib.makeBinPath [ xdg-utils ]} \
+      --add-flags "--password-store=gnome-libsecret" \
       --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}"
 
     # Point the .desktop entries at the wrapped binary (upstream uses a bare
