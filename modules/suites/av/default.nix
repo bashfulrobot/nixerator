@@ -29,15 +29,12 @@ in
       spotify.enable = true;
     };
 
-    services.flatpak.packages = [
-      "org.jellyfin.JellyfinDesktop"
-    ];
-
     environment.systemPackages = with pkgs; [
       inkscape # vector graphics editor
       losslesscut-bin # lossless video/audio cutting and merging
       vlc # media player
       mpv # video player
+      jellyfin-media-player # Jellyfin desktop client (native; replaces the org.jellyfin.JellyfinDesktop flatpak)
       v4l-utils # webcam and video device utilities
       go-chromecast # CLI for casting to Chromecast devices
     ];
