@@ -714,7 +714,17 @@ bump-upsight:
         nix flake update upsight --refresh \
             && sudo nixos-rebuild switch --impure --flake {{host_flake}}
     } &> {{rebuild_log}} || rc=$?
-    if [[ "$rc" -eq 0 ]]; then
+    # `nixos-rebuild switch` exits non-zero when a unit fails to (re)start during
+    # activation (e.g. systemd-bless-boot on a boot entry without a counter) even
+    # though the new system built and activated fine. Only revert when the build
+    # never reached activation (a genuinely un-buildable pin). A non-zero exit that
+    # still printed "activating the configuration" is unit-restart noise — an
+    # idempotent re-run advances no profile either, so gate on activation, not on
+    # the exit code or a profile diff.
+    if [[ "$rc" -eq 0 ]] || grep -qF 'activating the configuration' {{rebuild_log}}; then
+        if [[ "$rc" -ne 0 ]]; then
+            echo "⚠ New config activated but a unit failed to (re)start (exit $rc). Review {{rebuild_log}}."
+        fi
         rm -f flake.lock-backup-bump
         echo "upsight bumped + rebuilt. Full log: {{rebuild_log}}"
         # Auto-commit + push the refreshed lock so it never lingers uncommitted
@@ -775,7 +785,17 @@ bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
         nix flake update hyprflake --refresh \
             && sudo nixos-rebuild switch --impure --flake {{host_flake}}
     } &> {{rebuild_log}} || rc=$?
-    if [[ "$rc" -eq 0 ]]; then
+    # `nixos-rebuild switch` exits non-zero when a unit fails to (re)start during
+    # activation (e.g. systemd-bless-boot on a boot entry without a counter) even
+    # though the new system built and activated fine. Only revert when the build
+    # never reached activation (a genuinely un-buildable pin). A non-zero exit that
+    # still printed "activating the configuration" is unit-restart noise — an
+    # idempotent re-run advances no profile either, so gate on activation, not on
+    # the exit code or a profile diff.
+    if [[ "$rc" -eq 0 ]] || grep -qF 'activating the configuration' {{rebuild_log}}; then
+        if [[ "$rc" -ne 0 ]]; then
+            echo "⚠ New config activated but a unit failed to (re)start (exit $rc). Review {{rebuild_log}}."
+        fi
         rm -f flake.lock-backup-bump
         echo "hyprflake bumped + rebuilt. Full log: {{rebuild_log}}"
         # Auto-commit + push the refreshed lock, gated to main; push is non-fatal.
