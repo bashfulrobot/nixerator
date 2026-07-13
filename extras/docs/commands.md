@@ -8,6 +8,8 @@ Core recipes (run from repo root):
 - `just dev-rebuild` -- stage all, rebuild, unstage on exit
 - `just upgrade` / `just up` -- update flake inputs, rebuild, download voxtype models
 - `just update <input>` -- update a single flake input
+- `just bump-hyprflake` -- one command: bump + push hyprflake's inputs in `~/git/hyprflake`, then pull + rebuild here (reverts the lock only if the new pin fails to build)
+- `just bump-upsight` -- bump the `upsight` input to latest, rebuild, commit + push `flake.lock`
 - `just clean` / `just gc` -- garbage collect (default 5 days, e.g. `just clean 14`)
 - `just gc-nuclear` -- deep cleanup (generations + gc + cache + store optimize)
 - `just health` -- deadnix + statix checks
