@@ -704,7 +704,6 @@ bump-upsight:
     # Back up the lock so a failed bump reverts cleanly and never leaves the tree
     # pinned to a broken upsight commit (an un-buildable next rebuild).
     cp flake.lock flake.lock-backup-bump
-    before_system="$(readlink -f /run/current-system)"
     rc=0
     # &&-chain so a failed input update aborts instead of rebuilding on the old
     # lock (a bare `;` group would mask its exit status).
@@ -717,11 +716,12 @@ bump-upsight:
     } &> {{rebuild_log}} || rc=$?
     # `nixos-rebuild switch` exits non-zero when a unit fails to (re)start during
     # activation (e.g. systemd-bless-boot on a boot entry without a counter) even
-    # though the new system WAS activated. Reverting the lock then would strand it
-    # behind the running system. Treat the switch as good when the profile actually
-    # advanced, regardless of the exit code.
-    after_system="$(readlink -f /run/current-system)"
-    if [[ "$rc" -eq 0 || "$after_system" != "$before_system" ]]; then
+    # though the new system built and activated fine. Only revert when the build
+    # never reached activation (a genuinely un-buildable pin). A non-zero exit that
+    # still printed "activating the configuration" is unit-restart noise — an
+    # idempotent re-run advances no profile either, so gate on activation, not on
+    # the exit code or a profile diff.
+    if [[ "$rc" -eq 0 ]] || grep -qF 'activating the configuration' {{rebuild_log}}; then
         if [[ "$rc" -ne 0 ]]; then
             echo "⚠ New config activated but a unit failed to (re)start (exit $rc). Review {{rebuild_log}}."
         fi
@@ -778,7 +778,6 @@ bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
     # Back up the lock so a failed bump reverts cleanly and never leaves the tree
     # pinned to an un-buildable hyprflake commit.
     cp flake.lock flake.lock-backup-bump
-    before_system="$(readlink -f /run/current-system)"
     rc=0
     {
         # --refresh bypasses Nix's tarball-ttl so the just-pushed hyprflake HEAD
@@ -788,11 +787,12 @@ bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
     } &> {{rebuild_log}} || rc=$?
     # `nixos-rebuild switch` exits non-zero when a unit fails to (re)start during
     # activation (e.g. systemd-bless-boot on a boot entry without a counter) even
-    # though the new system WAS activated. Reverting the lock then would strand it
-    # behind the running system. Treat the switch as good when the profile actually
-    # advanced, regardless of the exit code.
-    after_system="$(readlink -f /run/current-system)"
-    if [[ "$rc" -eq 0 || "$after_system" != "$before_system" ]]; then
+    # though the new system built and activated fine. Only revert when the build
+    # never reached activation (a genuinely un-buildable pin). A non-zero exit that
+    # still printed "activating the configuration" is unit-restart noise — an
+    # idempotent re-run advances no profile either, so gate on activation, not on
+    # the exit code or a profile diff.
+    if [[ "$rc" -eq 0 ]] || grep -qF 'activating the configuration' {{rebuild_log}}; then
         if [[ "$rc" -ne 0 ]]; then
             echo "⚠ New config activated but a unit failed to (re)start (exit $rc). Review {{rebuild_log}}."
         fi
