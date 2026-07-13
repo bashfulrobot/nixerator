@@ -168,6 +168,34 @@ check_sourcehut() {
     manual "$name $version (sourcehut: manual check required)"
 }
 
+# apt: read the Debian repo's amd64 Packages index and pick the highest version
+# for the package (version-sorted). Used for the Claude desktop app, which
+# Anthropic ships only as a .deb.
+check_apt() {
+    local name="$1" category="$2" apt_repo="$3" package="$4" version="$5"
+
+    local latest
+    latest=$(curl -sf "$apt_repo/dists/stable/main/binary-amd64/Packages" 2>/dev/null \
+        | awk -v p="$package" '
+            /^Package:/ { cur = $2 }
+            /^Version:/ { if (cur == p) print $2 }
+          ' | sort -V | tail -n1) || true
+
+    if [[ -z "$latest" ]]; then
+        add_result "$name" "$category" "$version" "" "error" "Failed to read apt Packages index at $apt_repo"
+        err "$name -- failed to read apt Packages index at $apt_repo"
+        return
+    fi
+
+    if [[ "$version" == "$latest" ]]; then
+        add_result "$name" "$category" "$version" "$latest" "up-to-date" ""
+        ok "$name $version (up to date)"
+    else
+        add_result "$name" "$category" "$version" "$latest" "update-available" "apt: $package"
+        warn "$name $version -> $latest  (apt: $package)"
+    fi
+}
+
 # --- Main loop: iterate categories and packages ---
 echo ""
 categories=$(echo "$versions_json" | jq -r 'keys[]')
@@ -216,6 +244,12 @@ for category in $categories; do
                 version=$(echo "$pkg_json" | jq -r '.version')
                 repo=$(echo "$pkg_json" | jq -r '.repo')
                 check_sourcehut "$pkg" "$category" "$version" "$repo"
+                ;;
+            apt)
+                version=$(echo "$pkg_json" | jq -r '.version')
+                apt_repo=$(echo "$pkg_json" | jq -r '.aptRepo')
+                package=$(echo "$pkg_json" | jq -r '.package')
+                check_apt "$pkg" "$category" "$apt_repo" "$package" "$version"
                 ;;
             *)
                 add_result "$pkg" "$category" "" "" "error" "Unknown source type: $source"

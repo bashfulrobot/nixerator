@@ -199,6 +199,21 @@
   };
 
   gui = {
+    # Claude desktop app (Electron). Anthropic ships it only as a Debian .deb
+    # from their apt repo; nixpkgs has no derivation, so the build
+    # (modules/apps/gui/claude-desktop/build) unpacks the .deb and patchelfs
+    # the bundled Electron (slack-style). The `apt` source type teaches the
+    # update tooling to read the apt Packages index and prefetch from the pool.
+    # `aptRepo` + `package` are the single source of truth for the .deb URL,
+    # consumed by both the build and scripts/{check,update}-pkg.
+    claude-desktop = {
+      source = "apt";
+      aptRepo = "https://downloads.claude.ai/claude-desktop/apt/stable";
+      package = "claude-desktop";
+      version = "1.20186.1";
+      hash = "sha256-C23sBf5ruo+h9BpVUoNM4hBzNWX7oC4tcw79/e4Y9ts=";
+    };
+
     comics-downloader = {
       source = "github-release";
       repo = "Girbons/comics-downloader";

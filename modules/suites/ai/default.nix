@@ -16,6 +16,7 @@ in
     apps = {
       gui = {
         nimbalyst.enable = true;
+        claude-desktop.enable = true;
       };
 
       cli = {
