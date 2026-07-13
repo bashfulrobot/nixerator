@@ -754,6 +754,53 @@ bump-upsight:
         exit "$rc"
     fi
 
+# One command: bump + push hyprflake's inputs in its repo, then pull + rebuild here. Reverts the lock if the rebuild fails.
+bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    echo "==> hyprflake repo: bump + push its inputs ({{hyprflake_path}})"
+    if ! ( cd "{{hyprflake_path}}" && just bump-hyprflake ); then
+        echo "hyprflake bump failed — aborting before touching nixerator."
+        exit 1
+    fi
+    just pre-rebuild quiet
+    echo "Bumping hyprflake input + rebuilding (quiet mode)..."
+    # Back up the lock so a failed bump reverts cleanly and never leaves the tree
+    # pinned to an un-buildable hyprflake commit.
+    cp flake.lock flake.lock-backup-bump
+    rc=0
+    {
+        # --refresh bypasses Nix's tarball-ttl so the just-pushed hyprflake HEAD
+        # is re-queried instead of a cached commit (which would no-op the bump).
+        nix flake update hyprflake --refresh \
+            && sudo nixos-rebuild switch --impure --flake {{host_flake}}
+    } &> {{rebuild_log}} || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        rm -f flake.lock-backup-bump
+        echo "hyprflake bumped + rebuilt. Full log: {{rebuild_log}}"
+        # Auto-commit + push the refreshed lock, gated to main; push is non-fatal.
+        if ! git diff --quiet flake.lock; then
+            if git add flake.lock && git commit -qS -m "chore(flake): bump hyprflake input"; then
+                echo "Committed flake.lock."
+                if [[ "$(git branch --show-current 2>/dev/null)" == "main" ]]; then
+                    if git push -q origin main 2>/dev/null; then
+                        echo "Pushed flake.lock to origin/main."
+                    else
+                        echo "⚠ flake.lock committed but push failed — push manually."
+                    fi
+                fi
+            else
+                echo "⚠ flake.lock updated but commit failed — commit it manually."
+            fi
+        fi
+        just post-rebuild quiet
+    else
+        # Revert so flake.lock isn't left on a broken hyprflake pin.
+        mv -f flake.lock-backup-bump flake.lock
+        echo "hyprflake bump/rebuild FAILED (exit $rc), reverted flake.lock. Log: {{rebuild_log}}"
+        exit "$rc"
+    fi
+
 # Remote rebuild — pull and rebuild on another nixerator host over SSH.
 #
 # Workflow: commit + push from this machine, then `just remote-rebuild qbert`.
