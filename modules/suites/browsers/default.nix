@@ -16,7 +16,8 @@ in
     # Browser applications
     apps.gui = {
       # Brave Origin replaces the retired stock-brave module.
-      brave-origin.enable = true;
+      # Disabled on workstations; module left importable for a quick re-enable.
+      brave-origin.enable = false;
       google-chrome.enable = true;
       # google-chrome.enableDev = true;
       helium.enable = true;
