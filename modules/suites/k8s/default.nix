@@ -31,10 +31,20 @@ in
       cilium-cli # Cilium networking CLI
       eksctl # AWS EKS management tool
       fluxcd # FluxCD GitOps CLI
-      kubernetes-helm # Kubernetes package manager (Helm)
+      # Helm bundled with the helm-diff plugin so `helm diff` can preview
+      # HelmRelease changes. wrapHelm is the nixpkgs idiom for adding plugins
+      # (kubernetes-helm has no .withPlugins).
+      (wrapHelm kubernetes-helm { plugins = [ kubernetes-helmPlugins.helm-diff ]; })
       kubeseal # K8s secrets management
       kustomize # Kubernetes configuration management
       kubeconform # Kubernetes manifest schema validation
+      kube-linter # Static best-practice / security lint for manifests + Helm charts
+      pluto # Detect deprecated / removed Kubernetes APIs in manifests + Helm releases
+      popeye # Live-cluster misconfiguration sanitizer
+      stern # Multi-pod / label log tailing
+      hubble # Cilium network-flow observability CLI
+      cmctl # cert-manager CLI (status / renew / check)
+      talhelper # Declarative Talos machine-config management
     ];
 
     # Home Manager configuration
