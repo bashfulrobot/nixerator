@@ -80,7 +80,7 @@ Declarative web app wrappers created via `mkWebApp` with desktop entries and cus
 | Suite          | Packages Included                                                                                            |
 | -------------- | ------------------------------------------------------------------------------------------------------------ |
 | Terminal       | Fish, Starship, Zoxide, bat, dust, eza, fd, ripgrep, tokei, procs, sd, bottom, hyperfine                     |
-| Kubernetes     | kubectl, talosctl, omnictl, cilium-cli, eksctl, fluxcd, helm, kubeseal, kustomize, minikube, k9s             |
+| Kubernetes     | kubectl, talosctl, omnictl, cilium-cli, eksctl, fluxcd, helm, kubeseal, kustomize, k9s             |
 | Infrastructure | Docker, jwtx, cloud-utils, AWS IAM authenticator, Google Cloud SDK, OpenTofu, Pulumi, Terraform, wake-on-LAN |
 | Security       | 1Password GUI and CLI                                                                                        |
 
