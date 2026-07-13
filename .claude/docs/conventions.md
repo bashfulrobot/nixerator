@@ -14,6 +14,7 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 
 - **Never run upgrades unprompted.** Upgrades depend on upstream repos being pushed first.
 - When asked to upgrade, use `just quiet-upgrade` (alias `just qu`).
+- **Keeping hyprflake current:** `just bump-hyprflake` is the one command. It bumps and pushes hyprflake's own inputs in `~/git/hyprflake`, then updates the `hyprflake` input here, rebuilds, and commits + pushes `flake.lock`. It reverts the lock only if the new pin fails to build; a benign activation-unit failure keeps it (gated on the `activating the configuration` marker in the rebuild log). The `hyprflake-updates` notifier flags when to run it.
 
 ## Git
 
