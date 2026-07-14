@@ -14,6 +14,10 @@ let
     wl_copy = "${pkgs.wl-clipboard}/bin/wl-copy";
     notify_send = "${pkgs.libnotify}/bin/notify-send";
     wtype = "${pkgs.wtype}/bin/wtype";
+    jq = "${pkgs.jq}/bin/jq";
+    timeout = "${pkgs.coreutils}/bin/timeout";
+    od = "${pkgs.coreutils}/bin/od";
+    tr = "${pkgs.coreutils}/bin/tr";
   };
 in
 {
