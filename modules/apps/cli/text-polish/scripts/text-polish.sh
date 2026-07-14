@@ -112,8 +112,8 @@ main() {
   # merely discusses where secrets are stored must still be polishable.
   # Case-sensitive token shapes (real tokens are fixed-case) plus case-
   # insensitive op:// refs and PEM headers.
-  if printf '%s' "$input" | grep -qE 'AKIA[0-9A-Z]{16}|xox[baprs]-[0-9A-Za-z-]{8,}|gh[oprs]_[0-9A-Za-z]{20,}' \
-    || printf '%s' "$input" | grep -qiE 'op://|-----BEGIN [A-Z ]*PRIVATE KEY-----'; then
+  if printf '%s' "$input" | grep -qE 'AKIA[0-9A-Z]{16}|xox[baprs]-[0-9A-Za-z-]{8,}|gh[oprs]_[0-9A-Za-z]{20,}' ||
+    printf '%s' "$input" | grep -qiE 'op://|-----BEGIN [A-Z ]*PRIVATE KEY-----'; then
     notify_error "Looks like a credential — not sending to Claude"
     exit 1
   fi
