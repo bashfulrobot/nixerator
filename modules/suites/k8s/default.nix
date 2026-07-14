@@ -45,6 +45,7 @@ in
       hubble # Cilium network-flow observability CLI
       cmctl # cert-manager CLI (status / renew / check)
       talhelper # Declarative Talos machine-config management
+      headlamp # OSS K8s GUI
     ];
 
     # Home Manager configuration
