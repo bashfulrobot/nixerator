@@ -14,9 +14,11 @@ duplicates and without missing anything. Two jobs:
 2. **Import** — run `upsight summarize` on each missing transcript so its summary
    lands in the app.
 
-Account names and the customer list are never hardcoded here. Read them at
-runtime from the upsight database (`upsight accounts list`); the disk holds the
-transcripts, the database holds the accounts.
+Account names and the customer list are never hardcoded here. All database reads
+(accounts, existing meetings, duplicate/health checks) go through the
+**`upsight-db`** skill; this skill owns the disk side (transcripts) and the
+import write (`upsight summarize`). The disk holds the transcripts, the database
+holds the accounts.
 
 ## Key facts (verified 2026-07-13 — re-verify if the CLI version changed)
 
@@ -45,33 +47,26 @@ transcripts, the database holds the accounts.
 
 ## Resolving a disk folder to an upsight account
 
-Never write the customer list into this skill. Resolve it live. Prefer querying
-the SQLite DB directly for reads — it's robust and doesn't depend on which CLI
-subcommands exist; `upsight summarize` is only needed for the write (it runs the
-AI). Everything else here is a plain `sqlite3` query.
+Never write the customer list into this skill. Resolve it live through the
+`upsight-db` skill:
 
-1. Pull the accounts straight from the database (these are the only accounts that
-   can receive imports):
-   ```
-   sqlite3 ~/.local/share/upsight/upsight.db "SELECT id, account_name FROM accounts ORDER BY account_name;"
-   ```
-   (`upsight accounts list` / `upsight accounts find --account-fuzzy "<name>"` are
-   convenience wrappers over the same table if you prefer them.)
-2. Derive a candidate name from the disk path — usually the top-level folder
-   under `<notes-root>`. For an organisation with several sub-entities, the
+1. Get the accounts (these are the only accounts that can receive imports) via
+   the `upsight-db` skill — `scripts/list-accounts.sh`, or
+   `list-accounts.sh --like "<fragment>"` to filter.
+2. Derive a candidate name from the disk path, usually the top-level folder under
+   `<notes-root>`. For an organisation with several sub-entities, the
    distinguishing sub-folder is the better candidate.
-3. Match the candidate against the live accounts:
-   `upsight accounts find --account-fuzzy "<candidate>"`.
-   - **Unique hit** → use that account's exact name for `--account`.
-   - **No hit** → the account probably doesn't exist in upsight. It cannot be
+3. Match the candidate against the accounts (`list-accounts.sh --like`):
+   - **Unique hit:** use that account's exact `account_name` for `--account`.
+   - **No hit:** the account probably doesn't exist in upsight. It cannot be
      imported; flag it to the user and skip (offer to create the account in the
      app first if they want it).
-   - **Ambiguous, or one folder covers multiple entities** → read the transcript
-     and sub-folder to decide, and if still unclear, show the user
-     `upsight accounts list` and ask which account to use.
+   - **Ambiguous, or one folder covers multiple entities:** read the transcript
+     and sub-folder to decide, and if still unclear, show the user the account
+     list and ask which one.
 4. Some folders map to an account whose name shares no substring with the folder,
-   so fuzzy match returns nothing. Don't guess an id — present the account list
-   and let the user pick.
+   so the filter returns nothing. Don't guess an id; present the account list and
+   let the user pick.
 
 ## Workflow
 
@@ -82,9 +77,10 @@ AI). Everything else here is a plain `sqlite3` query.
    scripts/scan-transcripts.sh --since 2026-06-29
    ```
    Emits one line per transcript: `date | folder | meeting-name | path`.
-3. **List what's already in upsight** for the same window:
+3. **List what's already in upsight** for the same window, via the `upsight-db`
+   skill:
    ```
-   scripts/list-db-meetings.sh --since 2026-06-29
+   scripts/list-meetings.sh --since 2026-06-29
    ```
 4. **Reconcile.** For each disk transcript, resolve its folder to an account (see
    above) and check whether a DB row exists for that `(account, date)`. What's on
@@ -107,7 +103,8 @@ AI). Everything else here is a plain `sqlite3` query.
    ```
    Batches of AI calls exceed a single 2-minute shell timeout — run the loop as a
    background job, not one blocking call.
-7. **Verify.** No `status<>'completed'` rows, no logical duplicates, integrity ok:
+7. **Verify** via the `upsight-db` skill — no `status<>'completed'` rows, no
+   logical duplicates, integrity ok:
    ```
    scripts/verify-db.sh
    ```
@@ -115,15 +112,11 @@ AI). Everything else here is a plain `sqlite3` query.
 
 ## Finding & fixing duplicates
 
-```
-sqlite3 ~/.local/share/upsight/upsight.db "
-  SELECT account_id, meeting_date, meeting_name_norm, count(*) c
-  FROM meeting_summaries GROUP BY 1,2,3 HAVING c>1;"
-```
-Logical duplicates (same account+date+normalized-name) shouldn't exist. Same
-meeting under two different names is a soft duplicate — keep the row with the
-richer `full_summary`/`slack_summary` and delete the other by `id`. Always
-snapshot the DB before any `DELETE`/`UPDATE`.
+Use the `upsight-db` skill's `verify-db.sh` (it reports logical duplicates:
+same account + date + normalized name). Those shouldn't exist. The same meeting
+under two different names is a soft duplicate: keep the row with the richer
+`full_summary`/`slack_summary` and delete the other by `id`. Always snapshot the
+DB before any `DELETE`/`UPDATE` (see the `upsight-db` skill's safety notes).
 
 ## Safety
 
