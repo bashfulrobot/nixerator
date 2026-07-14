@@ -13,7 +13,6 @@
     ../../modules/apps/cli/agent-scan
     ../../modules/apps/cli/agentos
     ../../modules/apps/cli/claude-code
-    ../../modules/apps/cli/docker
     ../../modules/apps/cli/fish
     ../../modules/apps/cli/gcmt
     ../../modules/apps/cli/gemini-cli
@@ -43,7 +42,6 @@
 
   # CLI applications (matching nixcfg srv)
   apps.cli = {
-    docker.enable = true;
     fish.enable = true;
     git.enable = true;
     helix.enable = true;
@@ -186,18 +184,6 @@
     };
 
   };
-
-  # Disable docker-proxy on srv: with docker-proxy off, Docker publishes ports
-  # through iptables NAT exclusively instead of opening a real userspace
-  # listening socket on the published host IPs (e.g. 192.168.168.1:3000). This
-  # was originally load-bearing for the (now-archived) netboot.xyz module's
-  # blockBridges option: the userspace listener would otherwise bypass the
-  # nat/PREROUTING RETURN rules that kept a cross-interface guest packet from
-  # reaching the netboot admin UI. Kept regardless: it's srv's current running
-  # behaviour and benign on its own (NAT-only publishing). Scoped to srv
-  # because workstations rely on docker-proxy for localhost-to-published-port
-  # dev flows.
-  virtualisation.docker.daemon.settings.userland-proxy = false;
 
   apps.cli.restic = {
     enable = true;

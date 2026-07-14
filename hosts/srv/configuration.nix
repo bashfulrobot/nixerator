@@ -88,7 +88,6 @@
     description = globals.user.fullName;
     group = globals.user.name;
     extraGroups = [
-      "docker"
       "wheel"
       "networkmanager"
     ];
