@@ -158,14 +158,6 @@
       vendorHash = "sha256-BLw8PXM3D+1Go/pPnJRaqXAc3wgyLI71LFmOtQYUol0=";
     };
 
-    crawl4ai = {
-      source = "github-release";
-      repo = "unclecode/crawl4ai";
-      version = "0.8.5";
-      tagPrefix = "v";
-      hash = "sha256-y5Nve8e41+wcTlymL6bXxPCwmN8+8/YvHYLGO3x4M+Q=";
-    };
-
     skillfish = {
       source = "npm";
       repo = "knoxgraeme/skillfish";
@@ -276,14 +268,6 @@
       version = "1.94.12";
       tagPrefix = "v";
       hash = "sha256-nIxk3zEEW+6QqAguAlmoEkeLENy9Ee779CI3sCxsXt0=";
-    };
-
-    nimbalyst = {
-      source = "github-release";
-      repo = "Nimbalyst/nimbalyst";
-      version = "0.60.1";
-      tagPrefix = "v";
-      hash = "sha256-ktSmye4Bn62KIu3NMFgh2rECAJNJluz1r8zilwSQs78=";
     };
   };
 

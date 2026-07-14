@@ -15,7 +15,6 @@ in
   config = lib.mkIf cfg.enable {
     apps = {
       gui = {
-        nimbalyst.enable = true;
         claude-desktop.enable = true;
       };
 
@@ -62,8 +61,6 @@ in
           ];
         };
         gemini-cli.enable = true;
-        # llmfit: removed
-        crawl4ai.enable = true;
         superpowers.enable = true;
         skillfish.enable = true;
         skill-cache.enable = true;
