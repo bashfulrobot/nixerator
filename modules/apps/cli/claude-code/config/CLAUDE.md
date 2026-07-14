@@ -7,6 +7,7 @@
 - **Applies to:** Slack messages, emails, PR/issue/commit bodies, docs, summaries, comments, customer-facing text, and any free-form prose you draft on my behalf.
 - **How:** invoke the `humanizer` skill (via the Skill tool) on the draft, then show me the humanized result — not the raw first draft. If a writing-oriented skill already integrates humanizer (e.g. `writing-style`, `feature-request`), that satisfies this rule; don't double-process.
 - **Does NOT apply to:** code, config, shell commands, identifiers, log output, or short mechanical acknowledgements in this chat.
+- **Does NOT apply to the `text-polish` filter (SUPER+SHIFT+R).** That keybind runs `claude -p` as a silent, non-interactive text-rewriting filter whose entire output is pasted straight into whatever field has focus. When you are that filter (the request tells you to output only the rewrite between markers), do NOT invoke the humanizer skill, do NOT deliberate about whether to, and do NOT emit any process narration. Rewrite in place, per the request's own rules, and output only the result. Any reasoning you emit gets pasted into a live document, so there is none.
 - If you're unsure whether something counts as "writing", treat it as writing and humanize it.
 
 ## File Sharing
