@@ -42,7 +42,12 @@ notify_error() {
 # rather than pasted into whatever the cursor is in.
 sanitize_output() {
   local raw extracted
-  raw=$(cat)
+  # Strip control characters (keep tab/newline) FIRST, before extraction and the
+  # tripwire, so the bytes we inspect are exactly the bytes that get pasted. If
+  # we stripped later, a control byte could split a forbidden phrase past the
+  # tripwire and then reassemble it on the clipboard. Bare `tr` (not the Nix-
+  # substituted $TR) so this function stays runnable in the test harness.
+  raw=$(cat | tr -d '\000-\010\013-\037\177')
 
   # Extract strictly the FIRST BEGIN..END region. Take only that region (ignore
   # anything after the first END), and poison the result if a stray marker
@@ -105,8 +110,10 @@ main() {
   # Matches credential SHAPES only (1Password refs, PEM private keys, AWS/Slack/
   # GitHub tokens), never the mere words "secret"/"password" -- an email that
   # merely discusses where secrets are stored must still be polishable.
-  if printf '%s' "$input" | grep -qiE \
-    'op://|-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|xox[baprs]-[0-9A-Za-z-]{8,}|gh[oprs]_[0-9A-Za-z]{20,}'; then
+  # Case-sensitive token shapes (real tokens are fixed-case) plus case-
+  # insensitive op:// refs and PEM headers.
+  if printf '%s' "$input" | grep -qE 'AKIA[0-9A-Z]{16}|xox[baprs]-[0-9A-Za-z-]{8,}|gh[oprs]_[0-9A-Za-z]{20,}' \
+    || printf '%s' "$input" | grep -qiE 'op://|-----BEGIN [A-Z ]*PRIVATE KEY-----'; then
     notify_error "Looks like a credential — not sending to Claude"
     exit 1
   fi
@@ -228,9 +235,8 @@ PROMPT_END
     exit 1
   fi
 
-  # Strip control characters (keep tab/newline) that could carry escape
-  # sequences into the target field, and cap runaway output.
-  output=$(printf '%s' "$output" | "$TR" -d '\000-\010\013-\037\177')
+  # Cap runaway output. Control characters were already stripped inside
+  # sanitize_output (before the tripwire), so nothing more to clean here.
   if [ "${#output}" -gt 20000 ]; then
     notify_error "Rewrite too long (${#output} chars) — nothing pasted"
     exit 1

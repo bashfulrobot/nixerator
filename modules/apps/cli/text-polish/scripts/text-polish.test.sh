@@ -92,6 +92,13 @@ raw8='%%%TEXTPOLISH_BEGIN%%% Can you meet next week? %%%TEXTPOLISH_END%%%'
 out8=$(printf '%s' "$raw8" | sanitize_output)
 check "inline markers fail closed" 1 "" "$?" "$out8"
 
+# 9. A control byte hidden inside a forbidden phrase must be stripped BEFORE the
+# tripwire runs, so the reassembled phrase is still caught (rc 2). Guards against
+# "the bytes checked differ from the bytes pasted".
+raw9=$'%%%TEXTPOLISH_BEGIN%%%\nAs \x02an AI I refuse.\n%%%TEXTPOLISH_END%%%'
+out9=$(printf '%s' "$raw9" | sanitize_output)
+check "control byte cannot smuggle a phrase past the tripwire" 2 "" "$?" "$out9"
+
 echo "---"
 echo "passed=$pass failed=$fail"
 [ "$fail" -eq 0 ]
