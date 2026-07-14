@@ -22,31 +22,60 @@ writers too.
   Syncthing-synced, so avoid writing while the app is open.
 - Schema and the table map: see `references/schema.md`.
 
-## Common reads
+## Scripts
 
-Run these with `sqlite3`. Use `-header -column` for human output, `-json` or
-`-csv` when another tool will parse it.
+Named, deterministic helpers live in `scripts/`. Reach for one of these before
+hand-writing SQL; fall back to `query.sh` only for genuinely one-off reads.
 
-**List accounts / resolve a name to an id:**
-```
-scripts/list-accounts.sh                      # id + name, all accounts
-sqlite3 ~/.local/share/upsight/upsight.db \
-  "SELECT id, account_name FROM accounts WHERE account_name LIKE '%acme%';"
-```
+| Script | What it does |
+|--------|--------------|
+| `list-accounts.sh [--like FRAGMENT]` | The customer/account list (id + name). This is the canonical way to get "who are our customers" from upsight. |
+| `account.sh <id\|name>` | Full record for one account. Errors on no/ambiguous match rather than guessing. |
+| `list-meetings.sh [--since YYYY-MM-DD]` | Meeting summaries in a date window, with account names. |
+| `verify-db.sh` | Health check: integrity, FK violations, stuck rows, logical duplicates. |
+| `query.sh "<SQL>"` | Freeform READ-ONLY query. Opens the DB with `sqlite3 -readonly`, so writes fail by construction. `--format column\|json\|csv\|line\|box`; pass `-` to read SQL from stdin. |
 
-**Meetings in a date window:**
+Freeform examples:
 ```
-scripts/list-meetings.sh --since 2026-06-29
+scripts/query.sh "SELECT account_name, health_status, renewal_date FROM accounts WHERE renewal_risk!='Low';"
+scripts/query.sh --format json "SELECT id, subject, status FROM cases WHERE status!='Closed';"
 ```
+Join any table from `references/schema.md` to `accounts` on `account_id` to get
+names.
 
-**Duplicate / integrity check:**
-```
-scripts/verify-db.sh
-```
+## Growing this skill
 
-**Ad-hoc:** query any table from `references/schema.md`, e.g. open cases,
-upcoming renewals, tasks for an account. Join to `accounts` on `account_id` to
-get names.
+This skill is meant to accumulate deterministic queries over time. When you find
+yourself writing the same freeform `query.sh` shape more than once (open cases,
+upcoming renewals, tasks for an account, consumption trends, meetings without a
+Salesforce event, etc.), promote it to a named script here so the next run is a
+single deterministic call instead of re-derived SQL. Keep each script:
+
+- **Read-only** (`sqlite3 -readonly`), one clear job, `--help` from the header.
+- **Parameterised** by the things that vary (account, date window, status), with
+  sensible defaults.
+- **Schema-checked** against the live DB before committing (schemas drift; see
+  `references/schema.md` for how to re-dump).
+
+Good candidates not yet built: open cases by account, renewals due in N days,
+tasks/actions per account, account health snapshot, meetings missing a summary.
+Add them as the need appears rather than all at once.
+
+## How this skill is defined and deployed (nixerator)
+
+A skill in nixerator is just a directory — no per-skill Nix code:
+
+- Location: `modules/apps/cli/claude-code/config/skills/<name>/` with a
+  `SKILL.md`, plus optional `scripts/` and `references/`.
+- Deploy: home-manager activation (`modules/apps/cli/claude-code/cfg/activation.nix`)
+  rsyncs every `config/skills/*/` into `~/.claude/skills/<name>/` on rebuild
+  (`--delete` prunes removed files, `--chmod=u+w` makes them runtime-writable).
+  So adding a script here and rebuilding is all it takes; there's nothing to
+  register. Rebuild via the justfile (`just qr`) — and per nixerator convention,
+  the user triggers rebuilds, not the agent.
+- For name→id caching against slow external APIs there's the `skill-cache`
+  convention (`.claude/docs/skill-cache.md`). This skill does NOT need it: the
+  account list is a fast local SQLite read, not a slow remote lookup.
 
 ## Resolving an account by name
 
