@@ -64,6 +64,19 @@ let
       type = "http";
       url = "https://gitmcp.io/docs";
     };
+    # Grafana Cloud MCP -- hosted observability MCP (dashboards, metrics, logs,
+    # alerts, incidents) for the bashfulrobot.grafana.net stack. Streamable-HTTP
+    # endpoint; auth is OAuth 2.1 with browser authorization (no token in config,
+    # same shape as atlassian/tactiq) -- run `/mcp` in Claude Code to complete the
+    # flow. The X-Grafana-URL header pins the stack so authorization skips the
+    # URL-entry step and goes straight to the consent page.
+    grafana = {
+      type = "http";
+      url = "https://mcp.grafana.com/mcp";
+      headers = {
+        "X-Grafana-URL" = "https://bashfulrobot.grafana.net";
+      };
+    };
   }
   // lib.optionalAttrs (serverProfile == "full") {
     # iso-topology MCP server -- generate isometric 2.5D architecture diagrams
