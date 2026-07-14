@@ -29,10 +29,6 @@
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
-    # Dynamic DNS for home.bashfulrobot.com (A record only). Token lives in
-    # the `nixerator/cloudflare-ddns` 1Password item; enabled below under
-    # `server.cloudflareDdns`.
-    ../../modules/server/cloudflare-ddns
     ../../modules/server/kvm
     ../../modules/server/nfs
     ../../modules/server/postgres
@@ -124,15 +120,6 @@
 
   # Server-specific modules
   server = {
-    # IPv4-only DDNS: manages the A record for home.bashfulrobot.com.
-    # ip6Provider = "none" because srv has no public IPv6; without it the
-    # both-stack `domains` option would try (and fail) to manage AAAA.
-    cloudflareDdns = {
-      enable = true;
-      ip4Domains = [ "home.bashfulrobot.com" ];
-      ip6Provider = "none";
-    };
-
     # Virtualisation on srv moved back from Incus to libvirt/KVM (matching
     # qbert's direction): Talos VMs need real QEMU block-device semantics and
     # a working qemu-guest-agent channel that Incus VMs don't provide (system
