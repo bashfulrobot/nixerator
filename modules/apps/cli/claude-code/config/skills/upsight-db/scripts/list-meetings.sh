@@ -13,14 +13,29 @@ SINCE="$(date -d '14 days ago' +%Y-%m-%d 2>/dev/null || date -v-14d +%Y-%m-%d)"
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --since) SINCE="$2"; shift 2 ;;
-    --db)    DB="$2";    shift 2 ;;
-    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) echo "unknown arg: $1" >&2; exit 2 ;;
+    --since)
+      SINCE="$2"
+      shift 2
+      ;;
+    --db)
+      DB="$2"
+      shift 2
+      ;;
+    -h | --help)
+      grep '^#' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      echo "unknown arg: $1" >&2
+      exit 2
+      ;;
   esac
 done
 
-[ -f "$DB" ] || { echo "db not found: $DB" >&2; exit 1; }
+[ -f "$DB" ] || {
+  echo "db not found: $DB" >&2
+  exit 1
+}
 
 sqlite3 -header -column "$DB" "
   SELECT m.id,

@@ -9,12 +9,24 @@ set -euo pipefail
 DB="${HOME}/.local/share/upsight/upsight.db"
 while [ $# -gt 0 ]; do
   case "$1" in
-    --db) DB="$2"; shift 2 ;;
-    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) echo "unknown arg: $1" >&2; exit 2 ;;
+    --db)
+      DB="$2"
+      shift 2
+      ;;
+    -h | --help)
+      grep '^#' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      echo "unknown arg: $1" >&2
+      exit 2
+      ;;
   esac
 done
-[ -f "$DB" ] || { echo "db not found: $DB" >&2; exit 1; }
+[ -f "$DB" ] || {
+  echo "db not found: $DB" >&2
+  exit 1
+}
 
 echo "== integrity =="
 sqlite3 "$DB" "PRAGMA integrity_check;"
