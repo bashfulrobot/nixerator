@@ -204,19 +204,11 @@
     backup = {
       enable = true;
       secretsProfile = "srv";
+      # The ad-hoc ~/docker stack (caddy status page, uptime-kuma) was
+      # deprecated and removed once forgejo/jellyfin moved to the k8s cluster,
+      # so /srv/nfs is the only remaining backup target on srv.
       backupPaths = [
         "/srv/nfs"
-        # caddy is the only hand-authored config still live under ~/docker after
-        # forgejo/jellyfin/uptime-kuma moved to the k8s cluster (nixerator#174).
-        # Back up its reverse-proxy config, runtime config, TLS data, static
-        # site, and the compose file that defines the stack. caddy_data (certs)
-        # is regenerable from Let's Encrypt, so it is optional, kept only for a
-        # faster restore.
-        "/home/dustin/docker/Caddyfile"
-        "/home/dustin/docker/caddy_config"
-        "/home/dustin/docker/caddy_data"
-        "/home/dustin/docker/site"
-        "/home/dustin/docker/docker-compose.yaml"
       ];
       restorePath = "/srv/nfs/restores";
       schedule = "*-*-* 03:00:00";
