@@ -13,6 +13,7 @@
     ./disko.nix # Disko declarative disk partitioning
     ./boot.nix # Bootloader configuration
     ./gpu.nix # AMD GPU configuration
+    ./audio.nix # Shure MV7 analog-profile fix (IEC958 sink was silent)
     ./power-management.nix # Power management workarounds for AMD GPU suspend and USB wakeup
     ./reboot-windows.nix # Desktop entry for rebooting to Windows
     ./modules.nix # Module configuration
