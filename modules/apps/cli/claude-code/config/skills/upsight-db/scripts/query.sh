@@ -22,24 +22,48 @@ SQL=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --format) FMT="$2"; shift 2 ;;
-    --db)     DB="$2";  shift 2 ;;
-    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    -)  SQL="$(cat)"; shift ;;
-    *)  SQL="$1"; shift ;;
+    --format)
+      FMT="$2"
+      shift 2
+      ;;
+    --db)
+      DB="$2"
+      shift 2
+      ;;
+    -h | --help)
+      grep '^#' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    -)
+      SQL="$(cat)"
+      shift
+      ;;
+    *)
+      SQL="$1"
+      shift
+      ;;
   esac
 done
 
-[ -f "$DB" ] || { echo "db not found: $DB" >&2; exit 1; }
-[ -n "$SQL" ] || { echo "no SQL given (pass a string or '-' for stdin)" >&2; exit 2; }
+[ -f "$DB" ] || {
+  echo "db not found: $DB" >&2
+  exit 1
+}
+[ -n "$SQL" ] || {
+  echo "no SQL given (pass a string or '-' for stdin)" >&2
+  exit 2
+}
 
 case "$FMT" in
   column) FMT_ARGS=(-header -column) ;;
-  json)   FMT_ARGS=(-json) ;;
-  csv)    FMT_ARGS=(-header -csv) ;;
-  line)   FMT_ARGS=(-line) ;;
-  box)    FMT_ARGS=(-header -box) ;;
-  *) echo "unknown --format: $FMT" >&2; exit 2 ;;
+  json) FMT_ARGS=(-json) ;;
+  csv) FMT_ARGS=(-header -csv) ;;
+  line) FMT_ARGS=(-line) ;;
+  box) FMT_ARGS=(-header -box) ;;
+  *)
+    echo "unknown --format: $FMT" >&2
+    exit 2
+    ;;
 esac
 
 sqlite3 -readonly "${FMT_ARGS[@]}" "$DB" "$SQL"

@@ -14,13 +14,28 @@ DB="${HOME}/.local/share/upsight/upsight.db"
 SEL=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --db) DB="$2"; shift 2 ;;
-    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) SEL="$1"; shift ;;
+    --db)
+      DB="$2"
+      shift 2
+      ;;
+    -h | --help)
+      grep '^#' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      SEL="$1"
+      shift
+      ;;
   esac
 done
-[ -f "$DB" ] || { echo "db not found: $DB" >&2; exit 1; }
-[ -n "$SEL" ] || { echo "give an account id or name substring" >&2; exit 2; }
+[ -f "$DB" ] || {
+  echo "db not found: $DB" >&2
+  exit 1
+}
+[ -n "$SEL" ] || {
+  echo "give an account id or name substring" >&2
+  exit 2
+}
 
 if [[ "$SEL" =~ ^[0-9]+$ ]]; then
   where="id = ${SEL}"
@@ -31,7 +46,8 @@ fi
 
 n="$(sqlite3 -readonly "$DB" "SELECT count(*) FROM accounts WHERE ${where};")"
 if [ "$n" -eq 0 ]; then
-  echo "no account matches: $SEL" >&2; exit 3
+  echo "no account matches: $SEL" >&2
+  exit 3
 elif [ "$n" -gt 1 ]; then
   echo "ambiguous ($n matches) — narrow it:" >&2
   sqlite3 -readonly -column "$DB" "SELECT id, account_name FROM accounts WHERE ${where} ORDER BY account_name;" >&2
