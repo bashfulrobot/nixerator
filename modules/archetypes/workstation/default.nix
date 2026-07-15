@@ -30,6 +30,10 @@ in
     # FHS compatibility
     system.compat.enable = true;
 
+    # Run foreign manylinux binaries (uv/pip ML wheels, e.g. the kongdex
+    # kong-docs MCP server's numpy/onnxruntime/torch stack).
+    system.nix-ld.enable = true;
+
     # Enable workstation suites
     suites = {
       core.enable = true; # Core system infrastructure

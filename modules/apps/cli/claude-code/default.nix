@@ -25,6 +25,7 @@ let
       kubernetesMcpServer
       isoTopologyPkg
       kubeconfigFile
+      homeDir
       ;
     inherit (cfg) serverProfile;
   };
