@@ -96,6 +96,11 @@ let
     "SHARED_SECRET=${cfg.sharedSecretRef}"
     "PUSHOVER_TOKEN=${cfg.pushoverTokenRef}"
     "PUSHOVER_USER=${cfg.pushoverUserRef}"
+    # gcq (read-only Grafana Cloud queries) reads these; the token stays an
+    # op:// ref resolved by `op run`, the URL is public. investigate.sh puts its
+    # own dir on PATH so the children see `gcq`.
+    "GRAFANA_URL=${cfg.grafanaUrl}"
+    "GRAFANA_TOKEN=${cfg.grafanaTokenRef}"
     "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
   ]
   ++ lib.optional (cfg.claudeModel != "") "CLAUDE_MODEL=${cfg.claudeModel}";
@@ -175,6 +180,30 @@ in
       type = lib.types.str;
       default = "op://automation/Pushover-api/user-key";
       description = "1Password `op://` reference for the Pushover user key.";
+    };
+
+    grafanaUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "https://bashfulrobot.grafana.net";
+      description = ''
+        Base URL of the Grafana Cloud instance the `gcq` read wrapper queries. It
+        reaches Mimir/Loki through this instance's datasource proxy
+        (`/api/datasources/proxy/uid/<uid>/...`), so this is the hosted Grafana
+        URL, not a raw Mimir/Loki endpoint. Not a secret; passed as `GRAFANA_URL`.
+      '';
+    };
+
+    grafanaTokenRef = lib.mkOption {
+      type = lib.types.str;
+      default = "op://automation/grafana-cloud-operator/token";
+      description = ''
+        1Password `op://` reference for the Grafana instance service-account
+        token `gcq` presents as a Bearer to read metrics/logs history. Reuses the
+        shared Admin operator token (the same item grafana-operator and
+        synthetic-monitoring use), so no separate access-policy token is needed.
+        Resolved at runtime via `op run` and passed as `GRAFANA_TOKEN`; never on
+        argv or disk.
+      '';
     };
 
     claudeModel = lib.mkOption {
