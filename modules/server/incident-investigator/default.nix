@@ -20,10 +20,12 @@
 #     -> ~/incidents/<ts>-<fp>/rca.md + Pushover "RCA ready".
 #
 # Secrets: resolved at RUNTIME by `op run`, never rendered into the Nix store.
-# The service runs as the login user, so `op` auto-detects the host SA token at
-# ~/.config/op/service-account-token (installed by `just setup-op-token`) and
-# `claude` picks up the user's subscription credentials at ~/.claude. No API
-# key or nixos-secrets entry is needed by this module.
+# `op run` needs OP_SERVICE_ACCOUNT_TOKEN in its environment (it does NOT read
+# the on-disk token file on its own), and a systemd service doesn't inherit the
+# login shell's export -- so the opRunExec wrapper loads the host SA token from
+# ~/.config/op/service-account-token (installed by `just setup-op-token`) before
+# exec'ing `op run`. `claude` picks up the user's subscription credentials at
+# ~/.claude. No API key or nixos-secrets entry is needed by this module.
 #
 # The subscription path needs a one-time `claude` login on srv so
 # ~/.claude/.credentials.json exists. After that an idle box is fine: the file
@@ -54,6 +56,28 @@ let
   ];
 
   scriptsDir = "${cfg.repoDir}/incident-investigator";
+
+  # `op run` authenticates as a service account only when OP_SERVICE_ACCOUNT_TOKEN
+  # is in its environment -- it does NOT auto-detect the on-disk token file. A
+  # systemd service doesn't inherit the login shell's export (that lives in the
+  # fish config), so without this it dies with "No accounts configured for use
+  # with 1Password CLI". This wrapper loads the host SA token from the file
+  # `just setup-op-token` installs, exports it, then execs `op run`. The token
+  # stays in the process environment only -- never the Nix store, never argv.
+  tokenFile = "${homeDir}/.config/op/service-account-token";
+  opRunExec =
+    command:
+    pkgs.writeShellScript "incident-investigator-op-run" ''
+      set -eu
+      if [ ! -r "${tokenFile}" ]; then
+        echo "1Password service-account token not found at ${tokenFile}." >&2
+        echo "Run 'just setup-op-token' on this host before enabling the service." >&2
+        exit 1
+      fi
+      OP_SERVICE_ACCOUNT_TOKEN="$(cat ${tokenFile})"
+      export OP_SERVICE_ACCOUNT_TOKEN
+      exec ${pkgs._1password-cli}/bin/op run -- ${command}
+    '';
 
   # op run resolves every op:// value in the child env, so receiver.py and the
   # investigate.sh children it spawns all see the real secret. Refs that are
@@ -187,11 +211,12 @@ in
         Type = "simple";
         User = globals.user.name;
         Group = "users";
-        # op run reads the host SA token (~/.config/op/service-account-token)
-        # to resolve the op:// refs in the env, then execs receiver.py with the
-        # real values in its environment; the investigate.sh children it spawns
-        # inherit them. Nothing secret is written to disk or the Nix store.
-        ExecStart = "${pkgs._1password-cli}/bin/op run -- ${pkgs.python3}/bin/python3 ${scriptsDir}/receiver.py";
+        # opRunExec loads the host SA token from ~/.config/op/service-account-token
+        # into OP_SERVICE_ACCOUNT_TOKEN, then `op run` resolves the op:// refs in
+        # the env and execs receiver.py with the real values in its environment;
+        # the investigate.sh children it spawns inherit them. Nothing secret is
+        # written to disk or the Nix store.
+        ExecStart = opRunExec "${pkgs.python3}/bin/python3 ${scriptsDir}/receiver.py";
         Environment = runtimeEnv;
         Restart = "on-failure";
         RestartSec = 10;
@@ -233,7 +258,7 @@ in
           }"
           "TUNNEL_TOKEN=${cfg.tunnel.tokenRef}"
         ];
-        ExecStart = "${pkgs._1password-cli}/bin/op run -- ${pkgs.cloudflared}/bin/cloudflared tunnel --no-autoupdate run";
+        ExecStart = opRunExec "${pkgs.cloudflared}/bin/cloudflared tunnel --no-autoupdate run";
         Restart = "on-failure";
         RestartSec = 10;
         NoNewPrivileges = true;
