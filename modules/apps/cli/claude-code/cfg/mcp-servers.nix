@@ -5,6 +5,7 @@
   kubernetesMcpServer,
   isoTopologyPkg,
   kubeconfigFile,
+  homeDir,
   serverProfile,
 }:
 
@@ -136,6 +137,30 @@ let
       args = [
         "-y"
         "@playwright/mcp@latest"
+      ];
+    };
+    # kongdex (https://github.com/KongHQ-CX/kongdex) -- local RAG over the Kong
+    # developer docs (and optionally Kong source), exposed as a stdio MCP server.
+    # Upstream names the server `kong-docs`; kept here so it reads parallel to the
+    # `kong-konnect` live-API server (docs RAG vs Konnect control-plane API) and
+    # matches the bundled kong-expert skill / kong-architect agent references.
+    #
+    # Runs from a local checkout, not a nixpkgs package: clone to
+    # ${homeDir}/git/kongdex, then `uv sync` + `uv run kongdex refresh` to build
+    # the Chroma index before the server has anything to serve. Until then (or if
+    # the checkout is missing) the server just fails to connect in /mcp, same as
+    # the npx-based servers above when their fetch fails.
+    #
+    # Workstation-only (serverProfile == "full"): the local index and embedder
+    # have no place on a headless host, matching chrome-devtools/playwright/tableau.
+    kong-docs = {
+      command = "${pkgs.uv}/bin/uv";
+      args = [
+        "--directory"
+        "${homeDir}/git/kongdex"
+        "run"
+        "kongdex"
+        "serve"
       ];
     };
   }
