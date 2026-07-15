@@ -195,15 +195,27 @@ validate_tpl_path() {
 # absent, so it never clobbers a good config with an empty token.
 FORGEJO_TEA_CONFIG="${HOME}/.config/tea/config.yml"
 render_forgejo_tea_config() {
-  local src="${1:-${DEST}}" tok dir tmp
+  local src="${1:-${DEST}}" tok tok_yaml dir tmp
   tok="$(jq -r '.forgejo.apiToken // empty' "${src}" 2>/dev/null || true)"
   [[ -n "${tok}" ]] || return 0
+  # A newline or carriage return in the token could inject extra YAML (a second
+  # login block, altered fields). secrets.json is inside the trust boundary, but
+  # refuse loudly rather than write an attacker-shaped or silently-wrong config.
+  if [[ "${tok}" == *[$'\n\r']* ]]; then
+    echo "render-secrets: forgejo token contains a control character; refusing to write tea config" >&2
+    return 1
+  fi
   dir="$(dirname "${FORGEJO_TEA_CONFIG}")"
   mkdir -p "${dir}" && chmod 700 "${dir}" || return 1
   tmp="$(mktemp -p "${dir}" .tea-config.XXXXXX)" || return 1
-  if printf 'logins:\n- name: srvrs\n  url: https://git.srvrs.co\n  token: %s\n  default: true\n  ssh_host: git.srvrs.co\n  insecure: false\n  user: bashfulrobot\n' "${tok}" >"${tmp}" &&
-    chmod 600 "${tmp}"; then
-    mv -f "${tmp}" "${FORGEJO_TEA_CONFIG}"
+  # Emit the token as a single-quoted YAML scalar (doubling any embedded quote)
+  # so a value with `: `, a leading YAML indicator, or `#` cannot change the
+  # parse. mv is inside the condition: a failed rename must clean up the 0600
+  # temp file (it holds the token) and report failure, not print "wrote".
+  tok_yaml="${tok//\'/\'\'}"
+  if printf 'logins:\n- name: srvrs\n  url: https://git.srvrs.co\n  token: '\''%s'\''\n  default: true\n  ssh_host: git.srvrs.co\n  insecure: false\n  user: bashfulrobot\n' "${tok_yaml}" >"${tmp}" &&
+    chmod 600 "${tmp}" &&
+    mv -f "${tmp}" "${FORGEJO_TEA_CONFIG}"; then
     echo "render-secrets: wrote ${FORGEJO_TEA_CONFIG}"
   else
     rm -f "${tmp}"
@@ -214,7 +226,9 @@ render_forgejo_tea_config() {
 # Tests set RENDER_SECRETS_SOURCE_ONLY and `source` this file to exercise the
 # helper functions above in isolation; `return` is valid because it is sourced
 # in that case. Normal execution leaves the flag unset and falls through to the
-# CLI below.
+# CLI below. Any function a test needs to source must be defined ABOVE this
+# guard: everything below (render_to, guard_ok, materialize_one, the CLI) is
+# unreachable when RENDER_SECRETS_SOURCE_ONLY is set.
 if [[ -n "${RENDER_SECRETS_SOURCE_ONLY:-}" ]]; then
   return 0
 fi

@@ -21,9 +21,34 @@ teardown() { rm_home; }
   [ "$(stat -c '%a' "${THOME}/.config/tea/config.yml")" = "600" ]
   grep -q '^- name: srvrs$' "${THOME}/.config/tea/config.yml"
   grep -q '^  url: https://git.srvrs.co$' "${THOME}/.config/tea/config.yml"
-  grep -q '^  token: tok-abc123$' "${THOME}/.config/tea/config.yml"
+  grep -q "^  token: 'tok-abc123'\$" "${THOME}/.config/tea/config.yml"
   grep -q '^  ssh_host: git.srvrs.co$' "${THOME}/.config/tea/config.yml"
   grep -q '^  user: bashfulrobot$' "${THOME}/.config/tea/config.yml"
+}
+
+@test "no-arg call falls back to DEST" {
+  printf '{"forgejo":{"apiToken":"tok-from-dest"}}' >"${THOME}/secrets.json"
+  run tea_gen_default "${THOME}/secrets.json"
+  [ "$status" -eq 0 ]
+  grep -q "^  token: 'tok-from-dest'\$" "${THOME}/.config/tea/config.yml"
+}
+
+@test "special-character token is written verbatim inside the quoted scalar" {
+  # % must not be read as a printf directive; backslash must survive; a single
+  # quote must be doubled so the YAML scalar stays well-formed.
+  printf '{"forgejo":{"apiToken":"a%%b\\\\c'\''d"}}' >"${THOME}/secrets.json"
+  run tea_gen "${THOME}/secrets.json"
+  [ "$status" -eq 0 ]
+  # YAML single-quoted scalar: the embedded ' is doubled on disk.
+  grep -qF "  token: 'a%b\\c''d'" "${THOME}/.config/tea/config.yml"
+}
+
+@test "refuses to write when the token contains a newline" {
+  printf '{"forgejo":{"apiToken":"tok\\nname: evil"}}' >"${THOME}/secrets.json"
+  run tea_gen "${THOME}/secrets.json"
+  [ "$status" -ne 0 ]
+  [ ! -e "${THOME}/.config/tea/config.yml" ]
+  [ -z "$(find "${THOME}/.config/tea" -name '.tea-config.*' 2>/dev/null)" ]
 }
 
 @test "skips (writes nothing) when the forgejo key is absent" {
@@ -55,6 +80,6 @@ teardown() { rm_home; }
   printf '{"forgejo":{"apiToken":"NEW-tok"}}' >"${THOME}/secrets.json"
   run tea_gen "${THOME}/secrets.json"
   [ "$status" -eq 0 ]
-  grep -q '^  token: NEW-tok$' "${THOME}/.config/tea/config.yml"
+  grep -q "^  token: 'NEW-tok'\$" "${THOME}/.config/tea/config.yml"
   ! grep -q 'OLD-tok' "${THOME}/.config/tea/config.yml"
 }

@@ -17,3 +17,15 @@ tea_gen() {
     render_forgejo_tea_config "$1"
   ' _ "$1"
 }
+
+# tea_gen_default SECRETS_FILE — call render_forgejo_tea_config with NO argument
+# so it falls back to ${DEST}, the form the real call site uses. The sourced
+# script sets DEST to its build-time placeholder, so override it to the test
+# file after sourcing and before calling.
+tea_gen_default() {
+  HOME="${THOME}" RENDER_SECRETS_SOURCE_ONLY=1 bash -c '
+    source "'"${SCRIPT}"'"
+    DEST="$1"
+    render_forgejo_tea_config
+  ' _ "$1"
+}

@@ -79,6 +79,9 @@ in
       # Login config (~/.config/tea/config.yml) is written by render-secrets from
       # the rendered .forgejo.apiToken, so a rotated token propagates on the next
       # `just render-secrets` rather than waiting for a generation-changing rebuild.
+      # `render-secrets --push` only copies secrets.json to a peer, not the tea
+      # config, so a pushed-to host regenerates its own config on its next local
+      # `render-secrets`.
       tea
     ];
 
