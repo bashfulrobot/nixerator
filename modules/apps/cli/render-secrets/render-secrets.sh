@@ -182,6 +182,43 @@ validate_tpl_path() {
   esac
 }
 
+# render_forgejo_tea_config [SRC] — write the Forgejo `tea` CLI login config
+# from the freshly-rendered .forgejo.apiToken in SRC (default: DEST). The `tea`
+# CLI reads a static file and does NOT honour env vars, so the token has to be
+# on disk. Doing it here (render time) instead of a Nix home.activation script
+# is deliberate: activation only re-runs when the Nix generation changes, so a
+# rotated token would not reach the config until the next generation-changing
+# rebuild. render-secrets runs exactly when the token changes, which is the
+# correct trigger. `tea login add` is avoided because it contacts git.srvrs.co
+# to validate and would fail whenever that LAN host is down; the schema written
+# here is the verified equivalent with zero network. No-op when the key is
+# absent, so it never clobbers a good config with an empty token.
+FORGEJO_TEA_CONFIG="${HOME}/.config/tea/config.yml"
+render_forgejo_tea_config() {
+  local src="${1:-${DEST}}" tok dir tmp
+  tok="$(jq -r '.forgejo.apiToken // empty' "${src}" 2>/dev/null || true)"
+  [[ -n "${tok}" ]] || return 0
+  dir="$(dirname "${FORGEJO_TEA_CONFIG}")"
+  mkdir -p "${dir}" && chmod 700 "${dir}" || return 1
+  tmp="$(mktemp -p "${dir}" .tea-config.XXXXXX)" || return 1
+  if printf 'logins:\n- name: srvrs\n  url: https://git.srvrs.co\n  token: %s\n  default: true\n  ssh_host: git.srvrs.co\n  insecure: false\n  user: bashfulrobot\n' "${tok}" >"${tmp}" &&
+    chmod 600 "${tmp}"; then
+    mv -f "${tmp}" "${FORGEJO_TEA_CONFIG}"
+    echo "render-secrets: wrote ${FORGEJO_TEA_CONFIG}"
+  else
+    rm -f "${tmp}"
+    return 1
+  fi
+}
+
+# Tests set RENDER_SECRETS_SOURCE_ONLY and `source` this file to exercise the
+# helper functions above in isolation; `return` is valid because it is sourced
+# in that case. Normal execution leaves the flag unset and falls through to the
+# CLI below.
+if [[ -n "${RENDER_SECRETS_SOURCE_ONLY:-}" ]]; then
+  return 0
+fi
+
 CHECK=0
 PUSH=()
 while [[ $# -gt 0 ]]; do
@@ -367,6 +404,11 @@ done
 if [[ ${#materialize_failed[@]} -gt 0 ]]; then
   echo "render-secrets: FAILED to materialize: ${materialize_failed[*]}" >&2
 fi
+
+# Regenerate the Forgejo `tea` login config from the freshly-rendered token.
+# Best-effort: a failure here warns but never undoes the secrets already written.
+render_forgejo_tea_config ||
+  echo "render-secrets: tea config generation failed (non-fatal)" >&2
 
 if [[ ${#PUSH[@]} -gt 0 ]]; then
   # Track per-host outcome so a mid-list failure doesn't silently skip the
