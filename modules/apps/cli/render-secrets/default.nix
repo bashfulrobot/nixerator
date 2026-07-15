@@ -34,6 +34,7 @@ let
               pkgs.diffutils
               pkgs.coreutils
               pkgs.git
+              pkgs.jq # forgejo tea-config generation reads .forgejo.apiToken
             ]
           }
       '';

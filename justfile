@@ -198,6 +198,10 @@ check-security:
 test-skill-cache:
     nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/skill-cache/tests/
 
+# Run render-secrets unit tests (Forgejo tea-config generation)
+test-render-secrets:
+    nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/render-secrets/tests/
+
 # Garbage collection (default: 5 days)
 clean days="5":
     @echo "Cleaning packages older than {{days}} days..."
