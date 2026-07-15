@@ -1,0 +1,12 @@
+{
+  "_comment": "Named triage scopes. Version-controlled defaults; override or extend from ${XDG_CONFIG_HOME:-~/.config}/todoist-triage/scopes.json (per-preset merge, your file wins). A preset has either 'filter' (a raw Todoist filter query) or 'saved' (the name of one of your Todoist saved filters, resolved live via `td filter list`). List everything selectable with `scripts/td_scope.sh list`.",
+  "presets": {
+    "default": { "filter": "(overdue | today)", "desc": "Overdue + due today, all priorities (skill default)" },
+    "overdue": { "filter": "overdue", "desc": "Everything past due" },
+    "today":   { "filter": "today", "desc": "Due today" },
+    "week":    { "filter": "(overdue | today | next 7 days)", "desc": "This week, incl. overdue" },
+    "p1":      { "filter": "(overdue | today) & p1", "desc": "Due-now p1s only" },
+    "kong-today":     { "saved": "Today - Kong", "desc": "Saved view: overdue+today on Kong projects" },
+    "kong-customers": { "saved": "Kong Customer P1-3", "desc": "Saved view: Kong-Customer* p1-p3" }
+  }
+}
