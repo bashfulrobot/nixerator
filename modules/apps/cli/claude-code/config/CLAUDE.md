@@ -18,6 +18,17 @@ When asked to send a file to my phone, use:
 sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
 ```
 
+## Clipboard
+
+When asked to copy text to my clipboard ("copy to my clipboard", "add it to my clipboard"), pipe it to `wl-copy`. Background and headless sessions don't export `WAYLAND_DISPLAY`, so derive the live Wayland socket first — its number varies by host and reboot, so never hardcode `wayland-1`:
+
+```
+export WAYLAND_DISPLAY=$(basename "$(ls /run/user/$(id -u)/wayland-* 2>/dev/null | grep -v '\.lock$' | head -1)")
+printf '%s' "TEXT" | wl-copy
+```
+
+If `WAYLAND_DISPLAY` comes back empty, the host is headless (e.g. `srv`) with no Wayland clipboard — tell me instead of silently succeeding.
+
 ## Slack (hard rule)
 
 **Never post, send, schedule, or draft a Slack message via the Slack MCP server.** The Slack MCP `slack_send_message`, `slack_send_message_draft`, `slack_schedule_message`, and any other message-writing tool are off-limits for posting on my behalf — this is a hard boundary, not a preference.
