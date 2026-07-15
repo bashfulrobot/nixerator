@@ -1,5 +1,6 @@
 {
   globals,
+  inputs,
   lib,
   pkgs,
   config,
@@ -8,6 +9,10 @@
 
 let
   cfg = config.apps.cli.git;
+
+  # Forgejo (git.srvrs.co) account the `tea` CLI logs in as. Token auth is what
+  # actually authenticates; this field is informational for tea's own display.
+  forgejoUser = "bashfulrobot";
 
   # gcom — Git Commit Workflow Tool
   # Two-phase git workflow:
@@ -55,6 +60,9 @@ in
       git-crypt
       git-filter-repo
       mergiraf
+      # tea — Forgejo/Gitea official CLI, the gh-equivalent for git.srvrs.co.
+      # Login config is rendered per-user by the activation script below.
+      tea
     ];
 
     # Home Manager user configuration
@@ -236,6 +244,30 @@ in
         # Wire every mergiraf-supported file extension to the merge driver.
         ".config/git/attributes".source = mergirafAttributes;
       };
+
+      # Render the `tea` (Forgejo) login config from the runtime-rendered
+      # secrets blob. Two reasons this is an activation script and not a
+      # `home.file` or `tea login add`:
+      #   1. Reading the token from ~/.config/nixos-secrets/secrets.json at
+      #      switch time keeps it out of the Nix store (same intent as the
+      #      GRAFANA_TOKEN/OP token render in the fish module).
+      #   2. `tea login add` contacts git.srvrs.co to validate the token, which
+      #      would fail the rebuild whenever that LAN host is unreachable. We
+      #      hand-write the (verified) config schema instead — zero network.
+      # Idempotent: re-rendered every activation, so a rotated token propagates.
+      # Non-fatal if the secrets file or token is absent — tea stays unconfigured
+      # and the REST/env path (FORGEJO_TOKEN) still works.
+      home.activation.forgejoTeaLogin = inputs.home-manager.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        _secrets="$HOME/.config/nixos-secrets/secrets.json"
+        _teacfg="$HOME/.config/tea/config.yml"
+        if [ -f "$_secrets" ]; then
+          _tok="$(${pkgs.jq}/bin/jq -r '.forgejo.apiToken // empty' "$_secrets")"
+          if [ -n "$_tok" ]; then
+            _cfg="$(printf 'logins:\n- name: srvrs\n  url: https://git.srvrs.co\n  token: %s\n  default: true\n  ssh_host: git.srvrs.co\n  insecure: false\n  user: %s\n' "$_tok" "${forgejoUser}")"
+            $DRY_RUN_CMD install -Dm600 /dev/stdin "$_teacfg" <<<"$_cfg"
+          fi
+        fi
+      '';
 
     };
 
