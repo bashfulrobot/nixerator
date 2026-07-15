@@ -74,7 +74,7 @@ let
         echo "Run 'just setup-op-token' on this host before enabling the service." >&2
         exit 1
       fi
-      OP_SERVICE_ACCOUNT_TOKEN="$(cat ${tokenFile})"
+      OP_SERVICE_ACCOUNT_TOKEN="$(${pkgs.coreutils}/bin/cat ${tokenFile})"
       export OP_SERVICE_ACCOUNT_TOKEN
       exec ${pkgs._1password-cli}/bin/op run -- ${command}
     '';
