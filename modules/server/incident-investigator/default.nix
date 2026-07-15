@@ -96,6 +96,16 @@ let
     "SHARED_SECRET=${cfg.sharedSecretRef}"
     "PUSHOVER_TOKEN=${cfg.pushoverTokenRef}"
     "PUSHOVER_USER=${cfg.pushoverUserRef}"
+    # gcq (read-only Grafana Cloud queries) reads these. The token and instance
+    # ids stay op:// refs resolved by `op run`; the URLs are public. gcq queries
+    # Mimir/Loki directly with a least-privilege metrics:read+logs:read token,
+    # not the Admin operator token. investigate.sh puts its own dir on PATH so the
+    # children see `gcq`, and strips the other secrets from claude's env.
+    "GRAFANA_READ_TOKEN=${cfg.grafanaReadTokenRef}"
+    "PROM_URL=${cfg.promUrl}"
+    "PROM_USER=${cfg.promUserRef}"
+    "LOKI_URL=${cfg.lokiUrl}"
+    "LOKI_USER=${cfg.lokiUserRef}"
     "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
   ]
   ++ lib.optional (cfg.claudeModel != "") "CLAUDE_MODEL=${cfg.claudeModel}";
@@ -175,6 +185,59 @@ in
       type = lib.types.str;
       default = "op://automation/Pushover-api/user-key";
       description = "1Password `op://` reference for the Pushover user key.";
+    };
+
+    grafanaReadTokenRef = lib.mkOption {
+      type = lib.types.str;
+      default = "op://automation/incident-investigator/grafana-cloud-read";
+      description = ''
+        1Password `op://` reference for the Grafana Cloud access-policy token the
+        `gcq` read wrapper uses (scoped `metrics:read` + `logs:read`). This is a
+        least-privilege read token, deliberately NOT the Admin
+        `grafana-cloud-operator` token: if the investigator is ever compromised,
+        this token can read metrics and logs and nothing else. Resolved at
+        runtime via `op run` and passed as `GRAFANA_READ_TOKEN`; never on argv or
+        disk. Mint the access policy + token in Grafana Cloud and store it at this
+        path before enabling the read path.
+      '';
+    };
+
+    promUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "https://prometheus-us-central1.grafana.net/api/prom";
+      description = ''
+        Mimir (Prometheus) query base URL `gcq` queries directly. Not a secret;
+        passed as `PROM_URL`. `gcq` refuses any non-`*.grafana.net` host.
+      '';
+    };
+
+    promUserRef = lib.mkOption {
+      type = lib.types.str;
+      default = "op://automation/grafana-cloud-darkstar/metrics-username";
+      description = ''
+        1Password `op://` reference for the numeric Mimir instance id, used as the
+        HTTP basic-auth user for metric queries. Reuses the write path's
+        `metrics-username` field. Passed as `PROM_USER`.
+      '';
+    };
+
+    lokiUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "https://logs-prod-us-central1.grafana.net";
+      description = ''
+        Loki base URL `gcq` queries directly. Not a secret; passed as `LOKI_URL`.
+        `gcq` refuses any non-`*.grafana.net` host.
+      '';
+    };
+
+    lokiUserRef = lib.mkOption {
+      type = lib.types.str;
+      default = "op://automation/grafana-cloud-darkstar/logs-username";
+      description = ''
+        1Password `op://` reference for the numeric Loki instance id, used as the
+        HTTP basic-auth user for log queries. Reuses the write path's
+        `logs-username` field. Passed as `LOKI_USER`.
+      '';
     };
 
     claudeModel = lib.mkOption {
