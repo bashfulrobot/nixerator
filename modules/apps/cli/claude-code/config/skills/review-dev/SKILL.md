@@ -30,7 +30,7 @@ the subagent prompt and the post step apply the rules below.
   filler.**
 - **No AI attribution** of any kind.
 
-Before calling `gh pr comment`, run the body through the
+Before calling `forge pr-comment`, run the body through the
 [`humanizer`](../humanizer/SKILL.md) skill and post the humanized result.
 
 ## Scope of findings
@@ -43,10 +43,14 @@ comment.
 
 ## Workflow
 
+All forge interaction goes through `forge`, the provider-aware helper, so this
+skill works whether the PR lives on GitHub or the self-hosted Forgejo. `forge`
+picks the backend from the repo's `origin` remote; you never call `gh` directly.
+
 ### 1. Preflight: Detect the PR
 
 ```bash
-PR_JSON=$(gh pr view --json number,title,url,baseRefName,headRefName,headRefOid,body,additions,deletions,changedFiles 2>&1)
+PR_JSON=$(forge pr-json 2>&1)
 ```
 
 If this fails, stop and tell the user: **"No PR found for the current branch. Push your branch and open a PR first."**
@@ -54,25 +58,32 @@ If this fails, stop and tell the user: **"No PR found for the current branch. Pu
 ### 2. Get the Diff
 
 ```bash
-DIFF=$(gh pr diff)
+DIFF=$(forge pr-diff)
 ```
 
 If the diff is empty, stop: **"PR diff is empty, nothing to review."**
 
 ### 3. Get Repo Metadata
 
+`forge pr-json` already returned everything; pull the fields from `$PR_JSON`
+(one API call, provider-neutral keys) rather than re-fetching:
+
 ```bash
-REPO=$(gh repo view --json nameWithOwner -q '.nameWithOwner')
-HEAD_SHA=$(gh pr view --json headRefOid -q '.headRefOid')
-PR_NUMBER=$(gh pr view --json number -q '.number')
-PR_TITLE=$(gh pr view --json title -q '.title')
-PR_BODY=$(gh pr view --json body -q '.body')
+REPO=$(forge repo)
+HEAD_SHA=$(echo "$PR_JSON" | jq -r '.headSha')
+PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+PR_BODY=$(echo "$PR_JSON" | jq -r '.body')
+# Base for file links at this commit. forge picks the right host and path
+# style per provider (GitHub /blob/<sha>, Forgejo /src/commit/<sha>), so
+# source links resolve on whichever forge the PR lives on.
+LINK_BASE=$(forge blob-base "$HEAD_SHA")
 ```
 
 ### 4. Idempotency Check
 
 ```bash
-gh pr view --json comments -q '.comments[].body' | grep -q '<!-- review-dev -->'
+forge pr-comments | grep -q '<!-- review-dev -->'
 ```
 
 If found, ask the user: **"A dev review comment already exists on this PR. Post another one, or skip?"**
@@ -95,7 +106,7 @@ Dispatch a single **general-purpose Agent** with the prompt below. Substitute ac
 3. Display the humanized output in the terminal.
 4. Prepend `<!-- review-dev -->` (invisible marker) to the humanized body
    for idempotency.
-5. Post as a PR comment via `gh pr comment {PR_NUMBER} --body "$BODY"`.
+5. Post as a PR comment via `forge pr-comment {PR_NUMBER} "$BODY"`.
 
 No AI attribution. No emoji. Clean and professional. The comment must look
 like the user wrote it.
@@ -163,7 +174,7 @@ You are looking for problems the author missed. Think about what breaks at 3am, 
 - Skip nitpicks, pure style preferences, and "consider using X" suggestions
   with no concrete reason. "Genuinely worth fixing" is the bar, not "anything
   I noticed".
-- Every issue must have a file path and line reference using this link format. [`file:line`](https://github.com/{REPO}/blob/{HEAD_SHA}/file#Lline)
+- Every issue must have a file path and line reference using this link format. [`file:line`]({LINK_BASE}/file#Lline)
 - Explain why each issue matters. What breaks, when, for whom.
 - If you would block this PR in a real review, say so and explain why.
 - If the code is genuinely solid, say so. Do not manufacture issues.
@@ -209,7 +220,7 @@ keep them as headings:
 [Edge cases, cleanup, small improvements. If none, write "None."]
 
 For each issue.
-- **[short title]**, [`file:line`](https://github.com/{REPO}/blob/{HEAD_SHA}/file#Lline)
+- **[short title]**, [`file:line`]({LINK_BASE}/file#Lline)
   [What is wrong, why it matters, and how to fix it.]
 
 #### Verdict
@@ -225,8 +236,8 @@ For each issue.
 
 | Scenario | Detection | Response |
 |----------|-----------|----------|
-| No PR for branch | `gh pr view` non-zero exit | "No PR found. Push branch and create a PR first." |
-| Empty diff | `gh pr diff` returns empty | "PR diff is empty, nothing to review." |
+| No PR for branch | `forge pr-json` non-zero exit | "No PR found. Push branch and create a PR first." |
+| Empty diff | `forge pr-diff` returns empty | "PR diff is empty, nothing to review." |
 | Already reviewed | Comment contains `<!-- review-dev -->` | Ask user before posting duplicate |
 | Large diff (>5000 lines) | additions + deletions from PR JSON | Warn, still proceed |
-| Auth failure | `gh` returns 403/404 | "Unable to access PR. Check `gh auth status`." |
+| Auth failure | `forge` non-zero exit | "Unable to access PR. Check `forge auth-check`." |

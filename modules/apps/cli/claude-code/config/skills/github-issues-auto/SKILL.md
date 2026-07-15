@@ -47,7 +47,7 @@ This skill posts two kinds of agent-authored content to GitHub: the
 prepended to each PR body. Both must read like a developer wrote them, not
 like a tool announcing what it did.
 
-Before any call to `gh pr comment` or `gh pr edit --body`, run the body
+Before any call to `forge pr-comment` or `forge pr-edit-body`, run the body
 through the [`humanizer`](../humanizer/SKILL.md) skill. Hard constraints for
 posted content:
 
@@ -89,14 +89,25 @@ proceed without further interaction.
   immediately start issue N+1. PRs sit in ready for review until the human
   merges them.
 
+## Provider awareness
+
+Forge calls go through `forge`, the provider-aware helper, so the mechanical
+steps (fetch issue, comment, edit PR body/base) run on GitHub or on the
+self-hosted Forgejo per the repo's `origin` remote. One caveat: the stacked-PR
+**merge-order and auto-retarget race** described in step 2e is written against
+GitHub's exact squash-merge behaviour. Forgejo's stacked-PR semantics differ
+and this skill does not automate them, so on a Forgejo repo treat that guidance
+as "verify merge order and base refs manually" rather than a GitHub-specific
+race. Auto-merge (step 2f) is a GitHub concept; on Forgejo the underlying
+`github-issue` path never enables it, so there is nothing to disable.
+
 ## Step 1: Pre-flight
 
 Verify the queue. Each issue must exist and be open:
 
 ```bash
 for n in $ISSUES; do
-  gh issue view "$n" --json number,title,state,labels \
-    -q '{n: .number, t: .title, s: .state}'
+  forge issue-json "$n" | jq '{n: .number, t: .title, s: .state}'
 done
 ```
 
@@ -178,7 +189,7 @@ template below is a shape, not verbatim text; write each entry as natural
 prose:
 
 ```bash
-gh pr comment <PR> --body "$(cat <<'EOF'
+forge pr-comment <PR> "$(cat <<'EOF'
 <!-- github-issues-auto:decisions -->
 ## Autonomous decisions
 
@@ -196,7 +207,7 @@ EOF
 
 Decisions made *after* the PR exists can be posted individually as they happen.
 Each individual post also goes through the humanizer pass before
-`gh pr comment`.
+`forge pr-comment`.
 
 ### 2d. Force completion of every review finding
 
@@ -236,8 +247,8 @@ the squash-merge race described below.
 **Parent or only PR.** Standard merge-order block:
 
 ```bash
-gh pr view <PR> --json body -q '.body' > /tmp/body.md
-gh pr edit <PR> --body "$(cat <<EOF
+forge pr-json <PR> | jq -r '.body' > /tmp/body.md
+forge pr-edit-body <PR> "$(cat <<EOF
 > [!IMPORTANT]
 > PR <i> of <total> in an autonomous batch.
 > This PR is **not** set to auto-merge. Review and merge manually.
@@ -259,8 +270,8 @@ from any branch, so the child's content silently never lands on main even
 though the UI marks it merged.
 
 ```bash
-gh pr view <PR> --json body -q '.body' > /tmp/body.md
-gh pr edit <PR> --body "$(cat <<EOF
+forge pr-json <PR> | jq -r '.body' > /tmp/body.md
+forge pr-edit-body <PR> "$(cat <<EOF
 > [!CAUTION]
 > PR <i> of <total> in an autonomous batch. **Stacked on #<parent>.**
 >
@@ -268,11 +279,11 @@ gh pr edit <PR> --body "$(cat <<EOF
 > parent's branch to \`main\`:
 >
 > \`\`\`bash
-> gh pr view <PR> --json baseRefName -q '.baseRefName'   # expect: main
+> forge pr-json <PR> | jq -r '.base'   # expect: main
 > \`\`\`
 >
 > If it still shows the parent's branch, GitHub has not finished the
-> auto-retarget yet. Wait for it, or run \`gh pr edit <PR> --base main\`
+> auto-retarget yet. Wait for it, or run \`forge pr-edit-base <PR> main\`
 > manually. Merging before this is a known squash-merge race that drops
 > this PR's content into an unreachable commit.
 >
@@ -293,31 +304,33 @@ update the merge-order block on every PR to the complete list.
 
 ### 2f. Disable auto-merge and move on
 
-`github-issue` enables auto-merge automatically when both reviews come back
-clean. **Override this.** Immediately disable auto-merge so the PR sits in
-ready-for-review until the human merges it manually:
+On GitHub, `github-issue` enables auto-merge automatically when both reviews
+come back clean. **Override this.** Immediately disable auto-merge so the PR
+sits in ready-for-review until the human merges it manually. Auto-merge is a
+GitHub concept, so this whole step is host-gated:
 
 ```bash
-# Check current state
-auto_merge=$(gh pr view <PR> --json autoMergeRequest -q '.autoMergeRequest')
+if [ "$(forge host)" = github ]; then
+  # Check current state
+  auto_merge=$(gh pr view <PR> --json autoMergeRequest -q '.autoMergeRequest')
 
-# If anything is set, disable it
-if [ "$auto_merge" != "null" ] && [ -n "$auto_merge" ]; then
-  gh pr merge <PR> --disable-auto
+  # If anything is set, disable it
+  if [ "$auto_merge" != "null" ] && [ -n "$auto_merge" ]; then
+    gh pr merge <PR> --disable-auto
+  fi
+
+  # Verify it's off (expect: null)
+  gh pr view <PR> --json autoMergeRequest -q '.autoMergeRequest'
 fi
-```
-
-Verify it's off:
-
-```bash
-gh pr view <PR> --json autoMergeRequest -q '.autoMergeRequest'
-# expect: null
 ```
 
 If `gh pr merge --disable-auto` fails (e.g., the repo's branch protection
 prevents disabling), surface the failure in the final report so the human
 knows to disable it manually before the merge condition is met. Do not
 proceed silently.
+
+On Forgejo the `github-issue` path never enables auto-merge, so there is
+nothing to disable here; the PR is already open in ready-for-review.
 
 Then:
 
@@ -343,7 +356,7 @@ Merge in this order to avoid conflicts.
 ...
 
 After you merge PR <i>, the next PR's base ref needs to retarget to main once
-GitHub detects the merge. Run `gh pr edit <next> --base main` if it doesn't
+the forge detects the merge. Run `forge pr-edit-base <next> main` if it doesn't
 happen automatically.
 
 For stacked batches, after all PRs are merged on GitHub, verify each one

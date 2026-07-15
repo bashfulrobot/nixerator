@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Create conventional commits, push, tagging, or GitHub releases.
+description: Create conventional commits, push, tagging, or GitHub/Forgejo releases.
 argument-hint: "[--tag <major|minor|patch>] [--release]"
 allowed-tools: ["Bash", "Grep", "Read"]
 ---
@@ -26,12 +26,12 @@ Format: `<type>(<scope>): <description>`
 
 - Optional flags via $ARGUMENTS:
   - `--tag <level>`: Tag version (major|minor|patch).
-  - `--release`: Create GitHub release (requires --tag).
+  - `--release`: Create a release — GitHub or Forgejo, per the repo's remote (requires --tag).
 
 ## Outputs
 
 - One or more signed commits.
-- Optional signed tag and GitHub release.
+- Optional signed tag and release (GitHub or Forgejo).
 
 ## Preflight
 
@@ -59,4 +59,4 @@ If the log doesn't exist or is empty, fall back to inferring intent from the dif
 8. For each: `git commit -S -m "<type>(<scope>): <description>"`
 9. If --tag: `git tag -s v<version> -m "Release v<version>"`
 10. Always push: `git push && git push --tags` (if tagged).
-11. If --release: `gh release create v<version> --notes-from-tag`.
+11. If --release: `forge release-create v<version> --notes-from-tag` (dispatches to a GitHub or Forgejo release based on the repo's remote).
