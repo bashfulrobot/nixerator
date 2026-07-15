@@ -154,9 +154,13 @@ how long). That single axis is the most useful triage signal; lead with it.
 ### Step 5 — Walk the actions (Phase 2, interactive)
 
 Go task by task through the batch. For each, show the current-state picture and
-the recommended next action, then do what Dustin decides. Available actions and
-their gating rules are in `references/assessment-schema.md` ("Actions"). The
-non-negotiables:
+the recommended next action, then do what Dustin decides. **Include the last one
+or two real messages** from wherever the ball sits (`recent_context[]` — the
+Slack thread, email, or task comment, quoted with who/when), not just your
+summary. Seeing the actual words is what lets Dustin trust the ball-owner and
+staleness call at a glance instead of opening the thread himself. Available
+actions and their gating rules are in `references/assessment-schema.md`
+("Actions"). The non-negotiables:
 
 - **Recommend, never auto-act.** Even a `likely-done` task is only ever
   *proposed* for completion — Dustin confirms every complete / reschedule /

@@ -64,6 +64,12 @@ def card(a: dict) -> str:
         for s in a.get("sources", []))
     unver = "".join(f"<li>{esc(u)}</li>" for u in a.get("unverified", []))
     unver_block = f'<div class="unver"><b>Unverified</b><ul>{unver}</ul></div>' if unver else ""
+    ctx_rows = "".join(
+        f'<div class="ctxline"><span class="who">{esc(c.get("who"))}</span>'
+        f'<span class="when">{esc(c.get("when"))}</span>'
+        f'<span class="ex">{esc(c.get("excerpt"))}</span></div>'
+        for c in a.get("recent_context", []))
+    ctx_block = f'<div class="ctx"><b>Last word</b>{ctx_rows}</div>' if ctx_rows else ""
     conf = esc(a.get("confidence"))
     days = a.get("days_silent")
     stale = f'<span class="pill stale">{esc(days)}d silent</span>' if days else ""
@@ -81,6 +87,7 @@ def card(a: dict) -> str:
       <p class="next"><b>Next:</b> {esc(a.get('next_action'))}
          <span class="pill act">{esc(a.get('action_type'))}</span>
          <span class="pill conf">conf: {conf}</span></p>
+      {ctx_block}
       <details><summary>sources</summary><ul>{srcs}</ul>{unver_block}</details>
     </article>"""
 
@@ -103,6 +110,10 @@ header{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
 .pill.prio{font-weight:700}.pill.owner-them{background:#c8102e;color:#fff}
 .pill.owner-me{background:#0a7d3c;color:#fff}.pill.stale{background:#e0a800;color:#111}
 .what{color:var(--fg)}.next{margin:.3rem 0}.unver{color:#e0a800;font-size:.85rem}
+.ctx{font-size:.82rem;border-left:2px solid var(--line);padding:.15rem 0 .15rem .5rem;margin:.3rem 0;color:var(--mut)}
+.ctx b{display:block;text-transform:uppercase;letter-spacing:.03em;font-size:.7rem;margin-bottom:.15rem}
+.ctxline{margin:.1rem 0}.ctxline .who{font-weight:600;color:var(--fg)}.ctxline .when{margin:0 .4rem;opacity:.7}
+.ctxline .ex{font-style:italic}
 details{margin-top:.3rem;font-size:.85rem;color:var(--mut)}summary{cursor:pointer}
 .empty{color:var(--mut);font-style:italic}
 """

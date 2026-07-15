@@ -28,6 +28,10 @@ extra keys break collation and the digest builder.
     {"source": "todoist", "citation": "task comment 2026-06-20: 'waiting on Priya for cert bundle'"},
     {"source": "gmail", "citation": "thread 'mTLS bundle' — last msg from Dustin 2026-06-28, no reply since"}
   ],
+  "recent_context": [
+    {"source": "gmail", "who": "Dustin", "when": "2026-06-28", "excerpt": "Following up on the cert bundle — can you send the PEM when you get a sec?"},
+    {"source": "slack", "who": "Priya", "when": "2026-06-20", "excerpt": "on it, should have it to you early next week"}
+  ],
   "unverified": ["Freshservice FS-4471 state — no API; task claims it's still open"]
 }
 ```
@@ -50,6 +54,13 @@ extra keys break collation and the digest builder.
 - **`sources[]`** — one entry per source consulted, each with a **concrete**
   citation (thread subject + date, comment date, ticket key + status, file path).
   "checked Slack" is not a citation.
+- **`recent_context[]`** — the last **one or two** actual messages/comments from
+  the freshest relevant conversation (the Slack thread, the email, the task
+  comments — wherever the ball currently sits). Each: `source`, `who`, `when`,
+  and an `excerpt` trimmed to ~200 chars. This is what Dustin reads at a glance
+  to sanity-check the ball-owner call without opening the thread himself — so
+  quote the real words, don't summarize them. Empty only if there genuinely is
+  no conversation to quote.
 - **`unverified[]`** — everything the subagent could not confirm, especially
   GAP sources (Freshservice) and anything asserted only by the task itself.
 

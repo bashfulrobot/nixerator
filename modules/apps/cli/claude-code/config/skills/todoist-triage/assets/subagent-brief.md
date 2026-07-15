@@ -50,6 +50,11 @@ you consulted gets a **concrete** citation (thread subject + date, comment date,
 ticket key + status, file path — not "checked Slack"). Everything you couldn't
 confirm goes in `unverified[]`.
 
+Also fill `recent_context[]` with the **last one or two real messages** from
+wherever the ball currently sits (the Slack thread, the email, the task
+comments) — actual quoted words, `who`/`when`/`excerpt` (~200 chars each), not a
+summary. Dustin reads these to sanity-check the ball-owner call at a glance.
+
 ```json
 {
   "task_id": "...", "title": "...", "project": "...", "due": "...", "priority": "p1",
@@ -62,6 +67,7 @@ confirm goes in `unverified[]`.
   "draft_ready": true,
   "confidence": "high|medium|low",
   "sources": [{"source": "gmail", "citation": "thread 'X' — last msg from Dustin 2026-06-28, no reply"}],
+  "recent_context": [{"source": "slack", "who": "Priya", "when": "2026-06-20", "excerpt": "on it, should have it early next week"}],
   "unverified": ["Freshservice FS-4471 state — no API"]
 }
 ```
