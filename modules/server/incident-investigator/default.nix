@@ -52,6 +52,7 @@ let
     pkgs.coreutils
     pkgs.gnugrep
     pkgs.gnused
+    pkgs.gawk # rightsize computes its percentile label with awk on every run; gcq's help uses it too
     pkgs.findutils
     pkgs.cacert
   ];
