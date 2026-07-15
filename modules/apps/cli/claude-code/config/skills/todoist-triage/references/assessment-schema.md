@@ -92,9 +92,9 @@ then act only on Dustin's decision in that turn.
 
 | Action | Gating |
 |---|---|
-| **Post summary comment** on the task | Humanize first. **Check existing comments for a recent triage note — update or skip, never duplicate.** Internal, so no send-gate, but still confirm. |
-| **Draft email reply** | Gmail draft via `gws`, correctly threaded (In-Reply-To / References / threadId, clean To). **Never auto-send** — leave the draft for Dustin unless he says "send" this turn. Humanize (customer-facing → `writing-style`). |
-| **Prepare Slack message** | Copy to clipboard or note it's for `/slack-post`. **Never** post via the Slack MCP. Humanize. |
+| **Post summary / work-log comment** on the task | Humanize first. Record every action here (the comments are Dustin's work log), and link any URL in Markdown `[label](url)` form. **Check existing comments for a recent note — update or skip, never duplicate.** Internal, so no send-gate, but still confirm. See `references/slack-message-pipeline.md` (work-log discipline). |
+| **Draft email reply** | Gmail draft via `gws`, correctly threaded (In-Reply-To / References / threadId, clean To). **Never auto-send** — leave the draft for Dustin unless he says "send" this turn. Humanize (customer-facing → `writing-style`). Log it on the task with a `[label](url)` link. |
+| **Prepare/send Slack message** | Follow the hard-gated pipeline in `references/slack-message-pipeline.md`: draft → humanizer → text-polish rules → **mandatory preview** → **explicit send** → `/slack-post` (**never** the Slack MCP) → capture permalink → log on the task. |
 | **Reschedule** | `td task reschedule <ref> <date>` — preserves recurrence and time-of-day. Preview with `--dry-run` first. Confirm. |
 | **Complete** | `td task complete <ref>` (`--forever` to stop recurrence). Only ever *recommended*; Dustin confirms every completion. |
 | **Downgrade / relabel** | `td task update <ref> --priority pN` / `--labels ...`. Confirm. |

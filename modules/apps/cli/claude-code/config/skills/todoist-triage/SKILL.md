@@ -169,18 +169,29 @@ actions and their gating rules are in `references/assessment-schema.md`
 - **Drafted, never sent.** Anything that would reach a customer or teammate —
   email, Slack, external comment — is prepared as a draft and left for Dustin,
   unless he says "send it" in that same turn. Email → Gmail draft via `gws`,
-  correctly threaded. Slack → clipboard or a note for `/slack-post`; **never**
-  post via the Slack MCP.
+  correctly threaded.
+- **Slack goes through the hard-gated pipeline** in
+  `references/slack-message-pipeline.md`: draft → humanizer → text-polish rules →
+  **mandatory preview** → **explicit "send" from Dustin** → post via `/slack-post`
+  (**never** the Slack MCP) → capture the permalink → log it on the task. The
+  text-polish pass must leave *only* the final message text; AI process must
+  never leak into what gets sent.
+- **Keep the work log current, and link everything.** The task's comments are
+  Dustin's work log — after every action, record it as a comment, and link any
+  URL in Markdown `[label](url)` format (the Slack message just posted, the email
+  thread, a doc, a ticket). Full rules in
+  `references/slack-message-pipeline.md`. Bare URLs and "see Slack" don't cut it.
 - **Humanize outward prose.** Any text Dustin will read-and-send — task summary
   comments, email drafts, Slack drafts — goes through the `humanizer` skill
   first (customer-facing comms: `writing-style`, which folds in humanizer). Not
   code, IDs, or the structured digest itself.
-- **Idempotent comments.** Before posting a summary comment, check the task's
-  existing comments for a recent triage note and update/skip rather than
+- **Idempotent comments.** Before posting a summary/work-log comment, check the
+  task's existing comments for a recent note and update/skip rather than
   duplicating.
 - **Report faithfully.** If a nudge was drafted and not sent, the task comment
-  and your summary say "drafted," not "sent." If a source couldn't be verified,
-  it stays in `unverified[]` — don't launder a guess into a fact.
+  and your summary say "drafted," not "sent." A sent message is logged as "sent"
+  with its permalink. If a source couldn't be verified, it stays in
+  `unverified[]` — don't launder a guess into a fact.
 
 Then move to the next batch (Step 3) until scope is exhausted.
 
@@ -220,6 +231,10 @@ subagent brief, but hold them yourself when running single-task mode:
 - `references/source-resolution.md` — the per-customer source-resolution map and
   the `skill-cache` caching convention (cache stable name→id mappings only;
   never task contents/dates/status). Read when resolving customer identifiers.
+- `references/slack-message-pipeline.md` — work-log discipline (keep the task
+  comments current, link everything in `[label](url)`) and the hard-gated Slack
+  send pipeline (humanizer → text-polish → preview → explicit send → `/slack-post`
+  → log the permalink). Read in Step 5 before any Slack message or work-log note.
 - `assets/subagent-brief.md` — the verbatim brief handed to each Phase-1
   assessment subagent.
 - `scopes.json` — named scope presets (version-controlled defaults; Dustin
@@ -237,8 +252,8 @@ subagent brief, but hold them yourself when running single-task mode:
 - **`gws` is Dustin's Kong email** (`dustin.krysak@konghq.com`) — verify in
   Step 0 before any email work.
 - **Never send Slack via the MCP.** The only send path is the `slack-post`
-  skill, and only when Dustin explicitly asks. MCP read tools are fine for
-  research.
+  skill, and only when Dustin explicitly asks (via the gated pipeline in
+  `references/slack-message-pipeline.md`). MCP read tools are fine for research.
 - **Never surface secret values** — not from 1Password, not from rendered
   secrets, not even a prefix or length. Item titles, field labels, `op://` paths
   are fine.
