@@ -31,6 +31,7 @@ docs:
 rebuild:
     #!/usr/bin/env bash
     set -uo pipefail
+    just secrets-nudge
     just pre-rebuild interactive
     log="{{rebuild_log}}"
     rc=0
@@ -94,6 +95,7 @@ hyprflake-test path="/home/dustin/git/hyprflake":
         gum style --foreground 196 "hyprflake path not found: {{path}}"
         exit 1
     fi
+    just secrets-nudge
     log="{{rebuild_log}}"
     rc=0
     gum spin --spinner dot --title "Rebuilding with local hyprflake ({{path}})..." \
@@ -118,6 +120,7 @@ hyprflake-test path="/home/dustin/git/hyprflake":
 upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
+    just secrets-nudge
     just pre-rebuild interactive
     log="{{upgrade_log}}"
     cp flake.lock flake.lock-backup-{{timestamp}}
@@ -383,6 +386,27 @@ capture-resolve relpath side:
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
 
+# Secrets freshness nudge, run at the top of every switch recipe. A rebuild
+# reads ~/.config/nixos-secrets/secrets.json at eval time, so a stale render can
+# bake outdated values into the system. This is a pure local mtime check -- no
+# 1Password, no network -- so it never slows or blocks a rebuild. It stays quiet
+# unless secrets.json.tpl has moved ahead of the last render (a secret was added
+# or rotated but not yet rendered on this host) or the host has never rendered at
+# all. In that case a human or agent gets a 1s window to abort and run
+# `just render-secrets`; otherwise the rebuild continues.
+[private]
+secrets-nudge:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    tpl="secrets.json.tpl"
+    cache="$HOME/.config/nixos-secrets/secrets.json"
+    if [[ -f "$tpl" ]] && { [[ ! -f "$cache" ]] || [[ "$tpl" -nt "$cache" ]]; }; then
+        echo "⚠ secrets.json.tpl has changed since the last render (or was never rendered on this host)."
+        echo "  If a secret was added or rotated, run: just render-secrets"
+        echo "  Continuing rebuild in 1s -- Ctrl-C to abort."
+        sleep 1
+    fi
+
 # Pre-rebuild: capture runtime ~/.claude/* edits back into the source tree
 # before activation overwrites them with the previously-captured version.
 # Without this, any change made directly to a managed file (CLAUDE.md,
@@ -618,6 +642,7 @@ quiet-rebuild:
         echo "⚠ Uncommitted plugin changes from a previous sync. Commit or discard before rebuilding."
     fi
 
+    just secrets-nudge
     just pre-rebuild quiet
 
     echo "Rebuilding (quiet mode)..."
@@ -647,6 +672,7 @@ quiet-rebuild:
 quiet-upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
+    just secrets-nudge
     just pre-rebuild quiet
     echo "Upgrading (quiet mode)..."
     cp flake.lock flake.lock-backup-{{timestamp}}
