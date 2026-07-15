@@ -128,6 +128,19 @@ cmd_web_host() {
   esac
 }
 
+# forge blob-base <sha> — base URL for linking a file at a commit, minus the
+# trailing "/<path>#Ln". The path style differs by forge: GitHub serves blobs
+# at /blob/<sha>/<path>, Forgejo/Gitea at /src/commit/<sha>/<path>. Callers
+# append "/<file>#L<line>".
+cmd_blob_base() {
+  local sha="$1" repo
+  repo="$(_repo)"
+  case "$(_host)" in
+    github) echo "https://github.com/${repo}/blob/${sha}" ;;
+    forgejo) echo "https://$(cmd_web_host)/${repo}/src/commit/${sha}" ;;
+  esac
+}
+
 cmd_default_branch() {
   case "$(_host)" in
     github) gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' ;;
@@ -164,6 +177,9 @@ cmd_pr_current() { pr_current; }
 
 # Normalised PR object. Keys: number,title,body,base,head,headSha,url,state,
 # additions,deletions,changedFiles.
+# NOTE: `state` is passed through verbatim, so its casing differs by provider
+# (GitHub: OPEN/CLOSED/MERGED; Forgejo/Gitea: open/closed). Callers must not
+# compare it case-sensitively across forges.
 cmd_pr_json() {
   local n
   n="$(_resolve_pr "${1:-}")"
@@ -353,6 +369,17 @@ cmd_issue_create() {
   esac
 }
 
+# Issue comment bodies, one per line (issue-json returns only a count, so
+# callers that need the actual comment text — e.g. untrusted-input scanning —
+# use this). In Gitea PRs and issues share the /issues/{n}/comments endpoint.
+cmd_issue_comments() {
+  local n="$1"
+  case "$(_host)" in
+    github) gh issue view "$n" --json comments -q '.comments[].body' ;;
+    forgejo) _fj GET "repos/$(_repo)/issues/${n}/comments" | jq -r '.[].body' ;;
+  esac
+}
+
 # forge issue-comment <n> <body>
 cmd_issue_comment() {
   local n="$1" body="$2"
@@ -439,6 +466,7 @@ forge — provider-aware git-forge helper (GitHub via gh, Forgejo via REST)
   forge host                          github | forgejo
   forge repo                          owner/name
   forge web-host                      github.com | git.srvrs.co (for link allowlists)
+  forge blob-base <sha>               base URL for file links at a commit
   forge default-branch
   forge auth-check                    exit 0 if authenticated
 
@@ -454,8 +482,9 @@ forge — provider-aware git-forge helper (GitHub via gh, Forgejo via REST)
   forge pr-merge     <n> [squash|merge|rebase]
   forge pr-labels    <n> <label>...
 
-  forge issue-json    <n>            normalised issue object
-  forge issue-list    [state] [limit]
+  forge issue-json     <n>           normalised issue object (comments = count)
+  forge issue-comments <n>           issue comment bodies, one per line
+  forge issue-list     [state] [limit]
   forge issue-create  <title> <body> [label]...     -> URL
   forge issue-comment <n> <body>
   forge issue-close   <n>
@@ -475,6 +504,7 @@ main() {
     host) cmd_host "$@" ;;
     repo) cmd_repo "$@" ;;
     web-host) cmd_web_host "$@" ;;
+    blob-base) cmd_blob_base "$@" ;;
     default-branch) cmd_default_branch "$@" ;;
     auth-check) cmd_auth_check "$@" ;;
     pr-current) cmd_pr_current "$@" ;;
@@ -489,6 +519,7 @@ main() {
     pr-merge) cmd_pr_merge "$@" ;;
     pr-labels) cmd_pr_labels "$@" ;;
     issue-json) cmd_issue_json "$@" ;;
+    issue-comments) cmd_issue_comments "$@" ;;
     issue-list) cmd_issue_list "$@" ;;
     issue-create) cmd_issue_create "$@" ;;
     issue-comment) cmd_issue_comment "$@" ;;

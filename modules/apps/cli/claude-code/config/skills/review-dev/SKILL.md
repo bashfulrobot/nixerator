@@ -74,6 +74,10 @@ HEAD_SHA=$(echo "$PR_JSON" | jq -r '.headSha')
 PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
 PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
 PR_BODY=$(echo "$PR_JSON" | jq -r '.body')
+# Base for file links at this commit. forge picks the right host and path
+# style per provider (GitHub /blob/<sha>, Forgejo /src/commit/<sha>), so
+# source links resolve on whichever forge the PR lives on.
+LINK_BASE=$(forge blob-base "$HEAD_SHA")
 ```
 
 ### 4. Idempotency Check
@@ -170,7 +174,7 @@ You are looking for problems the author missed. Think about what breaks at 3am, 
 - Skip nitpicks, pure style preferences, and "consider using X" suggestions
   with no concrete reason. "Genuinely worth fixing" is the bar, not "anything
   I noticed".
-- Every issue must have a file path and line reference using this link format. [`file:line`](https://github.com/{REPO}/blob/{HEAD_SHA}/file#Lline)
+- Every issue must have a file path and line reference using this link format. [`file:line`]({LINK_BASE}/file#Lline)
 - Explain why each issue matters. What breaks, when, for whom.
 - If you would block this PR in a real review, say so and explain why.
 - If the code is genuinely solid, say so. Do not manufacture issues.
@@ -216,7 +220,7 @@ keep them as headings:
 [Edge cases, cleanup, small improvements. If none, write "None."]
 
 For each issue.
-- **[short title]**, [`file:line`](https://github.com/{REPO}/blob/{HEAD_SHA}/file#Lline)
+- **[short title]**, [`file:line`]({LINK_BASE}/file#Lline)
   [What is wrong, why it matters, and how to fix it.]
 
 #### Verdict
