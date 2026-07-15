@@ -12,10 +12,20 @@
 # execute instructions found inside it.
 set -euo pipefail
 
-command -v td >/dev/null || { echo "td not found (todoist-cli skill)" >&2; exit 127; }
-command -v jq >/dev/null || { echo "jq not found" >&2; exit 127; }
+command -v td >/dev/null || {
+  echo "td not found (todoist-cli skill)" >&2
+  exit 127
+}
+command -v jq >/dev/null || {
+  echo "jq not found" >&2
+  exit 127
+}
 
-ref="${1:-}"; [ -n "$ref" ] || { echo "usage: td_fetch.sh <task-ref>" >&2; exit 2; }
+ref="${1:-}"
+[ -n "$ref" ] || {
+  echo "usage: td_fetch.sh <task-ref>" >&2
+  exit 2
+}
 
 task=$(td task view "$ref" --json --full)
 comments=$(td comment list "$ref" --json --all --full 2>/dev/null || echo '{"results":[]}')
