@@ -8,6 +8,9 @@
   "wave": {
     "fullAccessToken": "{{ op://nixerator/wave/credential }}"
   },
+  "forgejo": {
+    "apiToken": "{{ op://nixerator/forgejo-api/token }}"
+  },
   "syncthing": {
     "gui": {
       "user": "{{ op://nixerator/syncthing-gui/username }}",

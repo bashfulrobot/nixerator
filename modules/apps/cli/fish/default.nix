@@ -41,7 +41,16 @@ in
           if test -f $_secrets && command -q jq
             set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
             set -gx GRAFANA_TOKEN (jq -r '.grafana.dashboardsToken' $_secrets)
+            # Forgejo (git.srvrs.co) REST API token for Claude Code skills that
+            # talk to the self-hosted Forgejo instance. Same runtime-render
+            # pattern as GRAFANA_TOKEN so it never enters the Nix store. Skills
+            # curl the Gitea-compatible API with this; the `tea` CLI reads its
+            # own ~/.config/tea/config.yml (rendered by the git module).
+            set -gx FORGEJO_TOKEN (jq -r '.forgejo.apiToken' $_secrets)
           end
+          # Public base URL for the Forgejo API — not a secret, always set so
+          # skills/tea know where to point even before the token is rendered.
+          set -gx FORGEJO_URL https://git.srvrs.co
         '';
 
         # Shell aliases (for programmatic/script-facing use)
