@@ -96,11 +96,16 @@ let
     "SHARED_SECRET=${cfg.sharedSecretRef}"
     "PUSHOVER_TOKEN=${cfg.pushoverTokenRef}"
     "PUSHOVER_USER=${cfg.pushoverUserRef}"
-    # gcq (read-only Grafana Cloud queries) reads these; the token stays an
-    # op:// ref resolved by `op run`, the URL is public. investigate.sh puts its
-    # own dir on PATH so the children see `gcq`.
-    "GRAFANA_URL=${cfg.grafanaUrl}"
-    "GRAFANA_TOKEN=${cfg.grafanaTokenRef}"
+    # gcq (read-only Grafana Cloud queries) reads these. The token and instance
+    # ids stay op:// refs resolved by `op run`; the URLs are public. gcq queries
+    # Mimir/Loki directly with a least-privilege metrics:read+logs:read token,
+    # not the Admin operator token. investigate.sh puts its own dir on PATH so the
+    # children see `gcq`, and strips the other secrets from claude's env.
+    "GRAFANA_READ_TOKEN=${cfg.grafanaReadTokenRef}"
+    "PROM_URL=${cfg.promUrl}"
+    "PROM_USER=${cfg.promUserRef}"
+    "LOKI_URL=${cfg.lokiUrl}"
+    "LOKI_USER=${cfg.lokiUserRef}"
     "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
   ]
   ++ lib.optional (cfg.claudeModel != "") "CLAUDE_MODEL=${cfg.claudeModel}";
@@ -182,27 +187,56 @@ in
       description = "1Password `op://` reference for the Pushover user key.";
     };
 
-    grafanaUrl = lib.mkOption {
+    grafanaReadTokenRef = lib.mkOption {
       type = lib.types.str;
-      default = "https://bashfulrobot.grafana.net";
+      default = "op://automation/incident-investigator/grafana-cloud-read";
       description = ''
-        Base URL of the Grafana Cloud instance the `gcq` read wrapper queries. It
-        reaches Mimir/Loki through this instance's datasource proxy
-        (`/api/datasources/proxy/uid/<uid>/...`), so this is the hosted Grafana
-        URL, not a raw Mimir/Loki endpoint. Not a secret; passed as `GRAFANA_URL`.
+        1Password `op://` reference for the Grafana Cloud access-policy token the
+        `gcq` read wrapper uses (scoped `metrics:read` + `logs:read`). This is a
+        least-privilege read token, deliberately NOT the Admin
+        `grafana-cloud-operator` token: if the investigator is ever compromised,
+        this token can read metrics and logs and nothing else. Resolved at
+        runtime via `op run` and passed as `GRAFANA_READ_TOKEN`; never on argv or
+        disk. Mint the access policy + token in Grafana Cloud and store it at this
+        path before enabling the read path.
       '';
     };
 
-    grafanaTokenRef = lib.mkOption {
+    promUrl = lib.mkOption {
       type = lib.types.str;
-      default = "op://automation/grafana-cloud-operator/token";
+      default = "https://prometheus-us-central1.grafana.net/api/prom";
       description = ''
-        1Password `op://` reference for the Grafana instance service-account
-        token `gcq` presents as a Bearer to read metrics/logs history. Reuses the
-        shared Admin operator token (the same item grafana-operator and
-        synthetic-monitoring use), so no separate access-policy token is needed.
-        Resolved at runtime via `op run` and passed as `GRAFANA_TOKEN`; never on
-        argv or disk.
+        Mimir (Prometheus) query base URL `gcq` queries directly. Not a secret;
+        passed as `PROM_URL`. `gcq` refuses any non-`*.grafana.net` host.
+      '';
+    };
+
+    promUserRef = lib.mkOption {
+      type = lib.types.str;
+      default = "op://automation/grafana-cloud-darkstar/metrics-username";
+      description = ''
+        1Password `op://` reference for the numeric Mimir instance id, used as the
+        HTTP basic-auth user for metric queries. Reuses the write path's
+        `metrics-username` field. Passed as `PROM_USER`.
+      '';
+    };
+
+    lokiUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "https://logs-prod-us-central1.grafana.net";
+      description = ''
+        Loki base URL `gcq` queries directly. Not a secret; passed as `LOKI_URL`.
+        `gcq` refuses any non-`*.grafana.net` host.
+      '';
+    };
+
+    lokiUserRef = lib.mkOption {
+      type = lib.types.str;
+      default = "op://automation/grafana-cloud-darkstar/logs-username";
+      description = ''
+        1Password `op://` reference for the numeric Loki instance id, used as the
+        HTTP basic-auth user for log queries. Reuses the write path's
+        `logs-username` field. Passed as `LOKI_USER`.
       '';
     };
 
