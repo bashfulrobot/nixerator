@@ -40,6 +40,7 @@ let
   # authenticates via ~/.claude (HOME is set below); kubectl/flux read the
   # read-only darkstar kubeconfig; op resolves the op:// refs at runtime.
   runtimePath = lib.makeBinPath [
+    pkgs.bash # investigate.sh runs under `#!/usr/bin/env bash`; env needs bash on PATH
     pkgs.python3
     pkgs.llm-agents.claude-code
     pkgs.kubectl
