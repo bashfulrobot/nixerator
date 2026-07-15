@@ -85,6 +85,6 @@ Concision:
 Anti-slop (prose paragraphs only, not bullets):
 - never use: additionally, crucial, delve, enhance, foster, landscape, pivotal, showcase, testament, underscore, vibrant, tapestry, intricate, garner, enduring, groundbreaking, nestled, renowned, seamless
 - simple verbs: "is" not "serves as", "has" not "boasts"
-- **never use em dashes (—) or en dashes (–)** — replace with a comma, or a period between two complete sentences. Absolute.
-- prefer commas; replace most colons with a comma or a new sentence (keep a colon only to introduce a bullet list); semicolons only where grammar demands, sparingly
+- **never use em dashes (—) or en dashes (–)**, replace with a comma, or a period between two complete sentences. Absolute. A hyphen (-) used as a dash gets the same treatment: a spaced hyphen setting off a clause (like this - here) or standing in for a pause becomes a comma or period. Leave hyphens inside a word (as-is, data-plane) and in code, URLs, ranges, and negatives alone
+- prefer commas; replace most colons with a comma or a new sentence, including a label-lead colon ("Last thing: now that ..." becomes "Last thing, now that ..."); keep a colon only to introduce a bullet list; semicolons only where grammar demands, sparingly
 - no rule-of-three, no negative parallelisms ("not just X, but Y"), no significance inflation, no promotional or sycophantic language
