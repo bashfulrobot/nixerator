@@ -185,10 +185,10 @@
     };
 
     # Read-only Claude Code investigator for darkstar Grafana alerts (the srv
-    # side of homelab's incident-investigator/). Left DISABLED until the
-    # operator-owned prerequisites below are in place; flipping enable = true
-    # before they exist just yields a failing unit (the module renders no
-    # secrets into the store, so eval always succeeds).
+    # side of homelab's incident-investigator/). Enabled now that the
+    # operator-owned prerequisites below are met. The module renders no secrets
+    # into the store, so eval always succeeds; a missing prerequisite would show
+    # as a failing unit, not an eval error.
     #
     # Prerequisites (see homelab incident-investigator/README.md):
     #   1. Clone homelab on srv at ~/git/homelab (repoDir default).
@@ -208,8 +208,8 @@
     #      token, plus a notification-policy route selecting alerts to auto-
     #      investigate. Same pattern as pushover-dustin.
     incidentInvestigator = {
-      enable = false;
-      tunnel.enable = false;
+      enable = true;
+      tunnel.enable = true;
     };
 
   };
