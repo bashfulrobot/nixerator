@@ -33,6 +33,25 @@ let
     text = builtins.readFile ./gcom.sh;
   };
 
+  # forge — provider-aware git-forge helper. One CLI that dispatches to GitHub
+  # (via gh) or the self-hosted Forgejo (via its Gitea-compatible REST API +
+  # $FORGEJO_TOKEN) based on the repo's origin remote. Skills call `forge <verb>`
+  # instead of `gh` directly, so the gh-vs-Forgejo split lives in one file.
+  forge = pkgs.writeShellApplication {
+    name = "forge";
+
+    runtimeInputs = with pkgs; [
+      git
+      gh
+      jq
+      curl
+      coreutils # base64
+      gnused
+    ];
+
+    text = builtins.readFile ./forge.sh;
+  };
+
   # Build-time-generated .gitattributes covering every language mergiraf
   # currently supports. Stays in sync with the installed mergiraf version.
   mergirafAttributes = pkgs.runCommand "mergiraf-gitattributes" { } ''
@@ -56,6 +75,7 @@ in
     # System-level packages
     environment.systemPackages = with pkgs; [
       gcom
+      forge
       git
       git-crypt
       git-filter-repo

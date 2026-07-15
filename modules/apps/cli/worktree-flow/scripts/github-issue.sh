@@ -49,6 +49,21 @@ declare -A VALID_TRANSITIONS=(
 
 # ── Helper functions ─────────────────────────────────────────────────────────
 
+# github-issue automates GitHub's issue/PR/CI/auto-merge lifecycle end to end,
+# and every subcommand shells out to `gh`, which only speaks to GitHub. On a
+# Forgejo (or any non-GitHub) origin those calls fail confusingly partway
+# through, so guard up front with an actionable message. The self-hosted
+# Forgejo (git.srvrs.co) is driven manually via the provider-aware `forge`
+# helper and the `tea` CLI rather than by this GitHub-specific orchestrator.
+require_github_remote() {
+  local url
+  url="$(git remote get-url origin 2>/dev/null || true)"
+  case "$url" in
+  *github.com*) return 0 ;;
+  esac
+  die "github-issue supports GitHub remotes only (origin: ${url:-none}). Its CI, review, and auto-merge automation is GitHub-specific. For a Forgejo repo, drive the issue by hand: 'forge issue-json <n>' to read it, branch and commit, 'forge pr-create <title> <body> <base> <head>' to open the PR, then review and merge from the Forgejo UI or the 'tea' CLI."
+}
+
 fetch_issue_metadata() {
   local issue_number="$1"
   gh issue view "$issue_number" --json title,labels,body
@@ -1663,6 +1678,7 @@ cmd_post_mortem() {
 case "${1:-}" in
   setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | verify-landed | post-mortem)
     _JSON_MODE=1
+    require_github_remote
     SUBCMD="${1//-/_}"
     shift
     "cmd_${SUBCMD}" "$@"

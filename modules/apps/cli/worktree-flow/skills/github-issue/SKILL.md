@@ -12,6 +12,16 @@ State-machine orchestrator for the full GitHub issue lifecycle. Uses the `github
 
 All work happens in an isolated git worktree. Never implement in the main working tree.
 
+> **GitHub only.** This skill's automation (CI-gated auto-merge, review-decision
+> polling, merge-state orchestration) is specific to GitHub's PR model, so the
+> `github-issue` CLI refuses to run on a non-GitHub remote. For an issue on the
+> self-hosted Forgejo (`git.srvrs.co`), there is no equivalent automated
+> lifecycle. Drive it by hand with the provider-aware `forge` helper
+> (`forge issue-json <n>` to read the issue, branch and commit, then
+> `forge pr-create <title> <body> <base> <head>`) plus the Forgejo UI or `tea`
+> for review and merge. The `log-github-issue` skill is already provider-aware
+> if you just need to file a Forgejo issue.
+
 ## Voice for posted content
 
 Anything this skill writes that ends up on GitHub (a PR comment, a post-mortem
