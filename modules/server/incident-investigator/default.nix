@@ -52,6 +52,7 @@ let
     pkgs.coreutils
     pkgs.gnugrep
     pkgs.gnused
+    pkgs.gawk # rightsize computes its percentile label with awk on every run; gcq's help uses it too
     pkgs.findutils
     pkgs.cacert
   ];
@@ -106,9 +107,29 @@ let
     "PROM_USER=${cfg.promUserRef}"
     "LOKI_URL=${cfg.lokiUrl}"
     "LOKI_USER=${cfg.lokiUserRef}"
+    # rightsize (read-only rightsizing) reuses GRAFANA_READ_TOKEN/PROM_USER/PROM_URL
+    # above and computes recommendations from PromQL through gcq; no extra env, no
+    # container, no cluster access of its own.
     "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
   ]
   ++ lib.optional (cfg.claudeModel != "") "CLAUDE_MODEL=${cfg.claudeModel}";
+
+  # The weekly rightsizing sweep only needs the Grafana Cloud read creds and
+  # Pushover -- deliberately not SHARED_SECRET, the receiver's dedup/listen vars,
+  # or a kubeconfig (rightsize reads the current spec from kube-state-metrics in
+  # Grafana Cloud, not the kube API).
+  sweepEnv = [
+    "HOME=${homeDir}"
+    "PATH=${runtimePath}"
+    "REPO_DIR=${cfg.repoDir}"
+    "GRAFANA_READ_TOKEN=${cfg.grafanaReadTokenRef}"
+    "PROM_URL=${cfg.promUrl}"
+    "PROM_USER=${cfg.promUserRef}"
+    "PUSHOVER_TOKEN=${cfg.pushoverTokenRef}"
+    "PUSHOVER_USER=${cfg.pushoverUserRef}"
+    "RIGHTSIZING_OUT_ROOT=${cfg.rightsizingOutRoot}"
+    "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+  ];
 in
 {
   options.server.incidentInvestigator = {
@@ -240,6 +261,30 @@ in
       '';
     };
 
+    rightsizingOutRoot = lib.mkOption {
+      type = lib.types.str;
+      default = "${homeDir}/rightsizing";
+      description = "Directory where weekly rightsizing sweep bundles (JSON + summary.md) are written.";
+    };
+
+    rightsizingSweep = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Run the weekly cluster-wide rightsizing sweep on a systemd timer.
+          Read-only: it writes a bundle and Pushes an over/under-provisioned
+          summary, separate from alert-driven RCA. Nothing is applied.
+        '';
+      };
+
+      schedule = lib.mkOption {
+        type = lib.types.str;
+        default = "Mon 04:00";
+        description = "systemd `OnCalendar` expression for the weekly sweep.";
+      };
+    };
+
     claudeModel = lib.mkOption {
       type = lib.types.str;
       default = "";
@@ -330,6 +375,37 @@ in
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
+      };
+    };
+
+    # Weekly cluster-wide rightsizing sweep: read-only, writes a bundle and
+    # Pushes an over/under-provisioned summary. A oneshot service on a timer,
+    # separate from the alert-driven receiver above.
+    systemd.services.incident-investigator-rightsizing = lib.mkIf cfg.rightsizingSweep.enable {
+      description = "Weekly cluster-wide rightsizing sweep (read-only)";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = globals.user.name;
+        Group = "users";
+        ExecStart = opRunExec "${pkgs.bash}/bin/bash ${scriptsDir}/rightsizing-sweep.sh";
+        Environment = sweepEnv;
+        NoNewPrivileges = true;
+        LockPersonality = true;
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+      };
+    };
+
+    systemd.timers.incident-investigator-rightsizing = lib.mkIf cfg.rightsizingSweep.enable {
+      description = "Weekly trigger for the rightsizing sweep";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = cfg.rightsizingSweep.schedule;
+        Persistent = true;
+        RandomizedDelaySec = "1h";
       };
     };
   };
