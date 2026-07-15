@@ -159,9 +159,16 @@ in
           };
 
           gwscfg = ''
-            # "work" (the default gws config dir, ~/.config/gws) is always offered.
-            # Any other profile is a subdirectory of gws-profiles, each holding its
-            # own client_secret.json + credentials.enc for a separate Google account.
+            # gws profile switcher -- per-shell, opt-in.
+            #
+            # "work" is the default gws config dir (~/.config/gws), the Kong-safe
+            # OAuth client. A fresh shell always resolves to "work" because nothing
+            # is set. Selecting another profile exports GOOGLE_WORKSPACE_CLI_CONFIG_DIR
+            # for THIS shell only (set -gx) -- it is never persisted, so you can't get
+            # silently parked on a blocked profile (e.g. brmfg-auth, which Kong's
+            # Workspace admin blocks) across other terminals or reboots. Each profile
+            # under gws-profiles/ holds its own client_secret.json + credentials.enc
+            # for a separate Google account / OAuth app.
             set -l profiles_dir "$HOME/.config/gws-profiles"
             set -l choices work
 
@@ -176,12 +183,22 @@ in
               return 1
             end
 
+            # Clear any prior selection in every scope, including a legacy persistent
+            # (set -Ux) pin from the old switcher, so profile state never outlives the
+            # shell that set it and "work" is always a clean default.
+            set -e -U GOOGLE_WORKSPACE_CLI_CONFIG_DIR 2>/dev/null
+            set -e -g GOOGLE_WORKSPACE_CLI_CONFIG_DIR 2>/dev/null
+
             if test "$selected" = work
-              set -e -U GOOGLE_WORKSPACE_CLI_CONFIG_DIR
-              echo "✓ Activated gws profile: work (default ~/.config/gws)"
+              echo "✓ gws profile: work (default ~/.config/gws) — this shell"
             else
-              set -Ux GOOGLE_WORKSPACE_CLI_CONFIG_DIR "$profiles_dir/$selected"
-              echo "✓ Activated gws profile: $selected"
+              set -gx GOOGLE_WORKSPACE_CLI_CONFIG_DIR "$profiles_dir/$selected"
+              set -l proj (string replace -rf '^.*"project_id"\s*:\s*"([^"]*)".*$' '$1' < "$profiles_dir/$selected/client_secret.json" 2>/dev/null)
+              if test -n "$proj"
+                echo "✓ gws profile: $selected (project $proj) — this shell only, not persisted"
+              else
+                echo "✓ gws profile: $selected — this shell only, not persisted"
+              end
             end
           '';
 
