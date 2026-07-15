@@ -52,7 +52,7 @@ Adding a new app = append a row.
 
 | App | Source repo | Downstream repo | Version anchor | Lock-refresh command | Apply recipe |
 |-----|-------------|-----------------|----------------|----------------------|--------------|
-| `upsight` | `~/git/upsight-go` | `~/git/nixerator` | *branch-tracked* — the `upsight` input follows `github:bashfulrobot/upsight-go` with no tag pin, so there is no `flake.nix` line to edit | `nix flake lock --update-input upsight` | `just qr` |
+| `upsight` | `~/git/upsight` | `~/git/nixerator` | *branch-tracked* — the `upsight` input follows `github:bashfulrobot/upsight` with no tag pin, so there is no `flake.nix` line to edit | `nix flake lock --update-input upsight` | `just qr` |
 | `meetsum` | `~/git/meetsum` | *(release-only — not yet wired into nixerator)* | — | — | — |
 
 A row whose downstream half is `—` means **release-only**: the skill cuts

@@ -197,7 +197,7 @@ current=$(jq -r '.version' package.json)
 
 ## Reference implementations
 
-- `~/git/upsight/Justfile` — Kotlin, Gradle, file-anchored, signed releases,
+- `~/git/upsight-kotlin/Justfile` — Kotlin, Gradle, file-anchored, signed releases,
   uploads to two GitHub repos (public + customer).
 - `~/git/meetsum/justfile` — Go, git-tag-anchored, single-repo release with
   cross-platform binaries.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Shared idea-fetch step for write-customer-sheet.sh and
 # export-customer-pdf.sh: pulls a customer's assessed Aha! ideas, then
-# annotates each with its upsight-go tracking data (if any), so the Sheet
+# annotates each with its upsight tracking data (if any), so the Sheet
 # and the PDF are always built from the identical merged data set.
 #
 # Usage:
@@ -11,7 +11,7 @@
 # production_blocker, target_release, use_case, source_url, notes,
 # internal_discussion_url, requester_name, requester_email, team_name.
 # Every one of those is independently nullable -- an untracked idea, or a
-# customer with no upsight-go data at all, just gets all-null fields, not
+# customer with no upsight data at all, just gets all-null fields, not
 # an error.
 #
 # Row order (shared by both the Sheet and the PDF, since both consume this
@@ -21,9 +21,9 @@
 #
 # Requires: the vendored customer-ideas.sh, AHA_API_TOKEN, jq, and (for the
 # tracking fields) idea-tracking-lookup.sh -- see that script for its own
-# graceful-miss behavior when upsight-go isn't installed, has no data for
+# graceful-miss behavior when upsight isn't installed, has no data for
 # this customer, or predates the schema these fields depend on
-# (bashfulrobot/upsight-go#60).
+# (bashfulrobot/upsight#60).
 
 set -euo pipefail
 

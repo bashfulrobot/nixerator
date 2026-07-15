@@ -91,15 +91,7 @@
     # nixpkgs (nixos-26.05), where its CGO/WebKitGTK build is verified, so it is
     # intentionally NOT following nixpkgs here.
     upsight = {
-      url = "github:bashfulrobot/upsight-go";
-    };
-
-    # Original Kotlin/Compose app, kept alongside the Go rewrite for comparison.
-    # Installed renamed to `upsight-kotlin` (see modules/apps/gui/upsight-kotlin)
-    # so its binary, desktop entry, and icons do not collide with `upsight`.
-    # Uses its own pinned nixpkgs (verified build); not following nixpkgs.
-    upsight-kotlin = {
-      url = "github:bashfulrobot/upsight/v0.33.0";
+      url = "github:bashfulrobot/upsight";
     };
 
     # Pinned upstream for the `humanizer` skill (claude-code + gemini-cli).
