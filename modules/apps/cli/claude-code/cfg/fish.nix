@@ -394,6 +394,51 @@
           > /dev/null
       '';
     };
+
+    # fzf-pick a common project folder and launch a NAMED background Claude
+    # session in it -- the point is to skip the name prompt the bare `claude`
+    # wrapper shows, since these dirs are opened all the time. Candidates:
+    # every repo under ~/git plus ~/dev/kong and ~/dev/scratch themselves.
+    # An optional arg pre-seeds the fzf query (`cj nixer` -> jumps straight in
+    # when it's the only match). Session name = folder basename; the launch +
+    # attach path mirrors the bare `claude` wrapper above.
+    cj = {
+      description = "fzf-pick a project folder and start a named background Claude session there";
+      body = ''
+        set -l dirs
+        for d in $HOME/git/*
+            test -d $d; and set -a dirs $d
+        end
+        for d in $HOME/dev/kong $HOME/dev/scratch
+            test -d $d; and set -a dirs $d
+        end
+        if test -z "$dirs"
+            echo "cj: no candidate folders found under ~/git or ~/dev." >&2
+            return 1
+        end
+
+        set -l pick (printf '%s\n' $dirs \
+          | ${pkgs.fzf}/bin/fzf --query="$argv" --select-1 \
+              --header='Pick a folder -> background Claude session  (ENTER=go  ESC=cancel)')
+        if test -z "$pick"
+            echo "Cancelled."
+            return 0
+        end
+
+        cd $pick; or return 1
+        set -l name (basename $pick)
+
+        set -l out (command claude --bg --name "$name" --remote-control "$name")
+        printf '%s\n' $out
+        set -l id (string match -rg 'claude attach (\S+)' -- $out)
+        if test -n "$id"
+            command claude attach $id
+        else
+            echo "claude: could not parse session id; open it from 'claude agents'." >&2
+            return 1
+        end
+      '';
+    };
   };
 
   # Fish abbreviations
