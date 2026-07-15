@@ -24,8 +24,14 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_SCOPES="$SKILL_DIR/scopes.json"
 USER_SCOPES="${XDG_CONFIG_HOME:-$HOME/.config}/todoist-triage/scopes.json"
 
-command -v td  >/dev/null || { echo "td not found (todoist-cli skill)" >&2; exit 127; }
-command -v jq  >/dev/null || { echo "jq not found" >&2; exit 127; }
+command -v td >/dev/null || {
+  echo "td not found (todoist-cli skill)" >&2
+  exit 127
+}
+command -v jq >/dev/null || {
+  echo "jq not found" >&2
+  exit 127
+}
 
 # Merged presets object: user file wins per-preset.
 presets() {
@@ -39,9 +45,9 @@ presets() {
 # Resolve a saved Todoist filter name -> its query (case-insensitive).
 saved_query() {
   local name="$1"
-  td filter list --json 2>/dev/null \
-    | jq -r --arg n "$name" '.results[] | select((.name|ascii_downcase)==($n|ascii_downcase)) | .query' \
-    | head -n1
+  td filter list --json 2>/dev/null |
+    jq -r --arg n "$name" '.results[] | select((.name|ascii_downcase)==($n|ascii_downcase)) | .query' |
+    head -n1
 }
 
 # Run a filter query and emit the normalized task array.
@@ -83,45 +89,95 @@ emit_single() {
 
 cmd_list() {
   echo "== Presets (scopes.json) =="
-  presets | jq -r 'to_entries[] | "  \(.key)\t\(.value.desc // "")\t[\(.value.filter // ("saved:" + .value.saved))]"' \
-    | column -t -s $'\t' 2>/dev/null || presets | jq -r 'to_entries[] | "  \(.key): \(.value.desc // "")"'
+  presets | jq -r 'to_entries[] | "  \(.key)\t\(.value.desc // "")\t[\(.value.filter // ("saved:" + .value.saved))]"' |
+    column -t -s $'\t' 2>/dev/null || presets | jq -r 'to_entries[] | "  \(.key): \(.value.desc // "")"'
   [ -f "$USER_SCOPES" ] && echo "  (merged with $USER_SCOPES)"
   echo
   echo "== Your Todoist saved filters (td filter list) =="
-  td filter list --json 2>/dev/null \
-    | jq -r '.results[] | "  \(.name)\t[\(.query)]"' | column -t -s $'\t' 2>/dev/null \
-    || td filter list 2>/dev/null
+  td filter list --json 2>/dev/null |
+    jq -r '.results[] | "  \(.name)\t[\(.query)]"' | column -t -s $'\t' 2>/dev/null ||
+    td filter list 2>/dev/null
   echo
   echo "Also selectable: 'project <name>', 'filter \"<query>\"', 'single <ref>'."
 }
 
 main() {
-  local sub="${1:-list}"; shift || true
+  local sub="${1:-list}"
+  shift || true
   case "$sub" in
     list) cmd_list ;;
     default) emit_filter "$(presets | jq -r '.default.filter')" ;;
-    filter)  [ $# -ge 1 ] || { echo "filter needs a query" >&2; exit 2; }; emit_filter "$1" ;;
-    project) [ $# -ge 1 ] || { echo "project needs a name" >&2; exit 2; }; emit_filter "##$1" ;;
-    single)  [ $# -ge 1 ] || { echo "single needs a task ref" >&2; exit 2; }; emit_single "$1" ;;
+    filter)
+      [ $# -ge 1 ] || {
+        echo "filter needs a query" >&2
+        exit 2
+      }
+      emit_filter "$1"
+      ;;
+    project)
+      [ $# -ge 1 ] || {
+        echo "project needs a name" >&2
+        exit 2
+      }
+      emit_filter "##$1"
+      ;;
+    single)
+      [ $# -ge 1 ] || {
+        echo "single needs a task ref" >&2
+        exit 2
+      }
+      emit_single "$1"
+      ;;
     saved)
-      [ $# -ge 1 ] || { echo "saved needs a filter name" >&2; exit 2; }
-      q=$(saved_query "$1"); [ -n "$q" ] || { echo "no saved filter named '$1'. Try: td_scope.sh list" >&2; exit 3; }
-      emit_filter "$q" ;;
+      [ $# -ge 1 ] || {
+        echo "saved needs a filter name" >&2
+        exit 2
+      }
+      q=$(saved_query "$1")
+      [ -n "$q" ] || {
+        echo "no saved filter named '$1'. Try: td_scope.sh list" >&2
+        exit 3
+      }
+      emit_filter "$q"
+      ;;
     preset)
-      [ $# -ge 1 ] || { echo "preset needs a name" >&2; exit 2; }
+      [ $# -ge 1 ] || {
+        echo "preset needs a name" >&2
+        exit 2
+      }
       p=$(presets | jq -c --arg n "$1" '.[$n] // empty')
-      [ -n "$p" ] || { echo "no preset '$1'. Try: td_scope.sh list" >&2; exit 3; }
+      [ -n "$p" ] || {
+        echo "no preset '$1'. Try: td_scope.sh list" >&2
+        exit 3
+      }
       f=$(printf '%s' "$p" | jq -r '.filter // empty')
       s=$(printf '%s' "$p" | jq -r '.saved  // empty')
-      if [ -n "$f" ]; then emit_filter "$f"
-      else q=$(saved_query "$s"); [ -n "$q" ] || { echo "preset '$1' points at missing saved filter '$s'" >&2; exit 3; }; emit_filter "$q"; fi ;;
+      if [ -n "$f" ]; then
+        emit_filter "$f"
+      else
+        q=$(saved_query "$s")
+        [ -n "$q" ] || {
+          echo "preset '$1' points at missing saved filter '$s'" >&2
+          exit 3
+        }
+        emit_filter "$q"
+      fi
+      ;;
     *)
       # Bare name: try preset, then saved filter.
       p=$(presets | jq -c --arg n "$sub" '.[$n] // empty')
-      if [ -n "$p" ]; then main preset "$sub"; return; fi
+      if [ -n "$p" ]; then
+        main preset "$sub"
+        return
+      fi
       q=$(saved_query "$sub")
-      if [ -n "$q" ]; then emit_filter "$q"; return; fi
-      echo "unknown scope '$sub'. Run: td_scope.sh list" >&2; exit 3 ;;
+      if [ -n "$q" ]; then
+        emit_filter "$q"
+        return
+      fi
+      echo "unknown scope '$sub'. Run: td_scope.sh list" >&2
+      exit 3
+      ;;
   esac
 }
 
