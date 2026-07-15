@@ -1,8 +1,6 @@
 {
   hostname,
   globals,
-  inputs,
-  pkgs,
   ...
 }:
 
@@ -33,13 +31,16 @@
   # Note: timezone is managed by services.automatic-timezoned (enabled in core suite)
   i18n.defaultLocale = globals.defaults.locale;
 
-  # Voxtype on qbert: keep thread cap + use Vulkan backend (AMD 6800 XT)
+  # Voxtype on qbert: Vulkan on the AMD 6800 XT, thread cap kept. The module's
+  # `acceleration` option picks the vulkan variant, so no manual package
+  # override is needed. VAD is on by the module default, which fixes the
+  # occasional "dictated X, typed unrelated Y" whisper-hallucination-on-silence.
   hyprflake.desktop.voxtype = {
     #model = "large-v3-turbo";
     #model = "base.en";
     model = "small.en";
     threads = 16;
-    package = inputs.hyprflake.inputs.voxtype.packages.${pkgs.stdenv.hostPlatform.system}.vulkan;
+    acceleration = "vulkan";
   };
 
   # Enable archetypes

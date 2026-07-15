@@ -626,11 +626,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784077742,
-        "narHash": "sha256-qzphOB3GG4axPkRkndtut2RweHnu7PmQZRSkRxMeQac=",
+        "lastModified": 1784136183,
+        "narHash": "sha256-BF7G4LAL0S5TiULKqiKlX9IjvdPjJrGkHBeFOzLloJc=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "a9b0bf493d06559a1f620a95b60891300ce20d42",
+        "rev": "80c77992b47bfec05b8c99a8ee0f87d3f559378b",
         "type": "github"
       },
       "original": {
@@ -1286,17 +1286,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1776651662,
-        "narHash": "sha256-HMiN4cmXRr6avHiH6asF28w9/N+qjeYSvX9zAATVXss=",
+        "lastModified": 1783956569,
+        "narHash": "sha256-36bYa6+d+SjLXTDeUOoCiuTlAL9mgp9h5WK4WMCEuZQ=",
         "owner": "peteonrails",
         "repo": "voxtype",
-        "rev": "adf0ea62c2310b90c55febdc6515cca9f264e25a",
+        "rev": "86666ab9ee681eb3d1e80ef1826affd8e11107e5",
         "type": "github"
       },
       "original": {
         "owner": "peteonrails",
         "repo": "voxtype",
-        "rev": "adf0ea62c2310b90c55febdc6515cca9f264e25a",
         "type": "github"
       }
     }

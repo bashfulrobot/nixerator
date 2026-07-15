@@ -19,23 +19,18 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # TODO(workaround): pin voxtype to pre-0.7.0 (adf0ea6, 2026-04-20).
-    # voxtype 0.7.0 (rev 184006c) added a Cargo dep that pulls in `glib-sys`
-    # and `gdk-pixbuf-sys` without feature-gating, so the `vulkan` variant
-    # fails to build on NixOS — its derivation only declares vulkan + alsa
-    # + openssl deps. Re-evaluate this pin when peteonrails/voxtype either
-    # feature-gates the GTK crate or adds the missing native deps to the
-    # vulkan derivation. Drop both this input and the `follows` line below
-    # once that lands; let hyprflake's own pin take over again.
+    # voxtype follows nixerator's nixpkgs to align its runtime ALSA/PipeWire
+    # deps with the rest of the system. Without this, voxtype's own pinned
+    # nixpkgs builds against a stale PipeWire and the binary hardcodes an
+    # ALSA-plugin path to a /nix/store entry that doesn't exist on the live
+    # system, so voxtype starts but silently fails to open audio with
+    # `snd_pcm_open` ENXIO.
+    #
+    # The old pre-0.7.0 version pin (for a glib-sys/gdk-pixbuf build break)
+    # was dropped: voxtype 0.7.1 moved the GTK crates into macOS-only deps,
+    # so the vulkan variant builds on Linux again.
     voxtype = {
-      url = "github:peteonrails/voxtype/adf0ea62c2310b90c55febdc6515cca9f264e25a";
-      # Force voxtype to follow nixerator's nixpkgs. Without this, voxtype's
-      # own pinned nixpkgs (from 2026-01) builds against a stale PipeWire and
-      # the resulting binary hardcodes ALSA-plugin paths to a /nix/store
-      # entry that doesn't exist on the live system — voxtype starts but
-      # silently fails to open audio with `snd_pcm_open` ENXIO. Following
-      # nixerator's nixpkgs aligns voxtype's runtime ALSA/PipeWire deps with
-      # everything else on the system.
+      url = "github:peteonrails/voxtype";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -46,7 +41,7 @@
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
         stylix.follows = "stylix";
-        # See TODO above the `voxtype` input.
+        # Share the one nixpkgs-aligned voxtype defined above.
         voxtype.follows = "voxtype";
       };
     };

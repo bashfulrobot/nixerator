@@ -28,10 +28,13 @@
   # leave hyprflake.system.isLaptop at its false default.
   hyprflake.system.isLaptop = true;
 
-  # Voxtype on donkeykong (hyprflake currently supports local package/model controls only)
+  # Voxtype on donkeykong: offload inference to the Intel Arc iGPU via Vulkan.
+  # This cuts the transcription delay of the CPU path; base.en keeps it fast.
+  # (Needs voxtype >= 0.7.3, which fixed a Vulkan SIGILL on Intel CPUs.)
   hyprflake.desktop.voxtype = {
     enable = true;
     model = "base.en";
+    acceleration = "vulkan";
   };
 
   # Touchpad palm rejection: keyd's virtual keyboard is not recognized as
