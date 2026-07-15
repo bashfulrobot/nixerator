@@ -28,6 +28,7 @@
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
+    ../../modules/server/incident-investigator
     ../../modules/server/kvm
     ../../modules/server/nfs
     ../../modules/server/postgres
@@ -181,6 +182,34 @@
           gid = 100;
         }
       ];
+    };
+
+    # Read-only Claude Code investigator for darkstar Grafana alerts (the srv
+    # side of homelab's incident-investigator/). Left DISABLED until the
+    # operator-owned prerequisites below are in place; flipping enable = true
+    # before they exist just yields a failing unit (the module renders no
+    # secrets into the store, so eval always succeeds).
+    #
+    # Prerequisites (see homelab incident-investigator/README.md):
+    #   1. Clone homelab on srv at ~/git/homelab (repoDir default).
+    #   2. Read-only darkstar kubeconfig at ~/.kube/darkstar-ro (a view-bound
+    #      ServiceAccount, not admin).
+    #   3. 1Password automation vault, item `incident-investigator`, two fields:
+    #      `shared-secret` (a random bearer token you invent, e.g.
+    #      `openssl rand -hex 32` -- Grafana sends it, receiver.py checks it) and
+    #      `cloudflared-token` (the tunnel's "Get tunnel token" value).
+    #      Pushover-api already exists.
+    #   4. The cloudflared tunnel (remediator.srvrs.co -> http://localhost:8099,
+    #      remotely-managed / Config type Remote, behind Cloudflare Access) is
+    #      already created; the token from step 3 drives it. Turn on
+    #      `incidentInvestigator.tunnel.enable = true` below to run it.
+    #   5. Grafana side (a homelab PR): a GrafanaContactPoint (type webhook) to
+    #      https://remediator.srvrs.co with the shared secret as the bearer
+    #      token, plus a notification-policy route selecting alerts to auto-
+    #      investigate. Same pattern as pushover-dustin.
+    incidentInvestigator = {
+      enable = false;
+      tunnel.enable = false;
     };
 
   };
