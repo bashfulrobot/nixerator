@@ -59,7 +59,7 @@ require_github_remote() {
   local url
   url="$(git remote get-url origin 2>/dev/null || true)"
   case "$url" in
-  *github.com*) return 0 ;;
+    *github.com*) return 0 ;;
   esac
   die "github-issue supports GitHub remotes only (origin: ${url:-none}). Its CI, review, and auto-merge automation is GitHub-specific. For a Forgejo repo, drive the issue by hand: 'forge issue-json <n>' to read it, branch and commit, 'forge pr-create <title> <body> <base> <head>' to open the PR, then review and merge from the Forgejo UI or the 'tea' CLI."
 }

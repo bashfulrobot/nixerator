@@ -44,11 +44,17 @@ _host() {
   local rhost fhost
   rhost="$(_url_host "$(_remote_url)")"
   case "$rhost" in
-    github.com) echo github; return ;;
+    github.com)
+      echo github
+      return
+      ;;
   esac
   if [ -n "${FORGEJO_URL:-}" ]; then
     fhost="$(_url_host "$FORGEJO_URL")"
-    [ "$rhost" = "$fhost" ] && { echo forgejo; return; }
+    [ "$rhost" = "$fhost" ] && {
+      echo forgejo
+      return
+    }
   fi
   _die "unrecognised git host '$rhost' (not github.com, not \$FORGEJO_URL)"
 }
@@ -101,8 +107,8 @@ _fj_label_ids() {
   local repo names_json
   repo="$(_repo)"
   names_json="$(printf '%s\n' "$@" | jq -R . | jq -sc .)"
-  _fj GET "repos/${repo}/labels?limit=100" \
-    | jq --argjson want "$names_json" '[.[] | select(.name as $n | $want | index($n)) | .id]'
+  _fj GET "repos/${repo}/labels?limit=100" |
+    jq --argjson want "$names_json" '[.[] | select(.name as $n | $want | index($n)) | .id]'
 }
 
 # Resolve a PR number: use $1 if given, else the current branch's PR.
@@ -166,8 +172,8 @@ pr_current() {
       local repo branch n
       repo="$(_repo)"
       branch="$(_branch)"
-      n="$(_fj GET "repos/${repo}/pulls?state=open&limit=50" \
-        | jq -r --arg b "$branch" 'map(select(.head.ref == $b)) | .[0].number // empty')"
+      n="$(_fj GET "repos/${repo}/pulls?state=open&limit=50" |
+        jq -r --arg b "$branch" 'map(select(.head.ref == $b)) | .[0].number // empty')"
       [ -n "$n" ] || _die "no open PR for branch '$branch'"
       echo "$n"
       ;;
@@ -185,14 +191,14 @@ cmd_pr_json() {
   n="$(_resolve_pr "${1:-}")"
   case "$(_host)" in
     github)
-      gh pr view "$n" --json number,title,url,state,body,baseRefName,headRefName,headRefOid,additions,deletions,changedFiles \
-        | jq '{number,title,body,url,state,
+      gh pr view "$n" --json number,title,url,state,body,baseRefName,headRefName,headRefOid,additions,deletions,changedFiles |
+        jq '{number,title,body,url,state,
                base:.baseRefName, head:.headRefName, headSha:.headRefOid,
                additions,deletions,changedFiles}'
       ;;
     forgejo)
-      _fj GET "repos/$(_repo)/pulls/${n}" \
-        | jq '{number:.number, title:.title, body:.body, url:.html_url,
+      _fj GET "repos/$(_repo)/pulls/${n}" |
+        jq '{number:.number, title:.title, body:.body, url:.html_url,
                state:.state, base:.base.ref, head:.head.ref, headSha:.head.sha,
                additions:.additions, deletions:.deletions, changedFiles:.changed_files}'
       ;;
@@ -274,8 +280,8 @@ cmd_pr_create() {
     forgejo)
       _fj POST "repos/$(_repo)/pulls" \
         "$(jq -n --arg t "$title" --arg b "$body" --arg base "$base" --arg head "$head" \
-          '{title:$t, body:$b, base:$base, head:$head}')" \
-        | jq -r '.html_url'
+          '{title:$t, body:$b, base:$base, head:$head}')" |
+        jq -r '.html_url'
       ;;
   esac
 }
@@ -320,13 +326,13 @@ cmd_issue_json() {
   local n="$1"
   case "$(_host)" in
     github)
-      gh issue view "$n" --json number,title,body,state,url,labels,comments \
-        | jq '{number,title,body,state,url,
+      gh issue view "$n" --json number,title,body,state,url,labels,comments |
+        jq '{number,title,body,state,url,
                labels:[.labels[].name], comments:(.comments|length)}'
       ;;
     forgejo)
-      _fj GET "repos/$(_repo)/issues/${n}" \
-        | jq '{number:.number, title:.title, body:.body, state:.state,
+      _fj GET "repos/$(_repo)/issues/${n}" |
+        jq '{number:.number, title:.title, body:.body, state:.state,
                url:.html_url, labels:[.labels[].name], comments:.comments}'
       ;;
   esac
@@ -337,12 +343,12 @@ cmd_issue_list() {
   local state="${1:-open}" limit="${2:-20}"
   case "$(_host)" in
     github)
-      gh issue list --state "$state" --limit "$limit" --json number,title,labels \
-        | jq 'map({number,title, labels:[.labels[].name]})'
+      gh issue list --state "$state" --limit "$limit" --json number,title,labels |
+        jq 'map({number,title, labels:[.labels[].name]})'
       ;;
     forgejo)
-      _fj GET "repos/$(_repo)/issues?type=issues&state=${state}&limit=${limit}" \
-        | jq 'map({number:.number, title:.title, labels:[.labels[].name]})'
+      _fj GET "repos/$(_repo)/issues?type=issues&state=${state}&limit=${limit}" |
+        jq 'map({number:.number, title:.title, labels:[.labels[].name]})'
       ;;
   esac
 }
@@ -363,8 +369,8 @@ cmd_issue_create() {
       [ "$#" -gt 0 ] && labels_json="$(_fj_label_ids "$@")"
       _fj POST "repos/$(_repo)/issues" \
         "$(jq -n --arg t "$title" --arg b "$body" --argjson l "$labels_json" \
-          '{title:$t, body:$b, labels:$l}')" \
-        | jq -r '.html_url'
+          '{title:$t, body:$b, labels:$l}')" |
+        jq -r '.html_url'
       ;;
   esac
 }
@@ -408,8 +414,8 @@ cmd_label_list() {
   case "$(_host)" in
     github) gh label list --json name,description ;;
     forgejo)
-      _fj GET "repos/$(_repo)/labels?limit=100" \
-        | jq 'map({name, description})'
+      _fj GET "repos/$(_repo)/labels?limit=100" |
+        jq 'map({name, description})'
       ;;
   esac
 }
@@ -432,8 +438,8 @@ cmd_release_create() {
       ;;
     forgejo)
       _fj POST "repos/$(_repo)/releases" \
-        "$(jq -n --arg t "$tag" --arg n "$notes" '{tag_name:$t, name:$t, body:$n}')" \
-        | jq -r '.html_url'
+        "$(jq -n --arg t "$tag" --arg n "$notes" '{tag_name:$t, name:$t, body:$n}')" |
+        jq -r '.html_url'
       ;;
   esac
 }
