@@ -2,10 +2,8 @@
 
 {
   apps.gui = {
-    # Go rewrite (primary), kept alongside the original Kotlin app (installed
-    # as `upsight-kotlin`) for side-by-side comparison.
+    # Go + Wails + Svelte rewrite of the original Kotlin app.
     upsight.enable = true;
-    upsight-kotlin.enable = true;
   };
 
   # Adopt the Claude work-host archetype (symmetric peer to srv): zellij +

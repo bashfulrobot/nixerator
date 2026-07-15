@@ -695,7 +695,7 @@ quiet-upgrade:
         exit "$rc"
     fi
 
-# Bump the `upsight` input (github:bashfulrobot/upsight-go) to latest + rebuild current host; commits + pushes flake.lock to main. For iterating on the app.
+# Bump the `upsight` input (github:bashfulrobot/upsight) to latest + rebuild current host; commits + pushes flake.lock to main. For iterating on the app.
 bump-upsight:
     #!/usr/bin/env bash
     set -uo pipefail

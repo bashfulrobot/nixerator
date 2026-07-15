@@ -15,10 +15,10 @@
 #
 # Columns written: State, Ref, Idea, Status, Stack Rank, Use Case,
 # Requester, Team (the requester's configured team, derived from
-# upsight-go's contacts.team_id -> teams.id -> teams.team_name -- not a
+# upsight's contacts.team_id -> teams.id -> teams.team_name -- not a
 # free-text field, blank if the requester has no team set or there is no
 # requester), Production Blocker, Target Release, Notes (all from
-# upsight-go, blank if untracked -- see fetch-ideas.sh and
+# upsight, blank if untracked -- see fetch-ideas.sh and
 # idea-tracking-lookup.sh), Aha Link (the idea's own public link, shown as
 # "View idea"), Proxy Vote Link (this customer's own org page in Aha, shown
 # as "View proxy"), Source Link (where the request was first gathered, e.g.

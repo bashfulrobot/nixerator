@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Look up CSM-curated per-idea tracking data from the upsight-go CRM's local
+# Look up CSM-curated per-idea tracking data from the upsight CRM's local
 # SQLite database, keyed by Aha idea reference number, for one or more Aha
 # idea-organization ids (a customer may have more than one pinned org -- see
 # customers.txt).
@@ -17,12 +17,12 @@
 #                "team_name": "Platform Engineering"}, ...}
 # Every field is independently nullable -- an idea with only a rank set (or
 # nothing at all) is just missing the other keys' values, not an error.
-# requester_name/requester_email/team_name are resolved from upsight-go's
+# requester_name/requester_email/team_name are resolved from upsight's
 # contacts (and, for team_name, teams) tables via
 # idea_ranks.requester_contact_id, not stored as free text.
 #
 # Schema dependency: this reads seven columns added to idea_ranks by
-# bashfulrobot/upsight-go#60 (requester_contact_id, production_blocker,
+# bashfulrobot/upsight#60 (requester_contact_id, production_blocker,
 # target_release, use_case, source_url, notes) and #61
 # (internal_discussion_url, the Kong-internal Slack thread, kept distinct
 # from source_url's customer-facing link). Until those migrations have run
@@ -31,16 +31,16 @@
 # as every other graceful-miss path here, so running against an
 # un-migrated database just means blank cells, not a broken report.
 # team_name has no idea_ranks column of its own -- it's derived the same way
-# upsight-go#65 derives it in the app UI: requester_contact_id ->
+# upsight#65 derives it in the app UI: requester_contact_id ->
 # contacts.team_id -> teams.id -> teams.team_name.
 #
 # Degrades to "{}" (non-fatal) when sqlite3 isn't on PATH, the upsight
-# database doesn't exist, the schema predates upsight-go#60/#61, or none of
+# database doesn't exist, the schema predates upsight#60/#61, or none of
 # the given orgs have any tracked ideas.
 #
 # Config via environment:
 #   UPSIGHT_DB   Path to upsight.db (default: ~/.local/share/upsight/upsight.db,
-#                upsight-go's own XDG default).
+#                upsight's own XDG default).
 
 # Deliberately no -e: a query failure (e.g. a not-yet-migrated schema) must
 # degrade to "{}", not abort the caller.
@@ -98,7 +98,7 @@ sqlite3 -readonly -json "$UPSIGHT_DB" "
   ORDER BY (ir.rank IS NULL), ir.rank ASC;
 " 2>/dev/null | jq -s '(add // []) | map({(.ref): del(.ref)}) | add // {}' 2>/dev/null || true
 # The || true above matters: with pipefail, a sqlite3 query failure (e.g.
-# "no such column" on a pre-upsight-go#60 schema) makes the pipeline report
+# "no such column" on a pre-upsight#60 schema) makes the pipeline report
 # a non-zero exit even though jq still printed a correct "{}" -- and the
 # caller (fetch-ideas.sh) runs this under `set -e` in a plain assignment,
 # so a non-zero exit here would abort it despite valid output already
