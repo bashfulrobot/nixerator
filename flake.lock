@@ -1266,7 +1266,7 @@
       },
       "locked": {
         "lastModified": 1784131745,
-        "narHash": "sha256-DZI11PWcJy4c7OpWkrKK7D42nEwyZD7pBBVes1jR17E=",
+        "narHash": "sha256-k4alHfzOnWZKWNg6sjbp0F7qmQTklo2Y0aRJBOsrRgw=",
         "owner": "bashfulrobot",
         "repo": "upsight",
         "rev": "6ce5f623dd7f8db5b6f9958328a52c75defea152",
