@@ -13,17 +13,36 @@
   #   npmDepsHash - hash of npm dependency tree (npm packages only)
   #   npmPkg      - npm registry package name when it differs from the key
   #   platformHashes - per-platform SRI hashes (e.g. insomnia AppImage vs DMG)
+  #   updatePolicy - "manual" excludes the entry from `just setup::update-pkg`
+  #                  and `check-updates`. Use it for ANY entry auto-bump cannot
+  #                  correctly complete, and say why in a comment above.
+  #
+  # IMPORTANT: a comment is not a pin. update-pkg reads this file as data, so a
+  # "# Pinned to X, do not bump" note above an entry does nothing to stop it.
+  # Anything that must not auto-bump needs updatePolicy = "manual". Known cases:
+  #   - a deliberate hold on a known-bad upstream release. Set updatePolicy AND
+  #     say why; drop both once upstream fixes it, so holds don't outlive their
+  #     reason (insomnia was held at 12.5.0 for an EPIPE crash until 13.0.2).
+  #   - prerelease/nightly channels: update-pkg follows GitHub
+  #     /releases/latest, which only ever returns stable      e.g. brave-origin
+  #   - URLs built from fields update-pkg doesn't track       e.g. salesforce-cli
+  #     (shortRev)
+  #   - npm packages with a vendored package-lock.json, since
+  #     the lock + npmDepsHash must be regenerated together   e.g. todoist-cli, reap
+  #   - archived modules that nothing imports/builds          e.g. graymatter
+  #   - artifacts hosted off-GitHub whose naming can drift
+  #     independently of the release tag                      e.g. kotlin-lsp
 
   cli = {
     agent-scan = {
       source = "github-release";
       repo = "snyk/agent-scan";
-      version = "0.5.1";
+      version = "0.5.15";
       tagPrefix = "v";
       platformHashes = {
-        x86_64-linux = "sha256-mRU++DkLpEhuJ4X1vBjyzhWSTGEE7Cx1ccy5ac6NOi0=";
-        aarch64-darwin = "sha256-WYAHJkZ5Lh3loWIbpFVuDNKPyfFhTQWHWVjksdgUQ04=";
-        x86_64-darwin = "sha256-OoKrOM3b0chpgyL52/+N1lMapeeuD716CIrxMgbcaT8=";
+        x86_64-linux = "sha256-9H3ubHfTM0k9CMvNn4pZ9NSCP3LEp1KWRjxfzpS68yI=";
+        aarch64-darwin = "sha256-pHLgI5qb2xBH2CGMPCHO625sbCJuZ6WHWG+H6MHYXxQ=";
+        x86_64-darwin = "sha256-XG5YlWfewtknwz9OBKgByiT5dhj7SUfkuGFNW6NgB2M=";
       };
     };
 
@@ -59,13 +78,19 @@
       hash = "sha256-3njs29LxqEzKAGOn7LxEAkD8FLbrzLsX9GRreSqMXB8=";
     };
 
+    # updatePolicy=manual: the asset URL embeds `shortRev`, a per-release build id
+    # (sf-v<version>-<shortRev>-linux-x64.tar.xz). update-pkg has no concept of
+    # shortRev, so it bumps `version` alone and leaves shortRev pointing at the
+    # previous release, producing a 404. Bump this by hand: read the real asset
+    # name off the GitHub release and update version + shortRev together.
     salesforce-cli = {
       source = "github-release";
       repo = "salesforcecli/cli";
-      version = "2.134.6";
+      updatePolicy = "manual";
+      version = "2.145.0";
       tagPrefix = "";
-      shortRev = "f556e1e";
-      hash = "sha256-OXaMFwpICKlNArUmgABV9X5I/I+ah2ZLJVMCZ7nsFTc=";
+      shortRev = "e380bec";
+      hash = "sha256-5CJX6rmCMatYIDavUdpupEdQiXEaoH//tfPHuRwmAm0=";
     };
 
     cpx = {
@@ -79,8 +104,8 @@
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
-      version = "0.0.62";
-      hash = "sha256-+OH0rg/0v5xrY+bCjK1N3NQHDrWVd8g9REJv5C+RiF0=";
+      version = "0.0.65";
+      hash = "sha256-pixDT+okUD6OMqWdkLrJ91yYSSqcgd5nmEyegfN6uJ8=";
       npmPkg = "kubernetes-mcp-server-linux-amd64";
     };
 
@@ -110,23 +135,37 @@
       vendorHash = "sha256-/6DyRRvfyShQUSFmpmuSxrd1bhBh6Km8kaMutA4xrH4=";
     };
 
+    # HELD at 0.16.4. Like todoist-cli, this vendors build/reap/package-lock.json
+    # (still at 0.16.4) and `npm ci` rejects a lock/package version mismatch.
+    # update-pkg does not regenerate vendored locks, so bumping means refreshing
+    # the lock and npmDepsHash by hand. updatePolicy=manual stops the tool
+    # proposing a bump it cannot actually complete.
     reap = {
       source = "npm";
       repo = "c-d-cc/reap";
       npmPkg = "@c-d-cc/reap";
+      updatePolicy = "manual";
       version = "0.16.4";
       hash = "sha256-ABgVEgvlYrPZh9MzTpNlTZp7jfhsOjFlloU0Rltkkio=";
       npmDepsHash = "sha256-Hdf0YhSTfUUeTnfMKrokdAha8Vw70WMB0BS8OIpArEI=";
     };
 
-    # NOTE: 262.4739.0 is available but upstream renamed assets
-    # (kotlin-lsp-VER-linux-x64.zip -> kotlin-server-VER.tar.gz). Bumping
-    # requires updating modules/dev/python/build/default.nix or wherever
-    # kotlin-lsp is fetched (URL + archive type). Holding at 262.2310.0
-    # until the build script is reworked.
+    # HELD at 262.2310.0 (this note supersedes the earlier "262.4739.0 is
+    # available but upstream renamed assets" one; same root cause, still true).
+    # The version is read from GitHub releases, but the artifact comes from
+    # JetBrains' CDN, and upstream restructured both the CDN path and the
+    # artifact name: 262.2310.0 is published as
+    # /kotlin-lsp/<v>/kotlin-lsp-<v>-linux-x64.zip, while 262.8190.0 moved to
+    # /language-server/kotlin-server/<v>/kotlin-server-<v>... and publishes no
+    # linux-x64 zip we can find (its release notes list Windows builds only).
+    # Every URL shape probed for 262.8190.0 returns 404, so a bump needs
+    # build/default.nix's URL reworked AND a linux artifact to exist upstream.
+    # updatePolicy=manual makes the hold stick: it was a comment-only hold
+    # before, which update-pkg cannot read, so the tool bumped it regardless.
     kotlin-lsp = {
       source = "github-release";
       repo = "Kotlin/kotlin-lsp";
+      updatePolicy = "manual";
       version = "262.2310.0";
       tagPrefix = "kotlin-lsp/v";
       hash = "sha256-wAQkIVj0teHZF93YSOb2onlIT6WKPivOiEa4B9GtFrE=";
@@ -149,9 +188,14 @@
       vendorHash = "sha256-V/8PjfqwofxIXY89reSu3sY3UAMOxApzYCwqCwYMxh8=";
     };
 
+    # graymatter now lives in modules/archive/, which modules/default.nix excludes
+    # from auto-import, so nothing builds it and a cleared hash here can never be
+    # resolved by a rebuild. update-pkg has no notion of archived modules and will
+    # keep offering the bump; leave this entry pinned to its last-built values.
     graymatter = {
       source = "github-release";
       repo = "angelnicolasc/graymatter";
+      updatePolicy = "manual";
       version = "0.5.1";
       tagPrefix = "v";
       hash = "sha256-DCi5T2OpYb2sQiQB3b3BXtN8CMKaZdab0BFweeuez08=";
@@ -162,8 +206,8 @@
       source = "npm";
       repo = "knoxgraeme/skillfish";
       npmPkg = "skillfish";
-      version = "1.0.37";
-      hash = "sha256-4XmyKjrxm3LgjxF9so3hiD1F0ZufYY6osj3YQlE+fOo=";
+      version = "1.0.38";
+      hash = "sha256-oe1j2O5a2hF6Q8oP5RLnx0kDwew/AHnMJMIcfVgc+Oo=";
       npmDepsHash = "sha256-P3J4+OiMaucsNjCaWtMTc8zlGT4fA+ItFy/D6RhBWJ0=";
     };
 
@@ -171,6 +215,17 @@
       source = "npm";
       repo = "Doist/todoist-cli";
       npmPkg = "@doist/todoist-cli";
+      updatePolicy = "manual";
+      # HELD at 1.61.2. 3.0.0 is not a drop-in: it requires node >= 24 / npm >= 11
+      # (the build uses buildNpmPackage with nixpkgs' default node 22 and passes
+      # no override), and build/package-lock.json is vendored at 1.61.2, so
+      # `npm ci` would reject the lock/package mismatch. Bumping it means
+      # regenerating that lock at 3.0.0, setting nodejs = pkgs.nodejs_24, and
+      # refreshing npmDepsHash. update-pkg does not touch vendored locks, so it
+      # will keep proposing this bump; that is expected, not a signal to take it.
+      # Upstream breaking changes are otherwise benign for our use (v2 dropped
+      # Goals BETA, v3 is the node bump), but the todoist-triage skill's scripts
+      # are verified against 1.x and should be re-checked as part of that work.
       version = "1.61.2";
       hash = "sha256-fC4/nZ1mj1v8h97NOn7TA4nG7oOLKeeQCRtnKQ1VfoQ=";
       npmDepsHash = "sha256-n+lu7f2rsMEOCnzj1nmzGRZo3WcwhBUeamTexCOs0xM=";
@@ -202,8 +257,8 @@
       source = "apt";
       aptRepo = "https://downloads.claude.ai/claude-desktop/apt/stable";
       package = "claude-desktop";
-      version = "1.20186.1";
-      hash = "sha256-C23sBf5ruo+h9BpVUoNM4hBzNWX7oC4tcw79/e4Y9ts=";
+      version = "1.22209.0";
+      hash = "sha256-bRiueSwr3a0B7cl8LD9M9IkATO/o/tZ2Cmlu0lxJv2E=";
     };
 
     comics-downloader = {
@@ -218,13 +273,14 @@
     insomnia = {
       source = "github-release";
       repo = "Kong/insomnia";
-      # Pinned to 12.5.0: 12.6.0 ships a main-process logger that crashes on
-      # `write EPIPE` when stdout has no live reader (desktop-file launch).
-      # Filed upstream at Kong/insomnia; re-bump once they ship a fix.
-      version = "12.5.0";
+      # Was pinned to 12.5.0 because 12.6.0 shipped a main-process logger that
+      # crashed on `write EPIPE` when stdout had no live reader (desktop-file
+      # launch). 13.0.2 fixes it, so the pin is lifted and this tracks latest
+      # again. No updatePolicy: nothing structural stops auto-bump here.
+      version = "13.0.2";
       tagPrefix = "core@";
       platformHashes = {
-        x86_64-linux = "sha256-RYNzOX9WRPqPUMhbG/Ab4Ip25imudNGlHX1kPLzuQ+U=";
+        x86_64-linux = "sha256-lEEN23hkdpHn3DyyMEhz5rp5F5CURZGPUTdX0A9QuTU=";
         aarch64-darwin = ""; # placeholder -- no darwin builds currently used
         x86_64-darwin = ""; # placeholder -- no darwin builds currently used
       };
@@ -253,21 +309,30 @@
     helium = {
       source = "github-release";
       repo = "imputnet/helium-linux";
-      version = "0.12.1.1";
+      version = "0.14.6.1";
       tagPrefix = "";
-      hash = "sha256-+UE+JqQtxbA5szPvAohapXlES21VBOdNsV6Ej1dRRfs=";
+      hash = "sha256-qdM1Qysx5OOBwzr6A6tyPIfZcHxn2YkIPedGelvbk7I=";
     };
 
     # Brave Origin — minimalist standalone Brave. Only the nightly channel
     # ships Linux artifacts. Asset: brave-origin-nightly-<version>-linux-amd64.zip
     # under release tag v<version>. The package build (modules/apps/gui/
     # brave-origin/build) consumes this entry.
+    # NOTE: `update-pkg` follows GitHub's "latest release", which is the STABLE
+    # channel (v1.92.140 at time of writing). This package tracks NIGHTLY, and
+    # its build hardcodes a `nightly` infix in the asset name, so a stable
+    # version both goes backwards (nightly 1.94.x leads stable 1.92.x) and 404s
+    # on fetch. Keep this pinned to a nightly tag and re-check it by hand after
+    # running update-pkg. Stable now does ship Linux zips, so migrating this off
+    # nightly is possible, but it needs the asset name in build/default.nix
+    # changed too; that is a deliberate choice, not an auto-update.
     brave-origin = {
       source = "github-release";
       repo = "brave/brave-browser";
-      version = "1.94.12";
+      updatePolicy = "manual";
+      version = "1.94.77";
       tagPrefix = "v";
-      hash = "sha256-nIxk3zEEW+6QqAguAlmoEkeLENy9Ee779CI3sCxsXt0=";
+      hash = "sha256-SIpt34JFvvXo+joxKZzu7V1CktrAqUuRmI/0UjnueKA=";
     };
   };
 
