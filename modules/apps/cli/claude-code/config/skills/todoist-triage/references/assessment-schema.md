@@ -21,8 +21,9 @@ extra keys break collation and the digest builder.
   "ball_owner": "them",
   "days_silent": 12,
   "next_action": "Nudge Priya on the mTLS cert bundle she owed on 2026-06-28.",
-  "action_type": "draft-email",
+  "action_type": "email",
   "draft_ready": true,
+  "draft": "Hi Priya, following up on the mTLS cert bundle...",
   "confidence": "high",
   "sources": [
     {"source": "todoist", "citation": "task comment 2026-06-20: 'waiting on Priya for cert bundle'"},
@@ -45,10 +46,23 @@ extra keys break collation and the digest builder.
   last comment), **not** from the due date.
 - **`days_silent`** — integer days since that freshest signal. This plus
   `ball_owner` is the primary triage sort key.
-- **`action_type`** — one of: `post-comment` · `draft-email` · `prepare-slack` ·
-  `reschedule` · `complete` · `downgrade` · `correct-reference` · `none`.
+- **`action_type`** — the Phase-2 **verb**, so the digest line reads as a
+  pre-filled macro rather than prose. One of: `note` · `defer` · `complete` ·
+  `drop` · `close-into` · `merge` · `send` · `teams` · `email` · `downgrade` ·
+  `correct-reference` · `none`. These map 1:1 to `references/macros.md`; if you
+  find yourself wanting a verb that isn't there, the answer is `none` plus a
+  `next_action` explaining why, not an invented verb.
 - **`draft_ready`** — `true` only if the subagent has enough to prepare the draft
-  in Phase 2 without more research.
+  without more research.
+- **`draft`** — the humanized message text, present **only** when `draft_ready`
+  is true and `action_type` is an outward verb (`send`/`teams`/`email`). The
+  subagent writes it during assessment so Phase 2 collapses to preview then send
+  instead of a second research-and-draft round trip. Composing text is not a
+  write, so this respects Phase 1's read-only rule. **Run it through `humanizer`
+  before returning it** (customer-facing → `writing-style`); an unhumanized draft
+  is worse than none, because it looks ready and isn't. The draft is
+  *provisional*: it does not shorten the mandatory preview or the explicit-send
+  gate. Omit for internal verbs.
 - **`confidence`** — `high` · `medium` · `low`. A low-confidence read is still
   worth surfacing; just label it.
 - **`sources[]`** — one entry per source consulted, each with a **concrete**
@@ -69,8 +83,9 @@ extra keys break collation and the digest builder.
 Collate the batch into these groups, in this order, because it maps to what
 Dustin *does* with each:
 
-1. **Nudge ready** — `draft_ready: true`, needs his send (`draft-email`,
-   `prepare-slack`, or a `post-comment` he approves).
+1. **Nudge ready** — `draft_ready: true`, needs his send (`email`, `send`,
+   `teams`, or a `note` he approves). Show the `draft` inline here: this group
+   should collapse to preview then send.
 2. **Waiting on others** — `ball_owner: them`; suggest snooze/reschedule.
 3. **Needs a decision from Dustin** — `blocked` or stalled with no clear move.
 4. **Closeable / likely done** — `likely-done`; propose `complete`.
@@ -87,20 +102,25 @@ groups, phone-skimmable.
 
 ## Actions and gating (Phase 2)
 
-One task at a time. Show the current-state picture + recommended `next_action`,
-then act only on Dustin's decision in that turn.
+Show the current-state picture, the `recent_context[]` quotes, and the
+recommended verb with its parameters filled in. Then act only on Dustin's
+decision. **The exact invocation for every verb lives in
+`references/macros.md`** — this table is the gating contract only.
 
-| Action | Gating |
-|---|---|
-| **Post summary / work-log comment** on the task | Humanize first. Record every action here (the comments are Dustin's work log), and link any URL in Markdown `[label](url)` form. **Check existing comments for a recent note — update or skip, never duplicate.** Internal, so no send-gate, but still confirm. See `references/slack-message-pipeline.md` (work-log discipline). |
-| **Draft email reply** | Gmail draft via `gws`, correctly threaded (In-Reply-To / References / threadId, clean To). **Never auto-send** — leave the draft for Dustin unless he says "send" this turn. Humanize (customer-facing → `writing-style`). Log it on the task with a `[label](url)` link. |
-| **Prepare/send Slack message** | Follow the hard-gated pipeline in `references/slack-message-pipeline.md`: draft → humanizer → text-polish rules → **mandatory preview** → **explicit send** → `/slack-post` (**never** the Slack MCP) → capture permalink → log on the task. |
-| **Reschedule** | `td task reschedule <ref> <date>` — preserves recurrence and time-of-day. Preview with `--dry-run` first. Confirm. |
-| **Complete** | `td task complete <ref>` (`--forever` to stop recurrence). Only ever *recommended*; Dustin confirms every completion. |
-| **Downgrade / relabel** | `td task update <ref> --priority pN` / `--labels ...`. Confirm. |
-| **Correct reference** | Post a comment noting the wrong/closed ref and the right one (humanized). Don't rewrite the task title silently. |
+| Tier | Verbs | Gate |
+|---|---|---|
+| **Internal, batched** | `note`, `defer`, `link-log` | Show the batch, take **one** approval, then run them all. Reversible and touches nobody else. |
+| **Completion** | `complete`, `drop`, `close-into` | **Its own confirm, per task.** Never folded into the internal batch. |
+| **Merge** | `merge` | **One** confirm. Confirming "these are duplicates" *is* confirming the closes it performs. |
+| **Outward** | `send`, `teams`, `email` | Full gate, one at a time: draft → humanize → preview → **explicit "send" that turn** → post → log. |
+| **Other** | `downgrade`, `correct-reference` | Confirm. `downgrade` is `td task update --priority pN`; `correct-reference` posts a note with the correction and never silently rewrites the title. |
 
-**The invariant Dustin chose: recommend, never auto-act.** No completion,
-reschedule, downgrade, or send happens without his explicit yes in the moment —
-including the "obvious" ones. Anything outward-facing is drafted, not sent. And
-report faithfully: a drafted-not-sent nudge is recorded as "drafted."
+**The invariant Dustin chose: recommend, never auto-act.** Batching applies only
+to the reversible internal trio, and only as one approval of a *shown* batch. It
+is not permission to act silently, and completion is deliberately outside it.
+Anything outward-facing is drafted, not sent, until he says so in that turn.
+
+Every writing verb logs itself through `scripts/td_worklog.sh` — the work log is
+automatic, not something Dustin should ever have to ask for. Report faithfully: a
+drafted-not-sent nudge is recorded as "Drafted", a sent one as "Sent" with its
+permalink.
