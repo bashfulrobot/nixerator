@@ -8,13 +8,16 @@
 #   run-all.sh /path/to/list.txt   # explicit list file
 #
 # customers.txt line format:
-#   Drive folder name[|aha_org_id[,aha_org_id2,...]]
+#   Drive folder name[|aha_org_id[,aha_org_id2,...]][|Display Name]
 #
-# The part before "|" must be the EXACT existing Drive folder name (also
-# used as the Aha! search term when no org id is given). The optional part
-# after "|" is one or more Aha idea-organization ids, forwarded as repeated
-# --org flags -- see customer-fr-report.sh's own usage comment for when
-# that's needed (Drive/Aha names diverge, or a plain search is ambiguous).
+# Field 1 must be the EXACT name of the customer's own folder at
+# <region>/<customer> (also used as the Aha! search term when no org id is
+# given). Field 2 is one or more Aha idea-organization ids, forwarded as
+# repeated --org flags -- see customer-fr-report.sh's own usage comment for
+# when that's needed (Drive/Aha names diverge, or a plain search is
+# ambiguous). Field 3 overrides the customer-facing display name when the
+# Drive folder isn't the customer's full name; it defaults to field 1.
+# Both trailing fields are optional -- see customers.txt's own header.
 
 set -uo pipefail
 
@@ -29,27 +32,47 @@ list_file="${1:-$here/../customers.txt}"
 ok=0
 failed=()
 
+# Strip leading/trailing whitespace. Done with parameter expansion rather than
+# `xargs`, which also does quote processing: a name with an apostrophe in it
+# ("Moody's") is an unmatched quote to xargs, which errors out and leaves the
+# field empty -- silently skipping that customer instead of failing loudly.
+_trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+
 while IFS= read -r line; do
   # Strip comments and blank lines.
   line="${line%%#*}"
-  line="$(echo "$line" | xargs || true)"
-  [[ -n "$line" ]] || continue
+  [[ -n "$(_trim "$line")" ]] || continue
 
-  customer="${line%%|*}"
-  org_ids="${line#"$customer"}"
-  org_ids="${org_ids#|}"
+  IFS='|' read -r customer org_ids display_name <<<"$line"
+  customer="$(_trim "$customer")"
+  org_ids="$(_trim "${org_ids:-}")"
+  display_name="$(_trim "${display_name:-}")"
+  [[ -n "$customer" ]] || continue
+
   declare -a org_args=()
   if [[ -n "$org_ids" ]]; then
     IFS=',' read -ra _ids <<<"$org_ids"
     for id in "${_ids[@]}"; do
+      id="$(_trim "$id")"
       [[ -n "$id" ]] && org_args+=("--org" "$id")
     done
+  fi
+
+  declare -a display_args=()
+  if [[ -n "$display_name" ]]; then
+    display_args=(--display-name "$display_name")
   fi
 
   echo "=============================================="
   echo "Processing: ${customer}"
   echo "=============================================="
-  if bash "$here/customer-fr-report.sh" "$customer" "${org_args[@]}"; then
+  if bash "$here/customer-fr-report.sh" "$customer" \
+    ${display_args[@]+"${display_args[@]}"} ${org_args[@]+"${org_args[@]}"}; then
     ok=$((ok + 1))
   else
     echo "FAILED: ${customer}" >&2

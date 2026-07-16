@@ -182,7 +182,7 @@ aha-fr-report                      # every customer in customers.txt
 
 This writes an internal Google Sheet into `<Customer>/CS/FRs/` in Kong's
 "Customers" shared drive (reused across runs, same link every time) and a
-Kong-branded PDF snapshot into `<Customer>/CS/FRs/exports/`. That shared
+Kong-branded PDF snapshot into `<Customer>/CS/FRs/Customer-PDF-Reports/`. That shared
 drive enforces `domainUsersOnly` (verified live against the API), so the PDF
 is not itself externally link-shareable -- download it and attach to an
 email or Slack message to actually get it to the customer. Both commands
