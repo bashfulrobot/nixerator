@@ -11,19 +11,38 @@ correction — record it as a comment so the next person to open the task (usual
 Dustin, weeks later) sees the current state without re-deriving it. This is the
 whole point of the skill: don't let the trail go stale.
 
-- **Always link anything linkable, in Markdown `[label](url)` format.** Todoist
-  renders Markdown links. The Slack message just posted, the email thread, a
-  Google Doc, a Jira ticket, a call transcript — if there's a URL, link it with
-  a human label: `[nudge](https://…)`, `[Apr 9 call summary](https://…)`. A bare
-  URL or "see Slack" is not good enough; the point is one-click return to the
-  source.
+**Never hand-roll this.** `scripts/td_worklog.sh` is the only sanctioned way to
+write an entry, and every writing macro already calls it, so the log is automatic
+rather than something Dustin has to ask for:
+
+```bash
+scripts/td_worklog.sh <task-ref> --verb <verb> --entry "<what happened>" \
+  [--link "label=url"]... [--next "<what to watch for>"] [--dry-run]
+```
+
+It handles what used to be manual discipline:
+
+- **Links.** `--link "nudge=https://…"` renders as `[nudge](https://…)`, which
+  Todoist renders as a real link. A bare URL or "see Slack" is not good enough;
+  the point is one-click return to the source.
+- **Idempotency.** One `**Triage log <date>**` comment per task per day; a repeat
+  call the same day appends a bullet instead of posting a duplicate note.
+- **The run log.** Each call appends to
+  `${XDG_STATE_HOME:-~/.local/state}/todoist-triage/runs.jsonl`, so a later run
+  knows this task was touched and assesses the delta instead of re-deriving it.
+
+What the script can't do for you:
+
 - **Report faithfully.** A message that was drafted-not-sent is logged as
-  "drafted"; one that was sent is "sent" with its permalink. Never launder a
+  "Drafted"; one that was sent is "Sent" with its permalink. Never launder a
   draft into a "sent."
-- **Idempotent.** Before adding a work-log comment, scan recent comments; update
-  or append rather than duplicating a note that's already there.
+- **Humanize the entry text** before passing it in.
 - Keep entries terse and factual (who, what, when, link). The breadcrumb, not an
   essay.
+
+**Logging never changes a task.** The script writes comments and nothing else.
+Moving a date is `defer` (which logs too); closing is `complete`/`drop`. Full
+verb list and invocations: `macros.md`.
 
 ## The Slack send pipeline (hard-gated)
 
@@ -47,11 +66,16 @@ optional — this is Dustin's rule, and skipping a step is a violation of it.
    **Never** post via the Slack MCP (it stamps a "Sent using @Claude" footer;
    slack-post posts cleanly as Dustin). Channel/user lookups may use the Slack
    MCP; only the send bypasses it.
-7. **Capture the permalink and log it** — after posting, retrieve the posted
-   message's link and add it to the task's work log as a `[label](url)` comment
-   (see work-log discipline above). This is why the send goes through the skill
-   rather than a manual paste: the loop only closes when the link lands back on
-   the task.
+7. **Capture the permalink and log it** — automatic, not a separate request:
+
+   ```bash
+   scripts/td_worklog.sh <task-ref> --verb send \
+     --entry "Sent nudge to <who> re <what>." --link "nudge=<permalink>" \
+     --next "<what to watch for>"
+   ```
+
+   This is why the send goes through the skill rather than a manual paste: the
+   loop only closes when the link lands back on the task.
 
 If Dustin would rather send by hand, the fallback is the earlier behaviour:
 finish at step 4, copy the polished text to his clipboard, and he pastes it —

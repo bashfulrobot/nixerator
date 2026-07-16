@@ -23,6 +23,7 @@ set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_SCOPES="$SKILL_DIR/scopes.json"
 USER_SCOPES="${XDG_CONFIG_HOME:-$HOME/.config}/todoist-triage/scopes.json"
+RUNLOG="${XDG_STATE_HOME:-$HOME/.local/state}/todoist-triage/runs.jsonl"
 
 command -v td >/dev/null || {
   echo "td not found (todoist-cli skill)" >&2
@@ -50,13 +51,31 @@ saved_query() {
     head -n1
 }
 
+# Last-touched index from the local run log: {task_id: {last_touched, last_verb}}.
+# ANNOTATION ONLY. This never filters a task out. Hiding work is how work gets
+# lost; the due date (set via `defer`) is the "show me later" control. Phase 1
+# uses this to assess the delta since the last touch instead of re-deriving the
+# whole picture.
+touch_index() {
+  if [ -f "$RUNLOG" ]; then
+    jq -s -c 'map(select(.task_id != null))
+      | group_by(.task_id)
+      | map({key: .[0].task_id,
+             value: (sort_by(.ts) | last | {last_touched: (.ts[0:10]), last_verb: .verb})})
+      | from_entries' "$RUNLOG" 2>/dev/null || echo '{}'
+  else
+    echo '{}'
+  fi
+}
+
 # Run a filter query and emit the normalized task array.
 emit_filter() {
   local query="$1"
-  local tasks projects
+  local tasks projects touched
   tasks=$(td task list --filter "$query" --json --all)
   projects=$(td project list --json --all)
-  jq -n --argjson t "$tasks" --argjson p "$projects" '
+  touched=$(touch_index)
+  jq -n --argjson t "$tasks" --argjson p "$projects" --argjson tx "$touched" '
     (($p.results // []) | map({(.id): .name}) | add // {}) as $pm
     | ($t.results // []) | map({
         task_id: .id,
@@ -65,16 +84,19 @@ emit_filter() {
         due:     (.due.date // .due.string // null),
         recurring: (.due.isRecurring // false),
         priority: ("p" + ((5 - .priority) | tostring)),
-        url:     .url
+        url:     .url,
+        last_touched: ($tx[.id].last_touched // null),
+        last_verb:    ($tx[.id].last_verb // null)
       })
     | sort_by((.priority[1:] | tonumber), (.due // "9999-12-31"))'
 }
 
 emit_single() {
-  local ref="$1" task projects
+  local ref="$1" task projects touched
   task=$(td task view "$ref" --json)
   projects=$(td project list --json --all)
-  jq -n --argjson x "$task" --argjson p "$projects" '
+  touched=$(touch_index)
+  jq -n --argjson x "$task" --argjson p "$projects" --argjson tx "$touched" '
     (($p.results // []) | map({(.id): .name}) | add // {}) as $pm
     | [ {
         task_id: $x.id,
@@ -83,7 +105,9 @@ emit_single() {
         due:     ($x.due.date // $x.due.string // null),
         recurring: ($x.due.isRecurring // false),
         priority: ("p" + ((5 - $x.priority) | tostring)),
-        url:     $x.url
+        url:     $x.url,
+        last_touched: ($tx[$x.id].last_touched // null),
+        last_verb:    ($tx[$x.id].last_verb // null)
       } ]'
 }
 

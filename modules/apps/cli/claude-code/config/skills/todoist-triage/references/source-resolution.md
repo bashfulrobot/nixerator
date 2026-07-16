@@ -18,6 +18,12 @@ to reuse across a run:
 |---|---|---|
 | `customers` | customer / project name | `{ "slack_channel": "#internal-lululemon", "notes_dir": "~/insync/kong/My-drive/Customer/Lululemon/", "jira_prefixes": ["LULU","DEVP"], "sfdc_account": "001..." }` |
 | `contacts` | customer name | `{ "customer_side": [...], "kong_side": [...] }` (names/handles, **not** secrets) |
+| `routing` | person's name | `{ "medium": "slack-dm\|slack\|teams\|email", "id": "<channel or DM id>", "note": "prefers DM" }` |
+
+**Routing** answers "how do I reach this person", not just "who are they" — the
+`teams` vs `send` verb choice and the channel id both come from here, so a nudge
+doesn't re-resolve them every run. It's a stable name→identifier mapping like the
+others, so it obeys the same rule below: no live state, no message contents.
 
 Slow metadata (CSM owner, segment) may use `--ttl 30d`. **Never cache live
 state** — never `put` a task's contents, due date, status, `days_silent`, ticket

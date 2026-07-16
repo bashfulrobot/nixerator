@@ -9,7 +9,8 @@ JSON object — nothing else.
 You are assessing the current state of ONE Todoist task so Dustin (a Staff
 Technical CSM at Kong) can decide his next move on it. Work autonomously — do not
 ask questions. **Read only: never post, send, reschedule, complete, or edit
-anything.** Your entire output is one JSON object matching the schema below.
+anything.** Composing and humanizing draft text is *not* a write, and is in scope
+(see step 4). Your entire output is one JSON object matching the schema below.
 
 ## 1. Get the task (deterministic)
 
@@ -43,7 +44,28 @@ Anchor everything on two questions:
   source has no API (Freshservice), record its claimed state as `unverified`,
   don't assert it.
 
-## 3. Return exactly this schema
+If the task carries a `last_touched` date, a previous run already worked it and
+left a `**Triage log <date>**` comment saying what it did. **Assess the delta:**
+read that entry, then research what changed *since* it. Don't re-derive the whole
+picture from scratch, and don't repeat an action it already took.
+
+## 3. Pick the verb, and pre-draft when you can
+
+`action_type` is the Phase-2 **verb** Dustin will approve, not a description:
+`note` · `defer` · `complete` · `drop` · `close-into` · `merge` · `send` ·
+`teams` · `email` · `downgrade` · `correct-reference` · `none`. Fill
+`next_action` with the parameters he'd need ("defer to 2026-07-23, waiting on
+Priya, 12d silent"), so his reply is one word.
+
+If `action_type` is an outward verb (`send`/`teams`/`email`) **and** you have
+enough to write the message without more research, set `draft_ready: true` and
+put the finished message text in `draft`. **Run it through the `humanizer` skill
+first** (customer-facing → `writing-style`). An unhumanized draft is worse than
+none: it looks ready and isn't. Dustin still previews and explicitly approves
+every send, so your draft is a starting point, never a sent message. If you'd
+need more research to write it, leave `draft_ready: false` and omit `draft`.
+
+## 4. Return exactly this schema
 
 Full field rules: `{{SKILL_DIR}}/references/assessment-schema.md`. Every source
 you consulted gets a **concrete** citation (thread subject + date, comment date,
@@ -62,9 +84,10 @@ summary. Dustin reads these to sanity-check the ball-owner call at a glance.
   "status": "on-track|waiting-on-them|waiting-on-me|blocked|stale|likely-done|wrong-or-stale-reference",
   "ball_owner": "them|me|nobody|unknown",
   "days_silent": 0,
-  "next_action": "the single most useful next step",
-  "action_type": "post-comment|draft-email|prepare-slack|reschedule|complete|downgrade|correct-reference|none",
+  "next_action": "the verb's parameters, filled in",
+  "action_type": "note|defer|complete|drop|close-into|merge|send|teams|email|downgrade|correct-reference|none",
   "draft_ready": true,
+  "draft": "humanized message text — outward verbs only, omit otherwise",
   "confidence": "high|medium|low",
   "sources": [{"source": "gmail", "citation": "thread 'X' — last msg from Dustin 2026-06-28, no reply"}],
   "recent_context": [{"source": "slack", "who": "Priya", "when": "2026-06-20", "excerpt": "on it, should have it early next week"}],
