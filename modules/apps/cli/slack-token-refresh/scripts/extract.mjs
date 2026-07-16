@@ -9,14 +9,13 @@
 // Saves to $XDG_CONFIG_HOME/slack/credentials.json
 
 import { chromium } from "playwright-core";
-import { readFileSync, writeFileSync, mkdirSync, chmodSync } from "fs";
-import { homedir } from "os";
+import { mkdirSync } from "fs";
+import { saveCredentials, credentialsPath, slackConfigDir } from "./credentials.mjs";
 import { join } from "path";
 import { createInterface } from "readline";
 
-const XDG_CONFIG = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
-const SLACK_CONFIG_DIR = join(XDG_CONFIG, "slack");
-const CREDENTIALS_FILE = join(SLACK_CONFIG_DIR, "credentials.json");
+const SLACK_CONFIG_DIR = slackConfigDir();
+const CREDENTIALS_FILE = credentialsPath();
 const PROFILE_DIR = join(SLACK_CONFIG_DIR, "browser-profile");
 const SLACK_URL = "https://app.slack.com/client/";
 
@@ -31,22 +30,6 @@ function prompt(question) {
       resolve(answer);
     });
   });
-}
-
-function saveCredentials(workspace, xoxc, xoxd, url) {
-  mkdirSync(SLACK_CONFIG_DIR, { recursive: true });
-  let creds = { workspaces: {} };
-  try {
-    creds = JSON.parse(readFileSync(CREDENTIALS_FILE, "utf-8"));
-  } catch {}
-  creds.workspaces[workspace] = {
-    xoxc,
-    xoxd,
-    url,
-    updated: new Date().toISOString(),
-  };
-  writeFileSync(CREDENTIALS_FILE, JSON.stringify(creds, null, 2) + "\n");
-  chmodSync(CREDENTIALS_FILE, 0o600);
 }
 
 async function validateToken(xoxc, xoxd) {
