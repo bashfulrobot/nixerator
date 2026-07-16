@@ -65,16 +65,13 @@ in
     system.special-workspaces.enable = true;
 
     environment.systemPackages = with pkgs; [
-      # Trying vesktop in place of the native Discord PTB client because
-      # discord-ptb's prebuilt binary still links against EOL openssl 1.1,
-      # which fails the system rebuild without permittedInsecurePackages.
-      # Vesktop is a maintained Electron wrapper around Discord's web app
-      # and uses modern openssl.
-      #
-      # TODO: if vesktop turns out to be a keeper, delete the commented
-      #       `discord-ptb` line below.
-      # discord-ptb
-      vesktop
+      # No native Discord client, deliberately. Both candidates drag an EOL
+      # dependency that blocks the system rebuild: vesktop is pinned to
+      # electron_40 in nixpkgs (flagged EOL as of nixpkgs 753cc8a3, see
+      # NixOS/nixpkgs#542512), and discord-ptb's prebuilt binary still links
+      # against openssl 1.1. Neither is worth a permittedInsecurePackages
+      # entry, since both render untrusted remote content. Use a
+      # browser-wrapped web app (apps.webapps) if Discord is wanted again.
       slack
       todoist-electron
       # Native Zoom client disabled in favour of the browser-wrapped Zoom web
