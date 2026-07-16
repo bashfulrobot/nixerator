@@ -60,9 +60,11 @@ Cheap checks that prevent silent wrong-account or auth failures deep in a fan-ou
 - **Todoist reachable:** `td auth status` succeeds. Scope resolution and every
   subagent depend on `td`.
 - **Google Workspace identity:** confirm `gws` is pointed at Dustin's Kong
-  address `dustin.krysak@konghq.com` (the `gws-cli` skill owns the check). Email
-  drafts thread against the wrong mailbox if this is off. Only needed if the run
-  might touch email — but it's cheap, so verify up front.
+  address `dustin.krysak@konghq.com` (the `gws-cli` skill owns the check).
+  **Assert this and stop if it's wrong** — don't note it and carry on. A run that
+  discovers the personal-vs-Kong mixup at task twelve has already threaded drafts
+  against the wrong mailbox and burned the round trips this check exists to
+  prevent. It's cheap; fail loudly on turn one.
 - This is a **read-heavy** skill. Phase 1 never writes anything. Announce that
   before fanning out so Dustin knows the assessment pass is safe to let run.
 
@@ -87,6 +89,22 @@ Named presets live in `scopes.json` (version-controlled) and merge with
 `~/.config/todoist-triage/scopes.json` (Dustin's own, wins per-preset). This is
 how a scope gets an easy name instead of a re-typed query — offer `td_scope.sh
 list` whenever Dustin is picking what to triage.
+
+Every emitted task also carries `last_touched` and `last_verb`, read from the
+local run log that `td_worklog.sh` appends to
+(`${XDG_STATE_HOME:-~/.local/state}/todoist-triage/runs.jsonl`). This is a record
+of what *we* did, not a cached copy of Todoist state, so it never goes stale
+misleadingly.
+
+**It annotates; it never excludes.** Hiding work is how work gets lost. A task
+you touched yesterday still appears today — the difference is you now know you
+touched it, and Phase 1 assesses the *delta* instead of re-deriving the whole
+picture. The "show me later" control is the **due date**, set deliberately via
+`defer`; a task deferred to Thursday drops out of `(overdue | today)` on its own
+until Thursday. Don't add a second, competing hide mechanism.
+
+Surface `last_touched` when you show the scope ("12 of these 84 were touched in
+the last 3 days") so Dustin can *choose* to narrow. Never narrow for him.
 
 Show the resolved selector and the count, and **confirm before fanning out**
 (single-task mode is the exception — one task, no confirmation). If the count is
@@ -131,7 +149,17 @@ the task's id/URL filled in. The brief tells the subagent to:
 - resolve recurring per-customer identifiers through the cache in
   `references/source-resolution.md` (Slack channel, notes dir, ticket prefixes,
   contacts — resolve once, reuse),
-- **read only** — never post, send, reschedule, or complete anything,
+- **assess the delta when `last_touched` is set** — the prior work-log entry says
+  what was already done; research what changed since, don't re-derive from
+  scratch,
+- **read only** — never post, send, reschedule, or complete anything. Drafting
+  text is not a write: composing and humanizing a message mutates nothing, so it
+  is in scope for Phase 1.
+- **pre-draft the outward message when `draft_ready` is true** — the subagent
+  already did the research, so it writes the humanized draft into `draft` rather
+  than making Phase 2 re-research and re-draft. Only for `draft_ready` items, so
+  nothing is drafted for tasks that get skipped. The draft is *provisional*: the
+  mandatory preview and explicit-send gate in Phase 2 do not move.
 - return exactly the schema in `references/assessment-schema.md`, with a
   concrete citation per source and an explicit `unverified[]` list.
 
@@ -154,18 +182,38 @@ how long). That single axis is the most useful triage signal; lead with it.
 ### Step 5 — Walk the actions (Phase 2, interactive)
 
 Go task by task through the batch. For each, show the current-state picture and
-the recommended next action, then do what Dustin decides. **Include the last one
-or two real messages** from wherever the ball sits (`recent_context[]` — the
-Slack thread, email, or task comment, quoted with who/when), not just your
-summary. Seeing the actual words is what lets Dustin trust the ball-owner and
-staleness call at a glance instead of opening the thread himself. Available
-actions and their gating rules are in `references/assessment-schema.md`
-("Actions"). The non-negotiables:
+the recommended next action **as a filled-in verb** (see below), then do what
+Dustin decides. **Include the last one or two real messages** from wherever the
+ball sits (`recent_context[]` — the Slack thread, email, or task comment, quoted
+with who/when), not just your summary. Seeing the actual words is what lets
+Dustin trust the ball-owner and staleness call at a glance instead of opening the
+thread himself. Keep quoting it even when the walk gets fast: a one-word approval
+is only a judgement if he can see what he's approving.
+
+**Speak in verbs, not paragraphs.** Every action is one of the named macros in
+`references/macros.md` — `note` · `defer` · `link-log` · `complete` · `drop` ·
+`close-into` · `merge` · `send` · `teams` · `email`. Each one already carries its
+conventions, so end each task with the recommended verb and its parameters
+pre-filled ("`defer` to Thu 2026-07-23, reason: waiting on Priya, 12d silent")
+and let Dustin answer with the verb, a correction, or "skip". Don't make him
+dictate the recipe; the recipe lives in the macro.
+
+**The two gate tiers** (this is the autonomy level Dustin chose — don't drift):
+
+| Tier | Verbs | Gate |
+|---|---|---|
+| Internal, batched | `note`, `defer`, `link-log` | Show the batch, take **one** approval, run them all |
+| Completion | `complete`, `drop`, `close-into` | **Its own confirm, per task** — never folded into the batch |
+| Merge | `merge` | **One** confirm: the duplicate call *is* the authorisation for its closes |
+| Outward | `send`, `teams`, `email` | Full gate, one at a time, explicit "send" that turn |
+
+Full gating table and the exact invocations: `references/macros.md`. The
+non-negotiables:
 
 - **Recommend, never auto-act.** Even a `likely-done` task is only ever
-  *proposed* for completion — Dustin confirms every complete / reschedule /
-  downgrade / comment in the moment. (This is the autonomy level he chose; don't
-  drift toward "I'll just close the obvious ones.")
+  *proposed* for completion — Dustin confirms every completion in the moment.
+  Batching applies only to the reversible internal trio, and only as **one
+  approval of a shown batch**, never as silent action.
 - **Drafted, never sent.** Anything that would reach a customer or teammate —
   email, Slack, external comment — is prepared as a draft and left for Dustin,
   unless he says "send it" in that same turn. Email → Gmail draft via `gws`,
@@ -176,18 +224,21 @@ actions and their gating rules are in `references/assessment-schema.md`
   (**never** the Slack MCP) → capture the permalink → log it on the task. The
   text-polish pass must leave *only* the final message text; AI process must
   never leak into what gets sent.
-- **Keep the work log current, and link everything.** The task's comments are
-  Dustin's work log — after every action, record it as a comment, and link any
-  URL in Markdown `[label](url)` format (the Slack message just posted, the email
-  thread, a doc, a ticket). Full rules in
-  `references/slack-message-pipeline.md`. Bare URLs and "see Slack" don't cut it.
+- **The work log is automatic, not a request.** Every verb that writes also logs,
+  because `scripts/td_worklog.sh` is fused into it — Dustin should never have to
+  ask you to "log it" or "add the link". The script is idempotent (one
+  `Triage log <date>` comment per task per day, appended to on repeat calls) and
+  renders `--link "label=url"` as Markdown. Bare URLs and "see Slack" don't cut
+  it. Full rules in `references/slack-message-pipeline.md`.
+- **`note` never changes a date or status.** Logging is comment-only. Moving a
+  date is `defer` (which logs too); closing is `complete`/`drop`.
 - **Humanize outward prose.** Any text Dustin will read-and-send — task summary
   comments, email drafts, Slack drafts — goes through the `humanizer` skill
   first (customer-facing comms: `writing-style`, which folds in humanizer). Not
   code, IDs, or the structured digest itself.
-- **Idempotent comments.** Before posting a summary/work-log comment, check the
-  task's existing comments for a recent note and update/skip rather than
-  duplicating.
+- **Idempotency is the script's job, not yours.** `td_worklog.sh` already scans
+  for today's entry and appends to it. Don't hand-roll a `td comment add`; you'll
+  reintroduce the duplicate notes the script exists to prevent.
 - **Report faithfully.** If a nudge was drafted and not sent, the task comment
   and your summary say "drafted," not "sent." A sent message is logged as "sent"
   with its permalink. If a source couldn't be verified, it stays in
@@ -220,8 +271,30 @@ subagent brief, but hold them yourself when running single-task mode:
   `unverified[]`. A low-confidence read is still useful — but say so, so Dustin
   weighs it right.
 
+## Standing defaults (don't make Dustin restate these)
+
+These are settled. Apply them without asking; they're why the macros exist.
+
+- **Log every action, with links.** Automatic via `td_worklog.sh`, never a
+  request. Format: `- <what happened> [label](url)` plus an optional
+  `- Next: <what to watch for>`.
+- **Report faithfully.** "Drafted" when nothing was sent; "Sent" only with a
+  permalink. Never launder a draft into a send.
+- **Humanize anything Dustin reads or sends.** Not code, IDs, or the digest.
+- **Default defer horizon:** waiting on a person with no committed date → next
+  business day + 3 (skip weekends). A known future date always wins over the
+  default. Never push everything to "tomorrow".
+- **Reschedule via `td task reschedule`**, never `td task update --due` (which
+  destroys recurrence).
+- **Never surface raw `.priority`.** The Todoist API inverts it (4 = highest).
+  The `p1`–`p4` label from the schema is the only priority anyone sees;
+  `td_fetch.sh` and `td_scope.sh` already normalize it (`5 - api`).
+
 ## Reference files
 
+- `references/macros.md` — the Phase-2 verb vocabulary (`note`/`defer`/`merge`/
+  `send`/…), the gate tiers, and the exact invocation for each. Read in Step 5
+  before acting on anything.
 - `references/data-sources.md` — the data-source registry: every source, its
   owning skill/MCP, what it's good for, when to reach for it. Read in Step 2 and
   hand to every subagent.
@@ -239,9 +312,15 @@ subagent brief, but hold them yourself when running single-task mode:
   assessment subagent.
 - `scopes.json` — named scope presets (version-controlled defaults; Dustin
   extends via `~/.config/todoist-triage/scopes.json`).
-- `scripts/td_scope.sh` — deterministic scope resolution + `list` audit (Step 1).
+- `scripts/td_scope.sh` — deterministic scope resolution + `list` audit (Step 1);
+  annotates each task with `last_touched`/`last_verb` from the run log.
 - `scripts/td_fetch.sh` — deterministic single-task fetch (task + comments) for
   each subagent (Step 3).
+- `scripts/td_worklog.sh` — the idempotent work-log write (Step 5). Every writing
+  verb goes through it; it also appends the run log. Comment-only: it never
+  touches a due date, priority, or status.
+- `scripts/td_defer.sh` — the `defer` macro: recurrence-safe reschedule fused
+  with its work-log entry, plus an optional reminder.
 - `scripts/discover-tools.sh` — refresh the tool inventory (`--refresh-tools`).
 - `scripts/build_digest.py` — render a batch's JSON into the HTML digest artifact.
 

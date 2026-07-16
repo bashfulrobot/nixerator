@@ -37,8 +37,10 @@ def group_of(a: dict) -> str:
         return "correction"
     if status == "likely-done":
         return "closeable"
+    # action_type is the Phase-2 verb (references/macros.md). Outward verbs plus
+    # `note` are the ones a ready draft makes actionable.
     if a.get("draft_ready") and a.get("action_type") in (
-        "draft-email", "prepare-slack", "post-comment"):
+        "email", "send", "teams", "note"):
         return "nudge"
     if status == "waiting-on-them":
         return "waiting"
