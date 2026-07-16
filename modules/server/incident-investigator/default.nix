@@ -45,6 +45,9 @@ let
     pkgs.llm-agents.claude-code
     pkgs.kubectl
     pkgs.fluxcd
+    pkgs.stern # multi-pod log tailing for the investigator (always used with --no-follow so a run terminates)
+    pkgs.kube-capacity # per-node requests/limits/utilization table, sharper than `describe node`
+    pkgs.yq-go # read-only YAML query (binary is `yq`)
     pkgs._1password-cli
     pkgs.jq
     pkgs.curl
