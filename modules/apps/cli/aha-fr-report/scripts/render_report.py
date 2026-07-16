@@ -28,6 +28,52 @@ FONT_DIR = os.path.join(ASSETS_DIR, "fonts")
 
 CLOSED_SHIPPED_RE = ("shipped",)
 
+# Lifecycle order for the Status column, most-committed first, so a customer
+# reads the work Kong has actually promised before the work it hasn't looked at
+# yet. Matched as a lowercased PREFIX, so financial-year-suffixed statuses
+# ("Will not implement in FY27" -> "will not implement") keep sorting correctly
+# when the FY rolls over. Anything unrecognised sorts last, alphabetically --
+# a new Aha status is then merely out of order, never a crash.
+STATUS_ORDER = (
+    "planned",
+    "under consideration",
+    "needs review",
+    "shipped",
+    "will not implement",
+)
+
+
+def status_rank(status):
+    s = (status or "").strip().lower()
+    for i, known in enumerate(STATUS_ORDER):
+        if s.startswith(known):
+            return i
+    return len(STATUS_ORDER)
+
+
+def sort_key(item):
+    """Status lifecycle first, then Stack Rank ascending within a status.
+
+    Unranked ideas sort after ranked ones (mirrors fetch-ideas.sh's own
+    ranked-then-unranked ordering), and ref breaks any remaining tie so the
+    row order is stable between runs on identical data.
+    """
+    status = (item.get("status") or "").strip()
+    raw_rank = item.get("rank")
+    try:
+        rank_value = float(raw_rank)
+        rank_missing = False
+    except (TypeError, ValueError):
+        rank_value = 0.0
+        rank_missing = True
+    return (
+        status_rank(status),
+        status.lower(),
+        rank_missing,
+        rank_value,
+        item.get("ref") or "",
+    )
+
 
 def font_face(family, weight, style, filename):
     return (
@@ -44,82 +90,106 @@ FONT_FACES = "\n".join([
     font_face("Roboto Mono", 400, "normal", "roboto-mono/RobotoMono-Regular.ttf"),
 ])
 
+# Kong 2026 v1.1 brand palette, interpolated into the CSS below as literal hex.
+#
+# These deliberately are NOT CSS custom properties. wkhtmltopdf's QtWebKit
+# predates `var()` and drops any declaration using one: `color: var(--x)` is
+# ignored, and `border: 1px solid var(--x)` is invalid so the whole border
+# disappears. The report had been rendering with no lime badges, no section
+# bars and no tile borders because of exactly that -- a greyscale PDF going to
+# customers. Verified against wkhtmltopdf 0.12.6 by rendering a var() swatch
+# next to a literal one: only the literal painted. Keep them literal.
+KONG_DARK_GREEN = "#000F06"
+KONG_ELECTRIC_LIME = "#CCFF00"
+KONG_WHITE = "#FFFFFF"
+KONG_NEUTRAL_100 = "#D7DED4"
+KONG_NEUTRAL_300 = "#B7BDB5"
+KONG_NEUTRAL_500 = "#858983"
+KONG_NEUTRAL_700 = "#4A4D49"
+KONG_NEUTRAL_900 = "#101110"
+
 CSS = f"""
 {FONT_FACES}
-
-:root {{
-  --kong-dark-green: #000F06;
-  --kong-electric-lime: #CCFF00;
-  --kong-bay: #B7BDB5;
-  --kong-white: #FFFFFF;
-  --kong-neutral-100: #D7DED4;
-  --kong-neutral-300: #B7BDB5;
-  --kong-neutral-500: #858983;
-  --kong-neutral-700: #4A4D49;
-  --kong-neutral-900: #101110;
-}}
 
 * {{ box-sizing: border-box; }}
 
 body {{
   font-family: 'Funnel Sans', Helvetica, Arial, sans-serif;
-  color: var(--kong-neutral-900);
-  background: var(--kong-white);
+  color: {KONG_NEUTRAL_900};
+  background: {KONG_WHITE};
   margin: 0;
   padding: 32px 40px;
   font-size: 12px;
 }}
 
-header {{
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  border-bottom: 3px solid var(--kong-dark-green);
+/* Layout here is table-based, not flexbox, on purpose. This HTML is only ever
+   rendered by wkhtmltopdf 0.12.6, whose QtWebKit engine silently ignores
+   flexbox: `display: flex` children fall back to block and stack vertically.
+   The header, the summary tiles, and the footer all looked fine in a browser
+   and all came out stacked in the actual PDF. Tables render correctly there,
+   so don't "modernise" these back to flex/grid without re-rendering a PDF and
+   looking at it. */
+.page-header {{
+  width: 100%;
+  border-bottom: 3px solid {KONG_DARK_GREEN};
   padding-bottom: 16px;
   margin-bottom: 24px;
+  border-collapse: collapse;
 }}
 
-header img {{ height: 28px; }}
+.page-header td {{
+  border: none;
+  padding: 0 0 16px 0;
+  vertical-align: bottom;
+}}
 
-header .meta {{ text-align: right; }}
+.page-header img {{ height: 28px; }}
+
+.page-header td.meta {{ text-align: right; }}
 
 h1 {{
   font-size: 24px;
   font-weight: 800;
   margin: 0 0 4px 0;
-  color: var(--kong-dark-green);
+  color: {KONG_DARK_GREEN};
 }}
 
 .subtitle {{
   font-size: 12px;
-  color: var(--kong-neutral-700);
+  color: {KONG_NEUTRAL_700};
   margin: 0;
 }}
 
+/* One row of equal-width tiles across the full page width. table-layout:fixed
+   keeps the four columns even regardless of how big the numbers get. */
 .summary {{
-  display: flex;
-  gap: 24px;
-  margin-bottom: 28px;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 10px 0;
+  margin: 0 -10px 28px -10px;
 }}
 
-.stat {{
-  border: 1px solid var(--kong-neutral-300);
+.summary td.stat {{
+  border: 1px solid {KONG_NEUTRAL_300};
   border-radius: 6px;
   padding: 10px 16px;
-  min-width: 90px;
+  vertical-align: top;
+  text-align: left;
 }}
 
 .stat .n {{
   font-size: 22px;
   font-weight: 800;
-  color: var(--kong-dark-green);
+  color: {KONG_DARK_GREEN};
+  line-height: 1.1;
 }}
 
 .stat .label {{
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--kong-neutral-700);
+  color: {KONG_NEUTRAL_700};
 }}
 
 h2 {{
@@ -127,8 +197,8 @@ h2 {{
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--kong-dark-green);
-  border-left: 4px solid var(--kong-electric-lime);
+  color: {KONG_DARK_GREEN};
+  border-left: 4px solid {KONG_ELECTRIC_LIME};
   padding-left: 8px;
   margin: 24px 0 10px 0;
 }}
@@ -144,14 +214,14 @@ th {{
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--kong-neutral-700);
-  border-bottom: 1px solid var(--kong-neutral-300);
+  color: {KONG_NEUTRAL_700};
+  border-bottom: 1px solid {KONG_NEUTRAL_300};
   padding: 6px 8px;
 }}
 
 td {{
   padding: 7px 8px;
-  border-bottom: 1px solid var(--kong-neutral-100);
+  border-bottom: 1px solid {KONG_NEUTRAL_100};
   vertical-align: top;
 }}
 
@@ -164,20 +234,33 @@ td {{
   border-radius: 10px;
 }}
 
-.badge.open {{ background: var(--kong-electric-lime); color: var(--kong-dark-green); }}
-.badge.closed {{ background: var(--kong-neutral-100); color: var(--kong-neutral-700); }}
+.badge.open {{ background: {KONG_ELECTRIC_LIME}; color: {KONG_DARK_GREEN}; }}
+.badge.closed {{ background: {KONG_NEUTRAL_100}; color: {KONG_NEUTRAL_700}; }}
 
-.ref {{ font-family: 'Roboto Mono', monospace; font-size: 10px; color: var(--kong-neutral-700); }}
+.ref {{ font-family: 'Roboto Mono', monospace; font-size: 10px; color: {KONG_NEUTRAL_700}; }}
 
-footer {{
+/* Status is a short fixed vocabulary, so let it claim the width it needs
+   rather than wrapping "Under consideration" onto two lines. The tracking
+   columns to its right are blank for most rows (the expected steady state
+   until CSMs fill them in) and auto-layout otherwise hands that slack to
+   them. */
+td.status {{ white-space: nowrap; }}
+
+.page-footer {{
+  width: 100%;
   margin-top: 32px;
-  padding-top: 10px;
-  border-top: 1px solid var(--kong-neutral-300);
+  border-top: 1px solid {KONG_NEUTRAL_300};
   font-size: 9px;
-  color: var(--kong-neutral-500);
-  display: flex;
-  justify-content: space-between;
+  color: {KONG_NEUTRAL_500};
+  border-collapse: collapse;
 }}
+
+.page-footer td {{
+  border: none;
+  padding: 10px 0 0 0;
+}}
+
+.page-footer td.right {{ text-align: right; }}
 """
 
 
@@ -211,7 +294,7 @@ def rows_html(items):
             f"<td><span class='badge {badge_cls}'>{badge_text}</span></td>"
             f"<td class='ref'>{esc(it.get('ref'))}</td>"
             f"<td>{esc(it.get('name'))}</td>"
-            f"<td>{esc(it.get('status'))}</td>"
+            f"<td class='status'>{esc(it.get('status'))}</td>"
             f"<td>{esc(rank if rank is not None else '')}</td>"
             f"<td>{esc(it.get('use_case'))}</td>"
             f"<td>{esc(it.get('requester_name'))}</td>"
@@ -219,7 +302,6 @@ def rows_html(items):
             f"<td>{esc(blocker_text(it.get('production_blocker')))}</td>"
             f"<td>{esc(it.get('target_release'))}</td>"
             f"<td>{esc(it.get('notes'))}</td>"
-            f"<td>{esc(it.get('total_endorsements'))}</td>"
             "</tr>"
         )
     return "\n".join(out)
@@ -229,7 +311,7 @@ def section(title, items):
     if not items:
         return ""
     headers = ("", "Ref", "Idea", "Status", "Stack Rank", "Use Case", "Requester", "Team",
-               "Production Blocker", "Target Release", "Notes", "Total votes")
+               "Production Blocker", "Target Release", "Notes")
     head_html = "".join(f"<th>{esc(h)}</th>" for h in headers)
     return f"""
     <h2>{esc(title)} ({len(items)})</h2>
@@ -247,8 +329,8 @@ def main():
     customer_name = sys.argv[1]
     items = json.load(sys.stdin)
 
-    open_items = [i for i in items if i.get("state") == "open"]
-    closed_items = [i for i in items if i.get("state") != "open"]
+    open_items = sorted((i for i in items if i.get("state") == "open"), key=sort_key)
+    closed_items = sorted((i for i in items if i.get("state") != "open"), key=sort_key)
     shipped = [i for i in closed_items if "shipped" in (i.get("status") or "").lower()]
 
     generated = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -260,28 +342,28 @@ def main():
 <style>{CSS}</style>
 </head>
 <body>
-<header>
-  <img src="file://{LOGO}" alt="Kong">
-  <div class="meta">
+<table class="page-header"><tbody><tr>
+  <td><img src="file://{LOGO}" alt="Kong"></td>
+  <td class="meta">
     <h1>Feature Request Status</h1>
     <p class="subtitle">{esc(customer_name)} &middot; last generated {generated}</p>
-  </div>
-</header>
+  </td>
+</tr></tbody></table>
 
-<div class="summary">
-  <div class="stat"><div class="n">{len(items)}</div><div class="label">Total</div></div>
-  <div class="stat"><div class="n">{len(open_items)}</div><div class="label">Open</div></div>
-  <div class="stat"><div class="n">{len(shipped)}</div><div class="label">Shipped</div></div>
-  <div class="stat"><div class="n">{len(closed_items) - len(shipped)}</div><div class="label">Other closed</div></div>
-</div>
+<table class="summary"><tbody><tr>
+  <td class="stat"><div class="n">{len(items)}</div><div class="label">Total</div></td>
+  <td class="stat"><div class="n">{len(open_items)}</div><div class="label">Open</div></td>
+  <td class="stat"><div class="n">{len(shipped)}</div><div class="label">Shipped</div></td>
+  <td class="stat"><div class="n">{len(closed_items) - len(shipped)}</div><div class="label">Other closed</div></td>
+</tr></tbody></table>
 
 {section("Open", open_items)}
 {section("Closed", closed_items)}
 
-<footer>
-  <span>Kong Customer Success &middot; internal Aha! tracking</span>
-  <span>{esc(customer_name)} &middot; {generated}</span>
-</footer>
+<table class="page-footer"><tbody><tr>
+  <td>Kong Customer Success &middot; internal Aha! tracking</td>
+  <td class="right">{esc(customer_name)} &middot; {generated}</td>
+</tr></tbody></table>
 </body>
 </html>
 """

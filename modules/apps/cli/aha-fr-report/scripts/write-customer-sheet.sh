@@ -4,12 +4,19 @@
 # every subsequent run.
 #
 # Usage:
-#   write-customer-sheet.sh "HealthEquity" <frs_folder_id> [--org ID ...]
+#   write-customer-sheet.sh "HealthEquity" <frs_folder_id> \
+#     [--display-name "Full Name"] [--org ID ...]
 #
-# CUSTOMER_NAME is used for the Sheet title and (unless --org overrides it)
-# as the Aha! search term. Pass one or more --org ID when the Drive folder
-# name and the Aha idea-organization name/id diverge, or when a plain name
-# search would be ambiguous (see customer-ideas.sh --org). Repeatable.
+# CUSTOMER_NAME is the Drive folder name and (unless --org overrides it) the
+# Aha! search term. Pass one or more --org ID when the Drive folder name and
+# the Aha idea-organization name/id diverge, or when a plain name search would
+# be ambiguous (see customer-ideas.sh --org). Repeatable.
+#
+# --display-name overrides what the Sheet is TITLED, for customers whose Drive
+# folder isn't their full name (e.g. folder "Sony Interactive" -> title "Sony
+# Interactive Entertainment"). Defaults to CUSTOMER_NAME. Changing it renames
+# the Sheet the pipeline looks for, so an existing Sheet must be renamed to
+# match or a second one gets created alongside it.
 #
 # Prints "sheet_id<TAB>sheet_url" on stdout when done.
 #
@@ -53,14 +60,33 @@ die() {
   exit 2
 }
 
-customer_name="${1:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--org ID ...]}"
-frs_folder_id="${2:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--org ID ...]}"
+customer_name="${1:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--display-name NAME] [--org ID ...]}"
+frs_folder_id="${2:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--display-name NAME] [--org ID ...]}"
 shift 2
+
+# Pull --display-name out; everything left over is forwarded to fetch-ideas.sh
+# untouched (it only understands --org).
+display_name=""
+_fetch_args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --display-name)
+      display_name="${2:?--display-name requires a value}"
+      shift 2
+      ;;
+    *)
+      _fetch_args+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- ${_fetch_args[@]+"${_fetch_args[@]}"}
+display_name="${display_name:-$customer_name}"
 
 [[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
 command -v jq >/dev/null 2>&1 || die "'jq' is required but not on PATH"
 
-sheet_name="${customer_name} - Feature Requests"
+sheet_name="${display_name} - Feature Requests"
 
 # --- Step 1: find or create the Sheet, reusing it across runs -------------
 sheet_id="$(find_file_in_folder "$frs_folder_id" "$sheet_name" "application/vnd.google-apps.spreadsheet")"

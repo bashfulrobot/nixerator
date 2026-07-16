@@ -1,17 +1,30 @@
 # One customer per line:
-#   Drive folder name[|aha_org_id[,aha_org_id2,...]]
+#   Drive folder name[|aha_org_id[,aha_org_id2,...]][|Display Name]
 #
-# The part before "|" must be the EXACT existing top-level folder name under
-# the Customers shared drive (folder lookup is exact-match, not fuzzy -- see
-# find_customer_folder in scripts/drive-lib.sh) and doubles as the Sheet
-# title, PDF filename, and Aha! search term when no org id is given.
+# Field 1 -- Drive folder name (required)
+#   The EXACT name of the customer's own folder, which sits at
+#   <region>/<customer> in the Customers shared drive. Lookup is exact-match,
+#   not fuzzy, and rejects a same-named folder nested any deeper (see
+#   find_customer_folder in scripts/drive-lib.sh). This is the DRIVE folder
+#   name, which is not always the customer's real name -- Sony's folder is
+#   "Sony Interactive", not "Sony Interactive Entertainment". It's also the
+#   Aha! search term when field 2 is empty.
 #
-# The optional "|org_id" pins the Aha! idea-organization explicitly instead
-# of a plain name search -- use it whenever the Drive folder name and the
-# right Aha org diverge, or a plain search would be too broad/ambiguous
-# (e.g. "X Corporation" fuzzy-matches dozens of unrelated "*Corporation"
-# orgs in Aha with no exact-match guard by default). Repeatable
-# (comma-separated) for a customer with more than one legitimate Aha org.
+# Field 2 -- Aha idea-organization id(s) (optional)
+#   Pins the Aha! organization explicitly instead of searching by name. Use it
+#   whenever the Drive folder name and the right Aha org diverge, or a plain
+#   search would be too broad/ambiguous (e.g. "X Corporation" fuzzy-matches
+#   dozens of unrelated "*Corporation" orgs in Aha with no exact-match guard
+#   by default). Comma-separate for a customer with more than one legitimate
+#   Aha org.
+#
+# Field 3 -- Display name (optional, defaults to field 1)
+#   What the customer-facing PDF and the Sheet title actually say -- set it
+#   when the Drive folder name would be wrong to put in front of a customer.
+#   It overrides field 1 for the Sheet title and the PDF heading/filename;
+#   field 1 still drives folder lookup. Changing it renames the Sheet the
+#   pipeline looks for, so rename any existing Sheet to match or a second one
+#   gets created next to it.
 #
 # Lines starting with # and blank lines are ignored. run-all.sh processes
 # every customer here on each scheduled run.
@@ -19,7 +32,7 @@ HealthEquity|7201237090137915419
 Lululemon|7239113931934373789
 Nordstrom, Inc.|7190055603084906157
 PayPal|7303720534328744758
-Sony Interactive Entertainment|7210570342900669490
+Sony Interactive|7210570342900669490|Sony Interactive Entertainment
 Standard Insurance|7190054349922059587
 x.ai|7210568074903643759
 Zillow|7431985914424870034
