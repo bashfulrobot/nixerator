@@ -27,8 +27,8 @@ _q_escape() {
 # the shared drive reports the drive id itself as its parent.
 _folder_parent() {
   gws drive files get \
-    --params "{\"fileId\":\"$1\",\"fields\":\"parents\",\"supportsAllDrives\":true}" 2>/dev/null \
-    | jq -r '.parents[0] // empty'
+    --params "{\"fileId\":\"$1\",\"fields\":\"parents\",\"supportsAllDrives\":true}" 2>/dev/null |
+    jq -r '.parents[0] // empty'
 }
 
 # find_customer_folder NAME
