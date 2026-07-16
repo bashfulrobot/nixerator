@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 # Render a customer's Aha! feature requests into a Kong-branded PDF and
-# upload it into their FRs/exports Drive folder.
+# upload it into their FRs/Customer-PDF-Reports Drive folder.
 #
 # Usage:
-#   export-customer-pdf.sh "HealthEquity" <exports_folder_id> [--org ID ...]
+#   export-customer-pdf.sh "HealthEquity" <pdf_reports_folder_id> \
+#     [--display-name "Full Name"] [--org ID ...]
 #
-# CUSTOMER_NAME is used for the PDF title/filename and (unless --org
-# overrides it) as the Aha! search term. Pass one or more --org ID when the
-# Drive folder name and the Aha idea-organization name/id diverge, or when a
-# plain name search would be ambiguous (see customer-ideas.sh --org).
+# CUSTOMER_NAME is the Drive folder name and (unless --org overrides it) the
+# Aha! search term. Pass one or more --org ID when the Drive folder name and
+# the Aha idea-organization name/id diverge, or when a plain name search would
+# be ambiguous (see customer-ideas.sh --org).
+#
+# --display-name overrides the name shown on the PDF and used in its filename,
+# for customers whose Drive folder isn't their full name (e.g. folder "Sony
+# Interactive" -> "Sony Interactive Entertainment" on the page). This PDF goes
+# to the customer, so it should carry their real name. Defaults to
+# CUSTOMER_NAME.
 #
 # Prints "pdf_file_id<TAB>pdf_webViewLink" on stdout when done.
 #
@@ -29,9 +36,28 @@ die() {
   exit 2
 }
 
-customer_name="${1:?usage: export-customer-pdf.sh CUSTOMER_NAME EXPORTS_FOLDER_ID [--org ID ...]}"
-exports_folder_id="${2:?usage: export-customer-pdf.sh CUSTOMER_NAME EXPORTS_FOLDER_ID [--org ID ...]}"
+customer_name="${1:?usage: export-customer-pdf.sh CUSTOMER_NAME PDF_REPORTS_FOLDER_ID [--display-name NAME] [--org ID ...]}"
+pdf_reports_folder_id="${2:?usage: export-customer-pdf.sh CUSTOMER_NAME PDF_REPORTS_FOLDER_ID [--display-name NAME] [--org ID ...]}"
 shift 2
+
+# Pull --display-name out; everything left over is forwarded to fetch-ideas.sh
+# untouched (it only understands --org).
+display_name=""
+_fetch_args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --display-name)
+      display_name="${2:?--display-name requires a value}"
+      shift 2
+      ;;
+    *)
+      _fetch_args+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- ${_fetch_args[@]+"${_fetch_args[@]}"}
+display_name="${display_name:-$customer_name}"
 
 command -v wkhtmltopdf >/dev/null 2>&1 || die "'wkhtmltopdf' is required but not on PATH"
 [[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
@@ -46,11 +72,11 @@ echo "Pulling ideas for ${customer_name} from Aha!..." >&2
 "$FETCH_IDEAS" "$customer_name" "$@" >"$workdir/ideas.json"
 
 echo "Rendering Kong-branded HTML..." >&2
-python3 "$here/render_report.py" "$customer_name" <"$workdir/ideas.json" >"$workdir/report.html"
+python3 "$here/render_report.py" "$display_name" <"$workdir/ideas.json" >"$workdir/report.html"
 
 echo "Converting to PDF..." >&2
 today="$(date +%Y-%m-%d)"
-safe_name="$(printf '%s' "$customer_name" | tr -c 'A-Za-z0-9_.-' '_')"
+safe_name="$(printf '%s' "$display_name" | tr -c 'A-Za-z0-9_.-' '_')"
 pdf_name="${safe_name}-FRs-${today}.pdf"
 wkhtmltopdf --enable-local-file-access --page-size Letter --margin-top 10mm \
   --margin-bottom 10mm --margin-left 10mm --margin-right 10mm \
@@ -64,7 +90,7 @@ echo "Uploading ${pdf_name} to Drive..." >&2
 # from $workdir (a real mktemp -d) instead of copying back into $here.
 cd "$workdir"
 result="$(gws drive files create \
-  --json "{\"name\":\"${pdf_name}\",\"parents\":[\"${exports_folder_id}\"]}" \
+  --json "{\"name\":\"${pdf_name}\",\"parents\":[\"${pdf_reports_folder_id}\"]}" \
   --upload "./$pdf_name" \
   --upload-content-type "application/pdf" \
   --params '{"supportsAllDrives":true,"fields":"id,webViewLink"}' 2>/dev/null)"

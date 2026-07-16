@@ -13,32 +13,69 @@
 
 CUSTOMERS_DRIVE_ID="0AICIzErH5ToSUk9PVA"
 
+# Subfolder of <Customer>/CS/FRs that customer-facing PDF snapshots land in.
+# The Sheet lives at the FRs root, alongside this folder.
+PDF_REPORTS_FOLDER_NAME="Customer-PDF-Reports"
+
 _q_escape() {
   # Escape a value for embedding in a Drive API `q` string literal.
   printf '%s' "$1" | sed "s/'/\\\\'/g"
 }
 
+# _folder_parent ID
+# Prints the id of ID's first parent. A folder sitting directly at the root of
+# the shared drive reports the drive id itself as its parent.
+_folder_parent() {
+  gws drive files get \
+    --params "{\"fileId\":\"$1\",\"fields\":\"parents\",\"supportsAllDrives\":true}" 2>/dev/null \
+    | jq -r '.parents[0] // empty'
+}
+
 # find_customer_folder NAME
-# Searches the whole Customers shared drive (any region subfolder) for a
-# top-level-ish folder with this exact name. Prints the folder id on stdout.
+# Finds the customer folder with this exact name. Prints the folder id.
 # Exits 3 if none found, 4 if more than one found (ambiguous).
+#
+# The drive is laid out as <drive root>/<region>/<customer>, so a real customer
+# folder is always a grandchild of the drive root. The name search itself is
+# drive-wide and would happily match a folder nested at any depth, so
+# candidates are filtered to that depth before deciding. Without this guard a
+# stray subfolder that happens to share a customer's name wins silently and the
+# whole CS/FRs tree gets built inside it -- exactly what happened to Sony, whose
+# real folder is "Sony Interactive" but which also contained a nested folder
+# named "Sony Interactive Entertainment". Failing loudly here beats writing
+# reports somewhere nobody looks.
 find_customer_folder() {
-  local name esc results count
+  local name esc results candidates count id parent grandparent
   name="$1"
   esc="$(_q_escape "$name")"
   results="$(gws drive files list \
     --params "{\"q\":\"name = '${esc}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\",\"fields\":\"files(id,name,parents)\",\"corpora\":\"drive\",\"driveId\":\"${CUSTOMERS_DRIVE_ID}\",\"supportsAllDrives\":true,\"includeItemsFromAllDrives\":true,\"pageSize\":10}" 2>/dev/null)"
-  count="$(echo "$results" | jq '.files | length')"
+
+  candidates=""
+  while read -r id parent; do
+    [[ -n "$id" ]] || continue
+    grandparent="$(_folder_parent "$parent")"
+    if [[ "$grandparent" == "$CUSTOMERS_DRIVE_ID" ]]; then
+      candidates+="${id}"$'\n'
+    fi
+  done < <(echo "$results" | jq -r '.files[]? | "\(.id) \(.parents[0])"')
+
+  count="$(echo -n "$candidates" | grep -c . || true)"
   if [[ "$count" -eq 0 ]]; then
-    echo "ERROR: no folder named '${name}' found in the Customers shared drive." >&2
+    echo "ERROR: no folder named '${name}' found at <region>/<customer> level in the Customers shared drive." >&2
+    if [[ "$(echo "$results" | jq '.files | length')" -gt 0 ]]; then
+      echo "       A folder with that name exists but is nested deeper; the name in" >&2
+      echo "       customers.txt must match the real customer folder, not a subfolder:" >&2
+      echo "$results" | jq -r '.files[] | "  - \(.id) (parent \(.parents[0]))"' >&2
+    fi
     return 3
   fi
   if [[ "$count" -gt 1 ]]; then
-    echo "ERROR: ${count} folders named '${name}' found in the Customers shared drive, ambiguous:" >&2
-    echo "$results" | jq -r '.files[] | "  - \(.id)"' >&2
+    echo "ERROR: ${count} customer folders named '${name}' found, ambiguous:" >&2
+    echo "$candidates" | sed '/^$/d; s/^/  - /' >&2
     return 4
   fi
-  echo "$results" | jq -r '.files[0].id'
+  echo -n "$candidates" | head -1
 }
 
 # find_or_create_subfolder PARENT_ID NAME
@@ -75,13 +112,15 @@ find_file_in_folder() {
 }
 
 # resolve_customer_frs_folder CUSTOMER_NAME
-# Prints "customer_folder_id<TAB>frs_folder_id<TAB>exports_folder_id".
+# Resolves <Customer>/CS/FRs, plus the Customer-PDF-Reports subfolder inside it,
+# creating any level that doesn't exist yet.
+# Prints "customer_folder_id<TAB>frs_folder_id<TAB>pdf_reports_folder_id".
 resolve_customer_frs_folder() {
-  local customer_name cust_id cs_id frs_id exports_id
+  local customer_name cust_id cs_id frs_id pdf_id
   customer_name="$1"
   cust_id="$(find_customer_folder "$customer_name")" || return $?
   cs_id="$(find_or_create_subfolder "$cust_id" "CS")" || return 1
   frs_id="$(find_or_create_subfolder "$cs_id" "FRs")" || return 1
-  exports_id="$(find_or_create_subfolder "$frs_id" "exports")" || return 1
-  printf '%s\t%s\t%s\n' "$cust_id" "$frs_id" "$exports_id"
+  pdf_id="$(find_or_create_subfolder "$frs_id" "$PDF_REPORTS_FOLDER_NAME")" || return 1
+  printf '%s\t%s\t%s\n' "$cust_id" "$frs_id" "$pdf_id"
 }
