@@ -19,6 +19,15 @@ let
 
     nativeBuildInputs = [ pkgs.makeWrapper ];
 
+    # The credential writer has tests, so run them. They are pure filesystem work
+    # against a temp dir: no network, no browser, no Slack.
+    doCheck = true;
+    checkPhase = ''
+      runHook preCheck
+      node --test credentials.test.mjs
+      runHook postCheck
+    '';
+
     installPhase = ''
       runHook preInstall
 
