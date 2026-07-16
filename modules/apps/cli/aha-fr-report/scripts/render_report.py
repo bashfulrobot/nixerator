@@ -239,6 +239,13 @@ td {{
 
 .ref {{ font-family: 'Roboto Mono', monospace; font-size: 10px; color: {KONG_NEUTRAL_700}; }}
 
+/* Status is a short fixed vocabulary, so let it claim the width it needs
+   rather than wrapping "Under consideration" onto two lines. The tracking
+   columns to its right are blank for most rows (the expected steady state
+   until CSMs fill them in) and auto-layout otherwise hands that slack to
+   them. */
+td.status {{ white-space: nowrap; }}
+
 .page-footer {{
   width: 100%;
   margin-top: 32px;
@@ -287,7 +294,7 @@ def rows_html(items):
             f"<td><span class='badge {badge_cls}'>{badge_text}</span></td>"
             f"<td class='ref'>{esc(it.get('ref'))}</td>"
             f"<td>{esc(it.get('name'))}</td>"
-            f"<td>{esc(it.get('status'))}</td>"
+            f"<td class='status'>{esc(it.get('status'))}</td>"
             f"<td>{esc(rank if rank is not None else '')}</td>"
             f"<td>{esc(it.get('use_case'))}</td>"
             f"<td>{esc(it.get('requester_name'))}</td>"
@@ -295,7 +302,6 @@ def rows_html(items):
             f"<td>{esc(blocker_text(it.get('production_blocker')))}</td>"
             f"<td>{esc(it.get('target_release'))}</td>"
             f"<td>{esc(it.get('notes'))}</td>"
-            f"<td>{esc(it.get('total_endorsements'))}</td>"
             "</tr>"
         )
     return "\n".join(out)
@@ -305,7 +311,7 @@ def section(title, items):
     if not items:
         return ""
     headers = ("", "Ref", "Idea", "Status", "Stack Rank", "Use Case", "Requester", "Team",
-               "Production Blocker", "Target Release", "Notes", "Total votes")
+               "Production Blocker", "Target Release", "Notes")
     head_html = "".join(f"<th>{esc(h)}</th>" for h in headers)
     return f"""
     <h2>{esc(title)} ({len(items)})</h2>

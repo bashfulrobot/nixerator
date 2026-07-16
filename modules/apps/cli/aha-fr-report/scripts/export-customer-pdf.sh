@@ -78,8 +78,12 @@ echo "Converting to PDF..." >&2
 today="$(date +%Y-%m-%d)"
 safe_name="$(printf '%s' "$display_name" | tr -c 'A-Za-z0-9_.-' '_')"
 pdf_name="${safe_name}-FRs-${today}.pdf"
-wkhtmltopdf --enable-local-file-access --page-size Letter --margin-top 10mm \
-  --margin-bottom 10mm --margin-left 10mm --margin-right 10mm \
+# Landscape: the table carries 11 columns, and in portrait the narrow ones wrap
+# ("Under consideration" over two lines, refs broken mid-token) which is what
+# makes the report look cramped. The extra ~3in of width is the difference
+# between a readable row and a wrapped one.
+wkhtmltopdf --enable-local-file-access --page-size Letter --orientation Landscape \
+  --margin-top 10mm --margin-bottom 10mm --margin-left 10mm --margin-right 10mm \
   "$workdir/report.html" "$workdir/$pdf_name" >/dev/null 2>&1
 
 [[ -s "$workdir/$pdf_name" ]] || die "wkhtmltopdf did not produce a PDF"
