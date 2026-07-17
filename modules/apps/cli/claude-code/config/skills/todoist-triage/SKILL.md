@@ -198,6 +198,9 @@ can approve.
 
 - `what_it_is` — what this actually is, in plain sentences
 - `status` · `ball_owner` · `days_silent` · `confidence`
+- **column** (Kong* boards) — `current_column → recommended_column` when they
+  differ, so the mislabel is visible ("in `Up Next`, but `waiting-on-them` 12d →
+  `Waiting Customer`")
 - **the actual quoted messages** from `recent_context[]` — who, when, their words
 - `unverified[]` — what couldn't be confirmed
 - the recommended **verb with its parameters pre-filled**
@@ -210,18 +213,39 @@ when the walk gets fast — a one-word approval is only a judgement if he can se
 what he's approving.
 
 **Speak in verbs, not paragraphs.** Every action is one of the named macros in
-`references/macros.md` — `note` · `defer` · `link-log` · `complete` · `drop` ·
-`close-into` · `merge` · `send` · `teams` · `email`. Each one already carries its
-conventions, so end each task with the recommended verb and its parameters
-pre-filled ("`defer` to Thu 2026-07-23, reason: waiting on Priya, 12d silent")
-and let Dustin answer with the verb, a correction, or "skip". Don't make him
-dictate the recipe; the recipe lives in the macro.
+`references/macros.md` — `note` · `defer` · `move` · `reprioritize` · `link-log` ·
+`complete` · `drop` · `close-into` · `merge` · `send` · `teams` · `email`. Each one
+already carries its conventions, so end each task with the recommended verb and its
+parameters pre-filled ("`defer` to Thu 2026-07-23, reason: waiting on Priya, 12d
+silent") and let Dustin answer with the verb, a correction, or "skip". Don't make
+him dictate the recipe; the recipe lives in the macro.
+
+**The action palette — what you can change about a task.** Triaging a task is not
+just "nudge or leave it". Every task can be updated along several axes, and the
+right assessment usually touches more than one:
+
+- **Column** (`move`) — the board stage, on `Kong*` projects. The single biggest
+  honesty lever: a task's column *is* its status, so a `waiting-on-them` task
+  parked in `Up Next` is lying about itself. Routing table:
+  `references/kanban-board.md`.
+- **Surface date** (`defer`) — when it comes back. The only "hide until" control;
+  push it to when the ball is actually back.
+- **Priority** (`reprioritize`) — `p1..p4`, up or down. A wait that became a
+  customer blocker goes *up*; a de-risked task goes down.
+- **Work-log note** (`note`) — record state without changing date/priority/column.
+- **Close** (`complete`/`drop`/`close-into`/`merge`) — when it's done, dead, or a
+  duplicate.
+- **Outward nudge** (`send`/`teams`/`email`) — move the ball off Dustin's court.
+
+A typical stalled-wait recommendation is three verbs at once: `move` to `Waiting
+Customer`, `defer` to the follow-up date, and a drafted nudge. Recommend the full
+set, not just one.
 
 **The two gate tiers** (this is the autonomy level Dustin chose — don't drift):
 
 | Tier | Verbs | Gate |
 |---|---|---|
-| Internal, batched | `note`, `defer`, `link-log` | Show the batch, take **one** approval, run them all |
+| Internal, batched | `note`, `defer`, `move`, `reprioritize`, `link-log` | Show the batch, take **one** approval, run them all (each task still carded first) |
 | Completion | `complete`, `drop`, `close-into` | **Its own confirm, per task** — never folded into the batch |
 | Merge | `merge` | **One** confirm: the duplicate call *is* the authorisation for its closes |
 | Outward | `send`, `teams`, `email` | Full gate, one at a time, explicit "send" that turn |
@@ -290,6 +314,11 @@ subagent brief, but hold them yourself when running single-task mode:
 - **Snooze intelligently.** Waiting on a non-responsive person → recommend a
   reschedule *and* draft the nudge. Blocked until a known future date → recommend
   snoozing to that date. Don't just push everything to "tomorrow."
+- **Place it in the right column.** On a `Kong*` board, resolve every task to the
+  column its assessment implies and flag the mismatch — a `waiting-on-them`
+  (customer) task in `Up Next`, a delivered task not yet in `Waiting Validation`,
+  a "write this up in Confluence" task not in `Capture Data`. The column is
+  status; a wrong one is stale state. Routing: `references/kanban-board.md`.
 - **Relate duplicates.** If two tasks are really about the same underlying
   thread, say so in the digest so Dustin can merge or close one.
 - **Surface confidence and gaps.** Every assessment carries a `confidence` and an
@@ -311,6 +340,12 @@ These are settled. Apply them without asking; they're why the macros exist.
   default. Never push everything to "tomorrow".
 - **Reschedule via `td task reschedule`**, never `td task update --due` (which
   destroys recurrence).
+- **Keep the board column honest.** On `Kong*` projects a task's column is its
+  status; move it to match the assessed ball-owner/stage (`move`). Only `Kong*`
+  projects have columns; never move `Reoccurring`. Column vocabulary + routing:
+  `references/kanban-board.md`.
+- **Priority moves both ways** via `reprioritize` (`p1..p4`) — raise a wait that
+  became a customer blocker, lower a de-risked task. Not downgrade-only.
 - **Never surface raw `.priority`.** The Todoist API inverts it (4 = highest).
   The `p1`–`p4` label from the schema is the only priority anyone sees;
   `td_fetch.sh` and `td_scope.sh` already normalize it (`5 - api`).
@@ -326,6 +361,10 @@ These are settled. Apply them without asking; they're why the macros exist.
 - `references/assessment-schema.md` — the fixed per-task result schema, the
   status/action_type enums, the digest grouping+sort rules, and the Phase-2
   action gating table. Read in Steps 3–5.
+- `references/kanban-board.md` — the Kong board column vocabulary, what each
+  column means, the assessment→column routing table, and the caching/freshness
+  rule. Read before recommending a `move`; handed to every subagent for
+  `current_column`/`recommended_column`.
 - `references/source-resolution.md` — the per-customer source-resolution map and
   the `skill-cache` caching convention (cache stable name→id mappings only;
   never task contents/dates/status). Read when resolving customer identifiers.
@@ -346,6 +385,11 @@ These are settled. Apply them without asking; they're why the macros exist.
   touches a due date, priority, or status.
 - `scripts/td_defer.sh` — the `defer` macro: recurrence-safe reschedule fused
   with its work-log entry, plus an optional reminder.
+- `scripts/td_move.sh` — the `move` macro: move a task to a board column
+  (`td task move --section`) fused with its work-log entry. Column names resolve
+  within the task's project; `Kong*` projects only.
+- `scripts/td_reprioritize.sh` — the `reprioritize` macro: set priority
+  (`p1..p4`, up or down) fused with its work-log entry.
 - `scripts/discover-tools.sh` — refresh the tool inventory (`--refresh-tools`).
 - `scripts/build_digest.py` — render a batch's JSON into the HTML digest artifact.
 
