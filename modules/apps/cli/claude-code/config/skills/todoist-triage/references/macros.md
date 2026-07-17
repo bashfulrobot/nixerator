@@ -24,6 +24,12 @@ Dustin chose this model. Do not drift from it.
 | **Merge** | `merge` | **One confirm**, because confirming the duplicate call *is* confirming the closes it performs. |
 | **Outward** | `send`, `teams`, `email` | Full gate, one at a time. Drafted, previewed, sent only on an explicit "send" in that turn. |
 
+**The batch gate is an approval mechanism, not a presentation one.** Every task
+in it still gets its own card first; the single "run these N?" question comes
+*after* the walk, never instead of it. "Shown" means carded. If Dustin is reading
+a gate question's option previews to learn what a task is, the walk did not
+happen — that is the failure this line exists to prevent.
+
 The invariant behind all of it: recommend, never auto-act. Nothing outward-facing
 leaves without Dustin's explicit yes in the moment.
 
