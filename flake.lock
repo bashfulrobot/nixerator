@@ -242,16 +242,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1783529634,
-        "narHash": "sha256-zdHsPGPE5MVi/y+uIt548XScTfZjQzdF21dME7ISEJM=",
+        "lastModified": 1784143977,
+        "narHash": "sha256-4UyLqRVtDVQIn+Z1prs5gUUkp2quD1aZq2qNePKls2c=",
         "owner": "AvengeMedia",
         "repo": "DankMaterialShell",
-        "rev": "bdfd565b72cbb416441a9ab828efcac4fd516c70",
+        "rev": "6306bc7aa2cae7450ad0dc9fc9392ad61b860711",
         "type": "github"
       },
       "original": {
         "owner": "AvengeMedia",
-        "ref": "v1.5.0",
+        "ref": "v1.5.1",
         "repo": "DankMaterialShell",
         "type": "github"
       }
@@ -626,11 +626,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784251296,
-        "narHash": "sha256-X0C0VyV3uSsTHYH914C0NNiCqr18Qi4hcoBaYJVZG2o=",
+        "lastModified": 1784263974,
+        "narHash": "sha256-PMVu2SRLsJIVUpDuSJUAa6nICVosxAve20ZFjxZYHxo=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "df5f0c124285cee0c6a1d736ed2c3c236eec8663",
+        "rev": "6ba4f9c146ebffce257b600bb808e5e55e2c6bd0",
         "type": "github"
       },
       "original": {
@@ -1265,11 +1265,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1784240161,
-        "narHash": "sha256-wbNw3n6wB96DtIra1zlELxMDUENrx6YYj/7FgNEjKUs=",
+        "lastModified": 1784259442,
+        "narHash": "sha256-d5ZUBXqwSlvHr3EJu5c/ZtMho7ResljHo8vElW8VXc0=",
         "owner": "bashfulrobot",
         "repo": "upsight",
-        "rev": "a2c0716ba39790f9b9b54e9d55b3d8be177696e0",
+        "rev": "ba5b020b77f9a9ae4a0442624b67413fa327afda",
         "type": "github"
       },
       "original": {
