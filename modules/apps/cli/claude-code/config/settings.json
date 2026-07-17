@@ -259,6 +259,11 @@
     "command": "@STATUSLINE_COMMAND@"
   },
   "tui": "fullscreen",
+  "awaySummaryEnabled": false,
+  "feedbackSurveyRate": 0,
+  "feedbackDrafts": "off",
+  "terminalProgressBarEnabled": true,
+  "todoFeatureEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "agentPushNotifEnabled": true,
