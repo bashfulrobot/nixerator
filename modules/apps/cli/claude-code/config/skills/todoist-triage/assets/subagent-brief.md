@@ -52,10 +52,20 @@ picture from scratch, and don't repeat an action it already took.
 ## 3. Pick the verb, and pre-draft when you can
 
 `action_type` is the Phase-2 **verb** Dustin will approve, not a description:
-`note` · `defer` · `complete` · `drop` · `close-into` · `merge` · `send` ·
-`teams` · `email` · `downgrade` · `correct-reference` · `none`. Fill
+`note` · `defer` · `move` · `reprioritize` · `complete` · `drop` · `close-into` ·
+`merge` · `send` · `teams` · `email` · `correct-reference` · `none`. Fill
 `next_action` with the parameters he'd need ("defer to 2026-07-23, waiting on
 Priya, 12d silent"), so his reply is one word.
+
+**Board column (Kong* projects only).** If the task is on a `Kong*` project, read
+`{{SKILL_DIR}}/references/kanban-board.md` and set `current_column` (where it is
+now) and `recommended_column` (where the assessment says it belongs — e.g.
+`waiting-on-them`/customer → `Waiting Customer`, `likely-done` pending sign-off →
+`Waiting Validation`, a "document this into Confluence/a doc" task → `Capture
+Data`). When they differ, that's a `move`. When they match, or the right column is
+genuinely unclear, set `recommended_column` equal to `current_column` and, if
+unclear, say why in `unverified[]` — never guess a move. For non-`Kong*` tasks (no
+sections), set both to `null`.
 
 If `action_type` is an outward verb (`send`/`teams`/`email`) **and** you have
 enough to write the message without more research, set `draft_ready: true` and
@@ -80,12 +90,14 @@ summary. Dustin reads these to sanity-check the ball-owner call at a glance.
 ```json
 {
   "task_id": "...", "title": "...", "project": "...", "due": "...", "priority": "p1",
+  "current_column": "Up Next|null (non-Kong* task)",
+  "recommended_column": "Waiting Customer|null",
   "what_it_is": "one or two plain sentences",
   "status": "on-track|waiting-on-them|waiting-on-me|blocked|stale|likely-done|wrong-or-stale-reference",
   "ball_owner": "them|me|nobody|unknown",
   "days_silent": 0,
   "next_action": "the verb's parameters, filled in",
-  "action_type": "note|defer|complete|drop|close-into|merge|send|teams|email|downgrade|correct-reference|none",
+  "action_type": "note|defer|move|reprioritize|complete|drop|close-into|merge|send|teams|email|correct-reference|none",
   "draft_ready": true,
   "draft": "humanized message text — outward verbs only, omit otherwise",
   "confidence": "high|medium|low",

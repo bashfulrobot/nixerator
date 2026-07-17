@@ -19,10 +19,15 @@ Dustin chose this model. Do not drift from it.
 
 | Tier | Verbs | Gate |
 |---|---|---|
-| **Internal, batched** | `note`, `defer`, `link-log` | Show the batch, take **one** approval, then run them all. Reversible, touches nobody else. |
+| **Internal, batched** | `note`, `defer`, `move`, `reprioritize`, `link-log` | Show the batch, take **one** approval, then run them all. Reversible, touches nobody else. |
 | **Completion** | `complete`, `drop`, `close-into` | **Its own confirm, per task.** Not folded into the internal batch. |
 | **Merge** | `merge` | **One confirm**, because confirming the duplicate call *is* confirming the closes it performs. |
 | **Outward** | `send`, `teams`, `email` | Full gate, one at a time. Drafted, previewed, sent only on an explicit "send" in that turn. |
+| **Other** | `correct-reference` | Confirm. Posts a note with the correction; never silently rewrites the title. |
+
+Even in the batched tier every task is **carded first** — `move` to a new column
+and `reprioritize` up to `p1` are both shown on the task's card before the single
+"run these N?" approval, so an escalation is never invisible.
 
 **The batch gate is an approval mechanism, not a presentation one.** Every task
 in it still gets its own card first; the single "run these N?" question comes
@@ -65,6 +70,36 @@ to that date. Do not push everything to tomorrow.
 **Never use `td task update --due` to move a date.** It overwrites the due string
 and destroys recurrence on a recurring task. `td task reschedule` preserves both
 recurrence and time-of-day, and is what `td_defer.sh` calls.
+
+### `move` — put the task in the right board column
+
+```bash
+scripts/td_move.sh <task-ref> "<Column>" --reason "<why>" [--next "<text>"]
+```
+
+Moves the task to a Kanban column (Todoist section) and logs the move as one
+action. Columns are the stable vocabulary in `references/kanban-board.md`; the
+column name resolves within the task's own project, so no id lookup is needed.
+Preview with `--dry-run` when unsure the column exists in that project.
+
+**Only `Kong*` board projects have columns.** Pick the column from the
+assessment, not from habit — `waiting-on-them` (customer) → `Waiting Customer`,
+`likely-done` pending sign-off → `Waiting Validation`, a "write this up in
+Confluence" task → `Capture Data`. Never move `Reoccurring`. The full routing
+table lives in `references/kanban-board.md`; read it before recommending a
+column.
+
+### `reprioritize` — change the priority, up or down
+
+```bash
+scripts/td_reprioritize.sh <task-ref> <p1|p2|p3|p4> --reason "<why>" [--next "<text>"]
+```
+
+Sets the priority (`p1` = highest) and logs why, as one action. This supersedes
+the old downgrade-only treatment: triage raises urgency (a wait that became a
+customer blocker → `p1`) as well as lowers it. Pass the friendly `p1..p4` label —
+never the raw API value, which is inverted (`4` = highest); the script and `td`
+speak `p1..p4`.
 
 ### `link-log` — file a pasted URL under the right task
 

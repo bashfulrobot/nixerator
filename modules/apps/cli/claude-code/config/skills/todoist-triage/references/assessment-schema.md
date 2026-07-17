@@ -16,6 +16,8 @@ extra keys break collation and the digest builder.
   "project": "Kong-lululemon",
   "due": "2026-07-10",
   "priority": "p1",
+  "current_column": "Up Next",
+  "recommended_column": "Waiting Customer",
   "what_it_is": "One or two sentences: what this task actually is, in plain terms.",
   "status": "waiting-on-them",
   "ball_owner": "them",
@@ -47,11 +49,18 @@ extra keys break collation and the digest builder.
 - **`days_silent`** — integer days since that freshest signal. This plus
   `ball_owner` is the primary triage sort key.
 - **`action_type`** — the Phase-2 **verb**, so the digest line reads as a
-  pre-filled macro rather than prose. One of: `note` · `defer` · `complete` ·
-  `drop` · `close-into` · `merge` · `send` · `teams` · `email` · `downgrade` ·
-  `correct-reference` · `none`. These map 1:1 to `references/macros.md`; if you
-  find yourself wanting a verb that isn't there, the answer is `none` plus a
-  `next_action` explaining why, not an invented verb.
+  pre-filled macro rather than prose. One of: `note` · `defer` · `move` ·
+  `reprioritize` · `complete` · `drop` · `close-into` · `merge` · `send` ·
+  `teams` · `email` · `correct-reference` · `none`. These map 1:1 to
+  `references/macros.md`; if you find yourself wanting a verb that isn't there,
+  the answer is `none` plus a `next_action` explaining why, not an invented verb.
+- **`current_column` / `recommended_column`** — for tasks on a `Kong*` board
+  project only (others have no sections; use `null`). `current_column` is where
+  the task sits now; `recommended_column` is where the assessment says it belongs,
+  per the routing table in `references/kanban-board.md`. When they differ, that
+  mismatch is a triage signal — the `move` verb acts on it. When they match, or
+  when the right column is genuinely unclear, set `recommended_column` equal to
+  `current_column` (no move) rather than guessing.
 - **`draft_ready`** — `true` only if the subagent has enough to prepare the draft
   without more research.
 - **`draft`** — the humanized message text, present **only** when `draft_ready`
@@ -109,11 +118,11 @@ decision. **The exact invocation for every verb lives in
 
 | Tier | Verbs | Gate |
 |---|---|---|
-| **Internal, batched** | `note`, `defer`, `link-log` | Show the batch, take **one** approval, then run them all. Reversible and touches nobody else. |
+| **Internal, batched** | `note`, `defer`, `move`, `reprioritize`, `link-log` | Show the batch, take **one** approval, then run them all. Reversible and touches nobody else. Each task is still carded first, so a `move` or a bump to `p1` is shown before the approval. |
 | **Completion** | `complete`, `drop`, `close-into` | **Its own confirm, per task.** Never folded into the internal batch. |
 | **Merge** | `merge` | **One** confirm. Confirming "these are duplicates" *is* confirming the closes it performs. |
 | **Outward** | `send`, `teams`, `email` | Full gate, one at a time: draft → humanize → preview → **explicit "send" that turn** → post → log. |
-| **Other** | `downgrade`, `correct-reference` | Confirm. `downgrade` is `td task update --priority pN`; `correct-reference` posts a note with the correction and never silently rewrites the title. |
+| **Other** | `correct-reference` | Confirm. Posts a note with the correction and never silently rewrites the title. |
 
 **The invariant Dustin chose: recommend, never auto-act.** Batching applies only
 to the reversible internal trio, and only as one approval of a *shown* batch. It
