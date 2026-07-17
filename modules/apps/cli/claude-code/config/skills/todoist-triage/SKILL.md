@@ -179,16 +179,35 @@ on others · Needs a decision · Closeable / likely done · Data correction — 
 sort primarily by **ball-owner + staleness** (who owes the next move, and for
 how long). That single axis is the most useful triage signal; lead with it.
 
+**The digest selects; it never actions.** It is deliberately compressed so Dustin
+can see the whole batch at once — and that compression is exactly why it can
+never be the basis for a decision. End the digest by asking which tasks he wants
+to walk. Default to all; let him narrow. Narrowing hides nothing: every assessed
+task keeps its place and its verb on the digest, and an un-walked task returns
+next run. This is not the Step-1 "never exclude" rule — that governs *scope*;
+this governs *attention*.
+
 ### Step 5 — Walk the actions (Phase 2, interactive)
 
-Go task by task through the batch. For each, show the current-state picture and
-the recommended next action **as a filled-in verb** (see below), then do what
-Dustin decides. **Include the last one or two real messages** from wherever the
-ball sits (`recent_context[]` — the Slack thread, email, or task comment, quoted
-with who/when), not just your summary. Seeing the actual words is what lets
-Dustin trust the ball-owner and staleness call at a glance instead of opening the
-thread himself. Keep quoting it even when the walk gets fast: a one-word approval
-is only a judgement if he can see what he's approving.
+Walk **only the tasks Dustin selected in Step 4**, one at a time, in ball-owner +
+staleness order. Selection is what makes the full card affordable: three complete
+cards beat ten compressed lines, and a compressed line is not something anyone
+can approve.
+
+**Every task gets a full card, every time:**
+
+- `what_it_is` — what this actually is, in plain sentences
+- `status` · `ball_owner` · `days_silent` · `confidence`
+- **the actual quoted messages** from `recent_context[]` — who, when, their words
+- `unverified[]` — what couldn't be confirmed
+- the recommended **verb with its parameters pre-filled**
+- the `draft` inline, if the verb is outward
+
+Then do what Dustin decides. The quoted messages are the part to never trade
+away: seeing the actual words is what lets him trust the ball-owner and staleness
+call at a glance instead of opening the thread himself. Keep quoting them even
+when the walk gets fast — a one-word approval is only a judgement if he can see
+what he's approving.
 
 **Speak in verbs, not paragraphs.** Every action is one of the named macros in
 `references/macros.md` — `note` · `defer` · `link-log` · `complete` · `drop` ·
@@ -206,6 +225,12 @@ dictate the recipe; the recipe lives in the macro.
 | Completion | `complete`, `drop`, `close-into` | **Its own confirm, per task** — never folded into the batch |
 | Merge | `merge` | **One** confirm: the duplicate call *is* the authorisation for its closes |
 | Outward | `send`, `teams`, `email` | Full gate, one at a time, explicit "send" that turn |
+
+**The batch gate is an approval mechanism, not a presentation one.** Every task
+in it still gets its own card first; the single "run these N?" question comes
+*after* the walk, never instead of it. "Shown" means carded. If Dustin is reading
+a gate question's option previews to learn what a task is, the walk did not
+happen — that is the failure this line exists to prevent.
 
 Full gating table and the exact invocations: `references/macros.md`. The
 non-negotiables:
