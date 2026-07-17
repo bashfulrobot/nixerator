@@ -215,20 +215,15 @@
       source = "npm";
       repo = "Doist/todoist-cli";
       npmPkg = "@doist/todoist-cli";
+      # updatePolicy=manual: build/package-lock.json is vendored (the published
+      # npm tarball ships none), and update-pkg does not regenerate vendored
+      # locks. A version bump here is never just a version bump -- see the
+      # regeneration recipe in build/default.nix. Auto-bumping would leave the
+      # lock behind and `npm ci` would reject the mismatch.
       updatePolicy = "manual";
-      # HELD at 1.61.2. 3.0.0 is not a drop-in: it requires node >= 24 / npm >= 11
-      # (the build uses buildNpmPackage with nixpkgs' default node 22 and passes
-      # no override), and build/package-lock.json is vendored at 1.61.2, so
-      # `npm ci` would reject the lock/package mismatch. Bumping it means
-      # regenerating that lock at 3.0.0, setting nodejs = pkgs.nodejs_24, and
-      # refreshing npmDepsHash. update-pkg does not touch vendored locks, so it
-      # will keep proposing this bump; that is expected, not a signal to take it.
-      # Upstream breaking changes are otherwise benign for our use (v2 dropped
-      # Goals BETA, v3 is the node bump), but the todoist-triage skill's scripts
-      # are verified against 1.x and should be re-checked as part of that work.
-      version = "1.61.2";
-      hash = "sha256-fC4/nZ1mj1v8h97NOn7TA4nG7oOLKeeQCRtnKQ1VfoQ=";
-      npmDepsHash = "sha256-n+lu7f2rsMEOCnzj1nmzGRZo3WcwhBUeamTexCOs0xM=";
+      version = "3.0.0";
+      hash = "sha256-zbnaRInpMsKKQkQOAUnzSTki4BGR6htZ/7mP0/OEbX4=";
+      npmDepsHash = "sha256-B0okAgIvprmXiejL3KOBEw1sBtTUwt8NpGYs76g1wT0=";
     };
 
     yaml-schema-router = {
