@@ -306,11 +306,21 @@ slugify() {
 # Uses --git-common-dir instead of --show-toplevel so this works correctly
 # when called from inside a worktree (--show-toplevel returns the worktree
 # path, not the main repo root).
+#
+# Worktrees nest one level per repo: <parent>/.worktrees/<repo-name>/<slug>.
+# Without the <repo-name> segment every repo under a shared parent (e.g. all
+# repos in ~/git) collapses into one flat ~/git/.worktrees, so a bare slug like
+# "issue-74" carries no clue which repo it belongs to and two repos sharing an
+# issue number collide. The per-repo segment makes the path self-documenting and
+# scopes the sweep/orphan/audit find-loops (which all read worktree_base) to the
+# current repo automatically.
 worktree_base() {
-  local git_common_dir
+  local git_common_dir repo_root repo_name
   git_common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
   # git_common_dir is /path/to/repo/.git — strip /.git to get repo root
-  printf '%s' "${git_common_dir%/.git}/../.worktrees"
+  repo_root="${git_common_dir%/.git}"
+  repo_name="$(basename "$repo_root")"
+  printf '%s' "${repo_root}/../.worktrees/${repo_name}"
 }
 
 # ── Orphan worktree detection ────────────────────────────────────────────────
