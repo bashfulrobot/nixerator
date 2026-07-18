@@ -9,7 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 LIB_EXTRACT=1 source "$SCRIPT_DIR/lib_extract.sh"
 
-ref="${1:-}"; [ -n "$ref" ] || { echo "usage: dig_fetch.sh <task-ref>" >&2; exit 2; }
+ref="${1:-}"
+[ -n "$ref" ] || {
+  echo "usage: dig_fetch.sh <task-ref>" >&2
+  exit 2
+}
 json="$(bash "$SCRIPT_DIR/td_fetch.sh" "$ref")"
 blob="$(jq -r '.task.title' <<<"$json")"$'\n'"$(jq -r '.comments[].content' <<<"$json")"
 printf '%s' "$blob" | extract_breadcrumbs | jq -R -s -c '

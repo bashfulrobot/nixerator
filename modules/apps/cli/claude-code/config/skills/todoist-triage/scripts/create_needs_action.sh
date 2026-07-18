@@ -5,14 +5,26 @@
 # (or drag it in the UI) — this script only creates.
 # Usage: create_needs_action.sh [--apply]
 set -euo pipefail
-command -v td >/dev/null || { echo "td not found (todoist-cli skill)" >&2; exit 127; }
-command -v jq >/dev/null || { echo "jq not found" >&2; exit 127; }
+command -v td >/dev/null || {
+  echo "td not found (todoist-cli skill)" >&2
+  exit 127
+}
+command -v jq >/dev/null || {
+  echo "jq not found" >&2
+  exit 127
+}
 
 APPLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --apply) APPLY=1; shift ;;
-    *) echo "unknown arg: $1 (usage: create_needs_action.sh [--apply])" >&2; exit 2 ;;
+    --apply)
+      APPLY=1
+      shift
+      ;;
+    *)
+      echo "unknown arg: $1 (usage: create_needs_action.sh [--apply])" >&2
+      exit 2
+      ;;
   esac
 done
 COL="Needs Action"

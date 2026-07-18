@@ -15,26 +15,27 @@ set -uo pipefail
 # piped onward (`... | extract_breadcrumbs | jq`). Without the guards the first
 # empty stage would abort the group and silently drop every later category.
 extract_breadcrumbs() {
-  local blob; blob="$(cat)"
+  local blob
+  blob="$(cat)"
   {
     # URLs, classified by host. Strip trailing sentence punctuation (a URL at the
     # end of a sentence otherwise swallows the '.'/','/';' etc.).
-    grep -oE 'https?://[^ )<>"'"'"']+' <<<"$blob" | sed -E 's/[.,;:!?]+$//' \
-      | while IFS= read -r u; do
-      case "$u" in
-        *slack.com*)            printf 'slack\t%s\n' "$u" ;;
-        *teams.microsoft.com*)  printf 'teams\t%s\n' "$u" ;;
-        *mail.google.com*)      printf 'gmail\t%s\n' "$u" ;;
-        *docs.google.com*)      printf 'gdocs\t%s\n' "$u" ;;
-        *.aha.io*)              printf 'aha\t%s\n' "$u" ;;
-        *atlassian.net*)        printf 'jira\t%s\n' "$u" ;;
-        *confluence*)           printf 'confluence\t%s\n' "$u" ;;
-        *zoom.us*)              printf 'zoom\t%s\n' "$u" ;;
-        *tactiq*)               printf 'transcript\t%s\n' "$u" ;;
-        *app.todoist.com*)      printf 'todoist\t%s\n' "$u" ;;
-        *)                      printf 'url\t%s\n' "$u" ;;
-      esac
-    done || true
+    grep -oE 'https?://[^ )<>"'"'"']+' <<<"$blob" | sed -E 's/[.,;:!?]+$//' |
+      while IFS= read -r u; do
+        case "$u" in
+          *slack.com*) printf 'slack\t%s\n' "$u" ;;
+          *teams.microsoft.com*) printf 'teams\t%s\n' "$u" ;;
+          *mail.google.com*) printf 'gmail\t%s\n' "$u" ;;
+          *docs.google.com*) printf 'gdocs\t%s\n' "$u" ;;
+          *.aha.io*) printf 'aha\t%s\n' "$u" ;;
+          *atlassian.net*) printf 'jira\t%s\n' "$u" ;;
+          *confluence*) printf 'confluence\t%s\n' "$u" ;;
+          *zoom.us*) printf 'zoom\t%s\n' "$u" ;;
+          *tactiq*) printf 'transcript\t%s\n' "$u" ;;
+          *app.todoist.com*) printf 'todoist\t%s\n' "$u" ;;
+          *) printf 'url\t%s\n' "$u" ;;
+        esac
+      done || true
     # Local file paths (Insync-synced notes/transcripts).
     grep -oE '/home/dustin/[A-Za-z0-9_./-]+' <<<"$blob" | sed 's/^/file\t/' || true
     # Aha idea refs (bare).
@@ -55,17 +56,24 @@ extract_breadcrumbs() {
 # `|| true` keeps it safe under a caller's `set -e`+pipefail, same as
 # extract_breadcrumbs).
 harvest_hedges() {
-  grep -oiE "[^.]*(treat[^.]{0,20}rumou?r|did ?n[o']?t pass|not (yet )?confirmed|unverified|confirm via|need to (confirm|verify)|to be verified)[^.]*" \
-    | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' \
-    | awk 'length>0 && !seen[$0]++' || true
+  grep -oiE "[^.]*(treat[^.]{0,20}rumou?r|did ?n[o']?t pass|not (yet )?confirmed|unverified|confirm via|need to (confirm|verify)|to be verified)[^.]*" |
+    sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' |
+    awk 'length>0 && !seen[$0]++' || true
 }
 
 # days_since <iso-date-or-datetime>: integer days from that date to today.
 # Empty if no/invalid date. Negative if the date is in the future.
 days_since() {
-  local d="${1:-}"; [ -n "$d" ] || { echo ""; return 0; }
+  local d="${1:-}"
+  [ -n "$d" ] || {
+    echo ""
+    return 0
+  }
   local then now
-  then=$(date -d "$d" +%s 2>/dev/null) || { echo ""; return 0; }
+  then=$(date -d "$d" +%s 2>/dev/null) || {
+    echo ""
+    return 0
+  }
   now=$(date +%s)
-  echo $(( (now - then) / 86400 ))
+  echo $(((now - then) / 86400))
 }
