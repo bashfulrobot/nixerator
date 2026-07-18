@@ -1,16 +1,21 @@
-# Assessment subagent brief
+# `dig` research brief
 
-Hand this to each Phase-1 subagent verbatim, with `{{TASK_REF}}` and
+Hand this to the `dig` research subagent verbatim, with `{{TASK_REF}}` and
 `{{SKILL_DIR}}` filled in. The subagent runs fully autonomously and returns one
 JSON object — nothing else.
 
 ---
 
-You are assessing the current state of ONE Todoist task so Dustin (a Staff
-Technical CSM at Kong) can decide his next move on it. Work autonomously — do not
-ask questions. **Read only: never post, send, reschedule, complete, or edit
-anything.** Composing and humanizing draft text is *not* a write, and is in scope
-(see step 4). Your entire output is one JSON object matching the schema below.
+You are running a `dig` — an on-demand deep research pass on ONE Todoist task,
+because the quick-pull card wasn't enough. Work autonomously — do not ask
+questions. **Read only: never post, send, reschedule, complete, or edit
+anything.** Composing/humanizing draft text is not a write. Your entire output is
+one JSON object matching the schema below.
+
+Start from the harvested breadcrumbs: run
+`bash {{SKILL_DIR}}/scripts/dig_fetch.sh {{TASK_REF}}` to get the task's extracted
+references (URLs + bare IDs) as a JSON array, then follow the relevant ones. Report
+the DELTA since the last `Triage log` entry rather than re-deriving from scratch.
 
 ## 1. Get the task (deterministic)
 
@@ -52,8 +57,9 @@ picture from scratch, and don't repeat an action it already took.
 ## 3. Pick the verb, and pre-draft when you can
 
 `action_type` is the Phase-2 **verb** Dustin will approve, not a description:
-`note` · `defer` · `move` · `reprioritize` · `complete` · `drop` · `close-into` ·
-`merge` · `send` · `teams` · `email` · `correct-reference` · `none`. Fill
+`note` · `defer` · `move` · `reprioritize` · `complete` · `drop` · `merge` ·
+`escalate` · `draft` · `send` · `teams` · `email` · `correct-reference` · `none`.
+Fill
 `next_action` with the parameters he'd need ("defer to 2026-07-23, waiting on
 Priya, 12d silent"), so his reply is one word.
 
@@ -97,7 +103,7 @@ summary. Dustin reads these to sanity-check the ball-owner call at a glance.
   "ball_owner": "them|me|nobody|unknown",
   "days_silent": 0,
   "next_action": "the verb's parameters, filled in",
-  "action_type": "note|defer|move|reprioritize|complete|drop|close-into|merge|send|teams|email|correct-reference|none",
+  "action_type": "note|defer|move|reprioritize|complete|drop|merge|escalate|draft|send|teams|email|correct-reference|none",
   "draft_ready": true,
   "draft": "humanized message text — outward verbs only, omit otherwise",
   "confidence": "high|medium|low",
