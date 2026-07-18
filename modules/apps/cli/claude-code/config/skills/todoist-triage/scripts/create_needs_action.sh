@@ -9,11 +9,20 @@ command -v td >/dev/null || { echo "td not found (todoist-cli skill)" >&2; exit 
 command -v jq >/dev/null || { echo "jq not found" >&2; exit 127; }
 
 APPLY=0
-[ "${1:-}" = "--apply" ] && APPLY=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1; shift ;;
+    *) echo "unknown arg: $1 (usage: create_needs_action.sh [--apply])" >&2; exit 2 ;;
+  esac
+done
 COL="Needs Action"
 
-# All board projects whose name starts with Kong, plus template.
-mapfile -t projects < <(td project list --json --all | jq -r '.results[].name' | grep -E '^(Kong|template)')
+# Capture the project list on its own line so `set -e` catches an upstream `td`
+# failure (auth/network). Inside `mapfile < <(...)` a failing `td project list`
+# is masked: jq/grep just yield nothing and the run looks like "no Kong projects"
+# instead of "the listing failed".
+proj_json="$(td project list --json --all)"
+mapfile -t projects < <(printf '%s' "$proj_json" | jq -r '.results[].name' | grep -E '^(Kong|template)')
 
 for p in "${projects[@]}"; do
   # Skip Kong-cs (internal CS subset — no customer-facing waiting columns; Needs
