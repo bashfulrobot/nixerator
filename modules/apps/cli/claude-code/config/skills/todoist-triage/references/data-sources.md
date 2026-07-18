@@ -85,3 +85,20 @@ verifiable source.
 **Domain framing (`kong-technical-csm`).** Not a data source so much as the lens:
 what a given status means for a Kong account and what the next-best CSM action is.
 Consult when the raw signals are clear but the *right move* isn't.
+
+## Additional reference classes (from the work-log sweep)
+
+These appear in real Kong work logs and must be recognised as breadcrumbs and
+research targets:
+
+- **Microsoft Teams** — 2nd most common source (some contacts live in Teams, not
+  Slack). Links: `teams.microsoft.com/...`. Read via the browser; hand-send only
+  (no post API) — the `teams` verb copies to the clipboard.
+- **Local file paths** — meeting transcripts/summaries synced under
+  `/home/dustin/insync/...`. Read directly with the Read tool.
+- **Zoom / Tactiq transcripts** — `*.zoom.us` clips, Tactiq links.
+- **Todoist task cross-refs** — `app.todoist.com/app/task/...` links between tasks
+  (merge provenance, related work).
+- **Bare identifiers (no URL)** — treat as first-class references even unlinked:
+  Salesforce record IDs (`00[0-9A-Za-z]{13,16}`, e.g. opp `006PJ...`), Konnect org
+  UUIDs, `Case 000...` numbers, Aha idea refs (`GTWY-I-...`, `DEVP-I-...`).

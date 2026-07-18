@@ -29,7 +29,18 @@ ref="${1:-}"
 
 task=$(td task view "$ref" --json --full)
 comments=$(td comment list "$ref" --json --all --full 2>/dev/null || echo '{"results":[]}')
-projects=$(td project list --json --all)
+
+# Per-run project-map cache: the project list never changes within a run, so the
+# orchestrator can set TD_TRIAGE_PROJECTS_CACHE to a file path and pay the
+# `td project list` cost once instead of once per card. Backward-compatible: no
+# var set → fetch every call, as before.
+proj_cache="${TD_TRIAGE_PROJECTS_CACHE:-}"
+if [ -n "$proj_cache" ] && [ -s "$proj_cache" ]; then
+  projects=$(cat "$proj_cache")
+else
+  projects=$(td project list --json --all)
+  [ -n "$proj_cache" ] && printf '%s' "$projects" >"$proj_cache"
+fi
 
 jq -n --argjson x "$task" --argjson c "$comments" --argjson p "$projects" '
   (($p.results // []) | map({(.id): .name}) | add // {}) as $pm
