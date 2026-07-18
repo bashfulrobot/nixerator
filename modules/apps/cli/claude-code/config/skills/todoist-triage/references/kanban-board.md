@@ -82,9 +82,13 @@ signal (empty log) → no move.
 - **General `Kong`** adds a `Review` column and has no `Engineering`.
 - **`Kong-cs`** is a 7-column subset (no `Waiting Customer`, `! Customer
   Blocker`, `FRs`, or `Engineering`) — it's internal CS work.
-- **`Needs Action`** was added to every `Kong*` board + `template` (see
-  `scripts/create_needs_action.sh`). A newly-cloned `Kong-<customer>` inherits it
-  from `template` by construction.
+- **`Needs Action`** is created on every `Kong*` board + `template` by the gated
+  one-shot `scripts/create_needs_action.sh --apply` (dry-run by default). Until
+  that has been applied on a given board, the column does not exist there, so a
+  `me`-owned auto-move has nowhere to land: `td_autocolumn.sh` detects the failed
+  move and **skips it** (leaves the task where it is, with a note) rather than
+  aborting the walk. Once applied, a newly-cloned `Kong-<customer>` inherits the
+  column from `template` by construction.
 
 If a `recommended_column` doesn't exist in a task's project (e.g. recommending
 `Waiting Customer` on `Kong-cs`), the move will fail — fall back to the nearest

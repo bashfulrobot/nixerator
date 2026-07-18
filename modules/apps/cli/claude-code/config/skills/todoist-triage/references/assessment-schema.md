@@ -104,6 +104,10 @@ extra keys break collation and the digest builder.
 
 ## Digest — how a batch is surfaced
 
+> **Wizard note.** The digest is a `dig`/`--artifact` surface, not part of the
+> default walk. The wizard walks one card at a time; this grouping applies only
+> when a batch of `dig` results is collated (or the HTML artifact is requested).
+
 Collate the batch into these groups, in this order, because it maps to what
 Dustin *does* with each:
 

@@ -41,5 +41,14 @@ if [ "${TD_AUTOCOLUMN_LIB:-}" != "1" ]; then
   reason="Ball on ${owner}${who:+ ($who)}; auto-routed."
   move_args=("$ref" "$col" --reason "$reason")
   [ "$dry_run" -eq 1 ] && move_args+=(--dry-run)
-  bash "$SCRIPT_DIR/td_move.sh" "${move_args[@]}"
+  # The auto-move is non-destructive by design: a wrong or absent column is not a
+  # fatal error. If the target column doesn't exist in this project yet (most
+  # importantly "Needs Action" before create_needs_action.sh --apply has run
+  # there), td_move fails on the section lookup and aborts BEFORE its worklog
+  # write — so nothing is half-applied. Catch that here and skip the move rather
+  # than let it abort the walk with no card. `if ! cmd` keeps set -e from firing.
+  if ! bash "$SCRIPT_DIR/td_move.sh" "${move_args[@]}"; then
+    echo "auto-move skipped: could not place $ref in '$col' (column may not exist in this project yet); left in place" >&2
+    exit 0
+  fi
 fi
