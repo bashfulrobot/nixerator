@@ -21,7 +21,7 @@ is retired.
 | Tier | Verbs | Gate |
 |---|---|---|
 | **Internal** | `note`/`log`, `link-log`/`link`, `defer`, `move`/`col`, `reprioritize`/`prio`, `correct-reference`/`fixref`, `escalate`, `draft` | Execute immediately on the keyword. Reversible, touches nobody else. |
-| **Completion** | `complete`/`done`, `drop`, `close-into`, `merge` | Confirm per task. Never auto. |
+| **Completion** | `complete`/`done`, `drop`, `merge` | Confirm per task. Never auto. |
 | **Outward** | `send`/`nudge`, `teams`, `email` | Full gate, one at a time, explicit "send" that turn. |
 
 Still true: every writing verb logs itself through `td_worklog.sh`; report
@@ -146,14 +146,9 @@ Logs the reason first, then completes. Confirm per task.
 scripts/td_drop.sh <ref> --reason "<why it stopped mattering>"
 ```
 
-### `close-into X,Y` — fold this task into others, then close it
-
-For work that has been absorbed elsewhere rather than finished:
-
-1. Cross-reference onto each survivor:
-   `scripts/td_worklog.sh <X> --entry "Absorbed <this task>." --link "<title>=<url>"`
-2. Point this task at them, then close it:
-   `scripts/td_worklog.sh <ref> --entry "Closed into <X>, <Y>." --link ... && td task complete <ref>`
+Work that was absorbed elsewhere (rather than finished) is handled by `merge`
+(survivor = the absorbing task) or by `drop` with a `--link` to where it went —
+there is no separate `close-into` verb in the wizard lexicon.
 
 ## Merge
 

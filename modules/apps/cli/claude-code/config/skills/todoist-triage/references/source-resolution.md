@@ -25,9 +25,11 @@ to reuse across a run:
 doesn't re-resolve them every run. It's a stable name→identifier mapping like the
 others, so it obeys the same rule below: no live state, no message contents.
 
-- A contact's reachable channel is part of their durable facts: record
-  `channel: slack|teams|email` alongside their id/handle, since some accounts
-  (e.g. a PS contact) live in Teams and route through the `teams` verb, not Slack.
+- **Teams is a first-class `medium`, not an afterthought.** The work-log sweep
+  found Teams is the 2nd most common channel (some accounts, e.g. a PS contact,
+  live in Teams, not Slack). The `routing.medium` field above already carries
+  `teams` — populate it so a nudge routes to the `teams` verb (clipboard
+  hand-send) instead of defaulting to Slack. No new field needed; `medium` is it.
 
 Slow metadata (CSM owner, segment) may use `--ttl 30d`. **Never cache live
 state** — never `put` a task's contents, due date, status, `days_silent`, ticket

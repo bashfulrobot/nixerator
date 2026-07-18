@@ -42,10 +42,10 @@ task's own project, so the name is all the routing logic needs.
 | **Review** | *(general `Kong` project only)* awaiting review. | Ready for or under review, on the general `Kong` board. |
 
 **Internal vs customer** is the split between `Waiting Internal` and `Waiting
-Customer`, and the subagent already establishes who owes the next move — reuse
-that: if the person the ball sits with is a Konger, it's `Waiting Internal`; a
-customer-side contact, `Waiting Customer`. When genuinely unsure, leave the
-column unchanged and say so in `unverified[]` rather than guessing a move.
+Customer`. Establish who owes the next move from the work-log prose: if the person
+the ball sits with is a Konger, it's `Waiting Internal`; a customer-side contact,
+`Waiting Customer`. When genuinely unsure, leave the column unchanged and say so
+rather than guessing a move.
 
 ## Ball-owner → column (the auto-move mapping)
 
@@ -65,16 +65,17 @@ owes the move → `Needs Action`; if it sits purely with another Kong person/tea
 (me/Christian)"), leave the column unmoved and say so — never guess. No ball-owner
 signal (empty log) → no move.
 
-## Recommend, flag the mismatch, never auto-move
+## Auto-applied, shown on the card, `col` overrides
 
-- The subagent fills `current_column` (where the task is now) and
-  `recommended_column` (where the assessment says it belongs) for every
-  `Kong*`-board task.
-- When they differ, that mismatch is a triage signal — surface it on the card
-  ("in `Up Next`, but it's been `waiting-on-them` 12d → `Waiting Customer`").
-- The actual move is the `move` verb, in the **internal-batched** gate tier
-  (reversible, touches nobody outward): shown per-task in the walk, then run on
-  one approval alongside `note`/`defer`. Never move a column silently.
+- The auto column-move is the **one action the skill takes on its own**. It is
+  applied *before* the card is shown, derived from the ball-owner read from the
+  work log — not proposed for approval.
+- The card shows it as `previous → new (auto: <why>)` so the move is visible; if
+  the inference was wrong, `col <name>` moves it elsewhere in one keystroke.
+- It's safe because it's non-destructive: a wrong column is still fully assessable
+  next run, and reversible now. It is always logged, never silent. This is the
+  only place the skill acts without an explicit keyword; everything else waits for
+  Dustin.
 
 ## Known deviations (don't cache a snapshot — see below)
 

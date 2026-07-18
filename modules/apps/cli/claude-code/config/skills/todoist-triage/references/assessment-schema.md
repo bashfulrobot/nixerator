@@ -10,7 +10,10 @@ what lets results from independent subagents collate into one digest.
 > they carry that subagent's structured findings. The state fields
 > (`what_it_is`, `status`, `ball_owner`, `days_silent`, `current_column`,
 > `recommended_column`, `recent_context`, `unverified`, `sources`) are what the
-> card and the auto-move consume. The card's derived triad (Ball / Where it stands
+> card consumes. The **auto column-move** derives its target from `ball_owner`
+> (the model classifies it as customer / internal / me / validation and passes
+> that to `td_autocolumn.sh`), not from `recommended_column`. The card's derived
+> triad (Ball / Where it stands
 > / Next) is built from `ball_owner` + `days_silent` + `recent_context` + the last
 > recorded next-step in the log; the "Next" line is extracted from the log, never
 > invented.
@@ -59,12 +62,13 @@ extra keys break collation and the digest builder.
   last comment), **not** from the due date.
 - **`days_silent`** — integer days since that freshest signal. This plus
   `ball_owner` is the primary triage sort key.
-- **`action_type`** — the Phase-2 **verb**, so the digest line reads as a
+- **`action_type`** — the **verb**, so the digest/`dig` line reads as a
   pre-filled macro rather than prose. One of: `note` · `defer` · `move` ·
-  `reprioritize` · `complete` · `drop` · `close-into` · `merge` · `send` ·
+  `reprioritize` · `complete` · `drop` · `merge` · `escalate` · `draft` · `send` ·
   `teams` · `email` · `correct-reference` · `none`. These map 1:1 to
-  `references/macros.md`; if you find yourself wanting a verb that isn't there,
-  the answer is `none` plus a `next_action` explaining why, not an invented verb.
+  `references/macros.md` and `references/lexicon.md`; if you find yourself wanting
+  a verb that isn't there, the answer is `none` plus a `next_action` explaining
+  why, not an invented verb.
 - **`current_column` / `recommended_column`** — for tasks on a `Kong*` board
   project only (others have no sections; use `null`). `current_column` is where
   the task sits now; `recommended_column` is where the assessment says it belongs,
@@ -129,16 +133,15 @@ decision. **The exact invocation for every verb lives in
 
 | Tier | Verbs | Gate |
 |---|---|---|
-| **Internal, batched** | `note`, `defer`, `move`, `reprioritize`, `link-log` | Show the batch, take **one** approval, then run them all. Reversible and touches nobody else. Each task is still carded first, so a `move` or a bump to `p1` is shown before the approval. |
-| **Completion** | `complete`, `drop`, `close-into` | **Its own confirm, per task.** Never folded into the internal batch. |
-| **Merge** | `merge` | **One** confirm. Confirming "these are duplicates" *is* confirming the closes it performs. |
-| **Outward** | `send`, `teams`, `email` | Full gate, one at a time: draft → humanize → preview → **explicit "send" that turn** → post → log. |
-| **Other** | `correct-reference` | Confirm. Posts a note with the correction and never silently rewrites the title. |
+| **Internal** | `note`/`log`, `defer`, `move`/`col`, `reprioritize`/`prio`, `link-log`/`link`, `correct-reference`/`fixref`, `escalate`, `draft` | **Execute immediately on the keyword** — typing it is the approval. Reversible, touches nobody else. |
+| **Completion** | `complete`/`done`, `drop`, `merge` | **Confirm per task.** Never auto. |
+| **Outward** | `send`/`nudge`, `teams`, `email` | Full gate, one at a time: draft → humanize → preview → **explicit "send" that turn** → post → log. |
 
-**The invariant Dustin chose: recommend, never auto-act.** Batching applies only
-to the reversible internal trio, and only as one approval of a *shown* batch. It
-is not permission to act silently, and completion is deliberately outside it.
-Anything outward-facing is drafted, not sent, until he says so in that turn.
+**The invariant: the only thing the skill does on its own is the auto column-move**
+(shown on the card and logged — see `references/kanban-board.md`). Every internal
+keyword runs on the keystroke that types it; every completion is confirmed per
+task; anything outward-facing is drafted, not sent, until Dustin says so in that
+turn.
 
 Every writing verb logs itself through `scripts/td_worklog.sh` — the work log is
 automatic, not something Dustin should ever have to ask for. Report faithfully: a
