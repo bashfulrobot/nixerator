@@ -27,20 +27,17 @@ is retired.
 Still true: every writing verb logs itself through `td_worklog.sh`; report
 faithfully ("Drafted" vs "Sent").
 
-Even in the batched tier every task is **carded first** — `move` to a new column
-and `reprioritize` up to `p1` are both shown on the task's card before the single
-"run these N?" approval, so an escalation is never invisible.
+Every internal keyword is **carded first**: the task's card (with any auto
+column-move already shown) is what Dustin reads before he types the keyword.
+Typing the keyword is the approval — there is no separate "run these N?" batch
+question. The walk stays on the task until an explicit `next`/`skip`, so stacking
+`col` + `defer` + `nudge` on one task is normal.
 
-**The batch gate is an approval mechanism, not a presentation one.** Every task
-in it still gets its own card first; the single "run these N?" question comes
-*after* the walk, never instead of it. "Shown" means carded. If Dustin is reading
-a gate question's option previews to learn what a task is, the walk did not
-happen — that is the failure this line exists to prevent.
+The invariant behind all of it: the only thing the skill does on its own is the
+auto column-move (shown and logged); every completion is confirmed, and nothing
+outward-facing leaves without Dustin's explicit yes in the moment.
 
-The invariant behind all of it: recommend, never auto-act. Nothing outward-facing
-leaves without Dustin's explicit yes in the moment.
-
-## Internal, batched
+## Internal (immediate)
 
 ### `note` — record something in the work log
 
