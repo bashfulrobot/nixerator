@@ -25,4 +25,14 @@ has "breadcrumb slack" "slack"                 "$out"
 has "hedge unverified" "Unverified"            "$out"
 has "action line"      "done · defer"          "$out"
 
+# Regression: malformed/empty stdin must fail loudly (non-zero), not render a
+# blank "null"-filled card and exit 0.
+bad_rc=0
+bad_out=$(printf 'not json at all' | render_card "1/1" "Up Next" "") 2>/dev/null || bad_rc=$?
+if [ "$bad_rc" -ne 0 ]; then echo "PASS: bad JSON exits non-zero"; pass=$((pass+1));
+  else echo "FAIL: bad JSON exits non-zero (got rc=$bad_rc)"; fail=$((fail+1)); fi
+if printf '%s' "$bad_out" | grep -q .; then
+  echo "FAIL: bad JSON printed a card"; fail=$((fail+1));
+  else echo "PASS: bad JSON prints no card"; pass=$((pass+1)); fi
+
 echo "----"; echo "pass=$pass fail=$fail"; [ "$fail" -eq 0 ]

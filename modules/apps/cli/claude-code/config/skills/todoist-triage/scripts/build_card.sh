@@ -16,6 +16,13 @@ LIB_EXTRACT=1 source "$SCRIPT_DIR/lib_extract.sh"
 render_card() { # position column auto ; json on stdin
   local position="$1" column="$2" auto="$3"
   local json; json="$(cat)"
+  # Validate stdin before rendering: without this, malformed/empty JSON yields a
+  # card full of "null"/blank fields and exits 0, silently masking a broken
+  # td_fetch upstream. Fail loudly instead.
+  if ! jq -e . <<<"$json" >/dev/null 2>&1; then
+    echo "build_card: invalid or empty JSON on stdin" >&2
+    return 1
+  fi
   local title project due prio
   title=$(jq -r '.task.title' <<<"$json")
   project=$(jq -r '.task.project' <<<"$json")

@@ -38,4 +38,27 @@ check "days_since empty is empty" "" "$(days_since '')"
 d=$(days_since '2020-01-01'); case "$d" in ''|*[!0-9-]*) r=bad;; *) r=int;; esac
 check "days_since returns int" "int" "$r"
 
+# Regression: extract_breadcrumbs must survive `set -e`+pipefail (dig_fetch.sh sets
+# it before sourcing). A blob whose FIRST grep stage (URLs) matches nothing but a
+# LATER stage (case) does must still return the later match AND exit 0 — not abort
+# on the first empty stage.
+# Run in a fresh top-level `bash -c` under `set -euo pipefail`, with
+# extract_breadcrumbs piped onward (`| cat`) — exactly dig_fetch.sh's context
+# (`... | extract_breadcrumbs | jq`). That is the position where a failing early
+# grep stage trips errexit and aborts the remaining stages. A `$( )` around the
+# current shell does NOT reproduce it; a real top-level script context does.
+e_rc=0
+e_out=$(bash -c "set -euo pipefail; source '$here/lib_extract.sh'; \
+  printf 'A stray Case 00073440 with no url.' | extract_breadcrumbs | cat") || e_rc=$?
+check "extract survives set -e (exit 0)"    "0"                 "$e_rc"
+has   "extract survives set -e (case kept)" "case	Case 00073440" "$e_out"
+
+# URLs must not capture trailing sentence punctuation.
+punct=$(printf 'See https://kongstrong.slack.com/archives/C1/p999.' | extract_breadcrumbs)
+if printf '%s' "$punct" | grep -qF 'p999.'; then
+  echo "FAIL: url trailing period not stripped"; fail=$((fail+1))
+else
+  echo "PASS: url trailing period stripped"; pass=$((pass+1))
+fi
+
 echo "----"; echo "pass=$pass fail=$fail"; [ "$fail" -eq 0 ]

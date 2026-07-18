@@ -9,11 +9,18 @@ set -uo pipefail
 
 # extract_breadcrumbs: read a text blob on stdin (task title + comment bodies).
 # Print one breadcrumb per line as "<kind>\t<value>", deduped, first-seen order.
+#
+# Every grep stage is guarded with `|| true`: a stage that matches nothing exits
+# non-zero, and dig_fetch.sh runs this under `set -e`+pipefail with the function
+# piped onward (`... | extract_breadcrumbs | jq`). Without the guards the first
+# empty stage would abort the group and silently drop every later category.
 extract_breadcrumbs() {
   local blob; blob="$(cat)"
   {
-    # URLs, classified by host.
-    grep -oE 'https?://[^ )<>"'"'"']+' <<<"$blob" | while IFS= read -r u; do
+    # URLs, classified by host. Strip trailing sentence punctuation (a URL at the
+    # end of a sentence otherwise swallows the '.'/','/';' etc.).
+    grep -oE 'https?://[^ )<>"'"'"']+' <<<"$blob" | sed -E 's/[.,;:!?]+$//' \
+      | while IFS= read -r u; do
       case "$u" in
         *slack.com*)            printf 'slack\t%s\n' "$u" ;;
         *teams.microsoft.com*)  printf 'teams\t%s\n' "$u" ;;
@@ -27,28 +34,30 @@ extract_breadcrumbs() {
         *app.todoist.com*)      printf 'todoist\t%s\n' "$u" ;;
         *)                      printf 'url\t%s\n' "$u" ;;
       esac
-    done
+    done || true
     # Local file paths (Insync-synced notes/transcripts).
-    grep -oE '/home/dustin/[A-Za-z0-9_./-]+' <<<"$blob" | sed 's/^/file\t/'
+    grep -oE '/home/dustin/[A-Za-z0-9_./-]+' <<<"$blob" | sed 's/^/file\t/' || true
     # Aha idea refs (bare).
-    grep -oE '\b[A-Z]{3,5}-I-[0-9]+\b' <<<"$blob" | sed 's/^/aha\t/'
+    grep -oE '\b[A-Z]{3,5}-I-[0-9]+\b' <<<"$blob" | sed 's/^/aha\t/' || true
     # Jira keys (bare), excluding Aha -I- refs.
-    grep -oE '\b[A-Z]{2,6}-[0-9]+\b' <<<"$blob" | grep -vE '\-I-' | sed 's/^/jira\t/'
+    grep -oE '\b[A-Z]{2,6}-[0-9]+\b' <<<"$blob" | grep -vE '\-I-' | sed 's/^/jira\t/' || true
     # Konnect org UUIDs.
-    grep -oiE '\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b' <<<"$blob" | sed 's/^/org\t/'
+    grep -oiE '\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b' <<<"$blob" | sed 's/^/org\t/' || true
     # Salesforce record IDs (15 or 18 char, 00-prefixed object ids).
-    grep -oE '\b00[0-9A-Za-z]{13}([0-9A-Za-z]{3})?\b' <<<"$blob" | sed 's/^/sfid\t/'
+    grep -oE '\b00[0-9A-Za-z]{13}([0-9A-Za-z]{3})?\b' <<<"$blob" | sed 's/^/sfid\t/' || true
     # Case numbers.
-    grep -oE '\bCase [0-9]{5,}\b' <<<"$blob" | sed 's/^/case\t/'
+    grep -oE '\bCase [0-9]{5,}\b' <<<"$blob" | sed 's/^/case\t/' || true
   } | awk -F'\t' '!seen[$0]++'
 }
 
 # harvest_hedges: read text on stdin, print short hedge snippets (one per line)
-# that signal unverified claims. Deduped.
+# that signal unverified claims. Deduped. A no-match run exits 0 (the trailing
+# `|| true` keeps it safe under a caller's `set -e`+pipefail, same as
+# extract_breadcrumbs).
 harvest_hedges() {
   grep -oiE "[^.]*(treat[^.]{0,20}rumou?r|did ?n[o']?t pass|not (yet )?confirmed|unverified|confirm via|need to (confirm|verify)|to be verified)[^.]*" \
     | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' \
-    | awk 'length>0 && !seen[$0]++'
+    | awk 'length>0 && !seen[$0]++' || true
 }
 
 # days_since <iso-date-or-datetime>: integer days from that date to today.
