@@ -25,6 +25,10 @@ to reuse across a run:
 doesn't re-resolve them every run. It's a stable name→identifier mapping like the
 others, so it obeys the same rule below: no live state, no message contents.
 
+- A contact's reachable channel is part of their durable facts: record
+  `channel: slack|teams|email` alongside their id/handle, since some accounts
+  (e.g. a PS contact) live in Teams and route through the `teams` verb, not Slack.
+
 Slow metadata (CSM owner, segment) may use `--ttl 30d`. **Never cache live
 state** — never `put` a task's contents, due date, status, `days_silent`, ticket
 state, or thread recency. Those are read live on every assessment, always.
