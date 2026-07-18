@@ -69,6 +69,14 @@
     text-polish.enable = true;
     text-uppercase.enable = true;
 
+    # qbert sits on the home LAN (192.168.168.0/23) over WiFi AND accepts that
+    # same subnet as a Tailscale route (srv advertises it in hosts/srv/modules.nix).
+    # Without this, the accepted route shadows the direct LAN link and qbert
+    # becomes unreachable on its LAN IP (inbound ssh/mosh fail) while Tailscale
+    # still works. This prefers the direct LAN route when on-link and falls back
+    # to the tailnet when roaming. See the option docs in the tailscale module.
+    tailscale.preferLanCidrs = [ "192.168.168.0/23" ];
+
     syncthing = {
       enable = true;
       host.qbert = true;
