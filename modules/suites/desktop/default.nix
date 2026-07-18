@@ -64,8 +64,14 @@ in
 
       # Desktop configuration - Desktop environment behavior
       desktop = {
-        # Terminal: use hyprflake's default kitty (Stylix-themed kitty module,
-        # enabled by default in hyprflake). No override needed.
+        # Terminal: Rio (GPU/WebGPU, Kitty graphics protocol) as the default
+        # launcher for SUPER+RETURN / SUPER+T, Nautilus "Open in Terminal", and
+        # the terminal opacity window rule. Kitty stays installed as a fallback
+        # (hyprflake's kitty module remains enabled by default), so the `kitty`
+        # command is still available if Rio misbehaves. Requires the hyprflake
+        # input to include the rio module (bumped via `just qu`).
+        rio.enable = true;
+        terminal.package = pkgs.rio;
 
         # Keyboard layout and variant
         keyboard = {
