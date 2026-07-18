@@ -4,6 +4,17 @@ The fixed contract for a Phase-1 result, plus how a batch of results is grouped
 into a digest and what Phase-2 actions are allowed. Keeping the schema fixed is
 what lets results from independent subagents collate into one digest.
 
+> **Wizard note.** The default walk renders a pure-state card and does NOT produce
+> a recommendation. The recommendation fields below (`next_action`, `action_type`,
+> `draft_ready`, `draft`) are used ONLY when `dig` invokes a research subagent —
+> they carry that subagent's structured findings. The state fields
+> (`what_it_is`, `status`, `ball_owner`, `days_silent`, `current_column`,
+> `recommended_column`, `recent_context`, `unverified`, `sources`) are what the
+> card and the auto-move consume. The card's derived triad (Ball / Where it stands
+> / Next) is built from `ball_owner` + `days_silent` + `recent_context` + the last
+> recorded next-step in the log; the "Next" line is extracted from the log, never
+> invented.
+
 ## Per-task result schema
 
 Every subagent returns exactly this object (JSON). No extra top-level keys —
