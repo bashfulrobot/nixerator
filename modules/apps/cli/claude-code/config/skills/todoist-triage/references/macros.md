@@ -13,17 +13,19 @@ Two properties make this work, and both are deliberate:
   (whose surface the `todoist-cli` skill owns). This file owns the triage
   policy: which verb, which tier, what gets logged.
 
-## The gate tiers
+## The gate model (keyword wizard)
 
-Dustin chose this model. Do not drift from it.
+Typing a keyword IS the approval — the old "internal, batched (one approval)" tier
+is retired.
 
 | Tier | Verbs | Gate |
 |---|---|---|
-| **Internal, batched** | `note`, `defer`, `move`, `reprioritize`, `link-log` | Show the batch, take **one** approval, then run them all. Reversible, touches nobody else. |
-| **Completion** | `complete`, `drop`, `close-into` | **Its own confirm, per task.** Not folded into the internal batch. |
-| **Merge** | `merge` | **One confirm**, because confirming the duplicate call *is* confirming the closes it performs. |
-| **Outward** | `send`, `teams`, `email` | Full gate, one at a time. Drafted, previewed, sent only on an explicit "send" in that turn. |
-| **Other** | `correct-reference` | Confirm. Posts a note with the correction; never silently rewrites the title. |
+| **Internal** | `note`/`log`, `link-log`/`link`, `defer`, `move`/`col`, `reprioritize`/`prio`, `correct-reference`/`fixref`, `escalate`, `draft` | Execute immediately on the keyword. Reversible, touches nobody else. |
+| **Completion** | `complete`/`done`, `drop`, `close-into`, `merge` | Confirm per task. Never auto. |
+| **Outward** | `send`/`nudge`, `teams`, `email` | Full gate, one at a time, explicit "send" that turn. |
+
+Still true: every writing verb logs itself through `td_worklog.sh`; report
+faithfully ("Drafted" vs "Sent").
 
 Even in the batched tier every task is **carded first** — `move` to a new column
 and `reprioritize` up to `p1` are both shown on the task's card before the single
@@ -101,6 +103,26 @@ customer blocker → `p1`) as well as lowers it. Pass the friendly `p1..p4` labe
 never the raw API value, which is inverted (`4` = highest); the script and `td`
 speak `p1..p4`.
 
+### `escalate` — flag risk / customer-blocker
+
+```bash
+scripts/td_escalate.sh <ref> [--to "! Customer Blocker"|"Engineering"] --reason "<why>"
+```
+
+Moves the task to a blocker/eng column and logs the escalation, fused. Default
+`! Customer Blocker`. Distinct from `send`/`nudge`: escalation is an internal
+status change, not an outward message.
+
+### `draft` — prepare an outward message, logged as NOT sent
+
+```bash
+scripts/td_draft.sh <ref> --channel <slack|email|teams> --to "<who>" --text "<msg>" [--link "label=url"]
+```
+
+Records a prepared message on the work log as "Drafted, not sent". NEVER sends.
+Closes the ready-to-send/actually-sent limbo. The send is a later
+`send`/`teams`/`email`. Message text is humanized (outward prose).
+
 ### `link-log` — file a pasted URL under the right task
 
 Dustin pastes a Slack, Aha, Jira, or doc URL. Match it against open task titles
@@ -113,24 +135,18 @@ scripts/td_worklog.sh <task-ref> --entry "<what this link is>" --link "<label>=<
 
 ## Completion
 
-### `complete` — mark a task done
+### `complete` / `done`
 
 ```bash
-td task complete <task-ref>          # --forever to stop recurrence
-scripts/td_worklog.sh <task-ref> --entry "Completed. <why it's done>"
+scripts/td_complete.sh <ref> --reason "<why it's done>" [--forever]
 ```
 
-Log first, then complete, so the reason survives on the task. Only ever
-*recommended*: Dustin confirms each one. A `likely-done` assessment is a
-proposal, not a licence.
+Logs the reason first, then completes. Confirm per task.
 
-### `drop` — close something no longer relevant
-
-Same as `complete`, with the reason recorded as why it stopped mattering:
+### `drop`
 
 ```bash
-scripts/td_worklog.sh <task-ref> --entry "Dropped: no longer relevant. <why>"
-td task complete <task-ref>
+scripts/td_drop.sh <ref> --reason "<why it stopped mattering>"
 ```
 
 ### `close-into X,Y` — fold this task into others, then close it
@@ -144,19 +160,14 @@ For work that has been absorbed elsewhere rather than finished:
 
 ## Merge
 
-### `merge` — collapse duplicates into one survivor
+### `merge`
 
-For several tasks that are really one thread. Surface the survivor and exactly
-which tasks get closed, take one confirm, then:
+```bash
+scripts/td_merge.sh --survivor <ref> --loser <ref> [--loser <ref>...] [--survivor-url <url>] --reason "<why>"
+```
 
-1. Rename the survivor if a clearer title fits: `td task update <survivor> --content "<title>"`
-2. Pull every link and fact from the losers into the survivor with `note`.
-3. Pointer-comment each loser, then close it:
-   `scripts/td_worklog.sh <loser> --entry "Merged into <survivor title>." --link "survivor=<url>"`
-   followed by `td task complete <loser>`.
-
-"Is this actually a duplicate" is Dustin's call, never the skill's. That call is
-the gate, and it is also what authorizes the closes.
+Cross-references the survivor, pointer-comments each loser, closes the losers. One
+confirm authorises the closes.
 
 ## Outward (full gate)
 
