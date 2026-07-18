@@ -30,6 +30,7 @@ task's own project, so the name is all the routing logic needs.
 | **Reoccurring** | Recurring cadence tasks (account hygiene, standing check-ins). | Never auto-move. Recurring tasks manage their own place. |
 | **Backlog** | Captured, acknowledged, not yet prioritized. | `on-track`/`stale` with no live thread and no near-term commitment — real but not queued. |
 | **Up Next** | Prioritized, work it next; ball is on Dustin. | `ball_owner: me`, actionable now/soon, nothing external blocking. |
+| **Needs Action** | **Ball is on Dustin** — he's the bottleneck; a concrete next step is his to take. | `ball_owner: me` where Dustin (not another Konger) owes the move. Distinct from `Up Next`, which is "queued to work"; `Needs Action` is "surfaced because the last activity put the ball back on him". |
 | **Capture Data** | **A documentation task**: take the info source named in the task and write it up or relocate it to a durable home — a Confluence article, a doc, the customer notes dir, etc. The deliverable is captured knowledge, not a customer nudge. | `next_action` is "document / move this into <destination>", ball on Dustin, and the work is transcribe/relocate rather than research-then-reply. Name the destination in `next_action` when known. |
 | **Meetings** | Meeting prep and meeting-driven tasks. | The task is prep for, or an output of, a specific meeting. |
 | **Waiting Internal** | Blocked on a **Kong-internal** person or team. | `waiting-on-them` where "them" is internal (SE, PM, support engineer, another Konger). |
@@ -41,27 +42,53 @@ task's own project, so the name is all the routing logic needs.
 | **Review** | *(general `Kong` project only)* awaiting review. | Ready for or under review, on the general `Kong` board. |
 
 **Internal vs customer** is the split between `Waiting Internal` and `Waiting
-Customer`, and the subagent already establishes who owes the next move — reuse
-that: if the person the ball sits with is a Konger, it's `Waiting Internal`; a
-customer-side contact, `Waiting Customer`. When genuinely unsure, leave the
-column unchanged and say so in `unverified[]` rather than guessing a move.
+Customer`. Establish who owes the next move from the work-log prose: if the person
+the ball sits with is a Konger, it's `Waiting Internal`; a customer-side contact,
+`Waiting Customer`. When genuinely unsure, leave the column unchanged and say so
+rather than guessing a move.
 
-## Recommend, flag the mismatch, never auto-move
+## Ball-owner → column (the auto-move mapping)
 
-- The subagent fills `current_column` (where the task is now) and
-  `recommended_column` (where the assessment says it belongs) for every
-  `Kong*`-board task.
-- When they differ, that mismatch is a triage signal — surface it on the card
-  ("in `Up Next`, but it's been `waiting-on-them` 12d → `Waiting Customer`").
-- The actual move is the `move` verb, in the **internal-batched** gate tier
-  (reversible, touches nobody outward): shown per-task in the walk, then run on
-  one approval alongside `note`/`defer`. Never move a column silently.
+The one action the skill takes on its own. The model classifies the ball-owner
+from the work-log prose; this mapping is deterministic (`td_autocolumn.sh`):
+
+| Ball owner | Column |
+|---|---|
+| customer-side contact | `Waiting Customer` |
+| Kong-internal person/team (not Dustin) | `Waiting Internal` |
+| Dustin owes the next move | `Needs Action` |
+| delivered, awaiting sign-off | `Waiting Validation` |
+
+**Disambiguate `me` from another Konger.** If Dustin is one of the actors who
+owes the move → `Needs Action`; if it sits purely with another Kong person/team →
+`Waiting Internal`. When the wording blurs the two ("the Kong side
+(me/Christian)"), leave the column unmoved and say so — never guess. No ball-owner
+signal (empty log) → no move.
+
+## Auto-applied, shown on the card, `col` overrides
+
+- The auto column-move is the **one action the skill takes on its own**. It is
+  applied *before* the card is shown, derived from the ball-owner read from the
+  work log — not proposed for approval.
+- The card shows it as `previous → new (auto: <why>)` so the move is visible; if
+  the inference was wrong, `col <name>` moves it elsewhere in one keystroke.
+- It's safe because it's non-destructive: a wrong column is still fully assessable
+  next run, and reversible now. It is always logged, never silent. This is the
+  only place the skill acts without an explicit keyword; everything else waits for
+  Dustin.
 
 ## Known deviations (don't cache a snapshot — see below)
 
 - **General `Kong`** adds a `Review` column and has no `Engineering`.
 - **`Kong-cs`** is a 7-column subset (no `Waiting Customer`, `! Customer
   Blocker`, `FRs`, or `Engineering`) — it's internal CS work.
+- **`Needs Action`** is created on every `Kong*` board + `template` by the gated
+  one-shot `scripts/create_needs_action.sh --apply` (dry-run by default). Until
+  that has been applied on a given board, the column does not exist there, so a
+  `me`-owned auto-move has nowhere to land: `td_autocolumn.sh` detects the failed
+  move and **skips it** (leaves the task where it is, with a note) rather than
+  aborting the walk. Once applied, a newly-cloned `Kong-<customer>` inherits the
+  column from `template` by construction.
 
 If a `recommended_column` doesn't exist in a task's project (e.g. recommending
 `Waiting Customer` on `Kong-cs`), the move will fail — fall back to the nearest
