@@ -47,6 +47,8 @@ let
     pkgs.fluxcd
     pkgs.stern # multi-pod log tailing for the investigator (always used with --no-follow so a run terminates)
     pkgs.kube-capacity # per-node requests/limits/utilization table, sharper than `describe node`
+    pkgs.cmark-gfm # renders rca.md -> rca.html for the phone-readable RCA link; safe by default (raw HTML omitted, unsafe links stripped) since investigate.sh never passes --unsafe
+
     pkgs.yq-go # read-only YAML query (binary is `yq`)
     pkgs._1password-cli
     pkgs.jq
@@ -61,6 +63,13 @@ let
   ];
 
   scriptsDir = "${cfg.repoDir}/incident-investigator";
+
+  # Base URL the RCA Pushover ping links to. `tailscale serve` (below) publishes
+  # OUT_ROOT on the tailnet under this host + path, so a bundle is reachable at
+  # <incidentBaseUrl>/<ts-fp>/rca.html. investigate.sh reads it as
+  # INCIDENT_BASE_URL; kept in lockstep with the serve --set-path so the link and
+  # the mount can never drift.
+  incidentBaseUrl = "https://${cfg.publish.tailnetHost}${cfg.publish.path}";
 
   # `op run` authenticates as a service account only when OP_SERVICE_ACCOUNT_TOKEN
   # is in its environment -- it does NOT auto-detect the on-disk token file. A
@@ -115,6 +124,9 @@ let
     # container, no cluster access of its own.
     "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
   ]
+  # When bundle publishing is on, hand investigate.sh the base URL so the RCA
+  # ping carries a tap-through link. Off -> unset -> the ping omits the link.
+  ++ lib.optional cfg.publish.enable "INCIDENT_BASE_URL=${incidentBaseUrl}"
   ++ lib.optional (cfg.claudeModel != "") "CLAUDE_MODEL=${cfg.claudeModel}";
 
   # The weekly rightsizing sweep only needs the Grafana Cloud read creds and
@@ -310,6 +322,39 @@ in
         '';
       };
     };
+
+    publish = {
+      enable = lib.mkEnableOption ''
+        publishing incident bundles on the tailnet with `tailscale serve` and
+        linking to the rendered rca.html from the RCA Pushover ping. Off by
+        default: without it the ping still names the broken workload and verdict,
+        just without a tap-through link. Requires HTTPS enabled for the tailnet
+        (the node can provision a `*.ts.net` cert). Bundles are exposed to every
+        device on the tailnet (RCAs hold cluster analysis, never secrets -- the
+        investigator cannot read Secrets and the repo clone stays git-crypt
+        locked); scope with tailnet ACLs if that is too broad
+      '';
+
+      tailnetHost = lib.mkOption {
+        type = lib.types.str;
+        default = "srv.goat-cloud.ts.net";
+        description = ''
+          This host's MagicDNS name. Used to build both `INCIDENT_BASE_URL` and
+          the `tailscale serve` URL, so the link the phone opens resolves over
+          the tailnet.
+        '';
+      };
+
+      path = lib.mkOption {
+        type = lib.types.str;
+        default = "/incidents";
+        description = ''
+          URL path prefix the bundles are served under (passed to
+          `tailscale serve --set-path`). Kept in lockstep with the base URL the
+          RCA ping links to.
+        '';
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -378,6 +423,34 @@ in
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
+      };
+    };
+
+    # Publish incident bundles on the tailnet so the RCA Pushover ping can link
+    # to a phone-readable rca.html instead of a filesystem path. `tailscale serve`
+    # mounts OUT_ROOT under https://<tailnetHost><path>/ over the tailnet ONLY
+    # (serve, not funnel -> never public). Runs as root because the CLI talks to
+    # the tailscaled socket. Idempotent: serve config persists in tailscaled
+    # state, so re-asserting it on each boot is a no-op. HTTPS must be enabled for
+    # the tailnet; the node provisions its own *.ts.net cert on first serve.
+    systemd.services.incident-investigator-serve = lib.mkIf cfg.publish.enable {
+      description = "Publish incident bundles on the tailnet (tailscale serve)";
+      after = [
+        "tailscaled.service"
+        "network-online.target"
+      ];
+      wants = [
+        "tailscaled.service"
+        "network-online.target"
+      ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=${cfg.publish.path} ${cfg.outRoot}";
+        # `-` prefix: don't fail the stop if the toggle syntax is rejected. Targets
+        # only this path, so any unrelated serve config is left untouched.
+        ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=${cfg.publish.path} off";
       };
     };
 

@@ -210,6 +210,10 @@
     incidentInvestigator = {
       enable = true;
       tunnel.enable = true;
+      # Serve incident bundles on the tailnet so the RCA Pushover ping links to a
+      # phone-readable rca.html (https://srv.goat-cloud.ts.net/incidents/...)
+      # instead of an unreadable filesystem path. Tailnet-only, never public.
+      publish.enable = true;
     };
 
   };
