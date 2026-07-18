@@ -22,51 +22,49 @@ Dustin is a Staff Technical CSM at Kong with a large Todoist backlog of
 customer-engagement work (projects like `Kong-lululemon`, `Kong-standard`).
 Each task carries breadcrumbs he left himself in its comments — file paths,
 ticket IDs, email/Slack links, prior status notes. The job of this skill: for
-each task, research its current state from every relevant source, work out who
-owes the next move, draft the communications to unblock it, and keep the task's
-date and status honest — so Dustin moves through open work fast instead of
+each task, show its current state at a glance, make the one honest auto-move
+(board column ↔ ball-owner), and let Dustin act with a keyword — digging deeper
+only when the card isn't enough — so he moves through open work fast instead of
 re-deriving context every time.
 
-## The two-phase model (the heart of this skill)
+## The model (the heart of this skill)
 
-The whole design turns on giving each phase a different autonomy level. Do not
-blur them.
+The default walk is a **fast, pure-state wizard**. Research is on-demand.
 
-- **Phase 1 — Assessment: fully autonomous.** Once scope is confirmed, fan out
-  subagents that research each task with no further input from Dustin. Each
-  subagent picks the relevant sources for *its* task (from the task's
-  project/customer and the breadcrumbs in its comments), builds the most
-  complete current-state picture it can, cites sources, flags what it couldn't
-  verify, and returns the fixed schema. Do not prompt Dustin during this phase —
-  it just runs.
-- **Phase 2 — Action: interactive, one task at a time.** As results come back,
-  walk through the assessed tasks *with* Dustin. For each: show the
-  current-state picture and the recommended next action, and let him decide.
-  Nothing outward-facing happens without his go-ahead in that turn.
-
-Keeping these separate is what lets Dustin stare at a grouped digest instead of
-80 raw assessments, and still keep his hand on every customer-facing move.
+- **The card is cheap and pure-state.** For each task, render a card from the
+  task's own data (content, comments, work log, due, priority, column) — no
+  external calls. `scripts/build_card.sh` renders the deterministic sections;
+  the model adds one synthesized block (the triad). No recommendation is made.
+- **One auto-action.** The skill moves the board column to match the ball-owner
+  it reads from the work log (`scripts/td_autocolumn.sh`), shown on the card and
+  logged. Nothing else happens without a keyword from Dustin.
+- **Actions are keywords.** The walk accepts the fixed lexicon in
+  `references/lexicon.md`, shown as the card's action line. Each writing keyword
+  is a deterministic script; the model only resolves the keyword and its args.
+- **`dig` is the deep pass.** When the card isn't enough, `dig` runs the
+  on-demand research (the old fan-out machinery, now opt-in).
 
 ## Workflow
 
 Read the reference files named below *when the step needs them* — don't front-load
-them. `references/data-sources.md` and `references/assessment-schema.md` are the
-two you'll almost always need; the others are situational.
+them. `references/lexicon.md` and `references/kanban-board.md` are the two you'll
+almost always need; the others are situational.
 
 ### Step 0 — Preflight (once per run)
 
-Cheap checks that prevent silent wrong-account or auth failures deep in a fan-out:
+Cheap checks that prevent silent wrong-account or auth failures deep in the walk:
 
 - **Todoist reachable:** `td auth status` succeeds. Scope resolution and every
-  subagent depend on `td`.
+  card depend on `td`.
 - **Google Workspace identity:** confirm `gws` is pointed at Dustin's Kong
   address `dustin.krysak@konghq.com` (the `gws-cli` skill owns the check).
   **Assert this and stop if it's wrong** — don't note it and carry on. A run that
   discovers the personal-vs-Kong mixup at task twelve has already threaded drafts
   against the wrong mailbox and burned the round trips this check exists to
   prevent. It's cheap; fail loudly on turn one.
-- This is a **read-heavy** skill. Phase 1 never writes anything. Announce that
-  before fanning out so Dustin knows the assessment pass is safe to let run.
+- The default walk is **read-heavy**: it only fetches tasks, renders cards, and
+  makes the single auto column-move — no outward writes happen without a keyword.
+  Announce that before starting so Dustin knows the walk is safe to let run.
 
 ### Step 1 — Resolve scope (deterministic; don't make Dustin paste tasks)
 
@@ -77,7 +75,7 @@ Never ask Dustin to paste a task list.
 
 | Dustin says | Run |
 |---|---|
-| a Todoist task URL or ID | `td_scope.sh single <ref>` → **single-task mode**, skip batching |
+| a Todoist task URL or ID | `td_scope.sh single <ref>` → **single-task mode**, one card |
 | "triage Kong-lululemon" | `td_scope.sh project "Kong-lululemon"` |
 | a named preset ("kong-today", "week", "p1") | `td_scope.sh preset <name>` (or bare `td_scope.sh <name>`) |
 | a saved Todoist filter by name ("Today - Kong") | `td_scope.sh saved "<name>"` (or bare name) |
@@ -98,7 +96,7 @@ misleadingly.
 
 **It annotates; it never excludes.** Hiding work is how work gets lost. A task
 you touched yesterday still appears today — the difference is you now know you
-touched it, and Phase 1 assesses the *delta* instead of re-deriving the whole
+touched it, and the card shows the *delta* instead of re-deriving the whole
 picture. The "show me later" control is the **due date**, set deliberately via
 `defer`; a task deferred to Thursday drops out of `(overdue | today)` on its own
 until Thursday. Don't add a second, competing hide mechanism.
@@ -106,297 +104,199 @@ until Thursday. Don't add a second, competing hide mechanism.
 Surface `last_touched` when you show the scope ("12 of these 84 were touched in
 the last 3 days") so Dustin can *choose* to narrow. Never narrow for him.
 
-Show the resolved selector and the count, and **confirm before fanning out**
-(single-task mode is the exception — one task, no confirmation). If the count is
-large, say so and remind him batching will pace it (Step 3).
+Show the resolved selector and the count, and **confirm before starting the
+walk** (single-task mode is the exception — one task, no confirmation). If the
+count is large, say so and remind him the walk paces it one task at a time
+(Step 3).
 
-### Step 2 — Tool discovery (cached; `--refresh-tools` to rebuild)
+### Step 2 — Set up the run (once)
 
-Each assessment subagent needs to know which data sources exist and how to reach
-them. That inventory is **cached** — rebuilding it every run is wasted work.
+- Create a per-run project-map cache so `td_fetch.sh` pays the project-list cost
+  once, not per card:
+  `export TD_TRIAGE_PROJECTS_CACHE="$(mktemp)"`.
+- Resolve each project's current column names once per project per run (cache in
+  memory) via `td section list "<project>"`, so the card's column line and the
+  auto-move are accurate (handles `Kong-cs`'s subset and general `Kong`'s
+  `Review`).
 
-- On first run, or when Dustin passes `--refresh-tools`, run
-  `scripts/discover-tools.sh`. It enumerates installed skills under
-  `~/.claude/skills/` and the session's connected MCP servers, and refreshes the
-  registry so `references/data-sources.md` stays honest about what's actually
-  installed.
-- Otherwise, use `references/data-sources.md` as-is. It's the durable registry:
-  for each source, *what it's good for*, *which skill or MCP owns access*, and
-  *when to reach for it during an assessment*. It **delegates** to each owning
-  skill rather than duplicating its instructions — if a source's skill isn't
-  installed, it's noted as a gap, not invented.
+### Step 3 — Walk the tasks (the wizard)
 
-### Step 3 — Fan out the assessment (Phase 1, autonomous)
+Walk the scoped tasks in order, **one at a time**. For each task:
 
-- **Batch size: 10 by default.** This is deliberate — it bounds concurrent
-  research load and keeps the Phase-2 walk-through digestible. Honor an override
-  when Dustin gives one ("batches of 5", "batches of 15").
-- **Go batch by batch, not whole-backlog.** Assess a batch → surface its digest
-  → walk its actions with Dustin → *then* fan out the next batch. Never assess
-  80 tasks up front.
-- **Single-task mode:** one assessment, no batching, straight to the Phase-2
-  walk-through. This happens regularly — treat it as first-class, not a special
-  case bolted on.
+1. **Prefetch.** While Dustin reads/acts on the current card, fetch the next one
+   or two tasks (`scripts/td_fetch.sh`) in the background so `next` is instant.
+2. **Auto column-move (Kong* only).** Read the ball-owner from the work log
+   (prose: "ball is on X" / "waiting on X" / "next step is for me to…"). If it
+   implies a different column, apply it with
+   `scripts/td_autocolumn.sh <ref> <customer|internal|me|validation> --who "<name>"`.
+   Disambiguate Dustin vs another Konger (`me` → `Needs Action`, other Kong →
+   `Waiting Internal`); ambiguous or no signal → no move.
+3. **Render the card.**
+   `bash scripts/td_fetch.sh <ref> | bash scripts/build_card.sh --position "N/M" --column "<current>" [--auto "<new>"]`
+   Then **replace the `<!--TRIAD-->` line** with the derived triad you synthesize
+   from the fetched comments:
+   - **Ball** — owner + who + days-silent.
+   - **Where it stands** — a one-to-two-line synthesis of current state.
+   - **Next (from log)** — the last next-step **recorded in the log**, quoted or
+     lightly paraphrased. Blank if none — never invented. (This keeps the card
+     pure-state: it extracts, it does not recommend.)
+   Run the triad prose through the short-note concision pass (it's internal
+   prose).
+4. **Take keywords.** Show the card (its action line is the lexicon reminder,
+   led by `done · defer`). Apply each keyword per `references/lexicon.md`.
+   Internal keywords execute immediately; `done`/`drop`/`merge` confirm per task;
+   outward goes through the full send gate. **Stay on this task** — accept more
+   keywords — until an explicit `next`/`skip`.
+5. **Advance** on `next`/`skip`. Continue until scope is exhausted or `quit`.
 
-Spawn one subagent per task in the batch, in a single turn so they run
-concurrently. Hand each the brief in `assets/subagent-brief.md` verbatim, with
-the task's id/URL filled in. The brief tells the subagent to:
+Single-task mode (a task URL/ID) is the same walk with one card.
 
-- pull the task and **its comments** first (the breadcrumbs decide which sources
-  matter),
-- consult `references/data-sources.md` and pick the relevant subset for this
-  task,
-- resolve recurring per-customer identifiers through the cache in
-  `references/source-resolution.md` (Slack channel, notes dir, ticket prefixes,
-  contacts — resolve once, reuse),
-- **assess the delta when `last_touched` is set** — the prior work-log entry says
-  what was already done; research what changed since, don't re-derive from
-  scratch,
-- **read only** — never post, send, reschedule, or complete anything. Drafting
-  text is not a write: composing and humanizing a message mutates nothing, so it
-  is in scope for Phase 1.
-- **pre-draft the outward message when `draft_ready` is true** — the subagent
-  already did the research, so it writes the humanized draft into `draft` rather
-  than making Phase 2 re-research and re-draft. Only for `draft_ready` items, so
-  nothing is drafted for tasks that get skipped. The draft is *provisional*: the
-  mandatory preview and explicit-send gate in Phase 2 do not move.
-- return exactly the schema in `references/assessment-schema.md`, with a
-  concrete citation per source and an explicit `unverified[]` list.
+**`dig`** (when Dustin types it): hand `assets/subagent-brief.md` to a research
+subagent with `{{TASK_REF}}`/`{{SKILL_DIR}}` filled in (it starts from
+`scripts/dig_fetch.sh`). Report the delta since the last log, verify references,
+surface new docs. `dig` results are cached for the run.
 
-If a subagent returns nothing (skipped or died), note the gap in the digest —
-don't silently drop the task.
+**The gate tiers** (typing the keyword *is* the approval for the internal tier —
+don't add a second confirmation):
 
-### Step 4 — Surface the digest (grouped, sorted for fast decisions)
-
-Collate the batch's results into a grouped, sorted digest. **Inline in the
-terminal by default.** Build the skimmable HTML artifact only when Dustin asks
-(or passes `--artifact`) — `scripts/build_digest.py` takes the batch's JSON and
-emits a phone-friendly grouped page; send it with SendUserFile when remote.
-
-Grouping and sort rules live in `references/assessment-schema.md` (the "Digest"
-section). In short: group by *what Dustin does with it* — Nudge ready · Waiting
-on others · Needs a decision · Closeable / likely done · Data correction — and
-sort primarily by **ball-owner + staleness** (who owes the next move, and for
-how long). That single axis is the most useful triage signal; lead with it.
-
-**The digest selects; it never actions.** It is deliberately compressed so Dustin
-can see the whole batch at once — and that compression is exactly why it can
-never be the basis for a decision. End the digest by asking which tasks he wants
-to walk. Default to all; let him narrow. Narrowing hides nothing: every assessed
-task keeps its place and its verb on the digest, and an un-walked task returns
-next run. This is not the Step-1 "never exclude" rule — that governs *scope*;
-this governs *attention*.
-
-### Step 5 — Walk the actions (Phase 2, interactive)
-
-Walk **only the tasks Dustin selected in Step 4**, one at a time, in ball-owner +
-staleness order. Selection is what makes the full card affordable: three complete
-cards beat ten compressed lines, and a compressed line is not something anyone
-can approve.
-
-**Every task gets a full card, every time:**
-
-- `what_it_is` — what this actually is, in plain sentences
-- `status` · `ball_owner` · `days_silent` · `confidence`
-- **column** (Kong* boards) — `current_column → recommended_column` when they
-  differ, so the mislabel is visible ("in `Up Next`, but `waiting-on-them` 12d →
-  `Waiting Customer`")
-- **the actual quoted messages** from `recent_context[]` — who, when, their words
-- `unverified[]` — what couldn't be confirmed
-- the recommended **verb with its parameters pre-filled**
-- the `draft` inline, if the verb is outward
-
-Then do what Dustin decides. The quoted messages are the part to never trade
-away: seeing the actual words is what lets him trust the ball-owner and staleness
-call at a glance instead of opening the thread himself. Keep quoting them even
-when the walk gets fast — a one-word approval is only a judgement if he can see
-what he's approving.
-
-**Speak in verbs, not paragraphs.** Every action is one of the named macros in
-`references/macros.md` — `note` · `defer` · `move` · `reprioritize` · `link-log` ·
-`complete` · `drop` · `close-into` · `merge` · `send` · `teams` · `email`. Each one
-already carries its conventions, so end each task with the recommended verb and its
-parameters pre-filled ("`defer` to Thu 2026-07-23, reason: waiting on Priya, 12d
-silent") and let Dustin answer with the verb, a correction, or "skip". Don't make
-him dictate the recipe; the recipe lives in the macro.
-
-**The action palette — what you can change about a task.** Triaging a task is not
-just "nudge or leave it". Every task can be updated along several axes, and the
-right assessment usually touches more than one:
-
-- **Column** (`move`) — the board stage, on `Kong*` projects. The single biggest
-  honesty lever: a task's column *is* its status, so a `waiting-on-them` task
-  parked in `Up Next` is lying about itself. Routing table:
-  `references/kanban-board.md`.
-- **Surface date** (`defer`) — when it comes back. The only "hide until" control;
-  push it to when the ball is actually back.
-- **Priority** (`reprioritize`) — `p1..p4`, up or down. A wait that became a
-  customer blocker goes *up*; a de-risked task goes down.
-- **Work-log note** (`note`) — record state without changing date/priority/column.
-- **Close** (`complete`/`drop`/`close-into`/`merge`) — when it's done, dead, or a
-  duplicate.
-- **Outward nudge** (`send`/`teams`/`email`) — move the ball off Dustin's court.
-
-A typical stalled-wait recommendation is three verbs at once: `move` to `Waiting
-Customer`, `defer` to the follow-up date, and a drafted nudge. Recommend the full
-set, not just one.
-
-**The two gate tiers** (this is the autonomy level Dustin chose — don't drift):
-
-| Tier | Verbs | Gate |
+| Tier | Keywords | Gate |
 |---|---|---|
-| Internal, batched | `note`, `defer`, `move`, `reprioritize`, `link-log` | Show the batch, take **one** approval, run them all (each task still carded first) |
-| Completion | `complete`, `drop`, `close-into` | **Its own confirm, per task** — never folded into the batch |
-| Merge | `merge` | **One** confirm: the duplicate call *is* the authorisation for its closes |
-| Outward | `send`, `teams`, `email` | Full gate, one at a time, explicit "send" that turn |
+| Internal | `log`·`link`·`defer`·`col`·`prio`·`fixref`·`escalate`·`draft` | Execute immediately on the keyword |
+| Completion | `done`·`drop`·`merge` | Confirm per task |
+| Outward | `nudge`·`email`·`teams` | Full send gate, explicit "send" that turn |
 
-**The batch gate is an approval mechanism, not a presentation one.** Every task
-in it still gets its own card first; the single "run these N?" question comes
-*after* the walk, never instead of it. "Shown" means carded. If Dustin is reading
-a gate question's option previews to learn what a task is, the walk did not
-happen — that is the failure this line exists to prevent.
+Full gating table and the exact invocations: `references/macros.md` and
+`references/lexicon.md`. The invariant: the only thing the skill does on its own
+is the auto column-move (shown and logged); every completion is confirmed, and
+nothing outward-facing leaves without Dustin's explicit yes in the moment.
 
-Full gating table and the exact invocations: `references/macros.md`. The
-non-negotiables:
+## What good triage looks like
 
-- **Recommend, never auto-act.** Even a `likely-done` task is only ever
-  *proposed* for completion — Dustin confirms every completion in the moment.
-  Batching applies only to the reversible internal trio, and only as **one
-  approval of a shown batch**, never as silent action.
-- **Drafted, never sent.** Anything that would reach a customer or teammate —
-  email, Slack, external comment — is prepared as a draft and left for Dustin,
-  unless he says "send it" in that same turn. Email → Gmail draft via `gws`,
-  correctly threaded.
-- **Slack goes through the hard-gated pipeline** in
-  `references/slack-message-pipeline.md`: draft → humanizer → text-polish rules →
-  **mandatory preview** → **explicit "send" from Dustin** → post via `/slack-post`
-  (**never** the Slack MCP) → capture the permalink → log it on the task. The
-  text-polish pass must leave *only* the final message text; AI process must
-  never leak into what gets sent.
-- **The work log is automatic, not a request.** Every verb that writes also logs,
-  because `scripts/td_worklog.sh` is fused into it — Dustin should never have to
-  ask you to "log it" or "add the link". The script is idempotent (one
-  `Triage log <date>` comment per task per day, appended to on repeat calls) and
-  renders `--link "label=url"` as Markdown. Bare URLs and "see Slack" don't cut
-  it. Full rules in `references/slack-message-pipeline.md`.
-- **`note` never changes a date or status.** Logging is comment-only. Moving a
-  date is `defer` (which logs too); closing is `complete`/`drop`.
-- **Humanize outward prose.** Any text Dustin will read-and-send — task summary
-  comments, email drafts, Slack drafts — goes through the `humanizer` skill
-  first (customer-facing comms: `writing-style`, which folds in humanizer). Not
-  code, IDs, or the structured digest itself.
-- **Idempotency is the script's job, not yours.** `td_worklog.sh` already scans
-  for today's entry and appends to it. Don't hand-roll a `td comment add`; you'll
-  reintroduce the duplicate notes the script exists to prevent.
-- **Report faithfully.** If a nudge was drafted and not sent, the task comment
-  and your summary say "drafted," not "sent." A sent message is logged as "sent"
-  with its permalink. If a source couldn't be verified, it stays in
-  `unverified[]` — don't launder a guess into a fact.
-
-Then move to the next batch (Step 3) until scope is exhausted.
-
-## What good assessment looks like
-
-These are the judgment calls that make the difference between a triage that
-saves time and one that just restates the task title. They're baked into the
-subagent brief, but hold them yourself when running single-task mode:
+These are the judgment calls that make the difference between a walk that saves
+time and one that just restates the task title:
 
 - **Ball-owner + staleness first.** Every task resolves to "who owes the next
   move, and since when." `waiting-on-them` for 12 days and `waiting-on-me` for 1
-  hour are opposite actions. Compute `ball_owner` and `days_silent` from the
-  real signals (last reply in the thread, last Slack message, last comment), not
-  from the due date.
-- **Verify every reference is still the right, open one.** When a task points at
-  a ticket (Jira, Freshservice, Aha, a case), confirm it's still the correct
-  item *and* still open. A task pointing at a closed ticket that turned out to be
-  the wrong ticket entirely is exactly the failure this catches — flag it as
-  `wrong-or-stale-reference` with the correction.
-- **Snooze intelligently.** Waiting on a non-responsive person → recommend a
-  reschedule *and* draft the nudge. Blocked until a known future date → recommend
-  snoozing to that date. Don't just push everything to "tomorrow."
-- **Place it in the right column.** On a `Kong*` board, resolve every task to the
-  column its assessment implies and flag the mismatch — a `waiting-on-them`
-  (customer) task in `Up Next`, a delivered task not yet in `Waiting Validation`,
-  a "write this up in Confluence" task not in `Capture Data`. The column is
-  status; a wrong one is stale state. Routing: `references/kanban-board.md`.
+  hour are opposite situations. Read `ball_owner` and `days_silent` from the real
+  signals (last reply in the thread, last Slack message, last comment), not from
+  the due date. This is what the auto column-move keys on.
+- **Verify every reference is still the right, open one** (on a `dig`). When a
+  task points at a ticket (Jira, Freshservice, Aha, a case), confirm it's still
+  the correct item *and* still open. A task pointing at a closed ticket that
+  turned out to be the wrong ticket entirely is exactly the failure `dig` catches
+  — flag it and offer `fixref`.
+- **Snooze intelligently.** Waiting on a non-responsive person → `defer` *and*
+  `draft` the nudge. Blocked until a known future date → `defer` to that date.
+  Don't just push everything to "tomorrow."
+- **Place it in the right column.** On a `Kong*` board, the column *is* the
+  status; the auto-move keeps it honest, and `col` overrides when the read is
+  wrong. Routing: `references/kanban-board.md`.
 - **Relate duplicates.** If two tasks are really about the same underlying
-  thread, say so in the digest so Dustin can merge or close one.
-- **Surface confidence and gaps.** Every assessment carries a `confidence` and an
-  `unverified[]`. A low-confidence read is still useful — but say so, so Dustin
-  weighs it right.
+  thread, `merge` one into the other.
+- **Surface confidence and gaps.** The card's `Unverified` block carries what
+  couldn't be confirmed from the task's own data; a low-confidence read is still
+  useful — but say so, so Dustin weighs it right.
 
 ## Standing defaults (don't make Dustin restate these)
 
 These are settled. Apply them without asking; they're why the macros exist.
 
-- **Log every action, with links.** Automatic via `td_worklog.sh`, never a
-  request. Format: `- <what happened> [label](url)` plus an optional
-  `- Next: <what to watch for>`.
+- **Log every action.** Automatic via `td_worklog.sh`, never a request. Format:
+  `- <what happened> [label](url)` plus an optional `- Next: <what to watch for>`.
+- **Link every external *artifact reference* — only those.** Internal
+  reasoning/status notes are legitimately link-less; don't nag them.
+- **Prose cleaning routes by length, never both:** outward → `humanizer`; short
+  internal notes → text-polish concision ruleset; long-form internal →
+  `humanizer`. (`references/lexicon.md` carries the ruleset.)
+- **`draft` logs "Drafted, not sent"; only a real send logs "Sent."** Never
+  launder a draft into a send.
 - **Report faithfully.** "Drafted" when nothing was sent; "Sent" only with a
-  permalink. Never launder a draft into a send.
-- **Humanize anything Dustin reads or sends.** Not code, IDs, or the digest.
+  permalink.
 - **Default defer horizon:** waiting on a person with no committed date → next
   business day + 3 (skip weekends). A known future date always wins over the
   default. Never push everything to "tomorrow".
 - **Reschedule via `td task reschedule`**, never `td task update --due` (which
-  destroys recurrence).
+  destroys recurrence). `defer` already does this.
 - **Keep the board column honest.** On `Kong*` projects a task's column is its
-  status; move it to match the assessed ball-owner/stage (`move`). Only `Kong*`
-  projects have columns; never move `Reoccurring`. Column vocabulary + routing:
-  `references/kanban-board.md`.
-- **Priority moves both ways** via `reprioritize` (`p1..p4`) — raise a wait that
-  became a customer blocker, lower a de-risked task. Not downgrade-only.
+  status; the auto-move sets it from the assessed ball-owner, `col` overrides.
+  Only `Kong*` projects have columns; never move `Reoccurring`. Column vocabulary
+  + routing: `references/kanban-board.md`.
+- **Priority moves both ways** via `reprioritize`/`prio` (`p1..p4`) — raise a
+  wait that became a customer blocker, lower a de-risked task. Not downgrade-only.
 - **Never surface raw `.priority`.** The Todoist API inverts it (4 = highest).
-  The `p1`–`p4` label from the schema is the only priority anyone sees;
-  `td_fetch.sh` and `td_scope.sh` already normalize it (`5 - api`).
+  The `p1`–`p4` label is the only priority anyone sees; `td_fetch.sh` and
+  `td_scope.sh` already normalize it (`5 - api`).
 
 ## Reference files
 
+- `references/lexicon.md` — the keyword lexicon (the wizard's action line), the
+  parsing rules, the gate model, and the text-polish concision ruleset for short
+  internal notes. Read in Step 3 before acting on a keyword.
 - `references/macros.md` — the Phase-2 verb vocabulary (`note`/`defer`/`merge`/
-  `send`/…), the gate tiers, and the exact invocation for each. Read in Step 5
-  before acting on anything.
-- `references/data-sources.md` — the data-source registry: every source, its
-  owning skill/MCP, what it's good for, when to reach for it. Read in Step 2 and
-  hand to every subagent.
-- `references/assessment-schema.md` — the fixed per-task result schema, the
-  status/action_type enums, the digest grouping+sort rules, and the Phase-2
-  action gating table. Read in Steps 3–5.
+  `escalate`/`draft`/`send`/…), the gate tiers, and the exact invocation for
+  each. Read alongside the lexicon before acting.
 - `references/kanban-board.md` — the Kong board column vocabulary, what each
-  column means, the assessment→column routing table, and the caching/freshness
-  rule. Read before recommending a `move`; handed to every subagent for
-  `current_column`/`recommended_column`.
+  column means, the ball-owner → column auto-move mapping, and the routing table.
+  Read before the auto-move or a `col`.
+- `references/data-sources.md` — the data-source registry: every source, its
+  owning skill/MCP, what it's good for, when to reach for it. Read on a `dig`;
+  handed to the dig subagent.
+- `references/assessment-schema.md` — the fixed per-task result schema (the
+  recommendation fields are `dig`-only), the status/action_type enums, and the
+  digest grouping+sort rules. Read on a `dig`.
 - `references/source-resolution.md` — the per-customer source-resolution map and
   the `skill-cache` caching convention (cache stable name→id mappings only;
   never task contents/dates/status). Read when resolving customer identifiers.
 - `references/slack-message-pipeline.md` — work-log discipline (keep the task
   comments current, link everything in `[label](url)`) and the hard-gated Slack
   send pipeline (humanizer → text-polish → preview → explicit send → `/slack-post`
-  → log the permalink). Read in Step 5 before any Slack message or work-log note.
-- `assets/subagent-brief.md` — the verbatim brief handed to each Phase-1
-  assessment subagent.
+  → log the permalink). Read before any Slack message or work-log note.
+- `assets/subagent-brief.md` — the verbatim brief handed to the `dig` research
+  subagent.
 - `scopes.json` — named scope presets (version-controlled defaults; Dustin
   extends via `~/.config/todoist-triage/scopes.json`).
 - `scripts/td_scope.sh` — deterministic scope resolution + `list` audit (Step 1);
   annotates each task with `last_touched`/`last_verb` from the run log.
 - `scripts/td_fetch.sh` — deterministic single-task fetch (task + comments) for
-  each subagent (Step 3).
-- `scripts/td_worklog.sh` — the idempotent work-log write (Step 5). Every writing
-  verb goes through it; it also appends the run log. Comment-only: it never
-  touches a due date, priority, or status.
+  each card (Step 3); honors the per-run project-map cache.
+- `scripts/build_card.sh` — render the deterministic sections of a card from
+  `td_fetch.sh` JSON (header, column, work-log tail, breadcrumbs, unverified,
+  action line) with a `<!--TRIAD-->` sentinel the model fills.
+- `scripts/lib_extract.sh` — pure text-extraction helpers (breadcrumbs, hedges,
+  days-since) shared by `build_card.sh` and `dig_fetch.sh`.
+- `scripts/td_autocolumn.sh` — the auto column-move: ball-owner
+  (`customer|internal|me|validation`) → board column, fused with its work-log
+  entry. `Kong*` projects only.
+- `scripts/dig_fetch.sh` — deterministic breadcrumb harvest for a `dig`: emits
+  the task's extracted references (URLs + bare IDs) as a JSON array.
+- `scripts/td_worklog.sh` — the idempotent work-log write. Every writing verb
+  goes through it; it also appends the run log. Comment-only: it never touches a
+  due date, priority, or status.
 - `scripts/td_defer.sh` — the `defer` macro: recurrence-safe reschedule fused
   with its work-log entry, plus an optional reminder.
-- `scripts/td_move.sh` — the `move` macro: move a task to a board column
-  (`td task move --section`) fused with its work-log entry. Column names resolve
-  within the task's project; `Kong*` projects only.
-- `scripts/td_reprioritize.sh` — the `reprioritize` macro: set priority
+- `scripts/td_move.sh` — the `col`/`move` macro: move a task to a board column
+  (`td task move --section`) fused with its work-log entry. `Kong*` projects only.
+- `scripts/td_reprioritize.sh` — the `prio`/`reprioritize` macro: set priority
   (`p1..p4`, up or down) fused with its work-log entry.
+- `scripts/td_complete.sh` / `scripts/td_drop.sh` — the `done` / `drop` macros:
+  log the reason, then complete the task.
+- `scripts/td_escalate.sh` — the `escalate` macro: move to a blocker/eng column
+  and log why, fused.
+- `scripts/td_draft.sh` — the `draft` macro: record a prepared-but-unsent outward
+  message as "Drafted, not sent". Never sends.
+- `scripts/td_merge.sh` — the `merge` macro: fold duplicate tasks into a survivor
+  (cross-reference, pointer-comment, close the losers).
+- `scripts/create_needs_action.sh` — one-shot (dry-run default) to add the
+  `Needs Action` column to every `Kong*` board project + `template`. Not part of
+  the runtime walk.
 - `scripts/discover-tools.sh` — refresh the tool inventory (`--refresh-tools`).
-- `scripts/build_digest.py` — render a batch's JSON into the HTML digest artifact.
+- `scripts/build_digest.py` — render a batch's JSON into an HTML digest artifact.
 
 ## Hard constraints (from Dustin's global CLAUDE.md — non-negotiable)
 
 - **Humanizer on all prose Dustin will read or send** (summary comments,
-  email/Slack drafts). Not on code, config, IDs, or the structured digest.
+  email/Slack drafts). Not on code, config, IDs, or short internal work-log notes
+  (those take the text-polish concision pass instead).
 - **`gws` is Dustin's Kong email** (`dustin.krysak@konghq.com`) — verify in
   Step 0 before any email work.
 - **Never send Slack via the MCP.** The only send path is the `slack-post`
