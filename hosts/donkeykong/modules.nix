@@ -35,6 +35,15 @@ _:
     text-polish.enable = true;
     text-uppercase.enable = true;
 
+    # Same fix as qbert: when donkeykong is home on the LAN (192.168.168.0/23)
+    # it also accepts that subnet as a Tailscale route (srv advertises it), and
+    # the accepted route would otherwise shadow the direct LAN link and make
+    # donkeykong unreachable on its LAN IP. This prefers the direct LAN route
+    # on-link; suppress_prefixlength 0 lets it fall through to the tailnet when
+    # roaming, so off-LAN access to the 192.168.168.x cluster still works. See
+    # the option docs in the tailscale module.
+    tailscale.preferLanCidrs = [ "192.168.168.0/23" ];
+
     syncthing = {
       enable = true;
       host.donkeykong = true;
