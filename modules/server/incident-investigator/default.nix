@@ -64,12 +64,16 @@ let
 
   scriptsDir = "${cfg.repoDir}/incident-investigator";
 
-  # Base URL the RCA Pushover ping links to. `tailscale serve` (below) publishes
-  # OUT_ROOT on the tailnet under this host + path, so a bundle is reachable at
-  # <incidentBaseUrl>/<ts-fp>/rca.html. investigate.sh reads it as
-  # INCIDENT_BASE_URL; kept in lockstep with the serve --set-path so the link and
-  # the mount can never drift.
-  incidentBaseUrl = "https://${cfg.publish.tailnetHost}${cfg.publish.path}";
+  # Base URLs the RCA Pushover ping links to. Two servers front OUT_ROOT so a link
+  # works wherever the phone is:
+  #  - tailnet: `tailscale serve` publishes OUT_ROOT under host + path, reachable
+  #    at <incidentTailnetUrl>/<ts-fp>/rca.html. Kept in lockstep with the serve
+  #    --set-path so the link and the mount cannot drift.
+  #  - LAN: `miniserve` serves OUT_ROOT at its root on the LAN address, reachable
+  #    at <incidentLanUrl>/<ts-fp>/rca.html (no path prefix).
+  # investigate.sh reads them as INCIDENT_TAILNET_URL / INCIDENT_LAN_URL.
+  incidentTailnetUrl = "https://${cfg.publish.tailnetHost}${cfg.publish.path}";
+  incidentLanUrl = "http://${cfg.publish.lan.address}:${toString cfg.publish.lan.port}";
 
   # `op run` authenticates as a service account only when OP_SERVICE_ACCOUNT_TOKEN
   # is in its environment -- it does NOT auto-detect the on-disk token file. A
@@ -124,9 +128,11 @@ let
     # container, no cluster access of its own.
     "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
   ]
-  # When bundle publishing is on, hand investigate.sh the base URL so the RCA
-  # ping carries a tap-through link. Off -> unset -> the ping omits the link.
-  ++ lib.optional cfg.publish.enable "INCIDENT_BASE_URL=${incidentBaseUrl}"
+  # When bundle publishing is on, hand investigate.sh the base URLs so the RCA
+  # ping carries tap-through links. Off -> unset -> the ping omits the links. The
+  # LAN URL is additionally gated on lan.enable.
+  ++ lib.optional cfg.publish.enable "INCIDENT_TAILNET_URL=${incidentTailnetUrl}"
+  ++ lib.optional (cfg.publish.enable && cfg.publish.lan.enable) "INCIDENT_LAN_URL=${incidentLanUrl}"
   ++ lib.optional (cfg.claudeModel != "") "CLAUDE_MODEL=${cfg.claudeModel}";
 
   # The weekly rightsizing sweep only needs the Grafana Cloud read creds and
@@ -339,9 +345,9 @@ in
         type = lib.types.str;
         default = "srv.goat-cloud.ts.net";
         description = ''
-          This host's MagicDNS name. Used to build both `INCIDENT_BASE_URL` and
-          the `tailscale serve` URL, so the link the phone opens resolves over
-          the tailnet.
+          This host's MagicDNS name. Used to build both `INCIDENT_TAILNET_URL`
+          and the `tailscale serve` URL, so the link the phone opens resolves
+          over the tailnet.
         '';
       };
 
@@ -349,10 +355,51 @@ in
         type = lib.types.str;
         default = "/incidents";
         description = ''
-          URL path prefix the bundles are served under (passed to
-          `tailscale serve --set-path`). Kept in lockstep with the base URL the
-          RCA ping links to.
+          URL path prefix the tailnet bundles are served under (passed to
+          `tailscale serve --set-path`). Kept in lockstep with the tailnet base
+          URL the RCA ping links to. The LAN server (miniserve) serves at its
+          root, so this prefix applies to the tailnet link only.
         '';
+      };
+
+      lan = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = ''
+            Also serve the bundles on the LAN with a plain static server
+            (`miniserve`), so the RCA link works on home wifi with tailscale off,
+            not only on the tailnet. Adds a LAN-only firewall port. This exposes
+            the bundles (cluster analysis, never secrets) to the home LAN with no
+            auth; set false to keep publishing tailnet-only.
+          '';
+        };
+
+        address = lib.mkOption {
+          type = lib.types.str;
+          default = "192.168.168.1";
+          description = ''
+            This host's LAN IPv4 address. miniserve binds it and the RCA ping
+            links `http://<address>:<port>/...`. srv has no LAN DNS name (the
+            hostname resolves to its tailnet address), so this is a raw IP.
+          '';
+        };
+
+        port = lib.mkOption {
+          type = lib.types.port;
+          default = 8080;
+          description = "TCP port miniserve listens on for the LAN server.";
+        };
+
+        interface = lib.mkOption {
+          type = lib.types.str;
+          default = "br0";
+          description = ''
+            Network interface the LAN firewall port is opened on. Scoped to this
+            interface only, so the port is never reachable over the tailnet or a
+            WAN link, only the LAN.
+          '';
+        };
       };
     };
   };
@@ -453,6 +500,48 @@ in
         ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=${cfg.publish.path} off";
       };
     };
+
+    # LAN publisher: a plain read-only static server (miniserve) bound to the
+    # host's LAN address, so the RCA link works on home wifi with tailscale off.
+    # The tailscale serve above binds the tailnet interface only and cannot cover
+    # the LAN. Runs as the user (OUT_ROOT is user-owned); miniserve is read-only
+    # by default (no upload flags). The firewall port is opened on the LAN
+    # interface only (below), so this is never reachable over the tailnet or WAN.
+    systemd.services.incident-investigator-serve-lan =
+      lib.mkIf (cfg.publish.enable && cfg.publish.lan.enable)
+        {
+          description = "Serve incident bundles on the LAN (miniserve, read-only)";
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            Type = "simple";
+            User = globals.user.name;
+            Group = "users";
+            ExecStart = lib.concatStringsSep " " [
+              "${pkgs.miniserve}/bin/miniserve"
+              "--interfaces ${cfg.publish.lan.address}"
+              "--port ${toString cfg.publish.lan.port}"
+              "--title darkstar-incidents"
+              "--hide-version-footer"
+              cfg.outRoot
+            ];
+            Restart = "on-failure";
+            RestartSec = 10;
+            NoNewPrivileges = true;
+            LockPersonality = true;
+            ProtectKernelTunables = true;
+            ProtectKernelModules = true;
+            ProtectControlGroups = true;
+          };
+        };
+
+    # LAN-only firewall opening for the miniserve port. Scoped to the LAN
+    # interface, so the bundles are never reachable over the tailnet (which has
+    # its own authenticated serve) or a WAN link.
+    networking.firewall.interfaces.${cfg.publish.lan.interface}.allowedTCPPorts = lib.mkIf (
+      cfg.publish.enable && cfg.publish.lan.enable
+    ) [ cfg.publish.lan.port ];
 
     # Weekly cluster-wide rightsizing sweep: read-only, writes a bundle and
     # Pushes an over/under-provisioned summary. A oneshot service on a timer,
