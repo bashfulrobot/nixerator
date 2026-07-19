@@ -69,6 +69,7 @@ let
       homeDir
       ;
     humanizerSkillSrc = inputs.humanizer-skill;
+    textPolishRulesFile = config.apps.cli.text-polish.rulesFile;
     pluginOverlay = pluginOverlayFile;
   };
 

@@ -18,11 +18,27 @@ let
     timeout = "${pkgs.coreutils}/bin/timeout";
     od = "${pkgs.coreutils}/bin/od";
     tr = "${pkgs.coreutils}/bin/tr";
+    # Concision/anti-slop rules, single-sourced so the keybind filter and the
+    # claude-code `text-polish` skill can never drift apart.
+    rules_file = "${cfg.rulesFile}";
   };
 in
 {
-  options.apps.cli.text-polish.enable =
-    lib.mkEnableOption "Text polish keyboard shortcut — rewrite selected text via Claude";
+  options.apps.cli.text-polish = {
+    enable = lib.mkEnableOption "Text polish keyboard shortcut — rewrite selected text via Claude";
+
+    rulesFile = lib.mkOption {
+      type = lib.types.path;
+      default = ./prompt/concision-rules.md;
+      readOnly = true;
+      description = ''
+        Shared concision/anti-slop rewrite rules. Single source of truth consumed
+        by both the SUPER+SHIFT+R keybind filter (this module) and the claude-code
+        `text-polish` skill (installed into its references at activation), so the
+        two can never drift.
+      '';
+    };
+  };
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${globals.user.name} = {
