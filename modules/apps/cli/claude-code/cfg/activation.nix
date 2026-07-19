@@ -13,6 +13,7 @@
   globals,
   homeDir,
   humanizerSkillSrc,
+  textPolishRulesFile,
   pluginOverlay,
 }:
 
@@ -115,6 +116,16 @@
       $DRY_RUN_CMD ${pkgs.rsync}/bin/rsync -a --delete --chmod=u+w \
         "$skill_dir" "$claude_home/skills/$skill_name/"
     done
+
+    # text-polish skill -- install the shared concision-rules file into its
+    # references. This is the SAME file the SUPER+SHIFT+R keybind filter reads
+    # (single source of truth in the text-polish module), copied in after the
+    # rsync --delete above so it survives. Editing the source moves both.
+    if [ -d "$claude_home/skills/text-polish" ]; then
+      $DRY_RUN_CMD mkdir -p "$claude_home/skills/text-polish/references"
+      $DRY_RUN_CMD cp --no-preserve=mode "${textPolishRulesFile}" \
+        "$claude_home/skills/text-polish/references/concision-rules.md"
+    fi
 
     # Humanizer skill -- pinned to upstream blader/humanizer via the
     # `humanizer-skill` flake input. Symlink (not rsync) so the file stays
