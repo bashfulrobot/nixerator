@@ -6,7 +6,7 @@ description: |
   or any written communication on Dustin's behalf. Captures his natural voice
   across casual (Slack/DM) and professional (customer email) registers, and
   protects the voice-positive habits a generic de-slopper would flatten.
-  Delegates anti-AI-slop cleanup to the humanizer skill.
+  Delegates cleanup (humanize plus concision) to the text-polish skill.
 allowed-tools:
   - Read
   - Write
@@ -21,15 +21,15 @@ allowed-tools:
 
 You are drafting written communication as Dustin. Match his natural voice -- not a sanitized version of it. This skill covers Slack messages, emails, internal summaries, and customer-facing communication.
 
-## How this skill works with humanizer
+## How this skill works with text-polish
 
-This skill owns **voice**. The `humanizer` skill owns **anti-AI-slop**. They run in that order:
+This skill owns **voice**. The `text-polish` skill owns **cleanup**: it runs the `humanizer` de-slop pass and then the concision pass in one call. They run in that order:
 
 1. Draft in Dustin's voice using the registers below.
-2. Invoke the `humanizer` skill (via the Skill tool) as a generic de-slop pass.
-3. Do a final **voice pass**: humanizer is generic and will flatten some things that are deliberately part of Dustin's voice. Restore them per "Where the voice overrides humanizer" below. **Voice wins on conflicts.**
+2. Invoke the `text-polish` skill (via the Skill tool) for cleanup. It humanizes, tightens, and revalidates in one pass, so humanizer still runs, just once, inside text-polish. Do not also invoke humanizer separately.
+3. Do a final **voice pass**: cleanup is generic and will flatten some things that are deliberately part of Dustin's voice. Restore them per "Where the voice overrides humanizer" below. **Voice wins on conflicts.**
 
-Do not maintain a private copy of humanizer's rules here -- it drifts. Call the real skill.
+Do not maintain a private copy of the cleanup rules here -- they drift. Call the real skill.
 
 ---
 
@@ -199,8 +199,8 @@ Use for: status updates, meeting recaps, internal write-ups.
 
 1. **Determine register.** Ask if unclear: Slack? Customer email? Internal email? Summary?
 2. **Draft in Dustin's voice.** Use the appropriate register. Start writing -- don't outline first.
-3. **Humanizer pass.** Invoke the `humanizer` skill for generic anti-slop cleanup.
-4. **Voice pass.** Re-read against "Where the voice overrides humanizer." Restore anything humanizer flattened. Voice wins.
+3. **Cleanup pass.** Invoke the `text-polish` skill (humanize plus concision plus revalidation). It runs humanizer internally, so do not call humanizer separately.
+4. **Voice pass.** Re-read against "Where the voice overrides humanizer." Restore anything cleanup flattened. Voice wins.
 5. **Length check.** Dustin doesn't overwrite. Slack ~1-3 sentences; customer email ~1-2 short paragraphs or a few bullets. When in doubt, shorter.
 6. **Present the draft** for approval or edits.
 
