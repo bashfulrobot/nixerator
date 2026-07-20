@@ -46,7 +46,10 @@
               # directly, so we wire it back into an overlay ourselves rather
               # than touching every pkgs.llm-agents.<name> call site.
               (final: _prev: {
-                llm-agents = inputs.llm-agents.packages.${final.system};
+                # `stdenv.hostPlatform.system`, not `final.system`: nixpkgs turned
+                # the top-level `pkgs.system` alias into an eval-time warning
+                # (aliases.nix, 2025-10-28).
+                llm-agents = inputs.llm-agents.packages.${final.stdenv.hostPlatform.system};
               })
 
               # Work around a nixpkgs bug that breaks `google-cloud-sdk.withExtraComponents`.

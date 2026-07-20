@@ -215,6 +215,14 @@ in
       # and not null" eval conflict).
       gtk.gtk4.theme = lib.mkForce null;
 
+      # Silence the home-manager deprecation warning. Stylix's HM cursor module
+      # (stylix/hm/cursor.nix) sets home.pointerCursor.{name,package,size,...}
+      # from stylix.cursor but never the top-level `enable`, so home-manager
+      # falls back to the deprecated implicit-enable path and warns. Setting it
+      # explicitly is behaviour-preserving (the effective value is already true).
+      # Remove once Stylix sets home.pointerCursor.enable upstream.
+      home.pointerCursor.enable = true;
+
       xdg.configFile."Kvantum/kvantum.kvconfig".source = lib.mkForce (
         pkgs.writeText "kvantum.kvconfig" ''
           [General]
