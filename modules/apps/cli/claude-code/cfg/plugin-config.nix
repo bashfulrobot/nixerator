@@ -36,6 +36,16 @@ let
       repo = "Kong/kong-skills";
       sha = "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22";
     };
+    # Kong's public AI marketplace (https://developer.konghq.com/skills/) --
+    # ships the single `kong-konnect` plugin bundling the 20 Konnect product
+    # skills (deck, kongctl, dev portal, terraform, gateway/observability
+    # triage, ...). Distinct from kong-skills above, which is the internal CS
+    # tooling marketplace.
+    ai-marketplace.source = {
+      source = "github";
+      repo = "Kong/ai-marketplace";
+      sha = "ef2dd6c9f0e770a694d91388dd7b02469cc43dca";
+    };
     impeccable.source = {
       source = "github";
       repo = "pbakaus/impeccable";

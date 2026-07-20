@@ -78,7 +78,15 @@ let
     # its default, so the two can't drift, and activation only ever `cp`s it.
     textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
+    userScopeMcpTemplate = userScopeMcpTemplateFile;
+    inherit secretsFile;
   };
+
+  # Secret-free user-scope MCP template (see cfg/mcp-servers.nix). Safe to land
+  # in the Nix store: the PAT is a @KONG_KONNECT_PAT@ placeholder that
+  # activation fills from secretsFile at runtime.
+  userScopeMcpTemplateFile = pkgs.writeText "claude-mcp-user-scope.json" mcpConfig.userScopeTemplate;
+  secretsFile = "${homeDir}/.config/nixos-secrets/secrets.json";
 
   # Status line script -- jq, curl, gawk in PATH via runtimeInputs
   statusLineScript = pkgs.writeShellApplication {

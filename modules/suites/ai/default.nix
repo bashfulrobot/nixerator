@@ -55,6 +55,13 @@ in
             "commit@kong-skills"
             "feature-request@kong-skills"
             "kong-doc-build@kong-skills"
+            # ai-marketplace (Kong's public skills hub, SHA-pinned). One plugin,
+            # 20 Konnect skills. It also bundles an MCP server named
+            # `kong-konnect`, which is shadowed by the identically-named
+            # user-scoped server in cfg/mcp-servers.nix -- user scope outranks
+            # plugin scope, so the 1Password-injected PAT keeps winning over the
+            # plugin's ${KONNECT_TOKEN} placeholder.
+            "kong-konnect@ai-marketplace"
             # other third-party (SHA-pinned)
             "impeccable@impeccable"
             "hyperframes@hyperframes"
