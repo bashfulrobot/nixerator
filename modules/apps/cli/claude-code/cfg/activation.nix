@@ -15,6 +15,8 @@
   humanizerSkillSrc,
   textPolishRulesFile,
   pluginOverlay,
+  userScopeMcpTemplate,
+  secretsFile,
 }:
 
 {
@@ -149,6 +151,37 @@
         secret="$(${pkgs.jq}/bin/jq -r '.secret' "$opentabs_auth")"
         printf '{"mcpServers":{"opentabs":{"type":"http","url":"http://127.0.0.1:9515/mcp","headers":{"Authorization":"Bearer %s"}}}}\n' "$secret" > "$opentabs_mcp_dir/.mcp.json"
         chmod 600 "$opentabs_mcp_dir/.mcp.json"
+      fi
+    fi
+
+    # kong-konnect at user scope -- see the userScopeTemplate comment in
+    # cfg/mcp-servers.nix for why this server (and only this one) needs a
+    # user-scope registration on top of the mcp-pick library above.
+    #
+    # ~/.claude.json is runtime-owned by Claude Code and holds unrelated state,
+    # so this merges a single key rather than rewriting the file. The PAT goes
+    # secrets file -> jq -> ~/.claude.json without passing through argv (visible
+    # in ps), the environment, or a shell variable, and never touches the
+    # world-readable Nix store.
+    claude_json="${homeDir}/.claude.json"
+    if [ -z "$DRY_RUN_CMD" ] && [ -f "${secretsFile}" ]; then
+      if ${pkgs.jq}/bin/jq -e '.kong.kongKonnectPAT // empty' "${secretsFile}" >/dev/null 2>&1; then
+        [ -f "$claude_json" ] || echo '{}' > "$claude_json"
+        if ${pkgs.jq}/bin/jq -n \
+          --slurpfile cur "$claude_json" \
+          --slurpfile sec "${secretsFile}" \
+          --slurpfile tpl "${userScopeMcpTemplate}" \
+          '$cur[0] + { mcpServers: (($cur[0].mcpServers // {}) + ($tpl[0].mcpServers
+             | map_values(.headers.Authorization = "Bearer " + $sec[0].kong.kongKonnectPAT))) }' \
+          > "$claude_json.tmp"; then
+          chmod 600 "$claude_json.tmp"
+          mv "$claude_json.tmp" "$claude_json"
+        else
+          # Never leave a truncated ~/.claude.json behind: it carries project
+          # history and onboarding state that Claude Code cannot regenerate.
+          echo "claude-code: failed to merge kong-konnect into $claude_json, leaving it unchanged" >&2
+          rm -f "$claude_json.tmp"
+        fi
       fi
     fi
 
