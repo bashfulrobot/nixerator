@@ -101,6 +101,17 @@
       hash = "sha256-+XqoMGVAxUEY3v/fdlogqe8q2CoyCLK5e6Itp0P/NcE=";
     };
 
+    # Flux Operator MCP server -- ships as a GoReleaser binary in the
+    # flux-operator releases (asset flux-operator-mcp_<version>_linux_amd64.tar.gz),
+    # not in nixpkgs. Consumed by the claude-code module's flux-operator-mcp build.
+    flux-operator-mcp = {
+      source = "github-release";
+      repo = "controlplaneio-fluxcd/flux-operator";
+      version = "0.55.0";
+      tagPrefix = "v";
+      hash = "sha256-UYYrBJNu9gabYxkdeOSZMsrIpyrv1auRUy8SsTRBKEw=";
+    };
+
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
