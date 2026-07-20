@@ -205,9 +205,11 @@ These are settled. Apply them without asking; they're why the macros exist.
   `- <what happened> [label](url)` plus an optional `- Next: <what to watch for>`.
 - **Link every external *artifact reference* — only those.** Internal
   reasoning/status notes are legitimately link-less; don't nag them.
-- **Prose cleaning routes by length, never both:** outward → `humanizer`; short
-  internal notes → text-polish concision ruleset; long-form internal →
-  `humanizer`. (`references/lexicon.md` carries the ruleset.)
+- **Prose cleaning goes through `text-polish`:** outward → `text-polish`
+  (customer-facing → `writing-style`); internal notes and writeups → `text-polish`
+  (short notes apply its concision ruleset inline). It humanizes and tightens in
+  one pass, so never call `humanizer` on top. (`references/lexicon.md` carries the
+  ruleset.)
 - **`draft` logs "Drafted, not sent"; only a real send logs "Sent."** Never
   launder a draft into a send.
 - **Report faithfully.** "Drafted" when nothing was sent; "Sent" only with a
@@ -249,7 +251,7 @@ These are settled. Apply them without asking; they're why the macros exist.
   never task contents/dates/status). Read when resolving customer identifiers.
 - `references/slack-message-pipeline.md` — work-log discipline (keep the task
   comments current, link everything in `[label](url)`) and the hard-gated Slack
-  send pipeline (humanizer → text-polish → preview → explicit send → `/slack-post`
+  send pipeline (text-polish → preview → explicit send → `/slack-post`
   → log the permalink). Read before any Slack message or work-log note.
 - `assets/subagent-brief.md` — the verbatim brief handed to the `dig` research
   subagent.
@@ -294,9 +296,9 @@ These are settled. Apply them without asking; they're why the macros exist.
 
 ## Hard constraints (from Dustin's global CLAUDE.md — non-negotiable)
 
-- **Humanizer on all prose Dustin will read or send** (summary comments,
-  email/Slack drafts). Not on code, config, IDs, or short internal work-log notes
-  (those take the text-polish concision pass instead).
+- **text-polish on all prose Dustin will read or send** (summary comments,
+  email/Slack drafts, work-log notes). Not on code, config, or IDs. text-polish
+  humanizes and tightens in one pass, so never call `humanizer` on top.
 - **`gws` is Dustin's Kong email** (`dustin.krysak@konghq.com`) — verify in
   Step 0 before any email work.
 - **Never send Slack via the MCP.** The only send path is the `slack-post`

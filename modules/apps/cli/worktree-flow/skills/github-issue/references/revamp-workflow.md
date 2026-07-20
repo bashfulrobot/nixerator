@@ -52,7 +52,7 @@ Both end by looping back through `verify` so the full gate runs again.
 
 6. **Comment on the PR**
 
-   Run the comment body through the [`humanizer`](../../humanizer/SKILL.md)
+   Run the comment body through the [`text-polish`](../../text-polish/SKILL.md)
    skill before posting. See the **Voice for posted content** section in
    `SKILL.md`. The structure below is a shape, not a verbatim template; write
    each item as a complete sentence without em dashes or decorative colons.

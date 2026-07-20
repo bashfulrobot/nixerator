@@ -46,7 +46,7 @@ scripts/td_worklog.sh <task-ref> --entry "<text>" [--link "label=url"]... [--nex
 ```
 
 Idempotent: one "Triage log <date>" comment per task per day, appended to on
-repeat calls rather than duplicated. Humanize the entry text first.
+repeat calls rather than duplicated. Text-polish the entry text first.
 
 **`note` never touches due date, priority, or status.** It only writes a comment.
 Changing a date is `defer`; changing status is `complete` or `drop`. If a note
@@ -118,7 +118,7 @@ scripts/td_draft.sh <ref> --channel <slack|email|teams> --to "<who>" --text "<ms
 
 Records a prepared message on the work log as "Drafted, not sent". NEVER sends.
 Closes the ready-to-send/actually-sent limbo. The send is a later
-`send`/`teams`/`email`. Message text is humanized (outward prose).
+`send`/`teams`/`email`. Message text is text-polished (outward prose).
 
 ### `link-log` — file a pasted URL under the right task
 
@@ -165,7 +165,7 @@ confirm authorises the closes.
 
 ### `send` — post a Slack message as Dustin
 
-The pipeline in `slack-message-pipeline.md` is not optional: draft, humanize,
+The pipeline in `slack-message-pipeline.md` is not optional: draft,
 text-polish, **mandatory preview**, **explicit send**, post via `/slack-post`
 (never the Slack MCP), capture the permalink, log it.
 
@@ -178,7 +178,7 @@ scripts/td_worklog.sh <task-ref> --entry "Sent nudge to <who> re <what>." \
 
 ### `teams` — hand-send where there is no API
 
-For contacts on Teams. Humanize, text-polish, strip Markdown (Teams will not
+For contacts on Teams. Text-polish, strip Markdown (Teams will not
 render it), copy to the clipboard, and stop. Dustin pastes it, gives back the
 message link, and only then does the log land.
 

@@ -36,7 +36,7 @@ What the script can't do for you:
 - **Report faithfully.** A message that was drafted-not-sent is logged as
   "Drafted"; one that was sent is "Sent" with its permalink. Never launder a
   draft into a "sent."
-- **Humanize the entry text** before passing it in.
+- **Text-polish the entry text** before passing it in.
 - Keep entries terse and factual (who, what, when, link). The breadcrumb, not an
   essay.
 
@@ -50,13 +50,13 @@ An outward Slack message follows this exact sequence. The gates are not
 optional — this is Dustin's rule, and skipping a step is a violation of it.
 
 1. **Draft** the message from the assessment.
-2. **Humanize** — run it through `humanizer` (customer-facing → `writing-style`,
-   which folds in humanizer). Removes AI tells.
-3. **Text-polish pass** — apply the rules below to the humanized draft: ruthless
-   concision + anti-slop. Produce **only** the final message text. No reasoning,
-   preamble, sign-off, or commentary may end up in the message body — the whole
-   point of Dustin's text-polish tool is that AI process never leaks into what
-   gets sent. Treat the message as a verbatim artifact.
+2. **Text-polish** — run it through `text-polish` (customer-facing → `writing-style`,
+   which folds in text-polish). One pass: it removes AI tells and applies ruthless
+   concision. Never also run `humanizer`; text-polish already runs it internally.
+3. **Verbatim artifact** — the text-polish output is the message. Produce **only**
+   the final message text. No reasoning, preamble, sign-off, or commentary may end
+   up in the message body, the whole point of Dustin's text-polish tool is that AI
+   process never leaks into what gets sent. Treat the message as a verbatim artifact.
 4. **Preview** — show Dustin the final message and stop. **Nothing is sent at
    this step.** This preview is mandatory; he must see the exact text first.
 5. **Explicit send** — do nothing until Dustin explicitly says to send it (e.g.
@@ -81,11 +81,12 @@ If Dustin would rather send by hand, the fallback is the earlier behaviour:
 finish at step 4, copy the polished text to his clipboard, and he pastes it —
 then he gives you the message link and you log it (step 7).
 
-## Text-polish rules (apply at step 3)
+## Text-polish rules (what the text-polish pass at step 2 applies)
 
 Canonical source: `modules/apps/cli/text-polish/scripts/text-polish.sh` in
-nixerator (the `SUPER+SHIFT+R` filter). Re-sync from there if it changes. Applied
-here as editing guidance, not by invoking the script.
+nixerator (the `SUPER+SHIFT+R` filter). The `text-polish` skill applies the same
+concision rules; this is what it does under the hood. Re-sync from there if it
+changes.
 
 Say the same thing in as few words as possible. Output only the rewritten text.
 

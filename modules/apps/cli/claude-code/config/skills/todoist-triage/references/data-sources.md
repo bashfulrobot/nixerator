@@ -27,7 +27,7 @@ instead of inventing a way in.
 | **Local customer notes / transcripts** | prior call notes, transcripts, working docs | filesystem: `~/insync/kong/My-drive/Customer/<Customer>/` | a comment points at a local file, or recent-call context would clarify status |
 | **Freshservice** | IT tickets Dustin references | **GAP** — may have no API | task cites a Freshservice ticket: record it as `unverified` — live state can't be confirmed |
 | **Domain framing** | what a CSM task *means*, next-best-action framing | `kong-technical-csm` skill | interpreting Kong-specific status or deciding the right CSM move |
-| **Prose polish** | humanizing anything Dustin will read/send | `humanizer` (internal), `writing-style` (customer-facing) | Phase 2, before any comment / email / Slack draft |
+| **Prose polish** | polishing anything Dustin will read/send | `text-polish` (internal), `writing-style` (customer-facing) | Phase 2, before any comment / email / Slack draft |
 
 ## Per-source notes
 

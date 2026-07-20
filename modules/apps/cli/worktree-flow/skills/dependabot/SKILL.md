@@ -16,7 +16,7 @@ All work happens in an isolated git worktree. Never implement in the main workin
 
 Any comment this skill posts to GitHub (revamp summaries on a PR, manual
 notes added to a Dependabot PR) must read like a developer wrote it. Run the
-body through the [`humanizer`](../humanizer/SKILL.md) skill before calling
+body through the [`text-polish`](../text-polish/SKILL.md) skill before calling
 `gh pr comment`. Hard constraints for posted content:
 
 - **No em dashes (`—`) or en dashes (`–`).** Use a comma, period,
@@ -29,7 +29,7 @@ body through the [`humanizer`](../humanizer/SKILL.md) skill before calling
 - **No AI attribution** of any kind.
 
 The PR body that `dependabot push` generates is built by the CLI from the
-alert metadata. It does not flow through humanizer; the conventional shape
+alert metadata. It does not flow through text-polish; the conventional shape
 (`Fixes Dependabot alert #N`, package, summary, commit log) is what humans
 expect to see in this slot.
 
@@ -231,7 +231,7 @@ If still waiting, report current state.
 3. **Invoke `superpowers:verification-before-completion`**.
 4. Push. Run `dependabot push <N>`.
 5. If a summary PR comment is appropriate, run the body through the
-   [`humanizer`](../humanizer/SKILL.md) skill before calling
+   [`text-polish`](../text-polish/SKILL.md) skill before calling
    `gh pr comment`. See [Voice for posted content](#voice-for-posted-content).
 
 Then:

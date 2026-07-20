@@ -34,7 +34,7 @@ rules below.
 - **No AI attribution** of any kind.
 
 Before the preview gate, run the proposed comment body through the
-[`humanizer`](../humanizer/SKILL.md) skill. The humanized body is what the
+[`text-polish`](../text-polish/SKILL.md) skill. The text-polished body is what the
 preview renders, what the user inspects, and what gets posted on `[p]ost`.
 
 ## Scope of findings
@@ -143,25 +143,25 @@ If additions + deletions > 5000, warn: **"Large diff (N lines). Review quality m
 
 Dispatch a single **general-purpose Agent** with the prompt below. Substitute actual values for all `{PLACEHOLDERS}`. Use the same `{NONCE}` hex string in both opening and closing untrusted-block tags.
 
-### 8. Humanize, Validate, Preview, Confirm, Post
+### 8. Polish, Validate, Preview, Confirm, Post
 
-The skill never posts without an explicit "post" keystroke from the user. Before validation, the proposed comment body is humanized; validators then run against the humanized body, and the rendered body + validator results are shown together, and the user makes one decision.
+The skill never posts without an explicit "post" keystroke from the user. Before validation, the proposed comment body is text-polished; validators then run against the text-polished body, and the rendered body + validator results are shown together, and the user makes one decision.
 
-#### Humanize
+#### Polish
 
 Take the subagent's structured output. Run it through the
-[`humanizer`](../humanizer/SKILL.md) skill. Apply the full ruleset. The
+[`text-polish`](../text-polish/SKILL.md) skill. Apply the full ruleset. The
 constraints in [Voice for the posted comment](#voice-for-the-posted-comment)
-are hard requirements; humanizer is what enforces them. The humanized body is
+are hard requirements; text-polish is what enforces them. The text-polished body is
 the input to the validators below.
 
-If the humanizer pass changes the wording of a finding meaningfully (not just
+If the text-polish pass changes the wording of a finding meaningfully (not just
 punctuation), the changed text is still bounded by the subagent's research,
-not new content. Humanizer reshapes voice, it does not invent findings.
+not new content. Text-polish tightens and de-slops the voice, it does not invent findings.
 
 #### Validators
 
-Prepend `<!-- review-security -->` to the humanized body, then run each validator:
+Prepend `<!-- review-security -->` to the text-polished body, then run each validator:
 
 | Validator | Trigger | Severity |
 |-----------|---------|----------|
@@ -198,8 +198,8 @@ Show `[f]orce` only when at least one hard fail is present; otherwise omit it. D
 #### Actions
 
 - **`p` post.** `forge pr-comment ${PR_NUMBER} "$BODY"`. The body already has `<!-- review-security -->` prepended.
-- **`e` edit.** Write the body to `$(mktemp)`, open `${EDITOR:-${VISUAL:-vi}}` on it. After save, re-humanize, re-run validators, and re-render the preview. Use this for legit external links the validator flagged, redacting agent over-quotes, or any wording fix.
-- **`r` retry.** Re-dispatch the subagent. Append to the prompt: *"Your previous output was rejected. Reason: <validator messages>. Produce a fresh review respecting the rules above."* Costs another model invocation. The new output is humanized again before validation.
+- **`e` edit.** Write the body to `$(mktemp)`, open `${EDITOR:-${VISUAL:-vi}}` on it. After save, re-run text-polish, re-run validators, and re-render the preview. Use this for legit external links the validator flagged, redacting agent over-quotes, or any wording fix.
+- **`r` retry.** Re-dispatch the subagent. Append to the prompt: *"Your previous output was rejected. Reason: <validator messages>. Produce a fresh review respecting the rules above."* Costs another model invocation. The new output is text-polished again before validation.
 - **`a` abort.** Exit cleanly without posting.
 - **`f` force.** Only available when a hard fail is present. Posts despite the failures. Use after manual audit.
 

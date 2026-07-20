@@ -26,7 +26,7 @@ Two modes depending on input:
 
 Use `gh` for all GitHub interaction. Ask follow-up questions to fill gaps before
 writing anything. Every drafted issue body or rewrite comment is run through the
-[`humanizer`](../humanizer/SKILL.md) skill before being shown to the user.
+[`text-polish`](../text-polish/SKILL.md) skill before being shown to the user.
 Never add any AI attribution to the issue or comment.
 
 ---
@@ -247,14 +247,14 @@ a build check, one line is fine). Never pad sections with filler.
 
 ---
 
-## Step 5b: Humanize the Draft
+## Step 5b: Polish the Draft
 
 The issue body is going to be a permanent, public artifact on GitHub. Before
 showing it to the user, run it through the
-[`humanizer`](../humanizer/SKILL.md) skill so it reads like a human engineer
+[`text-polish`](../text-polish/SKILL.md) skill so it reads like a human engineer
 wrote it.
 
-Invoke humanizer on the draft body and apply its full ruleset. The
+Invoke text-polish on the draft body and apply its full ruleset. The
 constraints below are called out explicitly because they matter most for
 GitHub content:
 
@@ -411,11 +411,11 @@ The comment should be entirely self-contained. A fresh agent that reads only
 this comment, not the original issue description, must have everything it
 needs to implement the work correctly.
 
-### R5b: Humanize the Draft
+### R5b: Polish the Draft
 
-Run the rewrite comment through the same humanize pass described in
-[Step 5b](#step-5b-humanize-the-draft). The full ruleset of the
-[`humanizer`](../humanizer/SKILL.md) skill applies. No em dashes, no agent
+Run the rewrite comment through the same text-polish pass described in
+[Step 5b](#step-5b-polish-the-draft). The full ruleset of the
+[`text-polish`](../text-polish/SKILL.md) skill applies. No em dashes, no agent
 voice, colons only where they earn their keep, no AI vocabulary, no rule of
 three padding.
 
@@ -460,9 +460,9 @@ xdg-open "$(forge issue-json <number> | jq -r '.url')"
 - **No AI attribution.** No mentions of Claude, AI, "generated", or any agent
   tool in the title, body, labels, or comments. The issue must read as though
   a human wrote it.
-- **Always humanize.** Step 5b (Create Mode) and Step R5b (Rewrite Mode) are
+- **Always polish.** Step 5b (Create Mode) and Step R5b (Rewrite Mode) are
   not optional. Every issue body and every rewrite comment goes through the
-  humanizer pass before it's shown to the user.
+  text-polish pass before it's shown to the user.
 - **No vague requirements.** If a section can't be filled with specifics, ask.
   Vague acceptance criteria waste the implementing agent's time.
 - **No padding.** Omit sections that don't apply rather than filling them with
