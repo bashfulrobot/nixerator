@@ -228,7 +228,7 @@
     "skills/todoist-triage/scripts/td_drop.sh": "c4830bc0f9fb3209da69fc04c395dae5c21457e6a9dff71bed584c39bceae16b",
     "skills/todoist-triage/scripts/td_escalate.sh": "c64b71f1af509b3b695419544ca91b1d8059872b6c1d6ca86d5f2da5095062ca",
     "skills/todoist-triage/scripts/td_fetch.sh": "61bacb18353c862d086797f7f3fc2825fa8dd9d96b6b0948ed1b2e0e4fceca0b",
-    "skills/todoist-triage/scripts/td_merge.sh": "d86fd8930ce2b477d2f4c3d89d9f33abb2dacd9dda0c65a2ce8854d61ab6be8a",
+    "skills/todoist-triage/scripts/td_merge.sh": "9000dfdd09c83964509b763b8be342b11ec82e3af331d099a36a837fb4a1597a",
     "skills/todoist-triage/scripts/td_move.sh": "bc46089eeea3e38b5c34217cee2f1438d933e2062145e42f30083e28bc002eac",
     "skills/todoist-triage/scripts/td_reprioritize.sh": "0c832da7e10807040ca22987206465059a2204d0fb1b2141ebb502f7daa28899",
     "skills/todoist-triage/scripts/td_scope.sh": "8d9d798ca77c8a11c8d822bd988e05cf7b59230dce5377add85199aad7306967",
