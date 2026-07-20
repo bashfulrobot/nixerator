@@ -2,7 +2,7 @@
 
 A single invocation of the `feature-request` skill processed running notes from two enterprise Konnect tenants, both asking for the same capability (per-token source-IP allowlist on Konnect API tokens). The skill produced three files: one customer-independent FR plus one proxy-vote per tenant. Customer names below are synthetic stand-ins (`Northwind Financial`, `Globex Industries`) so this example can be re-used as reference material; in a real run the proxy votes would carry real account names.
 
-All three files were written after running every prose section through the `humanizer` skill and then a final em-dash scrub. The FR file contains zero customer names. Each proxy vote names exactly one customer and links the FR by filename.
+All three files were written after running every prose section through the `text-polish` skill and then a final em-dash scrub. The FR file contains zero customer names. Each proxy vote names exactly one customer and links the FR by filename.
 
 ---
 
@@ -196,4 +196,4 @@ Globex has filed one prior AHA idea, still open (a Konnect plugin-version pinnin
 - The two proxy votes cross-reference each other in their respective `Open questions` sections.
 - The FR's `Proxy votes:` header line records the *count* (`2 attached`) without listing customer-slug filenames, so the FR body remains free of customer names. The back-link is one-way, each proxy vote links the FR by filename, but the FR does not name any proxy vote.
 - The FR's `Priority:` is `High` because Northwind has a documented renewal-block path with a date; if Northwind had not been in the source material, the same FR with only Globex as a proxy vote would land at `Medium`.
-- Every prose section in all three files passes the `humanizer` skill's AI-vocabulary checks (no `align with`, `stands as`, `serves as`, `underscore`, `highlight`, `delve`, etc.) and the em-dash scrub. None of the three files contains any of `—`, `–`, `‒`, or `―`, and none contains a bare ASCII `--` outside a CLI flag or numeric range.
+- Every prose section in all three files passes the `text-polish` skill's AI-vocabulary checks (no `align with`, `stands as`, `serves as`, `underscore`, `highlight`, `delve`, etc.) and the em-dash scrub. None of the three files contains any of `—`, `–`, `‒`, or `―`, and none contains a bare ASCII `--` outside a CLI flag or numeric range.

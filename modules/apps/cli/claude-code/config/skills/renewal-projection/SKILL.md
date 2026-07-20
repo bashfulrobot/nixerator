@@ -1,6 +1,6 @@
 ---
 name: renewal-projection
-description: Build a Kong customer's renewal-projection or consumption-analysis slide deck from their usage data. This is THE skill for turning a customer's API usage numbers (requests, service/Gateway-Service counts, projected growth, new integrations) into a renewal-year projection deck. It pulls the contracted entitlement from Salesforce, decodes the SKU units (the easy thing to get wrong), reconciles measured actuals vs customer projections vs licensed entitlement, then renders a Kong-branded PPTX with data-provenance speaker notes. Trigger this whenever the user wants to build, model, or visualize a renewal projection, a consumption or growth deck, an API-usage projection, or renewal-readiness slides for a Kong account, including phrasings like "turn these usage numbers into a renewal deck", "build the renewal slides", "model the renewal at current service count", "project their API growth into the renewal", "consumption growth deck for the renewal", "renewal analysis: licensed vs used", or pasting customer usage stats and asking for a renewal visual. Strongly prefer this skill over kong-technical-csm and kong-pptx whenever the specific job is building a renewal projection or consumption deck from usage data, and over kong-success-plan unless the user explicitly asks for a success plan. Do NOT trigger for: renewal strategy or account questions with no deck (kong-technical-csm), success-plan decks (kong-success-plan / kong-success-plan-pptx), meeting prep (meeting-prep), CSAT updates (csat), plain Salesforce queries (sfdc), or generic non-renewal pitch decks (kong-pptx). Pairs with sfdc, kong-pptx, and writing-style/humanizer.
+description: Build a Kong customer's renewal-projection or consumption-analysis slide deck from their usage data. This is THE skill for turning a customer's API usage numbers (requests, service/Gateway-Service counts, projected growth, new integrations) into a renewal-year projection deck. It pulls the contracted entitlement from Salesforce, decodes the SKU units (the easy thing to get wrong), reconciles measured actuals vs customer projections vs licensed entitlement, then renders a Kong-branded PPTX with data-provenance speaker notes. Trigger this whenever the user wants to build, model, or visualize a renewal projection, a consumption or growth deck, an API-usage projection, or renewal-readiness slides for a Kong account, including phrasings like "turn these usage numbers into a renewal deck", "build the renewal slides", "model the renewal at current service count", "project their API growth into the renewal", "consumption growth deck for the renewal", "renewal analysis: licensed vs used", or pasting customer usage stats and asking for a renewal visual. Strongly prefer this skill over kong-technical-csm and kong-pptx whenever the specific job is building a renewal projection or consumption deck from usage data, and over kong-success-plan unless the user explicitly asks for a success plan. Do NOT trigger for: renewal strategy or account questions with no deck (kong-technical-csm), success-plan decks (kong-success-plan / kong-success-plan-pptx), meeting prep (meeting-prep), CSAT updates (csat), plain Salesforce queries (sfdc), or generic non-renewal pitch decks (kong-pptx). Pairs with sfdc, kong-pptx, and writing-style/text-polish.
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Grep", "Glob", "Skill"]
 ---
 
@@ -86,9 +86,9 @@ rationale, open confirmations. Do *not* write customer-facing talking points; wh
 replace the notes with their own. The notes are an audit trail. See `references/deck-build.md` for
 the SOURCES / WHY THIS SLIDE / OPEN convention.
 
-### 6. Humanize everything
+### 6. Polish everything
 
-Run all slide copy *and* all speaker notes through the `humanizer` skill before rendering. This is a
+Run all slide copy *and* all speaker notes through the `text-polish` skill before rendering. This is a
 standing rule for written artifacts here — decks and notes included, not just chat. Kill the
 em-dash-for-drama, negative parallelisms ("X, not Y"), rule-of-three filler, and inflated vocabulary.
 
@@ -97,7 +97,7 @@ em-dash-for-drama, negative parallelisms ("X, not Y"), rule-of-three filler, and
 Alongside the .pptx, write:
 
 - `customer-questions.md` — the open questions only the customer can answer, in Slack-friendly
-  markdown (humanized). Run through `writing-style` if it'll be sent as-is.
+  markdown (polished). Run through `writing-style` if it'll be sent as-is.
 - `confirmations-needed.md` — every open item grouped by owner (the SE/data person, deal desk,
   the renewal manager, the customer), with what each one gates.
 

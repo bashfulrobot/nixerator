@@ -110,7 +110,7 @@ count and window) so it's never confused with the projections built on top of it
 ## Working docs
 
 `customer-questions.md` — only what the customer can answer (go-live dates, future volumes, whether
-new items are net-new services, double-count checks). Slack-friendly markdown, humanized.
+new items are net-new services, double-count checks). Slack-friendly markdown, text-polished.
 
 `confirmations-needed.md` — open items grouped by owner, each with why it matters and where to get
 it. Mark what Salesforce already answered so the list shrinks honestly. Suggest an order

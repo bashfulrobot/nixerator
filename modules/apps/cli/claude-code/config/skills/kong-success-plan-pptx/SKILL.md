@@ -108,7 +108,7 @@ JSON file with three required sections (`customer`, `objectives`, `workstreams`)
 - **Three objectives, no more, no less.** Slot 3 supports a single sentence (string) instead of a bullet list when the objective fits better as one descriptive line. Extra objectives are silently dropped.
 - **Four workstreams, no more.** Same rule. If a customer has more, group them.
 - **Numbers come from order in the JSON.** Don't try to override the "1" / "2" / "3" / "4" badges via the script.
-- **Run any drafted prose through the `humanizer` skill** before encoding into JSON — slide-2 and slide-3 prose is highly visible and AI tells (em dashes, "leverage", inflated significance language) read poorly in front of a customer.
+- **Run any drafted prose through the `text-polish` skill** before encoding into JSON — slide-2 and slide-3 prose is highly visible and AI tells (em dashes, "leverage", inflated significance language) read poorly in front of a customer.
 
 ## Status legend
 

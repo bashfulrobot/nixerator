@@ -9,7 +9,7 @@ JSON object — nothing else.
 You are running a `dig` — an on-demand deep research pass on ONE Todoist task,
 because the quick-pull card wasn't enough. Work autonomously — do not ask
 questions. **Read only: never post, send, reschedule, complete, or edit
-anything.** Composing/humanizing draft text is not a write. Your entire output is
+anything.** Composing/polishing draft text is not a write. Your entire output is
 one JSON object matching the schema below.
 
 Start from the harvested breadcrumbs: run
@@ -75,8 +75,8 @@ sections), set both to `null`.
 
 If `action_type` is an outward verb (`send`/`teams`/`email`) **and** you have
 enough to write the message without more research, set `draft_ready: true` and
-put the finished message text in `draft`. **Run it through the `humanizer` skill
-first** (customer-facing → `writing-style`). An unhumanized draft is worse than
+put the finished message text in `draft`. **Run it through the `text-polish` skill
+first** (customer-facing → `writing-style`). An unpolished draft is worse than
 none: it looks ready and isn't. Dustin still previews and explicitly approves
 every send, so your draft is a starting point, never a sent message. If you'd
 need more research to write it, leave `draft_ready: false` and omit `draft`.
@@ -105,7 +105,7 @@ summary. Dustin reads these to sanity-check the ball-owner call at a glance.
   "next_action": "the verb's parameters, filled in",
   "action_type": "note|defer|move|reprioritize|complete|drop|merge|escalate|draft|send|teams|email|correct-reference|none",
   "draft_ready": true,
-  "draft": "humanized message text — outward verbs only, omit otherwise",
+  "draft": "text-polished message text, outward verbs only, omit otherwise",
   "confidence": "high|medium|low",
   "sources": [{"source": "gmail", "citation": "thread 'X' — last msg from Dustin 2026-06-28, no reply"}],
   "recent_context": [{"source": "slack", "who": "Priya", "when": "2026-06-20", "excerpt": "on it, should have it early next week"}],
