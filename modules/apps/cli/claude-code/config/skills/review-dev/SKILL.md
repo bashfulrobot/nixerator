@@ -31,7 +31,7 @@ the subagent prompt and the post step apply the rules below.
 - **No AI attribution** of any kind.
 
 Before calling `forge pr-comment`, run the body through the
-[`humanizer`](../humanizer/SKILL.md) skill and post the humanized result.
+[`text-polish`](../text-polish/SKILL.md) skill and post the text-polished result.
 
 ## Scope of findings
 
@@ -96,15 +96,15 @@ If additions + deletions > 5000, warn: **"Large diff (N lines). Review quality m
 
 Dispatch a single **general-purpose Agent** with the prompt below. Substitute actual values for all `{PLACEHOLDERS}`.
 
-### 7. Humanize, Display, and Post
+### 7. Polish, Display, and Post
 
 1. Take the subagent's structured output as the draft comment body.
-2. Run it through the [`humanizer`](../humanizer/SKILL.md) skill. Apply the
+2. Run it through the [`text-polish`](../text-polish/SKILL.md) skill. Apply the
    full ruleset. The constraints in
    [Voice for the posted comment](#voice-for-the-posted-comment) are hard
-   requirements; the humanizer pass is what enforces them.
-3. Display the humanized output in the terminal.
-4. Prepend `<!-- review-dev -->` (invisible marker) to the humanized body
+   requirements; the text-polish pass is what enforces them.
+3. Display the text-polished output in the terminal.
+4. Prepend `<!-- review-dev -->` (invisible marker) to the text-polished body
    for idempotency.
 5. Post as a PR comment via `forge pr-comment {PR_NUMBER} "$BODY"`.
 

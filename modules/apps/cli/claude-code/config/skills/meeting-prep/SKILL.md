@@ -22,7 +22,7 @@ The goal is not a report. The goal is to walk into the call prepared to drive va
 3. Identify the customer name from the documents (folder name, file headers, or content).
 4. Synthesize all source material into the output format below.
 5. Write the output to `YYYY-MM-DD-meeting-prep.md` in the target directory, using today's date.
-6. Run ALL output text through the `humanizer` skill before writing the file.
+6. Run ALL output text through the `text-polish` skill before writing the file.
 
 ## Output format
 
@@ -90,4 +90,4 @@ status check and a value-driving conversation. Includes:
 
 - Do not fabricate details. Only report what the source documents support.
 - If a section has insufficient data, say so briefly and move on. Do not fill space with hedging.
-- Run ALL output through the `humanizer` skill before writing the final file.
+- Run ALL output through the `text-polish` skill before writing the final file.

@@ -78,12 +78,12 @@ extra keys break collation and the digest builder.
   `current_column` (no move) rather than guessing.
 - **`draft_ready`** — `true` only if the subagent has enough to prepare the draft
   without more research.
-- **`draft`** — the humanized message text, present **only** when `draft_ready`
+- **`draft`** — the text-polished message text, present **only** when `draft_ready`
   is true and `action_type` is an outward verb (`send`/`teams`/`email`). The
   subagent writes it during assessment so Phase 2 collapses to preview then send
   instead of a second research-and-draft round trip. Composing text is not a
-  write, so this respects Phase 1's read-only rule. **Run it through `humanizer`
-  before returning it** (customer-facing → `writing-style`); an unhumanized draft
+  write, so this respects Phase 1's read-only rule. **Run it through `text-polish`
+  before returning it** (customer-facing → `writing-style`); an unpolished draft
   is worse than none, because it looks ready and isn't. The draft is
   *provisional*: it does not shorten the mandatory preview or the explicit-send
   gate. Omit for internal verbs.
@@ -139,7 +139,7 @@ decision. **The exact invocation for every verb lives in
 |---|---|---|
 | **Internal** | `note`/`log`, `defer`, `move`/`col`, `reprioritize`/`prio`, `link-log`/`link`, `correct-reference`/`fixref`, `escalate`, `draft` | **Execute immediately on the keyword** — typing it is the approval. Reversible, touches nobody else. |
 | **Completion** | `complete`/`done`, `drop`, `merge` | **Confirm per task.** Never auto. |
-| **Outward** | `send`/`nudge`, `teams`, `email` | Full gate, one at a time: draft → humanize → preview → **explicit "send" that turn** → post → log. |
+| **Outward** | `send`/`nudge`, `teams`, `email` | Full gate, one at a time: draft → text-polish → preview → **explicit "send" that turn** → post → log. |
 
 **The invariant: the only thing the skill does on its own is the auto column-move**
 (shown on the card and logged — see `references/kanban-board.md`). Every internal

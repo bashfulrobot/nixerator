@@ -1,6 +1,6 @@
 ---
 name: kong-success-plan
-description: Author a Kong customer success-plan JSON file (the input format kong-success-plan-pptx expects), extract whatever can be extracted from the user's existing context (running notes, call transcripts, prior plans, markdown drafts) and from Salesforce via the sfdc skill (Account, Contacts, Opportunity, recent Cases), ask the user only for what's still missing instead of fabricating it, run all customer-visible prose through the humanizer skill, render the deck via kong-success-plan-pptx, and visually verify the output. Use whenever the user asks to "write a success plan", "draft a success plan", "build a success plan for <customer>", "update the success plan", "turn these notes into a success plan", "fill out the success plan template", or describes any Kong customer-success-plan authoring task — even when they don't explicitly mention the PPTX or the JSON schema. Trigger on phrases like "success plan", "QBR plan", "customer success plan", "kong success plan", or "renewal cycle plan" combined with a customer reference. Do NOT trigger for generic project plans, non-customer success plans (engineering plans, product roadmaps), or PPTX-rendering requests with the JSON already prepared (that's kong-success-plan-pptx).
+description: Author a Kong customer success-plan JSON file (the input format kong-success-plan-pptx expects), extract whatever can be extracted from the user's existing context (running notes, call transcripts, prior plans, markdown drafts) and from Salesforce via the sfdc skill (Account, Contacts, Opportunity, recent Cases), ask the user only for what's still missing instead of fabricating it, run all customer-visible prose through the text-polish skill, render the deck via kong-success-plan-pptx, and visually verify the output. Use whenever the user asks to "write a success plan", "draft a success plan", "build a success plan for <customer>", "update the success plan", "turn these notes into a success plan", "fill out the success plan template", or describes any Kong customer-success-plan authoring task — even when they don't explicitly mention the PPTX or the JSON schema. Trigger on phrases like "success plan", "QBR plan", "customer success plan", "kong success plan", or "renewal cycle plan" combined with a customer reference. Do NOT trigger for generic project plans, non-customer success plans (engineering plans, product roadmaps), or PPTX-rendering requests with the JSON already prepared (that's kong-success-plan-pptx).
 ---
 
 ## What this skill does
@@ -13,7 +13,7 @@ Builds the *content* of a Kong customer success plan in the JSON format that `ko
 This is a methodology skill. It pairs with three other skills:
 
 - `kong-success-plan-pptx` — renders the JSON to a Kong-branded PPTX. Required follow-up.
-- `humanizer` — strips AI tells from prose. Required for all customer-visible writing.
+- `text-polish` — tightens and de-slops prose. Required for all customer-visible writing.
 - `sfdc` — queries Salesforce read-only for Account / Contacts / Opportunity / Case data. Used to pre-fill stakeholder names, renewal dates, ARR signals, and recent escalation context before asking the user.
 
 ## Workflow
@@ -130,13 +130,13 @@ Length rules (from `kong-success-plan-pptx`):
 
 Why these limits matter: the template's text shapes have fixed widths. Bullets longer than ~65 characters wrap to three lines and start clipping at the bottom of the box, even with the height extension applied during rendering. Tight prose isn't a stylistic preference — it's a layout constraint.
 
-### 5. Run every customer-visible string through the humanizer skill
+### 5. Run every customer-visible string through the text-polish skill
 
-Before you encode the prose into JSON, invoke the `humanizer` skill on every customer-visible string: cover tagline, takeaway, objective headings, objective bullets, workstream titles, workstream bullets, deep-dive bullets, KPI footer, owners footer.
+Before you encode the prose into JSON, invoke the `text-polish` skill on every customer-visible string: cover tagline, takeaway, objective headings, objective bullets, workstream titles, workstream bullets, deep-dive bullets, KPI footer, owners footer.
 
-Why: success plans are read by the customer's CTO and economic buyer. AI tells (em dashes, "leverage", "robust", inflated significance language, mechanical rule-of-three, sycophantic phrasing) read poorly in front of those audiences and undermine the CSM's credibility. Run prose through `humanizer` and apply the resulting cleaner version.
+Why: success plans are read by the customer's CTO and economic buyer. AI tells (em dashes, "leverage", "robust", inflated significance language, mechanical rule-of-three, sycophantic phrasing) read poorly in front of those audiences and undermine the CSM's credibility. Run prose through `text-polish` and apply the resulting cleaner version.
 
-The status pill strings, the page numbers, and the legend can stay as-is — they're labels, not prose, and humanizer adds no value there.
+The status pill strings, the page numbers, and the legend can stay as-is — they're labels, not prose, and text-polish adds no value there.
 
 ### 6. Write the JSON content file
 
@@ -185,7 +185,7 @@ Tell the user:
 
 - The JSON file path (so they can edit and re-render)
 - The PPTX file path
-- Anything you assumed or inferred that they should sanity-check (especially synthesized prose that only got humanizer-treated, not user-written)
+- Anything you assumed or inferred that they should sanity-check (especially synthesized prose that only got text-polish-treated, not user-written)
 - Any KPI numbers or stakeholder details they still owe (if you proceeded with placeholders)
 
 ## Authoring patterns
@@ -218,7 +218,7 @@ The takeaway sentence on slide 2 is the most-quoted line of the deck. It should 
 
 > "These priorities are how we measure [Customer]'s [theme 1], [theme 2], and [theme 3] through the [time horizon]."
 
-Themes match the three strategic objectives. Time horizon is usually "renewal cycle" or a specific quarter. Keep it under 30 words. Run through humanizer.
+Themes match the three strategic objectives. Time horizon is usually "renewal cycle" or a specific quarter. Keep it under 30 words. Run through text-polish.
 
 ## What to ask vs. what to author
 
@@ -246,7 +246,7 @@ Themes match the three strategic objectives. Time horizon is usually "renewal cy
 ## Hard rules
 
 - **Never fabricate names, figures, or dates.** If the user didn't supply them and they're not in the source material, ask.
-- **Never ship a deck without running every customer-visible string through humanizer.** Even short bullets — humanizer matters most where the audience is highest.
+- **Never ship a deck without running every customer-visible string through text-polish.** Even short bullets — text-polish matters most where the audience is highest.
 - **Never report the task complete without a visual slide check.** XML success ≠ visual success.
 - **Never silently truncate.** If a bullet is too long for the box, tighten the wording rather than letting the renderer clip it. The user can always lengthen later if they want.
 - **Three objectives, four workstreams, no more.** The template has fixed slots. Group or trim if the customer's situation has more.

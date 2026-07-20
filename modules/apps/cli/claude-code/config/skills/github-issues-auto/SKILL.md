@@ -48,7 +48,7 @@ prepended to each PR body. Both must read like a developer wrote them, not
 like a tool announcing what it did.
 
 Before any call to `forge pr-comment` or `forge pr-edit-body`, run the body
-through the [`humanizer`](../humanizer/SKILL.md) skill. Hard constraints for
+through the [`text-polish`](../text-polish/SKILL.md) skill. Hard constraints for
 posted content:
 
 - **No em dashes (`—`) or en dashes (`–`).** Comma, period, parentheses, or
@@ -183,7 +183,7 @@ Rationale. <why, grounded in the issue body and codebase>
 ```
 
 Post the buffered decisions on the PR once it exists, as a single comment.
-Run the body through the [`humanizer`](../humanizer/SKILL.md) skill before
+Run the body through the [`text-polish`](../text-polish/SKILL.md) skill before
 posting. See [Voice for posted content](#voice-for-posted-content). The
 template below is a shape, not verbatim text; write each entry as natural
 prose:
@@ -206,7 +206,7 @@ EOF
 ```
 
 Decisions made *after* the PR exists can be posted individually as they happen.
-Each individual post also goes through the humanizer pass before
+Each individual post also goes through the text-polish pass before
 `forge pr-comment`.
 
 ### 2d. Force completion of every review finding
@@ -238,7 +238,7 @@ fix attempts, stop the queue and escalate (see Failure Handling).
 ### 2e. Annotate merge order on the PR
 
 Once the PR exists, edit its body to add (or refresh) a merge-order block at
-the top. Run the block through the [`humanizer`](../humanizer/SKILL.md) skill
+the top. Run the block through the [`text-polish`](../text-polish/SKILL.md) skill
 before posting. See [Voice for posted content](#voice-for-posted-content). Two
 flavours: the **parent PR** (or the only PR in the batch) gets an `[!IMPORTANT]`
 block; every **stacked child PR** gets a stronger `[!CAUTION]` block because of
@@ -343,7 +343,7 @@ Then:
 
 After the last issue's PR is open with both reviews clean, emit one summary.
 The summary is shown to the user, not posted to GitHub, so the strict
-humanizer rules don't apply, but keep the voice consistent:
+text-polish rules don't apply, but keep the voice consistent:
 
 ```
 Autonomous batch complete. <total> PRs open for review.

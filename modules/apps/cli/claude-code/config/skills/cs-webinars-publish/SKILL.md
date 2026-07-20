@@ -64,7 +64,7 @@ recording_url = "<link>"
 - `tags` under `[extra]` drive the filter chips on the webinars page. It's one pool that mixes Kong products (`Konnect`, `Gateway`, `Mesh`, `AI Gateway`, `Insomnia`) with themes (`Security`, `Observability`, `Migration`, `Getting Started`); list all that apply, so a security-focused Konnect session is `["Konnect", "Security"]`. Use the exact names from the `tags` list in the repo's `docs/zola/config.toml` so the chips stay consistent, and add a new tag there first if you need one that doesn't exist yet. Omit the line for an untagged session, though tagging is what makes it filterable.
 - `recording_url` under `[extra]` is optional. Include it if there's a recording — it renders a "Watch" button on the card. Point it at the on-demand registration page if that's where the recording lives. Omit the whole line if there's no recording.
 - **The download link is computed by the site from the asset filename** — the same slug used for the release tag and zip name. There is no placeholder to fill in and nothing to hand-wire.
-- **Body copy is reused from the registration page, not freshly written.** Use the registration description close to verbatim. Do not run it through the `humanizer` skill and do not invent marketing copy — it should match what attendees already read. (The *PR description* you write in step 6 is your own prose, so that one does get humanized.)
+- **Body copy is reused from the registration page, not freshly written.** Use the registration description close to verbatim. Do not run it through the `text-polish` skill and do not invent marketing copy — it should match what attendees already read. (The *PR description* you write in step 6 is your own prose, so that one does get text-polished.)
 
 ### 5. Run the same scan CI runs — locally, against your branch
 
@@ -78,7 +78,7 @@ gitleaks detect --source . --redact --no-banner
 
 Branch, commit, push, and open a pull request. Do **not** merge, and do **not** push to `main`.
 
-- Write a short PR description (this prose is yours — run it through the `humanizer` skill before posting). Say what session it is and what's included.
+- Write a short PR description (this prose is yours — run it through the `text-polish` skill before posting). Say what session it is and what's included.
 - If the PR adds a `.gitleaks.toml` allowlist entry, call that out explicitly and flag it for a reviewer to authorize (see the security rule below).
 
 ### 7. What merging does (so you can tell the user what to expect)

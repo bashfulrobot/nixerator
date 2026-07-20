@@ -35,17 +35,19 @@ no "Sent using @Claude" footer underneath.
 Every outbound message MUST satisfy all four before `--send` is added.
 Skipping any of these breaks the user's voice or risks an unwanted post.
 
-### 1. Run the body through the `humanizer` skill first
+### 1. Run the body through the `text-polish` skill first
 
-Treat draft text as not-yet-ready. Invoke the `humanizer` skill on the
+Treat draft text as not-yet-ready. Invoke the `text-polish` skill on the
 body to strip AI-writing tells (rule of three, vague attributions, "this
 isn't just X, it's Y" parallelisms, promotional adjectives, em dashes,
-etc.) before doing anything else. If the user wrote the draft themselves
-and asked you to send it verbatim, still scrub for em dashes (rule 2)
-but skip the rest of humanizer.
+etc.) and tighten it before doing anything else. text-polish runs the
+humanizer de-slop pass internally, so don't also call humanizer. If the
+user wrote the draft themselves and asked you to send it verbatim, still
+scrub for em dashes (rule 2) but skip the rest of text-polish.
 
-If a `writing-style` skill is also present, apply it after humanizer to
-match the user's voice (Dustin's casual/professional registers).
+If a `writing-style` skill is also present, use it instead of `text-polish`
+to match the user's voice (Dustin's casual/professional registers): it
+already folds in text-polish, so running both would double-process.
 
 ### 2. Never use em dashes
 
@@ -86,7 +88,7 @@ The script defaults to PREVIEW mode. It will refuse to transmit unless
 `--send` is on the command line. The workflow is:
 
 1. Compose the draft.
-2. Humanize + scrub em dashes + convert to Slack mrkdwn.
+2. Text-polish + scrub em dashes + convert to Slack mrkdwn.
 3. Run the script WITHOUT `--send`. Show the user the rendered preview
    block (channel, workspace, author, body) verbatim in your reply.
 4. Wait for the user to approve in conversation. Acceptable approvals

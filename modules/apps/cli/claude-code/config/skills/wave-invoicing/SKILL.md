@@ -1,6 +1,6 @@
 ---
 name: wave-invoicing
-description: Assemble a monthly Wave invoice for a consulting customer — pass-through credit-card chargebacks (no markup) plus consulting hours. Reads evidence PDFs/PNGs in the working dir and consulting hours from the prompt or a file, reconciles against the Insync invoice history to avoid duplicate/skipped billing, creates a DRAFT invoice in Wave, downloads the invoice PDF, renames + zips the evidence, and writes a humanized email body into a local folder. Use when the user says "wave invoicing", "create the monthly invoice", "bill Camino", "/wave-invoicing", or drops chargeback screenshots/PDFs and asks to invoice a customer. Does NOT send the email (the user sends it by hand) and leaves the Wave invoice as DRAFT.
+description: Assemble a monthly Wave invoice for a consulting customer — pass-through credit-card chargebacks (no markup) plus consulting hours. Reads evidence PDFs/PNGs in the working dir and consulting hours from the prompt or a file, reconciles against the Insync invoice history to avoid duplicate/skipped billing, creates a DRAFT invoice in Wave, downloads the invoice PDF, renames + zips the evidence, and writes a polished email body into a local folder. Use when the user says "wave invoicing", "create the monthly invoice", "bill Camino", "/wave-invoicing", or drops chargeback screenshots/PDFs and asks to invoice a customer. Does NOT send the email (the user sends it by hand) and leaves the Wave invoice as DRAFT.
 ---
 
 # Wave Invoicing
@@ -11,11 +11,12 @@ creating anything. Any missing datum: ask the user.
 
 ## Writing discipline
 ALL customer-facing prose this skill produces (the `email.md` cover note, and any
-future note or message) goes through **both** writing skills before it is saved:
-first the **writing-style** skill (the user's voice — Canadian English, "Cheers,"
-sign-off), then the **humanizer** skill (strip AI tells). This applies to every
-piece of writing, not just one step. Internal status reports to the user (e.g. the
-Stage-1 working-folder summary) are exempt — they are not customer-facing.
+future note or message) goes through the **writing-style** skill before it is saved
+(the user's voice, Canadian English, "Cheers," sign-off). writing-style folds in
+the **text-polish** cleanup pass (de-slop plus concision), so that one invocation
+covers voice and AI-tell stripping; don't call `humanizer` separately. This applies
+to every piece of writing, not just one step. Internal status reports to the user
+(e.g. the Stage-1 working-folder summary) are exempt, they are not customer-facing.
 
 ## Secrets discipline
 Auth uses a Wave **Full Access Token** (personal-use bearer token). It lives in
@@ -85,8 +86,8 @@ creates or mutates anything.
 14. Package evidence: build the `{source:vendorcode}` map and run
     `scripts/package-evidence.sh <workdir> <PERIOD> <ISSUER> <MAP_JSON>`.
 15. Write `email.md` (cover note to the customer). Per **Writing discipline**
-    above, run it through the **writing-style** then **humanizer** skills before
-    saving.
+    above, run it through the **writing-style** skill (which folds in text-polish)
+    before saving.
 16. Report the working folder contents and STOP: tell the user to review, then send
     the Gmail by hand (attach the invoice PDF + the references zip, paste `email.md`).
 

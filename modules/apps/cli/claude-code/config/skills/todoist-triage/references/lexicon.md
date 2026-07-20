@@ -24,16 +24,20 @@ Typing a keyword IS the approval.
 - **Internal (immediate):** `log`, `link`, `defer`, `col`, `prio`, `fixref`,
   `escalate`, `draft` — run on the keyword; reversible.
 - **Completion (confirm per task):** `done`, `drop`, `merge`.
-- **Outward (full gate):** `nudge`, `email`, `teams` — draft → humanize →
-  text-polish → mandatory preview → explicit "send" that turn → `/slack-post` →
+- **Outward (full gate):** `nudge`, `email`, `teams` — draft → text-polish →
+  mandatory preview → explicit "send" that turn → `/slack-post` →
   capture permalink → log. Never auto-send.
 
-## Prose cleaning (length routes to exactly one pass, never both)
+## Prose cleaning (everything runs through text-polish)
 
-- **Outward** messages → `humanizer` (customer-facing → `writing-style`).
+- **Outward** messages → `text-polish` (customer-facing → `writing-style`, which
+  folds in text-polish).
 - **Short internal work-log notes** (a line or two) → the text-polish concision
-  ruleset below — terse, de-slopped, no em/en-dashes. NOT humanizer.
-- **Long-form internal writeups** → `humanizer`.
+  ruleset below, applied inline — terse, de-slopped, no em/en-dashes.
+- **Long-form internal writeups** → `text-polish`.
+
+`text-polish` humanizes and tightens in one pass, so never call `humanizer` on
+top of it.
 
 Concision ruleset for short internal notes (apply inline, no `claude -p`): say the
 same thing in as few words as possible; cut filler and hedging; active voice;
@@ -63,7 +67,7 @@ IDs, code, and quotations verbatim. (Canonical source: the prose rules in
 ### `log <text>` — append a work-log note
 `scripts/td_worklog.sh <ref> --entry "<text>" [--link "label=url"]... [--next "<text>"]`
 Comment-only; never changes date/priority/status. Argument may be context-sourced
-(guardrail 1-2). Short → concision pass; long → humanizer.
+(guardrail 1-2). Short → concision pass; long → text-polish.
 
 ### `link <url> [label]` — file a URL/locator into the log
 `scripts/td_worklog.sh <ref> --entry "<what this is>" --link "<label>=<url>"`
@@ -92,7 +96,7 @@ Default column `! Customer Blocker`. Distinct from `nudge`.
 
 ### `draft <channel>` — prepare an outward message, log as NOT sent
 `scripts/td_draft.sh <ref> --channel <slack|email|teams> --to "<who>" --text "<msg>" [--link ...]`
-Composes + humanizes the message, logs it "Drafted, not sent". NEVER sends. The
+Composes + text-polishes the message, logs it "Drafted, not sent". NEVER sends. The
 send is a later `nudge`/`email`/`teams`.
 
 ### `done <reason>` — complete (log the reason first)
@@ -116,7 +120,7 @@ Teams → clipboard hand-send.
 Run `scripts/dig_fetch.sh <ref>` to harvest breadcrumbs, then: report the delta
 since the last log, follow the breadcrumbs (`references/data-sources.md`), verify
 every reference is still the right/open one, surface new docs. Targeted forms:
-`dig thread`, `dig ticket`, `dig <url>`. Output prose is humanized.
+`dig thread`, `dig ticket`, `dig <url>`. Output prose is text-polished.
 
 ### Navigation / display
 `more` (expand full comments/log) · `open` (`xdg-open` the task or a breadcrumb) ·
