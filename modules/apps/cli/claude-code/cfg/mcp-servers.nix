@@ -3,6 +3,7 @@
   pkgs,
   secrets,
   kubernetesMcpServer,
+  fluxOperatorMcp,
   isoTopologyPkg,
   kubeconfigFile,
   homeDir,
@@ -114,6 +115,24 @@ let
     kubernetes-mcp-server = {
       command = "${kubernetesMcpServer}/bin/kubernetes-mcp-server";
       args = [ "--read-only" ];
+      env = {
+        KUBECONFIG = kubeconfigFile;
+      };
+    };
+    # Flux Operator MCP server -- read-only, natural-language access to Flux CD
+    # on whatever cluster the mcp-viewer kubeconfig points at (darkstar in the
+    # homelab): trace a Kustomization/HelmRelease tree, read the FluxReport and
+    # controller logs, compare environments. Same host-local kubeconfig gate as
+    # kubernetes-mcp-server above (full profile only), so it is dropped on
+    # headless hosts. --read-only forbids the reconcile/suspend/resume
+    # mutations, and secrets are masked by default (--mask-secrets defaults on),
+    # so Secret values never reach the model context.
+    flux-operator-mcp = {
+      command = "${fluxOperatorMcp}/bin/flux-operator-mcp";
+      args = [
+        "serve"
+        "--read-only"
+      ];
       env = {
         KUBECONFIG = kubeconfigFile;
       };
