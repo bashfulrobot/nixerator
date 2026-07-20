@@ -25,6 +25,10 @@
     ../../modules/apps/cli/starship
     ../../modules/apps/cli/superpowers
     ../../modules/apps/cli/tailscale
+    # Declares apps.cli.text-polish.rulesFile, which the claude-code module
+    # reads unconditionally. Left disabled here: srv is headless, so the
+    # SUPER+SHIFT+R keybind (the module's only config) never applies.
+    ../../modules/apps/cli/text-polish
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
