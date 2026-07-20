@@ -242,16 +242,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1784143977,
-        "narHash": "sha256-4UyLqRVtDVQIn+Z1prs5gUUkp2quD1aZq2qNePKls2c=",
+        "lastModified": 1784341117,
+        "narHash": "sha256-7VjoVZu+8PC41ZDQ3umi/EXsU3sCLNyRfxZrfJKHy+E=",
         "owner": "AvengeMedia",
         "repo": "DankMaterialShell",
-        "rev": "6306bc7aa2cae7450ad0dc9fc9392ad61b860711",
+        "rev": "74896fb87cb9e4bb866dbabcfd754e3e649ad0c7",
         "type": "github"
       },
       "original": {
         "owner": "AvengeMedia",
-        "ref": "v1.5.1",
+        "ref": "v1.5.2",
         "repo": "DankMaterialShell",
         "type": "github"
       }
@@ -264,17 +264,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1782736090,
-        "narHash": "sha256-TnoKATODjWk4e1w3VhRYLWGMdXMJzDyvQF8mtD6WRGA=",
+        "lastModified": 1784433272,
+        "narHash": "sha256-5Gz3pC/rcn8LLwzLZZhrpPMqY+PDdUzoFtXV3uWoitg=",
         "owner": "AvengeMedia",
         "repo": "danksearch",
-        "rev": "1269b4688cc94cbd271e1cbbf19a6e7caa2293de",
+        "rev": "4b4905e2ef3454230fb648d2139f3139b742b0eb",
         "type": "github"
       },
       "original": {
         "owner": "AvengeMedia",
         "repo": "danksearch",
-        "rev": "1269b4688cc94cbd271e1cbbf19a6e7caa2293de",
+        "rev": "4b4905e2ef3454230fb648d2139f3139b742b0eb",
         "type": "github"
       }
     },
@@ -369,17 +369,17 @@
     "dms-plugins": {
       "flake": false,
       "locked": {
-        "lastModified": 1783532508,
-        "narHash": "sha256-17qZKvH0FDQEdX07HEfUjLLvOUEHGmXMVZ0zRtKoTZA=",
+        "lastModified": 1784218055,
+        "narHash": "sha256-q/SGn2/jEZ73qHyvgPgYByn2TRZwdJzJ/uyoRLuuEWk=",
         "owner": "AvengeMedia",
         "repo": "dms-plugins",
-        "rev": "5e4038806d8f4ca1fcfd1116c211cc9f1e36a074",
+        "rev": "e8c36175a1a8ee4718df5d8ef60d105add94f33e",
         "type": "github"
       },
       "original": {
         "owner": "AvengeMedia",
         "repo": "dms-plugins",
-        "rev": "5e4038806d8f4ca1fcfd1116c211cc9f1e36a074",
+        "rev": "e8c36175a1a8ee4718df5d8ef60d105add94f33e",
         "type": "github"
       }
     },
@@ -626,11 +626,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784510554,
-        "narHash": "sha256-360acoOaBysC11pZUg+UiMkbQvdWNS/ktRu30DHUVEk=",
+        "lastModified": 1784567440,
+        "narHash": "sha256-ed15lZm5yAZ3Q50pXI84YPpGpcF4JrcKOcXC314+dT8=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "2073a440fb864378fe2c0ff98723eb9b3351124e",
+        "rev": "2f683b0aaa2914760888d060c41f95cdc4c59d04",
         "type": "github"
       },
       "original": {
