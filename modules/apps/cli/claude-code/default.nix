@@ -71,7 +71,12 @@ let
       homeDir
       ;
     humanizerSkillSrc = inputs.humanizer-skill;
-    textPolishRulesFile = config.apps.cli.text-polish.rulesFile;
+    # Reference the rules file by path, not through
+    # `config.apps.cli.text-polish.rulesFile`. Reading the option made this
+    # module fail to evaluate on any host that imports claude-code without
+    # text-polish (srv, #246). The option is readOnly with this exact path as
+    # its default, so the two can't drift, and activation only ever `cp`s it.
+    textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
   };
 
