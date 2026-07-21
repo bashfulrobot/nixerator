@@ -224,6 +224,7 @@ cmd_pr_current() { pr_current; }
 cmd_pr_json() {
   local n
   n="$(_resolve_pr "${1:-}")"
+  _require_num "$n"
   case "$(_host)" in
     github)
       gh pr view "$n" --json number,title,url,state,body,baseRefName,headRefName,headRefOid,additions,deletions,changedFiles |
@@ -243,6 +244,7 @@ cmd_pr_json() {
 cmd_pr_diff() {
   local n
   n="$(_resolve_pr "${1:-}")"
+  _require_num "$n"
   case "$(_host)" in
     github) gh pr diff "$n" ;;
     forgejo) _fj_raw "repos/$(_repo)/pulls/${n}.diff" ;;
@@ -253,6 +255,7 @@ cmd_pr_diff() {
 cmd_pr_comments() {
   local n
   n="$(_resolve_pr "${1:-}")"
+  _require_num "$n"
   case "$(_host)" in
     github) gh pr view "$n" --json comments -q '.comments[].body' ;;
     forgejo) _fj GET "repos/$(_repo)/issues/${n}/comments" | jq -r '.[].body' ;;
@@ -263,6 +266,7 @@ cmd_pr_comments() {
 cmd_pr_files() {
   local n
   n="$(_resolve_pr "${1:-}")"
+  _require_num "$n"
   case "$(_host)" in
     github) gh pr view "$n" --json files -q '.files[].path' ;;
     forgejo) _fj GET "repos/$(_repo)/pulls/${n}/files?limit=100" | jq -r '.[].filename' ;;
@@ -272,6 +276,7 @@ cmd_pr_files() {
 # forge pr-comment <n> <body>
 cmd_pr_comment() {
   local n="$1" body="$2"
+  _require_num "$n"
   case "$(_host)" in
     github) gh pr comment "$n" --body "$body" ;;
     forgejo)
@@ -284,6 +289,7 @@ cmd_pr_comment() {
 # forge pr-edit-body <n> <body>
 cmd_pr_edit_body() {
   local n="$1" body="$2"
+  _require_num "$n"
   case "$(_host)" in
     github) gh pr edit "$n" --body "$body" ;;
     forgejo)
@@ -296,6 +302,7 @@ cmd_pr_edit_body() {
 # forge pr-edit-base <n> <base>
 cmd_pr_edit_base() {
   local n="$1" base="$2"
+  _require_num "$n"
   case "$(_host)" in
     github) gh pr edit "$n" --base "$base" ;;
     forgejo)
@@ -324,6 +331,7 @@ cmd_pr_create() {
 # forge pr-merge <n> [squash|merge|rebase]  (default squash)
 cmd_pr_merge() {
   local n="$1" method="${2:-squash}"
+  _require_num "$n"
   case "$(_host)" in
     github) gh pr merge "$n" "--${method}" ;;
     forgejo)
@@ -337,6 +345,7 @@ cmd_pr_merge() {
 cmd_pr_labels() {
   local n="$1"
   shift
+  _require_num "$n"
   [ "$#" -gt 0 ] || return 0
   case "$(_host)" in
     github)
@@ -381,6 +390,13 @@ cmd_issue_json() {
 # forge issue-list [state] [limit]  — state open|closed|all (default open).
 cmd_issue_list() {
   local state="${1:-open}" limit="${2:-20}"
+  # state/limit are interpolated into the Forgejo REST URL, so constrain them:
+  # state to the API's allowed values, limit to digits only.
+  case "$state" in
+    open | closed | all) ;;
+    *) _die "invalid --state '$state' (expected: open, closed, all)" ;;
+  esac
+  [[ "$limit" =~ ^[0-9]+$ ]] || _die "invalid --limit '$limit' (expected a number)"
   case "$(_host)" in
     github)
       gh issue list --state "$state" --limit "$limit" --json number,title,labels |

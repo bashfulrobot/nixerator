@@ -676,19 +676,34 @@ _lease_claim() {
   gh issue edit "$issue_number" --add-label "$LEASE_LABEL" >/dev/null 2>&1 ||
     warn "could not add '${LEASE_LABEL}' label to issue #${issue_number} (does it exist in the repo?)"
 
-  if [[ "$reentrant" != "1" ]]; then
-    local body
-    body="$(printf 'Claimed for work.\n\n%s\nclaim-id: %s\nhost: %s\nworktree: %s\nclaimed-at: %s\nbranch: %s' \
-      "$CLAIM_MARKER" "$nonce" "$host" "$wt_path" "$ts" "$branch")"
-    gh issue comment "$issue_number" --body "$body" >/dev/null 2>&1 ||
-      json_error_obj "$(jq -nc --arg issue "$issue_number" \
-        '{message: ("could not post claim comment on issue #" + $issue),
-          cause: "gh_comment_failed", issue_number: ($issue|tonumber)}')"
+  # Re-entrant resume: _lease_precheck found the SOLE existing claim comment is
+  # already ours (same host+worktree) — a prior setup died after claiming but
+  # before 'git worktree add', leaving the claim and no worktree dir. The claim
+  # is ours, so proceed immediately. We must NOT fall through to the settle +
+  # winner logic below: `nonce` is regenerated fresh on every invocation
+  # (host::wt::ts::pid), so it can never equal the stale prior claim's nonce,
+  # the winner test would fail against our own comment, and we would cede to
+  # ourselves — permanently self-locking the resumed task. Return 0 (claim
+  # held), post no new claim comment, run no cede logic.
+  if [[ "$reentrant" == "1" ]]; then
+    return 0
   fi
+
+  local body
+  body="$(printf 'Claimed for work.\n\n%s\nclaim-id: %s\nhost: %s\nworktree: %s\nclaimed-at: %s\nbranch: %s' \
+    "$CLAIM_MARKER" "$nonce" "$host" "$wt_path" "$ts" "$branch")"
+  gh issue comment "$issue_number" --body "$body" >/dev/null 2>&1 ||
+    json_error_obj "$(jq -nc --arg issue "$issue_number" \
+      '{message: ("could not post claim comment on issue #" + $issue),
+        cause: "gh_comment_failed", issue_number: ($issue|tonumber)}')"
 
   # Let a near-simultaneous claim become visible, then resolve the winner.
   sleep "$CLAIM_SETTLE_SECS"
 
+  # Winner = lowest comment id. A forged low-id claim could force a legit agent
+  # to cede (a claim-jacking DoS), but the repo is single-user and private, so
+  # only the user can comment; it also fails safe (refuse, never double-work).
+  # Not worth claim-signing under this threat model.
   local claims winner_nonce winner_host
   claims="$(_lease_claim_comments "$issue_number")"
   winner_nonce="$(printf '%s' "$claims" | jq -r '
@@ -1300,6 +1315,15 @@ cmd_cleanup() {
   # sees the issue is free again.
   _lease_release "$issue_number" "$branch"
   ok "issue-side lease released"
+
+  # Remove this issue's setup lock file. acquire_setup_lock creates
+  # "${worktree_base}/.setup-issue-${issue_number}.lock" (fd 7) but nothing ever
+  # deleted it, so the files accumulated forever and read as phantom orphans.
+  # The flock is fd-based, so unlinking the file is safe. Match the setup path
+  # construction exactly and only touch THIS issue's lock — a reaper for other
+  # issues' stale locks is out of scope here.
+  rm -f "$(dirname "$wt_path")/.setup-issue-${issue_number}.lock"
+  ok "setup lock removed"
 
   # Report the issue's state — do NOT force-close. The PR body's closing
   # keyword (Closes #N / Fixes #N / Resolves #N) is the source of truth: if
