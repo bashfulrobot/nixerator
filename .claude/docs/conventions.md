@@ -22,6 +22,13 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 
 - **Never run `git commit` or `git push`.** The user handles commits.
 - After making changes, suggest a conventional commit scope and title (e.g. `feat(fish): add zoxide integration`).
+- **Do not run `git stash` (push/save).** The `bash-guard` hook blocks it. The stash stack lives at `refs/stash` in the repo's common git directory, which every worktree shares, so two agents stashing in two worktrees push onto the same stack and pop each other's entries. `git stash pop`, `apply`, `list`, `show`, and `drop` stay allowed so a human can recover an existing entry.
+
+### Interrupt and shutdown pattern
+
+- To park in-progress work (agent interrupt, shutdown, or handoff), commit it on the task branch instead of stashing: `git add -A && git commit -m "wip: <summary>"`. The commit lives under the worktree's own HEAD, isolated per worktree, survives a reboot, and (once pushed) is visible on another device, which a stash never is.
+- Resume by unwinding the WIP commit back into the working tree: `git reset --soft HEAD^`. The changes return staged, ready to keep working, and the real commit replaces the `wip:` one.
+- **`rebase.autoStash` stays enabled** and is deliberately not treated the same way. It is scoped to a single rebase, uses the shared stack only for the duration of that one operation, and pops automatically when the rebase finishes, so it never leaves an entry sitting on the stack for another agent to collide with. The ban is on *manual* `git stash`, which does leave a lingering shared entry.
 
 ## Lint and format
 
