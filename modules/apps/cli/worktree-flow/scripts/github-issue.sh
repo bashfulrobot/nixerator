@@ -783,6 +783,14 @@ cmd_setup() {
   done
   [[ -n "$issue_number" ]] || die "usage: github-issue setup <issue-number> [--base <ref>]"
 
+  # Guard before the number flows into the worktree path, branch name, the
+  # .setup-issue-N.lock path, and gh issue refs. A non-numeric value (e.g.
+  # "../../x") would otherwise only trip a later gate. Structured so the
+  # orchestrator can route on cause.
+  [[ "$issue_number" =~ ^[0-9]+$ ]] || json_error_obj "$(jq -nc --arg got "$issue_number" \
+    '{message: ("expected a numeric issue number, got '\''" + $got + "'\''"),
+      cause: "invalid_issue_number", issue_number: $got}')"
+
   local wt_path
   wt_path="$(worktree_base)/issue-${issue_number}"
 
@@ -1273,6 +1281,15 @@ cmd_audit() {
 
 cmd_cleanup() {
   local issue_number="${1:?usage: github-issue cleanup <issue-number>}"
+
+  # Guard before the number flows into the worktree path, the branch names we
+  # delete, the .setup-issue-N.lock path we rm, and gh issue refs. A non-numeric
+  # value (e.g. "../../x") would otherwise only trip a later gate. Structured so
+  # the orchestrator can route on cause.
+  [[ "$issue_number" =~ ^[0-9]+$ ]] || json_error_obj "$(jq -nc --arg got "$issue_number" \
+    '{message: ("expected a numeric issue number, got '\''" + $got + "'\''"),
+      cause: "invalid_issue_number", issue_number: $got}')"
+
   local wt_path
   wt_path="$(worktree_base)/issue-${issue_number}"
 
