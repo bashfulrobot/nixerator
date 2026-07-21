@@ -46,6 +46,8 @@
     "skills/explainer-graphic/SKILL.md": "ee6b5f6c6c6d8fa85fd5fa6a9c5da222f1f013f6de9e09f0cf4c2feddeabcdd1",
     "skills/feature-request/SKILL.md": "11f7e9baef578ef50eeaea2ad41b356ff9efe30dac73f921982edd2f80d7992d",
     "skills/feature-request/references/example-multi-tenant.md": "334258ed373af9adfe3e2353d2f5772970a9dc5dbb23b83f3458eb4210f46326",
+    "skills/fleet-status/SKILL.md": "11dac2e0b201e04812b9638720aa775ed672ce74cc40f810c20757b570962113",
+    "skills/fleet-status/scripts/fleet-status.sh": "6f69df8bf18f90320ee5a3b7b9e64d44225d30febaaa13cddc0de393392a2ed2",
     "skills/github-issues-auto/SKILL.md": "78c9f7aad8d5a851a178d115497356c8081232e06ace4a653153f73a4da7b767",
     "skills/gitops-cluster-debug/SKILL.md": "3419ce297d8a30b9de50549db18bb649d25dc7c0d9aee4a64c4ba293ca7c2cc1",
     "skills/gitops-knowledge/SKILL.md": "55942e024b378296959cd02ff844abd6c37ec9165bfb6b3ae64aa1342eb62d98",
