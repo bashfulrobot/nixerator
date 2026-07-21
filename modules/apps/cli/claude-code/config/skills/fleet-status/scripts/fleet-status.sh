@@ -8,11 +8,27 @@
 # ahead/behind vs the branch base, the claim owner, and the exact command to
 # resume it -- `work <repo>#<N>`.
 #
-# It flags:
-#   ORPHAN  a worktree (or a .setup-issue-N.lock claim) with no matching open
-#           issue -- nothing backing it on the forge.
-#   STALE   a claim whose owner is not the current host, or whose issue is
-#           closed on the forge.
+# Worktrees are the source of truth. Every row is a real worktree on disk; the
+# tool never invents rows from leftover lock files (a stale `.setup-issue-N.lock`
+# is not evidence of anything -- its producer historically never removed it, so
+# it is ignored here; producer-side lock cleanup lives elsewhere).
+#
+# Row kinds:
+#   worktree   a task worktree with a derivable issue number.
+#   untracked  a healthy worktree whose branch carries no issue number (a
+#              slug-only branch like `feat/arr-declarative-config`). This is a
+#              benign, first-class state, not an error -- it is groundwork for
+#              an issue-less sister workflow. Rendered as a normal row.
+#
+# Flags:
+#   ORPHAN  a worktree whose referenced issue is CLOSED on the forge -- there
+#           is no open issue backing it. (A numbered issue the forge cannot be
+#           read for -- 404, transport, or auth -- degrades to issue state
+#           "unknown", never a false orphan: `forge` reports not-found and a
+#           network blip with the same non-zero exit, so we do not guess.)
+#   STALE   a worktree whose issue is claimed by a DIFFERENT host, read from the
+#           issue's `<!-- worktree-flow:claim -->` comments (worktree-flow's
+#           issue-side lease). Re-attaching here would collide with that host.
 #
 # It generalizes `branch-status` (single branch, current dir) to the whole
 # fleet of worktrees across every repo.
@@ -24,25 +40,30 @@
 #   --root PATH   Shared worktree root to scan. Default: $WORKTREE_ROOT, else
 #                 $HOME/git/.worktrees.
 #   --json        Emit a JSON array instead of the human-readable board.
-#   --no-remote   Skip forge issue lookups (offline / fast). Issue state shows
-#                 as "unknown"; the closed-issue stale flag is not evaluated.
+#   --no-remote   Skip forge lookups (offline / fast). Issue state shows as
+#                 "unknown"; neither the closed-issue orphan flag nor the
+#                 foreign-host stale flag is evaluated.
 #   -h, --help    Show this help.
 #
 # Read-only: this tool never creates, edits, or removes a worktree, branch,
 # issue, or state file. It runs `git status`/`git rev-list`/`git remote` and
-# `forge issue-json` (all read-only) plus `jq`/`find`. It does not fetch, so
-# ahead/behind is computed against local remote-tracking refs.
+# `forge issue-json`/`forge issue-comments` (all read-only) plus `jq`/`find`. It
+# does not fetch, so ahead/behind is computed against local remote-tracking refs.
 #
 # Host awareness: worktrees can span more than one git host (GitHub and a
 # self-hosted Forgejo). `forge` detects the host from each repo's origin
-# remote, so every `forge issue-json` runs with the current directory inside
-# that specific worktree. A repo on neither host, or a failed lookup, degrades
-# to issue state "unknown" for that row -- the listing never crashes.
+# remote, so every forge call runs with the current directory inside that
+# specific worktree. A repo on neither host, or a failed lookup, degrades to
+# issue state "unknown" for that row -- the listing never crashes.
 
 set -uo pipefail
 
 # ── help ──────────────────────────────────────────────────────────────────────
-show_help() { sed -n '2,52p' "$0" | sed 's/^# \{0,1\}//'; }
+# Print the leading comment header (everything from line 2 up to the first
+# non-comment line), stripped of the leading "# ". Robust to header length.
+show_help() {
+  awk 'NR==1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$0"
+}
 
 # ── args ──────────────────────────────────────────────────────────────────────
 ROOT="${WORKTREE_ROOT:-$HOME/git/.worktrees}"
@@ -50,7 +71,7 @@ JSON=0
 REMOTE=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --root) ROOT="$2"; shift 2 ;;
+    --root) ROOT="${2:?--root needs a path}"; shift 2 ;;
     --json) JSON=1; shift ;;
     --no-remote) REMOTE=0; shift ;;
     -h|--help) show_help; exit 0 ;;
@@ -61,7 +82,10 @@ done
 command -v jq >/dev/null 2>&1 || { echo "fleet-status: jq is required" >&2; exit 1; }
 command -v git >/dev/null 2>&1 || { echo "fleet-status: git is required" >&2; exit 1; }
 
-HOST="$(hostname 2>/dev/null || printf '%s' "${HOSTNAME:-unknown}")"
+# Local host name. `uname -n` matches worktree-flow's issue-side lease
+# convention (github-issue.sh uses `uname -n` for the claiming host), so the
+# foreign-host comparison below is apples to apples.
+LOCALHOST="$(uname -n 2>/dev/null || printf '%s' "${HOSTNAME:-unknown}")"
 HAVE_FORGE=0
 if command -v forge >/dev/null 2>&1; then HAVE_FORGE=1; fi
 
@@ -73,6 +97,23 @@ else
   C_DIM=''; C_BOLD=''; C_RED=''; C_YEL=''; C_GRN=''; C_CYA=''; C_NC=''
 fi
 
+# ── sanitize display fields for the TTY ───────────────────────────────────────
+# State-file values (branch, note, step, owner, reasons) can carry ESC/OSC
+# bytes. Strip control chars before printing to a terminal; keep tab, LF, CR.
+# The --json path is NOT sanitized -- JSON encodes control chars safely.
+san() { LC_ALL=C tr -d '\000-\010\013\014\016-\037'; }
+
+# ── derive an issue number from a branch/dir string ───────────────────────────
+# Handles: issue-251, feat/251, feat/251-slug, 251-fix, and a bare 251.
+# Prints the number, or nothing when the string carries no leading issue number.
+derive_issue() {
+  local s="$1"
+  if [[ "$s" =~ ^issue-([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
+  if [[ "$s" =~ ^[a-z]+/([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
+  if [[ "$s" =~ ^([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
+  printf ''
+}
+
 # ── default branch of a worktree (fallback when base_ref absent) ──────────────
 default_branch_for() {
   local wt="$1" ref
@@ -81,7 +122,7 @@ default_branch_for() {
   }
   local cand
   for cand in main master; do
-    if git -C "$wt" show-ref --verify --quiet "refs/remotes/origin/${cand}"; then
+    if git -C "$wt" show-ref --verify --quiet "refs/remotes/origin/${cand}" 2>/dev/null; then
       printf 'origin/%s' "$cand"; return
     fi
   done
@@ -91,10 +132,12 @@ default_branch_for() {
 # ── query the forge for an issue's state (uppercased) ─────────────────────────
 # Runs with cwd inside the worktree so `forge` picks the right host. Prints
 # OPEN / CLOSED, or "unknown" on any failure (missing forge, unsupported host,
-# network error, issue not found).
+# network error, issue not found). `forge` cannot distinguish a 404 from a
+# transport/auth error -- both surface the same non-zero exit -- so a numbered
+# issue that cannot be read stays "unknown" rather than a false orphan.
 forge_issue_state() {
   local wt="$1" num="$2" out
-  [[ $REMOTE -eq 1 && $HAVE_FORGE -eq 1 && -n "$num" ]] || { printf 'unknown'; return; }
+  [[ $REMOTE -eq 1 && $HAVE_FORGE -eq 1 && "$num" =~ ^[0-9]+$ ]] || { printf 'unknown'; return; }
   out="$(cd "$wt" && forge issue-json "$num" 2>/dev/null)" || { printf 'unknown'; return; }
   local st
   st="$(printf '%s' "$out" | jq -r '.state // empty' 2>/dev/null)" || st=""
@@ -102,83 +145,122 @@ forge_issue_state() {
   printf '%s' "$st" | tr '[:lower:]' '[:upper:]'
 }
 
+# ── claim owner from the issue's lease comments (worktree-flow #249) ───────────
+# worktree-flow records a per-agent claim as an ISSUE COMMENT stamped with
+# `<!-- worktree-flow:claim -->` and body lines `claim-id:`, `host:`,
+# `worktree:`, ...; a ceded claim carries `<!-- worktree-flow:cede -->` instead.
+# The winner is the claim comment with the LOWEST comment id.
+#
+# `forge issue-comments <N>` prints comment BODIES (not ids) in the forge's
+# native order, which is ascending comment id for both gh and the Forgejo REST
+# endpoint. So the FIRST claim marker in the stream is the lowest-id (winning)
+# claim. We scan for that marker, skip cede markers, and take the `host:` line
+# that follows it. Best-effort: any forge failure or absent claim yields the
+# empty string, and the caller then defaults the owner to the local host.
+claim_owner_for() {
+  local wt="$1" num="$2" out
+  [[ $REMOTE -eq 1 && $HAVE_FORGE -eq 1 && "$num" =~ ^[0-9]+$ ]] || { printf ''; return; }
+  out="$(cd "$wt" && forge issue-comments "$num" 2>/dev/null)" || { printf ''; return; }
+  printf '%s\n' "$out" | awk '
+    /<!-- worktree-flow:claim -->/ { inclaim=1; next }
+    /<!-- worktree-flow:cede -->/  { inclaim=0; next }
+    inclaim && /^host:[[:space:]]/ {
+      sub(/^host:[[:space:]]*/, "")
+      gsub(/[[:space:]]+$/, "")
+      print
+      exit
+    }'
+}
+
 # ── collect rows as NDJSON, then render ───────────────────────────────────────
 rows_json=""
 emit_row() { rows_json+="$1"$'\n'; }
-
-# Track which (repo,issue) pairs have a real worktree so leftover lock files
-# can be reported as orphan claims.
-declare -A claimed_by_worktree=()
 
 scan_worktree() {
   local wt="$1" repo="$2"
   local state_file="${wt}/.worktree-state.json"
 
-  local issue="" branch="" step="" note="" itype="" owner=""
+  local issue="" branch="" step="" note="" itype=""
   if [[ -f "$state_file" ]]; then
     issue="$(jq -r '.issue_number // empty' "$state_file" 2>/dev/null)"
     branch="$(jq -r '.branch // empty' "$state_file" 2>/dev/null)"
     step="$(jq -r '.workflow_step // empty' "$state_file" 2>/dev/null)"
     note="$(jq -r '.step_history[-1].note // empty' "$state_file" 2>/dev/null)"
     itype="$(jq -r '.type // empty' "$state_file" 2>/dev/null)"
-    # Future-proof for an issue-side lease that records an owning host.
-    owner="$(jq -r '.lease.host // .claimed_by // .host // .owner // empty' "$state_file" 2>/dev/null)"
   fi
 
   # Branch fallback for state-less worktrees.
   if [[ -z "$branch" ]]; then
     branch="$(git -C "$wt" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
   fi
-  # Derive an issue number from the dir/branch when no state file carries one.
+  # Derive an issue number from the branch, then the dir, when the state file
+  # carries none.
   if [[ -z "$issue" ]]; then
-    local base; base="$(basename "$wt")"
-    if [[ "$base" =~ ^issue-([0-9]+) ]]; then issue="${BASH_REMATCH[1]}"
-    elif [[ "$branch" =~ ^[a-z]+/([0-9]+)- ]]; then issue="${BASH_REMATCH[1]}"; fi
+    issue="$(derive_issue "$branch")"
+    [[ -z "$issue" ]] && issue="$(derive_issue "$(basename "$wt")")"
   fi
-
-  # Worktrees are host-local; absent an explicit lease, the owner is this host.
-  local owner_display="$owner"
-  [[ -z "$owner_display" ]] && owner_display="$HOST"
+  # Numeric-guard: only a bare integer is a usable issue number for forge/git.
+  # A non-numeric value (injected or malformed) is treated as no issue number.
+  [[ "$issue" =~ ^[0-9]+$ ]] || issue=""
 
   # git signals (read-only, no fetch).
   local dirty ahead="?" behind="?" base_ref counts
   dirty="$(git -C "$wt" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
   [[ -n "$dirty" ]] || dirty=0
   base_ref="$(jq -r '.base_ref // empty' "$state_file" 2>/dev/null)"
-  [[ -n "$base_ref" ]] || base_ref="$(default_branch_for "$wt")"
+  # Reject an empty or option-like base_ref (a leading '-' would be parsed as a
+  # git flag in the "${base_ref}...HEAD" range); fall back to the default branch.
+  if [[ -z "$base_ref" || "$base_ref" == -* ]]; then
+    base_ref="$(default_branch_for "$wt")"
+  fi
   counts="$(git -C "$wt" rev-list --left-right --count "${base_ref}...HEAD" 2>/dev/null || echo "")"
   if [[ -n "$counts" ]]; then
     behind="$(printf '%s' "$counts" | awk '{print $1}')"
     ahead="$(printf '%s' "$counts" | awk '{print $2}')"
   fi
 
-  # Issue state + flags.
-  local istate; istate="$(forge_issue_state "$wt" "$issue")"
-  local orphan="false" stale="false" reasons=()
-  if [[ -z "$issue" ]]; then
-    orphan="true"; reasons+=("no issue number for worktree")
-  elif [[ "$istate" == "CLOSED" ]]; then
-    stale="true"; reasons+=("issue closed")
-  fi
-  if [[ -n "$owner" && "$owner" != "$HOST" ]]; then
-    stale="true"; reasons+=("claimed by ${owner}, not ${HOST}")
-  fi
+  # Kind + flags.
+  local kind="worktree" orphan="false" stale="false" reasons=()
+  local istate="unknown" owner="$LOCALHOST"
 
-  [[ -n "$issue" ]] && claimed_by_worktree["${repo}#${issue}"]=1
+  if [[ -z "$issue" ]]; then
+    # Benign, first-class state: a healthy worktree with no issue number.
+    kind="untracked"
+  else
+    istate="$(forge_issue_state "$wt" "$issue")"
+    if [[ "$istate" == "CLOSED" ]]; then
+      orphan="true"; reasons+=("issue #${issue} is closed -- no open issue backing this worktree")
+    fi
+    # Foreign-host claim: worktree-flow's issue-side lease (#249).
+    local claim_owner; claim_owner="$(claim_owner_for "$wt" "$issue")"
+    if [[ -n "$claim_owner" ]]; then
+      owner="$claim_owner"
+      if [[ "$claim_owner" != "$LOCALHOST" ]]; then
+        stale="true"; reasons+=("claimed by ${claim_owner}, not ${LOCALHOST}")
+      fi
+    fi
+  fi
 
   local resume=""
-  [[ -n "$issue" ]] && resume="work ${repo}#${issue}"
+  if [[ -n "$issue" ]]; then
+    resume="work ${repo}#${issue}"
+  else
+    # Best-effort resume for an issue-less worktree: drop into it directly.
+    resume="cd ${wt}"
+  fi
 
+  # JSON schema (see SKILL.md): issue/ahead/behind are numbers or null; dirty is
+  # a number; orphan/stale are booleans. "?" never appears in --json output.
   emit_row "$(jq -nc \
     --arg repo "$repo" --arg issue "$issue" --arg branch "$branch" \
     --arg wt "$wt" --arg step "$step" --arg note "$note" --arg itype "$itype" \
     --arg dirty "$dirty" --arg ahead "$ahead" --arg behind "$behind" \
-    --arg owner "$owner_display" --arg istate "$istate" \
+    --arg owner "$owner" --arg istate "$istate" --arg kind "$kind" \
     --arg orphan "$orphan" --arg stale "$stale" --arg resume "$resume" \
     --argjson reasons "$(printf '%s\n' "${reasons[@]:-}" | jq -R . | jq -sc 'map(select(. != ""))')" \
-    '{repo:$repo, issue:$issue, branch:$branch, worktree:$wt, kind:"worktree",
+    '{repo:$repo, issue:($issue|tonumber? // null), branch:$branch, worktree:$wt, kind:$kind,
       workflow_step:$step, last_note:$note, type:$itype,
-      dirty:($dirty|tonumber), ahead:$ahead, behind:$behind,
+      dirty:($dirty|tonumber), ahead:($ahead|tonumber? // null), behind:($behind|tonumber? // null),
       owner:$owner, issue_state:$istate,
       orphan:($orphan=="true"), stale:($stale=="true"), reasons:$reasons,
       resume:$resume}')"
@@ -202,26 +284,8 @@ while IFS= read -r -d '' repo_dir; do
   done < <(find "$repo_dir" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null)
 done < <(find "$ROOT" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null)
 
-# Leftover .setup-issue-N.lock claims with no backing worktree -> orphan claims.
-# Repo-namespaced locks (<root>/<repo>/.setup-issue-N.lock) plus legacy
-# root-level locks (<root>/.setup-issue-N.lock, repo unknown).
-while IFS= read -r -d '' lock; do
-  n="$(basename "$lock")"; n="${n#.setup-issue-}"; n="${n%.lock}"
-  parent="$(dirname "$lock")"
-  if [[ "$parent" == "$ROOT" ]]; then repo="(root)"; else repo="$(basename "$parent")"; fi
-  [[ -n "${claimed_by_worktree[${repo}#${n}]:-}" ]] && continue
-  resume=""
-  [[ "$repo" != "(root)" ]] && resume="work ${repo}#${n}"
-  emit_row "$(jq -nc --arg repo "$repo" --arg issue "$n" --arg lock "$lock" --arg resume "$resume" \
-    '{repo:$repo, issue:$issue, branch:"", worktree:"", kind:"orphan-claim",
-      workflow_step:"", last_note:"", type:"",
-      dirty:0, ahead:"?", behind:"?", owner:"", issue_state:"unknown",
-      orphan:true, stale:false,
-      reasons:["setup lock with no matching worktree"], resume:$resume}')"
-done < <(find "$ROOT" -mindepth 1 -maxdepth 2 -name '.setup-issue-*.lock' -print0 2>/dev/null)
-
 # ── render ────────────────────────────────────────────────────────────────────
-all_json="$(printf '%s' "$rows_json" | jq -sc 'sort_by(.repo, (.issue|tonumber? // 0))')"
+all_json="$(printf '%s' "$rows_json" | jq -sc 'sort_by(.repo, (.issue // 0))')"
 
 if [[ $JSON -eq 1 ]]; then
   printf '%s\n' "$all_json" | jq .
@@ -230,49 +294,46 @@ fi
 
 count="$(printf '%s' "$all_json" | jq 'length')"
 printf '%sFleet status%s  %s(host: %s, root: %s)%s\n' \
-  "$C_BOLD" "$C_NC" "$C_DIM" "$HOST" "$ROOT" "$C_NC"
+  "$C_BOLD" "$C_NC" "$C_DIM" "$LOCALHOST" "$ROOT" "$C_NC"
 if [[ "$count" -eq 0 ]]; then
   printf '%sNo task worktrees found.%s\n' "$C_DIM" "$C_NC"
   exit 0
 fi
-printf '%s%d worktree(s)/claim(s)%s\n\n' "$C_DIM" "$count" "$C_NC"
+printf '%s%d worktree(s)%s\n\n' "$C_DIM" "$count" "$C_NC"
 
 printf '%s' "$all_json" | jq -c '.[]' | while IFS= read -r row; do
-  repo="$(jq -r '.repo' <<<"$row")"
-  issue="$(jq -r '.issue' <<<"$row")"
-  branch="$(jq -r '.branch' <<<"$row")"
+  repo="$(jq -r '.repo // empty' <<<"$row" | san)"
+  issue="$(jq -r '.issue // empty' <<<"$row")"
+  branch="$(jq -r '.branch // empty' <<<"$row" | san)"
   kind="$(jq -r '.kind' <<<"$row")"
-  step="$(jq -r '.workflow_step' <<<"$row")"
-  note="$(jq -r '.last_note' <<<"$row")"
+  step="$(jq -r '.workflow_step // empty' <<<"$row" | san)"
+  note="$(jq -r '.last_note // empty' <<<"$row" | san)"
   dirty="$(jq -r '.dirty' <<<"$row")"
-  ahead="$(jq -r '.ahead' <<<"$row")"
-  behind="$(jq -r '.behind' <<<"$row")"
-  owner="$(jq -r '.owner' <<<"$row")"
+  ahead="$(jq -r '.ahead // "?"' <<<"$row")"
+  behind="$(jq -r '.behind // "?"' <<<"$row")"
+  owner="$(jq -r '.owner // empty' <<<"$row" | san)"
   istate="$(jq -r '.issue_state' <<<"$row")"
   orphan="$(jq -r '.orphan' <<<"$row")"
   stale="$(jq -r '.stale' <<<"$row")"
-  resume="$(jq -r '.resume' <<<"$row")"
-  reasons="$(jq -r '.reasons | join("; ")' <<<"$row")"
+  resume="$(jq -r '.resume // empty' <<<"$row")"
+  reason_line="$(jq -r '.reasons | join("; ")' <<<"$row" | san)"
 
   marker="$C_GRN●$C_NC"; flag=""
+  [[ "$kind" == "untracked" ]] && { marker="$C_DIM○$C_NC"; flag=" ${C_DIM}[untracked]${C_NC}"; }
   if [[ "$orphan" == "true" ]]; then marker="$C_RED✖$C_NC"; flag=" ${C_RED}[ORPHAN]${C_NC}"; fi
   if [[ "$stale" == "true" ]]; then marker="$C_YEL⚠$C_NC"; flag="${flag} ${C_YEL}[STALE]${C_NC}"; fi
 
   handle="$repo"
   [[ -n "$issue" ]] && handle="${repo} ${C_CYA}#${issue}${C_NC}"
-  printf '%s %s%s  %s%s\n' "$marker" "$C_BOLD" "$handle" "${branch:-(unknown branch)}" "$flag"
-  if [[ "$kind" == "orphan-claim" ]]; then
-    printf '    %sclaim lock, no worktree%s\n' "$C_DIM" "$C_NC"
-  else
-    if [[ -n "$step" || -n "$note" ]]; then
-      printf '    step: %s%s%s' "$C_BOLD" "${step:-?}" "$C_NC"
-      [[ -n "$note" ]] && printf ' %s— %s%s' "$C_DIM" "$note" "$C_NC"
-      printf '\n'
-    fi
-    printf '    git:  %s dirty, %s ahead / %s behind\n' "$dirty" "$ahead" "$behind"
-    printf '    issue: %s   owner: %s\n' "$istate" "$owner"
+  printf '%s %s%s%s  %s%s\n' "$marker" "$C_BOLD" "$handle" "$C_NC" "${branch:-(unknown branch)}" "$flag"
+  if [[ -n "$step" || -n "$note" ]]; then
+    printf '    step: %s%s%s' "$C_BOLD" "${step:-?}" "$C_NC"
+    [[ -n "$note" ]] && printf ' %s— %s%s' "$C_DIM" "$note" "$C_NC"
+    printf '\n'
   fi
-  [[ -n "$reasons" ]] && printf '    %s%s%s\n' "$C_YEL" "$reasons" "$C_NC"
+  printf '    git:  %s dirty, %s ahead / %s behind\n' "$dirty" "$ahead" "$behind"
+  printf '    issue: %s   owner: %s\n' "$istate" "$owner"
+  [[ -n "$reason_line" ]] && printf '    %s%s%s\n' "$C_YEL" "$reason_line" "$C_NC"
   [[ -n "$resume" ]] && printf '    resume: %s%s%s\n' "$C_CYA" "$resume" "$C_NC"
   printf '\n'
 done
