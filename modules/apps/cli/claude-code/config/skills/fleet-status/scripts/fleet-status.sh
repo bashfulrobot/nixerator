@@ -72,16 +72,38 @@ JSON=0
 REMOTE=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --root) ROOT="${2:?--root needs a path}"; shift 2 ;;
-    --json) JSON=1; shift ;;
-    --no-remote) REMOTE=0; shift ;;
-    -h|--help) show_help; exit 0 ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; show_help >&2; exit 2 ;;
+    --root)
+      ROOT="${2:?--root needs a path}"
+      shift 2
+      ;;
+    --json)
+      JSON=1
+      shift
+      ;;
+    --no-remote)
+      REMOTE=0
+      shift
+      ;;
+    -h | --help)
+      show_help
+      exit 0
+      ;;
+    *)
+      printf 'unknown argument: %s\n' "$1" >&2
+      show_help >&2
+      exit 2
+      ;;
   esac
 done
 
-command -v jq >/dev/null 2>&1 || { echo "fleet-status: jq is required" >&2; exit 1; }
-command -v git >/dev/null 2>&1 || { echo "fleet-status: git is required" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || {
+  echo "fleet-status: jq is required" >&2
+  exit 1
+}
+command -v git >/dev/null 2>&1 || {
+  echo "fleet-status: git is required" >&2
+  exit 1
+}
 
 # Local host name. `uname -n` matches worktree-flow's issue-side lease
 # convention (github-issue.sh uses `uname -n` for the claiming host), so the
@@ -97,10 +119,21 @@ CLAIM_MARKER='<!-- worktree-flow:claim -->'
 
 # ── colors (human mode, TTY only) ─────────────────────────────────────────────
 if [[ $JSON -eq 0 && -t 1 ]]; then
-  C_DIM=$'\033[2m'; C_BOLD=$'\033[1m'; C_RED=$'\033[0;31m'
-  C_YEL=$'\033[1;33m'; C_GRN=$'\033[0;32m'; C_CYA=$'\033[0;36m'; C_NC=$'\033[0m'
+  C_DIM=$'\033[2m'
+  C_BOLD=$'\033[1m'
+  C_RED=$'\033[0;31m'
+  C_YEL=$'\033[1;33m'
+  C_GRN=$'\033[0;32m'
+  C_CYA=$'\033[0;36m'
+  C_NC=$'\033[0m'
 else
-  C_DIM=''; C_BOLD=''; C_RED=''; C_YEL=''; C_GRN=''; C_CYA=''; C_NC=''
+  C_DIM=''
+  C_BOLD=''
+  C_RED=''
+  C_YEL=''
+  C_GRN=''
+  C_CYA=''
+  C_NC=''
 fi
 
 # ── sanitize display fields for the TTY ───────────────────────────────────────
@@ -114,11 +147,20 @@ san() { LC_ALL=C tr -d '\000-\010\013\014\016-\037'; }
 # Prints the number, or nothing when the string carries no leading issue number.
 derive_issue() {
   local s="$1"
-  if [[ "$s" =~ ^issue-([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
+  if [[ "$s" =~ ^issue-([0-9]+) ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+    return
+  fi
   # Case-insensitive type prefix so uppercase/mixed-case branches (FEAT/9,
   # Fix/12) still resolve the number, matching worktree-flow's slug rules.
-  if [[ "$s" =~ ^[A-Za-z]+/([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
-  if [[ "$s" =~ ^([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
+  if [[ "$s" =~ ^[A-Za-z]+/([0-9]+) ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+    return
+  fi
+  if [[ "$s" =~ ^([0-9]+) ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+    return
+  fi
   printf ''
 }
 
@@ -126,12 +168,14 @@ derive_issue() {
 default_branch_for() {
   local wt="$1" ref
   ref="$(git -C "$wt" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null)" && {
-    printf 'origin/%s' "${ref#refs/remotes/origin/}"; return
+    printf 'origin/%s' "${ref#refs/remotes/origin/}"
+    return
   }
   local cand
   for cand in main master; do
     if git -C "$wt" show-ref --verify --quiet "refs/remotes/origin/${cand}" 2>/dev/null; then
-      printf 'origin/%s' "$cand"; return
+      printf 'origin/%s' "$cand"
+      return
     fi
   done
   printf 'origin/main'
@@ -145,11 +189,20 @@ default_branch_for() {
 # issue that cannot be read stays "unknown" rather than a false orphan.
 forge_issue_state() {
   local wt="$1" num="$2" out
-  [[ $REMOTE -eq 1 && $HAVE_FORGE -eq 1 && "$num" =~ ^[0-9]+$ ]] || { printf 'unknown'; return; }
-  out="$(cd "$wt" && forge issue-json "$num" 2>/dev/null)" || { printf 'unknown'; return; }
+  [[ $REMOTE -eq 1 && $HAVE_FORGE -eq 1 && "$num" =~ ^[0-9]+$ ]] || {
+    printf 'unknown'
+    return
+  }
+  out="$(cd "$wt" && forge issue-json "$num" 2>/dev/null)" || {
+    printf 'unknown'
+    return
+  }
   local st
   st="$(printf '%s' "$out" | jq -r '.state // empty' 2>/dev/null)" || st=""
-  [[ -n "$st" ]] || { printf 'unknown'; return; }
+  [[ -n "$st" ]] || {
+    printf 'unknown'
+    return
+  }
   printf '%s' "$st" | tr '[:lower:]' '[:upper:]'
 }
 
@@ -175,9 +228,18 @@ forge_issue_state() {
 # stale). Same for any forge failure or an issue with no claim comment.
 claim_owner_for() {
   local wt="$1" num="$2" out host
-  [[ $REMOTE -eq 1 && $HAVE_FORGE -eq 1 && "$num" =~ ^[0-9]+$ ]] || { printf ''; return; }
-  out="$(cd "$wt" && forge issue-comments-json "$num" 2>/dev/null)" || { printf ''; return; }
-  [[ -n "$out" ]] || { printf ''; return; }
+  [[ $REMOTE -eq 1 && $HAVE_FORGE -eq 1 && "$num" =~ ^[0-9]+$ ]] || {
+    printf ''
+    return
+  }
+  out="$(cd "$wt" && forge issue-comments-json "$num" 2>/dev/null)" || {
+    printf ''
+    return
+  }
+  [[ -n "$out" ]] || {
+    printf ''
+    return
+  }
   # jq: keep only claim-marker comments (excludes cedes), sort by id, take the
   # lowest, and pull `host:` from that single body. `(?m)` anchors `^` to line
   # starts; leading whitespace and extra spaces after the colon are tolerated
@@ -186,7 +248,10 @@ claim_owner_for() {
   host="$(printf '%s' "$out" | jq -r --arg m "$CLAIM_MARKER" '
     ([ .[] | select((.body // "") | contains($m)) ] | sort_by(.id) | .[0].body // "")
     | (capture("(?m)^[ \t]*host:[ \t]*(?<h>[^\n]*)") // {h:""} | .h | sub("[ \t]+$";""))
-  ' 2>/dev/null)" || { printf ''; return; }
+  ' 2>/dev/null)" || {
+    printf ''
+    return
+  }
   printf '%s' "$host"
 }
 
@@ -247,14 +312,17 @@ scan_worktree() {
   else
     istate="$(forge_issue_state "$wt" "$issue")"
     if [[ "$istate" == "CLOSED" ]]; then
-      orphan="true"; reasons+=("issue #${issue} is closed -- no open issue backing this worktree")
+      orphan="true"
+      reasons+=("issue #${issue} is closed -- no open issue backing this worktree")
     fi
     # Foreign-host claim: worktree-flow's issue-side lease (#249).
-    local claim_owner; claim_owner="$(claim_owner_for "$wt" "$issue")"
+    local claim_owner
+    claim_owner="$(claim_owner_for "$wt" "$issue")"
     if [[ -n "$claim_owner" ]]; then
       owner="$claim_owner"
       if [[ "$claim_owner" != "$LOCALHOST" ]]; then
-        stale="true"; reasons+=("claimed by ${claim_owner}, not ${LOCALHOST}")
+        stale="true"
+        reasons+=("claimed by ${claim_owner}, not ${LOCALHOST}")
       fi
     fi
   fi
@@ -336,10 +404,20 @@ printf '%s' "$all_json" | jq -c '.[]' | while IFS= read -r row; do
   resume="$(jq -r '.resume // empty' <<<"$row")"
   reason_line="$(jq -r '.reasons | join("; ")' <<<"$row" | san)"
 
-  marker="$C_GRN●$C_NC"; flag=""
-  [[ "$kind" == "untracked" ]] && { marker="$C_DIM○$C_NC"; flag=" ${C_DIM}[untracked]${C_NC}"; }
-  if [[ "$orphan" == "true" ]]; then marker="$C_RED✖$C_NC"; flag=" ${C_RED}[ORPHAN]${C_NC}"; fi
-  if [[ "$stale" == "true" ]]; then marker="$C_YEL⚠$C_NC"; flag="${flag} ${C_YEL}[STALE]${C_NC}"; fi
+  marker="$C_GRN●$C_NC"
+  flag=""
+  [[ "$kind" == "untracked" ]] && {
+    marker="$C_DIM○$C_NC"
+    flag=" ${C_DIM}[untracked]${C_NC}"
+  }
+  if [[ "$orphan" == "true" ]]; then
+    marker="$C_RED✖$C_NC"
+    flag=" ${C_RED}[ORPHAN]${C_NC}"
+  fi
+  if [[ "$stale" == "true" ]]; then
+    marker="$C_YEL⚠$C_NC"
+    flag="${flag} ${C_YEL}[STALE]${C_NC}"
+  fi
 
   handle="$repo"
   [[ -n "$issue" ]] && handle="${repo} ${C_CYA}#${issue}${C_NC}"
