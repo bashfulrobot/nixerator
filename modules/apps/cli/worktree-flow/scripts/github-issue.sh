@@ -572,6 +572,96 @@ parse_blockers() {
   printf '%s' "$result"
 }
 
+# ── Issue-side lease (cross-machine claim) ──────────────────────────────────
+# The local flock only guards one filesystem. Two agents on different hosts, or
+# two checkouts with separate worktree roots, have independent lock namespaces,
+# so both could run setup for the same issue. Assert ownership on the issue
+# itself so any agent, anywhere, sees the claim first. The assignee is the
+# machine-check token: a foreign assignee means another *user* already holds
+# it. The in-progress label and the claim comment are the human-visible signal.
+# This runs inside the setup flock, so the network round-trip is serialised
+# locally while a second machine's setup still sees the claim on the forge.
+LEASE_LABEL="in-progress"
+
+# Marker embedded in claim/release comments so humans can spot the machine
+# breadcrumb and future tooling can grep for it.
+_lease_marker() { printf '<!-- worktree-lease issue=%s -->' "$1"; }
+
+# Refuse setup when the issue is already claimed. Emits a structured
+# issue_claimed error (and exits) on a foreign assignee or the in-progress
+# label. Silent return means the issue is free to claim.
+_lease_precheck() {
+  local issue_number="$1" me="$2"
+  local meta foreign_owner any_owner has_label
+  meta="$(gh issue view "$issue_number" --json assignees,labels)"
+  foreign_owner="$(printf '%s' "$meta" |
+    jq -r --arg me "$me" '[.assignees[].login | select(. != $me)] | .[0] // empty')"
+  any_owner="$(printf '%s' "$meta" | jq -r '.assignees[0].login // empty')"
+  has_label="$(printf '%s' "$meta" |
+    jq -r --arg l "$LEASE_LABEL" 'any(.labels[]; .name == $l)')"
+  if [[ -n "$foreign_owner" ]]; then
+    json_error_obj "$(jq -nc --arg issue "$issue_number" --arg owner "$foreign_owner" \
+      '{message: ("issue #" + $issue + " is already claimed by @" + $owner),
+        cause: "issue_claimed", issue_number: ($issue|tonumber), owner: $owner}')"
+  fi
+  if [[ "$has_label" == "true" ]]; then
+    json_error_obj "$(jq -nc --arg issue "$issue_number" --arg label "$LEASE_LABEL" \
+      --arg owner "$any_owner" \
+      '{message: ("issue #" + $issue + " already carries the " + $label
+                  + " label; another agent is working it"),
+        cause: "issue_claimed", issue_number: ($issue|tonumber),
+        owner: (if $owner == "" then null else $owner end)}')"
+  fi
+}
+
+# Claim the issue: add self as assignee (the compare-and-swap token), re-read,
+# and if another *user* also grabbed it in the race window, yield to the
+# alphabetically lowest login and back off. On winning, add the label and post
+# the claim breadcrumb. Emits issue_claimed (and exits) if it lost the race.
+_lease_claim() {
+  local issue_number="$1" branch="$2" wt_path="$3" me="$4"
+  gh issue edit "$issue_number" --add-assignee "@me" >/dev/null
+
+  local winner
+  winner="$(gh issue view "$issue_number" --json assignees |
+    jq -r '[.assignees[].login] | sort | .[0] // empty')"
+  if [[ -n "$winner" && "$winner" != "$me" ]]; then
+    gh issue edit "$issue_number" --remove-assignee "@me" >/dev/null 2>&1 || true
+    json_error_obj "$(jq -nc --arg issue "$issue_number" --arg owner "$winner" \
+      '{message: ("issue #" + $issue + " was claimed by @" + $owner + " in the race window"),
+        cause: "issue_claimed", issue_number: ($issue|tonumber), owner: $owner}')"
+  fi
+
+  gh issue edit "$issue_number" --add-label "$LEASE_LABEL" >/dev/null 2>&1 ||
+    warn "could not add '${LEASE_LABEL}' label to issue #${issue_number} (does it exist in the repo?)"
+
+  local host ts
+  host="$(uname -n)"
+  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  gh issue comment "$issue_number" --body \
+    "$(printf 'Claimed for work.\n\n- host: %s\n- worktree: %s\n- branch: %s\n- at: %s\n\n%s' \
+      "$host" "$wt_path" "$branch" "$ts" "$(_lease_marker "$issue_number")")" >/dev/null ||
+    warn "could not post claim comment on issue #${issue_number}"
+}
+
+# Release the lease: drop the label + self-assignee and post a release
+# breadcrumb so a future agent on any host sees the issue is free again.
+# Best-effort — a forge hiccup here must never fail cleanup.
+_lease_release() {
+  local issue_number="$1" branch="$2"
+  local me host ts
+  me="$(gh api user -q '.login' 2>/dev/null || echo "")"
+  host="$(uname -n)"
+  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  gh issue edit "$issue_number" --remove-label "$LEASE_LABEL" >/dev/null 2>&1 || true
+  if [[ -n "$me" ]]; then
+    gh issue edit "$issue_number" --remove-assignee "@me" >/dev/null 2>&1 || true
+  fi
+  gh issue comment "$issue_number" --body \
+    "$(printf 'Lease released (worktree cleaned up).\n\n- host: %s\n- branch: %s\n- at: %s\n\n%s' \
+      "$host" "$branch" "$ts" "$(_lease_marker "$issue_number")")" >/dev/null 2>&1 || true
+}
+
 cmd_setup() {
   local issue_number=""
   local base_ref=""
@@ -644,6 +734,15 @@ cmd_setup() {
   local branch_name
   branch_name="$(build_branch_name "$branch_type" "$issue_number" "$issue_title")"
   ok "branch: ${branch_name}"
+
+  # Issue-side lease. Claim on the issue itself before creating the worktree so
+  # an agent on another host or worktree root (past this machine's flock) sees
+  # the claim first. Refuses with cause "issue_claimed" if already held.
+  local me
+  me="$(gh api user -q '.login')"
+  _lease_precheck "$issue_number" "$me"
+  _lease_claim "$issue_number" "$branch_name" "$wt_path" "$me"
+  ok "claimed issue #${issue_number} (assignee @${me}, label ${LEASE_LABEL})"
 
   mkdir -p "$(dirname "$wt_path")"
   # Pin branch explicitly to base_ref so the new branch never inherits an
@@ -1105,6 +1204,12 @@ cmd_cleanup() {
   git branch -D "$branch" 2>/dev/null || true
   git push origin --delete "$branch" 2>/dev/null || true
   ok "branches cleaned up"
+
+  # Release the issue-side lease claimed at setup: drop the in-progress label +
+  # self-assignee and post a release breadcrumb so a future agent on any host
+  # sees the issue is free again.
+  _lease_release "$issue_number" "$branch"
+  ok "issue-side lease released"
 
   # Report the issue's state — do NOT force-close. The PR body's closing
   # keyword (Closes #N / Fixes #N / Resolves #N) is the source of truth: if

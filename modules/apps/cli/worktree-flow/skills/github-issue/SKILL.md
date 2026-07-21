@@ -22,6 +22,38 @@ All work happens in an isolated git worktree. Never implement in the main workin
 > for review and merge. The `log-github-issue` skill is already provider-aware
 > if you just need to file a Forgejo issue.
 
+### Forgejo manual claim and release
+
+The GitHub path claims the issue automatically at `setup` and releases it at
+`cleanup`. On Forgejo, do the same by hand with `forge` so a second agent on
+another host sees the claim before starting. The assignee is the machine check;
+the `in-progress` label and the claim comment are the human-visible signal.
+
+**Before you branch (claim):**
+
+```
+me=$(forge whoami)
+forge issue-json <n>        # inspect .assignees and .labels first
+```
+
+If `.assignees` already lists someone other than `$me`, or `.labels` already
+contains `in-progress`, stop. Another agent holds it. Otherwise claim it:
+
+```
+forge issue-assign <n> @me                       # assignee = compare-and-swap token
+forge issue-json <n>                             # re-read; if an assignee other than $me won, back off
+forge issue-labels <n> in-progress               # create the label once if the repo lacks it
+forge issue-comment <n> "Claimed for work. host: $(uname -n), branch: <branch>, at: $(date -u +%FT%TZ)"
+```
+
+**After the PR merges or you abandon the work (release):**
+
+```
+forge issue-unlabel <n> in-progress
+forge issue-unassign <n> @me
+forge issue-comment <n> "Lease released. host: $(uname -n), branch: <branch>, at: $(date -u +%FT%TZ)"
+```
+
 ## Voice for posted content
 
 Anything this skill writes that ends up on GitHub (a PR comment, a post-mortem

@@ -161,6 +161,23 @@ cmd_auth_check() {
   esac
 }
 
+# forge whoami — login of the authenticated user (the assignee token used to
+# claim an issue). Same login regardless of which agent/host is calling.
+cmd_whoami() {
+  case "$(_host)" in
+    github) gh api user -q '.login' ;;
+    forgejo) _fj GET "user" | jq -r '.login' ;;
+  esac
+}
+
+# Resolve @me to the concrete login; pass anything else through unchanged.
+_resolve_user() {
+  case "$1" in
+    @me) cmd_whoami ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
 # --- verbs: pull requests ----------------------------------------------------
 
 pr_current() {
@@ -321,19 +338,23 @@ cmd_pr_labels() {
 
 # --- verbs: issues -----------------------------------------------------------
 
-# Normalised issue object: number,title,body,state,url,labels[],comments (count)
+# Normalised issue object: number,title,body,state,url,labels[],assignees[],
+# comments (count). assignees[] is the machine-readable claim token: an agent
+# reads labels and assignees in this one call to decide if an issue is free.
 cmd_issue_json() {
   local n="$1"
   case "$(_host)" in
     github)
-      gh issue view "$n" --json number,title,body,state,url,labels,comments |
+      gh issue view "$n" --json number,title,body,state,url,labels,assignees,comments |
         jq '{number,title,body,state,url,
-               labels:[.labels[].name], comments:(.comments|length)}'
+               labels:[.labels[].name],
+               assignees:[.assignees[].login], comments:(.comments|length)}'
       ;;
     forgejo)
       _fj GET "repos/$(_repo)/issues/${n}" |
         jq '{number:.number, title:.title, body:.body, state:.state,
-               url:.html_url, labels:[.labels[].name], comments:.comments}'
+               url:.html_url, labels:[.labels[].name],
+               assignees:[(.assignees // [])[].login], comments:.comments}'
       ;;
   esac
 }
@@ -409,6 +430,97 @@ cmd_issue_close() {
   esac
 }
 
+# forge issue-assign <n> <user>...  — set the issue's assignees (@me allowed).
+# Assignee is the single-owner claim token: a second agent that reads a foreign
+# assignee via issue-json backs off. Forgejo's PATCH replaces the whole set,
+# which matches the single-owner claim model.
+cmd_issue_assign() {
+  local n="$1"
+  shift
+  [ "$#" -gt 0 ] || _die "issue-assign needs at least one user"
+  local users=()
+  local u
+  for u in "$@"; do users+=("$(_resolve_user "$u")"); done
+  case "$(_host)" in
+    github)
+      local args=()
+      for u in "${users[@]}"; do args+=(--add-assignee "$u"); done
+      gh issue edit "$n" "${args[@]}" >/dev/null
+      ;;
+    forgejo)
+      local users_json
+      users_json="$(printf '%s\n' "${users[@]}" | jq -R . | jq -sc .)"
+      _fj PATCH "repos/$(_repo)/issues/${n}" \
+        "$(jq -n --argjson a "$users_json" '{assignees:$a}')" >/dev/null
+      ;;
+  esac
+}
+
+# forge issue-unassign <n> <user>...  — drop assignees, releasing the claim.
+cmd_issue_unassign() {
+  local n="$1"
+  shift
+  [ "$#" -gt 0 ] || _die "issue-unassign needs at least one user"
+  local users=()
+  local u
+  for u in "$@"; do users+=("$(_resolve_user "$u")"); done
+  case "$(_host)" in
+    github)
+      local args=()
+      for u in "${users[@]}"; do args+=(--remove-assignee "$u"); done
+      gh issue edit "$n" "${args[@]}" >/dev/null
+      ;;
+    forgejo)
+      _fj DELETE "repos/$(_repo)/issues/${n}/assignees" \
+        "$(jq -n --argjson a "$(printf '%s\n' "${users[@]}" | jq -R . | jq -sc .)" \
+          '{assignees:$a}')" >/dev/null
+      ;;
+  esac
+}
+
+# forge issue-labels <n> <label>...  — add labels to an issue by name.
+cmd_issue_labels() {
+  local n="$1"
+  shift
+  [ "$#" -gt 0 ] || return 0
+  case "$(_host)" in
+    github)
+      local args=()
+      local l
+      for l in "$@"; do args+=(--add-label "$l"); done
+      gh issue edit "$n" "${args[@]}" >/dev/null
+      ;;
+    forgejo)
+      local ids
+      ids="$(_fj_label_ids "$@")"
+      _fj POST "repos/$(_repo)/issues/${n}/labels" \
+        "$(jq -n --argjson ids "$ids" '{labels:$ids}')" >/dev/null
+      ;;
+  esac
+}
+
+# forge issue-unlabel <n> <label>...  — remove labels from an issue by name.
+cmd_issue_unlabel() {
+  local n="$1"
+  shift
+  [ "$#" -gt 0 ] || return 0
+  case "$(_host)" in
+    github)
+      local args=()
+      local l
+      for l in "$@"; do args+=(--remove-label "$l"); done
+      gh issue edit "$n" "${args[@]}" >/dev/null
+      ;;
+    forgejo)
+      local ids id
+      ids="$(_fj_label_ids "$@")"
+      for id in $(printf '%s' "$ids" | jq -r '.[]'); do
+        _fj DELETE "repos/$(_repo)/issues/${n}/labels/${id}" >/dev/null
+      done
+      ;;
+  esac
+}
+
 # Normalised labels: [{name,description}]
 cmd_label_list() {
   case "$(_host)" in
@@ -475,6 +587,7 @@ forge — provider-aware git-forge helper (GitHub via gh, Forgejo via REST)
   forge blob-base <sha>               base URL for file links at a commit
   forge default-branch
   forge auth-check                    exit 0 if authenticated
+  forge whoami                        login of the authenticated user
 
   forge pr-current                    PR number for the current branch
   forge pr-json      [n]              normalised PR object (default: current)
@@ -493,6 +606,10 @@ forge — provider-aware git-forge helper (GitHub via gh, Forgejo via REST)
   forge issue-list     [state] [limit]
   forge issue-create  <title> <body> [label]...     -> URL
   forge issue-comment <n> <body>
+  forge issue-assign  <n> <user>...  set assignees (@me allowed) — claim token
+  forge issue-unassign <n> <user>... drop assignees — release claim
+  forge issue-labels  <n> <label>... add labels to an issue by name
+  forge issue-unlabel <n> <label>... remove labels from an issue by name
   forge issue-close   <n>
   forge label-list
 
@@ -513,6 +630,7 @@ main() {
     blob-base) cmd_blob_base "$@" ;;
     default-branch) cmd_default_branch "$@" ;;
     auth-check) cmd_auth_check "$@" ;;
+    whoami) cmd_whoami "$@" ;;
     pr-current) cmd_pr_current "$@" ;;
     pr-json) cmd_pr_json "$@" ;;
     pr-diff) cmd_pr_diff "$@" ;;
@@ -529,6 +647,10 @@ main() {
     issue-list) cmd_issue_list "$@" ;;
     issue-create) cmd_issue_create "$@" ;;
     issue-comment) cmd_issue_comment "$@" ;;
+    issue-assign) cmd_issue_assign "$@" ;;
+    issue-unassign) cmd_issue_unassign "$@" ;;
+    issue-labels) cmd_issue_labels "$@" ;;
+    issue-unlabel) cmd_issue_unlabel "$@" ;;
     issue-close) cmd_issue_close "$@" ;;
     label-list) cmd_label_list "$@" ;;
     release-create) cmd_release_create "$@" ;;
