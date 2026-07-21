@@ -22,6 +22,54 @@ All work happens in an isolated git worktree. Never implement in the main workin
 > for review and merge. The `log-github-issue` skill is already provider-aware
 > if you just need to file a Forgejo issue.
 
+### Forgejo manual claim and release
+
+The GitHub path claims the issue automatically at `setup` and releases it at
+`cleanup`. There the authoritative claim is a per-agent claim comment, and the
+winner is the claim comment with the lowest (monotonic, server-assigned) comment
+id. The assignee only discriminates agents on GitHub, and even there our fleet
+runs one login across every host, so the assignee is a hint, not the token.
+
+On Forgejo it is weaker still. Every agent authenticates with the single shared
+`FORGEJO_TOKEN`, so `forge whoami` returns one identity for all agents and the
+assignee cannot tell two agents apart at all. The lease degrades to the
+human-visible signals: the `in-progress` label, the claim comment, and
+`fleet-status` as the reconciliation view. Treat a Forgejo claim as advisory and
+confirm with a human before two agents touch the same issue.
+
+**Before you branch (claim):**
+
+```
+forge issue-json <n>        # inspect .assignees and .labels first
+```
+
+If `.labels` already contains `in-progress`, or `.assignees` lists anyone, stop
+and reconcile with `fleet-status`. Another agent likely holds it. The shared
+login means you cannot distinguish "someone else" from "me on another host" by
+assignee, so read the claim comments before deciding. Otherwise claim it:
+
+```
+forge issue-assign <n> @me                       # human-visible hint, not a CAS
+forge issue-labels <n> in-progress               # create the label once if the repo lacks it
+# Post the claim with each field line-anchored, matching what the GitHub path emits,
+# so fleet-status can parse host/worktree/branch line by line and sort by comment id:
+forge issue-comment <n> "$(printf 'Claimed for work.\n\n<!-- worktree-flow:claim -->\nclaim-id: %s\nhost: %s\nworktree: %s\nclaimed-at: %s\nbranch: %s' \
+  "$(uname -n)::<worktree>::$(date -u +%FT%TZ)::$$" "$(uname -n)" "<worktree>" "$(date -u +%FT%TZ)" "<branch>")"
+# Re-read and resolve the winner. Filter to the claim marker FIRST, then take the
+# lowest id. The raw list also holds pre-claim human/triage comments (lower ids);
+# a bare sort_by(.id) would pick one of those and make you cede by mistake.
+forge issue-comments-json <n> | jq '[.[] | select(.body | contains("<!-- worktree-flow:claim -->"))] | sort_by(.id) | .[0]'
+# Cede if that winner's claim-id is not the one you just posted.
+```
+
+**After the PR merges or you abandon the work (release):**
+
+```
+forge issue-unassign <n> @me                     # drop only your own assignee
+forge issue-unlabel <n> in-progress              # only if no other assignee remains
+forge issue-comment <n> "Lease released. host: $(uname -n), branch: <branch>, at: $(date -u +%FT%TZ)"
+```
+
 ## Voice for posted content
 
 Anything this skill writes that ends up on GitHub (a PR comment, a post-mortem
