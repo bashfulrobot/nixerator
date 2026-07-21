@@ -28,7 +28,7 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 
 - To park in-progress work (agent interrupt, shutdown, or handoff), commit it on the task branch instead of stashing: `git add -A && git commit -m "wip: <summary>"`. The commit lives under the worktree's own HEAD, isolated per worktree, survives a reboot, and (once pushed) is visible on another device, which a stash never is.
 - Resume by unwinding the WIP commit back into the working tree: `git reset --soft HEAD^`. The changes return staged, ready to keep working, and the real commit replaces the `wip:` one.
-- **`rebase.autoStash` stays enabled** and is deliberately not treated the same way. It is scoped to a single rebase, uses the shared stack only for the duration of that one operation, and pops automatically when the rebase finishes, so it never leaves an entry sitting on the stack for another agent to collide with. The ban is on *manual* `git stash`, which does leave a lingering shared entry.
+- **`rebase.autoStash` stays enabled** and is deliberately not treated the same way. It is scoped to a single rebase and keeps its saved changes in rebase-internal state rather than the visible `refs/stash` stack, so it does not race the shared stack that manual stashing collides on. On the success path it re-applies and drops that state automatically; only a conflicting re-apply leaves an entry behind for you to resolve, and that entry is tied to the one rebase you started. That is why the ban targets *manual* `git stash`, which parks a lingering shared entry any other agent can pop.
 
 ## Lint and format
 
