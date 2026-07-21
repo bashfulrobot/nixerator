@@ -65,11 +65,18 @@
     };
 
     apple-fonts = {
-      # Pinned: upstream rev 6f4eed8 (2026-04-23) ships an empty sf-mono-nerd
-      # derivation (no font files), which strips all Nerd Font glyphs from
-      # the shell bar, etc. ecb8430 (2026-04-10) is the last known-working commit.
-      # Unpin once upstream fixes the sf-mono-nerd build.
-      url = "github:Lyndeno/apple-fonts.nix/ecb843051893bdf34fd4f9c0ec664e356e2251a6";
+      # Pinned to ce044f6 (2026-06-27), matching the rev hyprflake already
+      # locks. The old ecb8430 (2026-04-10) pin carried its own stale
+      # Apple-font hashes: Apple re-published SF-Pro.dmg / SF-Compact.dmg in
+      # place, so ecb8430's baked-in narHashes stopped matching and every
+      # rebuild failed. ce044f6 carries current hashes and rebuilds
+      # sf-mono-nerd via nerd-font-patcher (fontPackage.nix), so the
+      # empty-derivation glyph loss that originally forced the ecb8430 pin
+      # (upstream 6f4eed8) is fixed. Verified sf-mono-nerd ships glyphs.
+      #
+      # This still resolves to a separate lock node from hyprflake's copy
+      # (they follow different nixpkgs), but both now sit at ce044f6.
+      url = "github:Lyndeno/apple-fonts.nix/ce044f6829c6b3ccde9624116577ba2c173ca49d";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
