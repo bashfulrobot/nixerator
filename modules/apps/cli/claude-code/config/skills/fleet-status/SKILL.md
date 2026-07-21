@@ -61,11 +61,18 @@ listing.
   no open issue backs it. A numbered issue the forge cannot read (404,
   transport, or auth failure -- `forge` cannot distinguish them, all share one
   non-zero exit) degrades to issue state `unknown`, never a false orphan.
-- **STALE**: a worktree whose issue is claimed by a **different host**, read
-  from the issue's `<!-- worktree-flow:claim -->` lease comments (worktree-flow
-  #249). The winning claim is the lowest-comment-id claim; its `host:` line is
-  the owner. Absent any claim comment, the owner defaults to the local host
-  (benign, since the worktree is local).
+- **STALE**: a worktree whose issue is claimed by a **different host**. Ownership
+  comes from the issue's `<!-- worktree-flow:claim -->` lease comments
+  (worktree-flow #249), fetched as `{id, body}` objects via `forge
+  issue-comments-json` and **sorted by comment id** here (server-assigned and
+  monotonic, so every host agrees on the winner). The lowest-id claim comment
+  wins; its own `host:` line is the owner, matched with a line-anchored pattern
+  so a decoy or quoted line cannot bleed a foreign value in. STALE fires only
+  when that host differs from this machine (`uname -n`). When the claim data is
+  unavailable -- the verb is absent (it ships in #255), the forge call fails, or
+  the payload is empty/invalid, or the winning comment has no `host:` -- the
+  owner degrades to the local host and nothing is flagged stale (benign, since
+  the worktree is local).
 
 Reporting only. This skill never removes or edits a worktree, branch, issue, or
 state file -- a separate reaper can act on the flags it surfaces.
@@ -113,10 +120,11 @@ scripts/fleet-status.sh --help
   remote-tracking refs, so run a `git fetch` first if you need those counts
   fresh. The script itself never mutates anything.
 - The claim owner is read from the issue's `<!-- worktree-flow:claim -->` lease
-  comments (worktree-flow #249) via `forge issue-comments`; absent any claim it
-  defaults to the current host, since worktrees are host-local. The foreign-host
-  stale flag only fires when the winning claim's `host:` differs from this
-  machine (`uname -n`). With `--no-remote`, no forge lookup runs and the owner is
-  always the local host.
+  comments (worktree-flow #249) via `forge issue-comments-json`, id-sorted so the
+  lowest-id claim wins regardless of return order; absent or unavailable claim
+  data it defaults to the current host, since worktrees are host-local. The
+  foreign-host stale flag only fires when the winning claim's `host:` differs
+  from this machine (`uname -n`). With `--no-remote`, no forge lookup runs and
+  the owner is always the local host.
 - To resume a flagged task, hand its `resume:` line to the user, e.g.
   `work nixerator#251`.

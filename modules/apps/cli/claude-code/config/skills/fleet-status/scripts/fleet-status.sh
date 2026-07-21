@@ -47,8 +47,9 @@
 #
 # Read-only: this tool never creates, edits, or removes a worktree, branch,
 # issue, or state file. It runs `git status`/`git rev-list`/`git remote` and
-# `forge issue-json`/`forge issue-comments` (all read-only) plus `jq`/`find`. It
-# does not fetch, so ahead/behind is computed against local remote-tracking refs.
+# `forge issue-json`/`forge issue-comments-json` (all read-only) plus
+# `jq`/`find`. It does not fetch, so ahead/behind is computed against local
+# remote-tracking refs.
 #
 # Host awareness: worktrees can span more than one git host (GitHub and a
 # self-hosted Forgejo). `forge` detects the host from each repo's origin
@@ -89,6 +90,11 @@ LOCALHOST="$(uname -n 2>/dev/null || printf '%s' "${HOSTNAME:-unknown}")"
 HAVE_FORGE=0
 if command -v forge >/dev/null 2>&1; then HAVE_FORGE=1; fi
 
+# Marker worktree-flow stamps on a live claim comment (github-issue.sh
+# CLAIM_MARKER). A ceded claim carries a distinct cede marker instead, so
+# filtering to this marker already excludes cedes during winner selection.
+CLAIM_MARKER='<!-- worktree-flow:claim -->'
+
 # ── colors (human mode, TTY only) ─────────────────────────────────────────────
 if [[ $JSON -eq 0 && -t 1 ]]; then
   C_DIM=$'\033[2m'; C_BOLD=$'\033[1m'; C_RED=$'\033[0;31m'
@@ -109,7 +115,9 @@ san() { LC_ALL=C tr -d '\000-\010\013\014\016-\037'; }
 derive_issue() {
   local s="$1"
   if [[ "$s" =~ ^issue-([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
-  if [[ "$s" =~ ^[a-z]+/([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
+  # Case-insensitive type prefix so uppercase/mixed-case branches (FEAT/9,
+  # Fix/12) still resolve the number, matching worktree-flow's slug rules.
+  if [[ "$s" =~ ^[A-Za-z]+/([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
   if [[ "$s" =~ ^([0-9]+) ]]; then printf '%s' "${BASH_REMATCH[1]}"; return; fi
   printf ''
 }
@@ -147,29 +155,39 @@ forge_issue_state() {
 
 # ── claim owner from the issue's lease comments (worktree-flow #249) ───────────
 # worktree-flow records a per-agent claim as an ISSUE COMMENT stamped with
-# `<!-- worktree-flow:claim -->` and body lines `claim-id:`, `host:`,
-# `worktree:`, ...; a ceded claim carries `<!-- worktree-flow:cede -->` instead.
-# The winner is the claim comment with the LOWEST comment id.
+# CLAIM_MARKER and body lines `claim-id:`, `host:`, `worktree:`, ...; a ceded
+# claim carries a distinct cede marker instead. The winner is the claim comment
+# with the LOWEST comment id (server-assigned, monotonic), so every host reads
+# the same winner. This mirrors the canonical resolver in worktree-flow's
+# github-issue.sh (`{id,body}` then `sort_by(.id) | .[0]`).
 #
-# `forge issue-comments <N>` prints comment BODIES (not ids) in the forge's
-# native order, which is ascending comment id for both gh and the Forgejo REST
-# endpoint. So the FIRST claim marker in the stream is the lowest-id (winning)
-# claim. We scan for that marker, skip cede markers, and take the `host:` line
-# that follows it. Best-effort: any forge failure or absent claim yields the
-# empty string, and the caller then defaults the owner to the local host.
+# `forge issue-comments-json <N>` (provider-neutral, added in #255) returns a
+# JSON array of {id, body}. Order is NOT guaranteed, so WE sort by id here
+# rather than trusting stream order. The winning host is extracted from THAT one
+# comment's own body with a line-anchored `host:` capture -- no cross-comment
+# bleed, no stateful stream parser. A comment that merely quotes or mentions the
+# marker without a real anchored `host:` line yields no host and degrades to the
+# local host rather than mis-attributing a bled/decoy value.
+#
+# Graceful degradation: the verb ships in #255 and is absent on older forge
+# builds. A missing/erroring/empty/invalid-JSON result yields the empty string,
+# and the caller then defaults the owner to the local host (no crash, no false
+# stale). Same for any forge failure or an issue with no claim comment.
 claim_owner_for() {
-  local wt="$1" num="$2" out
+  local wt="$1" num="$2" out host
   [[ $REMOTE -eq 1 && $HAVE_FORGE -eq 1 && "$num" =~ ^[0-9]+$ ]] || { printf ''; return; }
-  out="$(cd "$wt" && forge issue-comments "$num" 2>/dev/null)" || { printf ''; return; }
-  printf '%s\n' "$out" | awk '
-    /<!-- worktree-flow:claim -->/ { inclaim=1; next }
-    /<!-- worktree-flow:cede -->/  { inclaim=0; next }
-    inclaim && /^host:[[:space:]]/ {
-      sub(/^host:[[:space:]]*/, "")
-      gsub(/[[:space:]]+$/, "")
-      print
-      exit
-    }'
+  out="$(cd "$wt" && forge issue-comments-json "$num" 2>/dev/null)" || { printf ''; return; }
+  [[ -n "$out" ]] || { printf ''; return; }
+  # jq: keep only claim-marker comments (excludes cedes), sort by id, take the
+  # lowest, and pull `host:` from that single body. `(?m)` anchors `^` to line
+  # starts; leading whitespace and extra spaces after the colon are tolerated
+  # and trailing whitespace is stripped. Invalid JSON makes jq exit non-zero ->
+  # empty -> local-host default in the caller.
+  host="$(printf '%s' "$out" | jq -r --arg m "$CLAIM_MARKER" '
+    ([ .[] | select((.body // "") | contains($m)) ] | sort_by(.id) | .[0].body // "")
+    | (capture("(?m)^[ \t]*host:[ \t]*(?<h>[^\n]*)") // {h:""} | .h | sub("[ \t]+$";""))
+  ' 2>/dev/null)" || { printf ''; return; }
+  printf '%s' "$host"
 }
 
 # ── collect rows as NDJSON, then render ───────────────────────────────────────
