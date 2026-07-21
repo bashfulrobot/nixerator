@@ -263,6 +263,16 @@
         "gitCommitSha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22",
         "auto": true
       }
+    ],
+    "kong-konnect@ai-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/ai-marketplace/kong-konnect/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-07-21T00:00:00.000Z",
+        "lastUpdated": "2026-07-21T00:00:00.000Z",
+        "gitCommitSha": "ef2dd6c9f0e770a694d91388dd7b02469cc43dca"
+      }
     ]
   }
 }
