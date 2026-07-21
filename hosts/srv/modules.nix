@@ -126,7 +126,17 @@
     # Incus). darkstar attaches to br0 (see configuration.nix), an existing
     # Linux bridge replacing the former enp3s0 setup. No NAT-network options
     # needed here either way.
-    kvm.enable = true;
+    kvm = {
+      enable = true;
+      # Disable idle vCPU halt-polling on this hypervisor. The 200us kernel
+      # default makes idle vCPUs busy-poll before scheduling out; with 14
+      # vCPUs overcommitted on 8 cores across 5 always-on Talos guests, that
+      # polling burns host CPU and heat the guests never account as work. 0
+      # turns it off; fall back to 50000 (50us) if guest wakeup latency
+      # regresses. Applies on the next reboot (kvm stays pinned while VMs
+      # run); write /sys/module/kvm/parameters/halt_poll_ns for a live change.
+      haltPollNs = 0;
+    };
 
     postgres = {
       enable = true;

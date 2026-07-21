@@ -38,6 +38,38 @@ in
         '';
       };
 
+      haltPollNs = lib.mkOption {
+        type = lib.types.nullOr lib.types.ints.unsigned;
+        default = null;
+        example = 0;
+        description = ''
+          Override (nanoseconds) for the base `kvm` module's `halt_poll_ns`
+          parameter. `null` (the default) emits nothing and leaves the kernel
+          default in place, so enabling `server.kvm` on a new host changes no
+          virtualisation tuning until that host explicitly opts in. Set a
+          value to emit `options kvm halt_poll_ns=<n>` via
+          `boot.extraModprobeConfig`.
+
+          The upstream kernel default is 200000 (200us): an idle vCPU
+          busy-polls for up to this long before scheduling out, trading host
+          CPU (and heat) for lower guest wakeup latency. On an overcommitted
+          hypervisor running latency-tolerant guests (e.g. srv's darkstar
+          Talos VMs), several chatty guests keep those poll loops warm and
+          burn host cycles the guests never account as work. 0 disables
+          polling entirely (srv's choice, set in hosts/srv/modules.nix);
+          50000 (50us) is a middle ground to fall back to if 0 regresses
+          guest latency.
+
+          `halt_poll_ns` belongs to the base `kvm` module, not `kvm-intel`,
+          so the modprobe line targets `kvm`. Caveat: modprobe.d options only
+          apply when the module loads, and `kvm` stays pinned in memory while
+          any guest runs, so a `nixos-rebuild switch` does NOT retune a live
+          hypervisor. The new value lands on the next reboot. For a no-reboot
+          change, write /sys/module/kvm/parameters/halt_poll_ns directly (the
+          live knob, also handy for an A/B test before committing a value).
+        '';
+      };
+
       routing = {
         enable = lib.mkOption {
           type = lib.types.bool;
@@ -127,6 +159,15 @@ in
       spiceUSBRedirection.enable = true;
 
     };
+
+    # Tune idle vCPU halt-polling only when a host opts in via
+    # server.kvm.haltPollNs (null, the default, emits nothing and keeps the
+    # kernel default). See that option for the full rationale and the
+    # reboot caveat. extraModprobeConfig is types.lines, so this composes
+    # with any other host's modprobe options.
+    boot.extraModprobeConfig = lib.mkIf (
+      cfg.haltPollNs != null
+    ) "options kvm halt_poll_ns=${toString cfg.haltPollNs}";
 
     # Optional routing configuration
     boot.kernel.sysctl = lib.mkIf cfg.routing.enable (
