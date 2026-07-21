@@ -25,32 +25,41 @@ All work happens in an isolated git worktree. Never implement in the main workin
 ### Forgejo manual claim and release
 
 The GitHub path claims the issue automatically at `setup` and releases it at
-`cleanup`. On Forgejo, do the same by hand with `forge` so a second agent on
-another host sees the claim before starting. The assignee is the machine check;
-the `in-progress` label and the claim comment are the human-visible signal.
+`cleanup`. There the authoritative claim is a per-agent claim comment, and the
+winner is the claim comment with the lowest (monotonic, server-assigned) comment
+id. The assignee only discriminates agents on GitHub, and even there our fleet
+runs one login across every host, so the assignee is a hint, not the token.
+
+On Forgejo it is weaker still. Every agent authenticates with the single shared
+`FORGEJO_TOKEN`, so `forge whoami` returns one identity for all agents and the
+assignee cannot tell two agents apart at all. The lease degrades to the
+human-visible signals: the `in-progress` label, the claim comment, and
+`fleet-status` as the reconciliation view. Treat a Forgejo claim as advisory and
+confirm with a human before two agents touch the same issue.
 
 **Before you branch (claim):**
 
 ```
-me=$(forge whoami)
 forge issue-json <n>        # inspect .assignees and .labels first
 ```
 
-If `.assignees` already lists someone other than `$me`, or `.labels` already
-contains `in-progress`, stop. Another agent holds it. Otherwise claim it:
+If `.labels` already contains `in-progress`, or `.assignees` lists anyone, stop
+and reconcile with `fleet-status`. Another agent likely holds it. The shared
+login means you cannot distinguish "someone else" from "me on another host" by
+assignee, so read the claim comments before deciding. Otherwise claim it:
 
 ```
-forge issue-assign <n> @me                       # assignee = compare-and-swap token
-forge issue-json <n>                             # re-read; if an assignee other than $me won, back off
+forge issue-assign <n> @me                       # human-visible hint, not a CAS
 forge issue-labels <n> in-progress               # create the label once if the repo lacks it
 forge issue-comment <n> "Claimed for work. host: $(uname -n), branch: <branch>, at: $(date -u +%FT%TZ)"
+forge issue-comments <n>                         # re-read; if an earlier claim comment exists, cede to it
 ```
 
 **After the PR merges or you abandon the work (release):**
 
 ```
-forge issue-unlabel <n> in-progress
-forge issue-unassign <n> @me
+forge issue-unassign <n> @me                     # drop only your own assignee
+forge issue-unlabel <n> in-progress              # only if no other assignee remains
 forge issue-comment <n> "Lease released. host: $(uname -n), branch: <branch>, at: $(date -u +%FT%TZ)"
 ```
 

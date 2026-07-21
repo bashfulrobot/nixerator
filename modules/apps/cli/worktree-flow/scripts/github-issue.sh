@@ -572,94 +572,176 @@ parse_blockers() {
   printf '%s' "$result"
 }
 
-# ── Issue-side lease (cross-machine claim) ──────────────────────────────────
+# ── Issue-side lease (cross-machine, per-agent claim) ───────────────────────
 # The local flock only guards one filesystem. Two agents on different hosts, or
 # two checkouts with separate worktree roots, have independent lock namespaces,
-# so both could run setup for the same issue. Assert ownership on the issue
-# itself so any agent, anywhere, sees the claim first. The assignee is the
-# machine-check token: a foreign assignee means another *user* already holds
-# it. The in-progress label and the claim comment are the human-visible signal.
-# This runs inside the setup flock, so the network round-trip is serialised
-# locally while a second machine's setup still sees the claim on the forge.
+# so both could run setup for the same issue. We assert the claim on the issue
+# itself, where every agent can see it.
+#
+# The whole fleet authenticates as ONE GitHub login, so the assignee cannot
+# tell two of our agents apart: it is a human-visible hint, not the token. The
+# authoritative claim is a per-agent CLAIM COMMENT, and the winner is the claim
+# comment with the LOWEST comment id. Comment ids are server-assigned and
+# monotonic, so every agent that reads the full comment list computes the same
+# winner. (createdAt has only second granularity and would tie, so we never
+# order by it.)
+#
+# There is no atomic compare-and-swap in the GitHub API, so this is not
+# perfectly race-free. The lowest-comment-id rule closes the race except for a
+# sub-second window bounded by read-your-writes consistency: two agents that
+# both post within one API round-trip, then read before the other's comment is
+# visible, could each believe they won. The CLAIM_SETTLE_SECS pause shrinks that
+# window, and the in-progress label + claim comment + `fleet-status` are the
+# human-visible backstop that reconciles a double-claim after the fact. The
+# setup flock is per-host: it serialises this machine's own invocations and
+# nothing cross-host.
 LEASE_LABEL="in-progress"
 
-# Marker embedded in claim/release comments so humans can spot the machine
-# breadcrumb and future tooling can grep for it.
-_lease_marker() { printf '<!-- worktree-lease issue=%s -->' "$1"; }
+# Stable marker lines so humans and future tooling can grep the machine
+# breadcrumbs. A claim comment carries CLAIM_MARKER; a cede comment carries
+# CEDE_MARKER so it is never mistaken for a live claim during winner selection.
+CLAIM_MARKER='<!-- worktree-flow:claim -->'
+CEDE_MARKER='<!-- worktree-flow:cede -->'
 
-# Refuse setup when the issue is already claimed. Emits a structured
-# issue_claimed error (and exits) on a foreign assignee or the in-progress
-# label. Silent return means the issue is free to claim.
+# Seconds to wait after posting our claim before resolving the winner, so a
+# near-simultaneous claim from another host lands and becomes visible first.
+CLAIM_SETTLE_SECS="${CLAIM_SETTLE_SECS:-2}"
+
+# Set by _lease_precheck: 1 when this host+worktree already owns the sole claim
+# comment (a prior setup died before creating the worktree), so _lease_claim
+# skips re-posting a duplicate.
+_LEASE_REENTRANT=0
+
+# Fetch the issue's claim comments as a compact JSON array of {id, body} (only
+# comments carrying CLAIM_MARKER). Uses the REST endpoint so id is the numeric,
+# monotonic database id. Emits a structured error (and exits) if the read fails.
+_lease_claim_comments() {
+  local issue_number="$1" out rc=0
+  out="$(gh api "repos/{owner}/{repo}/issues/${issue_number}/comments" --paginate 2>/dev/null)" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    json_error_obj "$(jq -nc --arg issue "$issue_number" \
+      '{message: ("could not read comments on issue #" + $issue + " to resolve the claim"),
+        cause: "gh_api_failed", issue_number: ($issue|tonumber)}')"
+  fi
+  printf '%s' "$out" | jq -c --arg m "$CLAIM_MARKER" \
+    '[.[] | select(.body | contains($m)) | {id, body}]'
+}
+
+# Refuse setup up front when a DIFFERENT user already holds the issue (a cheap
+# one-call read that avoids spamming a claim comment on an obvious conflict).
+# Also detect the re-entrant case: if the sole existing claim comment is ours
+# (same host+worktree), set _LEASE_REENTRANT so _lease_claim skips re-posting.
+# A foreign claim comment is NOT refused here; the lowest-comment-id race in
+# _lease_claim is the authority for the same-user cross-host case.
 _lease_precheck() {
-  local issue_number="$1" me="$2"
-  local meta foreign_owner any_owner has_label
-  meta="$(gh issue view "$issue_number" --json assignees,labels)"
+  local issue_number="$1" me="$2" host="$3" wt_path="$4"
+  local meta rc=0
+  meta="$(gh issue view "$issue_number" --json assignees 2>/dev/null)" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    json_error_obj "$(jq -nc --arg issue "$issue_number" \
+      '{message: ("could not read issue #" + $issue + " to precheck the claim"),
+        cause: "gh_read_failed", issue_number: ($issue|tonumber)}')"
+  fi
+  local foreign_owner
   foreign_owner="$(printf '%s' "$meta" |
     jq -r --arg me "$me" '[.assignees[].login | select(. != $me)] | .[0] // empty')"
-  any_owner="$(printf '%s' "$meta" | jq -r '.assignees[0].login // empty')"
-  has_label="$(printf '%s' "$meta" |
-    jq -r --arg l "$LEASE_LABEL" 'any(.labels[]; .name == $l)')"
   if [[ -n "$foreign_owner" ]]; then
     json_error_obj "$(jq -nc --arg issue "$issue_number" --arg owner "$foreign_owner" \
       '{message: ("issue #" + $issue + " is already claimed by @" + $owner),
         cause: "issue_claimed", issue_number: ($issue|tonumber), owner: $owner}')"
   fi
-  if [[ "$has_label" == "true" ]]; then
-    json_error_obj "$(jq -nc --arg issue "$issue_number" --arg label "$LEASE_LABEL" \
-      --arg owner "$any_owner" \
-      '{message: ("issue #" + $issue + " already carries the " + $label
-                  + " label; another agent is working it"),
-        cause: "issue_claimed", issue_number: ($issue|tonumber),
-        owner: (if $owner == "" then null else $owner end)}')"
-  fi
+
+  local claims
+  claims="$(_lease_claim_comments "$issue_number")"
+  _LEASE_REENTRANT="$(printf '%s' "$claims" | jq -r --arg h "$host" --arg w "$wt_path" '
+    def field(k): ((.[0].body | [match(k + ": ([^\n]+)")] | .[0].captures[0].string) // "");
+    if (length == 1) and (field("host") == $h) and (field("worktree") == $w)
+    then "1" else "0" end')"
 }
 
-# Claim the issue: add self as assignee (the compare-and-swap token), re-read,
-# and if another *user* also grabbed it in the race window, yield to the
-# alphabetically lowest login and back off. On winning, add the label and post
-# the claim breadcrumb. Emits issue_claimed (and exits) if it lost the race.
+# Claim the issue with a per-agent comment lease. Adds the assignee + label as
+# best-effort human-visible hints, posts a claim comment stamped with our nonce,
+# waits a settle interval, then resolves the winner as the lowest-comment-id
+# claim. If our nonce won we proceed; otherwise we cede (leaving the shared
+# label/assignee for the winner) and refuse with issue_claimed. Every gh call is
+# guarded so a failure surfaces a structured error rather than a raw abort.
 _lease_claim() {
-  local issue_number="$1" branch="$2" wt_path="$3" me="$4"
-  gh issue edit "$issue_number" --add-assignee "@me" >/dev/null
+  local issue_number="$1" branch="$2" wt_path="$3"
+  local host="$4" ts="$5" nonce="$6" reentrant="$7"
 
-  local winner
-  winner="$(gh issue view "$issue_number" --json assignees |
-    jq -r '[.assignees[].login] | sort | .[0] // empty')"
-  if [[ -n "$winner" && "$winner" != "$me" ]]; then
-    gh issue edit "$issue_number" --remove-assignee "@me" >/dev/null 2>&1 || true
-    json_error_obj "$(jq -nc --arg issue "$issue_number" --arg owner "$winner" \
-      '{message: ("issue #" + $issue + " was claimed by @" + $owner + " in the race window"),
-        cause: "issue_claimed", issue_number: ($issue|tonumber), owner: $owner}')"
-  fi
-
+  # Best-effort hints. Not the CAS: one login across the fleet means the
+  # assignee cannot discriminate our agents. Never fail the claim on these.
+  gh issue edit "$issue_number" --add-assignee "@me" >/dev/null 2>&1 ||
+    warn "could not add self as assignee on issue #${issue_number}"
   gh issue edit "$issue_number" --add-label "$LEASE_LABEL" >/dev/null 2>&1 ||
     warn "could not add '${LEASE_LABEL}' label to issue #${issue_number} (does it exist in the repo?)"
 
-  local host ts
-  host="$(uname -n)"
-  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  gh issue comment "$issue_number" --body \
-    "$(printf 'Claimed for work.\n\n- host: %s\n- worktree: %s\n- branch: %s\n- at: %s\n\n%s' \
-      "$host" "$wt_path" "$branch" "$ts" "$(_lease_marker "$issue_number")")" >/dev/null ||
-    warn "could not post claim comment on issue #${issue_number}"
+  if [[ "$reentrant" != "1" ]]; then
+    local body
+    body="$(printf 'Claimed for work.\n\n%s\nclaim-id: %s\nhost: %s\nworktree: %s\nclaimed-at: %s\nbranch: %s' \
+      "$CLAIM_MARKER" "$nonce" "$host" "$wt_path" "$ts" "$branch")"
+    gh issue comment "$issue_number" --body "$body" >/dev/null 2>&1 ||
+      json_error_obj "$(jq -nc --arg issue "$issue_number" \
+        '{message: ("could not post claim comment on issue #" + $issue),
+          cause: "gh_comment_failed", issue_number: ($issue|tonumber)}')"
+  fi
+
+  # Let a near-simultaneous claim become visible, then resolve the winner.
+  sleep "$CLAIM_SETTLE_SECS"
+
+  local claims winner_nonce winner_host
+  claims="$(_lease_claim_comments "$issue_number")"
+  winner_nonce="$(printf '%s' "$claims" | jq -r '
+    (sort_by(.id) | .[0].body // "") | [match("claim-id: ([^\n]+)")] | (.[0].captures[0].string) // ""')"
+  winner_host="$(printf '%s' "$claims" | jq -r '
+    (sort_by(.id) | .[0].body // "") | [match("host: ([^\n]+)")] | (.[0].captures[0].string) // ""')"
+
+  if [[ -n "$winner_nonce" && "$winner_nonce" == "$nonce" ]]; then
+    return 0
+  fi
+
+  # We lost: another claim carries a lower comment id. Leave the shared label
+  # and assignee in place (the winner still holds them) and cede.
+  local cede
+  cede="$(printf 'Ceding to a prior claim with a lower comment id.\n\n%s\nyielded-by-host: %s\nyielded-at: %s' \
+    "$CEDE_MARKER" "$host" "$ts")"
+  gh issue comment "$issue_number" --body "$cede" >/dev/null 2>&1 || true
+  json_error_obj "$(jq -nc --arg issue "$issue_number" --arg owner "$winner_host" \
+    '{message: ("issue #" + $issue + " was claimed first by host " + (if $owner == "" then "another agent" else $owner end) + " (lower comment id)"),
+      cause: "issue_claimed", issue_number: ($issue|tonumber),
+      owner: (if $owner == "" then null else $owner end)}')"
 }
 
-# Release the lease: drop the label + self-assignee and post a release
-# breadcrumb so a future agent on any host sees the issue is free again.
-# Best-effort — a forge hiccup here must never fail cleanup.
+# Release the lease: drop our own assignee (scoped to us) and post a release
+# breadcrumb. Remove the shared in-progress label ONLY when we are the sole
+# remaining assignee, so we never strip a label another legitimate holder still
+# depends on. Best-effort — a forge hiccup here must never fail cleanup.
 _lease_release() {
   local issue_number="$1" branch="$2"
   local me host ts
   me="$(gh api user -q '.login' 2>/dev/null || echo "")"
   host="$(uname -n)"
   ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  gh issue edit "$issue_number" --remove-label "$LEASE_LABEL" >/dev/null 2>&1 || true
+
+  # Count assignees other than us BEFORE dropping our own, to decide the label.
+  local others="unknown" meta rc=0
+  meta="$(gh issue view "$issue_number" --json assignees 2>/dev/null)" || rc=$?
+  if [[ "$rc" -eq 0 ]]; then
+    others="$(printf '%s' "$meta" | jq -r --arg me "$me" \
+      '[.assignees[].login | select(. != $me)] | length')"
+  fi
+
   if [[ -n "$me" ]]; then
     gh issue edit "$issue_number" --remove-assignee "@me" >/dev/null 2>&1 || true
   fi
+  # Sole holder only: no other assignee remained, so the label is safe to drop.
+  if [[ "$others" == "0" ]]; then
+    gh issue edit "$issue_number" --remove-label "$LEASE_LABEL" >/dev/null 2>&1 || true
+  fi
+
   gh issue comment "$issue_number" --body \
-    "$(printf 'Lease released (worktree cleaned up).\n\n- host: %s\n- branch: %s\n- at: %s\n\n%s' \
-      "$host" "$branch" "$ts" "$(_lease_marker "$issue_number")")" >/dev/null 2>&1 || true
+    "$(printf 'Lease released (worktree cleaned up).\n\nhost: %s\nbranch: %s\nreleased-at: %s' \
+      "$host" "$branch" "$ts")" >/dev/null 2>&1 || true
 }
 
 cmd_setup() {
@@ -737,11 +819,19 @@ cmd_setup() {
 
   # Issue-side lease. Claim on the issue itself before creating the worktree so
   # an agent on another host or worktree root (past this machine's flock) sees
-  # the claim first. Refuses with cause "issue_claimed" if already held.
-  local me
-  me="$(gh api user -q '.login')"
-  _lease_precheck "$issue_number" "$me"
-  _lease_claim "$issue_number" "$branch_name" "$wt_path" "$me"
+  # the claim first. Refuses with cause "issue_claimed" if already held. This
+  # aborts BEFORE 'git worktree add' below, so a refusal leaves no partial
+  # worktree behind.
+  local me host claim_ts nonce
+  me="$(gh api user -q '.login' 2>/dev/null)" || json_error_obj "$(jq -nc \
+    '{message: "could not resolve the GitHub login (gh api user) to claim the issue",
+      cause: "gh_auth_failed"}')"
+  host="$(uname -n)"
+  claim_ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  # Per-invocation nonce: unique to THIS agent/run (host, worktree, UTC time, pid).
+  nonce="${host}::${wt_path}::${claim_ts}::$$"
+  _lease_precheck "$issue_number" "$me" "$host" "$wt_path"
+  _lease_claim "$issue_number" "$branch_name" "$wt_path" "$host" "$claim_ts" "$nonce" "$_LEASE_REENTRANT"
   ok "claimed issue #${issue_number} (assignee @${me}, label ${LEASE_LABEL})"
 
   mkdir -p "$(dirname "$wt_path")"

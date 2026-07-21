@@ -26,6 +26,13 @@ _die() {
   exit 1
 }
 
+# Issue and PR numbers get interpolated straight into REST URL paths, so a
+# non-numeric value is a path-injection vector. Reject anything that is not a
+# run of digits before it reaches a request.
+_require_num() {
+  [[ "$1" =~ ^[0-9]+$ ]] || _die "expected a numeric issue/PR number, got '$1'"
+}
+
 # --- remote / host / repo ----------------------------------------------------
 
 _remote_url() {
@@ -74,6 +81,16 @@ _branch() {
 
 # --- Forgejo REST ------------------------------------------------------------
 
+# The Authorization header carries a high-privilege token, so it must never
+# land on curl's argv (any local user could read it from /proc/<pid>/cmdline).
+# We hand curl the header through a -K config file on a process-substitution fd
+# built by the `printf` BUILTIN, so the token stays inside this shell and never
+# becomes another process's argument. The fd is separate from stdin, so a
+# request body passed via --data still works.
+_fj_auth_config() {
+  printf 'header = "Authorization: token %s"\n' "$FORGEJO_TOKEN"
+}
+
 # _fj METHOD PATH [JSON_BODY] — JSON request against the Gitea-compatible API.
 _fj() {
   local method="$1" path="$2" body="${3:-}"
@@ -82,13 +99,13 @@ _fj() {
   local url="${FORGEJO_URL%/}/api/v1/${path}"
   if [ -n "$body" ]; then
     curl -fsS -X "$method" \
-      -H "Authorization: token ${FORGEJO_TOKEN}" \
+      -K <(_fj_auth_config) \
       -H "Content-Type: application/json" \
       -H "Accept: application/json" \
       --data "$body" "$url"
   else
     curl -fsS -X "$method" \
-      -H "Authorization: token ${FORGEJO_TOKEN}" \
+      -K <(_fj_auth_config) \
       -H "Accept: application/json" \
       "$url"
   fi
@@ -98,7 +115,8 @@ _fj() {
 _fj_raw() {
   : "${FORGEJO_URL:?FORGEJO_URL not set}"
   : "${FORGEJO_TOKEN:?FORGEJO_TOKEN not set — run: just render-secrets}"
-  curl -fsS -H "Authorization: token ${FORGEJO_TOKEN}" \
+  curl -fsS \
+    -K <(_fj_auth_config) \
     "${FORGEJO_URL%/}/api/v1/${1}"
 }
 
@@ -343,6 +361,7 @@ cmd_pr_labels() {
 # reads labels and assignees in this one call to decide if an issue is free.
 cmd_issue_json() {
   local n="$1"
+  _require_num "$n"
   case "$(_host)" in
     github)
       gh issue view "$n" --json number,title,body,state,url,labels,assignees,comments |
@@ -401,6 +420,7 @@ cmd_issue_create() {
 # use this). In Gitea PRs and issues share the /issues/{n}/comments endpoint.
 cmd_issue_comments() {
   local n="$1"
+  _require_num "$n"
   case "$(_host)" in
     github) gh issue view "$n" --json comments -q '.comments[].body' ;;
     forgejo) _fj GET "repos/$(_repo)/issues/${n}/comments" | jq -r '.[].body' ;;
@@ -410,6 +430,7 @@ cmd_issue_comments() {
 # forge issue-comment <n> <body>
 cmd_issue_comment() {
   local n="$1" body="$2"
+  _require_num "$n"
   case "$(_host)" in
     github) gh issue comment "$n" --body "$body" ;;
     forgejo)
@@ -422,6 +443,7 @@ cmd_issue_comment() {
 # forge issue-close <n>
 cmd_issue_close() {
   local n="$1"
+  _require_num "$n"
   case "$(_host)" in
     github) gh issue close "$n" ;;
     forgejo)
@@ -430,13 +452,16 @@ cmd_issue_close() {
   esac
 }
 
-# forge issue-assign <n> <user>...  — set the issue's assignees (@me allowed).
-# Assignee is the single-owner claim token: a second agent that reads a foreign
-# assignee via issue-json backs off. Forgejo's PATCH replaces the whole set,
-# which matches the single-owner claim model.
+# forge issue-assign <n> <user>...  — add assignees to the issue (@me allowed).
+# The assignee is a human-visible ownership hint. GitHub's --add-assignee is
+# already additive. Forgejo's PATCH replaces the whole assignee set, so a naive
+# PATCH would silently wipe an existing human assignee (and blind the re-read
+# claim check). We instead read the current set, refuse if a user we are NOT
+# adding already holds it, and PATCH the union so no legitimate holder is lost.
 cmd_issue_assign() {
   local n="$1"
   shift
+  _require_num "$n"
   [ "$#" -gt 0 ] || _die "issue-assign needs at least one user"
   local users=()
   local u
@@ -448,18 +473,34 @@ cmd_issue_assign() {
       gh issue edit "$n" "${args[@]}" >/dev/null
       ;;
     forgejo)
-      local users_json
+      local repo users_json current foreign merged
+      repo="$(_repo)"
       users_json="$(printf '%s\n' "${users[@]}" | jq -R . | jq -sc .)"
-      _fj PATCH "repos/$(_repo)/issues/${n}" \
-        "$(jq -n --argjson a "$users_json" '{assignees:$a}')" >/dev/null
+      current="$(_fj GET "repos/${repo}/issues/${n}" |
+        jq -c '[((.assignees // [])[].login)]')"
+      # A user already assigned who is not in the set we are adding is "foreign".
+      # Refuse rather than replace: stealing an existing holder is never correct.
+      foreign="$(jq -rn --argjson cur "$current" --argjson add "$users_json" \
+        '($cur - $add) | .[0] // empty')"
+      [ -z "$foreign" ] || _die "issue #${n} already assigned to '${foreign}'; refusing to replace"
+      # Union existing + requested, deduplicated, then write the whole set back.
+      merged="$(jq -cn --argjson cur "$current" --argjson add "$users_json" \
+        '($cur + $add) | unique')"
+      _fj PATCH "repos/${repo}/issues/${n}" \
+        "$(jq -n --argjson a "$merged" '{assignees:$a}')" >/dev/null
       ;;
   esac
 }
 
 # forge issue-unassign <n> <user>...  — drop assignees, releasing the claim.
+# Gitea/Forgejo has NO DELETE repos/.../issues/{n}/assignees route, so we read
+# the current set, subtract the named users, and PATCH the remainder back
+# (empty array = full drop). Only the named users are removed; any other
+# assignee stays. The body is built with jq --argjson, never interpolation.
 cmd_issue_unassign() {
   local n="$1"
   shift
+  _require_num "$n"
   [ "$#" -gt 0 ] || _die "issue-unassign needs at least one user"
   local users=()
   local u
@@ -471,9 +512,13 @@ cmd_issue_unassign() {
       gh issue edit "$n" "${args[@]}" >/dev/null
       ;;
     forgejo)
-      _fj DELETE "repos/$(_repo)/issues/${n}/assignees" \
-        "$(jq -n --argjson a "$(printf '%s\n' "${users[@]}" | jq -R . | jq -sc .)" \
-          '{assignees:$a}')" >/dev/null
+      local repo drop_json remaining
+      repo="$(_repo)"
+      drop_json="$(printf '%s\n' "${users[@]}" | jq -R . | jq -sc .)"
+      remaining="$(_fj GET "repos/${repo}/issues/${n}" |
+        jq -c --argjson drop "$drop_json" '[((.assignees // [])[].login)] - $drop')"
+      _fj PATCH "repos/${repo}/issues/${n}" \
+        "$(jq -n --argjson a "$remaining" '{assignees:$a}')" >/dev/null
       ;;
   esac
 }
@@ -482,6 +527,7 @@ cmd_issue_unassign() {
 cmd_issue_labels() {
   local n="$1"
   shift
+  _require_num "$n"
   [ "$#" -gt 0 ] || return 0
   case "$(_host)" in
     github)
@@ -503,6 +549,7 @@ cmd_issue_labels() {
 cmd_issue_unlabel() {
   local n="$1"
   shift
+  _require_num "$n"
   [ "$#" -gt 0 ] || return 0
   case "$(_host)" in
     github)
