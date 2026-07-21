@@ -38,6 +38,30 @@ in
         '';
       };
 
+      haltPollNs = lib.mkOption {
+        type = lib.types.ints.unsigned;
+        default = 0;
+        example = 50000;
+        description = ''
+          Value (nanoseconds) for the base `kvm` module's `halt_poll_ns`
+          parameter, applied fleet-wide via `boot.extraModprobeConfig` so
+          every host enabling `server.kvm` inherits it. Overridable per-host.
+
+          The upstream kernel default is 200000 (200us): an idle vCPU
+          busy-polls for up to this long before scheduling out, trading host
+          CPU (and heat) for lower guest wakeup latency. On an overcommitted
+          hypervisor running latency-tolerant guests (e.g. srv's darkstar
+          Talos VMs), several chatty guests keep those poll loops warm and
+          burn host cycles the guests never account as work. 0 disables
+          polling entirely (the value chosen for srv); 50000 (50us) is a
+          middle ground to fall back to if 0 regresses guest latency.
+
+          `halt_poll_ns` belongs to the base `kvm` module, not `kvm-intel`,
+          so the modprobe line targets `kvm`. It is also runtime-writable at
+          /sys/module/kvm/parameters/halt_poll_ns for a no-reboot A/B test.
+        '';
+      };
+
       routing = {
         enable = lib.mkOption {
           type = lib.types.bool;
@@ -127,6 +151,13 @@ in
       spiceUSBRedirection.enable = true;
 
     };
+
+    # Stop idle vCPUs from busy-polling before they schedule out. See the
+    # server.kvm.haltPollNs option for the full rationale; the short version
+    # is that the 200us kernel default charges the host CPU/heat for polling
+    # that latency-tolerant guests never account as work. extraModprobeConfig
+    # is types.lines, so this composes with any other host's modprobe options.
+    boot.extraModprobeConfig = "options kvm halt_poll_ns=${toString cfg.haltPollNs}";
 
     # Optional routing configuration
     boot.kernel.sysctl = lib.mkIf cfg.routing.enable (
