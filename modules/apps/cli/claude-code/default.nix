@@ -66,6 +66,7 @@ let
       remindersScript
       guardGeneratedPathsScript
       guardRawNixScript
+      guardGitStashScript
       reapConfig
       globals
       homeDir
@@ -166,6 +167,21 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/guard-raw-nix.sh;
+  };
+
+  # Hard PreToolUse deny for manual `git stash` (issue #250). Unlike the
+  # warn-level guards above, this blocks the command before it runs, because a
+  # stash pushed onto the shared refs/stash stack is already a hazard the
+  # moment a second agent is active in the repo. PreToolUse deny composes with
+  # the auto-gate (an allow can never override a deny).
+  guardGitStashScript = pkgs.writeShellApplication {
+    name = "claude-guard-git-stash";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.gnugrep
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/guard-git-stash.sh;
   };
 
   # Shell scripts -- read from files, substitute placeholders

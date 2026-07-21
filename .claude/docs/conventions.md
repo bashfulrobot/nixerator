@@ -22,7 +22,7 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 
 - **Never run `git commit` or `git push`.** The user handles commits.
 - After making changes, suggest a conventional commit scope and title (e.g. `feat(fish): add zoxide integration`).
-- **Do not run `git stash` (push/save).** The `bash-guard` hook blocks it. The stash stack lives at `refs/stash` in the repo's common git directory, which every worktree shares, so two agents stashing in two worktrees push onto the same stack and pop each other's entries. `git stash pop`, `apply`, `list`, `show`, and `drop` stay allowed so a human can recover an existing entry.
+- **Do not run `git stash` (push/save).** A PreToolUse hook (`claude-guard-git-stash`) denies it before it runs, so the stash never reaches the shared stack. This is a hard deny, unlike the warn-level `bash-guard` that only nudges on `--no-verify`/`--force`. The stash stack lives at `refs/stash` in the repo's common git directory, which every worktree shares, so two agents stashing in two worktrees push onto the same stack and pop each other's entries. `git stash pop`, `apply`, `list`, `show`, and `drop` stay allowed so a human can recover an existing entry.
 
 ### Interrupt and shutdown pattern
 
