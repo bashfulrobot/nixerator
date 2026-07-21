@@ -443,11 +443,18 @@ cmd_issue_comments() {
   esac
 }
 
-# Issue comments as a JSON array [{id, body}], ordered by the forge's numeric,
-# monotonic comment id. The lowest id is the earliest comment, so a consumer can
-# resolve "who claimed first" with `sort_by(.id) | .[0]`. This MUST agree with
-# the issue-side lease's winner (github-issue.sh `_lease_claim`), which sorts the
-# same REST comment ids — so both compute the identical lowest-id winner.
+# ALL of an issue's comments as a JSON array [{id, body}], in ascending
+# comment-id order (the forge returns them oldest-first and the id is numeric and
+# monotonic). This is an UNFILTERED accessor: it does not single out claim
+# comments. A consumer resolving the issue-side lease winner MUST first filter to
+# the claim-marker comments, then take the lowest id:
+#   jq '[.[] | select(.body | contains("<!-- worktree-flow:claim -->"))]
+#        | sort_by(.id) | .[0]'
+# On the raw output a lower-id pre-claim comment (a human or triage note) would
+# win the bare `sort_by(.id) | .[0]` and force a false cede. The id source
+# matches the lease's: github-issue.sh `_lease_claim_comments` reads the same
+# `gh api repos/.../issues/N/comments`, so once both filter to claim comments
+# they agree on the identical lowest-id winner.
 # GitHub's REST comments endpoint yields the numeric database id (unlike
 # `gh issue view --json comments`, whose GraphQL node ids are non-numeric
 # strings). --paginate merges every page into one array. Forgejo's comment id is
@@ -464,8 +471,22 @@ cmd_issue_comments_json() {
         jq '[.[] | {id, body}]'
       ;;
     forgejo)
-      _fj GET "repos/$(_repo)/issues/${n}/comments" |
-        jq '[.[] | {id, body}]'
+      # Forgejo's REST list is paginated; a single GET returns only the first
+      # page, so a claim buried in a later page would be silently dropped and
+      # the winner mis-resolved. Walk pages (limit=50, the Gitea/Forgejo max)
+      # until a short/empty page marks the end, accumulating into one array.
+      local repo page acc pagejson count
+      repo="$(_repo)"
+      page=1
+      acc='[]'
+      while :; do
+        pagejson="$(_fj GET "repos/${repo}/issues/${n}/comments?page=${page}&limit=50")"
+        count="$(printf '%s' "$pagejson" | jq 'length')"
+        acc="$(jq -cn --argjson a "$acc" --argjson p "$pagejson" '$a + $p')"
+        [ "$count" -lt 50 ] && break
+        page=$((page + 1))
+      done
+      printf '%s' "$acc" | jq '[.[] | {id, body}]'
       ;;
   esac
 }
@@ -693,7 +714,7 @@ forge — provider-aware git-forge helper (GitHub via gh, Forgejo via REST)
 
   forge issue-json     <n>           normalised issue object (comments = count)
   forge issue-comments <n>           issue comment bodies, one per line
-  forge issue-comments-json <n>      [{id,body}] by numeric comment id (claim resolution)
+  forge issue-comments-json <n>      all comments [{id,body}] ascending by id (filter to claim marker to resolve a lease)
   forge issue-list     [state] [limit]
   forge issue-create  <title> <body> [label]...     -> URL
   forge issue-comment <n> <body>

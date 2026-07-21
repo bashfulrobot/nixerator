@@ -55,7 +55,11 @@ forge issue-labels <n> in-progress               # create the label once if the 
 # so fleet-status can parse host/worktree/branch line by line and sort by comment id:
 forge issue-comment <n> "$(printf 'Claimed for work.\n\n<!-- worktree-flow:claim -->\nclaim-id: %s\nhost: %s\nworktree: %s\nclaimed-at: %s\nbranch: %s' \
   "$(uname -n)::<worktree>::$(date -u +%FT%TZ)::$$" "$(uname -n)" "<worktree>" "$(date -u +%FT%TZ)" "<branch>")"
-forge issue-comments-json <n>                     # re-read; sort_by(.id)|.[0] is the winner — cede if it isn't yours
+# Re-read and resolve the winner. Filter to the claim marker FIRST, then take the
+# lowest id. The raw list also holds pre-claim human/triage comments (lower ids);
+# a bare sort_by(.id) would pick one of those and make you cede by mistake.
+forge issue-comments-json <n> | jq '[.[] | select(.body | contains("<!-- worktree-flow:claim -->"))] | sort_by(.id) | .[0]'
+# Cede if that winner's claim-id is not the one you just posted.
 ```
 
 **After the PR merges or you abandon the work (release):**
