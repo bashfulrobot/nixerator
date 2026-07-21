@@ -443,6 +443,33 @@ cmd_issue_comments() {
   esac
 }
 
+# Issue comments as a JSON array [{id, body}], ordered by the forge's numeric,
+# monotonic comment id. The lowest id is the earliest comment, so a consumer can
+# resolve "who claimed first" with `sort_by(.id) | .[0]`. This MUST agree with
+# the issue-side lease's winner (github-issue.sh `_lease_claim`), which sorts the
+# same REST comment ids — so both compute the identical lowest-id winner.
+# GitHub's REST comments endpoint yields the numeric database id (unlike
+# `gh issue view --json comments`, whose GraphQL node ids are non-numeric
+# strings). --paginate merges every page into one array. Forgejo's comment id is
+# a numeric auto-increment. A read failure exits non-zero (no partial JSON).
+cmd_issue_comments_json() {
+  local n="$1"
+  _require_num "$n"
+  case "$(_host)" in
+    github)
+      # --paginate merges every page into ONE JSON array (the lease's
+      # _lease_claim_comments reads it the same way), so a single `.[]` walk
+      # covers all comments.
+      gh api "repos/$(_repo)/issues/${n}/comments" --paginate |
+        jq '[.[] | {id, body}]'
+      ;;
+    forgejo)
+      _fj GET "repos/$(_repo)/issues/${n}/comments" |
+        jq '[.[] | {id, body}]'
+      ;;
+  esac
+}
+
 # forge issue-comment <n> <body>
 cmd_issue_comment() {
   local n="$1" body="$2"
@@ -666,6 +693,7 @@ forge — provider-aware git-forge helper (GitHub via gh, Forgejo via REST)
 
   forge issue-json     <n>           normalised issue object (comments = count)
   forge issue-comments <n>           issue comment bodies, one per line
+  forge issue-comments-json <n>      [{id,body}] by numeric comment id (claim resolution)
   forge issue-list     [state] [limit]
   forge issue-create  <title> <body> [label]...     -> URL
   forge issue-comment <n> <body>
@@ -707,6 +735,7 @@ main() {
     pr-labels) cmd_pr_labels "$@" ;;
     issue-json) cmd_issue_json "$@" ;;
     issue-comments) cmd_issue_comments "$@" ;;
+    issue-comments-json) cmd_issue_comments_json "$@" ;;
     issue-list) cmd_issue_list "$@" ;;
     issue-create) cmd_issue_create "$@" ;;
     issue-comment) cmd_issue_comment "$@" ;;

@@ -51,8 +51,11 @@ assignee, so read the claim comments before deciding. Otherwise claim it:
 ```
 forge issue-assign <n> @me                       # human-visible hint, not a CAS
 forge issue-labels <n> in-progress               # create the label once if the repo lacks it
-forge issue-comment <n> "Claimed for work. host: $(uname -n), branch: <branch>, at: $(date -u +%FT%TZ)"
-forge issue-comments <n>                         # re-read; if an earlier claim comment exists, cede to it
+# Post the claim with each field line-anchored, matching what the GitHub path emits,
+# so fleet-status can parse host/worktree/branch line by line and sort by comment id:
+forge issue-comment <n> "$(printf 'Claimed for work.\n\n<!-- worktree-flow:claim -->\nclaim-id: %s\nhost: %s\nworktree: %s\nclaimed-at: %s\nbranch: %s' \
+  "$(uname -n)::<worktree>::$(date -u +%FT%TZ)::$$" "$(uname -n)" "<worktree>" "$(date -u +%FT%TZ)" "<branch>")"
+forge issue-comments-json <n>                     # re-read; sort_by(.id)|.[0] is the winner — cede if it isn't yours
 ```
 
 **After the PR merges or you abandon the work (release):**
