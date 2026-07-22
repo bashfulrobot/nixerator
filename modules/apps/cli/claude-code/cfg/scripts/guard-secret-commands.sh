@@ -46,18 +46,18 @@ cmdstart='(^|[;&|(]|`)\s*'
 # 1. echo/print of a secret-named variable -- the exact leak that happened.
 #    Catches `echo $AHA_API_TOKEN`, `echo "${AHA_API_TOKEN:-no}"`, and
 #    `printenv AHA_API_TOKEN`. printf is excluded on purpose (see header).
-if grep -qiP "\\b(echo|print|printenv)\\b[^|;&]*\\\$\\{?[A-Za-z_]*${secret}" <<<"$cmd" \
-  || grep -qiP "\\bprintenv\\b[^|;&]*\\b[A-Za-z_]*${secret}" <<<"$cmd"; then
+if grep -qiP "\\b(echo|print|printenv)\\b[^|;&]*\\\$\\{?[A-Za-z_]*${secret}" <<<"$cmd" ||
+  grep -qiP "\\bprintenv\\b[^|;&]*\\b[A-Za-z_]*${secret}" <<<"$cmd"; then
   deny "Refusing: this prints a secret-named variable to stdout, which lands in the transcript (model context). To check a token exists without printing it: [ -n \"\${TOK:-}\" ] && echo set || echo unset"
 fi
 
 # 2. Dump the whole environment. Anchored to command position so `env FOO=bar
 #    cmd`, `env python`, and `grep env` all proceed; only a bare env/printenv/set
 #    dump (or export -p / declare -x) matches.
-if grep -qP "${cmdstart}env\\s*(\$|[|;&>])" <<<"$cmd" \
-  || grep -qP "${cmdstart}printenv\\s*(\$|[|;&>])" <<<"$cmd" \
-  || grep -qP "${cmdstart}set\\s*(\$|\\|)" <<<"$cmd" \
-  || grep -qP '\b(export\s+-p|declare\s+-[px]|typeset\s+-[px])\b' <<<"$cmd"; then
+if grep -qP "${cmdstart}env\\s*(\$|[|;&>])" <<<"$cmd" ||
+  grep -qP "${cmdstart}printenv\\s*(\$|[|;&>])" <<<"$cmd" ||
+  grep -qP "${cmdstart}set\\s*(\$|\\|)" <<<"$cmd" ||
+  grep -qP '\b(export\s+-p|declare\s+-[px]|typeset\s+-[px])\b' <<<"$cmd"; then
   deny "Refusing: dumping the environment prints every rendered secret (AHA_API_TOKEN, WAVE_FULL_ACCESS_TOKEN, FORGEJO_TOKEN, ...) into the transcript. Read the specific non-secret var you need by name instead."
 fi
 
@@ -69,8 +69,8 @@ if grep -qiP '\b(cat|bat|nl|less|more|head|tail|tac|strings|xxd|od|hexdump|base6
 fi
 
 # 4. 1Password value reveal.
-if grep -qP '\bop\s+read\b' <<<"$cmd" \
-  || grep -qP '\bop\s+item\s+get\b[^|;&]*--reveal' <<<"$cmd"; then
+if grep -qP '\bop\s+read\b' <<<"$cmd" ||
+  grep -qP '\bop\s+item\s+get\b[^|;&]*--reveal' <<<"$cmd"; then
   deny "Refusing: op read / op item get --reveal surfaces the secret value into context. Use item titles, field labels, and op:// paths only, or move a value blind with op item edit dest=\"\$(op read ...)\"."
 fi
 
@@ -78,8 +78,8 @@ fi
 #    `--json` include result.accessToken. `--json | jq '.result.username'` is
 #    SAFE (the token stays in the pipe, jq projects it away), so only deny
 #    `--json` when it is NOT piped onward -- i.e. the raw JSON would hit stdout.
-if grep -qP '\bsf\s+org\s+display\b[^|]*--verbose' <<<"$cmd" \
-  || grep -qP '\bsf\s+org\s+display\b[^|]*--json[^|]*($|[;&])' <<<"$cmd"; then
+if grep -qP '\bsf\s+org\s+display\b[^|]*--verbose' <<<"$cmd" ||
+  grep -qP '\bsf\s+org\s+display\b[^|]*--json[^|]*($|[;&])' <<<"$cmd"; then
   deny "Refusing: sf org display --verbose, or raw --json, prints the live accessToken to stdout. Pipe --json through a jq filter that selects only the fields you need (e.g. | jq -r '.result.username'), or use plain 'sf org display'."
 fi
 
