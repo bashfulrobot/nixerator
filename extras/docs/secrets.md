@@ -287,22 +287,47 @@ vault is all the SA needs.
 
 ## Accessing in modules
 
-`secrets` arrives via `specialArgs`:
+`secrets` still arrives via `specialArgs`, but for existence guards only, never
+to read a value at eval. Reading a value at eval interpolates it into the build
+output, and any `secrets.<x>` written into a derivation string lands in the
+world-readable `/nix/store`, where a local agent can grep it (issue #265).
+
+There are two consumption shapes, and one helper:
+
+- Presence guards use `secrets` directly, and read no value (`secrets ? foo`,
+  `secrets.foo.bar or null != null`).
+- A runtime read (a value used live inside a service or shell script) is a
+  one-line `jq` against the off-store file, as restic and the fish module do it:
+  `set -gx TOKEN (jq -r '.foo.token' ~/.config/nixos-secrets/secrets.json)`. The
+  value is read when the script runs, so it never enters the store.
+- An activation write uses `secretsLib.installValue` (`lib/secrets.nix`). It
+  writes one secret to a mode-restricted file, creates the parent dir, no-ops
+  when the key is absent, and reads the value through `jq` so it never hits
+  argv. This is the shape with real boilerplate, so it is the one worth sharing.
 
 ```nix
-{ secrets, ... }:
+{ pkgs, lib, secretsLib, globals, secrets, ... }:
 {
   config = {
-    someService.password = secrets.restic.srv.restic_password;
+    # Presence guard: reads nothing, only checks the key exists.
+    someService.enable = secrets ? someService;
 
-    # Conditional on secret existence (defensive in case a module is
-    # consumed before all values are populated)
-    someOption = lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
-      token = secrets.kong.kongKonnectPAT;
-    };
+    # Activation write, to a 0600 file the consumer reads at runtime:
+    system.activationScripts.fooToken = lib.stringAfter [ "etc" ] (
+      secretsLib.installValue {
+        jq = "${pkgs.jq}/bin/jq";
+        secretsFile = secretsLib.file globals;
+        path = ".foo.token";
+        dest = "/run/nixos-secrets/foo-token";
+      }
+    );
   };
 }
 ```
+
+`flake.nix` still reads `secrets.json` at eval, but only to build the attrset
+for those guards. No module interpolates a secret value into a build output, and
+the acceptance grep in issue #265 enforces that.
 
 Per-host network identity comes via `globals`:
 
@@ -325,7 +350,10 @@ Per-host network identity comes via `globals`:
    `{{ op://nixerator/<item>/<field> }}` placeholder.
 4. `just render-secrets` on a desktop.
 5. `just push-secrets <host>` for any peer that needs it.
-6. Reference in a module via `secrets.path.to.secret`.
+6. Consume it at runtime: a one-line `jq` read for a shell/service, or
+   `secretsLib.installValue` for an activation write. Guard on existence with
+   `secrets`, but never interpolate the value at eval. See "Accessing in
+   modules" above.
 7. Commit the template change.
 
 ## Fresh machine bootstrap

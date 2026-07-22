@@ -3,7 +3,6 @@
   pkgs,
   config,
   globals,
-  secrets,
   versions,
   ...
 }:
@@ -11,7 +10,6 @@
 let
   cfg = config.apps.cli.agent-scan;
   agent-scan = pkgs.callPackage ./build { inherit versions; };
-  snykToken = secrets.snyk.token or null;
 in
 {
   options.apps.cli.agent-scan = {
@@ -22,9 +20,8 @@ in
     home-manager.users.${globals.user.name} = {
       home.packages = [ agent-scan ];
 
-      home.sessionVariables = lib.optionalAttrs (snykToken != null && snykToken != "") {
-        SNYK_TOKEN = snykToken;
-      };
+      # SNYK_TOKEN is exported at shell runtime by the fish module from the
+      # off-store secrets file (issue #265), so it never enters the Nix store.
     };
   };
 }

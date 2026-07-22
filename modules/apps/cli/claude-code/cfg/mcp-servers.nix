@@ -188,7 +188,10 @@ let
       type = "http";
       url = "https://mcp.context7.com/mcp";
       headers = {
-        CONTEXT7_API_KEY = context7ApiKey;
+        # Placeholder only; the real key is substituted into ~/.claude/mcp-servers
+        # at activation from the off-store secrets file (issue #265), so it never
+        # lands in the world-readable store.
+        CONTEXT7_API_KEY = "@CONTEXT7_API_KEY@";
       };
     };
   }
@@ -197,7 +200,10 @@ let
       type = "http";
       url = "https://us.mcp.konghq.com/";
       headers = {
-        Authorization = "Bearer ${secrets.kong.kongKonnectPAT}";
+        # Placeholder only; the real PAT is substituted at activation from the
+        # off-store secrets file (issue #265). This matches userScopeTemplate
+        # below, which already carried the placeholder for the user-scope copy.
+        Authorization = "Bearer @KONG_KONNECT_PAT@";
       };
     };
   }
@@ -232,10 +238,13 @@ let
         "@tableau/mcp-server@2.22.0"
       ];
       env = {
-        SERVER = secrets.tableau.server;
-        SITE_NAME = secrets.tableau.siteName;
-        PAT_NAME = secrets.tableau.patName;
-        PAT_VALUE = secrets.tableau.patValue;
+        # Placeholders only; the real values are substituted at activation from
+        # the off-store secrets file (issue #265). Claude still receives them at
+        # runtime (it drives the Tableau API), but they no longer enter the store.
+        SERVER = "@TABLEAU_SERVER@";
+        SITE_NAME = "@TABLEAU_SITE_NAME@";
+        PAT_NAME = "@TABLEAU_PAT_NAME@";
+        PAT_VALUE = "@TABLEAU_PAT_VALUE@";
       };
     };
   };
@@ -275,13 +284,70 @@ let
     };
   };
 
+  # Servers whose config carries a secret. Their .mcp.json is NOT written via
+  # home.file (that lands in the world-readable store). Instead cfg/activation.nix
+  # writes the real file from the off-store secrets file at 0600 (issue #265).
+  # Each entry maps its placeholders to jq paths in the rendered secrets JSON.
+  secretServerNames = [
+    "context7"
+    "kong-konnect"
+    "tableau"
+  ];
+
+  secretServerSubs = {
+    context7 = [
+      {
+        placeholder = "@CONTEXT7_API_KEY@";
+        path = ".context7.apiKey";
+      }
+    ];
+    kong-konnect = [
+      {
+        placeholder = "@KONG_KONNECT_PAT@";
+        path = ".kong.kongKonnectPAT";
+      }
+    ];
+    tableau = [
+      {
+        placeholder = "@TABLEAU_SERVER@";
+        path = ".tableau.server";
+      }
+      {
+        placeholder = "@TABLEAU_SITE_NAME@";
+        path = ".tableau.siteName";
+      }
+      {
+        placeholder = "@TABLEAU_PAT_NAME@";
+        path = ".tableau.patName";
+      }
+      {
+        placeholder = "@TABLEAU_PAT_VALUE@";
+        path = ".tableau.patValue";
+      }
+    ];
+  };
+
+  # Present-on-this-host secret servers, with placeholdered JSON text + the
+  # substitution map. Consumed by cfg/activation.nix, not home.file.
+  secretServerFiles = lib.mapAttrs (name: cfg: {
+    json = mkMcpServerJson name cfg;
+    subs = secretServerSubs.${name};
+  }) (lib.filterAttrs (n: _: builtins.elem n secretServerNames) mcpServers);
+
+  # home.file copies for every NON-secret server. The secret servers are
+  # excluded here and written at activation instead (see above).
   files = lib.mapAttrs' (name: cfg: {
     name = ".claude/mcp-servers/${name}/.mcp.json";
     value = {
       text = mkMcpServerJson name cfg;
     };
-  }) mcpServers;
+  }) (lib.filterAttrs (n: _: !builtins.elem n secretServerNames) mcpServers);
 in
 {
-  inherit mcpServers files userScopeTemplate;
+  inherit
+    mcpServers
+    files
+    userScopeTemplate
+    secretServerFiles
+    ;
 }
