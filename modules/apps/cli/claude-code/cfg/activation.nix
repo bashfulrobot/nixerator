@@ -11,6 +11,7 @@
   guardRawNixScript,
   guardGitStashScript,
   guardSecretCommandsScript,
+  scrubSecretOutputScript,
   reapConfig,
   globals,
   homeDir,
@@ -95,7 +96,10 @@
          | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-generated-paths|claude-guard-raw-nix") | not)))
              + [{matcher: "Edit|Write|MultiEdit", hooks: [{type: "command", command: "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths"}]},
-                {matcher: "Bash", hooks: [{type: "command", command: "${guardRawNixScript}/bin/claude-guard-raw-nix"}]}])' \
+                {matcher: "Bash", hooks: [{type: "command", command: "${guardRawNixScript}/bin/claude-guard-raw-nix"}]}])
+         | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-scrub-secret-output") | not)))
+             + [{matcher: "Bash", hooks: [{type: "command", command: "${scrubSecretOutputScript}/bin/claude-scrub-secret-output"}]}])' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
       chmod 644 "$claude_home/settings.json"

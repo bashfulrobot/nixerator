@@ -68,6 +68,7 @@ let
       guardRawNixScript
       guardGitStashScript
       guardSecretCommandsScript
+      scrubSecretOutputScript
       reapConfig
       globals
       homeDir
@@ -198,6 +199,19 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/guard-secret-commands.sh;
+  };
+
+  # PostToolUse output scrubber: redacts secret values (literal values from
+  # secrets.json + known token-shaped prefixes) from a Bash tool's stdout/stderr
+  # before the model sees it, via the `updatedToolOutput` rewrite mechanism. The
+  # last-line-of-defense net behind guard-secret-commands.sh.
+  scrubSecretOutputScript = pkgs.writeShellApplication {
+    name = "claude-scrub-secret-output";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/scrub-secret-output.sh;
   };
 
   # Shell scripts -- read from files, substitute placeholders
