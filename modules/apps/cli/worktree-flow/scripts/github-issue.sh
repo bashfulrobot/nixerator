@@ -2,12 +2,11 @@
 # Pure JSON output. No TUI, no interactive mode, no launching Claude.
 # The skill (SKILL.md) is the sole orchestrator — this script is its hands.
 
-if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
+if [[ -z "${GITHUB_ISSUE_SOURCE_ONLY:-}" ]] && { [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; }; then
   info "Usage: github-issue <subcommand> [args]"
   info ""
   info "Subcommands:"
-  info "  setup <number> [--base <ref>] [--force] -- create worktree pinned to base (default origin/main);"
-  info "                                             --force resumes onto an existing branch instead of refusing"
+  info "  setup <number> [--base <ref>]           -- create worktree pinned to base (default origin/main)"
   info "  status <number>                         -- detect lifecycle state"
   info "  push <number>                           -- silent pre-push rebase, push branch, create/update PR, propagate labels"
   info "  auto-merge <number>                     -- enable GitHub auto-merge (squash) on the PR"
@@ -779,7 +778,10 @@ detect_existing_branch() {
     0) remote_state="remote" ;;
     2) remote_state="absent" ;;
     *) remote_state="unknown"
-       warn "could not reach origin to check for branch '${branch}' (offline?); relying on the local check only" ;;
+       # To stderr explicitly: this function's stdout is the detection result,
+       # consumed via command substitution, and warn() prints to stdout outside
+       # JSON mode.
+       warn "could not reach origin to check for branch '${branch}' (offline?); relying on the local check only" >&2 ;;
   esac
 
   if [[ "$on_local" == true && "$remote_state" == "remote" ]]; then
@@ -798,19 +800,11 @@ detect_existing_branch() {
 cmd_setup() {
   local issue_number=""
   local base_ref=""
-  local force=false
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --base)
         base_ref="${2:?--base requires a value}"
         shift 2
-        ;;
-      --force)
-        # Bypass the branch-existence preflight and resume onto the existing
-        # branch instead of refusing. For re-establishing a worktree whose
-        # branch/PR is still open after the worktree was removed.
-        force=true
-        shift
         ;;
       -*)
         die "unknown option: $1"
@@ -825,7 +819,7 @@ cmd_setup() {
         ;;
     esac
   done
-  [[ -n "$issue_number" ]] || die "usage: github-issue setup <issue-number> [--base <ref>] [--force]"
+  [[ -n "$issue_number" ]] || die "usage: github-issue setup <issue-number> [--base <ref>]"
 
   # Guard before the number flows into the worktree path, branch name, the
   # .setup-issue-N.lock path, and gh issue refs. A non-numeric value (e.g.
@@ -892,13 +886,15 @@ cmd_setup() {
   # slipped past the lease, or a prior run whose worktree was removed without
   # deleting the branch, does not silently start a second copy of the work. It
   # runs before the lease claim and 'git worktree add', so a refusal leaves no
-  # claim, branch, or worktree behind. --force bypasses it and resumes onto the
-  # existing branch instead. Structured so the orchestrator can route on cause.
+  # claim, branch, or worktree behind. When offline ("unknown") the remote side
+  # cannot be checked, so it falls through (already warned) rather than blocking.
+  # Structured so the orchestrator can route on cause. Re-establishing a worktree
+  # for a still-open branch is manual for now; a proper resume is tracked in #267.
   local branch_state
   branch_state="$(detect_existing_branch "$branch_name")"
-  if [[ "$force" != true && "$branch_state" != "none" && "$branch_state" != "unknown" ]]; then
+  if [[ "$branch_state" != "none" && "$branch_state" != "unknown" ]]; then
     json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" --arg where "$branch_state" \
-      '{message: ("branch '\''" + $branch + "'\'' already exists (" + $where + ") -- another agent may have started issue #" + $issue + ", or a prior run left it behind. Check the PR, run '\''github-issue status " + $issue + "'\'', or pass --force to resume onto the existing branch."),
+      '{message: ("branch '\''" + $branch + "'\'' already exists (" + $where + ") -- another agent may have started issue #" + $issue + ", or a prior run left it behind. Check the PR or run '\''github-issue status " + $issue + "'\'' before starting."),
         cause: "branch_exists", branch: $branch, issue_number: ($issue|tonumber), location: $where}')"
   fi
 
@@ -920,19 +916,11 @@ cmd_setup() {
   ok "claimed issue #${issue_number} (assignee @${me}, label ${LEASE_LABEL})"
 
   mkdir -p "$(dirname "$wt_path")"
-  # Normally a fresh branch pinned explicitly to base_ref, so it never inherits
-  # an accidental stack from whatever HEAD happened to be when this ran. With
-  # --force on an existing branch (branch_state != none/unknown, only reachable
-  # because the preflight above was bypassed), resume onto that branch instead of
-  # creating a divergent new one, preferring origin as the source of truth.
-  case "$branch_state" in
-    remote | both)
-      git worktree add --no-checkout -B "$branch_name" "$wt_path" "origin/${branch_name}" ;;
-    local)
-      git worktree add --no-checkout "$wt_path" "$branch_name" ;;
-    *)
-      git worktree add --no-checkout "$wt_path" -b "$branch_name" "$base_ref" ;;
-  esac
+  # Pin branch explicitly to base_ref so the new branch never inherits an
+  # accidental stack from whatever HEAD happened to be when this ran. The
+  # preflight above guarantees the branch does not already exist here (a
+  # collision refuses; only "none"/"unknown" reach this point).
+  git worktree add --no-checkout "$wt_path" -b "$branch_name" "$base_ref"
   register_cleanup "$wt_path"
   checkout_and_unlock "$wt_path"
   create_issue_state "$branch_name" "$wt_path" "$issue_number" "$issue_title" "$issue_body" "$base_ref" "$blockers_json"

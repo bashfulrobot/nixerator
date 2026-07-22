@@ -47,3 +47,24 @@ teardown() { rm_fixture; }
   [ "$status" -eq 0 ]
   [ "$output" = "remote" ]
 }
+
+@test "unknown when origin is unreachable and the branch is not local" {
+  # A bogus origin makes git ls-remote fail with a transport error (not exit 2),
+  # so the remote dimension degrades to unknown. With no local branch either,
+  # detect_existing_branch reports unknown and setup falls through rather than
+  # refusing on a check it could not actually perform.
+  git -C "${FIX}/work" remote set-url origin /nonexistent/definitely-not-here.git
+  run detect "feat/262-offline"
+  [ "$status" -eq 0 ]
+  [ "$output" = "unknown" ]
+}
+
+@test "local still resolves even when origin is unreachable" {
+  # The local check needs no network, so an offline remote must not mask a real
+  # local-branch collision.
+  git -C "${FIX}/work" branch "feat/262-local-offline"
+  git -C "${FIX}/work" remote set-url origin /nonexistent/definitely-not-here.git
+  run detect "feat/262-local-offline"
+  [ "$status" -eq 0 ]
+  [ "$output" = "local" ]
+}

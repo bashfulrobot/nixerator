@@ -8,6 +8,12 @@
 TESTS_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")" && pwd)"
 SCRIPTS_DIR="$(cd "${TESTS_DIR}/../scripts" && pwd)"
 
+# Isolate every git call in the fixture from the developer's / CI runner's global
+# and system git config, so a stray commit.gpgsign, init.templateDir, or hook
+# cannot turn an environment problem into a spurious test failure.
+export GIT_CONFIG_GLOBAL=/dev/null
+export GIT_CONFIG_SYSTEM=/dev/null
+
 setup_fixture() {
   FIX="$(mktemp -d)"
   git init -q --bare "${FIX}/origin.git"
@@ -22,7 +28,8 @@ rm_fixture() { [ -n "${FIX:-}" ] && rm -rf "${FIX}"; }
 
 # detect BRANCH — run detect_existing_branch from inside the fixture working
 # clone, under the same `set -euo pipefail` the packaged command runs with, so
-# the test catches set -e footguns the raw source would otherwise hide.
+# the test catches set -e footguns the raw source would otherwise hide. stderr
+# (the offline warning) is dropped so $output is exactly the function's result.
 detect() {
   ( cd "${FIX}/work" || exit 3
     GITHUB_ISSUE_SOURCE_ONLY=1 bash -c '
@@ -30,7 +37,7 @@ detect() {
       source "'"${SCRIPTS_DIR}"'/lib.sh"
       source "'"${SCRIPTS_DIR}"'/github-issue.sh"
       detect_existing_branch "$1"
-    ' _ "$1" )
+    ' _ "$1" 2>/dev/null )
 }
 
 # push_remote_only BRANCH — create BRANCH, push it to origin, then delete the
