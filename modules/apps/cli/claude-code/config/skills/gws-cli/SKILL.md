@@ -44,7 +44,7 @@ If the task crosses both (e.g. "find a template in Drive, copy it, fill it, then
 
    Look for `"storage": "keyring"` (or `"file"`). If `"storage": "none"`, auth did not land, re-run step 2.
 
-To rotate or revoke later: `gws auth logout` clears the local cache; re-run `login` to re-grant. To inspect the stored credential blob, `gws auth export`.
+To rotate or revoke later: `gws auth logout` clears the local cache; re-run `login` to re-grant. To confirm auth is present, use `gws auth status` (prints only `storage`/`token_valid`). **Never run `gws auth export`** — it dumps the OAuth access and refresh tokens to stdout, which lands in the transcript; it is blocked by the secret-command guard.
 
 ### Scope debugging
 
@@ -193,7 +193,7 @@ The CLI reads these env vars (full list via `gws --help`):
 | `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` | Override the default `~/.config/gws`. |
 | `GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND` | `keyring` (default) or `file` for headless setups without a session keyring. |
 | `GOOGLE_WORKSPACE_PROJECT_ID` | Override the GCP project for quota and billing. |
-| `GOOGLE_WORKSPACE_CLI_LOG` | Log level for stderr (e.g. `gws=debug`). |
+| `GOOGLE_WORKSPACE_CLI_LOG` | Log level for stderr (e.g. `gws=debug`). Caution: `gws=debug` may log the `Authorization: Bearer <token>` request header to stderr, which reaches the transcript. Do not enable it while debugging an auth failure. |
 | `GOOGLE_WORKSPACE_CLI_LOG_FILE` | Directory for JSON log files (daily rotation). |
 
 ## Common errors and fixes

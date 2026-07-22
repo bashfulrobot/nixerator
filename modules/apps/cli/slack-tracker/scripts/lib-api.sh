@@ -21,10 +21,11 @@ slack_api() {
 
     # Use -sS (not -f) so we can inspect HTTP status ourselves
     local response
+    # Auth via a curl -K config fd so the session token and cookie never land
+    # on curl's argv (readable from ps / /proc/<pid>/cmdline).
     response="$(curl -sS -w '\n%{http_code}' \
       -D "$header_file" \
-      -H "Authorization: Bearer ${SLACK_XOXC}" \
-      -H "Cookie: d=${SLACK_XOXD}" \
+      -K <(printf 'header = "Authorization: Bearer %s"\nheader = "Cookie: d=%s"\n' "${SLACK_XOXC}" "${SLACK_XOXD}") \
       "https://slack.com/api/${endpoint}" "$@" 2>/dev/null)"
 
     local exit_code=$?

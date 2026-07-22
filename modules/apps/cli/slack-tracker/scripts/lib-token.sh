@@ -6,9 +6,9 @@ VERBOSE="${VERBOSE:-false}"
 slack_auth_test() {
   local xoxc="$1" xoxd="$2"
   local response
+  # Auth via a curl -K config fd so the token and cookie stay off curl's argv.
   response="$(curl -fsSL \
-    -H "Authorization: Bearer ${xoxc}" \
-    -H "Cookie: d=${xoxd}" \
+    -K <(printf 'header = "Authorization: Bearer %s"\nheader = "Cookie: d=%s"\n' "${xoxc}" "${xoxd}") \
     "https://slack.com/api/auth.test" 2>/dev/null)" || return 1
 
   local ok

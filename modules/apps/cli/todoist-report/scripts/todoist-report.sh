@@ -74,8 +74,9 @@ fi
 API="https://api.todoist.com/api/v1"
 
 api_get_raw() {
+  # Bearer via a curl -K config fd so the token stays off curl's argv.
   curl -fsSL \
-    -H "Authorization: Bearer ${TODOIST_API_TOKEN}" \
+    -K <(printf 'header = "Authorization: Bearer %s"\n' "${TODOIST_API_TOKEN}") \
     "${API}/${1}"
 }
 
