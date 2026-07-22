@@ -840,6 +840,18 @@ cmd_setup() {
   branch_name="$(build_branch_name "$branch_type" "$issue_number" "$issue_title")"
   ok "branch: ${branch_name}"
 
+  # Branch-existence preflight (#262). If origin already carries this issue's
+  # branch, a prior run or another agent that slipped past the lease has pushed
+  # it, and continuing would duplicate work in a second worktree. Refuse here:
+  # after the fetch above so the remote-tracking ref is current, and before the
+  # lease claim and 'git worktree add' below, so a refusal leaves no claim,
+  # branch, or worktree behind. Structured so the orchestrator can route on cause.
+  if git rev-parse --verify --quiet "refs/remotes/origin/${branch_name}" >/dev/null; then
+    json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" \
+      '{message: ("remote branch '\''" + $branch + "'\'' already exists on origin -- another agent may have started issue #" + $issue + ", or a prior run'\''s branch is still open. Check the PR or run '\''github-issue status " + $issue + "'\'' before starting."),
+        cause: "branch_exists", branch: $branch, issue_number: ($issue|tonumber)}')"
+  fi
+
   # Issue-side lease. Claim on the issue itself before creating the worktree so
   # an agent on another host or worktree root (past this machine's flock) sees
   # the claim first. Refuses with cause "issue_claimed" if already held. This
