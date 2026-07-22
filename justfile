@@ -202,6 +202,10 @@ test-skill-cache:
 test-render-secrets:
     nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/render-secrets/tests/
 
+# Run the secret-leak guard hook deny/allow regression tests
+test-secret-guard:
+    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gnugrep --command bats modules/apps/cli/claude-code/cfg/scripts/tests/
+
 # Garbage collection (default: 5 days)
 clean days="5":
     @echo "Cleaning packages older than {{days}} days..."

@@ -67,6 +67,7 @@ let
       guardGeneratedPathsScript
       guardRawNixScript
       guardGitStashScript
+      guardSecretCommandsScript
       reapConfig
       globals
       homeDir
@@ -182,6 +183,21 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/guard-git-stash.sh;
+  };
+
+  # Hard PreToolUse deny for commands that would print a secret into the
+  # transcript (env/printenv dumps, cat of a secrets file, op read, echo of a
+  # *_TOKEN var, sf org display --json, curl -v, set -x). Closes the leak class
+  # documented in the secret-leak RCA. A deny can't be overridden by an allow,
+  # so it holds even though `env`/`cat` remain allow-listed in settings.json.
+  guardSecretCommandsScript = pkgs.writeShellApplication {
+    name = "claude-guard-secret-commands";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.gnugrep
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/guard-secret-commands.sh;
   };
 
   # Shell scripts -- read from files, substitute placeholders

@@ -10,6 +10,7 @@
   guardGeneratedPathsScript,
   guardRawNixScript,
   guardGitStashScript,
+  guardSecretCommandsScript,
   reapConfig,
   globals,
   homeDir,
@@ -88,6 +89,9 @@
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-git-stash") | not)))
              + [{matcher: "Bash", hooks: [{type: "command", command: "${guardGitStashScript}/bin/claude-guard-git-stash"}]}])
+         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-guard-secret-commands") | not)))
+             + [{matcher: "Bash", hooks: [{type: "command", command: "${guardSecretCommandsScript}/bin/claude-guard-secret-commands"}]}])
          | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-generated-paths|claude-guard-raw-nix") | not)))
              + [{matcher: "Edit|Write|MultiEdit", hooks: [{type: "command", command: "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths"}]},
