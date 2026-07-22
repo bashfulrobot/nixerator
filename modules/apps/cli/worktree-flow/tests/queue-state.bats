@@ -84,6 +84,62 @@ teardown() { rm_fixture; }
   [ "$status" -ne 0 ]
 }
 
+@test "set rejects a queue with a non-integer issue number" {
+  run qstate set --json '{"queue":[1,"two",3],"cursor":0}'
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_invalid" ]
+}
+
+@test "set rejects a cursor out of range for the queue" {
+  run qstate set --json '{"queue":[1,2],"cursor":9}'
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_invalid" ]
+}
+
+@test "set rejects a prev_branch with unsafe characters" {
+  run qstate set --json '{"queue":[1],"cursor":0,"prev_branch":"feat/x; rm -rf /"}'
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_invalid" ]
+}
+
+@test "set accepts cursor equal to queue length (all issues done)" {
+  run qstate set --json '{"queue":[1,2,3],"cursor":3}'
+  [ "$status" -eq 0 ]
+  [ "$(echo "$output" | jq -r '.ok')" = "true" ]
+}
+
+@test "set rejects a payload over the size cap" {
+  # ~90 KiB: over the 64 KiB cap, but under the kernel's ~128 KiB single-arg
+  # limit so the payload actually reaches the command rather than failing at exec.
+  local pad
+  pad="$(printf 'a%.0s' $(seq 1 90000))"
+  run qstate set --json "{\"queue\":[1],\"cursor\":0,\"pad\":\"${pad}\"}"
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_too_large" ]
+}
+
+@test "set refuses when the state path is a symlink" {
+  local f dir
+  f="$(queue_state_file)"
+  dir="$(dirname "$f")"
+  mkdir -p "$dir"
+  ln -s /tmp/some-target "$f"
+  run qstate set --json '{"queue":[1],"cursor":0}'
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_symlink" ]
+}
+
+@test "get surfaces a shape-invalid (hand-edited) state file" {
+  local f
+  f="$(queue_state_file)"
+  mkdir -p "$(dirname "$f")"
+  # Valid JSON, wrong shape (cursor is not an integer).
+  printf '{"queue":[1,2],"cursor":"nope"}\n' >"$f"
+  run qstate get
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_invalid" ]
+}
+
 @test "clear removes the file so a later get is exists:false" {
   qstate set --json '{"queue":[1,2],"cursor":0}'
   run qstate clear

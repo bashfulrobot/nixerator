@@ -2014,6 +2014,33 @@ cmd_post_mortem() {
 # shape; this command only guarantees durability, atomicity, and valid JSON.
 QUEUE_STATE_VERSION=1
 
+# Structural validation for a queue-state payload. Echoes a human reason string
+# if the JSON is not a well-formed cursor, or nothing if it is valid. The state
+# is fed verbatim into a resuming orchestrator that acts on queue/cursor/
+# prev_branch and re-injects the decisions buffer (which is derived from
+# attacker-authorable issue bodies) into the LLM's context. Reject a malformed
+# or hostile shape at the boundary so a tampered file cannot resume as trusted.
+# The skill may add fields freely; only the security-relevant ones are pinned.
+_queue_state_validate() {
+  printf '%s' "$1" | jq -r '
+    if type != "object" then "state must be a JSON object"
+    elif (.queue | type) != "array" then "queue must be an array of issue numbers"
+    elif (.queue | length) != ([.queue[] | select(type == "number" and . == floor)] | length)
+      then "queue must contain only integer issue numbers"
+    elif (has("cursor") | not) then "cursor is required"
+    elif (.cursor | type) != "number" or (.cursor != (.cursor | floor))
+      then "cursor must be an integer"
+    elif (.cursor < 0) or (.cursor > (.queue | length))
+      then "cursor is out of range for the queue"
+    elif (has("prev_branch") and ((.prev_branch | type) != "string"))
+      then "prev_branch must be a string"
+    elif (has("prev_branch") and ((.prev_branch | test("^[A-Za-z0-9._/-]+$")) | not))
+      then "prev_branch has invalid characters"
+    elif (has("prs") and ((.prs | type) != "object")) then "prs must be an object"
+    else "" end
+  '
+}
+
 cmd_queue_state() {
   local action="${1:-}"
   [[ $# -gt 0 ]] && shift
@@ -2050,6 +2077,16 @@ cmd_queue_state() {
   QSTATE_FILE="${QSTATE_DIR}/.queue-state.json"
   QSTATE_LOCK="${QSTATE_DIR}/.queue-state.lock"
 
+  # These paths are always created here as regular files, so a symlink at either
+  # is planted, not legitimate. Opening the lock with O_TRUNC (below) or reading
+  # the state would follow it, letting a same-user process redirect a truncate or
+  # a read to an arbitrary target. Refuse rather than follow.
+  if [[ -L "$QSTATE_FILE" || -L "$QSTATE_LOCK" ]]; then
+    json_error_obj "$(jq -nc \
+      '{message: "queue-state path is a symlink; refusing to follow it",
+        cause: "queue_state_symlink"}')"
+  fi
+
   case "$action" in
     get)
       if [[ ! -f "$QSTATE_FILE" ]]; then
@@ -2069,10 +2106,33 @@ cmd_queue_state() {
           '{message: ("queue state at " + $f + " is present but not valid JSON; delete it or run '\''github-issue queue-state clear'\'' to start fresh"),
             cause: "queue_state_corrupt", path: $f}')"
       fi
+      # Valid JSON, but re-check the shape before handing it to a resumer: a file
+      # written by this command's set is already valid, so a failure here means
+      # it was hand-edited or planted. Surface it rather than resume on a hostile
+      # or broken cursor.
+      local qs_reason
+      qs_reason="$(_queue_state_validate "$content")"
+      if [[ -n "$qs_reason" ]]; then
+        json_error_obj "$(jq -nc --arg f "$QSTATE_FILE" --arg r "$qs_reason" \
+          '{message: ("queue state at " + $f + " is malformed: " + $r + "; run '\''github-issue queue-state clear'\'' to start fresh"),
+            cause: "queue_state_invalid", path: $f}')"
+      fi
       json_ok "$(jq -nc --argjson s "$content" '{exists: true, state: $s}')"
       ;;
     set)
       [[ -n "$payload" ]] || die "usage: github-issue queue-state set --json '<json>'"
+      # Bound the payload before parsing it. The decisions buffer is issue-body
+      # derived, so cap it to keep a runaway or hostile blob from being persisted
+      # and re-parsed on every get. 64 KiB is far above any real cursor (queue of
+      # numbers, a cursor, a ref, a small PR map, concise decision records) and
+      # sits below the kernel's ~128 KiB single-argument limit (MAX_ARG_STRLEN),
+      # so the guard is reachable: a larger single --json arg is rejected by the
+      # OS at exec with E2BIG before this script ever runs.
+      if [[ "${#payload}" -gt 65536 ]]; then
+        json_error_obj "$(jq -nc \
+          '{message: "queue-state set: --json payload exceeds 64 KiB",
+            cause: "queue_state_too_large"}')"
+      fi
       # Require a JSON object, not just any valid JSON. The stamp step below is
       # '. + {..}', which errors on an array/number/string/null, and the caller
       # (a resumer) reads the result back as an object with named fields. Reject
@@ -2082,6 +2142,15 @@ cmd_queue_state() {
         json_error_obj "$(jq -nc \
           '{message: "queue-state set: --json must be a JSON object",
             cause: "queue_state_not_object"}')"
+      fi
+      # Structural validation: queue is integer issue numbers, cursor is an
+      # in-range integer, prev_branch is a safe ref. Refuse a malformed cursor at
+      # the write boundary so a resumer never trusts a hostile or broken shape.
+      local qs_reason
+      qs_reason="$(_queue_state_validate "$payload")"
+      if [[ -n "$qs_reason" ]]; then
+        json_error_obj "$(jq -nc --arg r "$qs_reason" \
+          '{message: ("queue-state set: " + $r), cause: "queue_state_invalid"}')"
       fi
       : >"$QSTATE_LOCK" 2>/dev/null || die "cannot create queue-state lock at ${QSTATE_LOCK}"
       # fd 5 is safe here: queue-state is a leaf subcommand that never runs in
