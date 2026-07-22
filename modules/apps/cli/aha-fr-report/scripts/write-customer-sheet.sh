@@ -18,6 +18,11 @@
 # the Sheet the pipeline looks for, so an existing Sheet must be renamed to
 # match or a second one gets created alongside it.
 #
+# --ideas-file PATH reads the already-merged ideas JSON from PATH instead of
+# calling fetch-ideas.sh. customer-fr-report.sh fetches once and passes this so
+# every artifact (Sheet, PDF, CSV) is built from one identical data set; run
+# standalone (no --ideas-file) it fetches for itself, forwarding --org.
+#
 # Prints "sheet_id<TAB>sheet_url" on stdout when done.
 #
 # Columns written: State, Ref, Idea, Status, Stack Rank, Use Case,
@@ -64,14 +69,20 @@ customer_name="${1:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [
 frs_folder_id="${2:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--display-name NAME] [--org ID ...]}"
 shift 2
 
-# Pull --display-name out; everything left over is forwarded to fetch-ideas.sh
-# untouched (it only understands --org).
+# Pull --display-name and --ideas-file out; everything left over is forwarded to
+# fetch-ideas.sh untouched (it only understands --org), and ignored entirely
+# when --ideas-file short-circuits the fetch.
 display_name=""
+ideas_file=""
 _fetch_args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --display-name)
       display_name="${2:?--display-name requires a value}"
+      shift 2
+      ;;
+    --ideas-file)
+      ideas_file="${2:?--ideas-file requires a value}"
       shift 2
       ;;
     *)
@@ -83,8 +94,8 @@ done
 set -- ${_fetch_args[@]+"${_fetch_args[@]}"}
 display_name="${display_name:-$customer_name}"
 
-[[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
 command -v jq >/dev/null 2>&1 || die "'jq' is required but not on PATH"
+[[ -n "$ideas_file" ]] || [[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
 
 sheet_name="${display_name} - Feature Requests"
 
@@ -101,11 +112,16 @@ else
 fi
 
 # --- Step 2: pull the customer's ideas from Aha!, with Stack Rank ----------
-echo "Pulling ideas for ${customer_name} from Aha!..." >&2
-# customer-ideas.sh (called inside fetch-ideas.sh) ignores $customer_name for
-# search purposes once any --org is present (see its own arg parsing), so
-# it's safe to always pass both -- --org just takes precedence.
-ideas_json="$("$FETCH_IDEAS" "$customer_name" "$@")"
+if [[ -n "$ideas_file" ]]; then
+  [[ -r "$ideas_file" ]] || die "ideas file not readable: $ideas_file"
+  ideas_json="$(cat "$ideas_file")"
+else
+  echo "Pulling ideas for ${customer_name} from Aha!..." >&2
+  # customer-ideas.sh (called inside fetch-ideas.sh) ignores $customer_name for
+  # search purposes once any --org is present (see its own arg parsing), so
+  # it's safe to always pass both -- --org just takes precedence.
+  ideas_json="$("$FETCH_IDEAS" "$customer_name" "$@")"
+fi
 n="$(echo "$ideas_json" | jq 'length')"
 echo "Got ${n} idea(s)." >&2
 

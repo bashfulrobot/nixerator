@@ -26,14 +26,17 @@
 #   pipeline looks for, so rename any existing Sheet to match or a second one
 #   gets created next to it.
 #
-# Field 4 -- PDF destination folder id (optional)
-#   Pins the customer-facing PDF to an explicit Drive folder (forwarded as
-#   --pdf-folder), instead of the in-drive <Customer>/CS/FRs/Customer-PDF-Reports
-#   subfolder. The folder must already exist -- nothing is created. The internal
-#   Sheet still lands in its original FRs folder, so its link is unaffected.
-#   Used to point the customer-facing PDFs at each customer's
-#   Customer/<Name>/FRs/pdf-reports folder in My Drive. To set this while
-#   leaving the display name (field 3) empty, use two pipes: name|org||folderid.
+# Field 4 -- pdf-reports destination folder id (optional)
+#   Pins the customer-facing bundle to an explicit My Drive location (forwarded
+#   as --pdf-folder). The id is the customer's Customer/<Name>/FRs/pdf-reports
+#   folder in My Drive, which must already exist. From it the pipeline derives,
+#   without any extra ids:
+#     - the parent FRs folder, which receives a customer-facing Sheet copy, and
+#     - a sibling csv-exports folder (created if missing), which receives the CSV.
+#   The customer-facing PDF goes into the pinned pdf-reports folder itself. The
+#   internal Sheet still lands in its original shared-drive <Customer>/CS/FRs
+#   folder, so that long-standing link is unaffected. To set this while leaving
+#   the display name (field 3) empty, use two pipes: name|org||folderid.
 #
 # Lines starting with # and blank lines are ignored. run-all.sh processes
 # every customer here on each scheduled run.

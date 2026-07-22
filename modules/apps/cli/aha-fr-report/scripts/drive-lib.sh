@@ -140,3 +140,26 @@ resolve_customer_frs_only() {
   frs_id="$(find_or_create_subfolder "$cs_id" "FRs")" || return 1
   printf '%s\t%s\n' "$cust_id" "$frs_id"
 }
+
+# resolve_pinned_pdf_siblings PDF_REPORTS_FOLDER_ID
+# Given a pinned pdf-reports folder id (customers.txt field 4), derive the two
+# sibling destinations in the same My Drive tree without needing any extra ids:
+#   - its parent FRs folder, where the customer-facing Sheet copy lands, and
+#   - a "csv-exports" subfolder of that FRs folder (created if missing), where
+#     the customer-facing CSV lands.
+# The tree is Customer/<Name>/FRs/{pdf-reports,csv-exports} with the Sheet copy
+# at the FRs root (verified live). Unlike resolve_customer_frs_* this touches
+# My Drive, not the Customers shared drive -- these are a separate, deliberately
+# customer-facing bundle that leaves the internal shared-drive Sheet untouched.
+# Prints "frs_id<TAB>csv_exports_id".
+resolve_pinned_pdf_siblings() {
+  local pdf_id frs_id csv_id
+  pdf_id="$1"
+  frs_id="$(_folder_parent "$pdf_id")"
+  [[ -n "$frs_id" ]] || {
+    echo "ERROR: could not resolve the parent FRs folder of pinned pdf-reports folder '${pdf_id}'." >&2
+    return 1
+  }
+  csv_id="$(find_or_create_subfolder "$frs_id" "csv-exports")" || return 1
+  printf '%s\t%s\n' "$frs_id" "$csv_id"
+}
