@@ -768,7 +768,10 @@ _lease_release() {
 # dimension degrades to "unknown" with a warning, rather than silently reporting
 # the branch as absent, while the local check (which needs no network) still
 # stands. exit-code semantics of 'git ls-remote --exit-code': 0 = ref found,
-# 2 = no matching ref, anything else = could not reach the remote.
+# 2 = no matching ref, anything else = could not reach the remote. The call is
+# wrapped in 'timeout' so a hung transport (a reachable-but-stalled origin) lands
+# in the "unknown" arm within seconds instead of blocking setup on the OS TCP
+# timeout; timeout's own 124/137 exit is one of the "anything else" codes.
 #
 # The pattern is the fully qualified 'refs/heads/<branch>', not a bare
 # '<branch>'. git ls-remote matches a pattern against the tail path components
@@ -780,7 +783,7 @@ detect_existing_branch() {
   local branch="$1"
   local on_local=false remote_state ls_rc
   git show-ref --verify --quiet "refs/heads/${branch}" && on_local=true
-  git ls-remote --exit-code --heads origin "refs/heads/${branch}" >/dev/null 2>&1 && ls_rc=0 || ls_rc=$?
+  timeout 15 git ls-remote --exit-code --heads origin "refs/heads/${branch}" >/dev/null 2>&1 && ls_rc=0 || ls_rc=$?
   case "$ls_rc" in
     0) remote_state="remote" ;;
     2) remote_state="absent" ;;
