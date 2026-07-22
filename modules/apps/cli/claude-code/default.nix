@@ -57,6 +57,7 @@ let
   activationConfig = import ./cfg/activation.nix {
     inherit
       pkgs
+      lib
       configDir
       statusLineScript
       autoGateScript
@@ -82,6 +83,7 @@ let
     textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
     userScopeMcpTemplate = userScopeMcpTemplateFile;
+    secretServerFiles = mcpConfig.secretServerFiles;
     inherit secretsFile;
   };
 
