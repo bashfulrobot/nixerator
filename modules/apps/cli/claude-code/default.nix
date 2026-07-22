@@ -242,26 +242,14 @@ let
 
   # Conditional env vars exported into both system and HM session scopes.
   # Built once here so the two consumer sites can't drift.
+  #
+  # Secret-bearing tokens (GEMINI_API_KEY, AHA_API_TOKEN, WAVE_FULL_ACCESS_TOKEN)
+  # are NOT set here: exporting them via environment.variables/sessionVariables
+  # bakes the plaintext into the world-readable Nix store. They are exported at
+  # shell runtime by the fish module, read from the off-store secrets file
+  # (issue #265). Only non-secret env vars remain below.
   claudeEnv =
-    lib.optionalAttrs (secrets ? gemini && secrets.gemini ? apiKey) {
-      GEMINI_API_KEY = secrets.gemini.apiKey;
-    }
-    // lib.optionalAttrs (secrets ? aha && secrets.aha ? apiToken) {
-      # Aha! REST API token for the `aha` Claude Code skill. Injected as an
-      # env var the same way as GEMINI_API_KEY so `aha.sh` reads it directly
-      # (no runtime `op` call, no Personal-vault dependency). Sourced from the
-      # `nixerator` vault via secrets.json.tpl.
-      AHA_API_TOKEN = secrets.aha.apiToken;
-    }
-    // lib.optionalAttrs (secrets ? wave && secrets.wave ? fullAccessToken) {
-      # Wave Full Access Token for the `wave-invoicing` skill. Injected as an
-      # env var the same way as AHA_API_TOKEN so the skill reads it directly
-      # (no runtime `op` call). Sourced from the `nixerator` vault via
-      # secrets.json.tpl. Full Access Token = personal-use bearer token; no
-      # OAuth client/secret/refresh flow.
-      WAVE_FULL_ACCESS_TOKEN = secrets.wave.fullAccessToken;
-    }
-    // lib.optionalAttrs hasHyperframes {
+    lib.optionalAttrs hasHyperframes {
       PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
       PUPPETEER_SKIP_DOWNLOAD = "1";
     }
