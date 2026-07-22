@@ -2,7 +2,7 @@
 # Pure JSON output. No TUI, no interactive mode, no launching Claude.
 # The skill (SKILL.md) is the sole orchestrator — this script is its hands.
 
-if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && { [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; }; then
   info "Usage: github-issue <subcommand> [args]"
   info ""
   info "Subcommands:"
@@ -759,6 +759,54 @@ _lease_release() {
       "$host" "$branch" "$ts")" >/dev/null 2>&1 || true
 }
 
+# Detect whether this issue's branch already exists, and where. Prints exactly
+# one of: "none", "local", "remote", "both", or "unknown".
+#
+# The remote side is checked authoritatively with 'git ls-remote' (it asks
+# origin directly), NOT the remote-tracking ref, because the fetch upstream is
+# best-effort and may be stale or skipped offline. On a network error the remote
+# dimension degrades to "unknown" with a warning, rather than silently reporting
+# the branch as absent, while the local check (which needs no network) still
+# stands. exit-code semantics of 'git ls-remote --exit-code': 0 = ref found,
+# 2 = no matching ref, anything else = could not reach the remote. The call is
+# wrapped in 'timeout' so a hung transport (a reachable-but-stalled origin) lands
+# in the "unknown" arm within seconds instead of blocking setup on the OS TCP
+# timeout; timeout's own 124/137 exit is one of the "anything else" codes.
+#
+# The pattern is the fully qualified 'refs/heads/<branch>', not a bare
+# '<branch>'. git ls-remote matches a pattern against the tail path components
+# of each ref, so a bare name would also match an unrelated ref like
+# 'refs/heads/wip/<branch>' and refuse setup on a false collision. Anchoring at
+# 'refs/heads/' narrows that to a ref literally named '.../refs/heads/<branch>',
+# which cannot occur in practice.
+detect_existing_branch() {
+  local branch="$1"
+  local on_local=false remote_state ls_rc
+  git show-ref --verify --quiet "refs/heads/${branch}" && on_local=true
+  timeout 15 git ls-remote --exit-code --heads origin "refs/heads/${branch}" >/dev/null 2>&1 && ls_rc=0 || ls_rc=$?
+  case "$ls_rc" in
+    0) remote_state="remote" ;;
+    2) remote_state="absent" ;;
+    *) remote_state="unknown"
+       # To stderr explicitly: this function's stdout is the detection result,
+       # consumed via command substitution, and warn() prints to stdout outside
+       # JSON mode.
+       warn "could not reach origin to check for branch '${branch}' (offline?); relying on the local check only" >&2 ;;
+  esac
+
+  if [[ "$on_local" == true && "$remote_state" == "remote" ]]; then
+    echo "both"
+  elif [[ "$on_local" == true ]]; then
+    echo "local"
+  elif [[ "$remote_state" == "remote" ]]; then
+    echo "remote"
+  elif [[ "$remote_state" == "unknown" ]]; then
+    echo "unknown"
+  else
+    echo "none"
+  fi
+}
+
 cmd_setup() {
   local issue_number=""
   local base_ref=""
@@ -797,7 +845,9 @@ cmd_setup() {
   acquire_setup_lock "$issue_number"
 
   if [[ -d "$wt_path" ]]; then
-    json_error "worktree already exists at ${wt_path} -- use 'github-issue status ${issue_number}' to check state"
+    json_error_obj "$(jq -nc --arg wt "$wt_path" --arg issue "$issue_number" \
+      '{message: ("worktree already exists at " + $wt + " -- use '\''github-issue status " + $issue + "'\'' to check state"),
+        cause: "worktree_exists", worktree: $wt, issue_number: ($issue|tonumber)}')"
   fi
 
   fetch_remote
@@ -840,6 +890,39 @@ cmd_setup() {
   branch_name="$(build_branch_name "$branch_type" "$issue_number" "$issue_title")"
   ok "branch: ${branch_name}"
 
+  # Branch-existence preflight (#262). The issue-side lease below is the real
+  # serializer; this is a best-effort backstop that catches an already-visible
+  # branch before we claim the issue or add the worktree, so an agent that
+  # slipped past the lease, or a prior run whose worktree was removed without
+  # deleting the branch, does not silently start a second copy of the work. It
+  # runs before the lease claim and 'git worktree add', so a refusal leaves no
+  # claim, branch, or worktree behind. Structured so the orchestrator can route
+  # on cause. Re-establishing a worktree for a still-open branch is manual for
+  # now; a proper resume is tracked in #267.
+  #
+  # "unknown" means origin was unreachable, so the remote dimension (the case
+  # this guard exists to catch) could not be checked. Refuse fail-closed with a
+  # distinct cause rather than proceed: a flaky or blocked git transport must not
+  # let a duplicate slip through the exact window the guard closes. Setup already
+  # needed the network for the issue metadata above, so a genuinely offline run
+  # has failed before reaching here; "unknown" is the split-brain case (git
+  # transport down while 'gh api' is up), where fail-closed is correct.
+  local branch_state
+  branch_state="$(detect_existing_branch "$branch_name")"
+  case "$branch_state" in
+    none) ;;
+    unknown)
+      json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" \
+        '{message: ("could not reach origin to check whether branch '\''" + $branch + "'\'' already exists; refusing rather than risk starting a duplicate of issue #" + $issue + ". Retry once origin is reachable, or run '\''github-issue status " + $issue + "'\''."),
+          cause: "branch_check_unreachable", branch: $branch, issue_number: ($issue|tonumber)}')"
+      ;;
+    *)
+      json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" --arg where "$branch_state" \
+        '{message: ("branch '\''" + $branch + "'\'' already exists (" + $where + ") -- another agent may have started issue #" + $issue + ", or a prior run left it behind. Check the PR or run '\''github-issue status " + $issue + "'\'' before starting."),
+          cause: "branch_exists", branch: $branch, issue_number: ($issue|tonumber), location: $where}')"
+      ;;
+  esac
+
   # Issue-side lease. Claim on the issue itself before creating the worktree so
   # an agent on another host or worktree root (past this machine's flock) sees
   # the claim first. Refuses with cause "issue_claimed" if already held. This
@@ -859,7 +942,13 @@ cmd_setup() {
 
   mkdir -p "$(dirname "$wt_path")"
   # Pin branch explicitly to base_ref so the new branch never inherits an
-  # accidental stack from whatever HEAD happened to be when this ran.
+  # accidental stack from whatever HEAD happened to be when this ran. The
+  # preflight above refuses a branch it could see, but it is not a hard
+  # guarantee: the lease claim runs between that check and this line, so a
+  # concurrent agent could create the branch in the gap. 'git worktree add -b'
+  # is the backstop -- it refuses to reuse an existing branch and aborts under
+  # 'set -e' (as a raw git error, not the structured branch_exists cause), so
+  # the worst case is a hard failure here, never a silent duplicate.
   git worktree add --no-checkout "$wt_path" -b "$branch_name" "$base_ref"
   register_cleanup "$wt_path"
   checkout_and_unlock "$wt_path"
@@ -1911,15 +2000,23 @@ cmd_post_mortem() {
 
 # ── Entry point ──────────────────────────────────────────────────────────────
 
-case "${1:-}" in
-  setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | verify-landed | post-mortem)
-    _JSON_MODE=1
-    require_github_remote
-    SUBCMD="${1//-/_}"
-    shift
-    "cmd_${SUBCMD}" "$@"
-    ;;
-  *)
-    die "usage: github-issue <subcommand> [args] -- run 'github-issue --help' for details"
-    ;;
-esac
+# Dispatch only when this file is executed as the command, not when it is
+# sourced. The bats harness sources it to reach detect_existing_branch and
+# friends; there BASH_SOURCE[0] != $0, so the functions are defined without
+# dispatching. Keying on how the file was loaded (not an env var) means a stray
+# `export` in the caller's environment cannot silently turn a real
+# `github-issue setup` into an exit-0 no-op.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  case "${1:-}" in
+    setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | verify-landed | post-mortem)
+      _JSON_MODE=1
+      require_github_remote
+      SUBCMD="${1//-/_}"
+      shift
+      "cmd_${SUBCMD}" "$@"
+      ;;
+    *)
+      die "usage: github-issue <subcommand> [args] -- run 'github-issue --help' for details"
+      ;;
+  esac
+fi
