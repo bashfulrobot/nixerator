@@ -63,6 +63,9 @@ in
             if jq -e '.todoist_token // empty' $_secrets >/dev/null 2>&1
               set -gx TODOIST_API_TOKEN (jq -r '.todoist_token' $_secrets)
             end
+            if jq -e '.snyk.token // empty' $_secrets >/dev/null 2>&1
+              set -gx SNYK_TOKEN (jq -r '.snyk.token' $_secrets)
+            end
           end
           # Public base URL for the Forgejo API — not a secret, always set so
           # skills/tea know where to point even before the token is rendered.
