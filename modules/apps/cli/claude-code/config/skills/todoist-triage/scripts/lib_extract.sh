@@ -24,7 +24,7 @@ extract_breadcrumbs() {
       while IFS= read -r u; do
         case "$u" in
           *slack.com*) printf 'slack\t%s\n' "$u" ;;
-          *teams.microsoft.com*) printf 'teams\t%s\n' "$u" ;;
+          *teams.microsoft.com* | *teams.cloud.microsoft*) printf 'teams\t%s\n' "$u" ;;
           *mail.google.com*) printf 'gmail\t%s\n' "$u" ;;
           *docs.google.com*) printf 'gdocs\t%s\n' "$u" ;;
           *.aha.io*) printf 'aha\t%s\n' "$u" ;;
