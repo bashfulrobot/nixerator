@@ -94,12 +94,13 @@ proceed without further interaction.
 Forge calls go through `forge`, the provider-aware helper, so the mechanical
 steps (fetch issue, comment, edit PR body/base) run on GitHub or on the
 self-hosted Forgejo per the repo's `origin` remote. One caveat: the stacked-PR
-**merge-order and auto-retarget race** described in step 2e is written against
-GitHub's exact squash-merge behaviour. Forgejo's stacked-PR semantics differ
-and this skill does not automate them, so on a Forgejo repo treat that guidance
-as "verify merge order and base refs manually" rather than a GitHub-specific
-race. Auto-merge (step 2f) is a GitHub concept; on Forgejo the underlying
-`github-issue` path never enables it, so there is nothing to disable.
+**squash race**, described in full under
+[Merge protocol](#merge-protocol-the-stacking-ordering-guard), is written
+against GitHub's exact squash-merge behaviour. Forgejo's stacked-PR semantics
+differ and this skill does not automate them, so on a Forgejo repo treat that
+guidance as "verify merge order and base refs manually" rather than a
+GitHub-specific race. Auto-merge (step 2f) is a GitHub concept; on Forgejo the
+underlying `github-issue` path never enables it, so there is nothing to disable.
 
 ## Step 1: Pre-flight
 
@@ -284,7 +285,8 @@ the squash-merge race described below.
 **Parent or only PR.** Standard merge-order block:
 
 ```bash
-forge pr-json <PR> | jq -r '.body' > /tmp/body.md
+body_file=$(mktemp) || exit 1
+forge pr-json <PR> | jq -r '.body' > "$body_file"
 forge pr-edit-body <PR> "$(cat <<EOF
 > [!IMPORTANT]
 > PR <i> of <total> in an autonomous batch.
@@ -294,45 +296,65 @@ forge pr-edit-body <PR> "$(cat <<EOF
 > 2. <#PR2>, <title2>
 > ...
 
-$(cat /tmp/body.md)
+$(cat "$body_file")
 EOF
 )"
+rm -f "$body_file"
 ```
 
-**Stacked child PR.** Use the stronger block. The danger is real: when the
-human merges the parent and then merges the child within ~30 seconds, GitHub
-can squash the child against its stale stacked base before the auto-retarget
-to main completes. The squash commit gets the right diff but is unreachable
-from any branch, so the child's content silently never lands on main even
-though the UI marks it merged.
+**Stacked child PR.** Use the stronger block. It embeds the parent-landed gate
+from the [merge protocol](#merge-protocol-the-stacking-ordering-guard), because
+the stacked-PR squash race can silently drop this PR's content into a commit
+unreachable from `main` (the protocol section describes the failure mode in
+full). The block turns that guard into the concrete commands the human runs
+before merging this PR.
 
 ```bash
-forge pr-json <PR> | jq -r '.body' > /tmp/body.md
+body_file=$(mktemp) || exit 1
+forge pr-json <PR> | jq -r '.body' > "$body_file"
 forge pr-edit-body <PR> "$(cat <<EOF
 > [!CAUTION]
 > PR <i> of <total> in an autonomous batch. **Stacked on #<parent>.**
 >
-> Before merging this PR, confirm GitHub has retargeted its base from the
-> parent's branch to \`main\`:
+> Do not merge this PR until #<parent> has landed on \`main\`. Confirm it,
+> do not assume it:
+>
+> \`\`\`bash
+> github-issue verify-landed <parent>   # expect: "status": "landed"
+> \`\`\`
+>
+> - \`status: "landed"\`. The parent's content is on \`main\`. Continue.
+> - \`status: "orphaned"\` (non-zero exit). The squash race hit #<parent>: it
+>   is merged on GitHub but its commit is unreachable from \`main\`. Run
+>   \`github-issue verify-landed <parent> --rescue\`. A run that reports
+>   \`rescued\` has already pushed the cherry-pick to \`main\`, so #<parent> has
+>   landed even if a plain re-verify still reports \`orphaned\` (a local
+>   detection gap, not a landing failure). To get a confirming \`landed\`, fetch
+>   the orphan commit whose SHA the verify-landed output prints, then re-verify.
+>   Do not merge this PR until #<parent>'s content is on \`main\`.
+> - \`status: "not_merged"\`. Merge #<parent> first.
+>
+> Then confirm GitHub has retargeted this PR's base from the parent's branch
+> to \`main\`, and fix it if not:
 >
 > \`\`\`bash
 > forge pr-json <PR> | jq -r '.base'   # expect: main
+> forge pr-edit-base <PR> main         # only if it still shows the parent branch
 > \`\`\`
 >
-> If it still shows the parent's branch, GitHub has not finished the
-> auto-retarget yet. Wait for it, or run \`forge pr-edit-base <PR> main\`
-> manually. Merging before this is a known squash-merge race that drops
-> this PR's content into an unreachable commit.
+> Merging while the base still points at the parent branch is what drops this
+> PR's content into an unreachable commit.
 >
-> This PR is **not** set to auto-merge. Review and merge manually.
-> Merge in this order to avoid conflicts.
+> This PR is **not** set to auto-merge. Review and merge manually, in this
+> order:
 > 1. <#PR1>, <title1>
 > 2. <#PR2>, <title2>
 > ...
 
-$(cat /tmp/body.md)
+$(cat "$body_file")
 EOF
 )"
+rm -f "$body_file"
 ```
 
 Re-emit the block on every PR each time a new PR joins the batch, so the list
@@ -394,6 +416,74 @@ Then:
 - **Do not wait for review.** Start the next iteration immediately. The PR
   sits open for the human to review and merge whenever they choose.
 
+## Merge protocol: the stacking ordering guard
+
+Stacking creates one hazard the batch cannot fix on its own, because it never
+merges. When PR N+1 is stacked on PR N and both are squash-merged close
+together, GitHub can squash PR N+1 against its stale base before it finishes
+retargeting that base to `main`. The resulting squash commit carries the right
+diff but is unreachable from `main`, so PR N+1 reads as merged in the UI while
+its content never lands. This is the stacked-PR squash race.
+
+The guard is an ordering rule, not a warning: merge the PRs strictly in batch
+order, and prove each one landed on `main` before merging the PR stacked on it.
+`github-issue verify-landed` is the proof. It reads merge state through `gh`, so
+it is GitHub-specific, matching the provider caveat above. On Forgejo, walk the
+same order and confirm each merge by hand.
+
+The **human performs these steps at merge time.** The skill never merges and
+never pushes to `main`, and that includes every step below, `--rescue` among
+them (it fast-forwards local `main`, cherry-picks the squash commit, and pushes
+to `origin/main`). This section is a handoff runbook for the reviewer, not an
+action list for the agent. It is consistent with the "human merges" stance in
+step 2f and with the never-push-to-main rule the agent works under.
+
+For a batch whose merge order is `PR1, PR2, ..., PRn` (PR1 is the parent, each
+later PR stacked on the one before it):
+
+1. Merge `PR_i`.
+2. Prove it landed on `main` before touching `PR_{i+1}`:
+
+   ```bash
+   github-issue verify-landed <PR_i>
+   ```
+
+   - `status: "landed"` (exit 0). The content is on `main`. Go to step 3.
+   - `status: "orphaned"` (non-zero exit). The squash race hit `PR_i`. It is
+     merged on GitHub but its commit is unreachable from `main`. Recover it,
+     then re-verify until it reports `landed`:
+
+     ```bash
+     github-issue verify-landed <PR_i> --rescue
+     github-issue verify-landed <PR_i>
+     ```
+
+     A `--rescue` that reports `rescued` has already pushed the cherry-pick to
+     `origin/main`, so `PR_i` has landed even if the plain re-verify still
+     reports `orphaned`. That residual `orphaned` is a local object-store gap
+     in the patch-id equivalence check, not a landing failure; fetch the orphan
+     commit whose SHA the verify-landed output prints, then re-verify to get a
+     confirming `landed`. Do not merge `PR_{i+1}` while `PR_i` is genuinely
+     orphaned, that is, a `--rescue` that did not report `rescued`.
+   - `status: "not_merged"` (exit 0). `PR_i` is not merged yet. Merge it first,
+     then re-verify.
+3. If `PR_i` is the last PR in the batch, stop here. Nothing is stacked on it,
+   so there is no base to retarget and no further merge. Otherwise, confirm
+   `PR_{i+1}` has retargeted its base to `main`, and fix it if not:
+
+   ```bash
+   forge pr-json <PR_{i+1}> | jq -r '.base'   # expect: main
+   forge pr-edit-base <PR_{i+1}> main         # only if it still shows PR_i's branch
+   ```
+4. Move to `PR_{i+1}` and repeat from step 1.
+
+Verifying each PR landed before merging the next is what defeats the race. It
+forces the gap the race needs and catches an orphan deterministically, rather
+than relying on the human having waited long enough between merges. The
+`[!CAUTION]` block on each child PR (step 2e) is this same gate, pinned to that
+PR's specific parent so the human sees it at merge time without cross-referencing
+the batch.
+
 ## Step 3: Final Report
 
 After the last issue's PR is open with both reviews clean, emit one summary.
@@ -410,20 +500,23 @@ Merge in this order to avoid conflicts.
 2. #<PR2>, <title2>, <url2>
 ...
 
-After you merge PR <i>, the next PR's base ref needs to retarget to main once
-the forge detects the merge. Run `forge pr-edit-base <next> main` if it doesn't
-happen automatically.
-
-For stacked batches, after all PRs are merged on GitHub, verify each one
-actually landed on main (catches the squash-merge race):
+For a stacked batch, the human does not merge them all and check afterward.
+They follow the [merge protocol](#merge-protocol-the-stacking-ordering-guard):
+merge one PR, prove it landed with `github-issue verify-landed <PR>`, retarget
+the next PR's base to `main`, then merge the next. Verifying between merges is
+what catches the squash race, and it catches it before the next merge can
+compound it:
 
 ```
-github-issue verify-landed <PR1>
-github-issue verify-landed <PR2>
+merge PR1  ->  github-issue verify-landed PR1  ->  retarget PR2 base to main
+           ->  merge PR2  ->  github-issue verify-landed PR2  ->  ...
 ```
 
-If any returns `status: "orphaned"`, run `github-issue verify-landed <PR>
---rescue` to cherry-pick the orphan commit onto main and push.
+If any `verify-landed` returns `status: "orphaned"` (non-zero exit), the human
+runs `github-issue verify-landed <PR> --rescue` (it cherry-picks the orphan onto
+`main` and pushes, so the agent never runs it), then re-verifies before merging
+the PR stacked on it. See the protocol's human-scoping note for why every
+rescue and push is a merge-time step the human owns.
 
 Decisions documented (please review before merging).
 - #<PR1>. <count> autonomous decisions logged.
