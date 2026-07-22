@@ -1,0 +1,42 @@
+# Shared bats helper for the github-issue setup branch-existence preflight (#262).
+#
+# Sources lib.sh + github-issue.sh (functions only, via GITHUB_ISSUE_SOURCE_ONLY)
+# inside a throwaway git fixture, so detect_existing_branch can be exercised
+# against real local and remote refs without a network or the real repo. The
+# fixture is a bare "origin" repo plus a working clone: a branch pushed to origin
+# is visible to `git ls-remote origin`, a local branch shows in `git show-ref`.
+TESTS_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")" && pwd)"
+SCRIPTS_DIR="$(cd "${TESTS_DIR}/../scripts" && pwd)"
+
+setup_fixture() {
+  FIX="$(mktemp -d)"
+  git init -q --bare "${FIX}/origin.git"
+  git clone -q "${FIX}/origin.git" "${FIX}/work" 2>/dev/null
+  git -C "${FIX}/work" config user.email t@t
+  git -C "${FIX}/work" config user.name t
+  git -C "${FIX}/work" commit -q --allow-empty -m init
+  git -C "${FIX}/work" push -q origin HEAD:main
+}
+
+rm_fixture() { [ -n "${FIX:-}" ] && rm -rf "${FIX}"; }
+
+# detect BRANCH — run detect_existing_branch from inside the fixture working
+# clone, under the same `set -euo pipefail` the packaged command runs with, so
+# the test catches set -e footguns the raw source would otherwise hide.
+detect() {
+  ( cd "${FIX}/work" || exit 3
+    GITHUB_ISSUE_SOURCE_ONLY=1 bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      detect_existing_branch "$1"
+    ' _ "$1" )
+}
+
+# push_remote_only BRANCH — create BRANCH, push it to origin, then delete the
+# local copy so only the remote ref remains.
+push_remote_only() {
+  git -C "${FIX}/work" branch "$1"
+  git -C "${FIX}/work" push -q origin "$1"
+  git -C "${FIX}/work" branch -D "$1"
+}

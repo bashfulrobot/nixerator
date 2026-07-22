@@ -6,7 +6,8 @@ if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
   info "Usage: github-issue <subcommand> [args]"
   info ""
   info "Subcommands:"
-  info "  setup <number> [--base <ref>]           -- create worktree pinned to base (default origin/main)"
+  info "  setup <number> [--base <ref>] [--force] -- create worktree pinned to base (default origin/main);"
+  info "                                             --force resumes onto an existing branch instead of refusing"
   info "  status <number>                         -- detect lifecycle state"
   info "  push <number>                           -- silent pre-push rebase, push branch, create/update PR, propagate labels"
   info "  auto-merge <number>                     -- enable GitHub auto-merge (squash) on the PR"
@@ -759,14 +760,57 @@ _lease_release() {
       "$host" "$branch" "$ts")" >/dev/null 2>&1 || true
 }
 
+# Detect whether this issue's branch already exists, and where. Prints exactly
+# one of: "none", "local", "remote", "both", or "unknown".
+#
+# The remote side is checked authoritatively with 'git ls-remote' (it asks
+# origin directly), NOT the remote-tracking ref, because the fetch upstream is
+# best-effort and may be stale or skipped offline. On a network error the remote
+# dimension degrades to "unknown" with a warning, rather than silently reporting
+# the branch as absent, while the local check (which needs no network) still
+# stands. exit-code semantics of 'git ls-remote --exit-code': 0 = ref found,
+# 2 = no matching ref, anything else = could not reach the remote.
+detect_existing_branch() {
+  local branch="$1"
+  local on_local=false remote_state ls_rc
+  git show-ref --verify --quiet "refs/heads/${branch}" && on_local=true
+  git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1 && ls_rc=0 || ls_rc=$?
+  case "$ls_rc" in
+    0) remote_state="remote" ;;
+    2) remote_state="absent" ;;
+    *) remote_state="unknown"
+       warn "could not reach origin to check for branch '${branch}' (offline?); relying on the local check only" ;;
+  esac
+
+  if [[ "$on_local" == true && "$remote_state" == "remote" ]]; then
+    echo "both"
+  elif [[ "$on_local" == true ]]; then
+    echo "local"
+  elif [[ "$remote_state" == "remote" ]]; then
+    echo "remote"
+  elif [[ "$remote_state" == "unknown" ]]; then
+    echo "unknown"
+  else
+    echo "none"
+  fi
+}
+
 cmd_setup() {
   local issue_number=""
   local base_ref=""
+  local force=false
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --base)
         base_ref="${2:?--base requires a value}"
         shift 2
+        ;;
+      --force)
+        # Bypass the branch-existence preflight and resume onto the existing
+        # branch instead of refusing. For re-establishing a worktree whose
+        # branch/PR is still open after the worktree was removed.
+        force=true
+        shift
         ;;
       -*)
         die "unknown option: $1"
@@ -781,7 +825,7 @@ cmd_setup() {
         ;;
     esac
   done
-  [[ -n "$issue_number" ]] || die "usage: github-issue setup <issue-number> [--base <ref>]"
+  [[ -n "$issue_number" ]] || die "usage: github-issue setup <issue-number> [--base <ref>] [--force]"
 
   # Guard before the number flows into the worktree path, branch name, the
   # .setup-issue-N.lock path, and gh issue refs. A non-numeric value (e.g.
@@ -797,7 +841,9 @@ cmd_setup() {
   acquire_setup_lock "$issue_number"
 
   if [[ -d "$wt_path" ]]; then
-    json_error "worktree already exists at ${wt_path} -- use 'github-issue status ${issue_number}' to check state"
+    json_error_obj "$(jq -nc --arg wt "$wt_path" --arg issue "$issue_number" \
+      '{message: ("worktree already exists at " + $wt + " -- use '\''github-issue status " + $issue + "'\'' to check state"),
+        cause: "worktree_exists", worktree: $wt, issue_number: ($issue|tonumber)}')"
   fi
 
   fetch_remote
@@ -840,16 +886,20 @@ cmd_setup() {
   branch_name="$(build_branch_name "$branch_type" "$issue_number" "$issue_title")"
   ok "branch: ${branch_name}"
 
-  # Branch-existence preflight (#262). If origin already carries this issue's
-  # branch, a prior run or another agent that slipped past the lease has pushed
-  # it, and continuing would duplicate work in a second worktree. Refuse here:
-  # after the fetch above so the remote-tracking ref is current, and before the
-  # lease claim and 'git worktree add' below, so a refusal leaves no claim,
-  # branch, or worktree behind. Structured so the orchestrator can route on cause.
-  if git rev-parse --verify --quiet "refs/remotes/origin/${branch_name}" >/dev/null; then
-    json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" \
-      '{message: ("remote branch '\''" + $branch + "'\'' already exists on origin -- another agent may have started issue #" + $issue + ", or a prior run'\''s branch is still open. Check the PR or run '\''github-issue status " + $issue + "'\'' before starting."),
-        cause: "branch_exists", branch: $branch, issue_number: ($issue|tonumber)}')"
+  # Branch-existence preflight (#262). The issue-side lease below is the real
+  # serializer; this is a best-effort backstop that catches an already-visible
+  # branch before we claim the issue or add the worktree, so an agent that
+  # slipped past the lease, or a prior run whose worktree was removed without
+  # deleting the branch, does not silently start a second copy of the work. It
+  # runs before the lease claim and 'git worktree add', so a refusal leaves no
+  # claim, branch, or worktree behind. --force bypasses it and resumes onto the
+  # existing branch instead. Structured so the orchestrator can route on cause.
+  local branch_state
+  branch_state="$(detect_existing_branch "$branch_name")"
+  if [[ "$force" != true && "$branch_state" != "none" && "$branch_state" != "unknown" ]]; then
+    json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" --arg where "$branch_state" \
+      '{message: ("branch '\''" + $branch + "'\'' already exists (" + $where + ") -- another agent may have started issue #" + $issue + ", or a prior run left it behind. Check the PR, run '\''github-issue status " + $issue + "'\'', or pass --force to resume onto the existing branch."),
+        cause: "branch_exists", branch: $branch, issue_number: ($issue|tonumber), location: $where}')"
   fi
 
   # Issue-side lease. Claim on the issue itself before creating the worktree so
@@ -870,9 +920,19 @@ cmd_setup() {
   ok "claimed issue #${issue_number} (assignee @${me}, label ${LEASE_LABEL})"
 
   mkdir -p "$(dirname "$wt_path")"
-  # Pin branch explicitly to base_ref so the new branch never inherits an
-  # accidental stack from whatever HEAD happened to be when this ran.
-  git worktree add --no-checkout "$wt_path" -b "$branch_name" "$base_ref"
+  # Normally a fresh branch pinned explicitly to base_ref, so it never inherits
+  # an accidental stack from whatever HEAD happened to be when this ran. With
+  # --force on an existing branch (branch_state != none/unknown, only reachable
+  # because the preflight above was bypassed), resume onto that branch instead of
+  # creating a divergent new one, preferring origin as the source of truth.
+  case "$branch_state" in
+    remote | both)
+      git worktree add --no-checkout -B "$branch_name" "$wt_path" "origin/${branch_name}" ;;
+    local)
+      git worktree add --no-checkout "$wt_path" "$branch_name" ;;
+    *)
+      git worktree add --no-checkout "$wt_path" -b "$branch_name" "$base_ref" ;;
+  esac
   register_cleanup "$wt_path"
   checkout_and_unlock "$wt_path"
   create_issue_state "$branch_name" "$wt_path" "$issue_number" "$issue_title" "$issue_body" "$base_ref" "$blockers_json"
@@ -1923,15 +1983,19 @@ cmd_post_mortem() {
 
 # ── Entry point ──────────────────────────────────────────────────────────────
 
-case "${1:-}" in
-  setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | verify-landed | post-mortem)
-    _JSON_MODE=1
-    require_github_remote
-    SUBCMD="${1//-/_}"
-    shift
-    "cmd_${SUBCMD}" "$@"
-    ;;
-  *)
-    die "usage: github-issue <subcommand> [args] -- run 'github-issue --help' for details"
-    ;;
-esac
+# GITHUB_ISSUE_SOURCE_ONLY lets the test harness source this file for its
+# functions (e.g. detect_existing_branch) without dispatching a subcommand.
+if [[ -z "${GITHUB_ISSUE_SOURCE_ONLY:-}" ]]; then
+  case "${1:-}" in
+    setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | verify-landed | post-mortem)
+      _JSON_MODE=1
+      require_github_remote
+      SUBCMD="${1//-/_}"
+      shift
+      "cmd_${SUBCMD}" "$@"
+      ;;
+    *)
+      die "usage: github-issue <subcommand> [args] -- run 'github-issue --help' for details"
+      ;;
+  esac
+fi
