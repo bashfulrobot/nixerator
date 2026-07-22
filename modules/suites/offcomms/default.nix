@@ -38,6 +38,7 @@ in
       };
 
       cli = {
+        ballpoint.enable = true;
         gmailctl.enable = true;
         gurk.enable = true;
         meetsum.enable = true;

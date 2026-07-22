@@ -96,6 +96,13 @@
       url = "github:bashfulrobot/upsight";
     };
 
+    # Ballpoint, a local Todoist triage tool (walk / probe / dispatch). Keeps
+    # its own nixpkgs pin (no follows), like upsight: a self-contained Go
+    # binary whose Go vendorHash is verified against its own nixpkgs.
+    ballpoint = {
+      url = "github:bashfulrobot/ballpoint";
+    };
+
     # Pinned upstream for the `humanizer` skill (claude-code + gemini-cli).
     # Tracks blader/humanizer; bump via `nix flake update humanizer-skill`
     # or `just upgrade`. `flake = false` because the repo ships a SKILL.md,
@@ -152,6 +159,8 @@
           homeManagerModules = [
             # Spicetify for customized Spotify
             inputs.spicetify-nix.homeManagerModules.default
+            # Ballpoint Todoist triage tool (programs.ballpoint)
+            inputs.ballpoint.homeManagerModules.default
           ];
         };
 
@@ -168,6 +177,8 @@
           homeManagerModules = [
             # Spicetify for customized Spotify
             inputs.spicetify-nix.homeManagerModules.default
+            # Ballpoint Todoist triage tool (programs.ballpoint)
+            inputs.ballpoint.homeManagerModules.default
           ];
         };
 
