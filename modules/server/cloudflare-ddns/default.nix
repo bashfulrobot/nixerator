@@ -1,16 +1,19 @@
 {
   lib,
+  pkgs,
   config,
   secrets,
+  secretsLib,
+  globals,
   ...
 }:
 let
   cfg = config.server.cloudflareDdns;
 
-  hasToken =
-    secrets ? cloudflareDdns
-    && secrets.cloudflareDdns ? apiToken
-    && secrets.cloudflareDdns.apiToken != "";
+  # Presence-only guard: never reads the token value, only whether the key
+  # exists. The value is materialised at activation from the off-store secrets
+  # file (issue #265), so it must not be read at eval.
+  hasToken = secrets ? cloudflareDdns && secrets.cloudflareDdns ? apiToken;
 
   joinCsv = items: lib.concatStringsSep "," items;
 
@@ -251,22 +254,27 @@ in
         '';
       }
 
-      # Everything below touches the token value, so guard the whole block
-      # behind hasToken. The strict assertion above fires first with an
-      # actionable message; without this guard, evaluating `text =
-      # secrets.cloudflareDdns.apiToken` would throw a cryptic
-      # `attribute 'cloudflareDdns' missing` before the assertion machinery
-      # could surface anything.
+      # Everything below needs the token to exist, so guard the whole block
+      # behind hasToken (presence only). The strict assertion above fires first
+      # with an actionable message; without this guard, a host missing the key
+      # would hit `attribute 'cloudflareDdns' missing` before the assertion
+      # machinery could surface anything.
       (lib.mkIf hasToken {
-        # `environment.etc` materialises /etc/cloudflare-ddns/token at
-        # activation time with the configured mode, so the value never enters
-        # `docker run` argv and never lands in a world-readable file under
-        # /etc/tmpfiles.d. Per the project threat model the plaintext copy
-        # in /nix/store is the documented trade-off for inline secrets.
-        environment.etc."cloudflare-ddns/token" = {
-          text = secrets.cloudflareDdns.apiToken;
-          mode = "0400";
-        };
+        # Token file materialised at activation from the off-store secrets file
+        # (0400, root), so the value never enters `docker run` argv and never
+        # lands in the world-readable /nix/store (issue #265). The container
+        # mounts this path read-only. jq reads the value straight from the
+        # secrets file, so it never passes through argv either.
+        system.activationScripts.cloudflareDdnsToken = lib.stringAfter [ "etc" ] ''
+          mkdir -p ${builtins.dirOf hostTokenPath}
+          ${secretsLib.installValue {
+            jq = "${pkgs.jq}/bin/jq";
+            secretsFile = secretsLib.file globals;
+            path = ".cloudflareDdns.apiToken";
+            dest = hostTokenPath;
+            mode = "0400";
+          }}
+        '';
 
         virtualisation.oci-containers.containers."cloudflare-ddns" = {
           inherit (cfg) image;
