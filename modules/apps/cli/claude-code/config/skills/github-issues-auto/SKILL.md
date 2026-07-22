@@ -299,12 +299,12 @@ EOF
 )"
 ```
 
-**Stacked child PR.** Use the stronger block. The danger is real: when the
-human merges the parent and then merges the child within ~30 seconds, GitHub
-can squash the child against its stale stacked base before the auto-retarget
-to main completes. The squash commit gets the right diff but is unreachable
-from any branch, so the child's content silently never lands on main even
-though the UI marks it merged.
+**Stacked child PR.** Use the stronger block. It embeds the parent-landed gate
+from the [merge protocol](#merge-protocol-the-stacking-ordering-guard), because
+the stacked-PR squash race can silently drop this PR's content into a commit
+unreachable from `main` (the protocol section describes the failure mode in
+full). The block turns that guard into the concrete commands the human runs
+before merging this PR.
 
 ```bash
 forge pr-json <PR> | jq -r '.body' > /tmp/body.md
@@ -312,20 +312,33 @@ forge pr-edit-body <PR> "$(cat <<EOF
 > [!CAUTION]
 > PR <i> of <total> in an autonomous batch. **Stacked on #<parent>.**
 >
-> Before merging this PR, confirm GitHub has retargeted its base from the
-> parent's branch to \`main\`:
+> Do not merge this PR until #<parent> has landed on \`main\`. Confirm it,
+> do not assume it:
+>
+> \`\`\`bash
+> github-issue verify-landed <parent>   # expect: "status": "landed"
+> \`\`\`
+>
+> - \`status: "landed"\`. The parent's content is on \`main\`. Continue.
+> - \`status: "orphaned"\` (non-zero exit). The squash race hit #<parent>: it
+>   is merged on GitHub but its commit is unreachable from \`main\`. Run
+>   \`github-issue verify-landed <parent> --rescue\`, then re-run verify-landed
+>   until it reports \`landed\`. Do not merge this PR before then.
+> - \`status: "not_merged"\`. Merge #<parent> first.
+>
+> Then confirm GitHub has retargeted this PR's base from the parent's branch
+> to \`main\`, and fix it if not:
 >
 > \`\`\`bash
 > forge pr-json <PR> | jq -r '.base'   # expect: main
+> forge pr-edit-base <PR> main         # only if it still shows the parent branch
 > \`\`\`
 >
-> If it still shows the parent's branch, GitHub has not finished the
-> auto-retarget yet. Wait for it, or run \`forge pr-edit-base <PR> main\`
-> manually. Merging before this is a known squash-merge race that drops
-> this PR's content into an unreachable commit.
+> Merging while the base still points at the parent branch is what drops this
+> PR's content into an unreachable commit.
 >
-> This PR is **not** set to auto-merge. Review and merge manually.
-> Merge in this order to avoid conflicts.
+> This PR is **not** set to auto-merge. Review and merge manually, in this
+> order:
 > 1. <#PR1>, <title1>
 > 2. <#PR2>, <title2>
 > ...
@@ -394,6 +407,59 @@ Then:
 - **Do not wait for review.** Start the next iteration immediately. The PR
   sits open for the human to review and merge whenever they choose.
 
+## Merge protocol: the stacking ordering guard
+
+Stacking creates one hazard the batch cannot fix on its own, because it never
+merges. When PR N+1 is stacked on PR N and both are squash-merged close
+together, GitHub can squash PR N+1 against its stale base before it finishes
+retargeting that base to `main`. The resulting squash commit carries the right
+diff but is unreachable from `main`, so PR N+1 reads as merged in the UI while
+its content never lands. This is the stacked-PR squash race.
+
+The guard is an ordering rule, not a warning: merge the PRs strictly in batch
+order, and prove each one landed on `main` before merging the PR stacked on it.
+`github-issue verify-landed` is the proof. It reads merge state through `gh`, so
+it is GitHub-specific, matching the provider caveat above. On Forgejo, walk the
+same order and confirm each merge by hand.
+
+For a batch whose merge order is `PR1, PR2, ..., PRn` (PR1 is the parent, each
+later PR stacked on the one before it):
+
+1. Merge `PR_i`.
+2. Prove it landed on `main` before touching `PR_{i+1}`:
+
+   ```bash
+   github-issue verify-landed <PR_i>
+   ```
+
+   - `status: "landed"` (exit 0). The content is on `main`. Go to step 3.
+   - `status: "orphaned"` (non-zero exit). The squash race hit `PR_i`. It is
+     merged on GitHub but its commit is unreachable from `main`. Recover it,
+     then re-verify until it reports `landed`:
+
+     ```bash
+     github-issue verify-landed <PR_i> --rescue
+     github-issue verify-landed <PR_i>
+     ```
+
+     Do not merge `PR_{i+1}` while `PR_i` is orphaned.
+   - `status: "not_merged"` (exit 0). `PR_i` is not merged yet. Merge it first,
+     then re-verify.
+3. Confirm `PR_{i+1}` has retargeted its base to `main`, and fix it if not:
+
+   ```bash
+   forge pr-json <PR_{i+1}> | jq -r '.base'   # expect: main
+   forge pr-edit-base <PR_{i+1}> main         # only if it still shows PR_i's branch
+   ```
+4. Move to `PR_{i+1}` and repeat from step 1.
+
+Verifying each PR landed before merging the next is what defeats the race. It
+forces the gap the race needs and catches an orphan deterministically, rather
+than relying on the human having waited long enough between merges. The
+`[!CAUTION]` block on each child PR (step 2e) is this same gate, pinned to that
+PR's specific parent so the human sees it at merge time without cross-referencing
+the batch.
+
 ## Step 3: Final Report
 
 After the last issue's PR is open with both reviews clean, emit one summary.
@@ -410,20 +476,20 @@ Merge in this order to avoid conflicts.
 2. #<PR2>, <title2>, <url2>
 ...
 
-After you merge PR <i>, the next PR's base ref needs to retarget to main once
-the forge detects the merge. Run `forge pr-edit-base <next> main` if it doesn't
-happen automatically.
-
-For stacked batches, after all PRs are merged on GitHub, verify each one
-actually landed on main (catches the squash-merge race):
+For a stacked batch, do not merge them all and check afterward. Follow the
+[merge protocol](#merge-protocol-the-stacking-ordering-guard): merge one PR,
+prove it landed with `github-issue verify-landed <PR>`, retarget the next PR's
+base to `main`, then merge the next. Verifying between merges is what catches
+the squash race, and it catches it before the next merge can compound it:
 
 ```
-github-issue verify-landed <PR1>
-github-issue verify-landed <PR2>
+merge PR1  ->  github-issue verify-landed PR1  ->  retarget PR2 base to main
+           ->  merge PR2  ->  github-issue verify-landed PR2  ->  ...
 ```
 
-If any returns `status: "orphaned"`, run `github-issue verify-landed <PR>
---rescue` to cherry-pick the orphan commit onto main and push.
+If any `verify-landed` returns `status: "orphaned"` (non-zero exit), run
+`github-issue verify-landed <PR> --rescue` to cherry-pick the orphan onto main
+and push, then re-verify before merging the PR stacked on it.
 
 Decisions documented (please review before merging).
 - #<PR1>. <count> autonomous decisions logged.
