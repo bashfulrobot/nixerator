@@ -35,7 +35,8 @@ Runtime paths resolve via `$HOME`:
 - `$TRIAGE/references/data-sources.md` — which skill/MCP owns each source.
 - `$TRIAGE/references/source-resolution.md` — the per-customer skill-cache map.
 - `$TRIAGE/scripts/build_digest.py` — optional HTML digest artifact (step 6).
-- `$TTU/scripts/ttu_scope.sh` / `ttu_anchor.sh` / `ttu_slack_ref.sh` / `ttu_redact.sh`.
+- `$TTU/scripts/ttu_scope.sh` / `ttu_anchor.sh` / `ttu_slack_ref.sh` /
+  `ttu_gmail_ref.sh` / `ttu_redact.sh`.
 - `references/update-comment-format.md` — the entry format.
 - `assets/update-subagent-brief.md` — the worker brief.
 
@@ -76,8 +77,16 @@ was handed); join that back to the `ttu_scope.sh` record to recover
 share one source thread (one DM can resolve several tasks) and group them. Rank by
 actionability — substantive before ack — not by recency.
 
+Split deltas by `confidence`. A `confirmed` delta is firm: it flows to the
+auto-write in step 5. A `heuristic` delta (the Gmail domain-search fallback) is
+not firm; route it to a needs-confirmation bucket. It is surfaced in the digest
+for Dustin to confirm, never auto-filed as a dated delta.
+
 ### 5 — Auto-write
-For each task with ≥1 delta, compose per `references/update-comment-format.md`:
+Only `confirmed` deltas are auto-written; `heuristic` deltas are digest-only
+(step 6) and never filed via `td_worklog`. This keeps domain-match false
+positives out of task comments.
+For each task with ≥1 confirmed delta, compose per `references/update-comment-format.md`:
 one BARE line per delta (no leading `- ` — `td_worklog` adds the bullet). Run each
 composed line through `text-polish` (never `humanizer` on top), then through
 `bash $TTU/scripts/ttu_redact.sh` (a non-zero exit BLOCKS that write — surface it,
@@ -90,9 +99,11 @@ never an outward message.
 
 ### 6 — Digest + handoff
 Present one artifact grouped by project then shared thread: "Updated N of M",
-each line `<project> — <title> — <n new> — <what changed> [open](url)`; then
-the two unverifiable classes (fixable = bot-invite list; permanent = no API); then
-the "no change" count. Also emit the structured `{task_id,url,project,title,
+each line `<project> — <title> — <n new> — <what changed> [open](url)`; then a
+"needs confirmation" group for heuristic Gmail deltas (domain-match, unconfirmed,
+Dustin confirms before they are filed), distinct from the filed updates and from
+the unverifiable classes; then the two unverifiable classes (fixable = bot-invite
+list; permanent = no API); then the "no change" count. Also emit the structured `{task_id,url,project,title,
 deltas[]}` list and offer to hand it to `todoist-triage` to act on. Optionally
 render HTML via `$TRIAGE/scripts/build_digest.py`. The digest's prose (the
 "what changed" synthesis lines) is writing — run it through `text-polish` before
