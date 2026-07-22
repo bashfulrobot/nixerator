@@ -94,12 +94,13 @@ proceed without further interaction.
 Forge calls go through `forge`, the provider-aware helper, so the mechanical
 steps (fetch issue, comment, edit PR body/base) run on GitHub or on the
 self-hosted Forgejo per the repo's `origin` remote. One caveat: the stacked-PR
-**merge-order and auto-retarget race** described in step 2e is written against
-GitHub's exact squash-merge behaviour. Forgejo's stacked-PR semantics differ
-and this skill does not automate them, so on a Forgejo repo treat that guidance
-as "verify merge order and base refs manually" rather than a GitHub-specific
-race. Auto-merge (step 2f) is a GitHub concept; on Forgejo the underlying
-`github-issue` path never enables it, so there is nothing to disable.
+**squash race**, described in full under
+[Merge protocol](#merge-protocol-the-stacking-ordering-guard), is written
+against GitHub's exact squash-merge behaviour. Forgejo's stacked-PR semantics
+differ and this skill does not automate them, so on a Forgejo repo treat that
+guidance as "verify merge order and base refs manually" rather than a
+GitHub-specific race. Auto-merge (step 2f) is a GitHub concept; on Forgejo the
+underlying `github-issue` path never enables it, so there is nothing to disable.
 
 ## Step 1: Pre-flight
 
@@ -284,7 +285,8 @@ the squash-merge race described below.
 **Parent or only PR.** Standard merge-order block:
 
 ```bash
-forge pr-json <PR> | jq -r '.body' > /tmp/body.md
+body_file=$(mktemp)
+forge pr-json <PR> | jq -r '.body' > "$body_file"
 forge pr-edit-body <PR> "$(cat <<EOF
 > [!IMPORTANT]
 > PR <i> of <total> in an autonomous batch.
@@ -294,9 +296,10 @@ forge pr-edit-body <PR> "$(cat <<EOF
 > 2. <#PR2>, <title2>
 > ...
 
-$(cat /tmp/body.md)
+$(cat "$body_file")
 EOF
 )"
+rm -f "$body_file"
 ```
 
 **Stacked child PR.** Use the stronger block. It embeds the parent-landed gate
@@ -307,7 +310,8 @@ full). The block turns that guard into the concrete commands the human runs
 before merging this PR.
 
 ```bash
-forge pr-json <PR> | jq -r '.body' > /tmp/body.md
+body_file=$(mktemp)
+forge pr-json <PR> | jq -r '.body' > "$body_file"
 forge pr-edit-body <PR> "$(cat <<EOF
 > [!CAUTION]
 > PR <i> of <total> in an autonomous batch. **Stacked on #<parent>.**
@@ -323,7 +327,10 @@ forge pr-edit-body <PR> "$(cat <<EOF
 > - \`status: "orphaned"\` (non-zero exit). The squash race hit #<parent>: it
 >   is merged on GitHub but its commit is unreachable from \`main\`. Run
 >   \`github-issue verify-landed <parent> --rescue\`, then re-run verify-landed
->   until it reports \`landed\`. Do not merge this PR before then.
+>   until it reports \`landed\`. If a rescue reports \`rescued\` but the next
+>   verify still reports \`orphaned\`, the cherry-pick equivalent could not be
+>   matched locally; run \`git fetch origin main\` and verify once more. Do not
+>   merge this PR before it reports \`landed\`.
 > - \`status: "not_merged"\`. Merge #<parent> first.
 >
 > Then confirm GitHub has retargeted this PR's base from the parent's branch
@@ -343,9 +350,10 @@ forge pr-edit-body <PR> "$(cat <<EOF
 > 2. <#PR2>, <title2>
 > ...
 
-$(cat /tmp/body.md)
+$(cat "$body_file")
 EOF
 )"
+rm -f "$body_file"
 ```
 
 Re-emit the block on every PR each time a new PR joins the batch, so the list
@@ -422,6 +430,13 @@ order, and prove each one landed on `main` before merging the PR stacked on it.
 it is GitHub-specific, matching the provider caveat above. On Forgejo, walk the
 same order and confirm each merge by hand.
 
+The **human performs these steps at merge time.** The skill never merges and
+never pushes to `main`, and that includes every step below, `--rescue` among
+them (it fast-forwards local `main`, cherry-picks the squash commit, and pushes
+to `origin/main`). This section is a handoff runbook for the reviewer, not an
+action list for the agent. It is consistent with the "human merges" stance in
+step 2f and with the never-push-to-main rule the agent works under.
+
 For a batch whose merge order is `PR1, PR2, ..., PRn` (PR1 is the parent, each
 later PR stacked on the one before it):
 
@@ -442,10 +457,15 @@ later PR stacked on the one before it):
      github-issue verify-landed <PR_i>
      ```
 
-     Do not merge `PR_{i+1}` while `PR_i` is orphaned.
+     If the rescue reports `rescued` but the next verify still reports
+     `orphaned`, the cherry-pick equivalent could not be matched locally; run
+     `git fetch origin main` and verify once more. Do not merge `PR_{i+1}`
+     while `PR_i` is orphaned.
    - `status: "not_merged"` (exit 0). `PR_i` is not merged yet. Merge it first,
      then re-verify.
-3. Confirm `PR_{i+1}` has retargeted its base to `main`, and fix it if not:
+3. If `PR_i` is the last PR in the batch, stop here. Nothing is stacked on it,
+   so there is no base to retarget and no further merge. Otherwise, confirm
+   `PR_{i+1}` has retargeted its base to `main`, and fix it if not:
 
    ```bash
    forge pr-json <PR_{i+1}> | jq -r '.base'   # expect: main
