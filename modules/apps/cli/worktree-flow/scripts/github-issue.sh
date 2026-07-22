@@ -21,6 +21,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && { [[ "${1:-}" == "--help" ]] || [[ "${
   info "                                             with --rescue, cherry-pick + push if it didn't"
   info "                                             (use after stacked-PR squash-merge races)"
   info "  post-mortem <number>                    -- gather close-context for agent synthesis"
+  info "  queue-state <get|set --json '<json>'|clear>"
+  info "                                          -- read/write the github-issues-auto queue cursor (reboot-safe resume)"
   exit 0
 fi
 
@@ -2000,6 +2002,199 @@ cmd_post_mortem() {
       recent_step_notes: $step_notes}')"
 }
 
+# ── Queue-cursor persistence (github-issues-auto) ─────────────────────────────
+#
+# The per-issue .worktree-state.json already survives a reboot. The batch
+# driver's queue cursor (the ordered queue, the position within it, the
+# stacking chain, and the decisions buffer) lived only in the driving session,
+# so a killed or rebooted run could not resume and the user had to re-supply the
+# queue. This subcommand persists that cursor to a single .queue-state.json in
+# the shared worktree base, deliberately OUTSIDE any one worktree so it outlives
+# the cleanup of a finished issue's worktree. Writes are atomic (temp file plus
+# rename) and serialised with a per-host flock, matching how write_state and the
+# setup/worktree locks already work. The github-issues-auto skill owns the JSON
+# shape; this command only guarantees durability, atomicity, and valid JSON.
+QUEUE_STATE_VERSION=1
+
+# Structural validation for a queue-state payload. Echoes a human reason string
+# if the JSON is not a well-formed cursor, or nothing if it is valid. The state
+# is fed verbatim into a resuming orchestrator that acts on queue/cursor/
+# prev_branch and re-injects the decisions buffer (which is derived from
+# attacker-authorable issue bodies) into the LLM's context. Reject a malformed
+# or hostile shape at the boundary so a tampered file cannot resume as trusted.
+# The skill may add fields freely; only the security-relevant ones are pinned.
+_queue_state_validate() {
+  printf '%s' "$1" | jq -r '
+    if type != "object" then "state must be a JSON object"
+    elif (.queue | type) != "array" then "queue must be an array of issue numbers"
+    elif (.queue | length) != ([.queue[] | select(type == "number" and . == floor)] | length)
+      then "queue must contain only integer issue numbers"
+    elif (has("cursor") | not) then "cursor is required"
+    elif (.cursor | type) != "number" or (.cursor != (.cursor | floor))
+      then "cursor must be an integer"
+    elif (.cursor < 0) or (.cursor > (.queue | length))
+      then "cursor is out of range for the queue"
+    elif (has("prev_branch") and ((.prev_branch | type) != "string"))
+      then "prev_branch must be a string"
+    elif (has("prev_branch") and ((.prev_branch | test("^[A-Za-z0-9._/-]+$")) | not))
+      then "prev_branch has invalid characters"
+    elif (has("prs") and ((.prs | type) != "object")) then "prs must be an object"
+    else "" end
+  '
+}
+
+cmd_queue_state() {
+  local action="${1:-}"
+  [[ $# -gt 0 ]] && shift
+  local payload=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --json)
+        payload="${2:?--json requires a value}"
+        shift 2
+        ;;
+      -*)
+        die "unknown option: $1"
+        ;;
+      *)
+        die "unexpected argument: $1"
+        ;;
+    esac
+  done
+
+  # worktree_base resolves via 'git rev-parse', which yields a nonsense base in a
+  # bare repo or GIT_DIR and aborts entirely with no repo at all. Test the output
+  # value, not just the exit status: --is-inside-work-tree exits 0 and prints
+  # "false" inside a bare repo, so an exit-status check would wave it through.
+  # Only a real work tree ("true") may proceed; anything else is routable.
+  if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
+    json_error_obj "$(jq -nc \
+      '{message: "github-issue queue-state must run inside the repository work tree",
+        cause: "not_in_repo"}')"
+  fi
+
+  local QSTATE_DIR QSTATE_FILE QSTATE_LOCK
+  QSTATE_DIR="$(worktree_base)"
+  mkdir -p "$QSTATE_DIR"
+  QSTATE_FILE="${QSTATE_DIR}/.queue-state.json"
+  QSTATE_LOCK="${QSTATE_DIR}/.queue-state.lock"
+
+  # These paths are always created here as regular files, so a symlink at either
+  # is planted, not legitimate. Opening the lock with O_TRUNC (below) or reading
+  # the state would follow it, letting a same-user process redirect a truncate or
+  # a read to an arbitrary target. Refuse rather than follow.
+  if [[ -L "$QSTATE_FILE" || -L "$QSTATE_LOCK" ]]; then
+    json_error_obj "$(jq -nc \
+      '{message: "queue-state path is a symlink; refusing to follow it",
+        cause: "queue_state_symlink"}')"
+  fi
+
+  case "$action" in
+    get)
+      if [[ ! -f "$QSTATE_FILE" ]]; then
+        json_ok "$(jq -nc '{exists: false, state: null}')"
+        return 0
+      fi
+      # No lock on the read: the atomic rename means any file present is a whole
+      # one. If a concurrent clear unlinked it between the test and the read,
+      # treat that as not-present rather than letting cat abort under set -e.
+      local content
+      content="$(cat "$QSTATE_FILE" 2>/dev/null)" || {
+        json_ok "$(jq -nc '{exists: false, state: null}')"
+        return 0
+      }
+      # Slurp so "present but not valid JSON" also covers a concatenated
+      # multi-document file (which a bare 'jq -e .' would wave through, then die
+      # unrouted at the --argjson below). Exactly one JSON value may proceed.
+      if ! printf '%s' "$content" | jq -e -s 'length == 1' >/dev/null 2>&1; then
+        json_error_obj "$(jq -nc --arg f "$QSTATE_FILE" \
+          '{message: ("queue state at " + $f + " is present but not a single valid JSON document; delete it or run '\''github-issue queue-state clear'\'' to start fresh"),
+            cause: "queue_state_corrupt", path: $f}')"
+      fi
+      # Valid JSON, but re-check the shape before handing it to a resumer: a file
+      # written by this command's set is already valid, so a failure here means
+      # it was hand-edited or planted. Surface it rather than resume on a hostile
+      # or broken cursor.
+      local qs_reason
+      qs_reason="$(_queue_state_validate "$content")"
+      if [[ -n "$qs_reason" ]]; then
+        json_error_obj "$(jq -nc --arg f "$QSTATE_FILE" --arg r "$qs_reason" \
+          '{message: ("queue state at " + $f + " is malformed: " + $r + "; run '\''github-issue queue-state clear'\'' to start fresh"),
+            cause: "queue_state_invalid", path: $f}')"
+      fi
+      json_ok "$(jq -nc --argjson s "$content" '{exists: true, state: $s}')"
+      ;;
+    set)
+      [[ -n "$payload" ]] || die "usage: github-issue queue-state set --json '<json>'"
+      # Bound the payload before parsing it. The decisions buffer is issue-body
+      # derived, so cap it to keep a runaway or hostile blob from being persisted
+      # and re-parsed on every get. 64 KiB is far above any real cursor (queue of
+      # numbers, a cursor, a ref, a small PR map, concise decision records) and
+      # sits below the kernel's ~128 KiB single-argument limit (MAX_ARG_STRLEN),
+      # so the guard is reachable: a larger single --json arg is rejected by the
+      # OS at exec with E2BIG before this script ever runs.
+      if [[ "${#payload}" -gt 65536 ]]; then
+        json_error_obj "$(jq -nc \
+          '{message: "queue-state set: --json payload exceeds 64 KiB",
+            cause: "queue_state_too_large"}')"
+      fi
+      # Require exactly one JSON object. Slurp (-s) so a concatenated payload like
+      # '{..}{..}' is caught: a bare 'jq -e type=="object"' processes each document
+      # and exits on the last truthy one, waving two objects through, after which
+      # the stamp writes a two-document file and the confirming --argjson fails
+      # under set -e for a silent exit-0 that corrupts persisted state. length==1
+      # plus an object type on the sole document closes that, and also rejects an
+      # array/number/string/null (which would abort the '. + {..}' stamp).
+      if ! printf '%s' "$payload" | jq -e -s 'length == 1 and (.[0] | type == "object")' >/dev/null 2>&1; then
+        json_error_obj "$(jq -nc \
+          '{message: "queue-state set: --json must be exactly one JSON object",
+            cause: "queue_state_not_object"}')"
+      fi
+      # Structural validation: queue is integer issue numbers, cursor is an
+      # in-range integer, prev_branch is a safe ref. Refuse a malformed cursor at
+      # the write boundary so a resumer never trusts a hostile or broken shape.
+      local qs_reason
+      qs_reason="$(_queue_state_validate "$payload")"
+      if [[ -n "$qs_reason" ]]; then
+        json_error_obj "$(jq -nc --arg r "$qs_reason" \
+          '{message: ("queue-state set: " + $r), cause: "queue_state_invalid"}')"
+      fi
+      : >"$QSTATE_LOCK" 2>/dev/null || die "cannot create queue-state lock at ${QSTATE_LOCK}"
+      # fd 5 is safe here: queue-state is a leaf subcommand that never runs in
+      # the same process as verify-landed's rescue lock (the only other fd-5
+      # user), unlike the nested status -> reconcile -> auto-refresh chain that
+      # forces the distinct 6/7/8/9 fds.
+      exec 5>"$QSTATE_LOCK"
+      if ! flock -n 5; then
+        json_error_obj "$(jq -nc \
+          '{message: "another github-issue queue-state write is already in progress",
+            cause: "queue_state_locked"}')"
+      fi
+      # Stamp version and write time so a resumer can sanity-check what it reads.
+      local stamped tmpfile
+      stamped="$(printf '%s' "$payload" | jq -c \
+        --argjson v "$QUEUE_STATE_VERSION" \
+        --arg ts "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+        '. + {queue_state_version: $v, written_at: $ts}')"
+      tmpfile="$(mktemp "${QSTATE_DIR}/.queue-state.XXXXXX")"
+      printf '%s\n' "$stamped" >"$tmpfile"
+      mv "$tmpfile" "$QSTATE_FILE"
+      json_ok "$(jq -nc --arg f "$QSTATE_FILE" --argjson s "$stamped" \
+        '{ok: true, path: $f, state: $s}')"
+      ;;
+    clear)
+      rm -f "$QSTATE_FILE"
+      json_ok "$(jq -nc --arg f "$QSTATE_FILE" '{ok: true, cleared: true, path: $f}')"
+      ;;
+    "")
+      die "usage: github-issue queue-state <get|set --json '<json>'|clear>"
+      ;;
+    *)
+      die "unknown queue-state action: ${action} (expected get, set, or clear)"
+      ;;
+  esac
+}
+
 # ── Entry point ──────────────────────────────────────────────────────────────
 
 # Dispatch only when this file is executed as the command, not when it is
@@ -2016,6 +2211,14 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       SUBCMD="${1//-/_}"
       shift
       "cmd_${SUBCMD}" "$@"
+      ;;
+    queue-state)
+      # Pure local-filesystem cursor persistence, no remote calls, so it stays
+      # provider-agnostic and skips require_github_remote (github-issues-auto
+      # drives GitHub and Forgejo batches alike).
+      _JSON_MODE=1
+      shift
+      cmd_queue_state "$@"
       ;;
     *)
       die "usage: github-issue <subcommand> [args] -- run 'github-issue --help' for details"
