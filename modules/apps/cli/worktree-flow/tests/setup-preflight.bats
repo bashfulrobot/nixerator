@@ -51,12 +51,23 @@ teardown() { rm_fixture; }
 @test "unknown when origin is unreachable and the branch is not local" {
   # A bogus origin makes git ls-remote fail with a transport error (not exit 2),
   # so the remote dimension degrades to unknown. With no local branch either,
-  # detect_existing_branch reports unknown and setup falls through rather than
-  # refusing on a check it could not actually perform.
+  # detect_existing_branch reports unknown. cmd_setup turns that into a
+  # fail-closed branch_check_unreachable refusal (it does not proceed on a check
+  # it could not perform); this test pins the detector's contract underneath.
   git -C "${FIX}/work" remote set-url origin /nonexistent/definitely-not-here.git
   run detect "feat/262-offline"
   [ "$status" -eq 0 ]
   [ "$output" = "unknown" ]
+}
+
+@test "a nested decoy ref does not tail-match the branch" {
+  # The remote check anchors on refs/heads/<branch>. A ref that merely ends with
+  # the branch name (refs/heads/wip/feat/262-anchor) must not be mistaken for the
+  # branch itself, or legitimate setup would be refused on a false collision.
+  push_remote_only "wip/feat/262-anchor"
+  run detect "feat/262-anchor"
+  [ "$status" -eq 0 ]
+  [ "$output" = "none" ]
 }
 
 @test "local still resolves even when origin is unreachable" {

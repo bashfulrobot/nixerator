@@ -1,8 +1,10 @@
 # Shared bats helper for the github-issue setup branch-existence preflight (#262).
 #
-# Sources lib.sh + github-issue.sh (functions only, via GITHUB_ISSUE_SOURCE_ONLY)
-# inside a throwaway git fixture, so detect_existing_branch can be exercised
-# against real local and remote refs without a network or the real repo. The
+# Sources lib.sh + github-issue.sh (functions only) inside a throwaway git
+# fixture, so detect_existing_branch can be exercised against real local and
+# remote refs without a network or the real repo. Sourcing rather than executing
+# means BASH_SOURCE[0] != $0, which is exactly what the script's dispatch guard
+# keys on, so the file defines its functions without running a subcommand. The
 # fixture is a bare "origin" repo plus a working clone: a branch pushed to origin
 # is visible to `git ls-remote origin`, a local branch shows in `git show-ref`.
 TESTS_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")" && pwd)"
@@ -32,7 +34,7 @@ rm_fixture() { [ -n "${FIX:-}" ] && rm -rf "${FIX}"; }
 # (the offline warning) is dropped so $output is exactly the function's result.
 detect() {
   ( cd "${FIX}/work" || exit 3
-    GITHUB_ISSUE_SOURCE_ONLY=1 bash -c '
+    bash -c '
       set -euo pipefail
       source "'"${SCRIPTS_DIR}"'/lib.sh"
       source "'"${SCRIPTS_DIR}"'/github-issue.sh"
