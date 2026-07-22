@@ -1,7 +1,7 @@
 {
   lib,
   pkgs,
-  secrets,
+  secretsLib,
   globals,
   ...
 }:
@@ -254,11 +254,27 @@
   # All srv needs from it is the token so `nix flake update` (`just qu`) can
   # resolve the PRIVATE bashfulrobot/upsight flake input via the GitHub API
   # (an unauthenticated resolve 404s). Gated on the secret exactly as the
-  # system/nix module is; the value comes from secrets.github.accessToken and
-  # never enters Nix eval output.
-  nix.settings = lib.optionalAttrs ((secrets.github.accessToken or null) != null) {
-    access-tokens = "github.com=${secrets.github.accessToken}";
-  };
+  # system/nix module is. The token is materialised at system activation into a
+  # root-only 0600 file and pulled in via nix.conf `!include` (read by the nix
+  # daemon at runtime), so it never enters the world-readable /etc/nix/nix.conf
+  # or the store (issue #265). `!include` no-ops when the file is absent.
+  nix.extraOptions = ''
+    !include /run/nixos-secrets/nix-access-tokens.conf
+  '';
+
+  systemd.tmpfiles.rules = [ "d /run/nixos-secrets 0755 root root -" ];
+
+  system.activationScripts.nixAccessToken = lib.stringAfter [ "etc" ] (
+    secretsLib.installValue {
+      jq = "${pkgs.jq}/bin/jq";
+      secretsFile = secretsLib.file globals;
+      path = ".github.accessToken";
+      dest = "/run/nixos-secrets/nix-access-tokens.conf";
+      mode = "0600";
+      prefix = "access-tokens = github.com=";
+      suffix = "\n";
+    }
+  );
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
