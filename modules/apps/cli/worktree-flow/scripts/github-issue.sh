@@ -21,6 +21,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && { [[ "${1:-}" == "--help" ]] || [[ "${
   info "                                             with --rescue, cherry-pick + push if it didn't"
   info "                                             (use after stacked-PR squash-merge races)"
   info "  post-mortem <number>                    -- gather close-context for agent synthesis"
+  info "  queue-state <get|set --json '<json>'|clear>"
+  info "                                          -- read/write the github-issues-auto queue cursor (reboot-safe resume)"
   exit 0
 fi
 
@@ -1998,6 +2000,98 @@ cmd_post_mortem() {
       recent_step_notes: $step_notes}')"
 }
 
+# ── Queue-cursor persistence (github-issues-auto) ─────────────────────────────
+#
+# The per-issue .worktree-state.json already survives a reboot. The batch
+# driver's queue cursor (the ordered queue, the position within it, the
+# stacking chain, and the decisions buffer) lived only in the driving session,
+# so a killed or rebooted run could not resume and the user had to re-supply the
+# queue. This subcommand persists that cursor to a single .queue-state.json in
+# the shared worktree base, deliberately OUTSIDE any one worktree so it outlives
+# the cleanup of a finished issue's worktree. Writes are atomic (temp file plus
+# rename) and serialised with a per-host flock, matching how write_state and the
+# setup/worktree locks already work. The github-issues-auto skill owns the JSON
+# shape; this command only guarantees durability, atomicity, and valid JSON.
+QUEUE_STATE_VERSION=1
+
+cmd_queue_state() {
+  local action="${1:-}"
+  [[ $# -gt 0 ]] && shift
+  local payload=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --json)
+        payload="${2:?--json requires a value}"
+        shift 2
+        ;;
+      -*)
+        die "unknown option: $1"
+        ;;
+      *)
+        die "unexpected argument: $1"
+        ;;
+    esac
+  done
+
+  local QSTATE_DIR QSTATE_FILE QSTATE_LOCK
+  QSTATE_DIR="$(worktree_base)"
+  mkdir -p "$QSTATE_DIR"
+  QSTATE_FILE="${QSTATE_DIR}/.queue-state.json"
+  QSTATE_LOCK="${QSTATE_DIR}/.queue-state.lock"
+
+  case "$action" in
+    get)
+      if [[ ! -f "$QSTATE_FILE" ]]; then
+        json_ok "$(jq -nc '{exists: false, state: null}')"
+        return 0
+      fi
+      local content
+      content="$(cat "$QSTATE_FILE")"
+      if ! printf '%s' "$content" | jq -e . >/dev/null 2>&1; then
+        json_error_obj "$(jq -nc --arg f "$QSTATE_FILE" \
+          '{message: ("queue state at " + $f + " is present but not valid JSON; delete it or run '\''github-issue queue-state clear'\'' to start fresh"),
+            cause: "queue_state_corrupt", path: $f}')"
+      fi
+      json_ok "$(jq -nc --argjson s "$content" '{exists: true, state: $s}')"
+      ;;
+    set)
+      [[ -n "$payload" ]] || die "usage: github-issue queue-state set --json '<json>'"
+      printf '%s' "$payload" | jq -e . >/dev/null 2>&1 ||
+        die "queue-state set: the --json value is not valid JSON"
+      : >"$QSTATE_LOCK" 2>/dev/null || die "cannot create queue-state lock at ${QSTATE_LOCK}"
+      # fd 5 is free: 6 (status try-lock), 7 (setup), 8 (auto-refresh), 9
+      # (worktree) are already spoken for elsewhere in this script.
+      exec 5>"$QSTATE_LOCK"
+      if ! flock -n 5; then
+        json_error_obj "$(jq -nc \
+          '{message: "another github-issue queue-state write is already in progress",
+            cause: "queue_state_locked"}')"
+      fi
+      # Stamp version and write time so a resumer can sanity-check what it reads.
+      local stamped tmpfile
+      stamped="$(printf '%s' "$payload" | jq -c \
+        --argjson v "$QUEUE_STATE_VERSION" \
+        --arg ts "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+        '. + {queue_state_version: $v, written_at: $ts}')"
+      tmpfile="$(mktemp "${QSTATE_DIR}/.queue-state.XXXXXX")"
+      printf '%s\n' "$stamped" >"$tmpfile"
+      mv "$tmpfile" "$QSTATE_FILE"
+      json_ok "$(jq -nc --arg f "$QSTATE_FILE" --argjson s "$stamped" \
+        '{ok: true, path: $f, state: $s}')"
+      ;;
+    clear)
+      rm -f "$QSTATE_FILE"
+      json_ok "$(jq -nc --arg f "$QSTATE_FILE" '{ok: true, cleared: true, path: $f}')"
+      ;;
+    "")
+      die "usage: github-issue queue-state <get|set --json '<json>'|clear>"
+      ;;
+    *)
+      die "unknown queue-state action: ${action} (expected get, set, or clear)"
+      ;;
+  esac
+}
+
 # ── Entry point ──────────────────────────────────────────────────────────────
 
 # Dispatch only when this file is executed as the command, not when it is
@@ -2014,6 +2108,14 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       SUBCMD="${1//-/_}"
       shift
       "cmd_${SUBCMD}" "$@"
+      ;;
+    queue-state)
+      # Pure local-filesystem cursor persistence, no remote calls, so it stays
+      # provider-agnostic and skips require_github_remote (github-issues-auto
+      # drives GitHub and Forgejo batches alike).
+      _JSON_MODE=1
+      shift
+      cmd_queue_state "$@"
       ;;
     *)
       die "usage: github-issue <subcommand> [args] -- run 'github-issue --help' for details"

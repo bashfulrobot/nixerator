@@ -49,3 +49,28 @@ push_remote_only() {
   git -C "${FIX}/work" push -q origin "$1"
   git -C "${FIX}/work" branch -D "$1"
 }
+
+# qstate ARGS... — run cmd_queue_state from inside the fixture clone under the
+# same `set -euo pipefail` and _JSON_MODE=1 the packaged command uses. stdout is
+# the structured JSON result (or {"error":...} on failure); stderr (the human
+# log lines) is dropped so $output is exactly the JSON. Exit code is preserved.
+qstate() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      _JSON_MODE=1
+      cmd_queue_state "$@"
+    ' _ "$@" 2>/dev/null )
+}
+
+# queue_state_file — absolute path to the .queue-state.json the fixture clone
+# resolves to, for tests that inspect or corrupt it directly.
+queue_state_file() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      printf "%s/.queue-state.json" "$(worktree_base)"
+    ' )
+}
