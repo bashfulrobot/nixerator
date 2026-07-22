@@ -787,11 +787,13 @@ detect_existing_branch() {
   case "$ls_rc" in
     0) remote_state="remote" ;;
     2) remote_state="absent" ;;
-    *) remote_state="unknown"
-       # To stderr explicitly: this function's stdout is the detection result,
-       # consumed via command substitution, and warn() prints to stdout outside
-       # JSON mode.
-       warn "could not reach origin to check for branch '${branch}' (offline?); relying on the local check only" >&2 ;;
+    *)
+      remote_state="unknown"
+      # To stderr explicitly: this function's stdout is the detection result,
+      # consumed via command substitution, and warn() prints to stdout outside
+      # JSON mode.
+      warn "could not reach origin to check for branch '${branch}' (offline?); relying on the local check only" >&2
+      ;;
   esac
 
   if [[ "$on_local" == true && "$remote_state" == "remote" ]]; then
