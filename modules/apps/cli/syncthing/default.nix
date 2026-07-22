@@ -62,6 +62,15 @@ in
         user = globals.user.name;
         group = "users";
         dataDir = globals.user.homeDirectory;
+        # GUI bound on all interfaces so it is reachable over the tailnet, as
+        # before. On a *fresh* config there is a short window at first start
+        # where syncthing is up but syncthing-gui-auth has not applied
+        # credentials yet, so the GUI is briefly unauthenticated. This is not a
+        # regression (the previous settings.gui path also applied credentials
+        # only after the service came up), and openDefaultPorts opens the sync
+        # ports (22000/21027), not the GUI port (8384). Narrowing this further
+        # means binding to 127.0.0.1, which would drop remote GUI access, so it
+        # is left as a deliberate host-owned choice rather than changed here.
         guiAddress = "0.0.0.0:8384";
         openDefaultPorts = true;
         overrideDevices = true;
@@ -297,7 +306,7 @@ in
         RuntimeDirectoryMode = "0700";
       };
       script = ''
-        set -eu
+        set -euo pipefail
         secrets=${secretsLib.file globals}
         [ -f "$secrets" ] || { echo "syncthing-gui-auth: no secrets file, skipping"; exit 0; }
         jq -e '.syncthing.gui.user // empty' "$secrets" >/dev/null 2>&1 \
@@ -330,6 +339,9 @@ in
         jq -j '.syncthing.gui.password' "$secrets" > "$RUNTIME_DIRECTORY/pw"
         pwhash=$(mkpasswd -m bcrypt --stdin < "$RUNTIME_DIRECTORY/pw" | tr -d '\n')
         rm -f "$RUNTIME_DIRECTORY/pw"
+        # A failed hash would PATCH an empty password and lock the GUI; bail
+        # instead (pipefail alone is not enough, since `tr` masks mkpasswd).
+        [ -n "$pwhash" ] || { echo "syncthing-gui-auth: empty password hash, refusing to PATCH"; exit 1; }
         user=$(jq -r '.syncthing.gui.user' "$secrets")
 
         # Body in a file so the hash never hits argv.

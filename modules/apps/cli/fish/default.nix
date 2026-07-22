@@ -51,6 +51,14 @@ in
             # GRAFANA_TOKEN so the values never enter the Nix store (issue #265).
             # Each is guarded individually: an absent key leaves the variable
             # unset rather than exporting the literal string "null".
+            #
+            # Scope note: these used to be set via environment.variables +
+            # home.sessionVariables (visible to every process). They now come
+            # from shellInit, so they reach fish shells and their children,
+            # which covers every consumer today (Claude Code and its subprocess
+            # skills, `td`, `agent-scan`, all launched from a terminal). The one
+            # tool that runs headless, aha-fr-report, reads the token from the
+            # secrets file itself and does not depend on this export.
             if jq -e '.gemini.apiKey // empty' $_secrets >/dev/null 2>&1
               set -gx GEMINI_API_KEY (jq -r '.gemini.apiKey' $_secrets)
             end

@@ -292,35 +292,31 @@ to read a value at eval. Reading a value at eval interpolates it into the build
 output, and any `secrets.<x>` written into a derivation string lands in the
 world-readable `/nix/store`, where a local agent can grep it (issue #265).
 
-Two things reach every module through `specialArgs`:
+There are two consumption shapes, and one helper:
 
-- `secrets`: the parsed attrset, for presence checks only (`secrets ? foo`,
+- Presence guards use `secrets` directly, and read no value (`secrets ? foo`,
   `secrets.foo.bar or null != null`).
-- `secretsLib`: the one helper (`lib/secrets.nix`) that materializes a value at
-  runtime, in two shapes. `readExpr` returns a `jq` command substitution to
-  embed in a shell script, so the value is read when the script runs.
-  `installValue` returns an activation snippet that writes one secret to a
-  mode-restricted file, and only when the key is present.
+- A runtime read (a value used live inside a service or shell script) is a
+  one-line `jq` against the off-store file, as restic and the fish module do it:
+  `set -gx TOKEN (jq -r '.foo.token' ~/.config/nixos-secrets/secrets.json)`. The
+  value is read when the script runs, so it never enters the store.
+- An activation write uses `secretsLib.installValue` (`lib/secrets.nix`). It
+  writes one secret to a mode-restricted file, creates the parent dir, no-ops
+  when the key is absent, and reads the value through `jq` so it never hits
+  argv. This is the shape with real boilerplate, so it is the one worth sharing.
 
 ```nix
-{ pkgs, lib, secretsLib, globals, ... }:
-let
-  jq = "${pkgs.jq}/bin/jq";
-  secretsFile = secretsLib.file globals;
-in
+{ pkgs, lib, secretsLib, globals, secrets, ... }:
 {
   config = {
     # Presence guard: reads nothing, only checks the key exists.
     someService.enable = secrets ? someService;
 
-    # Runtime read, inside a service or shell script. readExpr returns a jq
-    # command substitution; the value is read when the script runs:
-    #   set -gx TOKEN (secretsLib.readExpr { inherit jq secretsFile; path = ".foo.token"; })
-
     # Activation write, to a 0600 file the consumer reads at runtime:
     system.activationScripts.fooToken = lib.stringAfter [ "etc" ] (
       secretsLib.installValue {
-        inherit jq secretsFile;
+        jq = "${pkgs.jq}/bin/jq";
+        secretsFile = secretsLib.file globals;
         path = ".foo.token";
         dest = "/run/nixos-secrets/foo-token";
       }
@@ -354,9 +350,10 @@ Per-host network identity comes via `globals`:
    `{{ op://nixerator/<item>/<field> }}` placeholder.
 4. `just render-secrets` on a desktop.
 5. `just push-secrets <host>` for any peer that needs it.
-6. Consume it at runtime via `secretsLib` (`readExpr` for a shell/service read,
-   `installValue` for an activation write). Guard on existence with `secrets`,
-   but never interpolate the value at eval. See "Accessing in modules" above.
+6. Consume it at runtime: a one-line `jq` read for a shell/service, or
+   `secretsLib.installValue` for an activation write. Guard on existence with
+   `secrets`, but never interpolate the value at eval. See "Accessing in
+   modules" above.
 7. Commit the template change.
 
 ## Fresh machine bootstrap

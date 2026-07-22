@@ -42,8 +42,9 @@
     '';
   };
 
-  systemd.tmpfiles.rules = [ "d /run/nixos-secrets 0755 root root -" ];
-
+  # The runtime dir is created by installValue's own `mkdir -p`; a
+  # systemd.tmpfiles rule would not help because tmpfiles is applied by a
+  # systemd unit that only runs after activation scripts.
   system.activationScripts.nixAccessToken = lib.stringAfter [ "etc" ] (
     secretsLib.installValue {
       jq = "${pkgs.jq}/bin/jq";

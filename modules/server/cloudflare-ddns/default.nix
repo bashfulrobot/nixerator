@@ -265,16 +265,15 @@ in
         # lands in the world-readable /nix/store (issue #265). The container
         # mounts this path read-only. jq reads the value straight from the
         # secrets file, so it never passes through argv either.
-        system.activationScripts.cloudflareDdnsToken = lib.stringAfter [ "etc" ] ''
-          mkdir -p ${builtins.dirOf hostTokenPath}
-          ${secretsLib.installValue {
+        system.activationScripts.cloudflareDdnsToken = lib.stringAfter [ "etc" ] (
+          secretsLib.installValue {
             jq = "${pkgs.jq}/bin/jq";
             secretsFile = secretsLib.file globals;
             path = ".cloudflareDdns.apiToken";
             dest = hostTokenPath;
             mode = "0400";
-          }}
-        '';
+          }
+        );
 
         virtualisation.oci-containers.containers."cloudflare-ddns" = {
           inherit (cfg) image;
