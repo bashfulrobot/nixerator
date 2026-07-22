@@ -74,10 +74,13 @@ if grep -qP '\bop\s+read\b' <<<"$cmd" \
   deny "Refusing: op read / op item get --reveal surfaces the secret value into context. Use item titles, field labels, and op:// paths only, or move a value blind with op item edit dest=\"\$(op read ...)\"."
 fi
 
-# 5. Salesforce access-token exposure. `sf org display --json` and `--verbose`
-#    both include result.accessToken.
-if grep -qP '\bsf\s+org\s+display\b[^|;&]*(--json|--verbose)' <<<"$cmd"; then
-  deny "Refusing: sf org display --json/--verbose includes the live accessToken. Check auth with sf org display piped through a jq filter that selects only alias/username/instanceUrl."
+# 5. Salesforce access-token exposure. Both `--verbose` (human table) and raw
+#    `--json` include result.accessToken. `--json | jq '.result.username'` is
+#    SAFE (the token stays in the pipe, jq projects it away), so only deny
+#    `--json` when it is NOT piped onward -- i.e. the raw JSON would hit stdout.
+if grep -qP '\bsf\s+org\s+display\b[^|]*--verbose' <<<"$cmd" \
+  || grep -qP '\bsf\s+org\s+display\b[^|]*--json[^|]*($|[;&])' <<<"$cmd"; then
+  deny "Refusing: sf org display --verbose, or raw --json, prints the live accessToken to stdout. Pipe --json through a jq filter that selects only the fields you need (e.g. | jq -r '.result.username'), or use plain 'sf org display'."
 fi
 
 # 6. gws OAuth credential dump.

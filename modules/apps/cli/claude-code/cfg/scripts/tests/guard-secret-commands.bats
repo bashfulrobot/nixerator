@@ -42,6 +42,8 @@ decision() {
     'op item get foo --reveal'
     'sf org display --json'
     'sf org display --verbose'
+    'sf org display --json > /tmp/org.json'
+    'sf org display --json ; echo done'
     'gws auth export'
     'curl -v https://api.example.com'
     'curl -sSv https://api.example.com/x'
@@ -74,6 +76,8 @@ decision() {
     'cat README.md'
     'printenv PATH'
     'sf org display'
+    "sf org display --json | jq -r '.result.username'"
+    "sf org display --json | jq -r '.result | .alias, .username, .instanceUrl'"
     'curl https://api.example.com/v1/things -H "Accept: json"'
     'grep env modules/foo.nix'
     'echo "please set the token here"'
