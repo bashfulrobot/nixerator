@@ -124,3 +124,19 @@ resolve_customer_frs_folder() {
   pdf_id="$(find_or_create_subfolder "$frs_id" "$PDF_REPORTS_FOLDER_NAME")" || return 1
   printf '%s\t%s\t%s\n' "$cust_id" "$frs_id" "$pdf_id"
 }
+
+# resolve_customer_frs_only CUSTOMER_NAME
+# Resolves <Customer>/CS/FRs but stops there -- it never touches the
+# Customer-PDF-Reports subfolder. Used when the PDF destination is pinned to an
+# explicit folder id (customers.txt field 4), so the run neither depends on nor
+# recreates the in-drive PDF subfolder: the Sheet still lands in its original
+# FRs folder (links preserved) while the PDF goes wherever field 4 points.
+# Prints "customer_folder_id<TAB>frs_folder_id".
+resolve_customer_frs_only() {
+  local customer_name cust_id cs_id frs_id
+  customer_name="$1"
+  cust_id="$(find_customer_folder "$customer_name")" || return $?
+  cs_id="$(find_or_create_subfolder "$cust_id" "CS")" || return 1
+  frs_id="$(find_or_create_subfolder "$cs_id" "FRs")" || return 1
+  printf '%s\t%s\n' "$cust_id" "$frs_id"
+}

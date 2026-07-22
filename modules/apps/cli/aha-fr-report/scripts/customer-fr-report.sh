@@ -17,6 +17,14 @@
 # name (e.g. folder "Sony Interactive" -> "Sony Interactive Entertainment").
 # Defaults to CUSTOMER_NAME.
 #
+# --pdf-folder ID pins the customer-facing PDF to an explicit destination folder
+# instead of the in-drive <Customer>/CS/FRs/Customer-PDF-Reports subfolder. When
+# given, the PDF is uploaded straight into ID (which must already exist -- no
+# folder is created) and the Customer-PDF-Reports subfolder is not touched at
+# all; the internal Sheet still lands in its original FRs folder, so its link is
+# preserved. This is how per-customer PDF destinations outside the Customers
+# shared drive are wired (see customers.txt field 4).
+#
 # Pass one or more --org ID (Aha idea-organization id) when the Drive folder
 # name and the right Aha organization diverge, or a plain name search would
 # be ambiguous/too broad (e.g. "X Corporation" fuzzy-matches dozens of
@@ -45,14 +53,20 @@ die() {
 customer_name="${1:?usage: customer-fr-report.sh \"Customer Name\" [--display-name NAME] [--org ID ...]}"
 shift
 
-# Peek at --display-name so it can be logged and forwarded explicitly; the
-# leaf scripts parse it out of their own args the same way.
+# Peek at --display-name and --pdf-folder so they can be logged and forwarded
+# explicitly; the leaf scripts parse --display-name out of their own args the
+# same way, while --pdf-folder is consumed here (it never reaches them).
 display_name=""
+pdf_folder=""
 _rest=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --display-name)
       display_name="${2:?--display-name requires a value}"
+      shift 2
+      ;;
+    --pdf-folder)
+      pdf_folder="${2:?--pdf-folder requires a value}"
       shift 2
       ;;
     *)
@@ -72,13 +86,22 @@ echo "== Resolving Drive folders for '${customer_name}' ==" >&2
 if [[ -n "$display_name" ]]; then
   echo "  display name:        $display_name" >&2
 fi
-resolved="$(resolve_customer_frs_folder "$customer_name")" || die "folder resolution failed"
-customer_id="$(echo "$resolved" | cut -f1)"
-frs_id="$(echo "$resolved" | cut -f2)"
-pdf_reports_id="$(echo "$resolved" | cut -f3)"
+if [[ -n "$pdf_folder" ]]; then
+  # PDF destination is pinned: resolve only far enough to place the Sheet, and
+  # send the PDF straight to $pdf_folder (never create the in-drive subfolder).
+  resolved="$(resolve_customer_frs_only "$customer_name")" || die "folder resolution failed"
+  customer_id="$(echo "$resolved" | cut -f1)"
+  frs_id="$(echo "$resolved" | cut -f2)"
+  pdf_reports_id="$pdf_folder"
+else
+  resolved="$(resolve_customer_frs_folder "$customer_name")" || die "folder resolution failed"
+  customer_id="$(echo "$resolved" | cut -f1)"
+  frs_id="$(echo "$resolved" | cut -f2)"
+  pdf_reports_id="$(echo "$resolved" | cut -f3)"
+fi
 echo "  customer folder:     $customer_id" >&2
 echo "  FRs folder:          $frs_id" >&2
-echo "  PDF reports folder:  $pdf_reports_id" >&2
+echo "  PDF reports folder:  $pdf_reports_id${pdf_folder:+ (pinned)}" >&2
 
 echo >&2
 echo "== Writing internal Sheet ==" >&2
