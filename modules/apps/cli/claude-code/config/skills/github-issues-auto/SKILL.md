@@ -449,9 +449,13 @@ Stop the queue (do not silently skip) when:
 - Any other situation where two attempts have not made progress
 
 In each case, leave the in-flight worktree untouched (do not delete or reset
-it), persist the cursor pointing at the stopped issue (`github-issue
-queue-state set`, same call as step 2f) so the deferred run is resumable from
-disk, and report:
+it), then persist the cursor so the deferred run is resumable from disk. Failure
+happens mid-issue, before step 2f's advance runs, so persist `cursor` at the
+**current** (un-advanced) index, the position of the issue that just stopped.
+Use the same `github-issue queue-state set` command as step 2f, but do NOT
+advance `cursor` first. Advancing here would move the saved cursor past the
+failed issue and silently drop it from the batch on resume. After persisting,
+report:
 
 - Which issue stopped the queue.
 - What blocker was hit.

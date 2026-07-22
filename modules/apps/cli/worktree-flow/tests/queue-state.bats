@@ -46,6 +46,30 @@ teardown() { rm_fixture; }
   [ "$status" -ne 0 ]
 }
 
+@test "set rejects a valid-JSON but non-object payload" {
+  # An array clears a bare `jq -e .` gate, then the '. + {..}' stamp would abort
+  # jq with a raw error and no JSON. The type guard must reject it structurally.
+  run qstate set --json '[1,2,3]'
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_not_object" ]
+}
+
+@test "set rejects a JSON null payload" {
+  # `jq -e .` treats null as falsey and would misreport it as "not valid JSON".
+  # The object guard rejects it with the correct cause instead.
+  run qstate set --json 'null'
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_not_object" ]
+}
+
+@test "queue-state outside a git work tree fails with a routable cause" {
+  # ${FIX} itself is not a repo (it holds origin.git and work). worktree_base
+  # would abort on git rev-parse; the up-front guard must surface not_in_repo.
+  run qstate_at "${FIX}" get
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "not_in_repo" ]
+}
+
 @test "set requires --json" {
   run qstate set
   [ "$status" -ne 0 ]

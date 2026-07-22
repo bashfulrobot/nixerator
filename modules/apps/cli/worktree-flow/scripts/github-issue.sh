@@ -2033,6 +2033,14 @@ cmd_queue_state() {
     esac
   done
 
+  # worktree_base resolves via 'git rev-parse'; outside a work tree that aborts
+  # with a raw git error and no JSON. Guard up front so the failure is routable.
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    json_error_obj "$(jq -nc \
+      '{message: "github-issue queue-state must run inside the repository work tree",
+        cause: "not_in_repo"}')"
+  fi
+
   local QSTATE_DIR QSTATE_FILE QSTATE_LOCK
   QSTATE_DIR="$(worktree_base)"
   mkdir -p "$QSTATE_DIR"
@@ -2045,8 +2053,14 @@ cmd_queue_state() {
         json_ok "$(jq -nc '{exists: false, state: null}')"
         return 0
       fi
+      # No lock on the read: the atomic rename means any file present is a whole
+      # one. If a concurrent clear unlinked it between the test and the read,
+      # treat that as not-present rather than letting cat abort under set -e.
       local content
-      content="$(cat "$QSTATE_FILE")"
+      content="$(cat "$QSTATE_FILE" 2>/dev/null)" || {
+        json_ok "$(jq -nc '{exists: false, state: null}')"
+        return 0
+      }
       if ! printf '%s' "$content" | jq -e . >/dev/null 2>&1; then
         json_error_obj "$(jq -nc --arg f "$QSTATE_FILE" \
           '{message: ("queue state at " + $f + " is present but not valid JSON; delete it or run '\''github-issue queue-state clear'\'' to start fresh"),
@@ -2056,11 +2070,21 @@ cmd_queue_state() {
       ;;
     set)
       [[ -n "$payload" ]] || die "usage: github-issue queue-state set --json '<json>'"
-      printf '%s' "$payload" | jq -e . >/dev/null 2>&1 ||
-        die "queue-state set: the --json value is not valid JSON"
+      # Require a JSON object, not just any valid JSON. The stamp step below is
+      # '. + {..}', which errors on an array/number/string/null, and the caller
+      # (a resumer) reads the result back as an object with named fields. Reject
+      # a non-object here with a routable cause instead of letting jq abort the
+      # stamp with a raw error and no JSON on stdout.
+      if ! printf '%s' "$payload" | jq -e 'type == "object"' >/dev/null 2>&1; then
+        json_error_obj "$(jq -nc \
+          '{message: "queue-state set: --json must be a JSON object",
+            cause: "queue_state_not_object"}')"
+      fi
       : >"$QSTATE_LOCK" 2>/dev/null || die "cannot create queue-state lock at ${QSTATE_LOCK}"
-      # fd 5 is free: 6 (status try-lock), 7 (setup), 8 (auto-refresh), 9
-      # (worktree) are already spoken for elsewhere in this script.
+      # fd 5 is safe here: queue-state is a leaf subcommand that never runs in
+      # the same process as verify-landed's rescue lock (the only other fd-5
+      # user), unlike the nested status -> reconcile -> auto-refresh chain that
+      # forces the distinct 6/7/8/9 fds.
       exec 5>"$QSTATE_LOCK"
       if ! flock -n 5; then
         json_error_obj "$(jq -nc \
