@@ -54,9 +54,9 @@ If the log doesn't exist or is empty, fall back to inferring intent from the dif
    ```bash
    log="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/intent-logs/${CLAUDE_CODE_SESSION_ID}.jsonl"
    case "$CLAUDE_CODE_SESSION_ID" in ''|*/*|*..*) log="" ;; esac
-   [ -n "$log" ] && [ -f "$log" ] && cat "$log"
+   [ -n "$log" ] && [ -f "$log" ] && [ ! -L "$log" ] && cat "$log"
    ```
-   The `case` guard skips the log if the session id is unset or contains `/` or `..`, so the path cannot be steered outside the intent-log directory. If the log is skipped or missing, infer intent from the diff alone. Do not fall back to the newest file, which may belong to another session.
+   The `case` guard skips the log if the session id is unset or contains `/` or `..`, so the path cannot be steered outside the intent-log directory, and the `! -L` test refuses a symlinked log so `cat` cannot be pointed elsewhere. If the log is skipped or missing, infer intent from the diff alone. Do not fall back to the newest file, which may belong to another session.
 3. Inspect the change you are about to attribute: `git status && git diff` (unstaged working-tree changes; nothing is staged yet at this step).
 4. Check branch: detect default branch with `default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'); default_branch="${default_branch:-main}"`. If on default branch, note: "Committing to $default_branch. If this should be on a feature branch, abort and create one first."
 5. Check for sensitive files: scan staged and unstaged files for secrets (`.env`, `credentials.*`, `*secret*`, `*.pem`, `*.key`, token/API key patterns). If found, **stop and warn the user** — list the suspect files and ask how to proceed before staging anything.
@@ -64,7 +64,7 @@ If the log doesn't exist or is empty, fall back to inferring intent from the dif
    ```bash
    git add -- <path> [<path> ...]
    ```
-   List individual file paths, the exact files you created or modified in this task. Never `git add -A` or `git add .`, and never a directory or glob (`git add -- modules/`); in a shared worktree all of those sweep in a concurrent agent's in-flight edits. `git add -- <path>` stages an add, a modification, or a deletion of that path; for a rename, list both the old and the new path. Then reconcile the staged set against your own work with `git status --short`, in both directions:
+   List individual file paths, the exact files you created or modified in this task. Never `git add -A` or `git add .`, and never a directory, a glob, or git pathspec magic (`git add -- modules/`, `:/`, `:(glob)**`); in a shared worktree all of those sweep in a concurrent agent's in-flight edits. `git add -- <path>` stages an add, a modification, or a deletion of that path; for a rename, list both the old and the new path. Then reconcile the staged set against your own work with `git status --short`, in both directions:
    - Nothing you did not touch is staged. Unstage a stray path with `git reset HEAD -- <path>`.
    - Every file you created or changed in this task is accounted for. An untracked file (`??`) you meant to include but did not list is silently dropped from the commit, the one case `git add -A` used to catch. Add it, or leave it out on purpose, but decide rather than forget.
 7. Split into atomic commits (use `git reset HEAD -- <path>` + `git add -- <path>`) if needed.
