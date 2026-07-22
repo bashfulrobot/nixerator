@@ -258,9 +258,14 @@
     "type": "command",
     "command": "@STATUSLINE_COMMAND@"
   },
+  "feedbackSurveyRate": 0,
+  "feedbackDrafts": "off",
+  "awaySummaryEnabled": false,
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
+  "terminalProgressBarEnabled": true,
+  "todoFeatureEnabled": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "autoMode": {
@@ -271,10 +276,5 @@
   },
   "smallModelOverride": "haiku",
   "coAuthor": "",
-  "remoteControlEnabled": true,
-  "awaySummaryEnabled": false,
-  "feedbackSurveyRate": 0,
-  "feedbackDrafts": "off",
-  "terminalProgressBarEnabled": true,
-  "todoFeatureEnabled": false
+  "remoteControlEnabled": true
 }
