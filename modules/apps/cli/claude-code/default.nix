@@ -83,7 +83,7 @@ let
     textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
     userScopeMcpTemplate = userScopeMcpTemplateFile;
-    secretServerFiles = mcpConfig.secretServerFiles;
+    inherit (mcpConfig) secretServerFiles;
     inherit secretsFile;
   };
 
