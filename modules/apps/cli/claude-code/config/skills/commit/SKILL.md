@@ -64,7 +64,7 @@ If the log doesn't exist or is empty, fall back to inferring intent from the dif
    ```bash
    git add -- <path> [<path> ...]
    ```
-   List individual file paths, the exact files you created or modified in this task. Never `git add -A` or `git add .`, and never a directory, a glob, or git pathspec magic (`git add -- modules/`, `:/`, `:(glob)**`); in a shared worktree all of those sweep in a concurrent agent's in-flight edits. `git add -- <path>` stages an add, a modification, or a deletion of that path; for a rename, list both the old and the new path. Then reconcile the staged set against your own work with `git status --short`, in both directions:
+   List individual file paths, the exact files you created or modified in this task. Never `git add -A` or `git add .`, and never a directory, a glob, `:/`, or any `:(...)` pathspec magic (for example `git add -- modules/`, `:/`, `:(glob)`, `:(top)`, `:(icase)`); in a shared worktree all of those sweep in a concurrent agent's in-flight edits. `git add -- <path>` stages an add, a modification, or a deletion of that path; for a rename, list both the old and the new path. Then reconcile the staged set against your own work with `git status --short`, in both directions:
    - Nothing you did not touch is staged. Unstage a stray path with `git reset HEAD -- <path>`.
    - Every file you created or changed in this task is accounted for. An untracked file (`??`) you meant to include but did not list is silently dropped from the commit, the one case `git add -A` used to catch. Add it, or leave it out on purpose, but decide rather than forget.
 7. Split into atomic commits (use `git reset HEAD -- <path>` + `git add -- <path>`) if needed.
