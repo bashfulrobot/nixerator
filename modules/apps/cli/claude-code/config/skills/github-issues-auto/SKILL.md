@@ -377,9 +377,11 @@ Then:
     '{queue: $queue, cursor: $cursor, prev_branch: $prev_branch, prs: $prs, decisions: $decisions}')"
   ```
 
-  Write this after every issue leaves the queue, whether it completed or failed
-  (the failure path in [Failure Handling](#failure-handling) persists too), so
-  the on-disk cursor always points at the next unstarted issue.
+  Write this after every issue, whether it completed or failed (the failure
+  path in [Failure Handling](#failure-handling) persists too). On success the
+  cursor is advanced first, so it points at the next unstarted issue. On failure
+  it is left un-advanced, pointing at the stopped issue so a resume re-attempts
+  it. Either way the on-disk cursor is where the next run should pick up.
 - **Do not wait for review.** Start the next iteration immediately. The PR
   sits open for the human to review and merge whenever they choose.
 

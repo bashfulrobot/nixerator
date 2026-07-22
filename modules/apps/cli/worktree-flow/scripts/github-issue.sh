@@ -2033,9 +2033,12 @@ cmd_queue_state() {
     esac
   done
 
-  # worktree_base resolves via 'git rev-parse'; outside a work tree that aborts
-  # with a raw git error and no JSON. Guard up front so the failure is routable.
-  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  # worktree_base resolves via 'git rev-parse', which yields a nonsense base in a
+  # bare repo or GIT_DIR and aborts entirely with no repo at all. Test the output
+  # value, not just the exit status: --is-inside-work-tree exits 0 and prints
+  # "false" inside a bare repo, so an exit-status check would wave it through.
+  # Only a real work tree ("true") may proceed; anything else is routable.
+  if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
     json_error_obj "$(jq -nc \
       '{message: "github-issue queue-state must run inside the repository work tree",
         cause: "not_in_repo"}')"

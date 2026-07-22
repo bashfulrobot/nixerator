@@ -70,6 +70,15 @@ teardown() { rm_fixture; }
   [ "$(echo "$output" | jq -r '.error.cause')" = "not_in_repo" ]
 }
 
+@test "queue-state inside a bare repo is refused, not run against a nonsense path" {
+  # In a bare repo `git rev-parse --is-inside-work-tree` exits 0 but prints
+  # "false", so an exit-status-only guard would wave it through and let
+  # worktree_base resolve to garbage. The output check must catch it.
+  run qstate_at "${FIX}/origin.git" get
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "not_in_repo" ]
+}
+
 @test "set requires --json" {
   run qstate set
   [ "$status" -ne 0 ]
