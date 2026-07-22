@@ -206,6 +206,10 @@ test-render-secrets:
 test-secret-guard:
     nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gnugrep --command bats modules/apps/cli/claude-code/cfg/scripts/tests/
 
+# Run worktree-flow unit tests (github-issue setup branch preflight)
+test-worktree-flow:
+    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#git --command bats modules/apps/cli/worktree-flow/tests/
+
 # Garbage collection (default: 5 days)
 clean days="5":
     @echo "Cleaning packages older than {{days}} days..."

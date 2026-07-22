@@ -1,0 +1,81 @@
+#!/usr/bin/env bats
+# Regression tests for github-issue setup's branch-existence preflight (#262).
+#
+# The preflight refuses `setup` when this issue's branch already exists, so a
+# second agent that slipped past the issue lease (or a prior run whose worktree
+# was removed without deleting the branch) does not start a duplicate copy of
+# the work. detect_existing_branch is the routable core of that check. These
+# tests pin its four resolutions against real refs, including the local-branch
+# case that would otherwise die later at `git worktree add -b` with a raw git
+# error instead of a structured cause.
+load helper
+
+setup() { setup_fixture; }
+teardown() { rm_fixture; }
+
+@test "none when the branch exists neither locally nor on origin" {
+  run detect "feat/262-absent"
+  [ "$status" -eq 0 ]
+  [ "$output" = "none" ]
+}
+
+@test "remote when the branch exists only on origin" {
+  push_remote_only "feat/262-remote"
+  run detect "feat/262-remote"
+  [ "$status" -eq 0 ]
+  [ "$output" = "remote" ]
+}
+
+@test "local when the branch exists only locally" {
+  git -C "${FIX}/work" branch "feat/262-local"
+  run detect "feat/262-local"
+  [ "$status" -eq 0 ]
+  [ "$output" = "local" ]
+}
+
+@test "both when the branch exists locally and on origin" {
+  git -C "${FIX}/work" branch "feat/262-both"
+  git -C "${FIX}/work" push -q origin "feat/262-both"
+  run detect "feat/262-both"
+  [ "$status" -eq 0 ]
+  [ "$output" = "both" ]
+}
+
+@test "branch names with slashes resolve correctly" {
+  push_remote_only "feat/262-a/b/c"
+  run detect "feat/262-a/b/c"
+  [ "$status" -eq 0 ]
+  [ "$output" = "remote" ]
+}
+
+@test "unknown when origin is unreachable and the branch is not local" {
+  # A bogus origin makes git ls-remote fail with a transport error (not exit 2),
+  # so the remote dimension degrades to unknown. With no local branch either,
+  # detect_existing_branch reports unknown. cmd_setup turns that into a
+  # fail-closed branch_check_unreachable refusal (it does not proceed on a check
+  # it could not perform); this test pins the detector's contract underneath.
+  git -C "${FIX}/work" remote set-url origin /nonexistent/definitely-not-here.git
+  run detect "feat/262-offline"
+  [ "$status" -eq 0 ]
+  [ "$output" = "unknown" ]
+}
+
+@test "a nested decoy ref does not tail-match the branch" {
+  # The remote check anchors on refs/heads/<branch>. A ref that merely ends with
+  # the branch name (refs/heads/wip/feat/262-anchor) must not be mistaken for the
+  # branch itself, or legitimate setup would be refused on a false collision.
+  push_remote_only "wip/feat/262-anchor"
+  run detect "feat/262-anchor"
+  [ "$status" -eq 0 ]
+  [ "$output" = "none" ]
+}
+
+@test "local still resolves even when origin is unreachable" {
+  # The local check needs no network, so an offline remote must not mask a real
+  # local-branch collision.
+  git -C "${FIX}/work" branch "feat/262-local-offline"
+  git -C "${FIX}/work" remote set-url origin /nonexistent/definitely-not-here.git
+  run detect "feat/262-local-offline"
+  [ "$status" -eq 0 ]
+  [ "$output" = "local" ]
+}
