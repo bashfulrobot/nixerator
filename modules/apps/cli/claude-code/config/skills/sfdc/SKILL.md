@@ -111,6 +111,11 @@ There's no undo for "oops, I ran that against production". Always verify:
 sf org display --json | jq -r '.result | "Alias: \(.alias // "none")\nUser:  \(.username)\nOrg:   \(.instanceUrl)"'
 ```
 
+Keep the `jq` filter: raw `sf org display --json` and `sf org display --verbose`
+both print the live `accessToken`, which lands in the transcript. The filter
+above projects only alias/username/org, so the token stays in the pipe. Never
+run either form unfiltered — the secret-command guard blocks the raw ones.
+
 If the user hasn't specified an org and the default isn't obviously the
 right one, ask. For writes, ALWAYS echo the target org in the plan you show
 the user.

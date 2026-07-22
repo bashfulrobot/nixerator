@@ -208,10 +208,11 @@ fi
 if $needs_refresh; then
   token=$(get_oauth_token)
   if [ -n "$token" ] && [ "$token" != "null" ]; then
+    # Bearer via a curl -K config fd so the OAuth token stays off curl's argv.
     response=$(curl -s --max-time 5 \
       -H "Accept: application/json" \
       -H "Content-Type: application/json" \
-      -H "Authorization: Bearer $token" \
+      -K <(printf 'header = "Authorization: Bearer %s"\n' "$token") \
       -H "anthropic-beta: oauth-2025-04-20" \
       -H "User-Agent: claude-code/2.1.34" \
       "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)

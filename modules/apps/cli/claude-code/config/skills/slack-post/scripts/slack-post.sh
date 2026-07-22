@@ -97,9 +97,16 @@ xoxc=$(jq -r --arg ws "$workspace" '.workspaces[$ws].xoxc // empty' "$CREDS_FILE
 xoxd=$(jq -r --arg ws "$workspace" '.workspaces[$ws].xoxd // empty' "$CREDS_FILE")
 [[ -n "$xoxc" && -n "$xoxd" ]] || die "no xoxc/xoxd for workspace '$workspace' -- run 'slack-token-refresh'"
 
+# Emit the Slack auth headers through a curl -K config fd so the xoxc bearer
+# token and the xoxd cookie never land on curl's argv (readable from ps /
+# /proc/<pid>/cmdline). Mirrors the forge.sh _fj_auth_config pattern.
+slack_auth_config() {
+  printf 'header = "Authorization: Bearer %s"\n' "$xoxc"
+  printf 'header = "Cookie: d=%s"\n' "$xoxd"
+}
+
 auth=$(curl -sS "$SLACK_API/auth.test" \
-  -H "Authorization: Bearer $xoxc" \
-  -H "Cookie: d=$xoxd")
+  -K <(slack_auth_config))
 ok=$(echo "$auth" | jq -r '.ok')
 if [[ "$ok" != "true" ]]; then
   err=$(echo "$auth" | jq -r '.error // "unknown_error"')
@@ -147,8 +154,7 @@ payload=$(jq -n \
    + (if $thread_ts == "" then {} else {thread_ts: $thread_ts} end)')
 
 resp=$(curl -sS "$SLACK_API/chat.postMessage" \
-  -H "Authorization: Bearer $xoxc" \
-  -H "Cookie: d=$xoxd" \
+  -K <(slack_auth_config) \
   -H "Content-Type: application/json; charset=utf-8" \
   --data "$payload")
 
@@ -162,8 +168,7 @@ ts=$(echo "$resp" | jq -r '.ts')
 ch=$(echo "$resp" | jq -r '.channel')
 
 permalink=$(curl -sS "$SLACK_API/chat.getPermalink?channel=$ch&message_ts=$ts" \
-  -H "Authorization: Bearer $xoxc" \
-  -H "Cookie: d=$xoxd" |
+  -K <(slack_auth_config) |
   jq -r '.permalink // empty')
 
 if [[ -n "$permalink" ]]; then

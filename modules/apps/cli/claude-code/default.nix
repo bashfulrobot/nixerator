@@ -67,6 +67,8 @@ let
       guardGeneratedPathsScript
       guardRawNixScript
       guardGitStashScript
+      guardSecretCommandsScript
+      scrubSecretOutputScript
       reapConfig
       globals
       homeDir
@@ -182,6 +184,34 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/guard-git-stash.sh;
+  };
+
+  # Hard PreToolUse deny for commands that would print a secret into the
+  # transcript (env/printenv dumps, cat of a secrets file, op read, echo of a
+  # *_TOKEN var, sf org display --json, curl -v, set -x). Closes the leak class
+  # documented in the secret-leak RCA. A deny can't be overridden by an allow,
+  # so it holds even though `env`/`cat` remain allow-listed in settings.json.
+  guardSecretCommandsScript = pkgs.writeShellApplication {
+    name = "claude-guard-secret-commands";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.gnugrep
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/guard-secret-commands.sh;
+  };
+
+  # PostToolUse output scrubber: redacts secret values (literal values from
+  # secrets.json + known token-shaped prefixes) from a Bash tool's stdout/stderr
+  # before the model sees it, via the `updatedToolOutput` rewrite mechanism. The
+  # last-line-of-defense net behind guard-secret-commands.sh.
+  scrubSecretOutputScript = pkgs.writeShellApplication {
+    name = "claude-scrub-secret-output";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/scrub-secret-output.sh;
   };
 
   # Shell scripts -- read from files, substitute placeholders

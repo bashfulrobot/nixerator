@@ -61,8 +61,6 @@
       "Bash(which *)",
       "Bash(command *)",
       "Bash(type *)",
-      "Bash(env)",
-      "Bash(env *)",
       "Bash(uname *)",
       "Bash(whoami)",
       "Bash(pwd)",
@@ -120,7 +118,11 @@
       "Bash(nixos-rebuild switch *)",
       "Bash(nixos-rebuild boot *)",
       "Bash(nixos-rebuild test *)",
-      "Bash(nix-collect-garbage *)"
+      "Bash(nix-collect-garbage *)",
+      "Bash(printenv*)",
+      "Bash(op read*)",
+      "Bash(op item get*--reveal*)",
+      "Bash(sf org display*--verbose*)"
     ],
     "defaultMode": "auto",
     "additionalDirectories": [

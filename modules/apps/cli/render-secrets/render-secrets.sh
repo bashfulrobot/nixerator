@@ -397,8 +397,28 @@ if [[ "${CHECK}" -eq 1 ]]; then
     echo "render-secrets: no drift"
     exit 0
   fi
+  # Report WHICH keys drifted, never the values. A raw `diff` here would print
+  # the changed secret lines (old and new) straight into the caller's terminal
+  # -- and, when run by an agent, into the transcript/model context, violating
+  # the no-secret-value-in-context rule. We compare the set of scalar leaf paths
+  # and print only the dotted key names whose values differ.
+  changed="$(
+    jq -rn --slurpfile a "${DEST}" --slurpfile b "${tmp}" '
+      ($a[0] // {}) as $A | ($b[0] // {}) as $B
+      | (([ $A | paths(scalars) ] + [ $B | paths(scalars) ]) | unique)
+      | .[] as $p
+      | select( ($A | getpath($p)) != ($B | getpath($p)) )
+      | $p | map(tostring) | join(".")
+    ' 2>/dev/null || true
+  )"
   echo "render-secrets: DRIFT detected (live vs 1Password):" >&2
-  diff -u "${DEST}" "${tmp}" >&2 || true
+  if [[ -n "${changed}" ]]; then
+    echo "  changed keys (values redacted):" >&2
+    echo "${changed}" | sed 's/^/    /' >&2
+  else
+    echo "  values differ but no scalar keys changed (formatting/whitespace drift)" >&2
+  fi
+  echo "  Fix: re-run 'just render-secrets' to rewrite ${DEST} from 1Password." >&2
   exit 1
 fi
 
