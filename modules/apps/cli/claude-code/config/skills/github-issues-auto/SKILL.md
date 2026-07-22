@@ -285,7 +285,7 @@ the squash-merge race described below.
 **Parent or only PR.** Standard merge-order block:
 
 ```bash
-body_file=$(mktemp)
+body_file=$(mktemp) || exit 1
 forge pr-json <PR> | jq -r '.body' > "$body_file"
 forge pr-edit-body <PR> "$(cat <<EOF
 > [!IMPORTANT]
@@ -310,7 +310,7 @@ full). The block turns that guard into the concrete commands the human runs
 before merging this PR.
 
 ```bash
-body_file=$(mktemp)
+body_file=$(mktemp) || exit 1
 forge pr-json <PR> | jq -r '.body' > "$body_file"
 forge pr-edit-body <PR> "$(cat <<EOF
 > [!CAUTION]
@@ -326,11 +326,12 @@ forge pr-edit-body <PR> "$(cat <<EOF
 > - \`status: "landed"\`. The parent's content is on \`main\`. Continue.
 > - \`status: "orphaned"\` (non-zero exit). The squash race hit #<parent>: it
 >   is merged on GitHub but its commit is unreachable from \`main\`. Run
->   \`github-issue verify-landed <parent> --rescue\`, then re-run verify-landed
->   until it reports \`landed\`. If a rescue reports \`rescued\` but the next
->   verify still reports \`orphaned\`, the cherry-pick equivalent could not be
->   matched locally; run \`git fetch origin main\` and verify once more. Do not
->   merge this PR before it reports \`landed\`.
+>   \`github-issue verify-landed <parent> --rescue\`. A run that reports
+>   \`rescued\` has already pushed the cherry-pick to \`main\`, so #<parent> has
+>   landed even if a plain re-verify still reports \`orphaned\` (a local
+>   detection gap, not a landing failure). To get a confirming \`landed\`, fetch
+>   the orphan commit whose SHA the verify-landed output prints, then re-verify.
+>   Do not merge this PR until #<parent>'s content is on \`main\`.
 > - \`status: "not_merged"\`. Merge #<parent> first.
 >
 > Then confirm GitHub has retargeted this PR's base from the parent's branch
@@ -457,10 +458,13 @@ later PR stacked on the one before it):
      github-issue verify-landed <PR_i>
      ```
 
-     If the rescue reports `rescued` but the next verify still reports
-     `orphaned`, the cherry-pick equivalent could not be matched locally; run
-     `git fetch origin main` and verify once more. Do not merge `PR_{i+1}`
-     while `PR_i` is orphaned.
+     A `--rescue` that reports `rescued` has already pushed the cherry-pick to
+     `origin/main`, so `PR_i` has landed even if the plain re-verify still
+     reports `orphaned`. That residual `orphaned` is a local object-store gap
+     in the patch-id equivalence check, not a landing failure; fetch the orphan
+     commit whose SHA the verify-landed output prints, then re-verify to get a
+     confirming `landed`. Do not merge `PR_{i+1}` while `PR_i` is genuinely
+     orphaned, that is, a `--rescue` that did not report `rescued`.
    - `status: "not_merged"` (exit 0). `PR_i` is not merged yet. Merge it first,
      then re-verify.
 3. If `PR_i` is the last PR in the batch, stop here. Nothing is stacked on it,
@@ -496,20 +500,23 @@ Merge in this order to avoid conflicts.
 2. #<PR2>, <title2>, <url2>
 ...
 
-For a stacked batch, do not merge them all and check afterward. Follow the
-[merge protocol](#merge-protocol-the-stacking-ordering-guard): merge one PR,
-prove it landed with `github-issue verify-landed <PR>`, retarget the next PR's
-base to `main`, then merge the next. Verifying between merges is what catches
-the squash race, and it catches it before the next merge can compound it:
+For a stacked batch, the human does not merge them all and check afterward.
+They follow the [merge protocol](#merge-protocol-the-stacking-ordering-guard):
+merge one PR, prove it landed with `github-issue verify-landed <PR>`, retarget
+the next PR's base to `main`, then merge the next. Verifying between merges is
+what catches the squash race, and it catches it before the next merge can
+compound it:
 
 ```
 merge PR1  ->  github-issue verify-landed PR1  ->  retarget PR2 base to main
            ->  merge PR2  ->  github-issue verify-landed PR2  ->  ...
 ```
 
-If any `verify-landed` returns `status: "orphaned"` (non-zero exit), run
-`github-issue verify-landed <PR> --rescue` to cherry-pick the orphan onto main
-and push, then re-verify before merging the PR stacked on it.
+If any `verify-landed` returns `status: "orphaned"` (non-zero exit), the human
+runs `github-issue verify-landed <PR> --rescue` (it cherry-picks the orphan onto
+`main` and pushes, so the agent never runs it), then re-verifies before merging
+the PR stacked on it. See the protocol's human-scoping note for why every
+rescue and push is a merge-time step the human owns.
 
 Decisions documented (please review before merging).
 - #<PR1>. <count> autonomous decisions logged.
