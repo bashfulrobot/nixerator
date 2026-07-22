@@ -115,13 +115,15 @@
         #   - claude-session-reminders  (SessionStart maintenance reminders)
         #   - claude-guard-generated-paths / claude-guard-raw-nix (PostToolUse warn guards)
         #   - claude-guard-git-stash    (PreToolUse hard deny for git stash)
+        #   - claude-guard-primary-tree-write (PreToolUse hard deny for primary-tree git writes)
+        #   - claude-guard-secret-commands / claude-scrub-secret-output (secret-leak guards, #270)
         # After stripping, any event array left empty is dropped entirely.
         if test -f "$claude_dir/settings.json"
           sed "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" "$claude_dir/settings.json" \
             | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask)
                   | .hooks = ((.hooks // {})
                       | map_values(map(select((.hooks[0].command // "")
-                          | test("claude-auto-gate|tmux-claude|claude-precompact-checkpoint|claude-post-compact-reinject|claude-session-reminders|claude-guard-generated-paths|claude-guard-raw-nix|claude-guard-git-stash") | not)))
+                          | test("claude-auto-gate|tmux-claude|claude-precompact-checkpoint|claude-post-compact-reinject|claude-session-reminders|claude-guard-generated-paths|claude-guard-raw-nix|claude-guard-git-stash|claude-guard-primary-tree-write|claude-guard-secret-commands|claude-scrub-secret-output") | not)))
                       | with_entries(select(.value | length > 0)))' > "$config_dir/settings.json"
           echo "  settings.json"
         end
