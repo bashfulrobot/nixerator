@@ -334,25 +334,30 @@ in
             ;;
         esac
 
-        # bcrypt-hash the password; syncthing stores the hash. Read from a file,
-        # not argv.
+        # bcrypt-hash the password; syncthing stores the hash. mkpasswd reads
+        # the plaintext from a file (never argv).
         jq -j '.syncthing.gui.password' "$secrets" > "$RUNTIME_DIRECTORY/pw"
-        pwhash=$(mkpasswd -m bcrypt --stdin < "$RUNTIME_DIRECTORY/pw" | tr -d '\n')
+        mkpasswd -m bcrypt --stdin < "$RUNTIME_DIRECTORY/pw" | tr -d '\n' > "$RUNTIME_DIRECTORY/pwhash"
         rm -f "$RUNTIME_DIRECTORY/pw"
         # A failed hash would PATCH an empty password and lock the GUI; bail
         # instead (pipefail alone is not enough, since `tr` masks mkpasswd).
-        [ -n "$pwhash" ] || { echo "syncthing-gui-auth: empty password hash, refusing to PATCH"; exit 1; }
+        [ -s "$RUNTIME_DIRECTORY/pwhash" ] || { echo "syncthing-gui-auth: empty password hash, refusing to PATCH"; exit 1; }
         user=$(jq -r '.syncthing.gui.user' "$secrets")
 
-        # Body in a file so the hash never hits argv.
-        jq -n --arg u "$user" --arg p "$pwhash" '{user:$u, password:$p}' \
+        # Build the body with the hash read from a file (--rawfile), so neither
+        # the hash nor the API key ever reaches argv (/proc/PID/cmdline is
+        # world-readable). printf is a shell builtin, so writing the header file
+        # does not fork a process that carries the key on its argv.
+        jq -n --arg u "$user" --rawfile p "$RUNTIME_DIRECTORY/pwhash" '{user:$u, password:$p}' \
           > "$RUNTIME_DIRECTORY/gui.json"
+        rm -f "$RUNTIME_DIRECTORY/pwhash"
+        printf 'X-API-Key: %s\n' "$apikey" > "$RUNTIME_DIRECTORY/hdr"
         curl -sS -X PATCH \
-          -H "X-API-Key: $apikey" \
+          -H @"$RUNTIME_DIRECTORY/hdr" \
           -H "Content-Type: application/json" \
           --data @"$RUNTIME_DIRECTORY/gui.json" \
           "http://$addr/rest/config/gui"
-        rm -f "$RUNTIME_DIRECTORY/gui.json"
+        rm -f "$RUNTIME_DIRECTORY/gui.json" "$RUNTIME_DIRECTORY/hdr"
       '';
     };
 
