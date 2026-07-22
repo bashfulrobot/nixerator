@@ -102,6 +102,25 @@ teardown() { rm_fixture; }
   [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_invalid" ]
 }
 
+@test "set rejects a concatenated multi-document payload" {
+  # Two objects in one argument. A bare `jq -e type=="object"` exits on the last
+  # truthy document and would wave this through, then silently persist a corrupt
+  # two-document file. The slurp gate must reject it up front.
+  run qstate set --json '{"queue":[1],"cursor":0}{"queue":[2],"cursor":0}'
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_not_object" ]
+}
+
+@test "get surfaces a concatenated multi-document state file as corrupt" {
+  local f
+  f="$(queue_state_file)"
+  mkdir -p "$(dirname "$f")"
+  printf '{"queue":[1],"cursor":0}\n{"queue":[2],"cursor":0}\n' >"$f"
+  run qstate get
+  [ "$status" -ne 0 ]
+  [ "$(echo "$output" | jq -r '.error.cause')" = "queue_state_corrupt" ]
+}
+
 @test "set accepts cursor equal to queue length (all issues done)" {
   run qstate set --json '{"queue":[1,2,3],"cursor":3}'
   [ "$status" -eq 0 ]

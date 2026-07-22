@@ -2101,9 +2101,12 @@ cmd_queue_state() {
         json_ok "$(jq -nc '{exists: false, state: null}')"
         return 0
       }
-      if ! printf '%s' "$content" | jq -e . >/dev/null 2>&1; then
+      # Slurp so "present but not valid JSON" also covers a concatenated
+      # multi-document file (which a bare 'jq -e .' would wave through, then die
+      # unrouted at the --argjson below). Exactly one JSON value may proceed.
+      if ! printf '%s' "$content" | jq -e -s 'length == 1' >/dev/null 2>&1; then
         json_error_obj "$(jq -nc --arg f "$QSTATE_FILE" \
-          '{message: ("queue state at " + $f + " is present but not valid JSON; delete it or run '\''github-issue queue-state clear'\'' to start fresh"),
+          '{message: ("queue state at " + $f + " is present but not a single valid JSON document; delete it or run '\''github-issue queue-state clear'\'' to start fresh"),
             cause: "queue_state_corrupt", path: $f}')"
       fi
       # Valid JSON, but re-check the shape before handing it to a resumer: a file
@@ -2133,14 +2136,16 @@ cmd_queue_state() {
           '{message: "queue-state set: --json payload exceeds 64 KiB",
             cause: "queue_state_too_large"}')"
       fi
-      # Require a JSON object, not just any valid JSON. The stamp step below is
-      # '. + {..}', which errors on an array/number/string/null, and the caller
-      # (a resumer) reads the result back as an object with named fields. Reject
-      # a non-object here with a routable cause instead of letting jq abort the
-      # stamp with a raw error and no JSON on stdout.
-      if ! printf '%s' "$payload" | jq -e 'type == "object"' >/dev/null 2>&1; then
+      # Require exactly one JSON object. Slurp (-s) so a concatenated payload like
+      # '{..}{..}' is caught: a bare 'jq -e type=="object"' processes each document
+      # and exits on the last truthy one, waving two objects through, after which
+      # the stamp writes a two-document file and the confirming --argjson fails
+      # under set -e for a silent exit-0 that corrupts persisted state. length==1
+      # plus an object type on the sole document closes that, and also rejects an
+      # array/number/string/null (which would abort the '. + {..}' stamp).
+      if ! printf '%s' "$payload" | jq -e -s 'length == 1 and (.[0] | type == "object")' >/dev/null 2>&1; then
         json_error_obj "$(jq -nc \
-          '{message: "queue-state set: --json must be a JSON object",
+          '{message: "queue-state set: --json must be exactly one JSON object",
             cause: "queue_state_not_object"}')"
       fi
       # Structural validation: queue is integer issue numbers, cursor is an
