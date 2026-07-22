@@ -47,6 +47,33 @@ in
             # curl the Gitea-compatible API with this; the `tea` CLI reads its
             # own ~/.config/tea/config.yml (rendered by the git module).
             set -gx FORGEJO_TOKEN (jq -r '.forgejo.apiToken' $_secrets)
+            # Claude Code / skill tokens. Same runtime-render pattern as
+            # GRAFANA_TOKEN so the values never enter the Nix store (issue #265).
+            # Each is guarded individually: an absent key leaves the variable
+            # unset rather than exporting the literal string "null".
+            #
+            # Scope note: these used to be set via environment.variables +
+            # home.sessionVariables (visible to every process). They now come
+            # from shellInit, so they reach fish shells and their children,
+            # which covers every consumer today (Claude Code and its subprocess
+            # skills, `td`, `agent-scan`, all launched from a terminal). The one
+            # tool that runs headless, aha-fr-report, reads the token from the
+            # secrets file itself and does not depend on this export.
+            if jq -e '.gemini.apiKey // empty' $_secrets >/dev/null 2>&1
+              set -gx GEMINI_API_KEY (jq -r '.gemini.apiKey' $_secrets)
+            end
+            if jq -e '.aha.apiToken // empty' $_secrets >/dev/null 2>&1
+              set -gx AHA_API_TOKEN (jq -r '.aha.apiToken' $_secrets)
+            end
+            if jq -e '.wave.fullAccessToken // empty' $_secrets >/dev/null 2>&1
+              set -gx WAVE_FULL_ACCESS_TOKEN (jq -r '.wave.fullAccessToken' $_secrets)
+            end
+            if jq -e '.todoist_token // empty' $_secrets >/dev/null 2>&1
+              set -gx TODOIST_API_TOKEN (jq -r '.todoist_token' $_secrets)
+            end
+            if jq -e '.snyk.token // empty' $_secrets >/dev/null 2>&1
+              set -gx SNYK_TOKEN (jq -r '.snyk.token' $_secrets)
+            end
           end
           # Public base URL for the Forgejo API — not a secret, always set so
           # skills/tea know where to point even before the token is rendered.

@@ -1,4 +1,10 @@
-{ lib, secrets, ... }:
+{
+  lib,
+  pkgs,
+  secretsLib,
+  globals,
+  ...
+}:
 
 {
 
@@ -23,11 +29,33 @@
         # "zed.cachix.org-1:/pHQ6dpMsAZk2DiP4WCL0p9YDNKWj2Q5FL20bNmw1cU="
         "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
       ];
-    }
-    // lib.optionalAttrs ((secrets.github.accessToken or null) != null) {
-      access-tokens = "github.com=${secrets.github.accessToken}";
     };
+
+    # GitHub access-token for private flake inputs. Materialised at system
+    # activation into a root-only 0600 file and pulled in via nix.conf
+    # `!include` (an optional include the nix daemon reads at runtime), so it
+    # stays out of the world-readable /etc/nix/nix.conf and out of the store
+    # (issue #265). `!include` no-ops when the file is absent, so no host guard
+    # is needed here.
+    extraOptions = ''
+      !include /run/nixos-secrets/nix-access-tokens.conf
+    '';
   };
+
+  # The runtime dir is created by installValue's own `mkdir -p`; a
+  # systemd.tmpfiles rule would not help because tmpfiles is applied by a
+  # systemd unit that only runs after activation scripts.
+  system.activationScripts.nixAccessToken = lib.stringAfter [ "etc" ] (
+    secretsLib.installValue {
+      jq = "${pkgs.jq}/bin/jq";
+      secretsFile = secretsLib.file globals;
+      path = ".github.accessToken";
+      dest = "/run/nixos-secrets/nix-access-tokens.conf";
+      mode = "0600";
+      prefix = "access-tokens = github.com=";
+      suffix = "\n";
+    }
+  );
 
   # Recent crates.io enforcement of their data-access policy
   # (https://crates.io/data-access) returns HTTP 403 for the default

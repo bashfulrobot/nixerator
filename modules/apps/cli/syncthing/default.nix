@@ -4,6 +4,7 @@
   pkgs,
   config,
   secrets,
+  secretsLib,
   ...
 }:
 
@@ -61,14 +62,24 @@ in
         user = globals.user.name;
         group = "users";
         dataDir = globals.user.homeDirectory;
+        # GUI bound on all interfaces so it is reachable over the tailnet, as
+        # before. On a *fresh* config there is a short window at first start
+        # where syncthing is up but syncthing-gui-auth has not applied
+        # credentials yet, so the GUI is briefly unauthenticated. This is not a
+        # regression (the previous settings.gui path also applied credentials
+        # only after the service came up), and openDefaultPorts opens the sync
+        # ports (22000/21027), not the GUI port (8384). Narrowing this further
+        # means binding to 127.0.0.1, which would drop remote GUI access, so it
+        # is left as a deliberate host-owned choice rather than changed here.
         guiAddress = "0.0.0.0:8384";
         openDefaultPorts = true;
         overrideDevices = true;
         overrideFolders = true;
 
-        settings.gui = {
-          inherit (secrets.syncthing.gui) user password;
-        };
+        # GUI credentials are deliberately NOT set here. settings.gui.user /
+        # password bake the plaintext into the module's store PATCH script.
+        # They are applied at runtime by the syncthing-gui-auth service below,
+        # read from the off-store secrets file (issue #265).
       }
 
       # donkeykong host configuration
@@ -265,6 +276,90 @@ in
         };
       })
     ];
+
+    # GUI credentials applied at runtime from the off-store secrets file
+    # (issue #265). Keeping them out of services.syncthing.settings.gui keeps the
+    # plaintext out of the module's store PATCH script and out of /nix/store.
+    # After syncthing is up, this reads the user + password from secrets.json,
+    # bcrypt-hashes the password (syncthing stores the hash, exactly as the
+    # module's own guiPasswordFile path does), and PATCHes /rest/config/gui with
+    # the API key from syncthing's config.xml. Every value is read from a file,
+    # never passed on argv (so it never shows in `ps`). Idempotent: it re-applies
+    # on each start and the module never touches gui auth (settings.gui unset).
+    systemd.services.syncthing-gui-auth = lib.mkIf (secrets ? syncthing) {
+      description = "Apply syncthing GUI credentials from off-store secrets (#265)";
+      after = [ "syncthing.service" ];
+      wants = [ "syncthing.service" ];
+      wantedBy = [ "multi-user.target" ];
+      path = [
+        pkgs.jq
+        pkgs.mkpasswd
+        pkgs.libxml2
+        pkgs.curl
+        pkgs.coreutils
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = globals.user.name;
+        Group = "users";
+        RuntimeDirectory = "syncthing-gui-auth";
+        RuntimeDirectoryMode = "0700";
+      };
+      script = ''
+        set -euo pipefail
+        secrets=${secretsLib.file globals}
+        [ -f "$secrets" ] || { echo "syncthing-gui-auth: no secrets file, skipping"; exit 0; }
+        jq -e '.syncthing.gui.user // empty' "$secrets" >/dev/null 2>&1 \
+          || { echo "syncthing-gui-auth: no gui.user, skipping"; exit 0; }
+        jq -e '.syncthing.gui.password // empty' "$secrets" >/dev/null 2>&1 \
+          || { echo "syncthing-gui-auth: no gui.password, skipping"; exit 0; }
+
+        cfg="${config.services.syncthing.configDir}/config.xml"
+        # Wait for syncthing to write its config + API key on first start.
+        apikey=""
+        for _ in $(seq 1 60); do
+          if [ -f "$cfg" ]; then
+            apikey=$(xmllint --xpath 'string(configuration/gui/apikey)' "$cfg" 2>/dev/null || true)
+            [ -n "$apikey" ] && break
+          fi
+          sleep 1
+        done
+        [ -n "$apikey" ] || { echo "syncthing-gui-auth: no API key after wait, giving up"; exit 1; }
+
+        addr=$(xmllint --xpath 'string(configuration/gui/address)' "$cfg" 2>/dev/null || true)
+        case "$addr" in
+          "" | 0.0.0.0:* | "[::]:"*)
+            port="''${addr##*:}"
+            addr="127.0.0.1:''${port:-8384}"
+            ;;
+        esac
+
+        # bcrypt-hash the password; syncthing stores the hash. mkpasswd reads
+        # the plaintext from a file (never argv).
+        jq -j '.syncthing.gui.password' "$secrets" > "$RUNTIME_DIRECTORY/pw"
+        mkpasswd -m bcrypt --stdin < "$RUNTIME_DIRECTORY/pw" | tr -d '\n' > "$RUNTIME_DIRECTORY/pwhash"
+        rm -f "$RUNTIME_DIRECTORY/pw"
+        # A failed hash would PATCH an empty password and lock the GUI; bail
+        # instead (pipefail alone is not enough, since `tr` masks mkpasswd).
+        [ -s "$RUNTIME_DIRECTORY/pwhash" ] || { echo "syncthing-gui-auth: empty password hash, refusing to PATCH"; exit 1; }
+        user=$(jq -r '.syncthing.gui.user' "$secrets")
+
+        # Build the body with the hash read from a file (--rawfile), so neither
+        # the hash nor the API key ever reaches argv (/proc/PID/cmdline is
+        # world-readable). printf is a shell builtin, so writing the header file
+        # does not fork a process that carries the key on its argv.
+        jq -n --arg u "$user" --rawfile p "$RUNTIME_DIRECTORY/pwhash" '{user:$u, password:$p}' \
+          > "$RUNTIME_DIRECTORY/gui.json"
+        rm -f "$RUNTIME_DIRECTORY/pwhash"
+        printf 'X-API-Key: %s\n' "$apikey" > "$RUNTIME_DIRECTORY/hdr"
+        curl -sS -X PATCH \
+          -H @"$RUNTIME_DIRECTORY/hdr" \
+          -H "Content-Type: application/json" \
+          --data @"$RUNTIME_DIRECTORY/gui.json" \
+          "http://$addr/rest/config/gui"
+        rm -f "$RUNTIME_DIRECTORY/gui.json" "$RUNTIME_DIRECTORY/hdr"
+      '';
+    };
 
     # Home Manager configuration for desktop file and stignore files
     home-manager.users.${globals.user.name} = {

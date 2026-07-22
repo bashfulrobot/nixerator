@@ -1,5 +1,11 @@
 { inputs, secrets }:
 
+let
+  # Shared runtime-materialization helper (issue #265). Exposed to every module
+  # via specialArgs/extraSpecialArgs so consumers read secrets at runtime
+  # instead of interpolating values at eval into the store.
+  secretsLib = import ./secrets.nix;
+in
 {
   # Function to create a host configuration with home-manager integration
   mkHost =
@@ -22,6 +28,7 @@
           globals
           versions
           secrets
+          secretsLib
           ;
       };
 
@@ -188,6 +195,7 @@
                 globals
                 versions
                 secrets
+                secretsLib
                 ;
             };
             users.${globals.user.name} = {

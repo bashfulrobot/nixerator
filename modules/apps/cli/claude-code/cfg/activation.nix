@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   configDir,
   statusLineScript,
   autoGateScript,
@@ -19,6 +20,7 @@
   textPolishRulesFile,
   pluginOverlay,
   userScopeMcpTemplate,
+  secretServerFiles,
   secretsFile,
 }:
 
@@ -196,6 +198,40 @@
         fi
       fi
     fi
+
+    # Secret-bearing MCP servers (context7, kong-konnect, tableau): their
+    # .mcp.json is written here at 0600 from the off-store secrets file, so the
+    # real token never lands in the world-readable store (issue #265). The
+    # placeholdered template lives in the store; each @TOKEN@ is replaced with
+    # the runtime value. Substitution runs through jq, so the value is escaped
+    # into the JSON string context (a value containing a quote or backslash can
+    # never produce malformed JSON), and jq reads the value with `--rawfile`
+    # from a 0600 temp so it never shows in `ps`. The placeholder tokens contain
+    # no regex metacharacters, so the `gsub` match is exact.
+    ${lib.concatStringsSep "\n" (
+      lib.mapAttrsToList (name: sf: ''
+        if [ -z "$DRY_RUN_CMD" ] && [ -f "${secretsFile}" ]; then
+          mcp_dir="$claude_home/mcp-servers/${name}"
+          mkdir -p "$mcp_dir"
+          (
+            umask 077
+            cp --no-preserve=mode ${pkgs.writeText "mcp-${name}.json.tpl" sf.json} "$mcp_dir/.mcp.json.tmp"
+            ${lib.concatMapStringsSep "\n" (s: ''
+              if ${pkgs.jq}/bin/jq -e '${s.path} // empty' "${secretsFile}" >/dev/null 2>&1; then
+                ${pkgs.jq}/bin/jq -j '${s.path}' "${secretsFile}" > "$mcp_dir/.val"
+                ${pkgs.jq}/bin/jq --rawfile val "$mcp_dir/.val" \
+                  '(.. | strings) |= gsub("${s.placeholder}"; $val)' \
+                  "$mcp_dir/.mcp.json.tmp" > "$mcp_dir/.mcp.json.tmp2"
+                mv "$mcp_dir/.mcp.json.tmp2" "$mcp_dir/.mcp.json.tmp"
+                rm -f "$mcp_dir/.val"
+              fi
+            '') sf.subs}
+            chmod 600 "$mcp_dir/.mcp.json.tmp"
+            mv "$mcp_dir/.mcp.json.tmp" "$mcp_dir/.mcp.json"
+          )
+        fi
+      '') secretServerFiles
+    )}
 
     # REAP -- deploy slash commands to ~/.reap/commands/
     ${reapConfig.activation}
