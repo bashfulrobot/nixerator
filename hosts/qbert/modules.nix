@@ -85,18 +85,20 @@
     # Local LLM server. qbert has the AMD 6800 XT (gfx1030, 16 GB VRAM), which
     # ROCm supports directly with no HSA_OVERRIDE_GFX_VERSION, so the rocm
     # variant is the accelerator (vulkan is the fallback if a ROCm regression
-    # ever bites, mirroring voxtype/whisper-server here). Prefetch JetBrains'
-    # Mellum2-Thinking (12B MoE, ~2.5B active) as a GGUF pull from HuggingFace;
-    # Q4_K_M fits VRAM with headroom (bump to Q6_K for more quality). The model
-    # is globals.ai.localCodeModel so the pull here and the goose default in
-    # home.nix cannot drift. The module exports OLLAMA_HOST / OLLAMA_API_BASE so
-    # goose and aider (from suites.ai) reach this server without endpoint flags.
+    # ever bites, mirroring voxtype/whisper-server here). Prefetch Qwen3-14B
+    # (dense, 9.3 GB Q4_K_M) from the Ollama library; it fits VRAM with room for
+    # the 32k context below. loadModels and defaultGooseModel both read
+    # globals.ai.localCodeModel, so the pulled model and the model goose
+    # requests cannot drift. The module exports
+    # OLLAMA_HOST so goose (from suites.ai) reaches this server without endpoint
+    # flags, and defaultGooseModel points goose at it with no goose configure.
     ollama = {
       enable = true;
       acceleration = "rocm";
       loadModels = [ globals.ai.localCodeModel ];
+      defaultGooseModel = globals.ai.localCodeModel;
       # Ollama defaults the context window to a few thousand tokens, which
-      # truncates long goose/aider sessions well before Mellum2's real limit.
+      # truncates long goose sessions well before Qwen3's 32k native limit.
       # 32k is about what a 16 GB card holds with a full-precision KV cache, and
       # flash attention shrinks that cache for free (no quality cost), so it is
       # on by default. To push to 64k+, add kvCacheType = "q8_0" (smaller KV
