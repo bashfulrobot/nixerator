@@ -91,6 +91,14 @@ in
     # usable against cloud models without any local server. This is deliberate:
     # only the local Ollama server and its default model are qbert-only (they
     # need the GPU, see hosts/qbert), the agent CLIs themselves are general.
+    #
+    # Both act with the user's privileges: goose runs model-directed shell
+    # commands and aider edits files and can run commands, so any model they are
+    # pointed at is a code-execution path, not just a text source. Pair that with
+    # the trust note on apps.cli.ollama.loadModels (the local model is an
+    # unpinned pull) and with goose-cli riding the llm-agents input, which tracks
+    # upstream and re-locks on flake updates: a lock bump of that input ships new
+    # agent code, so review it rather than rubber-stamping.
     home-manager.users.${globals.user.name}.home.packages = [
       pkgs.llm-agents.goose-cli
       pkgs.aider-chat

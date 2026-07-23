@@ -66,6 +66,17 @@ in
           next successful pull and clients report model-not-found. If a client
           cannot find the model, check `ollama list` and re-pull before
           assuming the client is misconfigured.
+
+          Each entry is a mutable reference (a registry name or an `hf.co`
+          repo/tag), not a content-pinned artifact, and `ollama pull` fetches it
+          over the network at service start. The Nix flake pin does not cover
+          this fetch: a tag re-upload or an upstream compromise lands the new
+          bytes on the next activation unreviewed, and the daemon parses
+          whatever it receives. Only list models from sources trusted to the
+          same level as code that runs on the host, since a local model here
+          drives goose (shell) and aider (file edits). For stronger integrity,
+          vendor the GGUF with a pinned hash and register it via `ollama create`
+          rather than pulling a tag.
         '';
       };
 
@@ -82,6 +93,24 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Ollama ships no authentication, so a non-loopback bind publishes an open
+    # inference API (read prompts, run inference, pull models to fill the disk,
+    # plus any RCE in its HTTP surface) to everyone who can reach it. Nothing
+    # here opens the firewall, but surface a build-time warning when host leaves
+    # loopback so the exposure is a deliberate choice, not a silent default.
+    # (warnings, not lib.warnIf around config, or the config key set would
+    # depend on cfg.host and the module fixpoint recurses infinitely.)
+    warnings =
+      lib.optional
+        (
+          !lib.elem cfg.host [
+            "127.0.0.1"
+            "::1"
+            "localhost"
+          ]
+        )
+        "apps.cli.ollama: host = ${cfg.host} is not loopback and Ollama has no auth; anyone able to reach ${endpoint} can use and abuse it. Restrict access (firewall or tailnet ACL) before exposing it.";
+
     environment.systemPackages = [ selectedPackage ];
 
     services.ollama = {
