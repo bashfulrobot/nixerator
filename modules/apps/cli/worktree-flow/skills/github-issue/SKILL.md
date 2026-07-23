@@ -246,7 +246,9 @@ Switch the session into the worktree with the `EnterWorktree` tool (`path: <work
 Route on `error.cause`:
 - `no_existing_branch`. Nothing to resume: the branch exists neither locally nor on origin. Use `github-issue setup <N>` to start fresh.
 - `worktree_exists`. A worktree is already on disk. Run `github-issue status <N>` and resume from the recorded step.
-- `branch_check_unreachable`. origin was unreachable, so resume refused fail-closed. Retry once origin is reachable.
+- `branch_check_unreachable`. origin was unreachable (or the tracking ref did not resolve after fetch), so resume refused fail-closed. Retry once origin is reachable.
+- `worktree_add_failed`. `git worktree add` failed, usually a stale worktree entry or the branch checked out elsewhere. Run `git worktree prune` and retry.
+- `gh_auth_failed`. Could not resolve the GitHub login to claim the issue. Check `gh auth status`.
 
 ### Assess
 
