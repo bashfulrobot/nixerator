@@ -30,20 +30,11 @@
     # Home Manager environment variables (from globals)
     sessionVariables = {
       EDITOR = lib.mkForce (lib.getExe pkgs.${globals.preferences.editor});
-
-      # Default goose to the local Ollama Mellum2-Thinking model so it runs
-      # headless without a `goose configure` step. OLLAMA_HOST / OLLAMA_API_BASE
-      # are exported by the ollama module (apps.cli.ollama). goose is a
-      # tool-using agent, and Mellum2-Thinking supports tool-calling (BFCL v3
-      # 73.9, hermes tool-call parser), so the pairing is deliberate. If the
-      # GGUF's ollama template ever exposes tools poorly and goose's tool loop
-      # gets flaky, aider is the tool-calling-independent fallback for coding.
-      # GOOSE_MODEL and the server pull both read globals.ai.localCodeModel, so
-      # they stay in sync. Override per-session for other providers, or point
-      # aider at it with `aider --model ollama_chat/<model>`.
-      GOOSE_PROVIDER = "ollama";
-      GOOSE_MODEL = globals.ai.localCodeModel;
     };
+    # goose is defaulted to the local Mellum2 model via GOOSE_PROVIDER/GOOSE_MODEL
+    # exported from the ollama module (apps.cli.ollama.defaultGooseModel, enabled
+    # in modules.nix). Those go through fish shellInit, not home.sessionVariables,
+    # because this host's fish does not source hm-session-vars.
 
   };
 
