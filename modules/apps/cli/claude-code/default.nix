@@ -68,6 +68,7 @@ let
       guardGeneratedPathsScript
       guardRawNixScript
       guardGitStashScript
+      guardPrimaryTreeWriteScript
       guardSecretCommandsScript
       scrubSecretOutputScript
       reapConfig
@@ -186,6 +187,24 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/guard-git-stash.sh;
+  };
+
+  # Hard PreToolUse deny for agent git writes in the PRIMARY checkout (issue
+  # #264, epic #252 invariant 1). Agents work in linked worktrees; the shared
+  # primary tree is read-only for them, so a second live session never trips
+  # over a dirty tree or a moved HEAD. Denies before the write lands, unlike the
+  # warn-level bash-guard in settings.json. The sanctioned /commit and
+  # git-cleanup flows opt a single command in with CLAUDE_SANCTIONED_GIT=1.
+  # Fails open on ambiguity; a deny can't be overridden by an allow.
+  guardPrimaryTreeWriteScript = pkgs.writeShellApplication {
+    name = "claude-guard-primary-tree-write";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.gnugrep
+      pkgs.git
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/guard-primary-tree-write.sh;
   };
 
   # Hard PreToolUse deny for commands that would print a secret into the

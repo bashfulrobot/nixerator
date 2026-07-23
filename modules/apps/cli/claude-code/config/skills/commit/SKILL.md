@@ -62,13 +62,15 @@ If the log doesn't exist or is empty, fall back to inferring intent from the dif
 5. Check for sensitive files: scan staged and unstaged files for secrets (`.env`, `credentials.*`, `*secret*`, `*.pem`, `*.key`, token/API key patterns). If found, **stop and warn the user** — list the suspect files and ask how to proceed before staging anything.
 6. Stage only the paths this change touched, by explicit pathspec, after the secrets check passes:
    ```bash
-   git add -- <path> [<path> ...]
+   CLAUDE_SANCTIONED_GIT=1 git add -- <path> [<path> ...]
    ```
    List individual file paths, the exact files you created or modified in this task. Never `git add -A` or `git add .`, and never a directory, a glob, `:/`, or any `:(...)` pathspec magic (for example `git add -- modules/`, `:/`, `:(glob)`, `:(top)`, `:(icase)`); in a shared worktree all of those sweep in a concurrent agent's in-flight edits. `git add -- <path>` stages an add, a modification, or a deletion of that path; for a rename, list both the old and the new path. Then reconcile the staged set against your own work with `git status --short`, in both directions:
-   - Nothing you did not touch is staged. Unstage a stray path with `git reset HEAD -- <path>`.
+   - Nothing you did not touch is staged. Unstage a stray path with `CLAUDE_SANCTIONED_GIT=1 git reset HEAD -- <path>`.
    - Every file you created or changed in this task is accounted for. An untracked file (`??`) you meant to include but did not list is silently dropped from the commit, the one case `git add -A` used to catch. Add it, or leave it out on purpose, but decide rather than forget.
-7. Split into atomic commits (use `git reset HEAD -- <path>` + `git add -- <path>`) if needed.
-8. For each: `git commit -S -m "<type>(<scope>): <description>"`
+
+   The `CLAUDE_SANCTIONED_GIT=1` prefix marks each git write as user-directed. In the shared primary checkout a PreToolUse guard (`guard-primary-tree-write.sh`, issue #264) denies an agent's `add`/`reset`/`commit`/`push` unless the command carries this marker, so the whole session cannot silently mutate the tree another agent is using. Keep the prefix on every mutating git command below. It is harmless in a linked worktree, where those writes are always allowed. It rides on the single command it prefixes, so it never elevates the rest of the session.
+7. Split into atomic commits (use `CLAUDE_SANCTIONED_GIT=1 git reset HEAD -- <path>` + `CLAUDE_SANCTIONED_GIT=1 git add -- <path>`) if needed.
+8. For each: `CLAUDE_SANCTIONED_GIT=1 git commit -S -m "<type>(<scope>): <description>"`
 9. If --tag: `git tag -s v<version> -m "Release v<version>"`
-10. Always push: `git push && git push --tags` (if tagged).
+10. Always push: `CLAUDE_SANCTIONED_GIT=1 git push && CLAUDE_SANCTIONED_GIT=1 git push --tags` (if tagged).
 11. If --release: `forge release-create v<version> --notes-from-tag` (dispatches to a GitHub or Forgejo release based on the repo's remote).

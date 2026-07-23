@@ -11,6 +11,7 @@
   guardGeneratedPathsScript,
   guardRawNixScript,
   guardGitStashScript,
+  guardPrimaryTreeWriteScript,
   guardSecretCommandsScript,
   scrubSecretOutputScript,
   reapConfig,
@@ -94,6 +95,9 @@
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-git-stash") | not)))
              + [{matcher: "Bash", hooks: [{type: "command", command: "${guardGitStashScript}/bin/claude-guard-git-stash"}]}])
+         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-guard-primary-tree-write") | not)))
+             + [{matcher: "Bash", hooks: [{type: "command", command: "${guardPrimaryTreeWriteScript}/bin/claude-guard-primary-tree-write"}]}])
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-secret-commands") | not)))
              + [{matcher: "Bash", hooks: [{type: "command", command: "${guardSecretCommandsScript}/bin/claude-guard-secret-commands"}]}])
