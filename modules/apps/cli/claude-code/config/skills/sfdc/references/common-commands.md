@@ -49,8 +49,8 @@ sf data query --query "..." --json
 # CSV output for reports
 sf data query --query "..." --result-format csv
 
-# Bulk API for large result sets (>2000 rows)
-sf data query --query "..." --bulk --wait 10
+# Large result sets: `sf data query` no longer has a --bulk flag. For big/async
+# exports use the dedicated `sf data export bulk` command (Bulk API 2.0), below.
 
 # Query on a non-default org
 sf data query --query "..." --target-org prod

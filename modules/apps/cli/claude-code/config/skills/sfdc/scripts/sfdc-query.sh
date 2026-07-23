@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --bulk)
-      bulk="--bulk --wait 10"
+      bulk=1
       shift
       ;;
     --target-org)
@@ -67,17 +67,33 @@ fi
 
 query="$1"
 
+# Bulk path: `sf data query` dropped its `--bulk`/`--wait` flags. Async
+# large-result exports now live in the dedicated `sf data export bulk` command
+# (Bulk API 2.0), which *requires* --output-file and supports only csv/json
+# (no human table). We run it into a temp file, forward its job-status chatter
+# to stderr, and cat the records to stdout so the script's stdout contract
+# (query results) is preserved. A human-format request downgrades to csv,
+# since a table of a bulk-sized result set is unusable anyway.
+if [[ -n "$bulk" ]]; then
+  fmt="$format"
+  [[ "$fmt" == "human" ]] && fmt="csv"
+  tmp="$(mktemp)"
+  rc=0
+  sf data export bulk --query "$query" --output-file "$tmp" \
+    --result-format "$fmt" --wait 10 "${target_org[@]}" >&2 || rc=$?
+  [[ "$rc" -eq 0 ]] && cat "$tmp"
+  rm -f "$tmp"
+  exit "$rc"
+fi
+
 case "$format" in
   json)
-    # shellcheck disable=SC2086
-    sf data query --query "$query" --json $bulk "${target_org[@]}"
+    sf data query --query "$query" --json "${target_org[@]}"
     ;;
   csv)
-    # shellcheck disable=SC2086
-    sf data query --query "$query" --result-format csv $bulk "${target_org[@]}"
+    sf data query --query "$query" --result-format csv "${target_org[@]}"
     ;;
   human)
-    # shellcheck disable=SC2086
-    sf data query --query "$query" $bulk "${target_org[@]}"
+    sf data query --query "$query" "${target_org[@]}"
     ;;
 esac
