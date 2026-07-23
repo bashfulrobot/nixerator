@@ -110,11 +110,18 @@ emit_deny() {
 # Leading cd/pushd options (`-P`, `-L`, `--`) are skipped so the path, not the
 # flag, is captured. Any `(`/`)` counts as a subshell boundary, which also treats
 # `$(...)` command substitution as a scope (correct: a cd there does not escape
-# either). Residual fail-open limits, all benign or fail-safe, never a primary
-# wrongful-allow on this repo's space-free paths: a `(` or `)` inside a quoted
-# string is still counted as a scope boundary, and a `cd`/`git -C` argument
-# quoted with an embedded space is not resolved (tokenisation is space-delimited,
-# not shell-quote aware).
+# either). Residual limits, from space-delimited, non-shell-quote-aware
+# tokenisation:
+#   - A `(` or `)` inside a quoted string is still counted as a scope boundary.
+#     So quoted parens bracketing a real `cd <primary>` (for example
+#     `echo "(" && cd <primary> && echo ")" && git commit`) discard that cd at
+#     the fake CLOSE and resolve to the hook's own cwd. When the agent already
+#     sits in the primary that fallback is the primary and still DENIES
+#     (fail-safe); only from a non-primary cwd does it wrongly allow, and it
+#     needs balanced literal parens straddling the cd, which no ordinary command
+#     emits by accident.
+#   - A `cd`/`git -C` argument quoted with an embedded space is not resolved;
+#     the invocation falls through to fail open.
 cd_re='(cd|pushd)([[:space:]]+-[^[:space:];&|]+)*[[:space:]]+([^[:space:];&|]+)'
 nav_offsets=()
 nav_types=()
@@ -154,9 +161,13 @@ nav_prio() { case "$1" in OPEN) printf 0 ;; CLOSE) printf 2 ;; *) printf 1 ;; es
 cwd_at() {
   local target="$1" cwd="" i order
   local -a pstack=() sstack=()
+  # The for-loop's own exit status is non-zero whenever the last-indexed event is
+  # at or past target (common: any `)` after the verb), which pipefail propagates.
+  # `|| true` keeps that expected non-zero from aborting under errexit regardless
+  # of how cwd_at is called; the pipeline's stdout (the sorted indices) is intact.
   order="$(for i in "${!nav_offsets[@]}"; do
     ((nav_offsets[i] < target)) && printf '%s %s %s\n' "${nav_offsets[i]}" "$(nav_prio "${nav_types[i]}")" "$i"
-  done | sort -n -k1,1 -k2,2 | cut -d' ' -f3)"
+  done | sort -n -k1,1 -k2,2 | cut -d' ' -f3)" || true
   while IFS= read -r i; do
     [[ -n "$i" ]] || continue
     case "${nav_types[i]}" in
