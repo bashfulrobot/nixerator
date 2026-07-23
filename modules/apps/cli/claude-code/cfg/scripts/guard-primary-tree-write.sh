@@ -93,8 +93,10 @@ marker_re='^[;&|()`{]?[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:spac
 
 strip_quotes() {
   local s="$1"
-  s="${s%\"}"; s="${s#\"}"
-  s="${s%\'}"; s="${s#\'}"
+  s="${s%\"}"
+  s="${s#\"}"
+  s="${s%\'}"
+  s="${s#\'}"
   printf '%s' "$s"
 }
 
@@ -159,14 +161,20 @@ while IFS= read -r line; do
   [[ -n "$line" ]] || continue
   add_nav "${line%%:*}" POP
 done < <(grep -boP '(^|[;&|(])[[:space:]]*popd\b' <<<"$cmd" || true)
-while IFS= read -r line; do [[ -n "$line" ]] || continue; add_nav "${line%%:*}" OPEN; done < <(grep -boP '\(' <<<"$cmd" || true)
-while IFS= read -r line; do [[ -n "$line" ]] || continue; add_nav "${line%%:*}" CLOSE; done < <(grep -boP '\)' <<<"$cmd" || true)
+while IFS= read -r line; do
+  [[ -n "$line" ]] || continue
+  add_nav "${line%%:*}" OPEN
+done < <(grep -boP '\(' <<<"$cmd" || true)
+while IFS= read -r line; do
+  [[ -n "$line" ]] || continue
+  add_nav "${line%%:*}" CLOSE
+done < <(grep -boP '\)' <<<"$cmd" || true)
 
 # Sort priority at an equal offset: OPEN before CD/PUSH/POP before CLOSE. The
 # cd-event offset points at the `(` boundary for a subshell-leading cd, so it
 # ties with that `(`'s OPEN; OPEN must win so the scope is entered before the cd
 # runs inside it.
-nav_prio() { case "$1" in OPEN) printf 0 ;; CLOSE) printf 2 ;; *) printf 1 ;; esac; }
+nav_prio() { case "$1" in OPEN) printf 0 ;; CLOSE) printf 2 ;; *) printf 1 ;; esac }
 
 # Replay all navigation events with offset < $1 in (offset, priority) order and
 # print the resolved cwd (empty means the hook's own cwd).
@@ -184,13 +192,19 @@ cwd_at() {
     [[ -n "$i" ]] || continue
     case "${nav_types[i]}" in
       OPEN) sstack+=("$cwd") ;;
-      CLOSE) ((${#sstack[@]})) && { cwd="${sstack[-1]}"; unset 'sstack[-1]'; } ;;
+      CLOSE) ((${#sstack[@]})) && {
+        cwd="${sstack[-1]}"
+        unset 'sstack[-1]'
+      } ;;
       CD) cwd="${nav_dirs[i]}" ;;
       PUSH)
         pstack+=("$cwd")
         cwd="${nav_dirs[i]}"
         ;;
-      POP) ((${#pstack[@]})) && { cwd="${pstack[-1]}"; unset 'pstack[-1]'; } ;;
+      POP) ((${#pstack[@]})) && {
+        cwd="${pstack[-1]}"
+        unset 'pstack[-1]'
+      } ;;
     esac
   done <<<"$order"
   printf '%s' "$cwd"
