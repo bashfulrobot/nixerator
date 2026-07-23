@@ -1,13 +1,21 @@
 # PreToolUse hard block for agent-initiated git writes in the PRIMARY checkout.
 #
-# Epic #252 invariant #1: the shared primary checkout is read-only for agents,
-# and all task work happens in per-issue worktrees. The github-issue worktree
+# Epic #252 invariant #1: the shared primary checkout is read-only for agent
+# task work, which belongs in per-issue worktrees. The github-issue worktree
 # flow already isolates issue work, but nothing stopped an agent doing ad-hoc
 # work (a flake bump, a secrets-template edit, a quick commit) from mutating the
 # shared primary tree, where a second live session would then trip over the
 # dirty tree or a moved HEAD. This denies the mutating git op BEFORE it runs,
 # unlike the warn-level PostToolUse bash-guard in settings.json, which only
 # notes a default-branch commit after the write has already landed.
+#
+# Covered ops (the ones that write the index or tree): commit, push, reset,
+# merge, rebase, cherry-pick, add, rm, mv, clean. Not blanket read-only:
+# git pull, git branch, git checkout/restore, and gh are intentionally NOT
+# matched, so the SessionStart git-sync and the git-cleanup flow keep working.
+# (Hooks and the github-issue CLI run git internally, not through the Bash
+# tool, so this guard never sees their git; it only gates git the model runs
+# as a Bash tool call.)
 #
 # Concurrent-session behaviour: two agents must never both mutate the primary
 # tree. This guard makes that a hard failure rather than a warning. Agents work
@@ -16,16 +24,22 @@
 # carries the sanctioned marker below.
 #
 # Override: a user-directed flow (the /commit skill, git-cleanup) opts a single
-# command in by prefixing it with `CLAUDE_SANCTIONED_GIT=1`. The marker rides on
-# the one command and cannot leak into the rest of the session, unlike a session
-# sentinel file that stays live until removed. It is a cooperative guardrail,
-# not a security boundary: the point is to stop accidental and unsupervised
-# writes, matching the single-user threat model and the stash guard, which is
-# itself bypassable through plumbing.
+# command in by prefixing it with `CLAUDE_SANCTIONED_GIT=1 git ...`. The marker
+# rides on the one command and cannot leak into the rest of the session, unlike
+# a session sentinel file that stays live until removed. It is a cooperative
+# guardrail, not a security boundary: the point is to stop accidental and
+# unsupervised writes, matching the single-user threat model and the stash
+# guard, which is itself bypassable through plumbing. The marker frees the whole
+# tool call it leads, not just the segment it prefixes; the sanctioned flows
+# issue one git write per command, so a `marker git commit && git push` compound
+# is not something they emit.
 #
 # Fails open on ambiguity: only a positive primary-tree match denies. If the
 # target working tree cannot be resolved, the path is not a repo, or git errors,
-# the command proceeds. Mirrors guard-git-stash.sh.
+# the command proceeds. The verb match is anchored to a command position (start
+# of the line or right after a `; & | (` or backtick), so a git verb merely
+# quoted or echoed in prose (`echo git commit`) never trips it. Mirrors
+# guard-git-stash.sh.
 #
 # A PreToolUse "deny" can never be overridden by another hook's "allow", so this
 # composes safely with the /auto auto-gate (auto-gate.sh) and the stash guard.
@@ -37,40 +51,53 @@ input="$(cat)"
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null || true)"
 [[ -n "$cmd" ]] || exit 0
 
-# Sanctioned override: a leading `CLAUDE_SANCTIONED_GIT=1` env assignment on the
-# command (optionally after a `cd ... &&` or a separator). The /commit and
-# git-cleanup flows set this when the user explicitly directs a primary-tree
-# write. Allow and get out of the way.
-if grep -qE '(^|;|&&|\|\||\||\()[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]' <<<"$cmd"; then
+# Sanctioned override: a `CLAUDE_SANCTIONED_GIT=1` env assignment leading a real
+# git command at a command position (start, or after a separator/subshell). The
+# /commit and git-cleanup flows set this when the user explicitly directs a
+# primary-tree write. Requiring `git` right after the marker keeps a stray
+# mention of the marker inside a later argument (a commit message, say) from
+# counting. Allow and get out of the way.
+if grep -qE '(^|[;&|(])[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$)' <<<"$cmd"; then
   exit 0
 fi
 
-# Match a mutating git subcommand. Allow `git -C <dir>` / `git -c k=v` option
-# prefixes and a quoted subcommand. The verb set is exactly the one the issue
-# names: commit, push, reset, merge, rebase, cherry-pick, add. git pull,
-# git branch, and gh are intentionally excluded so the SessionStart git-sync and
-# git-cleanup's branch deletion keep working.
-git_verb='(commit|push|reset|merge|rebase|cherry-pick|add)'
-if ! grep -qP "(^|\s|;|&&|\|\||\||\(|\`)git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b" <<<"$cmd"; then
+# Match a mutating git subcommand at a command position. Allow `git -C <dir>` /
+# `git -c k=v` / `git --git-dir=<d>` option prefixes and a quoted subcommand.
+# The leading class is the command-boundary set (start of string, or right after
+# ; & | ( or a backtick), NOT a bare space, so a git verb sitting inside prose
+# or a quoted argument does not match.
+git_verb='(commit|push|reset|merge|rebase|cherry-pick|add|rm|mv|clean)'
+if ! grep -qP "(^|[;&|(\`])\s*git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b" <<<"$cmd"; then
   exit 0
 fi
 
-# Resolve the target working tree the command would touch. Prefer an explicit
-# `git -C <dir>`, else a leading `cd <dir>`, else the hook's cwd. Ambiguity
-# (unresolvable) falls through to the hook cwd, and a git failure there fails
-# open below.
-target_dir=""
+# Resolve the working tree the command would touch. Explicit repo targeting
+# (`git -C`, `--work-tree`, `--git-dir`) wins over a leading `cd`, which wins
+# over the hook's cwd. Ambiguity falls through to the hook cwd, and a git
+# failure there fails open below.
+strip_quotes() {
+  local s="$1"
+  s="${s%\"}"; s="${s#\"}"
+  s="${s%\'}"; s="${s#\'}"
+  printf '%s' "$s"
+}
+
+inspect_dir=""
+gitdir_flag=""
 if [[ "$cmd" =~ git[[:space:]]+-C[[:space:]]+([^[:space:]]+) ]]; then
-  target_dir="${BASH_REMATCH[1]}"
-elif [[ "$cmd" =~ (^|[[:space:]]|;|&&)[[:space:]]*cd[[:space:]]+([^[:space:]&|;]+) ]]; then
-  target_dir="${BASH_REMATCH[2]}"
+  inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
+elif [[ "$cmd" =~ --work-tree[=[:space:]]([^[:space:]]+) ]]; then
+  inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
+elif [[ "$cmd" =~ (^|[[:space:];&|])[[:space:]]*cd[[:space:]]+([^[:space:];&|]+) ]]; then
+  inspect_dir="$(strip_quotes "${BASH_REMATCH[2]}")"
 fi
-# Strip surrounding quotes a shell would remove.
-target_dir="${target_dir%\"}"; target_dir="${target_dir#\"}"
-target_dir="${target_dir%\'}"; target_dir="${target_dir#\'}"
+if [[ "$cmd" =~ --git-dir[=[:space:]]([^[:space:]]+) ]]; then
+  gitdir_flag="$(strip_quotes "${BASH_REMATCH[1]}")"
+fi
 
 git_args=()
-[[ -n "$target_dir" ]] && git_args=(-C "$target_dir")
+[[ -n "$inspect_dir" ]] && git_args+=(-C "$inspect_dir")
+[[ -n "$gitdir_flag" ]] && git_args+=(--git-dir "$gitdir_flag")
 
 # In a linked worktree --git-dir is .../.git/worktrees/<name> while
 # --git-common-dir is .../.git; in the primary checkout they resolve equal.
@@ -89,7 +116,7 @@ jq -nc '{
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
     permissionDecision: "deny",
-    permissionDecisionReason: "This is the shared primary checkout, which is read-only for agents (epic #252 invariant 1). A commit/push/reset/merge/rebase/cherry-pick/add here can clobber another live session. Isolate the work in a linked worktree (github-issue setup <N>, or git worktree add) and run the git command there. If the user explicitly directed this primary-tree write, the sanctioned /commit and git-cleanup flows carry the CLAUDE_SANCTIONED_GIT=1 marker that allows it."
+    permissionDecisionReason: "This is the shared primary checkout, which is read-only for agent task work (epic #252 invariant 1). A commit/push/reset/merge/rebase/cherry-pick/add/rm/mv/clean here can clobber another live session. Isolate the work in a linked worktree (github-issue setup <N>, or git worktree add) and run the git command there. If the user explicitly directed this primary-tree write, the sanctioned /commit and git-cleanup flows carry the CLAUDE_SANCTIONED_GIT=1 marker that allows it."
   }
 }'
 exit 0
