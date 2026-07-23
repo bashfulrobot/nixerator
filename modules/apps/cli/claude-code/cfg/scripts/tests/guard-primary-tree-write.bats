@@ -42,7 +42,7 @@ decision() {
 
 @test "denies each mutating git verb in the primary checkout" {
   local fails=0 verb cmd
-  for verb in commit push reset merge rebase cherry-pick add rm mv clean; do
+  for verb in commit push reset merge rebase revert cherry-pick am apply add rm mv clean; do
     cmd="git -C $PRIMARY $verb"
     if [ "$(decision "$cmd")" != deny ]; then
       echo "EXPECTED DENY, GOT ALLOW: $cmd"
@@ -80,7 +80,7 @@ decision() {
 
 @test "allows the same writes in a linked worktree" {
   local fails=0 verb cmd
-  for verb in commit push reset merge rebase cherry-pick add rm mv clean; do
+  for verb in commit push reset merge rebase revert cherry-pick am apply add rm mv clean; do
     cmd="git -C $WT $verb"
     if [ "$(decision "$cmd")" != allow ]; then
       echo "EXPECTED ALLOW, GOT DENY: $cmd"
@@ -244,6 +244,7 @@ decision() {
     "git -C $PRIMARY status" \
     "git -C $PRIMARY diff" \
     "git -C $PRIMARY log --oneline" \
+    "git -C $PRIMARY blame foo.txt" \
     "git -C $PRIMARY pull --ff-only origin main" \
     "git -C $PRIMARY fetch origin" \
     "git -C $PRIMARY branch -d side" \

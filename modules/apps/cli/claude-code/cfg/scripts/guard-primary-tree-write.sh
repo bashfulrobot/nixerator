@@ -10,9 +10,12 @@
 # notes a default-branch commit after the write has already landed.
 #
 # Covered ops (the ones that write the index or tree): commit, push, reset,
-# merge, rebase, cherry-pick, add, rm, mv, clean. Not blanket read-only:
-# git pull, git branch, git checkout/restore, and gh are intentionally NOT
-# matched, so the SessionStart git-sync and the git-cleanup flow keep working.
+# merge, rebase, revert, cherry-pick, am, apply, add, rm, mv, clean. revert/am
+# are commit-creating siblings of cherry-pick, and apply writes the working
+# tree; a read-only `apply --check`/`--stat` is denied too, which is a safe
+# annoyance (use a worktree or the marker). Not blanket read-only: git pull,
+# git branch, git checkout/restore, and gh are intentionally NOT matched, so
+# the SessionStart git-sync and the git-cleanup flow keep working.
 # (Hooks and the github-issue CLI run git internally, not through the Bash
 # tool, so this guard never sees their git; it only gates git the model runs
 # as a Bash tool call.)
@@ -75,7 +78,7 @@ fi
 # nice/nohup, so a wrapped or backdated write is still caught. Then allow
 # `git -C <dir>` / `git -c k=v` / `git --git-dir=<d>` option prefixes and a
 # quoted subcommand.
-git_verb='(commit|push|reset|merge|rebase|cherry-pick|add|rm|mv|clean)'
+git_verb='(commit|push|reset|merge|rebase|revert|cherry-pick|am|apply|add|rm|mv|clean)'
 git_lead='(([A-Za-z_][A-Za-z0-9_]*=\S+|sudo|env|time|nice|nohup)\s+)*'
 verb_re="(^|[;&|(\`])\s*${git_lead}git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b"
 
@@ -91,7 +94,7 @@ emit_deny() {
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "deny",
-      permissionDecisionReason: "This is the shared primary checkout, which is read-only for agent task work (epic #252 invariant 1). A commit/push/reset/merge/rebase/cherry-pick/add/rm/mv/clean here can clobber another live session. Isolate the work in a linked worktree (github-issue setup <N>, or git worktree add) and run the git command there. If the user explicitly directed this primary-tree write, the sanctioned /commit flow carries the CLAUDE_SANCTIONED_GIT=1 marker that allows it."
+      permissionDecisionReason: "This is the shared primary checkout, which is read-only for agent task work (epic #252 invariant 1). A commit/push/reset/merge/rebase/revert/cherry-pick/am/apply/add/rm/mv/clean here can clobber another live session. Isolate the work in a linked worktree (github-issue setup <N>, or git worktree add) and run the git command there. If the user explicitly directed this primary-tree write, the sanctioned /commit flow carries the CLAUDE_SANCTIONED_GIT=1 marker that allows it."
     }
   }'
 }
