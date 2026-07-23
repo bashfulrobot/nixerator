@@ -17,6 +17,11 @@
 # to the customer, so it should carry their real name. Defaults to
 # CUSTOMER_NAME.
 #
+# --ideas-file PATH reads the already-merged ideas JSON from PATH instead of
+# calling fetch-ideas.sh. customer-fr-report.sh fetches once and passes this so
+# every artifact (Sheet, PDF, CSV) is built from one identical data set; run
+# standalone (no --ideas-file) it fetches for itself, forwarding --org.
+#
 # Prints "pdf_file_id<TAB>pdf_webViewLink" on stdout when done.
 #
 # This PDF is customer-facing (see customer-fr-report.sh), so render_report.py
@@ -40,14 +45,20 @@ customer_name="${1:?usage: export-customer-pdf.sh CUSTOMER_NAME PDF_REPORTS_FOLD
 pdf_reports_folder_id="${2:?usage: export-customer-pdf.sh CUSTOMER_NAME PDF_REPORTS_FOLDER_ID [--display-name NAME] [--org ID ...]}"
 shift 2
 
-# Pull --display-name out; everything left over is forwarded to fetch-ideas.sh
-# untouched (it only understands --org).
+# Pull --display-name and --ideas-file out; everything left over is forwarded to
+# fetch-ideas.sh untouched (it only understands --org), and ignored entirely
+# when --ideas-file short-circuits the fetch.
 display_name=""
+ideas_file=""
 _fetch_args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --display-name)
       display_name="${2:?--display-name requires a value}"
+      shift 2
+      ;;
+    --ideas-file)
+      ideas_file="${2:?--ideas-file requires a value}"
       shift 2
       ;;
     *)
@@ -60,16 +71,21 @@ set -- ${_fetch_args[@]+"${_fetch_args[@]}"}
 display_name="${display_name:-$customer_name}"
 
 command -v wkhtmltopdf >/dev/null 2>&1 || die "'wkhtmltopdf' is required but not on PATH"
-[[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
 
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
-echo "Pulling ideas for ${customer_name} from Aha!..." >&2
-# customer-ideas.sh (called inside fetch-ideas.sh) ignores $customer_name for
-# search purposes once any --org is present (see its own arg parsing), so
-# it's safe to always pass both -- --org just takes precedence.
-"$FETCH_IDEAS" "$customer_name" "$@" >"$workdir/ideas.json"
+if [[ -n "$ideas_file" ]]; then
+  [[ -r "$ideas_file" ]] || die "ideas file not readable: $ideas_file"
+  cp "$ideas_file" "$workdir/ideas.json"
+else
+  [[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
+  echo "Pulling ideas for ${customer_name} from Aha!..." >&2
+  # customer-ideas.sh (called inside fetch-ideas.sh) ignores $customer_name for
+  # search purposes once any --org is present (see its own arg parsing), so
+  # it's safe to always pass both -- --org just takes precedence.
+  "$FETCH_IDEAS" "$customer_name" "$@" >"$workdir/ideas.json"
+fi
 
 echo "Rendering Kong-branded HTML..." >&2
 python3 "$here/render_report.py" "$display_name" <"$workdir/ideas.json" >"$workdir/report.html"

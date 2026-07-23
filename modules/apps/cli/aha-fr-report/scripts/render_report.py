@@ -5,9 +5,16 @@ into wkhtmltopdf immediately after; every asset is referenced by local
 file:// path (fonts, logo), so the HTML only needs to survive long enough to
 be rendered on this machine.
 
+With --format csv it instead emits the same data as a customer-facing CSV
+(export-customer-csv.sh's data source) -- identical row ordering to the PDF,
+so the two customer-facing artifacts always agree. The CSV keeps the Source
+Link and Internal Discussion Link columns as bare URLs but, like the PDF,
+omits the internal-only Aha Link / Proxy Vote Link columns the Sheet carries.
+
 Usage:
-    render_report.py CUSTOMER_NAME < ideas.json > report.html
+    render_report.py [--format html|csv] CUSTOMER_NAME < ideas.json > report.html
 """
+import csv
 import json
 import os
 import sys
@@ -322,15 +329,76 @@ def section(title, items):
     """
 
 
+CSV_HEADERS = [
+    "State", "Ref", "Idea", "Status", "Stack Rank", "Use Case", "Requester",
+    "Team", "Production Blocker", "Target Release", "Notes", "Source Link",
+    "Internal Discussion Link",
+]
+
+
+def render_csv(open_items, closed_items):
+    """Emit the customer-facing CSV to stdout.
+
+    Same row ordering as the PDF -- the Open block first, then Closed, each
+    already sorted by sort_key -- so the CSV and the PDF a customer receives
+    always list ideas in the identical order. Columns mirror the PDF's data
+    plus the two non-internal link columns (Source, Internal Discussion) as
+    bare URLs; the Aha Link / Proxy Vote Link columns the internal Sheet
+    carries are intentionally omitted, since this file goes to the customer.
+    """
+    writer = csv.writer(sys.stdout)
+    writer.writerow(CSV_HEADERS)
+    for it in open_items + closed_items:
+        state = "Open" if it.get("state") == "open" else "Closed"
+        rank = it.get("rank")
+        writer.writerow([
+            state,
+            it.get("ref") or "",
+            it.get("name") or "",
+            it.get("status") or "",
+            rank if rank is not None else "",
+            it.get("use_case") or "",
+            it.get("requester_name") or "",
+            it.get("team_name") or "",
+            blocker_text(it.get("production_blocker")),
+            it.get("target_release") or "",
+            it.get("notes") or "",
+            it.get("source_url") or "",
+            it.get("internal_discussion_url") or "",
+        ])
+
+
 def main():
-    if len(sys.argv) != 2:
-        print("usage: render_report.py CUSTOMER_NAME < ideas.json", file=sys.stderr)
+    args = sys.argv[1:]
+    fmt = "html"
+    positional = []
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        if arg == "--format":
+            if idx + 1 >= len(args):
+                print("--format requires a value", file=sys.stderr)
+                sys.exit(2)
+            fmt = args[idx + 1]
+            idx += 2
+            continue
+        positional.append(arg)
+        idx += 1
+
+    if len(positional) != 1 or fmt not in ("html", "csv"):
+        print("usage: render_report.py [--format html|csv] CUSTOMER_NAME < ideas.json",
+              file=sys.stderr)
         sys.exit(2)
-    customer_name = sys.argv[1]
+    customer_name = positional[0]
     items = json.load(sys.stdin)
 
     open_items = sorted((i for i in items if i.get("state") == "open"), key=sort_key)
     closed_items = sorted((i for i in items if i.get("state") != "open"), key=sort_key)
+
+    if fmt == "csv":
+        render_csv(open_items, closed_items)
+        return
+
     shipped = [i for i in closed_items if "shipped" in (i.get("status") or "").lower()]
 
     generated = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")

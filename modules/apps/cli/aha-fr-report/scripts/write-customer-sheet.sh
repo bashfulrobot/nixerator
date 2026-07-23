@@ -18,6 +18,20 @@
 # the Sheet the pipeline looks for, so an existing Sheet must be renamed to
 # match or a second one gets created alongside it.
 #
+# --ideas-file PATH reads the already-merged ideas JSON from PATH instead of
+# calling fetch-ideas.sh. customer-fr-report.sh fetches once and passes this so
+# every artifact (Sheet, PDF, CSV) is built from one identical data set; run
+# standalone (no --ideas-file) it fetches for itself, forwarding --org.
+#
+# --customer-safe writes a customer-facing Sheet instead of the internal one:
+# titled "<Name> - Feature Requests (Customer)" (a separate file from the
+# internal Sheet, so the two coexist in the same folder and each is reused /
+# overwritten across runs by its own name) and carrying only the PDF's column
+# set -- no link columns at all. That drops the internal Aha Link / Proxy Vote
+# Link AND the Kong-internal Internal Discussion Link, leaving nothing unsafe to
+# hand to a customer. Everything else (timestamp banner, header styling, banded
+# rows, collapsed Closed group) is identical.
+#
 # Prints "sheet_id<TAB>sheet_url" on stdout when done.
 #
 # Columns written: State, Ref, Idea, Status, Stack Rank, Use Case,
@@ -64,15 +78,26 @@ customer_name="${1:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [
 frs_folder_id="${2:?usage: write-customer-sheet.sh CUSTOMER_NAME FRS_FOLDER_ID [--display-name NAME] [--org ID ...]}"
 shift 2
 
-# Pull --display-name out; everything left over is forwarded to fetch-ideas.sh
-# untouched (it only understands --org).
+# Pull --display-name and --ideas-file out; everything left over is forwarded to
+# fetch-ideas.sh untouched (it only understands --org), and ignored entirely
+# when --ideas-file short-circuits the fetch.
 display_name=""
+ideas_file=""
+customer_safe=""
 _fetch_args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --display-name)
       display_name="${2:?--display-name requires a value}"
       shift 2
+      ;;
+    --ideas-file)
+      ideas_file="${2:?--ideas-file requires a value}"
+      shift 2
+      ;;
+    --customer-safe)
+      customer_safe=1
+      shift
       ;;
     *)
       _fetch_args+=("$1")
@@ -83,10 +108,14 @@ done
 set -- ${_fetch_args[@]+"${_fetch_args[@]}"}
 display_name="${display_name:-$customer_name}"
 
-[[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
 command -v jq >/dev/null 2>&1 || die "'jq' is required but not on PATH"
+[[ -n "$ideas_file" ]] || [[ -x "$FETCH_IDEAS" ]] || die "fetch-ideas.sh not found/executable at $FETCH_IDEAS"
 
-sheet_name="${display_name} - Feature Requests"
+if [[ -n "$customer_safe" ]]; then
+  sheet_name="${display_name} - Feature Requests (Customer)"
+else
+  sheet_name="${display_name} - Feature Requests"
+fi
 
 # --- Step 1: find or create the Sheet, reusing it across runs -------------
 sheet_id="$(find_file_in_folder "$frs_folder_id" "$sheet_name" "application/vnd.google-apps.spreadsheet")"
@@ -101,11 +130,16 @@ else
 fi
 
 # --- Step 2: pull the customer's ideas from Aha!, with Stack Rank ----------
-echo "Pulling ideas for ${customer_name} from Aha!..." >&2
-# customer-ideas.sh (called inside fetch-ideas.sh) ignores $customer_name for
-# search purposes once any --org is present (see its own arg parsing), so
-# it's safe to always pass both -- --org just takes precedence.
-ideas_json="$("$FETCH_IDEAS" "$customer_name" "$@")"
+if [[ -n "$ideas_file" ]]; then
+  [[ -r "$ideas_file" ]] || die "ideas file not readable: $ideas_file"
+  ideas_json="$(cat "$ideas_file")"
+else
+  echo "Pulling ideas for ${customer_name} from Aha!..." >&2
+  # customer-ideas.sh (called inside fetch-ideas.sh) ignores $customer_name for
+  # search purposes once any --org is present (see its own arg parsing), so
+  # it's safe to always pass both -- --org just takes precedence.
+  ideas_json="$("$FETCH_IDEAS" "$customer_name" "$@")"
+fi
 n="$(echo "$ideas_json" | jq 'length')"
 echo "Got ${n} idea(s)." >&2
 
@@ -115,30 +149,55 @@ echo "Got ${n} idea(s)." >&2
 # at the bottom, which Step 5 relies on to group/collapse them.
 timestamp="$(date -u +'%Y-%m-%d %H:%M UTC')"
 timestamp_row="$(jq -n --arg t "Last updated: ${timestamp}" '[$t]')"
-header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Team","Production Blocker","Target Release","Notes","Aha Link","Proxy Vote Link","Source Link","Internal Discussion Link"]'
 open_count="$(echo "$ideas_json" | jq '[.[] | select(.state == "open")] | length')"
 closed_count="$(echo "$ideas_json" | jq '[.[] | select(.state != "open")] | length')"
-rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" '
-  [$timestamp_row, $header] + (
-    map([
-      (if .state == "open" then "Open" else "Closed" end),
-      .ref,
-      .name,
-      .status,
-      (.rank // ""),
-      (.use_case // ""),
-      (.requester_name // ""),
-      (.team_name // ""),
-      (if .production_blocker == 1 then "Yes" elif .production_blocker == 0 then "No" else "" end),
-      (.target_release // ""),
-      (.notes // ""),
-      (if (.url // "") != "" then "=HYPERLINK(\"\(.url)\",\"View idea\")" else "" end),
-      (if (.org_url // "") != "" then "=HYPERLINK(\"\(.org_url)\",\"View proxy\")" else "" end),
-      (if (.source_url // "") != "" then "=HYPERLINK(\"\(.source_url)\",\"Customer thread\")" else "" end),
-      (if (.internal_discussion_url // "") != "" then "=HYPERLINK(\"\(.internal_discussion_url)\",\"Internal thread\")" else "" end)
-    ])
-  )
-')"
+# The first 11 columns are shared by both modes; the internal Sheet appends four
+# HYPERLINK() link columns, the customer-safe Sheet stops after Notes (no link
+# columns at all). Row order and everything downstream (banner, banding, Closed
+# group) is driven off $header's length, so it adapts to whichever set is used.
+if [[ -n "$customer_safe" ]]; then
+  header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Team","Production Blocker","Target Release","Notes"]'
+  rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" '
+    [$timestamp_row, $header] + (
+      map([
+        (if .state == "open" then "Open" else "Closed" end),
+        .ref,
+        .name,
+        .status,
+        (.rank // ""),
+        (.use_case // ""),
+        (.requester_name // ""),
+        (.team_name // ""),
+        (if .production_blocker == 1 then "Yes" elif .production_blocker == 0 then "No" else "" end),
+        (.target_release // ""),
+        (.notes // "")
+      ])
+    )
+  ')"
+else
+  header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Team","Production Blocker","Target Release","Notes","Aha Link","Proxy Vote Link","Source Link","Internal Discussion Link"]'
+  rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" '
+    [$timestamp_row, $header] + (
+      map([
+        (if .state == "open" then "Open" else "Closed" end),
+        .ref,
+        .name,
+        .status,
+        (.rank // ""),
+        (.use_case // ""),
+        (.requester_name // ""),
+        (.team_name // ""),
+        (if .production_blocker == 1 then "Yes" elif .production_blocker == 0 then "No" else "" end),
+        (.target_release // ""),
+        (.notes // ""),
+        (if (.url // "") != "" then "=HYPERLINK(\"\(.url)\",\"View idea\")" else "" end),
+        (if (.org_url // "") != "" then "=HYPERLINK(\"\(.org_url)\",\"View proxy\")" else "" end),
+        (if (.source_url // "") != "" then "=HYPERLINK(\"\(.source_url)\",\"Customer thread\")" else "" end),
+        (if (.internal_discussion_url // "") != "" then "=HYPERLINK(\"\(.internal_discussion_url)\",\"Internal thread\")" else "" end)
+      ])
+    )
+  ')"
+fi
 
 # --- Step 4: clear the old range, then write the new one -------------------
 echo "Writing to sheet..." >&2
