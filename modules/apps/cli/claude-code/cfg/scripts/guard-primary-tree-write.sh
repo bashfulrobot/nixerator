@@ -51,23 +51,30 @@ input="$(cat)"
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null || true)"
 [[ -n "$cmd" ]] || exit 0
 
-# Sanctioned override: a `CLAUDE_SANCTIONED_GIT=1` env assignment leading a real
-# git command at a command position (start, or after a separator/subshell). The
-# /commit and git-cleanup flows set this when the user explicitly directs a
-# primary-tree write. Requiring `git` right after the marker keeps a stray
-# mention of the marker inside a later argument (a commit message, say) from
-# counting. Allow and get out of the way.
-if grep -qE '(^|[;&|(])[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$)' <<<"$cmd"; then
+# Sanctioned override: a `CLAUDE_SANCTIONED_GIT=1` env assignment that LEADS the
+# whole command and is immediately followed by git. The /commit and git-cleanup
+# flows set this when the user explicitly directs a primary-tree write, and they
+# always emit the marker as the first token of the command (one git write per
+# Bash call). Anchoring to start-of-command is deliberate: grep is not
+# shell-quote-aware, so honouring the marker after a `;` or `(` would let the
+# phrase appear inside a quoted commit message (git commit -m "...; \
+# CLAUDE_SANCTIONED_GIT=1 git ...") and wrongly free the write. Requiring the
+# marker to lead, with git right after it, closes that. Allow and get out.
+if grep -qE '^[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$)' <<<"$cmd"; then
   exit 0
 fi
 
-# Match a mutating git subcommand at a command position. Allow `git -C <dir>` /
-# `git -c k=v` / `git --git-dir=<d>` option prefixes and a quoted subcommand.
-# The leading class is the command-boundary set (start of string, or right after
-# ; & | ( or a backtick), NOT a bare space, so a git verb sitting inside prose
-# or a quoted argument does not match.
+# Match a mutating git subcommand at a command position. The leading class is the
+# command-boundary set (start of string, or right after ; & | ( or a backtick),
+# NOT a bare space, so a git verb sitting inside prose or a quoted argument does
+# not match. Between the boundary and git, allow env-assignment prefixes
+# (FOO=bar, including GIT_AUTHOR_DATE=...) and the common wrappers env/sudo/time/
+# nice/nohup, so a wrapped or backdated write is still caught. Then allow
+# `git -C <dir>` / `git -c k=v` / `git --git-dir=<d>` option prefixes and a
+# quoted subcommand.
 git_verb='(commit|push|reset|merge|rebase|cherry-pick|add|rm|mv|clean)'
-if ! grep -qP "(^|[;&|(\`])\s*git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b" <<<"$cmd"; then
+git_lead='(([A-Za-z_][A-Za-z0-9_]*=\S+|sudo|env|time|nice|nohup)\s+)*'
+if ! grep -qP "(^|[;&|(\`])\s*${git_lead}git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b" <<<"$cmd"; then
   exit 0
 fi
 

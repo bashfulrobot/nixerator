@@ -94,12 +94,14 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
-@test "sanction marker allows a primary-checkout write" {
+@test "sanction marker (leading the command) allows a primary-checkout write" {
+  # /commit emits the marker as the first token of the command, one git write
+  # per Bash call, so these are the forms the override must honour.
   local fails=0 cmd
   for cmd in \
     "CLAUDE_SANCTIONED_GIT=1 git -C $PRIMARY commit -m x" \
-    "cd $PRIMARY && CLAUDE_SANCTIONED_GIT=1 git commit -m x" \
-    "CLAUDE_SANCTIONED_GIT=1 git -C $PRIMARY add -- foo.txt"; do
+    "CLAUDE_SANCTIONED_GIT=1 git -C $PRIMARY add -- foo.txt" \
+    "CLAUDE_SANCTIONED_GIT=1 git -C $PRIMARY push && CLAUDE_SANCTIONED_GIT=1 git -C $PRIMARY push --tags"; do
     if [ "$(decision "$cmd")" != allow ]; then
       echo "EXPECTED ALLOW, GOT DENY: $cmd"
       fails=$((fails + 1))
@@ -108,11 +110,40 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
-@test "marker only counts when it leads a real git command" {
-  # The marker text merely mentioned inside a commit message must NOT sanction
-  # the write; the git commit still resolves to the primary tree and denies.
-  local cmd="git -C $PRIMARY commit -m \"(CLAUDE_SANCTIONED_GIT=1 was discussed)\""
-  [ "$(decision "$cmd")" = deny ]
+@test "marker only counts when it leads the whole command" {
+  # The marker mentioned inside a quoted commit message must NOT sanction the
+  # write, even after a shell metacharacter that grep cannot tell from real
+  # command structure. The git commit still resolves to the primary tree and
+  # denies. A marker sitting after a cd prefix is likewise not honoured.
+  local fails=0 cmd
+  for cmd in \
+    "git -C $PRIMARY commit -m \"(CLAUDE_SANCTIONED_GIT=1 was discussed)\"" \
+    "git -C $PRIMARY commit -m \"note; CLAUDE_SANCTIONED_GIT=1 git add\"" \
+    "git -C $PRIMARY commit -m \"the marker (CLAUDE_SANCTIONED_GIT=1 git ...) frees it\"" \
+    "cd $PRIMARY && CLAUDE_SANCTIONED_GIT=1 git commit -m x"; do
+    if [ "$(decision "$cmd")" != deny ]; then
+      echo "EXPECTED DENY, GOT ALLOW: $cmd"
+      fails=$((fails + 1))
+    fi
+  done
+  [ "$fails" -eq 0 ]
+}
+
+@test "denies wrapper- and env-assignment-prefixed git in the primary checkout" {
+  # A git write behind sudo/env/time or a bare env-assignment (including a
+  # backdating GIT_AUTHOR_DATE=) must still be caught, not slip the anchor.
+  local fails=0 cmd
+  for cmd in \
+    "sudo git -C $PRIMARY commit -m x" \
+    "env GIT_AUTHOR_NAME=x git -C $PRIMARY commit -m x" \
+    "time git -C $PRIMARY commit -m x" \
+    "GIT_AUTHOR_DATE=2020-01-01 git -C $PRIMARY commit -m x"; do
+    if [ "$(decision "$cmd")" != deny ]; then
+      echo "EXPECTED DENY, GOT ALLOW: $cmd"
+      fails=$((fails + 1))
+    fi
+  done
+  [ "$fails" -eq 0 ]
 }
 
 @test "allows non-mutating and excluded git verbs in the primary checkout" {
