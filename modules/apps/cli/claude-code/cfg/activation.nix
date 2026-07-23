@@ -77,8 +77,10 @@
 
       # Context-rot, reminder, and hardened-guard hooks are Nix-owned, same as
       # the auto-gate above: injected here with their store paths and stripped on
-      # capture (cfg/fish.nix). Each clause is idempotent -- it first drops any
-      # existing entry carrying its command marker, then appends the current one.
+      # capture (cfg/fish.nix strips any hook whose command lives under /nix/store,
+      # so a new injected hook needs NO capture-side change). Each clause is
+      # idempotent -- it first drops any existing entry carrying its command
+      # marker, then appends the current one.
       ${pkgs.jq}/bin/jq \
         '.hooks.PreCompact = (((.hooks.PreCompact // [])
              | map(select((.hooks[0].command // "") | test("claude-precompact-checkpoint") | not)))

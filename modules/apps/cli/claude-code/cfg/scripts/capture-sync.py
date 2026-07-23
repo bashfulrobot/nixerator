@@ -300,6 +300,88 @@ def apply_decision(
     raise AssertionError(f"capture-sync: unknown action {action!r}")
 
 
+def run_settings(
+    home_file: Path,
+    repo_file: Path,
+    state: dict,
+    dry_run: bool,
+) -> Decision:
+    """Capture-only, snapshot-guarded 3-way for settings.json.
+
+    settings.json is not a plain tracked file: the live ~/.claude copy is a
+    DERIVED artifact (activation substitutes the statusline store path and
+    injects the plugin overlay, the ask list, and every Nix-owned hook with its
+    /nix/store command path). The caller therefore hands us a CANONICALIZED copy
+    of home -- those injected bits stripped back out -- as `home_file`, so it is
+    byte-comparable to the repo source.
+
+    Unlike the generic sections, home is never written here: activation owns the
+    home side and rebuilds it from repo on every switch. So this is capture-only.
+    The snapshot (key "settings.json" in the shared state file) is what lets us
+    tell "home was live-edited" (capture it) apart from "repo moved via a
+    PR/merge while home is stale" (keep repo, do NOT clobber it) -- the exact bug
+    the old unconditional home->repo copy caused.
+
+        seed       no snapshot yet          -> record repo as baseline, no write
+        noop       Hc == R                  -> in sync
+        capture    R == S and Hc != S       -> home live-edited; copy Hc -> repo
+        keep-repo  Hc == S and R != S       -> repo moved, home stale; keep repo
+        conflict   Hc != R, both != S       -> surface, write nothing
+    """
+    key = "settings.json"
+    files = state.setdefault("files", {})
+    H = sha256_file(home_file)
+    R = sha256_file(repo_file)
+    S = files.get(key)
+
+    if R is None:
+        return Decision(key, "noop", "repo settings.json missing; nothing to capture", H, R, S)
+    if H is None:
+        return Decision(key, "noop", "no home settings.json to capture; keeping repo", H, R, S)
+    if S is None:
+        decision = Decision(
+            key, "seed", "first run; recording repo as baseline without clobbering", H, R, S
+        )
+    elif H == R:
+        decision = Decision(key, "noop", "canonicalized home matches repo", H, R, S)
+    elif R == S and H != S:
+        decision = Decision(key, "capture", "home was edited live; capturing to repo", H, R, S)
+    elif H == S and R != S:
+        decision = Decision(
+            key, "keep-repo", "repo was updated (PR/merge); home is stale, keeping repo", H, R, S
+        )
+    else:
+        decision = Decision(
+            key,
+            "conflict",
+            "home and repo both diverged from snapshot; reconcile settings.json by hand",
+            H,
+            R,
+            S,
+        )
+
+    if dry_run or decision.action == "conflict":
+        return decision
+
+    if decision.action == "capture":
+        if home_file.is_symlink():
+            print(
+                f"capture-sync: refusing to capture settings from symlink {home_file}",
+                file=sys.stderr,
+            )
+            return decision
+        shutil.copy(home_file, repo_file, follow_symlinks=False)
+        files[key] = sha256_file(repo_file)
+    elif decision.action in ("seed", "keep-repo"):
+        # Advance the snapshot to the repo so the next run is a clean noop once
+        # activation has rebuilt home from repo. Never touches the home side.
+        files[key] = R
+    elif decision.action == "noop" and S != R:
+        # Sides matched but the snapshot was stale; refresh it.
+        files[key] = R
+    return decision
+
+
 def _safe_walk(root: Path) -> Iterable[Path]:
     """Yield regular files under `root` without crossing any symlink.
 
@@ -488,9 +570,22 @@ def main() -> int:
     ap.add_argument(
         "--section",
         default="all",
-        choices=["skills", "agents", "output-styles", "claude-md", "all"],
+        choices=["skills", "agents", "output-styles", "claude-md", "all", "none"],
     )
     ap.add_argument("--ignore-file", type=Path, default=None)
+    ap.add_argument(
+        "--settings-home",
+        type=Path,
+        default=None,
+        help="canonicalized ~/.claude/settings.json (home side) for the capture-only "
+        "settings reconcile; requires --settings-repo",
+    )
+    ap.add_argument(
+        "--settings-repo",
+        type=Path,
+        default=None,
+        help="repo config/settings.json (repo side) for the settings reconcile",
+    )
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument(
         "--bootstrap",
@@ -507,11 +602,12 @@ def main() -> int:
 
     state = load_state(args.state_file)
 
-    sections = (
-        ["skills", "agents", "output-styles", "claude-md"]
-        if args.section == "all"
-        else [args.section]
-    )
+    if args.section == "all":
+        sections = ["skills", "agents", "output-styles", "claude-md"]
+    elif args.section == "none":
+        sections = []
+    else:
+        sections = [args.section]
 
     all_decisions: list[Decision] = []
     all_conflicts: list[Decision] = []
@@ -540,6 +636,19 @@ def main() -> int:
         )
         all_decisions.extend(decisions)
         all_conflicts.extend(conflicts)
+
+    # settings.json rides the same state file but uses a capture-only reconcile
+    # against a caller-supplied canonicalized home copy (see run_settings).
+    if args.settings_home is not None and args.settings_repo is not None:
+        settings_decision = run_settings(
+            args.settings_home,
+            args.settings_repo,
+            state,
+            dry_run=args.dry_run,
+        )
+        all_decisions.append(settings_decision)
+        if settings_decision.action == "conflict":
+            all_conflicts.append(settings_decision)
 
     if not args.dry_run:
         save_state(args.state_file, state)
