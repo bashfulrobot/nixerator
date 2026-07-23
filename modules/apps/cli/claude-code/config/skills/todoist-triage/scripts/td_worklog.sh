@@ -42,10 +42,6 @@
 # when it was. Never launder a draft into a send.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
-. "$SCRIPT_DIR/lib_td.sh"
-
 command -v td >/dev/null || {
   echo "td not found (todoist-cli skill)" >&2
   exit 127
@@ -143,7 +139,7 @@ bullet="- ${entry}${rendered_links}"
 
 # Find today's existing log comment, if any (newest wins).
 existing_id=""
-if comments=$(td_retry comment list "$ref" --json --all --full 2>/dev/null); then
+if comments=$(td comment list "$ref" --json --all --full 2>/dev/null); then
   existing_id=$(printf '%s' "$comments" |
     jq -r --arg h "$header" '[.results[]? | select((.content // "") | startswith($h)) | .id] | last // empty')
 fi
@@ -156,7 +152,7 @@ if [ -n "$existing_id" ]; then
     printf 'DRY-RUN update comment id:%s on %s:\n%s\n' "$existing_id" "$ref" "$new_content"
     exit 0
   fi
-  td_retry comment update "id:${existing_id}" --content "$new_content" >/dev/null
+  td comment update "id:${existing_id}" --content "$new_content" >/dev/null
   runlog_append
   printf 'updated work log (id:%s) on %s\n' "$existing_id" "$ref"
 else
@@ -165,9 +161,7 @@ else
     printf 'DRY-RUN add comment on %s:\n%s\n' "$ref" "$new_content"
     exit 0
   fi
-  # --content (not --stdin) so td_retry can safely re-issue the call: a piped
-  # stdin drains on the first attempt and would be empty on a retry.
-  td_retry comment add "$ref" --content "$new_content" >/dev/null
+  printf '%s' "$new_content" | td comment add "$ref" --stdin >/dev/null
   runlog_append
   printf 'added work log on %s\n' "$ref"
 fi
