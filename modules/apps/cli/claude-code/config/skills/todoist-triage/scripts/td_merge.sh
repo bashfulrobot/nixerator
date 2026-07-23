@@ -10,8 +10,6 @@
 #   td_merge.sh --survivor <ref> --loser <ref> [--loser <ref>...] [--survivor-url <url>] --reason "<why>" [--dry-run]
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
-. "$SCRIPT_DIR/lib_td.sh"
 command -v td >/dev/null || {
   echo "td not found (todoist-cli skill)" >&2
   exit 127
@@ -75,7 +73,7 @@ bash "$SCRIPT_DIR/td_worklog.sh" "${sw[@]}"
 #     on the survivor per loser. An empty stub has nothing to carry and is skipped;
 #     its pointer + close still happen below.
 for l in "${losers[@]}"; do
-  loser_json="$(td_retry comment list "$l" --json --all --full 2>/dev/null || true)"
+  loser_json="$(td comment list "$l" --json --all --full 2>/dev/null || true)"
   block="$(printf '%s' "$loser_json" | jq -r --arg l "$l" '
     (if type == "object" then (.results // []) else . end)
     | map(.content // empty)
@@ -89,7 +87,7 @@ for l in "${losers[@]}"; do
   if [ "$dry_run" -eq 1 ]; then
     printf 'DRY-RUN copy comment history from %s onto %s:\n%s\n\n' "$l" "$survivor" "$block"
   else
-    td_retry comment add "$survivor" --content "$block" >/dev/null
+    printf '%s' "$block" | td comment add "$survivor" --stdin >/dev/null
     printf 'copied comment history from %s onto survivor %s\n' "$l" "$survivor"
   fi
 done
@@ -109,7 +107,7 @@ done
 #    not block the remaining closes.
 closed=0
 for l in "${losers[@]}"; do
-  if td_retry task complete "$l" ${dflag[@]+"${dflag[@]}"} >/dev/null; then
+  if td task complete "$l" ${dflag[@]+"${dflag[@]}"} >/dev/null; then
     closed=$((closed + 1))
   else
     echo "warn: failed to close loser $l (its pointer to the survivor is already logged)" >&2

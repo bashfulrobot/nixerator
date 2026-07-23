@@ -20,9 +20,6 @@
 #   ${XDG_CONFIG_HOME:-$HOME/.config}/todoist-triage/scopes.json
 set -euo pipefail
 
-# shellcheck source=/dev/null
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib_td.sh"
-
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_SCOPES="$SKILL_DIR/scopes.json"
 USER_SCOPES="${XDG_CONFIG_HOME:-$HOME/.config}/todoist-triage/scopes.json"
@@ -49,7 +46,7 @@ presets() {
 # Resolve a saved Todoist filter name -> its query (case-insensitive).
 saved_query() {
   local name="$1"
-  td_retry filter list --json 2>/dev/null |
+  td filter list --json 2>/dev/null |
     jq -r --arg n "$name" '.results[] | select((.name|ascii_downcase)==($n|ascii_downcase)) | .query' |
     head -n1
 }
@@ -75,8 +72,8 @@ touch_index() {
 emit_filter() {
   local query="$1"
   local tasks projects touched
-  tasks=$(td_retry task list --filter "$query" --json --all)
-  projects=$(td_retry project list --json --all)
+  tasks=$(td task list --filter "$query" --json --all)
+  projects=$(td project list --json --all)
   touched=$(touch_index)
   jq -n --argjson t "$tasks" --argjson p "$projects" --argjson tx "$touched" '
     (($p.results // []) | map({(.id): .name}) | add // {}) as $pm
@@ -96,8 +93,8 @@ emit_filter() {
 
 emit_single() {
   local ref="$1" task projects touched
-  task=$(td_retry task view "$ref" --json)
-  projects=$(td_retry project list --json --all)
+  task=$(td task view "$ref" --json)
+  projects=$(td project list --json --all)
   touched=$(touch_index)
   jq -n --argjson x "$task" --argjson p "$projects" --argjson tx "$touched" '
     (($p.results // []) | map({(.id): .name}) | add // {}) as $pm
@@ -121,9 +118,9 @@ cmd_list() {
   [ -f "$USER_SCOPES" ] && echo "  (merged with $USER_SCOPES)"
   echo
   echo "== Your Todoist saved filters (td filter list) =="
-  td_retry filter list --json 2>/dev/null |
+  td filter list --json 2>/dev/null |
     jq -r '.results[] | "  \(.name)\t[\(.query)]"' | column -t -s $'\t' 2>/dev/null ||
-    td_retry filter list 2>/dev/null
+    td filter list 2>/dev/null
   echo
   echo "Also selectable: 'project <name>', 'filter \"<query>\"', 'single <ref>'."
 }

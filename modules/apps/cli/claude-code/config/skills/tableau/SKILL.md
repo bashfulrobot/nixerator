@@ -18,7 +18,7 @@ description: >-
   (e.g. "what does the dashboard say about Acme's renewal risk"). Do NOT
   trigger for Salesforce/SFDC queries that don't reference Tableau
   reporting (the `sfdc` skill owns those) or for building new success-plan
-  documents (the `csp-draft` skill owns that, though it may call
+  documents (the `kong-success-plan` skill owns that, though it may call
   into this skill for data).
 ---
 
@@ -211,7 +211,7 @@ view filters.
 Default to a plain table or a short narrative summary of the pulled
 numbers -- whichever fits what was asked. If the user wants this rolled
 into a document (a success plan, a QBR deck, a renewal projection), that
-belongs to a different skill (`csp-draft`, `renewal-projection`)
+belongs to a different skill (`kong-success-plan`, `renewal-projection`)
 -- pull the data here, hand it off there.
 
 ## Memory
