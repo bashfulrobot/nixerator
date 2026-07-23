@@ -25,7 +25,7 @@ extract_breadcrumbs() {
         case "$u" in
           *slack.com*) printf 'slack\t%s\n' "$u" ;;
           *teams.microsoft.com* | *teams.cloud.microsoft*) printf 'teams\t%s\n' "$u" ;;
-          *mail.google.com*) printf 'gmail\t%s\n' "$u" ;;
+          *mail.google.com* | *mail.googlemail.com*) printf 'gmail\t%s\n' "$u" ;;
           *docs.google.com*) printf 'gdocs\t%s\n' "$u" ;;
           *.aha.io*) printf 'aha\t%s\n' "$u" ;;
           *atlassian.net*) printf 'jira\t%s\n' "$u" ;;
