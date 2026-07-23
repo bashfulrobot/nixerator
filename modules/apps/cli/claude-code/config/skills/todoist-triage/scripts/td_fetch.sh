@@ -40,7 +40,7 @@ ref="${1:-}"
 cache_file=""
 if [ -n "${TD_TASK_CACHE_DIR:-}" ]; then
   safe="${ref#id:}"
-  safe="${safe##*/}"        # a task URL collapses to its trailing id
+  safe="${safe##*/}" # a task URL collapses to its trailing id
   safe="${safe//[^A-Za-z0-9_-]/_}"
   cache_file="${TD_TASK_CACHE_DIR%/}/${safe}.json"
   if [ -s "$cache_file" ] && jq -e 'has("task")' "$cache_file" >/dev/null 2>&1; then

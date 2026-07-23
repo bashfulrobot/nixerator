@@ -46,8 +46,8 @@ td_retry() {
     # Retry ONLY rate-limit-shaped failures. td surfaces these on stderr (and
     # sometimes as an {"error":{"code":"RATE_LIMITED"...}} body on stdout), so
     # check both. Anything else is a real error: surface it and stop.
-    if grep -qiE 'rate.?limit|429|too many request' "$errf" 2>/dev/null \
-      || printf '%s' "$out" | grep -qiE 'rate.?limit|429|too many request'; then
+    if grep -qiE 'rate.?limit|429|too many request' "$errf" 2>/dev/null ||
+      printf '%s' "$out" | grep -qiE 'rate.?limit|429|too many request'; then
       attempt=$((attempt + 1))
       if [ "$attempt" -ge "$max" ]; then
         cat "$errf" >&2
