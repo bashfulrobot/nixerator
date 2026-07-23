@@ -170,6 +170,36 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
+@test "a subshell-scoped cd does not carry into a later primary write" {
+  # `(cd $WT ...)` changes cwd only inside the group. The git commit runs after
+  # the group, back in the primary tree, so the subshell cd must not be treated
+  # as the persistent cwd. Resolving it wrongly would allow a primary commit.
+  local cmd="cd $PRIMARY && (cd $WT && git status) && git commit -m x"
+  [ "$(decision "$cmd")" = deny ]
+}
+
+@test "resolves the cd path past leading options and recognises pushd" {
+  # cd flags (-P, -L, --) must be skipped so the path, not the flag, is the
+  # target; otherwise `git -C -P` errors and fails open on a primary write.
+  # pushd is a cwd change too and must be tracked like cd.
+  local fails=0 cmd
+  for cmd in \
+    "cd -P $PRIMARY && git commit -m x" \
+    "cd -- $PRIMARY && git commit -m x" \
+    "pushd $PRIMARY && git commit -m x"; do
+    if [ "$(decision "$cmd")" != deny ]; then
+      echo "EXPECTED DENY, GOT ALLOW: $cmd"
+      fails=$((fails + 1))
+    fi
+  done
+  # The same options pointing at a worktree still allow.
+  if [ "$(decision "cd -P $WT && git commit -m x")" != allow ]; then
+    echo "EXPECTED ALLOW, GOT DENY: cd -P worktree commit"
+    fails=$((fails + 1))
+  fi
+  [ "$fails" -eq 0 ]
+}
+
 @test "denies wrapper- and env-assignment-prefixed git in the primary checkout" {
   # A git write behind sudo/env/time or a bare env-assignment (including a
   # backdating GIT_AUTHOR_DATE=) must still be caught, not slip the anchor.

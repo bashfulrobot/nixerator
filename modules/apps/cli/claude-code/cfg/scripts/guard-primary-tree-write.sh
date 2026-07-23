@@ -23,8 +23,10 @@
 # primary checkout (git-dir == git-common-dir) is denied unless the command
 # carries the sanctioned marker below.
 #
-# Override: a user-directed flow (the /commit skill, git-cleanup) opts a single
-# command in by prefixing it with `CLAUDE_SANCTIONED_GIT=1 git ...`. The marker
+# Override: the user-directed /commit skill opts a single command in by
+# prefixing it with `CLAUDE_SANCTIONED_GIT=1 git ...`. (The git-cleanup flow
+# needs no marker: its writes land in a worktree, or run through the pull,
+# branch, and gh-merge verbs this guard deliberately does not match.) The marker
 # rides on the one command and cannot leak into the rest of the session, unlike
 # a session sentinel file that stays live until removed. It is a cooperative
 # guardrail, not a security boundary: the point is to stop accidental and
@@ -89,26 +91,46 @@ emit_deny() {
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "deny",
-      permissionDecisionReason: "This is the shared primary checkout, which is read-only for agent task work (epic #252 invariant 1). A commit/push/reset/merge/rebase/cherry-pick/add/rm/mv/clean here can clobber another live session. Isolate the work in a linked worktree (github-issue setup <N>, or git worktree add) and run the git command there. If the user explicitly directed this primary-tree write, the sanctioned /commit and git-cleanup flows carry the CLAUDE_SANCTIONED_GIT=1 marker that allows it."
+      permissionDecisionReason: "This is the shared primary checkout, which is read-only for agent task work (epic #252 invariant 1). A commit/push/reset/merge/rebase/cherry-pick/add/rm/mv/clean here can clobber another live session. Isolate the work in a linked worktree (github-issue setup <N>, or git worktree add) and run the git command there. If the user explicitly directed this primary-tree write, the sanctioned /commit flow carries the CLAUDE_SANCTIONED_GIT=1 marker that allows it."
     }
   }'
 }
 
-# Collect every `cd <dir>` with its byte offset in the command. A bare git verb
-# (one with no repo of its own) runs in the tree set by the LAST cd before it, so
-# tracking offsets lets `cd <wt> && git status && cd <primary> && git commit`
-# resolve the commit against <primary>, not the first cd.
+# Collect every cwd change (cd or pushd) with its byte offset. A bare git verb
+# (one that names no repo of its own) runs in the tree set by the NEAREST cwd
+# change before it, so tracking offsets lets
+# `cd <wt> && git status && cd <primary> && git commit` resolve the commit
+# against <primary>, not the first cd.
+#
+# Heuristic limits, all in the fail-open (allow) direction except where noted:
+#   - A cwd change scoped inside a subshell `( ... )` does NOT persist to
+#     commands after the group, so a match whose boundary char is `(` is not
+#     added to the persistent list. This keeps
+#     `cd <primary> && (cd <wt> && ...) && git commit` resolving to <primary>.
+#     A git write INSIDE a subshell then falls back to an outer cd or the hook
+#     cwd, which can wrongly DENY a subshelled worktree write (fail-safe), never
+#     wrongly allow a primary one.
+#   - Leading cd/pushd options (`-P`, `-L`, `--`) are skipped so the path, not
+#     the flag, is captured; otherwise `cd -P <primary> && git commit` would
+#     resolve `git -C -P`, error, and fail open on a primary write.
+#   - popd is not modelled (it pops a stack this parser does not track), and a
+#     directory or `git -C` argument quoted with an embedded space is not
+#     resolved (tokenisation is space-delimited, not shell-quote aware). Both
+#     leave the invocation to fail open.
+cd_re='(cd|pushd)([[:space:]]+-[^[:space:];&|]+)*[[:space:]]+([^[:space:];&|]+)'
 cd_offsets=()
 cd_dirs=()
 while IFS= read -r line; do
   [[ -n "$line" ]] || continue
   off="${line%%:*}"
   m="${line#*:}"
-  if [[ "$m" =~ cd[[:space:]]+([^[:space:];&|]+) ]]; then
+  # A subshell-scoped cwd change (boundary char `(`) does not outlive its group.
+  [[ "${m:0:1}" == "(" ]] && continue
+  if [[ "$m" =~ $cd_re ]]; then
     cd_offsets+=("$off")
-    cd_dirs+=("$(strip_quotes "${BASH_REMATCH[1]}")")
+    cd_dirs+=("$(strip_quotes "${BASH_REMATCH[3]}")")
   fi
-done < <(grep -boP '(^|[;&|(])[[:space:]]*cd[[:space:]]+[^[:space:];&|]+' <<<"$cmd" || true)
+done < <(grep -boP "(^|[;&|(])[[:space:]]*${cd_re}" <<<"$cmd" || true)
 
 # The cd dir with the greatest offset still before $1 (empty if none).
 last_cd_before() {
