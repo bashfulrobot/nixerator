@@ -55,12 +55,13 @@ cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null || true)"
 # whole command and is immediately followed by git. The /commit and git-cleanup
 # flows set this when the user explicitly directs a primary-tree write, and they
 # always emit the marker as the first token of the command (one git write per
-# Bash call). Anchoring to start-of-command is deliberate: grep is not
-# shell-quote-aware, so honouring the marker after a `;` or `(` would let the
-# phrase appear inside a quoted commit message (git commit -m "...; \
-# CLAUDE_SANCTIONED_GIT=1 git ...") and wrongly free the write. Requiring the
-# marker to lead, with git right after it, closes that. Allow and get out.
-if grep -qE '^[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$)' <<<"$cmd"; then
+# Bash call). This uses bash `[[ =~ ]]`, whose `^` anchors to the START OF THE
+# STRING, not per line. grep `^` matches the start of any line, which would let
+# the marker on a later line of a multiline command (or inside a quoted, newline
+# bearing commit message) free an unmarked write on an earlier line. Anchoring
+# to the string start, with git right after the marker, closes both the
+# quoted-message and the multiline forms. Allow and get out.
+if [[ "$cmd" =~ ^[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$) ]]; then
   exit 0
 fi
 
@@ -74,14 +75,8 @@ fi
 # quoted subcommand.
 git_verb='(commit|push|reset|merge|rebase|cherry-pick|add|rm|mv|clean)'
 git_lead='(([A-Za-z_][A-Za-z0-9_]*=\S+|sudo|env|time|nice|nohup)\s+)*'
-if ! grep -qP "(^|[;&|(\`])\s*${git_lead}git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b" <<<"$cmd"; then
-  exit 0
-fi
+verb_re="(^|[;&|(\`])\s*${git_lead}git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b"
 
-# Resolve the working tree the command would touch. Explicit repo targeting
-# (`git -C`, `--work-tree`, `--git-dir`) wins over a leading `cd`, which wins
-# over the hook's cwd. Ambiguity falls through to the hook cwd, and a git
-# failure there fails open below.
 strip_quotes() {
   local s="$1"
   s="${s%\"}"; s="${s#\"}"
@@ -89,41 +84,65 @@ strip_quotes() {
   printf '%s' "$s"
 }
 
-inspect_dir=""
-gitdir_flag=""
-if [[ "$cmd" =~ git[[:space:]]+-C[[:space:]]+([^[:space:]]+) ]]; then
-  inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
-elif [[ "$cmd" =~ --work-tree[=[:space:]]([^[:space:]]+) ]]; then
-  inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
-elif [[ "$cmd" =~ (^|[[:space:];&|])[[:space:]]*cd[[:space:]]+([^[:space:];&|]+) ]]; then
-  inspect_dir="$(strip_quotes "${BASH_REMATCH[2]}")"
+emit_deny() {
+  jq -nc '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: "This is the shared primary checkout, which is read-only for agent task work (epic #252 invariant 1). A commit/push/reset/merge/rebase/cherry-pick/add/rm/mv/clean here can clobber another live session. Isolate the work in a linked worktree (github-issue setup <N>, or git worktree add) and run the git command there. If the user explicitly directed this primary-tree write, the sanctioned /commit and git-cleanup flows carry the CLAUDE_SANCTIONED_GIT=1 marker that allows it."
+    }
+  }'
+}
+
+# A leading `cd <dir>` is the fallback target for a bare `git <verb>` that names
+# no repo of its own.
+lead_cd=""
+if [[ "$cmd" =~ (^|[[:space:];&|])[[:space:]]*cd[[:space:]]+([^[:space:];&|]+) ]]; then
+  lead_cd="$(strip_quotes "${BASH_REMATCH[2]}")"
 fi
-if [[ "$cmd" =~ --git-dir[=[:space:]]([^[:space:]]+) ]]; then
-  gitdir_flag="$(strip_quotes "${BASH_REMATCH[1]}")"
-fi
 
-git_args=()
-[[ -n "$inspect_dir" ]] && git_args+=(-C "$inspect_dir")
-[[ -n "$gitdir_flag" ]] && git_args+=(--git-dir "$gitdir_flag")
+# Resolve the working tree PER verb-bearing git invocation, not once for the
+# whole line, so a compound that mixes trees (git -C <worktree> ... && git commit
+# in the primary cwd) is judged on the invocation that actually carries the
+# mutating verb. Deny as soon as any such invocation resolves to the primary
+# checkout. Explicit repo targeting on that invocation (`git -C`, `--work-tree`,
+# `--git-dir`) wins over the leading `cd`, which wins over the hook cwd. Fail
+# open per invocation: a git error (not a repo) skips it. If nothing matches a
+# mutating verb, the loop runs zero times and the command is allowed.
+while IFS= read -r seg; do
+  [[ -n "$seg" ]] || continue
+  inspect_dir=""
+  gitdir_flag=""
+  if [[ "$seg" =~ git[[:space:]]+-C[[:space:]]+([^[:space:]]+) ]]; then
+    inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
+  elif [[ "$seg" =~ --work-tree[=[:space:]]([^[:space:]]+) ]]; then
+    inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
+  else
+    inspect_dir="$lead_cd"
+  fi
+  if [[ "$seg" =~ --git-dir[=[:space:]]([^[:space:]]+) ]]; then
+    gitdir_flag="$(strip_quotes "${BASH_REMATCH[1]}")"
+  fi
 
-# In a linked worktree --git-dir is .../.git/worktrees/<name> while
-# --git-common-dir is .../.git; in the primary checkout they resolve equal.
-# Absolute path format so the comparison is exact.
-gd="$(git "${git_args[@]}" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)"
-gcd="$(git "${git_args[@]}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  git_args=()
+  [[ -n "$inspect_dir" ]] && git_args+=(-C "$inspect_dir")
+  [[ -n "$gitdir_flag" ]] && git_args+=(--git-dir "$gitdir_flag")
 
-# Fail open: not a repo, or either lookup failed.
-[[ -n "$gd" && -n "$gcd" ]] || exit 0
+  # In a linked worktree --git-dir is .../.git/worktrees/<name> while
+  # --git-common-dir is .../.git; in the primary checkout they resolve equal.
+  # Absolute path format so the comparison is exact.
+  gd="$(git "${git_args[@]}" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)"
+  gcd="$(git "${git_args[@]}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
 
-# Linked worktree: allow.
-[[ "$gd" != "$gcd" ]] && exit 0
+  # Fail open for this invocation: not a repo, or a lookup failed.
+  [[ -n "$gd" && -n "$gcd" ]] || continue
 
-# Primary checkout with a mutating git op and no sanction marker: deny.
-jq -nc '{
-  hookSpecificOutput: {
-    hookEventName: "PreToolUse",
-    permissionDecision: "deny",
-    permissionDecisionReason: "This is the shared primary checkout, which is read-only for agent task work (epic #252 invariant 1). A commit/push/reset/merge/rebase/cherry-pick/add/rm/mv/clean here can clobber another live session. Isolate the work in a linked worktree (github-issue setup <N>, or git worktree add) and run the git command there. If the user explicitly directed this primary-tree write, the sanctioned /commit and git-cleanup flows carry the CLAUDE_SANCTIONED_GIT=1 marker that allows it."
-  }
-}'
+  # Primary checkout (git-dir == git-common-dir) with a mutating verb and no
+  # sanction marker: deny the whole command.
+  if [[ "$gd" == "$gcd" ]]; then
+    emit_deny
+    exit 0
+  fi
+done < <(grep -oP "$verb_re" <<<"$cmd" || true)
+
 exit 0

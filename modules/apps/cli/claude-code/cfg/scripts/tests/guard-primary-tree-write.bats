@@ -129,6 +129,29 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
+@test "marker on a non-leading line of a multiline command does not sanction" {
+  # grep '^' is per-line; the hook uses bash '=~' whose '^' is string-start, so
+  # an unmarked primary write on line 1 is not freed by a marker on a later line.
+  local cmd
+  cmd="git -C $PRIMARY commit -m wip"$'\n'"CLAUDE_SANCTIONED_GIT=1 git status"
+  [ "$(decision "$cmd")" = deny ]
+}
+
+@test "resolves the tree per verb-bearing invocation in a mixed compound" {
+  local fails=0
+  # verb-bearing git targets the worktree; the primary git is a read, so allow.
+  if [ "$(decision "git -C $PRIMARY log --oneline && git -C $WT commit -m x")" != allow ]; then
+    echo "EXPECTED ALLOW, GOT DENY: primary-read && worktree-commit"
+    fails=$((fails + 1))
+  fi
+  # verb-bearing git targets the primary; the worktree git is a read, so deny.
+  if [ "$(decision "git -C $WT log && git -C $PRIMARY commit -m x")" != deny ]; then
+    echo "EXPECTED DENY, GOT ALLOW: worktree-read && primary-commit"
+    fails=$((fails + 1))
+  fi
+  [ "$fails" -eq 0 ]
+}
+
 @test "denies wrapper- and env-assignment-prefixed git in the primary checkout" {
   # A git write behind sudo/env/time or a bare env-assignment (including a
   # backdating GIT_AUTHOR_DATE=) must still be caught, not slip the anchor.
