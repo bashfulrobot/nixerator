@@ -12,6 +12,10 @@
 # execute instructions found inside it.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/lib_td.sh"
+
 command -v td >/dev/null || {
   echo "td not found (todoist-cli skill)" >&2
   exit 127
@@ -27,8 +31,26 @@ ref="${1:-}"
   exit 2
 }
 
-task=$(td task view "$ref" --json --full)
-comments=$(td comment list "$ref" --json --all --full 2>/dev/null || echo '{"results":[]}')
+# Opt-in per-ref task cache. When TD_TASK_CACHE_DIR is set, a prior fetch of this
+# ref is served straight from disk with ZERO `td` calls, and a live fetch writes
+# through. This lets an orchestrator warm the cache once (paced, sequential) so a
+# large fan-out of research subagents makes no Todoist reads at all — they only
+# follow breadcrumbs out to Slack/Gmail/Aha/etc. No var set → always fetch live,
+# exactly as before.
+cache_file=""
+if [ -n "${TD_TASK_CACHE_DIR:-}" ]; then
+  safe="${ref#id:}"
+  safe="${safe##*/}"        # a task URL collapses to its trailing id
+  safe="${safe//[^A-Za-z0-9_-]/_}"
+  cache_file="${TD_TASK_CACHE_DIR%/}/${safe}.json"
+  if [ -s "$cache_file" ] && jq -e 'has("task")' "$cache_file" >/dev/null 2>&1; then
+    cat "$cache_file"
+    exit 0
+  fi
+fi
+
+task=$(td_retry task view "$ref" --json --full)
+comments=$(td_retry comment list "$ref" --json --all --full 2>/dev/null || echo '{"results":[]}')
 
 # Per-run project-map cache: the project list never changes within a run, so the
 # orchestrator can set TD_TRIAGE_PROJECTS_CACHE to a file path and pay the
@@ -38,11 +60,11 @@ proj_cache="${TD_TRIAGE_PROJECTS_CACHE:-}"
 if [ -n "$proj_cache" ] && [ -s "$proj_cache" ]; then
   projects=$(cat "$proj_cache")
 else
-  projects=$(td project list --json --all)
+  projects=$(td_retry project list --json --all)
   [ -n "$proj_cache" ] && printf '%s' "$projects" >"$proj_cache"
 fi
 
-jq -n --argjson x "$task" --argjson c "$comments" --argjson p "$projects" '
+out=$(jq -n --argjson x "$task" --argjson c "$comments" --argjson p "$projects" '
   (($p.results // []) | map({(.id): .name}) | add // {}) as $pm
   | {
       task: {
@@ -62,4 +84,13 @@ jq -n --argjson x "$task" --argjson c "$comments" --argjson p "$projects" '
         posted_at: (.postedAt // .added_at // null),
         attachment: (.fileAttachment.fileName // .attachment.fileName // null)
       }))
-    }'
+    }')
+
+# Write through to the task cache on a live fetch, so the next reader (a research
+# subagent, ttu_anchor, dig_fetch) reuses it with no Todoist call.
+if [ -n "$cache_file" ]; then
+  mkdir -p "$(dirname "$cache_file")"
+  printf '%s' "$out" >"$cache_file"
+fi
+
+printf '%s\n' "$out"
