@@ -79,3 +79,77 @@ queue_state_file() {
       printf "%s/.queue-state.json" "$(worktree_base)"
     ' )
 }
+
+# state_build ARGS... — run create_issue_state with the given args (sourced, no
+# network), so the resumed/fresh state file it writes can be inspected. Args are
+# passed straight through: branch wt_path issue title body base_ref [blockers]
+# [pr_url] [initial_step] [setup_note].
+state_build() {
+  ( bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      create_issue_state "$@"
+    ' _ "$@" 2>/dev/null )
+}
+
+# resume_fn FUNC ARGS... — run a pure github-issue.sh helper (no cwd, no
+# network) and print its stdout.
+resume_fn() {
+  ( bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      f="$1"; shift; "$f" "$@"
+    ' _ "$@" 2>/dev/null )
+}
+
+# ahead_in_fixture BRANCH — run count_ahead_of_origin from the fixture work
+# clone (needs the origin remote-tracking ref that setup_fixture creates).
+ahead_in_fixture() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      count_ahead_of_origin "$1"
+    ' _ "$1" 2>/dev/null )
+}
+
+# behind_in_fixture BRANCH — run count_behind_of_origin from the fixture work
+# clone.
+behind_in_fixture() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      count_behind_of_origin "$1"
+    ' _ "$1" 2>/dev/null )
+}
+
+# resume_wt_add BRANCH_STATE AHEAD BRANCH WT_PATH — run add_resume_worktree from
+# the fixture work clone (real git, no gh/network) so the per-state worktree-add
+# routing and the missing-tracking-ref guard can be pinned. Exit status is the
+# function's return (0 success, 2 unknown state, 3 origin ref did not resolve).
+resume_wt_add() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      add_resume_worktree "$1" "$2" "$3" "$4"
+    ' _ "$1" "$2" "$3" "$4" 2>/dev/null )
+}
+
+# select_pr_url JSON — run select_same_repo_pr_url (pure, no gh/network) on a
+# `gh pr list --json url,isCrossRepository` payload and print the chosen url.
+# stderr (the multi-PR warning) is dropped so $output is exactly the url.
+select_pr_url() {
+  ( bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      select_same_repo_pr_url "$1"
+    ' _ "$1" 2>/dev/null )
+}
