@@ -20,8 +20,10 @@ OFFSET <n>
 - No `SELECT *`. List fields explicitly.
 - Field and SObject names are case-insensitive. String literal *values* are
   case-sensitive (use `LIKE` for fuzzy match, there is no `ILIKE`).
-- Max `LIMIT` is 2000 for standard queries, 50000 for bulk. Use
-  `--bulk` in the query script for large result sets.
+- A standard `sf data query` returns up to the org's `org-max-query-limit`
+  (default 10,000; raisable to 50,000). For anything larger, use `--bulk` in
+  the query script -- it routes to `sf data export bulk` (Bulk API 2.0), which
+  has no such ceiling.
 - `OFFSET` is limited to 2000 total. For deep pagination use a keyset
   (e.g., `WHERE CreatedDate > :last_seen`).
 

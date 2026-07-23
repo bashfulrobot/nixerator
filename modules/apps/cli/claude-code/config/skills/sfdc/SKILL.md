@@ -146,8 +146,10 @@ bash scripts/sfdc-query.sh --json "SELECT Id, Name FROM Account LIMIT 5"
 bash scripts/sfdc-query.sh --csv "SELECT Id, Name FROM Account LIMIT 5"
 ```
 
-For result sets >2000 rows, use bulk mode (the query script handles this
-automatically with `--bulk`):
+For large result sets (beyond the org's default 10,000-row query limit), use
+bulk mode. The query script routes `--bulk` to `sf data export bulk` (Bulk API
+2.0) under the hood -- `sf data query` itself no longer has a `--bulk` flag.
+Bulk mode emits csv or json only (a `--human` request downgrades to csv):
 ```bash
 bash scripts/sfdc-query.sh --bulk --csv "SELECT ... FROM Opportunity"
 ```
