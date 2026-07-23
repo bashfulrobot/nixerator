@@ -222,7 +222,7 @@ Parse JSON response for `worktree`, `branch`, `base_ref`, and `blockers`. If any
 Switch the session into the worktree using the `EnterWorktree` tool with `path: <worktree>`.
 
 If `setup` returns an error object instead, route on `error.cause` (do not parse the message):
-- `branch_exists`. This issue's branch already exists locally or on origin (`error.location` says which). Another agent may have started it, or a prior run left it behind. Surface it, check the PR or run `github-issue status <N>`, and do NOT auto-create a second worktree. Re-establishing a worktree for a still-open branch is manual for now (tracked in #267).
+- `branch_exists`. This issue's branch already exists locally or on origin (`error.location` says which). Another agent may have started it, or a prior run left it behind. Do NOT auto-create a second worktree. If a different agent is actively working it, surface and stop. If the branch is yours and the worktree was lost (a manual `git worktree remove`, a partial cleanup, or picking the work up on another host), re-establish it with `github-issue resume <N>` (see Resume below).
 - `branch_check_unreachable`. origin was unreachable, so the branch-existence check could not run and setup refused fail-closed rather than risk a duplicate. Surface it and retry once origin is reachable; do NOT force past it.
 - `worktree_exists`. A worktree for this issue is already on disk. Run `github-issue status <N>` and resume from the recorded step rather than setting up again.
 - `issue_claimed`. Another agent holds the issue lease. Surface; do not retry.
@@ -230,6 +230,25 @@ If `setup` returns an error object instead, route on `error.cause` (do not parse
 - `invalid_issue_number`. The argument was not numeric. Fix the call.
 
 Proceed to assess (setup already sets `workflow_step: "assess"`).
+
+### Resume (branch exists, worktree lost)
+
+When an issue's branch and PR are still open on origin but the local worktree is gone, `github-issue resume <N>` re-adds it instead of refusing:
+
+```bash
+github-issue resume <number>
+```
+
+It re-attaches the worktree on the existing branch and prefers origin as the source of truth. It keeps any local-only commits and warns when the local branch is ahead of origin, so nothing is silently discarded. It links the open same-repo PR it finds via `gh pr list --head <branch>` (fork PRs that merely share the branch name are excluded), so the next `github-issue push` updates that PR rather than opening a second one. It takes the issue lease as a reentrant takeover for the resuming host, so a cross-host pickup is not refused with `issue_claimed`. Resume sets `workflow_step: "implement"` so you re-orient on the branch, then carry forward through verify and push as usual.
+
+Switch the session into the worktree with the `EnterWorktree` tool (`path: <worktree>`), then continue from the recorded step.
+
+Route on `error.cause`:
+- `no_existing_branch`. Nothing to resume: the branch exists neither locally nor on origin. Use `github-issue setup <N>` to start fresh.
+- `worktree_exists`. A worktree is already on disk. Run `github-issue status <N>` and resume from the recorded step.
+- `branch_check_unreachable`. origin was unreachable (or the tracking ref did not resolve after fetch), so resume refused fail-closed. Retry once origin is reachable.
+- `worktree_add_failed`. `git worktree add` failed, usually a stale worktree entry or the branch checked out elsewhere. Run `git worktree prune` and retry.
+- `gh_auth_failed`. Could not resolve the GitHub login to claim the issue. Check `gh auth status`.
 
 ### Assess
 
