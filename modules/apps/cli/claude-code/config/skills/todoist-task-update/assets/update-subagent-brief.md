@@ -27,7 +27,7 @@ it already paraphrases — a pure date check false-flags those.
 | kind | how to check |
 |---|---|
 | slack | `bash {{SKILL_DIR}}/scripts/ttu_slack_ref.sh <url>` → `{channel,ts,thread_ts}`; read the thread (Slack MCP) for replies after the anchor |
-| gmail | do NOT follow the label/search URL (dead end). Search via `gws` for threads with a participant at the customer's email domain, updated after the anchor |
+| gmail | `bash {{SKILL_DIR}}/scripts/ttu_gmail_ref.sh <url>` → `{shape, id}`. Has an id (`shape` `thread`/`message`): resolve the whole thread, not just the linked message, so a reply that arrived after the anchor is caught. For `message`, `gws gmail users messages get --params '{"userId":"me","id":"<id>","format":"metadata"}'` to read its `threadId`, then `gws gmail users threads get --params '{"userId":"me","id":"<threadId>","format":"metadata"}'`; for `thread`, call `threads get` directly on `<id>`. Take the thread's newest message; report a delta only if it is strictly after the anchor, tagged `confidence: "confirmed"` (`userId` is required; `format` `metadata` keeps message bodies out of context). If resolution errors (id not API-resolvable, 404), fall back to the domain search below and tag `confidence: "heuristic"`. No id (`shape` `label`/`search`/`none`): search via `gws` for threads with a participant at the customer's email domain, updated after the anchor, and tag any delta `confidence: "heuristic"` |
 | gdocs | Drive MCP / `gws`: is `modifiedTime` after the anchor, and who edited |
 | aha | `aha` skill: status change or new comments on the idea/feature after the anchor |
 | sfid / case | `sfdc` skill: `LastModifiedDate` / new activity after the anchor |
@@ -38,6 +38,14 @@ it already paraphrases — a pure date check false-flags those.
 
 If a Slack read returns `channel_not_found`, the bot is not in that channel:
 record `UNVERIFIABLE: fixable` and name the channel (Dustin can invite the bot).
+
+Gmail URL shapes carry a resolvable id or they do not. `?th=<hex>` is the API
+thread id (resolvable). `#<view>/<id>` (e.g. `#inbox/FMfcg...`, `#sent/Qgrc...`)
+is a web-UI message id (best-effort: the web-UI id and the API id do not always
+match, so resolution can fail and fall back). `#label/<name>`, `#search/<query>`,
+and a bare view (`#inbox`, `#starred`, ...) do not identify one thread, so they
+always take the domain-search fallback. `ttu_gmail_ref.sh` makes this call; do
+not eyeball the URL.
 
 ## Step 3 — tag each finding
 
@@ -65,13 +73,21 @@ record `UNVERIFIABLE: fixable` and name the channel (Dustin can invite the bot).
       "deltas": [
         {"source":"slack|gmail|gdocs|aha|sfdc|jira|file|...",
          "permalink":"<url>", "who":"<name>", "when":"<iso>",
-         "signal":"substantive|ack", "gist":"<one line>"}
+         "signal":"substantive|ack", "confidence":"confirmed|heuristic",
+         "gist":"<one line>"}
       ],
       "unverifiable": [
         {"class":"fixable|permanent", "what":"<channel/system>", "note":"<why>"}
       ],
       "footer":"AUDITED | NEEDS UPDATE | UNVERIFIABLE"
     }
+
+`confidence`: `confirmed` when the delta was read against the specific artifact
+(a resolved Gmail thread, a Slack thread, an Aha feature, a file mtime, and so
+on); `heuristic` when it came from a proxy match (the Gmail domain-search
+fallback). In practice only the Gmail fallback emits `heuristic`; every other
+source is `confirmed`. Default to `confirmed` if you would otherwise omit it, so
+a forgotten tag on a real delta stays visible rather than silently dropped.
 
 `footer`: `NEEDS UPDATE` if `deltas` is non-empty; else `UNVERIFIABLE` if only
 `unverifiable` entries; else `AUDITED`.
