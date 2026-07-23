@@ -41,6 +41,15 @@ rec {
     terminal = "kitty";
   };
 
+  # Local AI (Ollama) defaults. Single source for the model that both the
+  # server-side pull (apps.cli.ollama.loadModels) and the goose client default
+  # (GOOSE_MODEL) reference, so the pulled model and the requested model cannot
+  # drift out of sync. JetBrains Mellum2-Thinking: 12B MoE (~2.5B active),
+  # supports tool-calling (BFCL v3 73.9, hermes parser), Q4_K_M GGUF.
+  ai = {
+    localCodeModel = "hf.co/JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M";
+  };
+
   # Remote editing (Zed SSH)
   remoteEdit = {
     user = user.name;
