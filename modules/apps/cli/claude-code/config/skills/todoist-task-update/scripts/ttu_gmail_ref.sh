@@ -33,10 +33,13 @@ case "$url" in
 esac
 
 emit() { jq -n --arg s "$1" --arg i "$2" '{shape:$s, id:$i}'; }
-# A Gmail message/thread id: a long base64url-ish token. A human label name
-# ("Kong-Health-Equity") also matches this, so only trust it in a slot that
-# only ever holds an id (segment after the view, or after a label/search name).
-is_id() { printf '%s' "${1:-}" | grep -qE '^[A-Za-z0-9_-]{10,}$'; }
+# A Gmail message/thread id: a long base64url-ish token that starts with an
+# alphanumeric (real ids always do; requiring it keeps a leading-dash token from
+# ever reaching a downstream command as an option-looking argument). A human
+# label name ("Kong-Health-Equity") also matches, so only trust it in a slot
+# that only ever holds an id (segment after the view, or after a label/search
+# name). The charset already blocks every shell and JSON metacharacter.
+is_id() { printf '%s' "${1:-}" | grep -qE '^[A-Za-z0-9][A-Za-z0-9_-]{9,}$'; }
 
 # 1. Classic ?th=<hex> permalink wins: it is the Gmail API thread id.
 th=$(printf '%s' "$url" | grep -oE '[?&]th=[0-9a-fA-F]+' | head -1 | sed -E 's/.*th=//')

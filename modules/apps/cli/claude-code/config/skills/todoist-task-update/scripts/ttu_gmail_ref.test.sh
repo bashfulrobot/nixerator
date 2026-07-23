@@ -58,6 +58,12 @@ out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.googlemail.com/mail/u/0/#inbox
 eq "googlemail host shape" "message" "$(jq -r .shape <<<"$out")"
 eq "googlemail host id" "FMfcgzQbfWpZcXsLmNoPqRsTuVwXyZ12" "$(jq -r .id <<<"$out")"
 
+# A leading-dash segment is NOT a valid id: it must fall to the fallback (none),
+# never emit as an option-looking id argument.
+out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/0/#inbox/----------abc')
+eq "leading-dash rejected shape" "none" "$(jq -r .shape <<<"$out")"
+eq "leading-dash rejected id" "" "$(jq -r .id <<<"$out")"
+
 # Bare view (#inbox) with no id segment → none, fallback path.
 out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/0/#inbox')
 eq "bare inbox shape" "none" "$(jq -r .shape <<<"$out")"
