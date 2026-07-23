@@ -96,52 +96,81 @@ emit_deny() {
   }'
 }
 
-# Collect every cwd change (cd or pushd) with its byte offset. A bare git verb
-# (one that names no repo of its own) runs in the tree set by the NEAREST cwd
-# change before it, so tracking offsets lets
-# `cd <wt> && git status && cd <primary> && git commit` resolve the commit
-# against <primary>, not the first cd.
+# A bare git verb (one that names no repo of its own) runs in whatever tree the
+# shell's cwd points at when it executes. Rather than guess from the nearest
+# textual `cd`, collect every navigation event with its byte offset and REPLAY
+# them left to right up to each verb, so the resolved cwd matches real execution
+# order for cd, pushd/popd (a directory stack), and subshells (a `( ... )` group
+# whose cwd change is discarded at the closing `)`). This gets both mirror forms
+# right: `cd <primary> && (cd <wt> && ...) && git commit` denies (the subshell cd
+# is discarded at `)` before the commit), and `cd <wt> && (cd <primary> && git
+# commit)` denies (the commit sits inside the group where the primary cd is live).
 #
-# Heuristic limits, all in the fail-open (allow) direction except where noted:
-#   - A cwd change scoped inside a subshell `( ... )` does NOT persist to
-#     commands after the group, so a match whose boundary char is `(` is not
-#     added to the persistent list. This keeps
-#     `cd <primary> && (cd <wt> && ...) && git commit` resolving to <primary>.
-#     A git write INSIDE a subshell then falls back to an outer cd or the hook
-#     cwd, which can wrongly DENY a subshelled worktree write (fail-safe), never
-#     wrongly allow a primary one.
-#   - Leading cd/pushd options (`-P`, `-L`, `--`) are skipped so the path, not
-#     the flag, is captured; otherwise `cd -P <primary> && git commit` would
-#     resolve `git -C -P`, error, and fail open on a primary write.
-#   - popd is not modelled (it pops a stack this parser does not track), and a
-#     directory or `git -C` argument quoted with an embedded space is not
-#     resolved (tokenisation is space-delimited, not shell-quote aware). Both
-#     leave the invocation to fail open.
+# Events: OPEN `(` / CLOSE `)` for subshell scope, CD/PUSH with a target dir, POP.
+# Leading cd/pushd options (`-P`, `-L`, `--`) are skipped so the path, not the
+# flag, is captured. Any `(`/`)` counts as a subshell boundary, which also treats
+# `$(...)` command substitution as a scope (correct: a cd there does not escape
+# either). Residual fail-open limits, all benign or fail-safe, never a primary
+# wrongful-allow on this repo's space-free paths: a `(` or `)` inside a quoted
+# string is still counted as a scope boundary, and a `cd`/`git -C` argument
+# quoted with an embedded space is not resolved (tokenisation is space-delimited,
+# not shell-quote aware).
 cd_re='(cd|pushd)([[:space:]]+-[^[:space:];&|]+)*[[:space:]]+([^[:space:];&|]+)'
-cd_offsets=()
-cd_dirs=()
+nav_offsets=()
+nav_types=()
+nav_dirs=()
+add_nav() {
+  nav_offsets+=("$1")
+  nav_types+=("$2")
+  nav_dirs+=("${3:-}")
+}
 while IFS= read -r line; do
   [[ -n "$line" ]] || continue
   off="${line%%:*}"
   m="${line#*:}"
-  # A subshell-scoped cwd change (boundary char `(`) does not outlive its group.
-  [[ "${m:0:1}" == "(" ]] && continue
   if [[ "$m" =~ $cd_re ]]; then
-    cd_offsets+=("$off")
-    cd_dirs+=("$(strip_quotes "${BASH_REMATCH[3]}")")
+    if [[ "${BASH_REMATCH[1]}" == pushd ]]; then
+      add_nav "$off" PUSH "$(strip_quotes "${BASH_REMATCH[3]}")"
+    else
+      add_nav "$off" CD "$(strip_quotes "${BASH_REMATCH[3]}")"
+    fi
   fi
 done < <(grep -boP "(^|[;&|(])[[:space:]]*${cd_re}" <<<"$cmd" || true)
+while IFS= read -r line; do
+  [[ -n "$line" ]] || continue
+  add_nav "${line%%:*}" POP
+done < <(grep -boP '(^|[;&|(])[[:space:]]*popd\b' <<<"$cmd" || true)
+while IFS= read -r line; do [[ -n "$line" ]] || continue; add_nav "${line%%:*}" OPEN; done < <(grep -boP '\(' <<<"$cmd" || true)
+while IFS= read -r line; do [[ -n "$line" ]] || continue; add_nav "${line%%:*}" CLOSE; done < <(grep -boP '\)' <<<"$cmd" || true)
 
-# The cd dir with the greatest offset still before $1 (empty if none).
-last_cd_before() {
-  local target="$1" i best_off=-1 best_dir=""
-  for i in "${!cd_offsets[@]}"; do
-    if ((cd_offsets[i] < target)) && ((cd_offsets[i] > best_off)); then
-      best_off="${cd_offsets[i]}"
-      best_dir="${cd_dirs[i]}"
-    fi
-  done
-  printf '%s' "$best_dir"
+# Sort priority at an equal offset: OPEN before CD/PUSH/POP before CLOSE. The
+# cd-event offset points at the `(` boundary for a subshell-leading cd, so it
+# ties with that `(`'s OPEN; OPEN must win so the scope is entered before the cd
+# runs inside it.
+nav_prio() { case "$1" in OPEN) printf 0 ;; CLOSE) printf 2 ;; *) printf 1 ;; esac; }
+
+# Replay all navigation events with offset < $1 in (offset, priority) order and
+# print the resolved cwd (empty means the hook's own cwd).
+cwd_at() {
+  local target="$1" cwd="" i order
+  local -a pstack=() sstack=()
+  order="$(for i in "${!nav_offsets[@]}"; do
+    ((nav_offsets[i] < target)) && printf '%s %s %s\n' "${nav_offsets[i]}" "$(nav_prio "${nav_types[i]}")" "$i"
+  done | sort -n -k1,1 -k2,2 | cut -d' ' -f3)"
+  while IFS= read -r i; do
+    [[ -n "$i" ]] || continue
+    case "${nav_types[i]}" in
+      OPEN) sstack+=("$cwd") ;;
+      CLOSE) ((${#sstack[@]})) && { cwd="${sstack[-1]}"; unset 'sstack[-1]'; } ;;
+      CD) cwd="${nav_dirs[i]}" ;;
+      PUSH)
+        pstack+=("$cwd")
+        cwd="${nav_dirs[i]}"
+        ;;
+      POP) ((${#pstack[@]})) && { cwd="${pstack[-1]}"; unset 'pstack[-1]'; } ;;
+    esac
+  done <<<"$order"
+  printf '%s' "$cwd"
 }
 
 # Resolve the working tree PER verb-bearing git invocation, not once for the
@@ -149,9 +178,10 @@ last_cd_before() {
 # in the primary cwd) is judged on the invocation that actually carries the
 # mutating verb. Deny as soon as any such invocation resolves to the primary
 # checkout. Explicit repo targeting on that invocation (`git -C`, `--work-tree`,
-# `--git-dir`) wins over the nearest preceding `cd`, which wins over the hook
-# cwd. Fail open per invocation: a git error (not a repo) skips it. If nothing
-# matches a mutating verb, the loop runs zero times and the command is allowed.
+# `--git-dir`) wins over the replayed cwd at that offset, which wins over the
+# hook cwd. Fail open per invocation: a git error (not a repo) skips it. If
+# nothing matches a mutating verb, the loop runs zero times, and the command is
+# allowed.
 while IFS= read -r match; do
   [[ -n "$match" ]] || continue
   moff="${match%%:*}"
@@ -163,7 +193,7 @@ while IFS= read -r match; do
   elif [[ "$seg" =~ --work-tree[=[:space:]]([^[:space:]]+) ]]; then
     inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
   else
-    inspect_dir="$(last_cd_before "$moff")"
+    inspect_dir="$(cwd_at "$moff")"
   fi
   if [[ "$seg" =~ --git-dir[=[:space:]]([^[:space:]]+) ]]; then
     gitdir_flag="$(strip_quotes "${BASH_REMATCH[1]}")"

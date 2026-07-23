@@ -152,17 +152,17 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
-@test "resolves a bare git against the nearest preceding cd, not the first" {
+@test "replays sequential cds so the last one before the write wins" {
   # A later cd into the primary is the tree the bare commit actually lands in, so
-  # tracking only the first cd would wrongly allow it. The verb-bearing git has no
-  # -C of its own; the cd right before it (into the primary) is what counts.
+  # resolving against the first cd would wrongly allow it. The verb-bearing git
+  # has no -C of its own; the cd in effect when it runs (into the primary) counts.
   local fails=0
   if [ "$(decision "cd $WT && git status && cd $PRIMARY && git commit -m x")" != deny ]; then
     echo "EXPECTED DENY, GOT ALLOW: cd worktree, read, cd primary, commit"
     fails=$((fails + 1))
   fi
   # Mirror image: first cd into the primary, then into the worktree before the
-  # only mutating git. The nearest preceding cd is the worktree, so allow.
+  # only mutating git. The cd in effect at the commit is the worktree, so allow.
   if [ "$(decision "cd $PRIMARY && git log && cd $WT && git commit -m x")" != allow ]; then
     echo "EXPECTED ALLOW, GOT DENY: cd primary, read, cd worktree, commit"
     fails=$((fails + 1))
@@ -170,33 +170,54 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
-@test "a subshell-scoped cd does not carry into a later primary write" {
-  # `(cd $WT ...)` changes cwd only inside the group. The git commit runs after
-  # the group, back in the primary tree, so the subshell cd must not be treated
-  # as the persistent cwd. Resolving it wrongly would allow a primary commit.
-  local cmd="cd $PRIMARY && (cd $WT && git status) && git commit -m x"
-  [ "$(decision "$cmd")" = deny ]
+@test "replays subshell scope so both cd/subshell mirrors resolve correctly" {
+  # A `( ... )` cwd change is discarded at the closing `)`. The two mirror forms
+  # both land the write in the primary and must both deny:
+  #   - the commit AFTER the group runs where the outer cd left it (primary);
+  #   - the commit INSIDE the group runs where the inner cd put it (primary).
+  # A textual nearest-cd heuristic gets exactly one of these wrong, so the replay
+  # is what makes both correct.
+  local fails=0
+  if [ "$(decision "cd $PRIMARY && (cd $WT && git status) && git commit -m x")" != deny ]; then
+    echo "EXPECTED DENY, GOT ALLOW: commit after subshell, outer cd primary"
+    fails=$((fails + 1))
+  fi
+  if [ "$(decision "cd $WT && (cd $PRIMARY && git commit -m x)")" != deny ]; then
+    echo "EXPECTED DENY, GOT ALLOW: commit inside subshell, inner cd primary"
+    fails=$((fails + 1))
+  fi
+  # A worktree write inside a subshell entered from the primary still allows.
+  if [ "$(decision "cd $PRIMARY && (cd $WT && git commit -m x)")" != allow ]; then
+    echo "EXPECTED ALLOW, GOT DENY: commit inside subshell, inner cd worktree"
+    fails=$((fails + 1))
+  fi
+  [ "$fails" -eq 0 ]
 }
 
-@test "resolves the cd path past leading options and recognises pushd" {
+@test "resolves the cd path past leading options and tracks pushd/popd" {
   # cd flags (-P, -L, --) must be skipped so the path, not the flag, is the
   # target; otherwise `git -C -P` errors and fails open on a primary write.
-  # pushd is a cwd change too and must be tracked like cd.
+  # pushd/popd move the cwd via a directory stack and must be replayed: after
+  # popd the cwd returns to what it was before the matching pushd.
   local fails=0 cmd
   for cmd in \
     "cd -P $PRIMARY && git commit -m x" \
     "cd -- $PRIMARY && git commit -m x" \
-    "pushd $PRIMARY && git commit -m x"; do
+    "pushd $PRIMARY && git commit -m x" \
+    "cd $PRIMARY && pushd $WT && popd && git commit -m x"; do
     if [ "$(decision "$cmd")" != deny ]; then
       echo "EXPECTED DENY, GOT ALLOW: $cmd"
       fails=$((fails + 1))
     fi
   done
-  # The same options pointing at a worktree still allow.
-  if [ "$(decision "cd -P $WT && git commit -m x")" != allow ]; then
-    echo "EXPECTED ALLOW, GOT DENY: cd -P worktree commit"
-    fails=$((fails + 1))
-  fi
+  for cmd in \
+    "cd -P $WT && git commit -m x" \
+    "cd $WT && pushd $PRIMARY && popd && git commit -m x"; do
+    if [ "$(decision "$cmd")" != allow ]; then
+      echo "EXPECTED ALLOW, GOT DENY: $cmd"
+      fails=$((fails + 1))
+    fi
+  done
   [ "$fails" -eq 0 ]
 }
 
