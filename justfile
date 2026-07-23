@@ -203,8 +203,14 @@ test-render-secrets:
     nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/render-secrets/tests/
 
 # Run the secret-leak guard hook deny/allow regression tests
+# (globs the whole tests/ dir, which also holds the capture-sync settings suite,
+# so python3 is needed for that file too)
 test-secret-guard:
-    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gnugrep --command bats modules/apps/cli/claude-code/cfg/scripts/tests/
+    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gnugrep nixpkgs#python3 --command bats modules/apps/cli/claude-code/cfg/scripts/tests/
+
+# Run the capture-sync settings.json 3-way reconcile regression tests
+test-capture-sync:
+    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#python3 --command bats modules/apps/cli/claude-code/cfg/scripts/tests/capture-sync-settings.bats
 
 # Run worktree-flow unit tests (github-issue setup branch preflight)
 test-worktree-flow:
