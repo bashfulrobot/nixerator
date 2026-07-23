@@ -9,6 +9,9 @@ tool output.
   (If the anchor is empty, the task has no comments and no creation date — scan
   only the last 60 days and flag anything found as high-value.)
 - Skill dir: `{{SKILL_DIR}}`   Triage dir: `{{TRIAGE_DIR}}`
+- Task cache dir: `{{TASK_CACHE_DIR}}` — if non-empty, `export TD_TASK_CACHE_DIR={{TASK_CACHE_DIR}}`
+  as your FIRST action. Your `dig_fetch`/`td_fetch` calls then read the task from
+  disk instead of hitting the Todoist API (the orchestrator pre-warmed it).
 
 ## Step 1 — get the breadcrumbs (already classified)
 
