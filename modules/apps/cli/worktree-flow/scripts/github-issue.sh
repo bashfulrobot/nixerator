@@ -7,6 +7,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && { [[ "${1:-}" == "--help" ]] || [[ "${
   info ""
   info "Subcommands:"
   info "  setup <number> [--base <ref>]           -- create worktree pinned to base (default origin/main)"
+  info "  resume <number>                         -- re-add a worktree on an existing branch, link its open PR"
   info "  status <number>                         -- detect lifecycle state"
   info "  push <number>                           -- silent pre-push rebase, push branch, create/update PR, propagate labels"
   info "  auto-merge <number>                     -- enable GitHub auto-merge (squash) on the PR"
@@ -865,13 +866,64 @@ count_ahead_of_origin() {
   git rev-list --count "refs/remotes/origin/${branch}..refs/heads/${branch}"
 }
 
+# Count commits origin/<branch> has that the local branch does not (the behind
+# side), reading the fetched remote-tracking ref (no network). Returns 0 when
+# either ref is absent. Paired with count_ahead_of_origin so resume can tell a
+# clean fast-forward from a genuine divergence and word its warning correctly.
+count_behind_of_origin() {
+  local branch="$1"
+  git show-ref --verify --quiet "refs/heads/${branch}" || { printf '0'; return 0; }
+  git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || { printf '0'; return 0; }
+  git rev-list --count "refs/heads/${branch}..refs/remotes/origin/${branch}"
+}
+
+# Re-add the worktree on an existing branch per its detected state. Pure git (no
+# gh/network), so it is unit-testable in the offline fixture. Never resets a
+# branch that carries unpushed commits: the -B prefer-origin path runs only when
+# the local branch is not ahead (ahead == 0). Any state that sources from origin
+# (remote, or "both" preferring origin's tip) first verifies the tracking ref
+# resolves and returns 3 if it does not, rather than letting 'git worktree add
+# ... origin/<branch>' abort raw: branch_state comes from a live ls-remote while
+# the tracking ref is only as fresh as the best-effort fetch, so a split-brain
+# (ls-remote up, fetch down) must fail with a routable cause, not a crash.
+add_resume_worktree() {
+  local branch_state="$1" ahead="$2" branch="$3" wt_path="$4"
+  case "$branch_state" in
+    remote)
+      git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || return 3
+      git worktree add --no-checkout --track -b "$branch" "$wt_path" "origin/${branch}"
+      ;;
+    both)
+      if [[ "$ahead" -gt 0 ]]; then
+        git worktree add --no-checkout "$wt_path" "$branch"
+      else
+        git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || return 3
+        git worktree add --no-checkout -B "$branch" "$wt_path" "origin/${branch}"
+      fi
+      ;;
+    local)
+      git worktree add --no-checkout "$wt_path" "$branch"
+      ;;
+    *)
+      return 2
+      ;;
+  esac
+}
+
 # Discover the URL of the OPEN PR whose head is <branch>, or empty if none.
 # Resume writes this into state so the next push updates the PR instead of
 # opening a second one. Best-effort: a gh failure yields empty and resume still
-# proceeds (the next push then creates the PR).
+# proceeds (the next push then creates the PR). Warns to stderr (never stdout,
+# which is captured) when more than one open PR shares the head branch, since
+# picking the first is then arbitrary.
 discover_open_pr_url() {
-  local branch="$1" url
-  url="$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty' 2>/dev/null)" || url=""
+  local branch="$1" json count url
+  json="$(gh pr list --head "$branch" --state open --json url 2>/dev/null)" || json="[]"
+  count="$(printf '%s' "$json" | jq 'length' 2>/dev/null || echo 0)"
+  if [[ "$count" -gt 1 ]]; then
+    warn "found ${count} open PRs for '${branch}'; linking the first one" >&2
+  fi
+  url="$(printf '%s' "$json" | jq -r '.[0].url // empty' 2>/dev/null)" || url=""
   printf '%s' "$url"
 }
 
@@ -1114,23 +1166,69 @@ cmd_resume() {
       ;;
   esac
 
-  # Prefer origin as the source of truth. When a local branch is ahead of origin
-  # keep its commits and warn; the worktree add below never resets a branch that
-  # carries unpushed work.
-  local ahead=0
+  # Surface still-open blockers, matching setup. Resume does not refuse on them
+  # (the branch already exists), but a resumed issue with open blockers deserves
+  # the same notice setup gives.
+  local blockers_json open_blockers_count
+  blockers_json="$(parse_blockers "$issue_body")"
+  open_blockers_count="$(printf '%s' "$blockers_json" | jq '[.[] | select(.state == "OPEN")] | length')"
+  if [[ "$open_blockers_count" -gt 0 ]]; then
+    warn "issue #${issue_number} references ${open_blockers_count} open blocker(s):"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && warn "  ${line}"
+    done < <(printf '%s' "$blockers_json" | jq -r '.[] | select(.state == "OPEN") | "#\(.number) [\(.state)] \(.title)"')
+  fi
+
+  # The contract is a still-open branch. If the branch's PR already merged (the
+  # branch just was not deleted), say so up front rather than letting it degrade
+  # to "nothing to push" later. Best-effort; is_branch_merged is non-fatal and a
+  # condition here, so its exit status never aborts under set -e.
+  if is_branch_merged "$branch_name" "$base_ref"; then
+    warn "branch '${branch_name}' looks already merged; resuming anyway, but the next push will likely have nothing to add"
+  fi
+
+  # Prefer origin as the source of truth. When the local branch carries unpushed
+  # commits keep them and warn; the worktree add never resets a branch that is
+  # ahead. Distinguish a clean fast-forward from a real divergence so the warning
+  # points at the reconcile the next push will need.
+  local ahead=0 behind=0
   case "$branch_state" in
     both)
       ahead="$(count_ahead_of_origin "$branch_name")"
-      if [[ "$ahead" -gt 0 ]]; then
-        warn "local branch '${branch_name}' is ${ahead} commit(s) ahead of origin -- keeping local commits, not resetting to origin"
+      behind="$(count_behind_of_origin "$branch_name")"
+      if [[ "$ahead" -gt 0 && "$behind" -gt 0 ]]; then
+        warn "local branch '${branch_name}' has diverged from origin (${ahead} ahead, ${behind} behind); keeping local commits, the next push will need a reconcile against origin/${branch_name}"
+      elif [[ "$ahead" -gt 0 ]]; then
+        warn "local branch '${branch_name}' is ${ahead} commit(s) ahead of origin; keeping local commits, not resetting to origin"
       fi
       ;;
     local)
-      warn "branch '${branch_name}' exists only locally; origin has no copy -- the next push will publish it"
+      warn "branch '${branch_name}' exists only locally; origin has no copy, the next push will publish it"
       ;;
   esac
 
+  # Re-add the worktree on the EXISTING branch BEFORE taking the lease, so a
+  # failed add never strands a reentrant takeover on an issue with no worktree.
+  # add_resume_worktree verifies the origin tracking ref for the origin-sourced
+  # states (return 3) and never resets a branch that is ahead.
+  mkdir -p "$(dirname "$wt_path")"
+  local add_rc=0
+  add_resume_worktree "$branch_state" "$ahead" "$branch_name" "$wt_path" || add_rc=$?
+  if [[ "$add_rc" -eq 3 ]]; then
+    json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" \
+      '{message: ("origin tracking ref for '\''" + $branch + "'\'' did not resolve after fetch (origin unreachable or a stale fetch); retry once origin is reachable before resuming issue #" + $issue + "."),
+        cause: "branch_check_unreachable", branch: $branch, issue_number: ($issue|tonumber)}')"
+  elif [[ "$add_rc" -ne 0 ]]; then
+    json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" --arg wt "$wt_path" \
+      '{message: ("could not add a worktree for branch '\''" + $branch + "'\'' at " + $wt + " (git worktree add failed; a stale worktree entry or the branch checked out elsewhere?). Run '\''git worktree prune'\'' and retry."),
+        cause: "worktree_add_failed", branch: $branch, issue_number: ($issue|tonumber), worktree: $wt}')"
+  fi
+  register_cleanup "$wt_path"
+  checkout_and_unlock "$wt_path"
+
   # Reentrant takeover of the issue lease (never cedes; single shared login).
+  # Runs only after the worktree exists and cleanup is armed, so an add failure
+  # above leaves the issue lease untouched.
   local me host claim_ts nonce
   me="$(gh api user -q '.login' 2>/dev/null)" || json_error_obj "$(jq -nc \
     '{message: "could not resolve the GitHub login (gh api user) to claim the issue",
@@ -1141,41 +1239,14 @@ cmd_resume() {
   _lease_resume_takeover "$issue_number" "$branch_name" "$wt_path" "$host" "$claim_ts" "$nonce"
   ok "resumed lease on issue #${issue_number} (assignee @${me}, label ${LEASE_LABEL})"
 
-  # Re-add the worktree on the EXISTING branch. Remote-only: create a tracking
-  # branch from origin/<branch>. "both" with local ahead: attach local as-is to
-  # preserve unpushed commits. "both" in sync or behind: reset to origin's tip
-  # (prefer origin; safe, no local-only commits to lose). Local-only: attach the
-  # local branch as-is.
-  mkdir -p "$(dirname "$wt_path")"
-  case "$branch_state" in
-    remote)
-      git worktree add --no-checkout --track -b "$branch_name" "$wt_path" "origin/${branch_name}"
-      ;;
-    both)
-      if [[ "$ahead" -gt 0 ]]; then
-        git worktree add --no-checkout "$wt_path" "$branch_name"
-      else
-        git worktree add --no-checkout -B "$branch_name" "$wt_path" "origin/${branch_name}"
-      fi
-      ;;
-    local)
-      git worktree add --no-checkout "$wt_path" "$branch_name"
-      ;;
-  esac
-  register_cleanup "$wt_path"
-  checkout_and_unlock "$wt_path"
-
   # Discover the open PR so the next push updates it rather than opening a second.
   local pr_url
   pr_url="$(discover_open_pr_url "$branch_name")"
   if [[ -n "$pr_url" ]]; then
     ok "linked existing PR: ${pr_url}"
   else
-    warn "no open PR found for '${branch_name}' -- the next push will create one"
+    warn "no open PR found for '${branch_name}'; the next push will create one"
   fi
-
-  local blockers_json
-  blockers_json="$(parse_blockers "$issue_body")"
 
   create_issue_state "$branch_name" "$wt_path" "$issue_number" "$issue_title" \
     "$issue_body" "$base_ref" "$blockers_json" "$pr_url" "implement" \

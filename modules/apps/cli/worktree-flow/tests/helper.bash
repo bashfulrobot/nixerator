@@ -115,3 +115,29 @@ ahead_in_fixture() {
       count_ahead_of_origin "$1"
     ' _ "$1" 2>/dev/null )
 }
+
+# behind_in_fixture BRANCH — run count_behind_of_origin from the fixture work
+# clone.
+behind_in_fixture() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      count_behind_of_origin "$1"
+    ' _ "$1" 2>/dev/null )
+}
+
+# resume_wt_add BRANCH_STATE AHEAD BRANCH WT_PATH — run add_resume_worktree from
+# the fixture work clone (real git, no gh/network) so the per-state worktree-add
+# routing and the missing-tracking-ref guard can be pinned. Exit status is the
+# function's return (0 success, 2 unknown state, 3 origin ref did not resolve).
+resume_wt_add() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      add_resume_worktree "$1" "$2" "$3" "$4"
+    ' _ "$1" "$2" "$3" "$4" 2>/dev/null )
+}
