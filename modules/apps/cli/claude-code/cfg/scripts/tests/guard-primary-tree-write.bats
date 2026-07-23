@@ -152,6 +152,24 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
+@test "resolves a bare git against the nearest preceding cd, not the first" {
+  # A later cd into the primary is the tree the bare commit actually lands in, so
+  # tracking only the first cd would wrongly allow it. The verb-bearing git has no
+  # -C of its own; the cd right before it (into the primary) is what counts.
+  local fails=0
+  if [ "$(decision "cd $WT && git status && cd $PRIMARY && git commit -m x")" != deny ]; then
+    echo "EXPECTED DENY, GOT ALLOW: cd worktree, read, cd primary, commit"
+    fails=$((fails + 1))
+  fi
+  # Mirror image: first cd into the primary, then into the worktree before the
+  # only mutating git. The nearest preceding cd is the worktree, so allow.
+  if [ "$(decision "cd $PRIMARY && git log && cd $WT && git commit -m x")" != allow ]; then
+    echo "EXPECTED ALLOW, GOT DENY: cd primary, read, cd worktree, commit"
+    fails=$((fails + 1))
+  fi
+  [ "$fails" -eq 0 ]
+}
+
 @test "denies wrapper- and env-assignment-prefixed git in the primary checkout" {
   # A git write behind sudo/env/time or a bare env-assignment (including a
   # backdating GIT_AUTHOR_DATE=) must still be caught, not slip the anchor.

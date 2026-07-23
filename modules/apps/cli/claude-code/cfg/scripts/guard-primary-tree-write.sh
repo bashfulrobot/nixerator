@@ -94,23 +94,46 @@ emit_deny() {
   }'
 }
 
-# A leading `cd <dir>` is the fallback target for a bare `git <verb>` that names
-# no repo of its own.
-lead_cd=""
-if [[ "$cmd" =~ (^|[[:space:];&|])[[:space:]]*cd[[:space:]]+([^[:space:];&|]+) ]]; then
-  lead_cd="$(strip_quotes "${BASH_REMATCH[2]}")"
-fi
+# Collect every `cd <dir>` with its byte offset in the command. A bare git verb
+# (one with no repo of its own) runs in the tree set by the LAST cd before it, so
+# tracking offsets lets `cd <wt> && git status && cd <primary> && git commit`
+# resolve the commit against <primary>, not the first cd.
+cd_offsets=()
+cd_dirs=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] || continue
+  off="${line%%:*}"
+  m="${line#*:}"
+  if [[ "$m" =~ cd[[:space:]]+([^[:space:];&|]+) ]]; then
+    cd_offsets+=("$off")
+    cd_dirs+=("$(strip_quotes "${BASH_REMATCH[1]}")")
+  fi
+done < <(grep -boP '(^|[;&|(])[[:space:]]*cd[[:space:]]+[^[:space:];&|]+' <<<"$cmd" || true)
+
+# The cd dir with the greatest offset still before $1 (empty if none).
+last_cd_before() {
+  local target="$1" i best_off=-1 best_dir=""
+  for i in "${!cd_offsets[@]}"; do
+    if ((cd_offsets[i] < target)) && ((cd_offsets[i] > best_off)); then
+      best_off="${cd_offsets[i]}"
+      best_dir="${cd_dirs[i]}"
+    fi
+  done
+  printf '%s' "$best_dir"
+}
 
 # Resolve the working tree PER verb-bearing git invocation, not once for the
 # whole line, so a compound that mixes trees (git -C <worktree> ... && git commit
 # in the primary cwd) is judged on the invocation that actually carries the
 # mutating verb. Deny as soon as any such invocation resolves to the primary
 # checkout. Explicit repo targeting on that invocation (`git -C`, `--work-tree`,
-# `--git-dir`) wins over the leading `cd`, which wins over the hook cwd. Fail
-# open per invocation: a git error (not a repo) skips it. If nothing matches a
-# mutating verb, the loop runs zero times and the command is allowed.
-while IFS= read -r seg; do
-  [[ -n "$seg" ]] || continue
+# `--git-dir`) wins over the nearest preceding `cd`, which wins over the hook
+# cwd. Fail open per invocation: a git error (not a repo) skips it. If nothing
+# matches a mutating verb, the loop runs zero times and the command is allowed.
+while IFS= read -r match; do
+  [[ -n "$match" ]] || continue
+  moff="${match%%:*}"
+  seg="${match#*:}"
   inspect_dir=""
   gitdir_flag=""
   if [[ "$seg" =~ git[[:space:]]+-C[[:space:]]+([^[:space:]]+) ]]; then
@@ -118,7 +141,7 @@ while IFS= read -r seg; do
   elif [[ "$seg" =~ --work-tree[=[:space:]]([^[:space:]]+) ]]; then
     inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
   else
-    inspect_dir="$lead_cd"
+    inspect_dir="$(last_cd_before "$moff")"
   fi
   if [[ "$seg" =~ --git-dir[=[:space:]]([^[:space:]]+) ]]; then
     gitdir_flag="$(strip_quotes "${BASH_REMATCH[1]}")"
@@ -143,6 +166,6 @@ while IFS= read -r seg; do
     emit_deny
     exit 0
   fi
-done < <(grep -oP "$verb_re" <<<"$cmd" || true)
+done < <(grep -boP "$verb_re" <<<"$cmd" || true)
 
 exit 0
