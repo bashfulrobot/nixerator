@@ -769,6 +769,27 @@ _lease_release() {
       "$host" "$branch" "$ts")" >/dev/null 2>&1 || true
 }
 
+# Reentrant lease takeover for resume. Unlike _lease_claim, resume is a
+# deliberate pickup of abandoned work, so it never runs the winner/cede logic
+# and never refuses with issue_claimed: the single shared login means the
+# assignee cannot tell the resuming host from any prior holder, so serializing
+# here would only self-block a legitimate resume. Refresh the human-visible
+# hints (assignee, label) and post a resume claim comment stamped with our nonce
+# so fleet-status shows the new owner. Every gh call is best-effort; a forge
+# hiccup must never fail the resume.
+_lease_resume_takeover() {
+  local issue_number="$1" branch="$2" wt_path="$3" host="$4" ts="$5" nonce="$6"
+  gh issue edit "$issue_number" --add-assignee "@me" >/dev/null 2>&1 ||
+    warn "could not add self as assignee on issue #${issue_number}"
+  gh issue edit "$issue_number" --add-label "$LEASE_LABEL" >/dev/null 2>&1 ||
+    warn "could not add '${LEASE_LABEL}' label to issue #${issue_number} (does it exist in the repo?)"
+  local body
+  body="$(printf 'Resumed for work (reentrant takeover).\n\n%s\nclaim-id: %s\nhost: %s\nworktree: %s\nclaimed-at: %s\nbranch: %s' \
+    "$CLAIM_MARKER" "$nonce" "$host" "$wt_path" "$ts" "$branch")"
+  gh issue comment "$issue_number" --body "$body" >/dev/null 2>&1 ||
+    warn "could not post resume claim comment on issue #${issue_number}"
+}
+
 # Detect whether this issue's branch already exists, and where. Prints exactly
 # one of: "none", "local", "remote", "both", or "unknown".
 #
@@ -842,6 +863,16 @@ count_ahead_of_origin() {
   git show-ref --verify --quiet "refs/heads/${branch}" || { printf '0'; return 0; }
   git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || { printf '0'; return 0; }
   git rev-list --count "refs/remotes/origin/${branch}..refs/heads/${branch}"
+}
+
+# Discover the URL of the OPEN PR whose head is <branch>, or empty if none.
+# Resume writes this into state so the next push updates the PR instead of
+# opening a second one. Best-effort: a gh failure yields empty and resume still
+# proceeds (the next push then creates the PR).
+discover_open_pr_url() {
+  local branch="$1" url
+  url="$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty' 2>/dev/null)" || url=""
+  printf '%s' "$url"
 }
 
 cmd_setup() {
@@ -1005,6 +1036,168 @@ cmd_setup() {
     '{issue_number: ($issue_number|tonumber), branch: $branch, base_ref: $base_ref, worktree: $worktree,
       branch_type: $branch_type, title: $title, issue_body: $issue_body,
       blockers: $blockers, workflow_step: "assess"}')"
+}
+
+# Re-establish a worktree on an issue's still-open branch. The inverse of setup:
+# setup refuses when the branch exists (#262), resume refuses when it does not.
+# Prefers origin as the source of truth, keeps local-only commits (warning when
+# the local branch is ahead), links the open PR so the next push updates it, and
+# takes the lease as a reentrant takeover rather than ceding. See #267.
+cmd_resume() {
+  local issue_number=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -*) die "unknown option: $1" ;;
+      *)
+        if [[ -z "$issue_number" ]]; then
+          issue_number="$1"
+          shift
+        else
+          die "unexpected argument: $1"
+        fi
+        ;;
+    esac
+  done
+  [[ -n "$issue_number" ]] || die "usage: github-issue resume <issue-number>"
+
+  [[ "$issue_number" =~ ^[0-9]+$ ]] || json_error_obj "$(jq -nc --arg got "$issue_number" \
+    '{message: ("expected a numeric issue number, got '\''" + $got + "'\''"),
+      cause: "invalid_issue_number", issue_number: $got}')"
+
+  local wt_path
+  wt_path="$(worktree_base)/issue-${issue_number}"
+
+  acquire_setup_lock "$issue_number"
+
+  if [[ -d "$wt_path" ]]; then
+    json_error_obj "$(jq -nc --arg wt "$wt_path" --arg issue "$issue_number" \
+      '{message: ("worktree already exists at " + $wt + " -- use '\''github-issue status " + $issue + "'\'' to check state"),
+        cause: "worktree_exists", worktree: $wt, issue_number: ($issue|tonumber)}')"
+  fi
+
+  fetch_remote
+  assert_clean_tree
+
+  local default_br base_ref
+  default_br="$(default_branch)"
+  base_ref="origin/${default_br}"
+
+  local issue_json issue_title issue_labels issue_body
+  issue_json="$(fetch_issue_metadata "$issue_number")"
+  issue_title="$(printf '%s' "$issue_json" | jq -r '.title')"
+  issue_labels="$(printf '%s' "$issue_json" | jq -c '.labels')"
+  issue_body="$(printf '%s' "$issue_json" | jq -r '.body')"
+  ok "fetched: ${issue_title}"
+
+  local branch_type branch_name
+  branch_type="$(derive_branch_type_auto "$issue_labels")"
+  branch_name="$(build_branch_name "$branch_type" "$issue_number" "$issue_title")"
+  ok "branch: ${branch_name}"
+
+  # Resume requires an existing branch. Inverse of the #262 setup preflight:
+  # setup refuses when the branch exists, resume refuses when it does not.
+  # "unknown" (origin unreachable) fails closed, matching setup.
+  local branch_state decision
+  branch_state="$(detect_existing_branch "$branch_name")"
+  decision="$(resume_branch_decision "$branch_state")"
+  case "$decision" in
+    resume) ;;
+    absent)
+      json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" \
+        '{message: ("branch '\''" + $branch + "'\'' exists neither locally nor on origin -- nothing to resume. Use '\''github-issue setup " + $issue + "'\'' to start fresh."),
+          cause: "no_existing_branch", branch: $branch, issue_number: ($issue|tonumber)}')"
+      ;;
+    unreachable)
+      json_error_obj "$(jq -nc --arg branch "$branch_name" --arg issue "$issue_number" \
+        '{message: ("could not reach origin to check whether branch '\''" + $branch + "'\'' exists -- retry once origin is reachable, or run '\''github-issue status " + $issue + "'\''."),
+          cause: "branch_check_unreachable", branch: $branch, issue_number: ($issue|tonumber)}')"
+      ;;
+  esac
+
+  # Prefer origin as the source of truth. When a local branch is ahead of origin
+  # keep its commits and warn; the worktree add below never resets a branch that
+  # carries unpushed work.
+  local ahead=0
+  case "$branch_state" in
+    both)
+      ahead="$(count_ahead_of_origin "$branch_name")"
+      if [[ "$ahead" -gt 0 ]]; then
+        warn "local branch '${branch_name}' is ${ahead} commit(s) ahead of origin -- keeping local commits, not resetting to origin"
+      fi
+      ;;
+    local)
+      warn "branch '${branch_name}' exists only locally; origin has no copy -- the next push will publish it"
+      ;;
+  esac
+
+  # Reentrant takeover of the issue lease (never cedes; single shared login).
+  local me host claim_ts nonce
+  me="$(gh api user -q '.login' 2>/dev/null)" || json_error_obj "$(jq -nc \
+    '{message: "could not resolve the GitHub login (gh api user) to claim the issue",
+      cause: "gh_auth_failed"}')"
+  host="$(uname -n)"
+  claim_ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  nonce="${host}::${wt_path}::${claim_ts}::$$"
+  _lease_resume_takeover "$issue_number" "$branch_name" "$wt_path" "$host" "$claim_ts" "$nonce"
+  ok "resumed lease on issue #${issue_number} (assignee @${me}, label ${LEASE_LABEL})"
+
+  # Re-add the worktree on the EXISTING branch. Remote-only: create a tracking
+  # branch from origin/<branch>. "both" with local ahead: attach local as-is to
+  # preserve unpushed commits. "both" in sync or behind: reset to origin's tip
+  # (prefer origin; safe, no local-only commits to lose). Local-only: attach the
+  # local branch as-is.
+  mkdir -p "$(dirname "$wt_path")"
+  case "$branch_state" in
+    remote)
+      git worktree add --no-checkout --track -b "$branch_name" "$wt_path" "origin/${branch_name}"
+      ;;
+    both)
+      if [[ "$ahead" -gt 0 ]]; then
+        git worktree add --no-checkout "$wt_path" "$branch_name"
+      else
+        git worktree add --no-checkout -B "$branch_name" "$wt_path" "origin/${branch_name}"
+      fi
+      ;;
+    local)
+      git worktree add --no-checkout "$wt_path" "$branch_name"
+      ;;
+  esac
+  register_cleanup "$wt_path"
+  checkout_and_unlock "$wt_path"
+
+  # Discover the open PR so the next push updates it rather than opening a second.
+  local pr_url
+  pr_url="$(discover_open_pr_url "$branch_name")"
+  if [[ -n "$pr_url" ]]; then
+    ok "linked existing PR: ${pr_url}"
+  else
+    warn "no open PR found for '${branch_name}' -- the next push will create one"
+  fi
+
+  local blockers_json
+  blockers_json="$(parse_blockers "$issue_body")"
+
+  create_issue_state "$branch_name" "$wt_path" "$issue_number" "$issue_title" \
+    "$issue_body" "$base_ref" "$blockers_json" "$pr_url" "implement" \
+    "Worktree resumed on existing branch ${branch_name}."
+  _WT_CLEANUP_PATH=""
+  ok "worktree resumed at ${wt_path}"
+
+  json_ok "$(jq -n \
+    --arg issue_number "$issue_number" \
+    --arg branch "$branch_name" \
+    --arg base_ref "$base_ref" \
+    --arg worktree "$wt_path" \
+    --arg branch_type "$branch_type" \
+    --arg title "$issue_title" \
+    --arg pr_url "$pr_url" \
+    --arg branch_state "$branch_state" \
+    --argjson ahead "$ahead" \
+    '{issue_number: ($issue_number|tonumber), branch: $branch, base_ref: $base_ref, worktree: $worktree,
+      branch_type: $branch_type, title: $title,
+      pr_url: (if $pr_url == "" then null else $pr_url end),
+      resumed: true, branch_state: $branch_state, ahead_of_origin: $ahead,
+      workflow_step: "implement"}')"
 }
 
 cmd_status() {
@@ -2238,7 +2431,7 @@ cmd_queue_state() {
 # `github-issue setup` into an exit-0 no-op.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   case "${1:-}" in
-    setup | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | verify-landed | post-mortem)
+    setup | resume | status | push | audit | cleanup | transition | validate-cwd | check-ci | review-feedback | auto-merge | verify-landed | post-mortem)
       _JSON_MODE=1
       require_github_remote
       SUBCMD="${1//-/_}"
