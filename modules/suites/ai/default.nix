@@ -94,11 +94,8 @@ in
     #
     # Both act with the user's privileges: goose runs model-directed shell
     # commands and aider edits files and can run commands, so any model they are
-    # pointed at is a code-execution path, not just a text source. Pair that with
-    # the trust note on apps.cli.ollama.loadModels (the local model is an
-    # unpinned pull) and with goose-cli riding the llm-agents input, which tracks
-    # upstream and re-locks on flake updates: a lock bump of that input ships new
-    # agent code, so review it rather than rubber-stamping.
+    # pointed at is a code-execution path, not just a text source. The local
+    # model is an unpinned pull (see the trust note on apps.cli.ollama.loadModels).
     home-manager.users.${globals.user.name}.home.packages = [
       pkgs.llm-agents.goose-cli
       pkgs.aider-chat

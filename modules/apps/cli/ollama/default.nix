@@ -89,6 +89,52 @@ in
           tool) resolve this local server without per-invocation flags.
         '';
       };
+
+      contextLength = lib.mkOption {
+        type = lib.types.nullOr lib.types.ints.positive;
+        default = null;
+        example = 32768;
+        description = ''
+          Default context window in tokens for served models, set via
+          OLLAMA_CONTEXT_LENGTH. Ollama's own default is only a few thousand
+          tokens, which silently truncates long agent (goose/aider) sessions
+          well before a model's real limit. null leaves ollama's default.
+
+          The practical ceiling is VRAM, since the KV cache grows with the
+          context length. On a 16 GB card a ~12B Q4_K_M model holds roughly 32k
+          tokens with a full-precision (f16) KV cache. To go higher, enable
+          flashAttention and set kvCacheType to q8_0 so the KV cache is smaller.
+        '';
+      };
+
+      flashAttention = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Enable flash attention (OLLAMA_FLASH_ATTENTION=1). A mathematically
+          equivalent attention implementation with a smaller, faster KV cache,
+          so a larger contextLength fits in the same VRAM at no quality cost.
+          Also required before kvCacheType can quantize the KV cache.
+        '';
+      };
+
+      kvCacheType = lib.mkOption {
+        type = lib.types.nullOr (
+          lib.types.enum [
+            "f16"
+            "q8_0"
+            "q4_0"
+          ]
+        );
+        default = null;
+        description = ''
+          KV cache quantization, set via OLLAMA_KV_CACHE_TYPE. null (ollama's
+          f16 default) is full precision. q8_0 roughly halves KV memory for a
+          small quality cost and is the usual pick to reach 64k+ on a 16 GB
+          card; q4_0 is smaller again but noticeably more lossy. Requires
+          flashAttention.
+        '';
+      };
     };
   };
 
@@ -111,12 +157,33 @@ in
         )
         "apps.cli.ollama: host = ${cfg.host} is not loopback and Ollama has no auth; anyone able to reach ${endpoint} can use and abuse it. Restrict access (firewall or tailnet ACL) before exposing it.";
 
+    # ollama only quantizes the KV cache when flash attention is on, so a
+    # kvCacheType without flashAttention would silently do nothing.
+    assertions = [
+      {
+        assertion = cfg.kvCacheType == null || cfg.flashAttention;
+        message = "apps.cli.ollama.kvCacheType requires flashAttention = true (ollama only quantizes the KV cache with flash attention enabled).";
+      }
+    ];
+
     environment.systemPackages = [ selectedPackage ];
 
     services.ollama = {
       enable = true;
       package = selectedPackage;
       inherit (cfg) host port loadModels;
+      # Server-side model runtime knobs. Empty unless the host opts in, so this
+      # does not disturb ollama's defaults when the options are left null/false.
+      environmentVariables =
+        (lib.optionalAttrs (cfg.contextLength != null) {
+          OLLAMA_CONTEXT_LENGTH = toString cfg.contextLength;
+        })
+        // (lib.optionalAttrs cfg.flashAttention {
+          OLLAMA_FLASH_ATTENTION = "1";
+        })
+        // (lib.optionalAttrs (cfg.kvCacheType != null) {
+          OLLAMA_KV_CACHE_TYPE = cfg.kvCacheType;
+        });
     };
 
     home-manager.users.${globals.user.name} = lib.mkIf cfg.exportClientEnv {

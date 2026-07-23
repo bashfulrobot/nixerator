@@ -95,6 +95,14 @@
       enable = true;
       acceleration = "rocm";
       loadModels = [ globals.ai.localCodeModel ];
+      # Ollama defaults the context window to a few thousand tokens, which
+      # truncates long goose/aider sessions well before Mellum2's real limit.
+      # 32k is about what a 16 GB card holds with a full-precision KV cache, and
+      # flash attention shrinks that cache for free (no quality cost), so it is
+      # on by default. To push to 64k+, add kvCacheType = "q8_0" (smaller KV
+      # cache, small quality tradeoff) rather than raising contextLength alone.
+      contextLength = 32768;
+      flashAttention = true;
     };
   };
 
