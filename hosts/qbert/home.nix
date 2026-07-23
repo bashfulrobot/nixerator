@@ -31,7 +31,7 @@
     sessionVariables = {
       EDITOR = lib.mkForce (lib.getExe pkgs.${globals.preferences.editor});
     };
-    # goose is defaulted to the local Mellum2 model via GOOSE_PROVIDER/GOOSE_MODEL
+    # goose is defaulted to the local model via GOOSE_PROVIDER/GOOSE_MODEL
     # exported from the ollama module (apps.cli.ollama.defaultGooseModel, enabled
     # in modules.nix). Those go through fish shellInit, not home.sessionVariables,
     # because this host's fish does not source hm-session-vars.

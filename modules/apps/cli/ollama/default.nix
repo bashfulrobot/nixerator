@@ -99,7 +99,7 @@ in
       defaultGooseModel = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
-        example = "hf.co/JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M";
+        example = "qwen3:14b";
         description = ''
           When set (and exportClientEnv is on), default goose to this model by
           exporting GOOSE_PROVIDER=ollama and GOOSE_MODEL, so `goose session`
