@@ -28,12 +28,15 @@ has() { # name needle haystack
 blob='Follow up with Chris https://kongstrong.slack.com/archives/C1/p123
 Teams thread https://teams.microsoft.com/l/message/abc
 Cloud Teams https://teams.cloud.microsoft/l/message/xyz
+Email https://mail.google.com/mail/u/0/#inbox/FMfcgabc and legacy https://mail.googlemail.com/mail/u/0/#inbox/FMfcgxyz
 Doc /home/dustin/insync/notes/sony.md and aha GTWY-I-1484
 org f3170a13-482d-4cf6-8121-ae7a185cde8d SF opp 006PJ00000Oct2UYAR Case 00073440'
 crumbs=$(printf '%s' "$blob" | extract_breadcrumbs)
 has "slack url" "slack" "$crumbs"
 has "teams url" "teams" "$crumbs"
 has "teams cloud url" "teams	https://teams.cloud.microsoft/l/message/xyz" "$crumbs"
+has "gmail url" "gmail	https://mail.google.com/mail/u/0/#inbox/FMfcgabc" "$crumbs"
+has "googlemail alias url" "gmail	https://mail.googlemail.com/mail/u/0/#inbox/FMfcgxyz" "$crumbs"
 has "file path" "file	/home/dustin/insync/notes/sony.md" "$crumbs"
 has "aha ref" "aha	GTWY-I-1484" "$crumbs"
 has "org uuid" "org	f3170a13-482d-4cf6-8121-ae7a185cde8d" "$crumbs"

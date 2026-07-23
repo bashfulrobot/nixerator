@@ -66,11 +66,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1784680854,
-        "narHash": "sha256-WuDCKEvWQxLoWmlNMsYxI8S9rXjo5r8e68+lpOp2FsI=",
+        "lastModified": 1784772449,
+        "narHash": "sha256-ixCev5LCQ6d8UyQOFJNS+yUCYP0hCPhr4Oe+o3yfTH4=",
         "owner": "bashfulrobot",
         "repo": "ballpoint",
-        "rev": "113c3c98ef46e5974494c6661b83568cc2dbcb46",
+        "rev": "69230a0c1a205740193982b9bfe8991ff1f85e72",
         "type": "github"
       },
       "original": {
@@ -210,11 +210,11 @@
         "systems": "systems_2"
       },
       "locked": {
-        "lastModified": 1784674306,
-        "narHash": "sha256-pFLqXLX/bR2wJjxecgvV4Ue+GXFF1DA0YJIdxx8INxw=",
+        "lastModified": 1784752421,
+        "narHash": "sha256-NVJbBeb1sB4Cr3JEhTtIewF6vUz9oa1zhSeB4UD6aiw=",
         "owner": "nix-community",
         "repo": "browser-previews",
-        "rev": "f7b21c474ca336b4afeac64aca0c6c530025880c",
+        "rev": "aca7252f5851963d5cfc4a7a242c645b59ef8b47",
         "type": "github"
       },
       "original": {
@@ -660,11 +660,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784588016,
-        "narHash": "sha256-ouZe80aWEhMLVMkqICFDN+JUw+0FJtCr/bh+hHtRtMg=",
+        "lastModified": 1784725727,
+        "narHash": "sha256-J5+C9wsO0lhDyUalQzfplDbRjyHDYeEH5+9sdyXtwa8=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "deeb6b7eb7e0c44ae1819c051ce175bd92a85100",
+        "rev": "041a999e8c1c5b731913855909e68d30ca69b8e0",
         "type": "github"
       },
       "original": {
@@ -676,11 +676,11 @@
     "humanizer-skill": {
       "flake": false,
       "locked": {
-        "lastModified": 1782765784,
-        "narHash": "sha256-3+LoQ18+lcMxuEz8TLro0haScrgv3yJ6lDpMvU1qL3M=",
+        "lastModified": 1784701552,
+        "narHash": "sha256-qJIMwaas5Wnz270rUbPa4E5v2GQ62SQ1rKT0jmjYhyw=",
         "owner": "blader",
         "repo": "humanizer",
-        "rev": "1b48564898e999219882660237fde01bf4843a0f",
+        "rev": "523374dee72d67c7b2b5f858ea0094ffda49c3ac",
         "type": "github"
       },
       "original": {
@@ -714,11 +714,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784683080,
-        "narHash": "sha256-18TwEvEF0rbZt+XmcjKzYcw7yVw5srBl0XbzfMjlpV4=",
+        "lastModified": 1784769907,
+        "narHash": "sha256-0OeDlyTTHZTRUbfV529+Z8UPEDDHdURDhKcbixDb1bY=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "07c1cdd627ca3af43015d577728a4979adb27951",
+        "rev": "bb6e94ec8caedc1b9ba183302a5a1cbbc0e03e9a",
         "type": "github"
       },
       "original": {
@@ -754,11 +754,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1784673118,
-        "narHash": "sha256-YaKVxrQJaBcDboV9BKiDoFWhi2IArYwSahbgcitEdPA=",
+        "lastModified": 1784759171,
+        "narHash": "sha256-nVXdD2vwfqYVMENYE5M7ycP6RfnVt5DUdq7EPqWEAtk=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "2aee5e1d9e84936bd8d960a524b85b498b298552",
+        "rev": "2d2310b28d34bf4718124ec5699205b61be74337",
         "type": "github"
       },
       "original": {
@@ -787,11 +787,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1784310968,
-        "narHash": "sha256-rkSPTePrKqs4dg+i7ZFCq93+HrClac6oSwXX927SVjA=",
+        "lastModified": 1784723954,
+        "narHash": "sha256-1CfD8ZUjCkTgjsneLZ/lxCHhgDfqxxE7/GX0MmsgiqA=",
         "owner": "NixOS",
         "repo": "nixos-hardware",
-        "rev": "779c32a00155994c86cde8213a8dd4df139d4355",
+        "rev": "a017f5b72210026af5b3ac5949f08d94380a6fbd",
         "type": "github"
       },
       "original": {
@@ -1385,11 +1385,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1784577168,
-        "narHash": "sha256-MmQR65WVsv2btYh2Vvcr2iw2UjTSpPsPmSrAVILZWeY=",
+        "lastModified": 1784772338,
+        "narHash": "sha256-dDtNdXbpCJ3OnhDyv0TdZBzMTB6v017UVp8VguqUZXY=",
         "owner": "bashfulrobot",
         "repo": "upsight",
-        "rev": "a175e681625ca3d5e1f9cc1570b7aa5b4264c42c",
+        "rev": "a66f8d6bad6f418fd9238cd150357b6fda39955c",
         "type": "github"
       },
       "original": {

@@ -99,36 +99,43 @@
         echo "Capturing Claude Code config to Nix source tree..."
         echo ""
 
-        # settings.json -- replace statusline store path back to placeholder.
-        # extraKnownMarketplaces and enabledPlugins are owned declaratively by
-        # cfg/plugin-config.nix (merged in at activation), so strip them here --
-        # otherwise the captured runtime copy (bare, unpinned) would clobber the
-        # Nix-authored, SHA-pinned values on the next rebuild.
+        # settings.json -- canonicalize the live home copy back to repo form, then
+        # hand it to capture-sync's snapshot-guarded 3-way (below) instead of
+        # copying it over the repo unconditionally. The old unconditional copy was
+        # racy: a pre-rebuild capture wrote a STALE home over a freshly-edited repo,
+        # reverting any repo-only settings.json change before the rebuild ran.
         #
-        # Hooks: every Nix-owned hook is injected at activation (cfg/activation.nix)
-        # with its /nix/store path, so it MUST be stripped from capture or its
-        # volatile store hash would be committed and go stale (the exact bug the
-        # dead tmux-claude hook had). The alternation below strips:
-        #   - claude-auto-gate          (the /auto PreToolUse permission gate)
-        #   - tmux-claude               (retired; self-healing removal of any stray)
-        #   - claude-precompact-checkpoint / claude-post-compact-reinject (context-rot)
-        #   - claude-session-reminders  (SessionStart maintenance reminders)
-        #   - claude-guard-generated-paths / claude-guard-raw-nix (PostToolUse warn guards)
-        #   - claude-guard-git-stash    (PreToolUse hard deny for git stash)
-        #   - claude-guard-primary-tree-write (PreToolUse hard deny for primary-tree git writes)
-        #   - claude-guard-secret-commands / claude-scrub-secret-output (secret-leak guards, #270)
+        # Canonicalization (must reproduce the repo source byte-for-byte when
+        # nothing has diverged, so the 3-way hashes line up):
+        #   - statusline store path      -> @STATUSLINE_COMMAND@ placeholder
+        #   - extraKnownMarketplaces / enabledPlugins: owned by cfg/plugin-config.nix
+        #     (merged at activation) -> dropped
+        #   - permissions.ask:           Nix-owned (activation pins it) -> dropped
+        #   - hooks with a /nix/store command: EVERY Nix-owned hook is injected at
+        #     activation (cfg/activation.nix) with its store path, so its volatile
+        #     hash must never be committed. Stripping any hook whose command lives
+        #     under /nix/store is drift-proof: it covers every current and future
+        #     injected hook automatically, and leaves the repo-authored inline
+        #     `bash -c '...'` hooks (which carry no store path) untouched. This
+        #     replaces a hand-maintained name alternation that silently rotted
+        #     whenever a new injected hook was added (guard-secret-commands and
+        #     scrub-secret-output leaked their store paths into the repo exactly
+        #     that way).
         # After stripping, any event array left empty is dropped entirely.
+        set -l settings_tmp ""
         if test -f "$claude_dir/settings.json"
+          set settings_tmp (mktemp)
           sed "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" "$claude_dir/settings.json" \
             | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask)
                   | .hooks = ((.hooks // {})
                       | map_values(map(select((.hooks[0].command // "")
-                          | test("claude-auto-gate|tmux-claude|claude-precompact-checkpoint|claude-post-compact-reinject|claude-session-reminders|claude-guard-generated-paths|claude-guard-raw-nix|claude-guard-git-stash|claude-guard-primary-tree-write|claude-guard-secret-commands|claude-scrub-secret-output") | not)))
-                      | with_entries(select(.value | length > 0)))' > "$config_dir/settings.json"
-          echo "  settings.json"
+                          | test("/nix/store/") | not)))
+                      | with_entries(select(.value | length > 0)))' > "$settings_tmp"
         end
 
-        # 3-way sync of skills, agents, output-styles, and top-level CLAUDE.md.
+        # 3-way sync of skills, agents, output-styles, top-level CLAUDE.md, and
+        # settings.json (the last via --settings-home/--settings-repo, a
+        # capture-only reconcile that never writes the derived home side).
         # capture-sync.py reads / writes $state_file (committed JSON) and
         # respects the same .capture-ignore files the old loop did.
         set -l sync_args \
@@ -136,6 +143,9 @@
           --home-root "$claude_dir" \
           --repo-root "$config_dir" \
           --section all
+        if test -n "$settings_tmp"
+          set -a sync_args --settings-home "$settings_tmp" --settings-repo "$config_dir/settings.json"
+        end
 
         # On first run with no snapshot file, allow capture-sync to take a
         # baseline. Bootstrap still refuses to silently resolve a real
@@ -161,9 +171,11 @@
         set -l bootstrap_count 0
         set -l refresh_count 0
         set -l delete_count 0
+        # The generic section counts exclude the settings.json key -- it rides the
+        # same summary but is reported on its own line below.
         if test -s "$sync_stdout"
-          set noop_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="noop")] | length' $sync_stdout 2>/dev/null)
-          set capture_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="capture")] | length' $sync_stdout 2>/dev/null)
+          set noop_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="noop" and .key!="settings.json")] | length' $sync_stdout 2>/dev/null)
+          set capture_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="capture" and .key!="settings.json")] | length' $sync_stdout 2>/dev/null)
           set mirror_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="mirror")] | length' $sync_stdout 2>/dev/null)
           set import_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="import")] | length' $sync_stdout 2>/dev/null)
           set bootstrap_count (${pkgs.jq}/bin/jq '[.actions[] | select(.action=="bootstrap")] | length' $sync_stdout 2>/dev/null)
@@ -192,6 +204,24 @@
           echo "    deleted:    $delete_count  (repo removed file, home cleared)"
         end
 
+        # settings.json rides the same summary but reports on its own line, since
+        # it is a capture-only reconcile with distinct actions (seed / keep-repo).
+        if test -n "$settings_tmp"; and test -s "$sync_stdout"
+          set -l settings_action (${pkgs.jq}/bin/jq -r '.actions[] | select(.key=="settings.json") | .action' $sync_stdout 2>/dev/null)
+          switch "$settings_action"
+            case capture
+              echo "  settings.json: captured (home -> repo)"
+            case keep-repo
+              echo "  settings.json: repo kept (PR/merge ahead of stale home)"
+            case seed
+              echo "  settings.json: baseline recorded"
+            case conflict
+              echo "  settings.json: CONFLICT (home and repo both diverged)"
+            case '*'
+              # noop / empty: in sync, stay quiet
+          end
+        end
+
         if test $sync_status -ne 0
           echo ""
           echo "  CONFLICTS (capture aborted, neither side changed):"
@@ -209,6 +239,7 @@
         end
 
         rm -f $sync_stdout $sync_stderr
+        test -n "$settings_tmp"; and rm -f $settings_tmp
 
         # Plugins -- known_marketplaces.json is no longer captured (marketplaces
         # are owned declaratively in cfg/plugin-config.nix). Only installed_plugins.json
@@ -272,6 +303,19 @@
         # '..' as a standalone component; '^/' catches absolute paths.
         if string match -qr '(^|/)\.\.(/|$)|^/' -- $relpath
           echo "capture-resolve: refusing relpath with '..' or leading '/' ($relpath)" >&2
+          return 2
+        end
+
+        # settings.json is not resolvable this way: its home side is a DERIVED
+        # file (activation injects store-path hooks + the plugin overlay), so
+        # copying raw ~/.claude/settings.json into the repo would commit volatile
+        # store paths. To take repo: just rebuild (activation redeploys repo ->
+        # home). To take your live home edits: fold them into
+        # config/settings.json by hand, then re-run the capture.
+        if test "$relpath" = settings.json
+          echo "capture-resolve: settings.json can't be resolved here (home is derived)." >&2
+          echo "  Take repo: rebuild (activation redeploys it to home)." >&2
+          echo "  Take home: hand-edit config/settings.json to match, then re-capture." >&2
           return 2
         end
 
