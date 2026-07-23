@@ -99,6 +99,17 @@ in
         OLLAMA_HOST = "http://${endpoint}";
         OLLAMA_API_BASE = "http://${endpoint}";
       };
+
+      # Convenience alias so the aider invocation against the local model is not
+      # something to memorise. goose reads GOOSE_MODEL and needs no flag; aider
+      # takes the model on the command line, where ollama_chat/<name> is aider's
+      # documented Ollama routing and OLLAMA_API_BASE above points it at this
+      # server. The model is globals.ai.localCodeModel, the same single source
+      # the server pull and GOOSE_MODEL read, so the alias cannot drift from the
+      # pulled model. Gated on fish, so it is a no-op on hosts without it.
+      programs.fish.shellAliases = lib.mkIf config.apps.cli.fish.enable {
+        aider-local = "aider --model ollama_chat/${globals.ai.localCodeModel}";
+      };
     };
   };
 }
