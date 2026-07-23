@@ -145,3 +145,30 @@ teardown() { rm_fixture; }
   [ "$status" -eq 3 ]
   [ ! -e "${FIX}/wt-noref" ]
 }
+
+@test "select_same_repo_pr_url excludes a fork PR that shares the head branch name" {
+  # gh pr list --head matches by branch NAME only, and the name is publicly
+  # predictable, so a fork could open a same-named PR. Only the same-repo
+  # (isCrossRepository:false) PR may be linked; the fork's URL must be dropped.
+  json='[{"url":"https://github.com/o/r/pull/9","isCrossRepository":true},{"url":"https://github.com/o/r/pull/5","isCrossRepository":false}]'
+  run select_pr_url "$json"
+  [ "$status" -eq 0 ]
+  [ "$output" = "https://github.com/o/r/pull/5" ]
+}
+
+@test "select_same_repo_pr_url is empty when the only open PR is a fork" {
+  json='[{"url":"https://github.com/o/r/pull/9","isCrossRepository":true}]'
+  run select_pr_url "$json"
+  [ "$output" = "" ]
+}
+
+@test "select_same_repo_pr_url is empty for an empty list" {
+  run select_pr_url '[]'
+  [ "$output" = "" ]
+}
+
+@test "select_same_repo_pr_url picks the same-repo PR when one exists" {
+  json='[{"url":"https://github.com/o/r/pull/7","isCrossRepository":false}]'
+  run select_pr_url "$json"
+  [ "$output" = "https://github.com/o/r/pull/7" ]
+}

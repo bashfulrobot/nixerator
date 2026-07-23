@@ -141,3 +141,15 @@ resume_wt_add() {
       add_resume_worktree "$1" "$2" "$3" "$4"
     ' _ "$1" "$2" "$3" "$4" 2>/dev/null )
 }
+
+# select_pr_url JSON — run select_same_repo_pr_url (pure, no gh/network) on a
+# `gh pr list --json url,isCrossRepository` payload and print the chosen url.
+# stderr (the multi-PR warning) is dropped so $output is exactly the url.
+select_pr_url() {
+  ( bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      select_same_repo_pr_url "$1"
+    ' _ "$1" 2>/dev/null )
+}

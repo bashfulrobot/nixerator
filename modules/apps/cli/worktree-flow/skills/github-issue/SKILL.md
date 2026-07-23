@@ -239,7 +239,7 @@ When an issue's branch and PR are still open on origin but the local worktree is
 github-issue resume <number>
 ```
 
-It re-attaches the worktree on the existing branch and prefers origin as the source of truth. It keeps any local-only commits and warns when the local branch is ahead of origin, so nothing is silently discarded. It links the open PR it finds via `gh pr list --head <branch>`, so the next `github-issue push` updates that PR rather than opening a second one. It takes the issue lease as a reentrant takeover for the resuming host, so a cross-host pickup is not refused with `issue_claimed`. Resume sets `workflow_step: "implement"` so you re-orient on the branch, then carry forward through verify and push as usual.
+It re-attaches the worktree on the existing branch and prefers origin as the source of truth. It keeps any local-only commits and warns when the local branch is ahead of origin, so nothing is silently discarded. It links the open same-repo PR it finds via `gh pr list --head <branch>` (fork PRs that merely share the branch name are excluded), so the next `github-issue push` updates that PR rather than opening a second one. It takes the issue lease as a reentrant takeover for the resuming host, so a cross-host pickup is not refused with `issue_claimed`. Resume sets `workflow_step: "implement"` so you re-orient on the branch, then carry forward through verify and push as usual.
 
 Switch the session into the worktree with the `EnterWorktree` tool (`path: <worktree>`), then continue from the recorded step.
 

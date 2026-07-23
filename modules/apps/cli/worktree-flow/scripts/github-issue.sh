@@ -776,8 +776,13 @@ _lease_release() {
 # assignee cannot tell the resuming host from any prior holder, so serializing
 # here would only self-block a legitimate resume. Refresh the human-visible
 # hints (assignee, label) and post a resume claim comment stamped with our nonce
-# so fleet-status shows the new owner. Every gh call is best-effort; a forge
-# hiccup must never fail the resume.
+# so fleet-status shows the new owner. A forge hiccup must never fail the resume,
+# but the claim comment is the ONE authoritative coordination marker fleet-status
+# reads to tell hosts apart. Assignee and label are only hints. So the assignee
+# and label calls stay best-effort, while the return status reflects whether the
+# claim comment actually landed: 0 the lease is recorded, 1 it is not (the caller
+# must then report the lease as unrecorded rather than held). Returning 1 here is
+# safe under the caller's set -e because cmd_resume calls this in an `if`.
 _lease_resume_takeover() {
   local issue_number="$1" branch="$2" wt_path="$3" host="$4" ts="$5" nonce="$6"
   gh issue edit "$issue_number" --add-assignee "@me" >/dev/null 2>&1 ||
@@ -787,8 +792,11 @@ _lease_resume_takeover() {
   local body
   body="$(printf 'Resumed for work (reentrant takeover).\n\n%s\nclaim-id: %s\nhost: %s\nworktree: %s\nclaimed-at: %s\nbranch: %s' \
     "$CLAIM_MARKER" "$nonce" "$host" "$wt_path" "$ts" "$branch")"
-  gh issue comment "$issue_number" --body "$body" >/dev/null 2>&1 ||
-    warn "could not post resume claim comment on issue #${issue_number}"
+  if gh issue comment "$issue_number" --body "$body" >/dev/null 2>&1; then
+    return 0
+  fi
+  warn "could not post resume claim comment on issue #${issue_number}"
+  return 1
 }
 
 # Detect whether this issue's branch already exists, and where. Prints exactly
@@ -910,21 +918,36 @@ add_resume_worktree() {
   esac
 }
 
-# Discover the URL of the OPEN PR whose head is <branch>, or empty if none.
-# Resume writes this into state so the next push updates the PR instead of
-# opening a second one. Best-effort: a gh failure yields empty and resume still
-# proceeds (the next push then creates the PR). Warns to stderr (never stdout,
-# which is captured) when more than one open PR shares the head branch, since
-# picking the first is then arbitrary.
-discover_open_pr_url() {
-  local branch="$1" json count url
-  json="$(gh pr list --head "$branch" --state open --json url 2>/dev/null)" || json="[]"
-  count="$(printf '%s' "$json" | jq 'length' 2>/dev/null || echo 0)"
+# Given the JSON array from `gh pr list --json url,isCrossRepository`, print the
+# url of the single open PR whose head lives in THIS repo (not a fork), or empty.
+# Pure (no gh/network), so the fork-exclusion is unit-testable in the offline
+# fixture. `gh pr list --head` filters by head branch NAME only, and the branch
+# name is publicly predictable (<type>/<issue>-<slug> derived from the issue's
+# labels and title), so a fork PR whose head branch carries the same name would
+# otherwise be linked and ride the next push / auto-merge into main. Keeping only
+# isCrossRepository == false drops those. Warns to stderr (never stdout, which is
+# captured) when more than one same-repo PR remains, since first-pick is then
+# arbitrary.
+select_same_repo_pr_url() {
+  local json="$1" same count
+  same="$(printf '%s' "$json" | jq -c '[.[] | select(.isCrossRepository == false)]' 2>/dev/null || printf '[]')"
+  count="$(printf '%s' "$same" | jq 'length' 2>/dev/null || echo 0)"
   if [[ "$count" -gt 1 ]]; then
-    warn "found ${count} open PRs for '${branch}'; linking the first one" >&2
+    warn "found ${count} open same-repo PRs; linking the first one" >&2
   fi
-  url="$(printf '%s' "$json" | jq -r '.[0].url // empty' 2>/dev/null)" || url=""
-  printf '%s' "$url"
+  printf '%s' "$same" | jq -r '.[0].url // empty' 2>/dev/null || true
+}
+
+# Discover the URL of the OPEN same-repo PR whose head is <branch>, or empty if
+# none. Resume writes this into state so the next push updates the PR instead of
+# opening a second one. Best-effort: a gh failure yields empty and resume still
+# proceeds (the next push then creates the PR). Fork PRs that merely share the
+# head branch name are excluded by select_same_repo_pr_url, so an external
+# contributor cannot get their PR linked into this issue's state.
+discover_open_pr_url() {
+  local branch="$1" json
+  json="$(gh pr list --head "$branch" --state open --json url,isCrossRepository 2>/dev/null)" || json="[]"
+  select_same_repo_pr_url "$json"
 }
 
 cmd_setup() {
@@ -1236,8 +1259,16 @@ cmd_resume() {
   host="$(uname -n)"
   claim_ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   nonce="${host}::${wt_path}::${claim_ts}::$$"
-  _lease_resume_takeover "$issue_number" "$branch_name" "$wt_path" "$host" "$claim_ts" "$nonce"
-  ok "resumed lease on issue #${issue_number} (assignee @${me}, label ${LEASE_LABEL})"
+  # `if` so the return-1 (claim comment failed to post) does not trip set -e, and
+  # so the success line only fires when the lease is actually recorded. If the
+  # forge is degraded, resume still proceeds (the worktree is real), but the
+  # message says the coordination marker is missing so a multi-host operator
+  # knows fleet-status will show no owner.
+  if _lease_resume_takeover "$issue_number" "$branch_name" "$wt_path" "$host" "$claim_ts" "$nonce"; then
+    ok "resumed lease on issue #${issue_number} (assignee @${me}, label ${LEASE_LABEL})"
+  else
+    warn "could not record the lease claim on issue #${issue_number} (forge degraded); resuming anyway, but fleet-status will show no owner -- coordinate manually if another host may pick this up"
+  fi
 
   # Discover the open PR so the next push updates it rather than opening a second.
   local pr_url
