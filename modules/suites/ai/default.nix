@@ -84,8 +84,13 @@ in
     # the general tool-using agent (goose-cli from the llm-agents input, the
     # same source as claude-code); aider is the edit-format coding driver that
     # does not depend on model-native tool-calling, so it stays reliable
-    # against a small local model. The local Ollama server and its default
-    # model are wired per-host (see hosts/qbert) because they need the GPU.
+    # against a small local model.
+    #
+    # These are provider-agnostic, so they ride along on every AI-suite host
+    # (qbert, donkeykong) the same way claude-code and gemini-cli already do,
+    # usable against cloud models without any local server. This is deliberate:
+    # only the local Ollama server and its default model are qbert-only (they
+    # need the GPU, see hosts/qbert), the agent CLIs themselves are general.
     home-manager.users.${globals.user.name}.home.packages = [
       pkgs.llm-agents.goose-cli
       pkgs.aider-chat

@@ -60,6 +60,12 @@ in
           (e.g. "llama3.2") and HuggingFace GGUF pulls
           (e.g. "hf.co/JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M")
           are both accepted, since each entry is passed to `ollama pull`.
+
+          The pull runs from a post-start unit, so on first activation with the
+          network down or HuggingFace throttling, the model is absent until the
+          next successful pull and clients report model-not-found. If a client
+          cannot find the model, check `ollama list` and re-pull before
+          assuming the client is misconfigured.
         '';
       };
 
@@ -85,11 +91,12 @@ in
     };
 
     home-manager.users.${globals.user.name} = lib.mkIf cfg.exportClientEnv {
-      # OLLAMA_HOST is the ollama CLI / goose convention (host:port, no scheme);
-      # OLLAMA_API_BASE is aider's convention (full URL). Both point at the same
-      # local server so clients need no endpoint flags.
+      # Both variables carry the full URL scheme. goose's provider docs set
+      # OLLAMA_HOST as http://host:port (not a bare host:port), and the ollama
+      # CLI accepts the scheme form too; OLLAMA_API_BASE is aider's convention.
+      # Both point at the same local server so clients need no endpoint flags.
       home.sessionVariables = {
-        OLLAMA_HOST = endpoint;
+        OLLAMA_HOST = "http://${endpoint}";
         OLLAMA_API_BASE = "http://${endpoint}";
       };
     };

@@ -33,12 +33,16 @@
 
       # Default goose to the local Ollama Mellum2-Thinking model so it runs
       # headless without a `goose configure` step. OLLAMA_HOST / OLLAMA_API_BASE
-      # are exported by the ollama module (apps.cli.ollama). GOOSE_MODEL must
-      # match the model pulled in hosts/qbert/modules.nix (apps.cli.ollama.
-      # loadModels); keep the two in sync. Override per-session for other
-      # providers, or point aider at it with `aider --model ollama_chat/<model>`.
+      # are exported by the ollama module (apps.cli.ollama). goose is a
+      # tool-using agent, and Mellum2-Thinking supports tool-calling (BFCL v3
+      # 73.9, hermes tool-call parser), so the pairing is deliberate. If the
+      # GGUF's ollama template ever exposes tools poorly and goose's tool loop
+      # gets flaky, aider is the tool-calling-independent fallback for coding.
+      # GOOSE_MODEL and the server pull both read globals.ai.localCodeModel, so
+      # they stay in sync. Override per-session for other providers, or point
+      # aider at it with `aider --model ollama_chat/<model>`.
       GOOSE_PROVIDER = "ollama";
-      GOOSE_MODEL = "hf.co/JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M";
+      GOOSE_MODEL = globals.ai.localCodeModel;
     };
 
   };
