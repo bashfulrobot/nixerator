@@ -11,6 +11,15 @@ let
   # desktop notifier is present -- fires a notify-send popup. Headless hosts
   # (srv: no notify-send) silently skip the popup.
   #
+  # Manual-vendor exception: `config/skills/csp-draft/` is an external skill
+  # authored outside this repo (Kong AI Cowork, author andrew.euston@konghq.com)
+  # and dropped in by hand. It has an upstream, but not a machine-trackable one
+  # (no GitHub source, so `skillfish update` below never sees it). To refresh it
+  # when a new version ships: get the updated skill folder from the author, then
+  # replace `config/skills/csp-draft/` wholesale (keep it unpatched so drops diff
+  # cleanly) and rebuild. It deploys to ~/.claude via the rsync in cfg/activation.nix
+  # like any other config/skills entry.
+  #
   # Guard on skillfish being on PATH so the command is a harmless no-op on
   # hosts where the skillfish module isn't enabled.
   claudeSkillUpdates = pkgs.writeShellApplication {
