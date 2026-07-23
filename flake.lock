@@ -1385,17 +1385,18 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1784577168,
-        "narHash": "sha256-MmQR65WVsv2btYh2Vvcr2iw2UjTSpPsPmSrAVILZWeY=",
-        "owner": "bashfulrobot",
-        "repo": "upsight",
-        "rev": "a175e681625ca3d5e1f9cc1570b7aa5b4264c42c",
-        "type": "github"
+        "lastModified": 1784840073,
+        "narHash": "sha256-3blEXPOiZOAO0B1LmG1AKHhV9TPSz8hdSYT7wOYWysY=",
+        "ref": "main",
+        "rev": "372b53844c065459e78e1674f6dd75104effdf53",
+        "revCount": 387,
+        "type": "git",
+        "url": "ssh://git@github.com/bashfulrobot/upsight"
       },
       "original": {
-        "owner": "bashfulrobot",
-        "repo": "upsight",
-        "type": "github"
+        "ref": "main",
+        "type": "git",
+        "url": "ssh://git@github.com/bashfulrobot/upsight"
       }
     },
     "voxtype": {

@@ -92,8 +92,14 @@
     # Go + Wails v3 + Svelte 5 rewrite of the original Kotlin app. Pins its own
     # nixpkgs (nixos-26.05), where its CGO/WebKitGTK build is verified, so it is
     # intentionally NOT following nixpkgs here.
+    #
+    # Fetched over git+ssh, not github:, because the repo is private: the github:
+    # scheme resolves HEAD through the GitHub API, which 404s without a valid PAT
+    # and then silently falls back to the stale cached commit (so every bump
+    # rebuilt an ancient version). SSH uses the existing key and always resolves
+    # real HEAD. Hosts that rebuild upsight need SSH read access to the repo.
     upsight = {
-      url = "github:bashfulrobot/upsight";
+      url = "git+ssh://git@github.com/bashfulrobot/upsight?ref=main";
     };
 
     # Ballpoint, a local Todoist triage tool (walk / probe / dispatch). Keeps
