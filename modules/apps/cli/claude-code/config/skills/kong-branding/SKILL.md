@@ -26,7 +26,7 @@ This skill does **not** own `.pptx` or reveal.js output — those have dedicated
 
 - Building or editing a `.pptx` deck → use `kong-pptx`
 - Building a reveal.js presentation → use `kong-revealjs-theme`
-- A Kong CS success-plan deck → use `kong-success-plan-pptx`
+- A Kong CS success-plan deck → use `csp-draft`
 
 Come back to *this* skill from within those if their bundled brand values look wrong or you need to check what the official value should be — that's exactly what [references/drift-and-consolidation.md](references/drift-and-consolidation.md) is for.
 
