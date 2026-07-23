@@ -81,6 +81,20 @@
       enable = true;
       host.qbert = true;
     };
+
+    # Local LLM server. qbert has the AMD 6800 XT (gfx1030, 16 GB VRAM), which
+    # ROCm supports directly with no HSA_OVERRIDE_GFX_VERSION, so the rocm
+    # variant is the accelerator (vulkan is the fallback if a ROCm regression
+    # ever bites, mirroring voxtype/whisper-server here). Prefetch JetBrains'
+    # Mellum2-Thinking (12B MoE, ~2.5B active) as a GGUF pull from HuggingFace;
+    # Q4_K_M fits VRAM with headroom (bump to Q6_K for more quality). The
+    # module exports OLLAMA_HOST / OLLAMA_API_BASE so goose and aider (from
+    # suites.ai) reach this server without endpoint flags.
+    ollama = {
+      enable = true;
+      acceleration = "rocm";
+      loadModels = [ "hf.co/JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M" ];
+    };
   };
 
   # Server modules

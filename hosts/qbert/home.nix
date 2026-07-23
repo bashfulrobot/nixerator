@@ -30,6 +30,15 @@
     # Home Manager environment variables (from globals)
     sessionVariables = {
       EDITOR = lib.mkForce (lib.getExe pkgs.${globals.preferences.editor});
+
+      # Default goose to the local Ollama Mellum2-Thinking model so it runs
+      # headless without a `goose configure` step. OLLAMA_HOST / OLLAMA_API_BASE
+      # are exported by the ollama module (apps.cli.ollama). GOOSE_MODEL must
+      # match the model pulled in hosts/qbert/modules.nix (apps.cli.ollama.
+      # loadModels); keep the two in sync. Override per-session for other
+      # providers, or point aider at it with `aider --model ollama_chat/<model>`.
+      GOOSE_PROVIDER = "ollama";
+      GOOSE_MODEL = "hf.co/JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M";
     };
 
   };

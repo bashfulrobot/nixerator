@@ -1,4 +1,10 @@
-{ lib, config, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  globals,
+  ...
+}:
 
 let
   cfg = config.suites.ai;
@@ -73,5 +79,16 @@ in
         skill-cache.enable = true;
       };
     };
+
+    # CLI agent harnesses for driving local (Ollama) or cloud models. goose is
+    # the general tool-using agent (goose-cli from the llm-agents input, the
+    # same source as claude-code); aider is the edit-format coding driver that
+    # does not depend on model-native tool-calling, so it stays reliable
+    # against a small local model. The local Ollama server and its default
+    # model are wired per-host (see hosts/qbert) because they need the GPU.
+    home-manager.users.${globals.user.name}.home.packages = [
+      pkgs.llm-agents.goose-cli
+      pkgs.aider-chat
+    ];
   };
 }
