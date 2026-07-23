@@ -80,25 +80,20 @@ in
       };
     };
 
-    # CLI agent harnesses for driving local (Ollama) or cloud models. goose is
-    # the general tool-using agent (goose-cli from the llm-agents input, the
-    # same source as claude-code); aider is the edit-format coding driver that
-    # does not depend on model-native tool-calling, so it stays reliable
-    # against a small local model.
+    # goose, the CLI agent harness for driving local (Ollama) or cloud models
+    # (goose-cli from the llm-agents input, the same source as claude-code).
+    # Provider-agnostic, so it rides along on every AI-suite host (qbert,
+    # donkeykong) the same way claude-code and gemini-cli already do, usable
+    # against cloud models without any local server. Only the local Ollama
+    # server and its default model are qbert-only (they need the GPU, see
+    # hosts/qbert); goose itself is general.
     #
-    # These are provider-agnostic, so they ride along on every AI-suite host
-    # (qbert, donkeykong) the same way claude-code and gemini-cli already do,
-    # usable against cloud models without any local server. This is deliberate:
-    # only the local Ollama server and its default model are qbert-only (they
-    # need the GPU, see hosts/qbert), the agent CLIs themselves are general.
-    #
-    # Both act with the user's privileges: goose runs model-directed shell
-    # commands and aider edits files and can run commands, so any model they are
-    # pointed at is a code-execution path, not just a text source. The local
-    # model is an unpinned pull (see the trust note on apps.cli.ollama.loadModels).
+    # goose acts with the user's privileges: it runs model-directed shell
+    # commands, so any model it is pointed at is a code-execution path, not just
+    # a text source. The local model is an unpinned pull (see the trust note on
+    # apps.cli.ollama.loadModels).
     home-manager.users.${globals.user.name}.home.packages = [
       pkgs.llm-agents.goose-cli
-      pkgs.aider-chat
     ];
   };
 }

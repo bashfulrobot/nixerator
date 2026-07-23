@@ -74,7 +74,7 @@ in
           bytes on the next activation unreviewed, and the daemon parses
           whatever it receives. Only list models from sources trusted to the
           same level as code that runs on the host, since a local model here
-          drives goose (shell) and aider (file edits). For stronger integrity,
+          drives goose, an agent with shell access. For stronger integrity,
           vendor the GGUF with a pinned hash and register it via `ollama create`
           rather than pulling a tag.
         '';
@@ -84,9 +84,31 @@ in
         type = lib.types.bool;
         default = true;
         description = ''
-          Export OLLAMA_HOST and OLLAMA_API_BASE into the user's session so
-          Ollama clients (the ollama CLI, goose, aider, any OpenAI-compatible
-          tool) resolve this local server without per-invocation flags.
+          Export OLLAMA_HOST (and, when defaultGooseModel is set, GOOSE_PROVIDER
+          and GOOSE_MODEL) so goose and the ollama CLI reach this local server
+          without per-invocation flags.
+
+          Delivered through fish shellInit, not home.sessionVariables. This
+          host's fish does not source hm-session-vars, so home.sessionVariables
+          never reach the shell or its child processes (see the same reasoning
+          for the token exports in modules/apps/cli/fish). Gated on the fish
+          module, so it is a no-op where fish is not enabled.
+        '';
+      };
+
+      defaultGooseModel = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "qwen3:14b";
+        description = ''
+          When set (and exportClientEnv is on), default goose to this model by
+          exporting GOOSE_PROVIDER=ollama and GOOSE_MODEL, so `goose session`
+          runs against the local server with no `goose configure` step. goose
+          reads both from the environment.
+
+          Set this to a model that loadModels actually pulls, or goose reports
+          model-not-found. null leaves goose unconfigured (it prompts to run
+          `goose configure`).
         '';
       };
 
@@ -97,8 +119,8 @@ in
         description = ''
           Default context window in tokens for served models, set via
           OLLAMA_CONTEXT_LENGTH. Ollama's own default is only a few thousand
-          tokens, which silently truncates long agent (goose/aider) sessions
-          well before a model's real limit. null leaves ollama's default.
+          tokens, which silently truncates long goose sessions well before a
+          model's real limit. null leaves ollama's default.
 
           The practical ceiling is VRAM, since the KV cache grows with the
           context length. On a 16 GB card a ~12B Q4_K_M model holds roughly 32k
@@ -186,26 +208,26 @@ in
         });
     };
 
-    home-manager.users.${globals.user.name} = lib.mkIf cfg.exportClientEnv {
-      # Both variables carry the full URL scheme. goose's provider docs set
-      # OLLAMA_HOST as http://host:port (not a bare host:port), and the ollama
-      # CLI accepts the scheme form too; OLLAMA_API_BASE is aider's convention.
-      # Both point at the same local server so clients need no endpoint flags.
-      home.sessionVariables = {
-        OLLAMA_HOST = "http://${endpoint}";
-        OLLAMA_API_BASE = "http://${endpoint}";
-      };
-
-      # Convenience alias so the aider invocation against the local model is not
-      # something to memorise. goose reads GOOSE_MODEL and needs no flag; aider
-      # takes the model on the command line, where ollama_chat/<name> is aider's
-      # documented Ollama routing and OLLAMA_API_BASE above points it at this
-      # server. The model is globals.ai.localCodeModel, the same single source
-      # the server pull and GOOSE_MODEL read, so the alias cannot drift from the
-      # pulled model. Gated on fish, so it is a no-op on hosts without it.
-      programs.fish.shellAliases = lib.mkIf config.apps.cli.fish.enable {
-        aider-local = "aider --model ollama_chat/${globals.ai.localCodeModel}";
-      };
-    };
+    home-manager.users.${globals.user.name} =
+      lib.mkIf (cfg.exportClientEnv && config.apps.cli.fish.enable)
+        {
+          # Point goose and the ollama CLI at the local server. Delivered via
+          # fish shellInit, not home.sessionVariables: this host's fish does not
+          # source hm-session-vars, so home.sessionVariables never reach the
+          # shell or its children (goose is launched from the shell, so this is
+          # what makes GOOSE_* visible to it). shellInit is the repo's proven
+          # mechanism for env vars in fish (see the token exports in the fish
+          # module). OLLAMA_HOST carries the scheme, which goose expects and the
+          # ollama CLI accepts.
+          programs.fish.shellInit = ''
+            set -gx OLLAMA_HOST "http://${endpoint}"
+          ''
+          + lib.optionalString (cfg.defaultGooseModel != null) ''
+            # Default goose to the local model so `goose session` needs no
+            # `goose configure`. goose reads both from the environment.
+            set -gx GOOSE_PROVIDER ollama
+            set -gx GOOSE_MODEL "${cfg.defaultGooseModel}"
+          '';
+        };
   };
 }
