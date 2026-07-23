@@ -20,7 +20,10 @@ td() {
   n=$(($(cat "$CNT") + 1))
   echo "$n" >"$CNT"
   case "${MOCK_MODE:-ok}" in
-    ok) printf 'OK:%s' "$*"; return 0 ;;
+    ok)
+      printf 'OK:%s' "$*"
+      return 0
+      ;;
     ratelimit_then_ok)
       if [ "$n" -lt 2 ]; then
         echo "HTTP 429: Too Many Requests" >&2
