@@ -1,5 +1,5 @@
 # One customer per line:
-#   Drive folder name[|aha_org_id[,aha_org_id2,...]][|Display Name]
+#   Drive folder name[|aha_org_id[,aha_org_id2,...]][|Display Name][|pdf_folder_id]
 #
 # Field 1 -- Drive folder name (required)
 #   The EXACT name of the customer's own folder, which sits at
@@ -26,13 +26,25 @@
 #   pipeline looks for, so rename any existing Sheet to match or a second one
 #   gets created next to it.
 #
+# Field 4 -- pdf-reports destination folder id (optional)
+#   Pins the customer-facing bundle to an explicit My Drive location (forwarded
+#   as --pdf-folder). The id is the customer's Customer/<Name>/FRs/pdf-reports
+#   folder in My Drive, which must already exist. From it the pipeline derives,
+#   without any extra ids:
+#     - the parent FRs folder, which receives a customer-facing Sheet copy, and
+#     - a sibling csv-exports folder (created if missing), which receives the CSV.
+#   The customer-facing PDF goes into the pinned pdf-reports folder itself. The
+#   internal Sheet still lands in its original shared-drive <Customer>/CS/FRs
+#   folder, so that long-standing link is unaffected. To set this while leaving
+#   the display name (field 3) empty, use two pipes: name|org||folderid.
+#
 # Lines starting with # and blank lines are ignored. run-all.sh processes
 # every customer here on each scheduled run.
-HealthEquity|7201237090137915419
-Lululemon|7239113931934373789
-Nordstrom, Inc.|7190055603084906157
-PayPal|7303720534328744758
-Sony Interactive|7210570342900669490|Sony Interactive Entertainment
-Standard Insurance|7190054349922059587
-x.ai|7210568074903643759
-Zillow|7431985914424870034
+HealthEquity|7201237090137915419||1wxOgFsmHL5bbea1I-DvJB3bZSy7fTkIf
+Lululemon|7239113931934373789||1cEgqQOpG8tXk5Y9mxdSf9HeffrUgPkJL
+Nordstrom, Inc.|7190055603084906157||1gTKqygyYOfvfdEOT2RQ8Eq7DYIEMXxKU
+PayPal|7303720534328744758||1R7J1JPiKki5BLC_ITPCT9LHFWHO_BQ3_
+Sony Interactive|7210570342900669490|Sony Interactive Entertainment|1i-9_TvCfkmYdzOp6VRf-IptfBuQivUt3
+Standard Insurance|7190054349922059587||1TxcNW3xK6TpMSAo3z18PVzU4JmXYakP7
+x.ai|7210568074903643759||1cgoVWvPpZ9xEYGzytk2mAMNVpwPcLDZ9
+Zillow|7431985914424870034||1Upp12EVAyO77S8oVUrms8hIHrmNCTtf-
