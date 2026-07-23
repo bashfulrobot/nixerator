@@ -30,7 +30,8 @@ Runtime paths resolve via `$HOME`:
     TRIAGE="$HOME/.claude/skills/todoist-triage"
 
 - `$TRIAGE/scripts/dig_fetch.sh <ref>` — classified breadcrumbs `[{kind,ref}]`.
-- `$TRIAGE/scripts/td_fetch.sh <ref>` — task + comments (+ `added_at`) JSON.
+- `$TRIAGE/scripts/td_fetch.sh <ref>` — task + comments (+ `added_at`) JSON. Honors
+  `TD_TASK_CACHE_DIR` (serve-from-disk + write-through) and retries `td` rate limits.
 - `$TRIAGE/scripts/td_worklog.sh` — the ONLY write path (idempotent daily log).
 - `$TRIAGE/references/data-sources.md` — which skill/MCP owns each source.
 - `$TRIAGE/references/source-resolution.md` — the per-customer skill-cache map.
@@ -49,6 +50,10 @@ Runtime paths resolve via `$HOME`:
 - Announce: writes Todoist comments only, never any outward Slack/email; the task
   count; whether `--dry-run` is set.
 - Set the per-run project cache: `export TD_TRIAGE_PROJECTS_CACHE="$(mktemp)"`.
+- Set the per-run task cache: `export TD_TASK_CACHE_DIR="$(mktemp -d)"`. `td_fetch.sh`
+  serves any ref already in this dir from disk with ZERO `td` calls and writes
+  through on a live fetch, so classify/anchor fill it once and the whole fan-out
+  reads from it. This is the main rate-limit control — see "Rate limits" below.
 - Warm the per-customer cache (Slack channel, email domain, notes dir) for every
   in-scope customer up front, per `$TRIAGE/references/source-resolution.md`.
 
@@ -61,14 +66,23 @@ For each task, `bash $TRIAGE/scripts/dig_fetch.sh <ref>`. Empty array → intern
 to-do, count "no change", spawn NO worker. Non-empty → candidate. (Roughly two
 thirds are internal-only; skipping them is the main cost control.)
 
+`dig_fetch.sh` calls `td_fetch.sh`, so with `TD_TASK_CACHE_DIR` set this pass also
+FILLS the task cache. Run it PACED — sequential, or `xargs -P 3` at most, never a
+wide burst — this is the one pass that actually hits Todoist per task, so it sets
+the rate-limit ceiling for the whole run.
+
 ### 3 — Delta fan-out (parallel, read-only)
 For each candidate, compute the anchor:
-`bash $TRIAGE/scripts/td_fetch.sh <ref> | bash $TTU/scripts/ttu_anchor.sh`.
+`bash $TRIAGE/scripts/td_fetch.sh <ref> | bash $TTU/scripts/ttu_anchor.sh`. With the
+task cache warmed in step 2 this reads from disk, no `td` call.
 Dispatch one research subagent per candidate using the Agent tool, filling
 `assets/update-subagent-brief.md` (`{{TASK_REF}}`, `{{ANCHOR}}`, `{{SKILL_DIR}}`,
-`{{TRIAGE_DIR}}`). Cap concurrency (~8–11); auto-chunk large projects — chunk size
-scales with task count. Each worker returns the fixed schema + AUDITED / NEEDS
-UPDATE / UNVERIFIABLE footer.
+`{{TRIAGE_DIR}}`, `{{TASK_CACHE_DIR}}`). Pass `TD_TASK_CACHE_DIR` in the brief so a
+worker's own `dig_fetch`/`td_fetch` also hits the cache — a subagent does NOT
+inherit the orchestrator's env, so the value must be in the prompt. Cap concurrency
+(~8–11); auto-chunk large projects — chunk size scales with task count. With reads
+cache-served, the live limit is now Slack/Gmail/Aha, not Todoist. Each worker
+returns the fixed schema + AUDITED / NEEDS UPDATE / UNVERIFIABLE footer.
 
 ### 4 — Consolidate (single context)
 Gather all worker results. Each worker keys its result by `task_ref` (the ref it
@@ -99,6 +113,13 @@ and a final `--entry "Net: …" --next "…"` call for the synthesis. `--dry-run
 prints the composed bullets instead of writing. Writes are Todoist comments only —
 never an outward message.
 
+PACE + idempotency: each `td_worklog` call is a read+write against Todoist, so
+sleep ~2s between calls and track completed tasks in a done-file. `td_worklog`
+appends per call and is idempotent only per-DAY, not per-bullet, so re-running an
+interrupted write pass without a done-file DOUBLE-writes bullets. Write all of a
+task's bullets, then record the task as done, then move on; on rerun, skip
+done tasks. `td_worklog` retries Todoist rate limits on its own (shared `lib_td`).
+
 ### 6 — Digest + handoff
 Present one artifact grouped by project then shared thread: "Updated N of M",
 each line `<project> — <title> — <n new> — <what changed> [open](url)`; then a
@@ -111,6 +132,21 @@ render HTML via `$TRIAGE/scripts/build_digest.py`. The digest's prose (the
 "what changed" synthesis lines) is writing — run it through `text-polish` before
 presenting, same as the comment entries; the deterministic scaffold (links,
 counts, IDs) is not prose and is left as-is.
+
+## Rate limits (why the sweep used to cascade)
+
+Todoist rate-limits hard on a ~15-min sliding window. A wide-parallel classify or
+anchor burst (e.g. `xargs -P 10` over 250+ tasks, ~2–3 `td` calls each) trips it in
+seconds; once tripped, every later call 429s and retries keep the window hot. The
+posture that keeps a full-backlog sweep under the limit:
+
+1. `TD_TASK_CACHE_DIR` set from step 0 — the ~150-worker fan-out then makes ZERO
+   Todoist reads; workers only hit Slack/Gmail/Aha/Jira/SFDC.
+2. Pace the ONE pass that fills the cache (step 2 classify): sequential or `-P 3`.
+3. Pace the write pass (~2s/call) with a done-file (step 5).
+4. `td_fetch`/`td_worklog`/`td_scope`/`ttu_scope` retry 429s with backoff via the
+   shared `$TRIAGE/scripts/lib_td.sh` (`td_retry`) — resilience, not a licence to
+   burst. If already throttled, stop calling for ~15 min to let the window drain.
 
 ## Secrets (hard rules — see the spec's containment section)
 
