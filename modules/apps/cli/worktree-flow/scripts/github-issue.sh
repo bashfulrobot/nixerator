@@ -869,8 +869,14 @@ resume_branch_decision() {
 # so origin is preferred without silently discarding local-only work.
 count_ahead_of_origin() {
   local branch="$1"
-  git show-ref --verify --quiet "refs/heads/${branch}" || { printf '0'; return 0; }
-  git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || { printf '0'; return 0; }
+  git show-ref --verify --quiet "refs/heads/${branch}" || {
+    printf '0'
+    return 0
+  }
+  git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || {
+    printf '0'
+    return 0
+  }
   git rev-list --count "refs/remotes/origin/${branch}..refs/heads/${branch}"
 }
 
@@ -880,8 +886,14 @@ count_ahead_of_origin() {
 # clean fast-forward from a genuine divergence and word its warning correctly.
 count_behind_of_origin() {
   local branch="$1"
-  git show-ref --verify --quiet "refs/heads/${branch}" || { printf '0'; return 0; }
-  git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || { printf '0'; return 0; }
+  git show-ref --verify --quiet "refs/heads/${branch}" || {
+    printf '0'
+    return 0
+  }
+  git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || {
+    printf '0'
+    return 0
+  }
   git rev-list --count "refs/heads/${branch}..refs/remotes/origin/${branch}"
 }
 
