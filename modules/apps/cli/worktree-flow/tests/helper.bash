@@ -79,3 +79,39 @@ queue_state_file() {
       printf "%s/.queue-state.json" "$(worktree_base)"
     ' )
 }
+
+# state_build ARGS... — run create_issue_state with the given args (sourced, no
+# network), so the resumed/fresh state file it writes can be inspected. Args are
+# passed straight through: branch wt_path issue title body base_ref [blockers]
+# [pr_url] [initial_step] [setup_note].
+state_build() {
+  ( bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      create_issue_state "$@"
+    ' _ "$@" 2>/dev/null )
+}
+
+# resume_fn FUNC ARGS... — run a pure github-issue.sh helper (no cwd, no
+# network) and print its stdout.
+resume_fn() {
+  ( bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      f="$1"; shift; "$f" "$@"
+    ' _ "$@" 2>/dev/null )
+}
+
+# ahead_in_fixture BRANCH — run count_ahead_of_origin from the fixture work
+# clone (needs the origin remote-tracking ref that setup_fixture creates).
+ahead_in_fixture() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      count_ahead_of_origin "$1"
+    ' _ "$1" 2>/dev/null )
+}

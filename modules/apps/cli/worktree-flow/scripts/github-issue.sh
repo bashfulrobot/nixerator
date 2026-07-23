@@ -147,6 +147,13 @@ create_issue_state() {
   local issue_body="$5"
   local base_ref="$6"
   local blockers_json="${7:-[]}"
+  # Optional resume params. Fresh setup calls with 6-7 args, so these default to
+  # the original hardcoded values (empty pr_url, assess step, "created" note).
+  # resume passes a discovered PR URL, an initial step, and a resume note so the
+  # state file lands the next push on cmd_push's PR-update path (pr_url non-empty).
+  local pr_url="${8:-}"
+  local initial_step="${9:-assess}"
+  local setup_note="${10:-Worktree created from ${base_ref}.}"
   local timestamp
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   local json
@@ -159,10 +166,11 @@ create_issue_state() {
     --arg branch "$branch" \
     --arg base_ref "$base_ref" \
     --arg wt_path "$wt_path" \
-    --arg pr_url "" \
+    --arg pr_url "$pr_url" \
     --arg session_id "" \
-    --arg workflow_step "assess" \
+    --arg workflow_step "$initial_step" \
     --argjson blockers "$blockers_json" \
+    --arg setup_note "$setup_note" \
     --arg started_at "$timestamp" \
     --arg updated_at "$timestamp" \
     '{
@@ -178,7 +186,7 @@ create_issue_state() {
       session_id: $session_id,
       workflow_step: $workflow_step,
       workflow_detail: {complexity: null, plan_file: null, review_stage: null, revamp_round: 0, blockers: $blockers, open_threads: []},
-      step_history: [{step: "setup", completed_at: $started_at, note: "Worktree created from \($base_ref)."}],
+      step_history: [{step: "setup", completed_at: $started_at, note: $setup_note}],
       started_at: $started_at,
       updated_at: $updated_at
     }')"
@@ -809,6 +817,31 @@ detect_existing_branch() {
   else
     echo "none"
   fi
+}
+
+# Map detect_existing_branch's result to a resume routing decision. Resume is
+# the inverse of the #262 setup preflight: a branch that exists (local, remote,
+# or both) can be re-attached; "none" means there is nothing to resume; and
+# "unknown" (origin unreachable) fails closed, exactly as setup does.
+resume_branch_decision() {
+  case "$1" in
+    local | remote | both) printf 'resume' ;;
+    none) printf 'absent' ;;
+    *) printf 'unreachable' ;;
+  esac
+}
+
+# Count commits the local branch has that origin/<branch> does not, reading the
+# fetched remote-tracking ref (no network). Returns 0 when either the local
+# branch or the origin ref is absent, so a local-only branch (no origin baseline
+# to be "ahead" of) and an in-sync branch both read 0; only genuine unpushed
+# commits produce a positive count. Resume uses this to warn before re-attaching
+# so origin is preferred without silently discarding local-only work.
+count_ahead_of_origin() {
+  local branch="$1"
+  git show-ref --verify --quiet "refs/heads/${branch}" || { printf '0'; return 0; }
+  git rev-parse --verify --quiet "refs/remotes/origin/${branch}" >/dev/null || { printf '0'; return 0; }
+  git rev-list --count "refs/remotes/origin/${branch}..refs/heads/${branch}"
 }
 
 cmd_setup() {
