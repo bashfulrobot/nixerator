@@ -55,8 +55,7 @@ jq -n --argjson x "$task" --argjson c "$comments" --argjson p "$projects" '
         priority: ("p" + ((5 - $x.priority) | tostring)),
         labels:  ($x.labels // []),
         description: ($x.description // ""),
-        url:     $x.url,
-        added_at: ($x.addedAt // null)
+        url:     $x.url
       },
       comments: (($c.results // []) | map({
         content:  .content,

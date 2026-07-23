@@ -205,6 +205,15 @@
             "command": "bash -c 'input=$(cat)\nfile=$(echo \"$input\" | jq -r '\\''.tool_input.file_path // empty'\\'' 2>/dev/null)\n[[ \"$file\" == *.nix ]] || exit 0\n[[ -f \"$file\" ]] || exit 0\n\n# Check version literals in build/default.nix files\nif [[ \"$file\" == */build/default.nix ]]; then\n  if grep -qE '\\''^\\s*version\\s*=\\s*\"'\\'' \"$file\"; then\n    echo \"[module-structure] ERROR: Hardcoded version literal in $file. Fix: versions should come from the '\\''versions'\\'' parameter (settings/versions.nix).\"\n    exit 1\n  fi\nfi\n\n# Only check module default.nix files under modules/\nif [[ \"$file\" != */modules/*/default.nix ]]; then\n  exit 0\nfi\n\n# Skip if file has no options block (not a module definition)\nif ! grep -q '\\''options\\.'\\'' \"$file\"; then\n  exit 0\nfi\n\n# Extract expected namespace from path: modules/<cat>/<subcat>/<name>/default.nix\nmod_path=$(echo \"$file\" | sed -n '\\''s|.*/modules/\\(.*\\)/default\\.nix|\\1|p'\\'')\nif [[ -z \"$mod_path\" ]]; then\n  exit 0\nfi\n# Convert path separators to dots for namespace\nnamespace=$(echo \"$mod_path\" | tr '\\''/'\\'' '\\''.'\\'')\n\n# Check enable option matches path\nif ! grep -q \"options\\.${namespace}\\.enable\" \"$file\"; then\n  echo \"[module-structure] ERROR: Module at $file defines options but is missing '\\''options.${namespace}.enable'\\''. Fix: add '\\''options.${namespace}.enable = lib.mkEnableOption \\\"...\\\";'\\''.\"\n  exit 1\nfi\n\n# Check config is wrapped in mkIf\nif ! grep -qE '\\''(lib\\.mkIf|mkIf)'\\'' \"$file\"; then\n  echo \"[module-structure] WARNING: Module at $file defines options but config is not wrapped in mkIf. Consider using '\\''config = lib.mkIf cfg.enable { ... };'\\''.\"\nfi\n'"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/f3s66mks356j7q1xa8hh59znw508famq-claude-scrub-secret-output/bin/claude-scrub-secret-output"
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -251,6 +260,17 @@
           {
             "type": "command",
             "command": "bash -c 'input=$(cat)\nmsg=$(echo \"$input\" | jq -r '\\''.last_assistant_message // \"Done\"'\\'' 2>/dev/null | head -c 80)\nnotify-send \"Claude Code\" \"$msg\" --icon=terminal 2>/dev/null || true\n'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/d7smx4r4brl0c8yhip91zy27m5q9f86l-claude-guard-secret-commands/bin/claude-guard-secret-commands"
           }
         ]
       }
