@@ -258,6 +258,24 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
+@test "denies primary writes behind arg-taking wrappers and a case body" {
+  # timeout/stdbuf consume their own argument before the command word, and a
+  # case pattern body opens a command position after `)`. All run git in the
+  # current tree, so a primary write through them must deny.
+  local fails=0 cmd
+  for cmd in \
+    "timeout 5 git -C $PRIMARY commit -m x" \
+    "timeout --signal=KILL 5 git -C $PRIMARY commit -m x" \
+    "stdbuf -o0 git -C $PRIMARY commit -m x" \
+    "case x in y) git -C $PRIMARY commit -m x ;; esac"; do
+    if [ "$(decision "$cmd")" != deny ]; then
+      echo "EXPECTED DENY, GOT ALLOW: $cmd"
+      fails=$((fails + 1))
+    fi
+  done
+  [ "$fails" -eq 0 ]
+}
+
 @test "resolves repeated -C cumulatively, honouring the last effective tree" {
   # git applies multiple -C in order, each relative to the previous, so the last
   # absolute -C wins. Reading only the first -C would allow a primary write that

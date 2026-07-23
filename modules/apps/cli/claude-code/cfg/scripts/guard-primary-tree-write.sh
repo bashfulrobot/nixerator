@@ -42,7 +42,7 @@
 # Fails open on ambiguity: only a positive primary-tree match denies. If the
 # target working tree cannot be resolved, the path is not a repo, or git errors,
 # the command proceeds. The verb match is anchored to a command position (start
-# of the line, right after a `; & | ( { ` or backtick, or after a compound head
+# of the line, right after a `; & | ( ) { ` or backtick, or after a compound head
 # like if/while), so a git verb merely quoted or echoed in prose
 # (`echo git commit`) never trips it. Mirrors guard-git-stash.sh.
 #
@@ -66,27 +66,30 @@ cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null || true)"
 
 # Match a mutating git subcommand at a command position. The leading class is the
 # command-boundary set (start of string, or right after a metacharacter that
-# opens a new simple command: ; & | ( ` or {), NOT a bare space, so a git verb
+# opens a new simple command: ; & | ( ) ` or {), NOT a bare space, so a git verb
 # sitting inside prose or a quoted argument does not match. `&&` and `||` are
-# covered because the second `&`/`|` is itself a boundary char. Between the
-# boundary and git, git_lead consumes what can sit in front of the command word:
-# env-assignment prefixes (FOO=bar, including GIT_AUTHOR_DATE=...), the common
-# wrappers (env/sudo/time/nice/nohup/command/exec/xargs), and the compound-command
-# heads (if/then/elif/else/while/until/do), so `if git ... commit`,
-# `command git commit`, and a backdated or wrapped write are all still caught. An
-# optional leading backslash catches `\git` (the alias-bypassing form). Then allow
-# `git -C <dir>` / `git -c k=v` / `git --git-dir=<d>` option prefixes and a quoted
-# subcommand. A wrapper that takes its own argument (timeout <n>, stdbuf -o0) is
-# not modelled; that residual fails open under the cooperative single-user model.
+# covered because the second `&`/`|` is itself a boundary char; `)` covers a
+# `case` pattern body. Between the boundary and git, git_lead consumes what can
+# sit in front of the command word: env-assignment prefixes (FOO=bar, including
+# GIT_AUTHOR_DATE=...), the plain wrappers (env/sudo/time/nice/nohup/command/exec/
+# xargs), the compound-command heads (if/then/elif/else/while/until/do), and the
+# arg-taking wrappers timeout/stdbuf with their option and duration tokens, so
+# `if git ... commit`, `command git commit`, `timeout 5 git commit`, and a
+# backdated or wrapped write are all still caught. An optional leading backslash
+# catches `\git` (the alias-bypassing form). Then allow `git -C <dir>` /
+# `git -c k=v` / `git --git-dir=<d>` option prefixes and a quoted subcommand.
+# A git write hidden inside an `eval "..."` string or a here-doc body is not
+# modelled (it needs nested-command parsing); that residual fails open under the
+# cooperative single-user model.
 git_verb='(commit|push|reset|merge|rebase|revert|cherry-pick|am|apply|add|rm|mv|clean)'
-git_lead='(([A-Za-z_][A-Za-z0-9_]*=\S+|sudo|env|time|nice|nohup|command|exec|xargs|if|then|elif|else|while|until|do)\s+)*'
-verb_re="(^|[;&|(\`{])\s*${git_lead}\\\\?git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b"
+git_lead='(([A-Za-z_][A-Za-z0-9_]*=\S+|sudo|env|time|nice|nohup|command|exec|xargs|if|then|elif|else|while|until|do)\s+|(timeout|stdbuf)(\s+(-{1,2}\S+|[0-9]\S*))*\s+)*'
+verb_re="(^|[;&|()\`{])\s*${git_lead}\\\\?git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b"
 
 # Per-invocation sanction marker: the marker must lead the segment (after an
 # optional boundary char), immediately before git. Kept in a single-quoted
 # variable so the literal backtick in the boundary class does not open a command
 # substitution inside `[[ =~ ]]`.
-marker_re='^[;&|(`{]?[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$)'
+marker_re='^[;&|()`{]?[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$)'
 
 strip_quotes() {
   local s="$1"
