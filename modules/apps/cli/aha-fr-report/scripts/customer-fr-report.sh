@@ -3,7 +3,9 @@
 # ideas exactly once and builds every artifact from that single data set, so
 # they can never disagree:
 #   - the internal Sheet, always written to the customer's shared-drive
-#     <Customer>/CS/FRs folder (its link never moves), and
+#     <Customer>/CS/FRs folder (its link never moves),
+#   - a customer-safe Sheet ("<Name> - Feature Requests (Customer)") beside it
+#     in that same folder, carrying only the PDF's columns (no link columns), and
 #   - a fresh Kong-branded PDF snapshot.
 # When a PDF destination is pinned (--pdf-folder / customers.txt field 4) it
 # additionally writes a customer-facing bundle into the My Drive tree that
@@ -142,6 +144,11 @@ sheet_result="$(bash "$here/write-customer-sheet.sh" "$customer_name" "$frs_id" 
 sheet_url="$(echo "$sheet_result" | cut -f2)"
 
 echo >&2
+echo "== Writing customer-safe Sheet (shared drive, beside the internal one) ==" >&2
+safe_sheet_result="$(bash "$here/write-customer-sheet.sh" "$customer_name" "$frs_id" ${display_args[@]+"${display_args[@]}"} --customer-safe --ideas-file "$ideas_file")"
+safe_sheet_url="$(echo "$safe_sheet_result" | cut -f2)"
+
+echo >&2
 echo "== Generating Kong-branded PDF ==" >&2
 pdf_result="$(bash "$here/export-customer-pdf.sh" "$customer_name" "$pdf_reports_id" ${display_args[@]+"${display_args[@]}"} --ideas-file "$ideas_file")"
 pdf_link="$(echo "$pdf_result" | cut -f2)"
@@ -163,6 +170,7 @@ fi
 echo >&2
 echo "== Done ==" >&2
 echo "Sheet (internal, shared drive):  $sheet_url"
+echo "Sheet (customer-safe, shared):   $safe_sheet_url"
 if [[ -n "$pdf_folder" ]]; then
   echo "Sheet (My Drive FRs copy):       $new_sheet_url"
 fi
