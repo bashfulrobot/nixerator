@@ -110,17 +110,16 @@ decision() {
   [ "$fails" -eq 0 ]
 }
 
-@test "marker only counts when it leads the whole command" {
-  # The marker mentioned inside a quoted commit message must NOT sanction the
-  # write, even after a shell metacharacter that grep cannot tell from real
-  # command structure. The git commit still resolves to the primary tree and
-  # denies. A marker sitting after a cd prefix is likewise not honoured.
+@test "marker mentioned in a commit message does not sanction the write" {
+  # The marker quoted inside a commit message must NOT sanction the write, even
+  # after a shell metacharacter that grep cannot tell from real command
+  # structure. The message sits after the verb, outside the matched segment, so
+  # the commit still resolves to the primary tree and denies.
   local fails=0 cmd
   for cmd in \
     "git -C $PRIMARY commit -m \"(CLAUDE_SANCTIONED_GIT=1 was discussed)\"" \
     "git -C $PRIMARY commit -m \"note; CLAUDE_SANCTIONED_GIT=1 git add\"" \
-    "git -C $PRIMARY commit -m \"the marker (CLAUDE_SANCTIONED_GIT=1 git ...) frees it\"" \
-    "cd $PRIMARY && CLAUDE_SANCTIONED_GIT=1 git commit -m x"; do
+    "git -C $PRIMARY commit -m \"the marker (CLAUDE_SANCTIONED_GIT=1 git ...) frees it\""; do
     if [ "$(decision "$cmd")" != deny ]; then
       echo "EXPECTED DENY, GOT ALLOW: $cmd"
       fails=$((fails + 1))
@@ -235,6 +234,71 @@ decision() {
       fails=$((fails + 1))
     fi
   done
+  [ "$fails" -eq 0 ]
+}
+
+@test "denies a primary write at non-obvious command positions and wrappers" {
+  # The verb anchor must treat every shell command position as such, not just
+  # ; & | ( backtick. A brace group, a compound-command head (if/while), the
+  # command/exec/xargs wrappers, and a backslash-escaped git all run git in the
+  # current tree, so a primary write through any of them must deny.
+  local fails=0 cmd
+  for cmd in \
+    "{ git -C $PRIMARY commit -m x; }" \
+    "if git -C $PRIMARY commit -m x; then :; fi" \
+    "while git -C $PRIMARY commit -m x; do :; done" \
+    "command git -C $PRIMARY commit -m x" \
+    "\\git -C $PRIMARY commit -m x" \
+    "true | xargs git -C $PRIMARY commit -m"; do
+    if [ "$(decision "$cmd")" != deny ]; then
+      echo "EXPECTED DENY, GOT ALLOW: $cmd"
+      fails=$((fails + 1))
+    fi
+  done
+  [ "$fails" -eq 0 ]
+}
+
+@test "resolves repeated -C cumulatively, honouring the last effective tree" {
+  # git applies multiple -C in order, each relative to the previous, so the last
+  # absolute -C wins. Reading only the first -C would allow a primary write that
+  # names a worktree first.
+  local fails=0
+  if [ "$(decision "git -C $WT -C $PRIMARY commit -m x")" != deny ]; then
+    echo "EXPECTED DENY, GOT ALLOW: -C worktree -C primary commit"
+    fails=$((fails + 1))
+  fi
+  if [ "$(decision "git -C $PRIMARY -C $WT commit -m x")" != allow ]; then
+    echo "EXPECTED ALLOW, GOT DENY: -C primary -C worktree commit"
+    fails=$((fails + 1))
+  fi
+  [ "$fails" -eq 0 ]
+}
+
+@test "sanction marker frees only the invocation it directly leads" {
+  local fails=0
+  # A marked read (or write) must not free a later unmarked primary write in the
+  # same command; the unmarked commit still denies.
+  if [ "$(decision "CLAUDE_SANCTIONED_GIT=1 git status && git -C $PRIMARY commit -m x")" != deny ]; then
+    echo "EXPECTED DENY, GOT ALLOW: marked read then unmarked primary commit"
+    fails=$((fails + 1))
+  fi
+  # The genuinely marked write is still allowed.
+  if [ "$(decision "CLAUDE_SANCTIONED_GIT=1 git -C $PRIMARY commit -m x")" != allow ]; then
+    echo "EXPECTED ALLOW, GOT DENY: marked primary commit"
+    fails=$((fails + 1))
+  fi
+  # The marker frees the invocation it leads even when a cd precedes it, since it
+  # directly prefixes that git write (what a user-directed flow may emit).
+  if [ "$(decision "cd $PRIMARY && CLAUDE_SANCTIONED_GIT=1 git commit -m x")" != allow ]; then
+    echo "EXPECTED ALLOW, GOT DENY: cd then marked primary commit"
+    fails=$((fails + 1))
+  fi
+  # The marker cannot be smuggled through a -c option value; it only counts when
+  # it leads the invocation, not when it rides inside a later flag.
+  if [ "$(decision "git -c foo=CLAUDE_SANCTIONED_GIT=1 -C $PRIMARY commit -m x")" != deny ]; then
+    echo "EXPECTED DENY, GOT ALLOW: marker smuggled in -c value"
+    fails=$((fails + 1))
+  fi
   [ "$fails" -eq 0 ]
 }
 

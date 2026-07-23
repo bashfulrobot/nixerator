@@ -34,17 +34,17 @@
 # a session sentinel file that stays live until removed. It is a cooperative
 # guardrail, not a security boundary: the point is to stop accidental and
 # unsupervised writes, matching the single-user threat model and the stash
-# guard, which is itself bypassable through plumbing. The marker frees the whole
-# tool call it leads, not just the segment it prefixes; the sanctioned flows
-# issue one git write per command, so a `marker git commit && git push` compound
-# is not something they emit.
+# guard, which is itself bypassable through plumbing. The marker frees only the
+# single git invocation it directly leads, checked per invocation, so a marked
+# read cannot free a later unmarked primary write in the same command; the
+# sanctioned flow issues one marked write per Bash call anyway.
 #
 # Fails open on ambiguity: only a positive primary-tree match denies. If the
 # target working tree cannot be resolved, the path is not a repo, or git errors,
 # the command proceeds. The verb match is anchored to a command position (start
-# of the line or right after a `; & | (` or backtick), so a git verb merely
-# quoted or echoed in prose (`echo git commit`) never trips it. Mirrors
-# guard-git-stash.sh.
+# of the line, right after a `; & | ( { ` or backtick, or after a compound head
+# like if/while), so a git verb merely quoted or echoed in prose
+# (`echo git commit`) never trips it. Mirrors guard-git-stash.sh.
 #
 # A PreToolUse "deny" can never be overridden by another hook's "allow", so this
 # composes safely with the /auto auto-gate (auto-gate.sh) and the stash guard.
@@ -56,31 +56,37 @@ input="$(cat)"
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null || true)"
 [[ -n "$cmd" ]] || exit 0
 
-# Sanctioned override: a `CLAUDE_SANCTIONED_GIT=1` env assignment that LEADS the
-# whole command and is immediately followed by git. The /commit and git-cleanup
-# flows set this when the user explicitly directs a primary-tree write, and they
-# always emit the marker as the first token of the command (one git write per
-# Bash call). This uses bash `[[ =~ ]]`, whose `^` anchors to the START OF THE
-# STRING, not per line. grep `^` matches the start of any line, which would let
-# the marker on a later line of a multiline command (or inside a quoted, newline
-# bearing commit message) free an unmarked write on an earlier line. Anchoring
-# to the string start, with git right after the marker, closes both the
-# quoted-message and the multiline forms. Allow and get out.
-if [[ "$cmd" =~ ^[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$) ]]; then
-  exit 0
-fi
+# The sanctioned override (a `CLAUDE_SANCTIONED_GIT=1 git ...` prefix) is NOT
+# handled here as a whole-command short-circuit. That would let a marked read
+# free a later unmarked primary write in the same command
+# (`CLAUDE_SANCTIONED_GIT=1 git status && git -C <primary> commit`). It is
+# checked per verb-bearing invocation in the loop below, so the marker frees
+# only the single git write it directly leads, matching what /commit emits (one
+# marked write per Bash call).
 
 # Match a mutating git subcommand at a command position. The leading class is the
-# command-boundary set (start of string, or right after ; & | ( or a backtick),
-# NOT a bare space, so a git verb sitting inside prose or a quoted argument does
-# not match. Between the boundary and git, allow env-assignment prefixes
-# (FOO=bar, including GIT_AUTHOR_DATE=...) and the common wrappers env/sudo/time/
-# nice/nohup, so a wrapped or backdated write is still caught. Then allow
-# `git -C <dir>` / `git -c k=v` / `git --git-dir=<d>` option prefixes and a
-# quoted subcommand.
+# command-boundary set (start of string, or right after a metacharacter that
+# opens a new simple command: ; & | ( ` or {), NOT a bare space, so a git verb
+# sitting inside prose or a quoted argument does not match. `&&` and `||` are
+# covered because the second `&`/`|` is itself a boundary char. Between the
+# boundary and git, git_lead consumes what can sit in front of the command word:
+# env-assignment prefixes (FOO=bar, including GIT_AUTHOR_DATE=...), the common
+# wrappers (env/sudo/time/nice/nohup/command/exec/xargs), and the compound-command
+# heads (if/then/elif/else/while/until/do), so `if git ... commit`,
+# `command git commit`, and a backdated or wrapped write are all still caught. An
+# optional leading backslash catches `\git` (the alias-bypassing form). Then allow
+# `git -C <dir>` / `git -c k=v` / `git --git-dir=<d>` option prefixes and a quoted
+# subcommand. A wrapper that takes its own argument (timeout <n>, stdbuf -o0) is
+# not modelled; that residual fails open under the cooperative single-user model.
 git_verb='(commit|push|reset|merge|rebase|revert|cherry-pick|am|apply|add|rm|mv|clean)'
-git_lead='(([A-Za-z_][A-Za-z0-9_]*=\S+|sudo|env|time|nice|nohup)\s+)*'
-verb_re="(^|[;&|(\`])\s*${git_lead}git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b"
+git_lead='(([A-Za-z_][A-Za-z0-9_]*=\S+|sudo|env|time|nice|nohup|command|exec|xargs|if|then|elif|else|while|until|do)\s+)*'
+verb_re="(^|[;&|(\`{])\s*${git_lead}\\\\?git(\s+-\S+(\s+[^-]\S*)?)*\s+[\"']?${git_verb}\b"
+
+# Per-invocation sanction marker: the marker must lead the segment (after an
+# optional boundary char), immediately before git. Kept in a single-quoted
+# variable so the literal backtick in the boundary class does not open a command
+# substitution inside `[[ =~ ]]`.
+marker_re='^[;&|(`{]?[[:space:]]*CLAUDE_SANCTIONED_GIT=1[[:space:]]+git([[:space:]]|$)'
 
 strip_quotes() {
   local s="$1"
@@ -191,31 +197,51 @@ cwd_at() {
 # whole line, so a compound that mixes trees (git -C <worktree> ... && git commit
 # in the primary cwd) is judged on the invocation that actually carries the
 # mutating verb. Deny as soon as any such invocation resolves to the primary
-# checkout. Explicit repo targeting on that invocation (`git -C`, `--work-tree`,
-# `--git-dir`) wins over the replayed cwd at that offset, which wins over the
-# hook cwd. Fail open per invocation: a git error (not a repo) skips it. If
-# nothing matches a mutating verb, the loop runs zero times, and the command is
-# allowed.
+# checkout. The invocation's own repo targeting (`git -C`, `--work-tree`,
+# `--git-dir`, applied cumulatively as git does) layers on top of the replayed
+# cwd at that offset, which sits on top of the hook cwd. Fail open per
+# invocation: a git error (not a repo) skips it. If nothing matches a mutating
+# verb, the loop runs zero times, and the command is allowed.
 while IFS= read -r match; do
   [[ -n "$match" ]] || continue
   moff="${match%%:*}"
   seg="${match#*:}"
-  inspect_dir=""
-  gitdir_flag=""
-  if [[ "$seg" =~ git[[:space:]]+-C[[:space:]]+([^[:space:]]+) ]]; then
-    inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
-  elif [[ "$seg" =~ --work-tree[=[:space:]]([^[:space:]]+) ]]; then
-    inspect_dir="$(strip_quotes "${BASH_REMATCH[1]}")"
-  else
-    inspect_dir="$(cwd_at "$moff")"
-  fi
-  if [[ "$seg" =~ --git-dir[=[:space:]]([^[:space:]]+) ]]; then
-    gitdir_flag="$(strip_quotes "${BASH_REMATCH[1]}")"
+
+  # Per-invocation sanctioned override: skip only the write the marker directly
+  # leads. The marker must sit right before git (allowing the leading boundary
+  # char), the form /commit emits. It is not honoured from a later `-c k=v`
+  # value or the commit message, both of which come after the verb and so are
+  # outside this segment, which prevents smuggling the marker through an option.
+  if [[ "$seg" =~ $marker_re ]]; then
+    continue
   fi
 
+  # Base dir is the shell cwd replayed to this offset (empty = hook cwd). git
+  # applies every -C cumulatively, each relative to the previous, and --work-tree
+  # / --git-dir on top, so collect all of them from the segment IN ORDER and hand
+  # them to our own rev-parse. git then resolves exactly as the real command
+  # would, including a later -C that overrides an earlier one.
   git_args=()
-  [[ -n "$inspect_dir" ]] && git_args+=(-C "$inspect_dir")
-  [[ -n "$gitdir_flag" ]] && git_args+=(--git-dir "$gitdir_flag")
+  base_cwd="$(cwd_at "$moff")"
+  [[ -n "$base_cwd" ]] && git_args+=(-C "$base_cwd")
+  while IFS= read -r flag; do
+    [[ -n "$flag" ]] || continue
+    case "$flag" in
+      -C*) d="${flag#-C}" ;;
+      --work-tree*) d="${flag#--work-tree}" ;;
+      --git-dir*) d="${flag#--git-dir}" ;;
+      *) continue ;;
+    esac
+    d="${d#[=[:space:]]}"
+    d="${d#"${d%%[![:space:]]*}"}"
+    d="$(strip_quotes "$d")"
+    [[ -n "$d" ]] || continue
+    case "$flag" in
+      -C*) git_args+=(-C "$d") ;;
+      --work-tree*) git_args+=(--work-tree "$d") ;;
+      --git-dir*) git_args+=(--git-dir "$d") ;;
+    esac
+  done < <(grep -oP '(-C[[:space:]]+[^[:space:]]+|--work-tree[=[:space:]][^[:space:]]+|--git-dir[=[:space:]][^[:space:]]+)' <<<"$seg" || true)
 
   # In a linked worktree --git-dir is .../.git/worktrees/<name> while
   # --git-common-dir is .../.git; in the primary checkout they resolve equal.
