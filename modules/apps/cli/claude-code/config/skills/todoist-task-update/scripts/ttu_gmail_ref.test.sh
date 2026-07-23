@@ -27,15 +27,36 @@ out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/1/#sent/Qgrc
 eq "sent-view message shape" "message" "$(jq -r .shape <<<"$out")"
 eq "sent-view message id" "QgrcJHrntZQlXjZBRlPgKfMcHxBLbvpZBBg" "$(jq -r .id <<<"$out")"
 
-# Label URL → no id, fallback path.
+# Label view, no message open → no id, fallback path. The label name itself
+# looks id-shaped (matches [A-Za-z0-9_-]{10,}); it must NOT be read as an id.
 out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/0/#label/Kong-Health-Equity')
 eq "label shape" "label" "$(jq -r .shape <<<"$out")"
 eq "label id empty" "" "$(jq -r .id <<<"$out")"
 
-# Search URL → no id, fallback path.
+# Message opened while inside a label view → id is the third segment.
+out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/0/#label/Kong-Health/FMfcgzQbfWpZcXsLmNoPqRsTuVwXyZ12')
+eq "label+msg shape" "message" "$(jq -r .shape <<<"$out")"
+eq "label+msg id" "FMfcgzQbfWpZcXsLmNoPqRsTuVwXyZ12" "$(jq -r .id <<<"$out")"
+
+# Nested label (Gmail encodes the inner slash as %2F) with a message open.
+out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/0/#label/Parent%2FChild/QgrcJHrntZQlXjZBRlPgKfMcHxBLbvpZBBg')
+eq "nested-label+msg shape" "message" "$(jq -r .shape <<<"$out")"
+eq "nested-label+msg id" "QgrcJHrntZQlXjZBRlPgKfMcHxBLbvpZBBg" "$(jq -r .id <<<"$out")"
+
+# Search view, no message open → no id, fallback path.
 out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/0/#search/from%3Aalice%40example.com')
 eq "search shape" "search" "$(jq -r .shape <<<"$out")"
 eq "search id empty" "" "$(jq -r .id <<<"$out")"
+
+# Message opened while inside a search view → id is the third segment.
+out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/0/#search/from%3Aalice%40example.com/FMfcgzQbfWpZcXsLmNoPqRsTuVwXyZ12')
+eq "search+msg shape" "message" "$(jq -r .shape <<<"$out")"
+eq "search+msg id" "FMfcgzQbfWpZcXsLmNoPqRsTuVwXyZ12" "$(jq -r .id <<<"$out")"
+
+# googlemail.com alias host is accepted.
+out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.googlemail.com/mail/u/0/#inbox/FMfcgzQbfWpZcXsLmNoPqRsTuVwXyZ12')
+eq "googlemail host shape" "message" "$(jq -r .shape <<<"$out")"
+eq "googlemail host id" "FMfcgzQbfWpZcXsLmNoPqRsTuVwXyZ12" "$(jq -r .id <<<"$out")"
 
 # Bare view (#inbox) with no id segment → none, fallback path.
 out=$(bash "$here/ttu_gmail_ref.sh" 'https://mail.google.com/mail/u/0/#inbox')

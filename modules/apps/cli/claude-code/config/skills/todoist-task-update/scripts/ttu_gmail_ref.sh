@@ -25,7 +25,7 @@ url="${1:-}"
   exit 2
 }
 case "$url" in
-  *mail.google.com*) ;;
+  *mail.google.com* | *mail.googlemail.com*) ;;
   *)
     echo "not a gmail url: $url" >&2
     exit 2
@@ -33,6 +33,10 @@ case "$url" in
 esac
 
 emit() { jq -n --arg s "$1" --arg i "$2" '{shape:$s, id:$i}'; }
+# A Gmail message/thread id: a long base64url-ish token. A human label name
+# ("Kong-Health-Equity") also matches this, so only trust it in a slot that
+# only ever holds an id (segment after the view, or after a label/search name).
+is_id() { printf '%s' "${1:-}" | grep -qE '^[A-Za-z0-9_-]{10,}$'; }
 
 # 1. Classic ?th=<hex> permalink wins: it is the Gmail API thread id.
 th=$(printf '%s' "$url" | grep -oE '[?&]th=[0-9a-fA-F]+' | head -1 | sed -E 's/.*th=//')
@@ -51,21 +55,31 @@ case "$url" in
 esac
 frag="${frag%%\?*}" # drop any trailing query on the fragment
 
-view="${frag%%/*}"
-if [ "$view" = "$frag" ]; then
-  # No '/', so a bare view (inbox, starred, imp, sent, ...) with no id.
-  emit none ""
-  exit 0
-fi
-seg="${frag#*/}"  # first path segment after the view
-seg="${seg%%/*}"
+# Split the fragment on '/'. Gmail encodes a nested label's own slash as %2F,
+# so a literal '/' always separates view / name / id, never label internals.
+IFS='/' read -r view seg2 seg3 _rest <<<"$frag"
 
 case "$view" in
-  label) emit label "" ;;
-  search) emit search "" ;;
+  label | search)
+    # #label/<name>/<id> or #search/<query>/<id>: the id, if any, is segment 3.
+    # Opening a conversation inside a label or search view is the common case,
+    # so the exact-thread id lives here, not on the domain-search fallback.
+    if is_id "$seg3"; then
+      emit message "$seg3"
+    elif [ "$view" = label ]; then
+      emit label ""
+    else
+      emit search ""
+    fi
+    ;;
+  "$frag")
+    # No '/', so a bare view (inbox, starred, imp, sent, ...) with no id.
+    emit none ""
+    ;;
   *)
-    if printf '%s' "$seg" | grep -qE '^[A-Za-z0-9_-]{10,}$'; then
-      emit message "$seg"
+    # #<view>/<id>: the id, if any, is segment 2.
+    if is_id "$seg2"; then
+      emit message "$seg2"
     else
       emit none ""
     fi

@@ -27,7 +27,7 @@ it already paraphrases — a pure date check false-flags those.
 | kind | how to check |
 |---|---|
 | slack | `bash {{SKILL_DIR}}/scripts/ttu_slack_ref.sh <url>` → `{channel,ts,thread_ts}`; read the thread (Slack MCP) for replies after the anchor |
-| gmail | `bash {{SKILL_DIR}}/scripts/ttu_gmail_ref.sh <url>` → `{shape, id}`. `shape` `thread`/`message` (id set): resolve that one thread. For `message`, `gws gmail users messages get --params '{"userId":"me","id":"<id>","format":"metadata"}'` to read its `threadId` and date; for `thread`, `gws gmail users threads get --params '{"userId":"me","id":"<id>"}'` (`userId` is required). Report a delta only if the latest message is strictly after the anchor, tagged `confidence: "confirmed"`. If resolution errors (id not API-resolvable, 404), fall back to the domain search below and tag `confidence: "heuristic"`. `shape` `label`/`search`/`none` (no id): search via `gws` for threads with a participant at the customer's email domain, updated after the anchor, and tag any delta `confidence: "heuristic"` |
+| gmail | `bash {{SKILL_DIR}}/scripts/ttu_gmail_ref.sh <url>` → `{shape, id}`. Has an id (`shape` `thread`/`message`): resolve the whole thread, not just the linked message, so a reply that arrived after the anchor is caught. For `message`, `gws gmail users messages get --params '{"userId":"me","id":"<id>","format":"metadata"}'` to read its `threadId`, then `gws gmail users threads get --params '{"userId":"me","id":"<threadId>","format":"metadata"}'`; for `thread`, call `threads get` directly on `<id>`. Take the thread's newest message; report a delta only if it is strictly after the anchor, tagged `confidence: "confirmed"` (`userId` is required; `format` `metadata` keeps message bodies out of context). If resolution errors (id not API-resolvable, 404), fall back to the domain search below and tag `confidence: "heuristic"`. No id (`shape` `label`/`search`/`none`): search via `gws` for threads with a participant at the customer's email domain, updated after the anchor, and tag any delta `confidence: "heuristic"` |
 | gdocs | Drive MCP / `gws`: is `modifiedTime` after the anchor, and who edited |
 | aha | `aha` skill: status change or new comments on the idea/feature after the anchor |
 | sfid / case | `sfdc` skill: `LastModifiedDate` / new activity after the anchor |
@@ -86,7 +86,8 @@ not eyeball the URL.
 (a resolved Gmail thread, a Slack thread, an Aha feature, a file mtime, and so
 on); `heuristic` when it came from a proxy match (the Gmail domain-search
 fallback). In practice only the Gmail fallback emits `heuristic`; every other
-source is `confirmed`.
+source is `confirmed`. Default to `confirmed` if you would otherwise omit it, so
+a forgotten tag on a real delta stays visible rather than silently dropped.
 
 `footer`: `NEEDS UPDATE` if `deltas` is non-empty; else `UNVERIFIABLE` if only
 `unverifiable` entries; else `AUDITED`.

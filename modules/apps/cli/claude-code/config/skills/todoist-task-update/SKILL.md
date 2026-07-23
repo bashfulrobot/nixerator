@@ -85,7 +85,9 @@ for Dustin to confirm, never auto-filed as a dated delta.
 ### 5 — Auto-write
 Only `confirmed` deltas are auto-written; `heuristic` deltas are digest-only
 (step 6) and never filed via `td_worklog`. This keeps domain-match false
-positives out of task comments.
+positives out of task comments. A delta missing `confidence` is treated as
+`confirmed` (only the Gmail fallback ever tags `heuristic`), so a forgotten tag
+fails safe and visible rather than vanishing.
 For each task with ≥1 confirmed delta, compose per `references/update-comment-format.md`:
 one BARE line per delta (no leading `- ` — `td_worklog` adds the bullet). Run each
 composed line through `text-polish` (never `humanizer` on top), then through
