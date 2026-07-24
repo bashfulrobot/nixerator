@@ -105,13 +105,44 @@ in
         "wheel"
       ];
       shell = pkgs.${globals.preferences.shell};
-      # Keep the user's systemd manager running without an active login session,
-      # so home-manager `systemd.user.timers` fire at boot rather than at first
-      # login. aha-fr-report's daily timer depends on this. Was previously
-      # enabled imperatively via `loginctl enable-linger`, so it would not have
-      # survived a fresh install.
-      linger = true;
+      # Keep the user's systemd manager running without an active login
+      # session, so `systemd.user` units can be scheduled from boot instead of
+      # from first login.
+      #
+      # This was declarative once already: the claude-remote module owned it
+      # until 66ceaa0a, then noclaw until eb735f82 retired its user service and
+      # dropped the line. The on-disk flag outlived the declaration because
+      # NixOS only runs `disable-linger` for users set explicitly to `false`,
+      # never for `null`, so the hosts kept lingering while a fresh install
+      # would not have reproduced it. Declaring it here, next to the user, is
+      # what stops a module removal from silently taking it away again.
+      #
+      # The beneficiary is ballpoint's prewarm probe, which reads its Todoist
+      # token from ~/.config/nixos-secrets/secrets.json and so runs fine with
+      # no session. Its OnStartupSec now counts from boot instead of from
+      # login, which is what a prewarm wants. hyprflake's update check is also
+      # safe headless: it writes its state file before notifying and guards
+      # notify-send with `|| true`, so only the popup is skipped and the fish
+      # notice still fires at the next interactive shell.
+      #
+      # The trap is user units that need a session. Lingering starts the user
+      # manager without one, and a unit's own After/PartOf on
+      # graphical-session.target will not hold it back, so anything
+      # keyring-backed must install into `graphical-session.target` rather than
+      # `timers.target`. insync already did; aha-fr-report's timer (scheduled
+      # on qbert only) is moved onto it in this change.
+      #
+      # mkDefault so a host with nothing to schedule can opt out without
+      # reaching for mkForce.
+      linger = lib.mkDefault true;
     };
+
+    # Order lingering after the user's home-manager generation so a fresh
+    # install cannot start the user manager before `~/.config/systemd/user`
+    # exists. home-manager's sd-switch would reconcile it anyway, but the
+    # whole point of this declaration is the first-boot path, so make it
+    # explicit rather than dependent on an upstream default.
+    systemd.services.linger-users.after = [ "home-manager-${globals.user.name}.service" ];
 
     # Nautilus right-click "Copy Path" extension (top-level context menu)
     home-manager.users.${globals.user.name} = {

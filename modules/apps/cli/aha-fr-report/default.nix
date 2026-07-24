@@ -131,14 +131,28 @@ in
       # graphical session. Persistent = true means a run missed because the
       # machine was asleep/logged-out at OnCalendar fires as soon as the
       # session comes back up, not skipped outright.
+      #
+      # The timer installs into graphical-session.target, NOT timers.target.
+      # The user manager now starts at boot (users.users.<name>.linger in
+      # suites/core), so a timers.target install would fire this headless,
+      # where gws cannot reach the still-locked login keyring. The service's
+      # own After/PartOf do not prevent that: After only orders units within
+      # a single transaction, and the boot-time start is a transaction the
+      # graphical target is absent from, while PartOf propagates stop and
+      # never blocks a start. The failure would also be silent and sticky,
+      # because systemd stamps Persistent on last *trigger* rather than last
+      # success, so one failed headless run eats that day's catch-up.
       home-manager.users.${globals.user.name} = {
         systemd.user.timers.aha-fr-report = {
-          Unit.Description = "aha-fr-report timer";
+          Unit = {
+            Description = "aha-fr-report timer";
+            PartOf = [ "graphical-session.target" ];
+          };
           Timer = {
             Persistent = true;
             OnCalendar = cfg.schedule.onCalendar;
           };
-          Install.WantedBy = [ "timers.target" ];
+          Install.WantedBy = [ "graphical-session.target" ];
         };
 
         systemd.user.services.aha-fr-report = {
