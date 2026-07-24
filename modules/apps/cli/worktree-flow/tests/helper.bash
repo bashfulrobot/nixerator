@@ -153,3 +153,48 @@ select_pr_url() {
       select_same_repo_pr_url "$1"
     ' _ "$1" 2>/dev/null )
 }
+
+# findings ARGS... — run cmd_findings from the fixture work clone under the same
+# `set -euo pipefail` and _JSON_MODE=1 the packaged command uses. stdout is the
+# structured JSON result (or {"error":...} on failure); stderr (human log lines)
+# is dropped so $output is exactly the JSON.
+findings() {
+  ( cd "${FIX}/work" || exit 3
+    bash -c '
+      set -euo pipefail
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      source "'"${SCRIPTS_DIR}"'/github-issue.sh"
+      _JSON_MODE=1
+      cmd_findings "$@"
+    ' _ "$@" 2>/dev/null )
+}
+
+# fixture_worktree ISSUE — absolute path to where worktree_base puts issue-N for
+# the fixture clone, creating the directory. Tests that need a state file write
+# one in themselves; this only makes the directory the ledger looks for.
+fixture_worktree() {
+  local wt
+  wt="$( cd "${FIX}/work" || exit 3
+    bash -c '
+      source "'"${SCRIPTS_DIR}"'/lib.sh"
+      printf "%s/issue-%s" "$(worktree_base)" "$1"
+    ' _ "$1" )"
+  mkdir -p "$wt"
+  printf '%s' "$wt"
+}
+
+# seed_state ISSUE [VERSION] — create the issue worktree dir and drop a minimal
+# state file in it at the given schema version (default 4, the current one).
+# Enough shape for migrate_state and the findings ledger to operate on.
+seed_state() {
+  local issue="$1" version="${2:-4}" wt
+  wt="$(fixture_worktree "$issue")"
+  jq -n --argjson n "$issue" --argjson v "$version" \
+    '{version: $v, issue_number: $n, branch: ("feat/" + ($n|tostring) + "-x"),
+      base_ref: "main", current_step: "review_dev", step_history: [],
+      workflow_detail: (if $v >= 4
+        then {blockers: [], open_threads: [], findings: [], review_round: 0, review_base_sha: null}
+        else {blockers: [], open_threads: []} end)}' \
+    >"${wt}/.worktree-state.json"
+  printf '%s' "$wt"
+}

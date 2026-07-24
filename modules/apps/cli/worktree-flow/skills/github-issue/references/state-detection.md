@@ -1,14 +1,14 @@
-# State Detection (v3)
+# State Detection (v4)
 
 The `github-issue status <number>` command detects the current lifecycle state. It returns `workflow_step` (authoritative position in the state machine) and a legacy `state` field for backward compatibility.
 
-## State File Schema (v3)
+## State File Schema (v4)
 
 Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
 
 ```json
 {
-  "version": 3,
+  "version": 4,
   "type": "issue",
   "issue_number": "42",
   "issue_title": "Add JWT auth",
@@ -30,7 +30,17 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
     ],
     "open_threads": [
       "verify intermittent test failure in src/auth.test.ts:142"
-    ]
+    ],
+    "findings": [
+      {"id": "dev-1", "source": "dev", "severity": "important",
+       "title": "Token refresh races with logout", "location": "src/auth.ts:88",
+       "status": "open", "round": 1},
+      {"id": "sec-2", "source": "security", "severity": "low",
+       "title": "Missing HSTS header", "location": "src/server.ts:31",
+       "status": "resolved", "round": 1}
+    ],
+    "review_round": 2,
+    "review_base_sha": "9f3c1ab..."
   },
   "step_history": [
     {"step": "setup",  "completed_at": "2026-04-23T10:00:00Z", "note": "Worktree created from origin/main."},
@@ -50,6 +60,12 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
 - `workflow_detail.open_threads`. Freeform array of short strings. Loose ends the agent noticed but hasn't resolved. Read on resume; add during transitions via `--detail-json '{"open_threads": ["..."]}'`.
 - `step_history[].note`. Required non-empty string on each transition. Backfilled as `""` for v2 entries; new entries are rejected without `--note`.
 
+### v4 changes vs v3
+
+- `workflow_detail.findings`. The frozen review-finding ledger. Each entry is `{id, source, severity, title, location, status, round}` plus an optional `note` carrying a rejection rationale. `source` is `dev` or `security`, and the valid severities differ per source (`critical|important|minor` for dev, `critical|high|medium|low` for security). Mutate it only through `github-issue findings`, never through `transition --detail-json`; jq's merge replaces arrays wholesale, so a `transition` write would force the whole array back through the agent's context.
+- `workflow_detail.review_round`. Integer, `0` before the first freeze. Round 1 is the full adversarial review; every later round reviews only the fix delta.
+- `workflow_detail.review_base_sha`. The HEAD the current round's delta is measured from. `findings round --base-sha` sets it; the review skills diff `"$review_base_sha"...HEAD`.
+
 ## Workflow Steps
 
 | Step | Meaning |
@@ -60,9 +76,9 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
 | `implement` | Active development |
 | `verify` | Running tests/linters/build |
 | `push` | Ready to push branch and create/update PR |
-| `review_dev` | PR created, dev review stage |
-| `review_security` | Dev review done, security review stage |
-| `waiting` | Both reviews done, auto-merge enabled, waiting for CI + branch protection |
+| `review_dev` | PR created. Review round 1: both reviews run, findings are frozen into the ledger, the whole batch is fixed |
+| `review_security` | Delta rounds against the fix delta until the ledger gate clears (max 3) |
+| `waiting` | Ledger clear, auto-merge enabled, waiting for CI + branch protection |
 | `revamp` | Reviewer requested changes |
 | `ci_fix` | Post-push CI failure. Diagnose and fix (distinct from `revamp`). |
 | `done` | PR merged |
@@ -160,6 +176,7 @@ Every reconciliation writes a new `step_history` entry with `reconciled: true` a
 |------|----|----------------|
 | v1 (no `version`) | v2 | Add `version: 2`, map `phase` → `workflow_step` |
 | v2 | v3 | Add `base_ref` (defaulted to `origin/<default>`), convert scalar `blocker` → `blockers` array, add empty `open_threads`, backfill empty `note` on each `step_history` entry |
+| v3 | v4 | Add empty `findings` ledger, `review_round: 0`, `review_base_sha: null` |
 
 ## Edge Cases Requiring AI Judgment
 
