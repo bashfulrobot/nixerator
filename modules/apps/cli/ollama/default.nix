@@ -74,7 +74,7 @@ in
           bytes on the next activation unreviewed, and the daemon parses
           whatever it receives. Only list models from sources trusted to the
           same level as code that runs on the host, since a local model here
-          drives goose, an agent with shell access. For stronger integrity,
+          drives opencode, an agent with shell access. For stronger integrity,
           vendor the GGUF with a pinned hash and register it via `ollama create`
           rather than pulling a tag.
         '';
@@ -84,31 +84,35 @@ in
         type = lib.types.bool;
         default = true;
         description = ''
-          Export OLLAMA_HOST (and, when defaultGooseModel is set, GOOSE_PROVIDER
-          and GOOSE_MODEL) so goose and the ollama CLI reach this local server
-          without per-invocation flags.
+          Export OLLAMA_HOST so the ollama CLI (and any OpenAI-compatible
+          client) reaches this local server without per-invocation flags.
 
           Delivered through fish shellInit, not home.sessionVariables. This
           host's fish does not source hm-session-vars, so home.sessionVariables
           never reach the shell or its child processes (see the same reasoning
           for the token exports in modules/apps/cli/fish). Gated on the fish
           module, so it is a no-op where fish is not enabled.
+
+          opencode does not read OLLAMA_HOST; it is pointed at the server
+          through defaultOpencodeModel's provider config instead.
         '';
       };
 
-      defaultGooseModel = lib.mkOption {
+      defaultOpencodeModel = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
         example = "qwen3:14b";
         description = ''
-          When set (and exportClientEnv is on), default goose to this model by
-          exporting GOOSE_PROVIDER=ollama and GOOSE_MODEL, so `goose session`
-          runs against the local server with no `goose configure` step. goose
-          reads both from the environment.
+          When set, register the local Ollama server as an OpenAI-compatible
+          provider in opencode and default opencode to this model, so `opencode`
+          runs against the local server with no manual provider setup. Written
+          to ~/.config/opencode/opencode.json via programs.opencode.settings
+          (the opencode home-manager module, enabled by suites.ai); the
+          top-level model becomes `ollama/<model>`.
 
-          Set this to a model that loadModels actually pulls, or goose reports
-          model-not-found. null leaves goose unconfigured (it prompts to run
-          `goose configure`).
+          Set this to a model that loadModels actually pulls, or opencode
+          reports model-not-found. null leaves opencode with no local provider
+          (it uses whatever providers are otherwise configured).
         '';
       };
 
@@ -119,7 +123,7 @@ in
         description = ''
           Default context window in tokens for served models, set via
           OLLAMA_CONTEXT_LENGTH. Ollama's own default is only a few thousand
-          tokens, which silently truncates long goose sessions well before a
+          tokens, which silently truncates long opencode sessions well before a
           model's real limit. null leaves ollama's default.
 
           The practical ceiling is VRAM, since the KV cache grows with the
@@ -208,26 +212,37 @@ in
         });
     };
 
-    home-manager.users.${globals.user.name} =
-      lib.mkIf (cfg.exportClientEnv && config.apps.cli.fish.enable)
-        {
-          # Point goose and the ollama CLI at the local server. Delivered via
-          # fish shellInit, not home.sessionVariables: this host's fish does not
-          # source hm-session-vars, so home.sessionVariables never reach the
-          # shell or its children (goose is launched from the shell, so this is
-          # what makes GOOSE_* visible to it). shellInit is the repo's proven
-          # mechanism for env vars in fish (see the token exports in the fish
-          # module). OLLAMA_HOST carries the scheme, which goose expects and the
-          # ollama CLI accepts.
-          programs.fish.shellInit = ''
-            set -gx OLLAMA_HOST "http://${endpoint}"
-          ''
-          + lib.optionalString (cfg.defaultGooseModel != null) ''
-            # Default goose to the local model so `goose session` needs no
-            # `goose configure`. goose reads both from the environment.
-            set -gx GOOSE_PROVIDER ollama
-            set -gx GOOSE_MODEL "${cfg.defaultGooseModel}"
-          '';
+    home-manager.users.${globals.user.name} = lib.mkMerge [
+      # Point the ollama CLI (and any OpenAI-compatible client) at the local
+      # server. Delivered via fish shellInit, not home.sessionVariables: this
+      # host's fish does not source hm-session-vars, so home.sessionVariables
+      # never reach the shell or its children. shellInit is the repo's proven
+      # mechanism for env vars in fish (see the token exports in the fish
+      # module). OLLAMA_HOST carries the scheme, which the ollama CLI accepts.
+      (lib.mkIf (cfg.exportClientEnv && config.apps.cli.fish.enable) {
+        programs.fish.shellInit = ''
+          set -gx OLLAMA_HOST "http://${endpoint}"
+        '';
+      })
+
+      # Register the local ollama server as an OpenAI-compatible provider in
+      # opencode and default opencode to the local model, so `opencode` needs no
+      # manual provider setup. opencode reads this from
+      # ~/.config/opencode/opencode.json, written by programs.opencode (enabled
+      # by suites.ai). ollama exposes an OpenAI-compatible API under /v1, which
+      # the @ai-sdk/openai-compatible provider targets; the top-level model is
+      # prefixed with the provider id (`ollama/<model>`).
+      (lib.mkIf (cfg.defaultOpencodeModel != null) {
+        programs.opencode.settings = {
+          model = "ollama/${cfg.defaultOpencodeModel}";
+          provider.ollama = {
+            npm = "@ai-sdk/openai-compatible";
+            name = "Ollama (local)";
+            options.baseURL = "http://${endpoint}/v1";
+            models.${cfg.defaultOpencodeModel} = { };
+          };
         };
+      })
+    ];
   };
 }

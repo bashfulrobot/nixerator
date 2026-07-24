@@ -80,20 +80,26 @@ in
       };
     };
 
-    # goose, the CLI agent harness for driving local (Ollama) or cloud models
-    # (goose-cli from the llm-agents input, the same source as claude-code).
-    # Provider-agnostic, so it rides along on every AI-suite host (qbert,
-    # donkeykong) the same way claude-code and gemini-cli already do, usable
-    # against cloud models without any local server. Only the local Ollama
-    # server and its default model are qbert-only (they need the GPU, see
-    # hosts/qbert); goose itself is general.
+    # opencode, the CLI agent harness for driving local (Ollama) or cloud
+    # models (opencode from the llm-agents input, the same source as
+    # claude-code). Provider-agnostic, so it rides along on every AI-suite host
+    # (qbert, donkeykong) the same way claude-code and gemini-cli already do,
+    # usable against cloud models without any local server. Only the local
+    # Ollama server and the opencode provider/model wiring that points at it are
+    # qbert-only (they need the GPU, see hosts/qbert and the ollama module);
+    # opencode itself is general.
     #
-    # goose acts with the user's privileges: it runs model-directed shell
+    # opencode acts with the user's privileges: it runs model-directed shell
     # commands, so any model it is pointed at is a code-execution path, not just
     # a text source. The local model is an unpinned pull (see the trust note on
     # apps.cli.ollama.loadModels).
-    home-manager.users.${globals.user.name}.home.packages = [
-      pkgs.llm-agents.goose-cli
-    ];
+    #
+    # Uses the programs.opencode home-manager module: enable installs the
+    # package and lets the ollama module contribute its local-provider settings
+    # to ~/.config/opencode/opencode.json via programs.opencode.settings.
+    home-manager.users.${globals.user.name}.programs.opencode = {
+      enable = true;
+      package = pkgs.llm-agents.opencode;
+    };
   };
 }
