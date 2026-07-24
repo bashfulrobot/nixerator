@@ -35,6 +35,8 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FETCH_IDEAS="$here/fetch-ideas.sh"
+# shellcheck source=./drive-lib.sh
+source "$here/drive-lib.sh"
 
 die() {
   echo "ERROR: $*" >&2
@@ -109,15 +111,10 @@ echo "Uploading ${pdf_name} to Drive..." >&2
 # may be a read-only Nix store path once this script is packaged -- upload
 # from $workdir (a real mktemp -d) instead of copying back into $here.
 cd "$workdir"
-result="$(gws drive files create \
-  --json "{\"name\":\"${pdf_name}\",\"parents\":[\"${pdf_reports_folder_id}\"]}" \
-  --upload "./$pdf_name" \
-  --upload-content-type "application/pdf" \
-  --params '{"supportsAllDrives":true,"fields":"id,webViewLink"}' 2>/dev/null)"
-
-pdf_id="$(echo "$result" | jq -r '.id // empty')"
-pdf_link="$(echo "$result" | jq -r '.webViewLink // empty')"
-[[ -n "$pdf_id" ]] || die "upload failed: $result"
+upload_result="$(upload_or_replace_file "$pdf_reports_folder_id" "$pdf_name" \
+  "application/pdf" "./$pdf_name")" || die "upload failed for ${pdf_name}"
+pdf_id="${upload_result%%$'\t'*}"
+pdf_link="${upload_result#*$'\t'}"
 
 printf '%s\t%s\n' "$pdf_id" "$pdf_link"
 echo "Done: ${pdf_link}" >&2

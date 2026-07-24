@@ -4,8 +4,16 @@
 # Aha!/Drive error doesn't kill the whole scheduled run.
 #
 # Usage:
-#   run-all.sh                     # uses ../customers.txt
+#   run-all.sh                     # uses $AHA_FR_CUSTOMERS_FILE
 #   run-all.sh /path/to/list.txt   # explicit list file
+#
+# The live list is not part of this package. It names customers, their Aha!
+# organization ids and their Drive folder ids, and the flake that ships these
+# scripts is a public repository whose contents also land in the world-readable
+# /nix/store. The Nix wrapper exports AHA_FR_CUSTOMERS_FILE (default
+# ~/.config/aha-fr-report/customers.txt); running the script straight out of the
+# store without it needs the path as an argument. ../customers.txt.example
+# documents the format.
 #
 # customers.txt line format:
 #   Drive folder name[|aha_org_id[,aha_org_id2,...]][|Display Name][|pdf_folder_id]
@@ -26,10 +34,22 @@
 set -uo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-list_file="${1:-$here/../customers.txt}"
+list_file="${1:-${AHA_FR_CUSTOMERS_FILE:-}}"
+
+[[ -n "$list_file" ]] || {
+  echo "ERROR: no customer list given." >&2
+  echo "  Pass one as an argument, or set AHA_FR_CUSTOMERS_FILE." >&2
+  echo "  The aha-fr-report wrapper sets it from apps.cli.aha-fr-report.customersFile." >&2
+  exit 2
+}
 
 [[ -r "$list_file" ]] || {
   echo "ERROR: customer list not found/readable at $list_file" >&2
+  echo "  The list is kept off-store and out of the flake on purpose, so a fresh" >&2
+  echo "  host has to be given one once:" >&2
+  echo "    mkdir -p \"$(dirname "$list_file")\"" >&2
+  echo "    cp ${here}/../customers.txt.example \"$list_file\"" >&2
+  echo "    \$EDITOR \"$list_file\"" >&2
   exit 2
 }
 
@@ -95,5 +115,28 @@ echo "=============================================="
 echo "Done: ${ok} succeeded, ${#failed[@]} failed."
 if [[ ${#failed[@]} -gt 0 ]]; then
   echo "Failed: ${failed[*]}" >&2
-  exit 1
 fi
+
+# The exit status is a retry signal, not a report card. systemd restarts the
+# scheduled unit on failure (see modules/apps/cli/aha-fr-report/default.nix), so
+# a non-zero exit here means "run the whole batch again". Exiting non-zero for a
+# partial failure would re-run the customers that already succeeded on account
+# of one broken org name, and that entry stays broken every attempt, so it would
+# burn the restart budget without ever clearing.
+#
+# At least one success proves the run had credentials and a network, which are
+# the conditions a retry can actually fix. The per-customer failures are still
+# reported above and in the journal.
+if [[ $ok -gt 0 ]]; then
+  exit 0
+fi
+
+# Nothing succeeded. Either every customer failed, which is the shape a dead
+# network or an expired login takes, or the list turned out to be empty. Both
+# are worth exiting non-zero for: the first is what the retry exists for, and
+# the second would otherwise report success while doing nothing at all.
+if [[ ${#failed[@]} -eq 0 ]]; then
+  echo "ERROR: no customers processed; '${list_file}' has no usable entries." >&2
+  exit 2
+fi
+exit 1

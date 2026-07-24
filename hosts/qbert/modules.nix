@@ -27,10 +27,16 @@
     # peers via `render-secrets --push`). Gated on 1Password being available.
     render-secrets.enable = true;
 
-    # aha-fr-report-one / aha-fr-report on demand, plus a daily user-session
-    # timer here on qbert (this workstation is logged into all day, so it
-    # reuses the interactive gws session's keyring instead of a separate
-    # headless credential on srv). gws + wkhtmltopdf already come from the
+    # aha-fr-report-one / aha-fr-report on demand, plus the daily scheduled
+    # run. The timer does not need anyone logged in. The primary user lingers,
+    # so the user manager is up from boot, and gws reads its credentials out
+    # of ~/.config/gws rather than a session keyring (see modules/system/linger
+    # and .claude/docs/user-lingering.md).
+    #
+    # It sits here rather than on srv because gws is not installed there. gws
+    # comes from suites.core, which srv does not enable, and its login is an
+    # interactive OAuth browser flow, so the credential store lives on a
+    # machine with a browser. gws + wkhtmltopdf already come from the
     # workstation archetype's suites.core / suites.offcomms.
     aha-fr-report = {
       enable = true;
