@@ -69,6 +69,11 @@ in
             # other third-party (SHA-pinned)
             "impeccable@impeccable"
             "hyperframes@hyperframes"
+            # Fleet Deck: localhost board for supervising concurrent Claude Code
+            # sessions (127.0.0.1:4711). Workstation-only -- the board is
+            # browser-viewed, so headless srv omits it. Node + tmux runtime deps
+            # are gated on this id in the claude-code module.
+            "fleetdeck@fleetdeck"
           ];
         };
         gemini-cli.enable = true;
