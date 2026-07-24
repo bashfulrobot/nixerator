@@ -118,11 +118,16 @@ else
 fi
 
 # --- Step 1: find or create the Sheet, reusing it across runs -------------
-sheet_id="$(find_file_in_folder "$frs_folder_id" "$sheet_name" "application/vnd.google-apps.spreadsheet")"
+sheet_id="$(find_file_in_folder "$frs_folder_id" "$sheet_name" "application/vnd.google-apps.spreadsheet")" ||
+  die "could not look up the existing sheet in folder ${frs_folder_id}"
 if [[ -z "$sheet_id" ]]; then
   echo "Creating new sheet '${sheet_name}'..." >&2
+  # Build the body with jq rather than by interpolation: sheet_name comes from
+  # --display-name or the customer name, so a quote or a backslash in it would
+  # otherwise produce a malformed request body or inject extra keys.
   sheet_id="$(gws drive files create \
-    --json "{\"name\":\"${sheet_name}\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"parents\":[\"${frs_folder_id}\"]}" \
+    --json "$(jq -n --arg name "$sheet_name" --arg parent "$frs_folder_id" \
+      '{name: $name, mimeType: "application/vnd.google-apps.spreadsheet", parents: [$parent]}')" \
     --params '{"supportsAllDrives":true,"fields":"id"}' 2>/dev/null | jq -r '.id')"
   [[ -n "$sheet_id" && "$sheet_id" != "null" ]] || die "failed to create sheet"
 else
@@ -155,45 +160,64 @@ closed_count="$(echo "$ideas_json" | jq '[.[] | select(.state != "open")] | leng
 # HYPERLINK() link columns, the customer-safe Sheet stops after Notes (no link
 # columns at all). Row order and everything downstream (banner, banding, Closed
 # group) is driven off $header's length, so it adapts to whichever set is used.
+#
+# Every value below that came out of Aha! goes through `lit`. The write uses
+# valueInputOption=USER_ENTERED, so Sheets parses a cell beginning with =, +, -
+# or @ as a formula. An idea titled "=IMPORTXML(...)" would otherwise execute in
+# a Sheet that gets shared with the customer, which is how a title turns into an
+# outbound request carrying whatever else is on the tab. A leading apostrophe
+# forces the literal and is not displayed.
+#
+# The HYPERLINK cells are deliberate formulas and are exempt, but their URLs are
+# still untrusted, so `dq` doubles any quote in them. Sheets escapes a quote
+# inside a string literal by doubling it, so a URL containing one would
+# otherwise close the argument early and rewrite the rest of the formula.
+#
+# `[39] | implode` is the apostrophe. Spelled by code point so the jq program
+# needs no apostrophe of its own and can stay in a single-quoted shell string.
+sanitizers='
+  def lit: if type == "string" and test("^[=+@-]") then ([39] | implode) + . else . end;
+  def dq: gsub("\""; "\"\"");
+'
 if [[ -n "$customer_safe" ]]; then
   header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Team","Production Blocker","Target Release","Notes"]'
-  rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" '
+  rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" "$sanitizers"'
     [$timestamp_row, $header] + (
       map([
         (if .state == "open" then "Open" else "Closed" end),
-        .ref,
-        .name,
-        .status,
-        (.rank // ""),
-        (.use_case // ""),
-        (.requester_name // ""),
-        (.team_name // ""),
+        (.ref | lit),
+        (.name | lit),
+        (.status | lit),
+        ((.rank // "") | lit),
+        ((.use_case // "") | lit),
+        ((.requester_name // "") | lit),
+        ((.team_name // "") | lit),
         (if .production_blocker == 1 then "Yes" elif .production_blocker == 0 then "No" else "" end),
-        (.target_release // ""),
-        (.notes // "")
+        ((.target_release // "") | lit),
+        ((.notes // "") | lit)
       ])
     )
   ')"
 else
   header='["State","Ref","Idea","Status","Stack Rank","Use Case","Requester","Team","Production Blocker","Target Release","Notes","Aha Link","Proxy Vote Link","Source Link","Internal Discussion Link"]'
-  rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" '
+  rows="$(echo "$ideas_json" | jq --argjson header "$header" --argjson timestamp_row "$timestamp_row" "$sanitizers"'
     [$timestamp_row, $header] + (
       map([
         (if .state == "open" then "Open" else "Closed" end),
-        .ref,
-        .name,
-        .status,
-        (.rank // ""),
-        (.use_case // ""),
-        (.requester_name // ""),
-        (.team_name // ""),
+        (.ref | lit),
+        (.name | lit),
+        (.status | lit),
+        ((.rank // "") | lit),
+        ((.use_case // "") | lit),
+        ((.requester_name // "") | lit),
+        ((.team_name // "") | lit),
         (if .production_blocker == 1 then "Yes" elif .production_blocker == 0 then "No" else "" end),
-        (.target_release // ""),
-        (.notes // ""),
-        (if (.url // "") != "" then "=HYPERLINK(\"\(.url)\",\"View idea\")" else "" end),
-        (if (.org_url // "") != "" then "=HYPERLINK(\"\(.org_url)\",\"View proxy\")" else "" end),
-        (if (.source_url // "") != "" then "=HYPERLINK(\"\(.source_url)\",\"Customer thread\")" else "" end),
-        (if (.internal_discussion_url // "") != "" then "=HYPERLINK(\"\(.internal_discussion_url)\",\"Internal thread\")" else "" end)
+        ((.target_release // "") | lit),
+        ((.notes // "") | lit),
+        (if (.url // "") != "" then "=HYPERLINK(\"\(.url | dq)\",\"View idea\")" else "" end),
+        (if (.org_url // "") != "" then "=HYPERLINK(\"\(.org_url | dq)\",\"View proxy\")" else "" end),
+        (if (.source_url // "") != "" then "=HYPERLINK(\"\(.source_url | dq)\",\"Customer thread\")" else "" end),
+        (if (.internal_discussion_url // "") != "" then "=HYPERLINK(\"\(.internal_discussion_url | dq)\",\"Internal thread\")" else "" end)
       ])
     )
   ')"

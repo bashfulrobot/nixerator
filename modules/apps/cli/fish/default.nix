@@ -196,6 +196,13 @@ in
             # Workspace admin blocks) across other terminals or reboots. Each profile
             # under gws-profiles/ holds its own client_secret.json + credentials.enc
             # for a separate Google account / OAuth app.
+            #
+            # And its own .encryption_key. The gws wrapper pins every caller to the
+            # `file` credential backend (modules/apps/cli/gws/build), so a profile
+            # whose key went to the OS keyring, or one restored from a backup that
+            # skipped dotfiles, cannot be decrypted. gws answers that by deleting
+            # credentials.enc, so a new profile needs `gws auth login` under the
+            # wrapped binary rather than a copied config dir.
             set -l profiles_dir "$HOME/.config/gws-profiles"
             set -l choices work
 

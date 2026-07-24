@@ -40,11 +40,23 @@
 #
 # Lines starting with # and blank lines are ignored. run-all.sh processes
 # every customer here on each scheduled run.
-HealthEquity|7201237090137915419||1wxOgFsmHL5bbea1I-DvJB3bZSy7fTkIf
-Lululemon|7239113931934373789||1cEgqQOpG8tXk5Y9mxdSf9HeffrUgPkJL
-Nordstrom, Inc.|7190055603084906157||1gTKqygyYOfvfdEOT2RQ8Eq7DYIEMXxKU
-PayPal|7303720534328744758||1R7J1JPiKki5BLC_ITPCT9LHFWHO_BQ3_
-Sony Interactive|7210570342900669490|Sony Interactive Entertainment|1i-9_TvCfkmYdzOp6VRf-IptfBuQivUt3
-Standard Insurance|7190054349922059587||1TxcNW3xK6TpMSAo3z18PVzU4JmXYakP7
-x.ai|7210568074903643759||1cgoVWvPpZ9xEYGzytk2mAMNVpwPcLDZ9
-Zillow|7431985914424870034||1Upp12EVAyO77S8oVUrms8hIHrmNCTtf-
+
+# This file is the documented example, not the live list.
+#
+# The real list names customers, their Aha! organization ids and their Drive
+# folder ids. This repository is public, and anything committed here is also
+# copied into /nix/store, which is world-readable on the host. So the live list
+# is kept off both: it lives at apps.cli.aha-fr-report.customersFile, which
+# defaults to ~/.config/aha-fr-report/customers.txt, alongside the rendered
+# secrets rather than inside the flake.
+#
+# To set it up on a host:
+#
+#   mkdir -p ~/.config/aha-fr-report
+#   cp <this file> ~/.config/aha-fr-report/customers.txt
+#   $EDITOR ~/.config/aha-fr-report/customers.txt
+#
+# The two example rows below are inert. Replace them.
+
+Example Customer
+Second Example|1234567890123456789|Second Example Inc.

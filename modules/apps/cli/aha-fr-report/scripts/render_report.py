@@ -336,6 +336,22 @@ CSV_HEADERS = [
 ]
 
 
+def csv_literal(value):
+    """Keep a spreadsheet from reading an Aha! string as a formula.
+
+    The CSV goes to the customer, who opens it in Sheets or Excel, and both
+    treat a leading =, +, - or @ as the start of a formula. An idea titled
+    "=IMPORTXML(...)" would then run on open. A leading apostrophe forces the
+    literal in both, and neither displays it. The Sheet path does the same
+    thing in `lit` inside write-customer-sheet.sh.
+
+    Non-strings (the numeric rank) pass through untouched.
+    """
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@"):
+        return "'" + value
+    return value
+
+
 def render_csv(open_items, closed_items):
     """Emit the customer-facing CSV to stdout.
 
@@ -353,18 +369,18 @@ def render_csv(open_items, closed_items):
         rank = it.get("rank")
         writer.writerow([
             state,
-            it.get("ref") or "",
-            it.get("name") or "",
-            it.get("status") or "",
+            csv_literal(it.get("ref") or ""),
+            csv_literal(it.get("name") or ""),
+            csv_literal(it.get("status") or ""),
             rank if rank is not None else "",
-            it.get("use_case") or "",
-            it.get("requester_name") or "",
-            it.get("team_name") or "",
+            csv_literal(it.get("use_case") or ""),
+            csv_literal(it.get("requester_name") or ""),
+            csv_literal(it.get("team_name") or ""),
             blocker_text(it.get("production_blocker")),
-            it.get("target_release") or "",
-            it.get("notes") or "",
-            it.get("source_url") or "",
-            it.get("internal_discussion_url") or "",
+            csv_literal(it.get("target_release") or ""),
+            csv_literal(it.get("notes") or ""),
+            csv_literal(it.get("source_url") or ""),
+            csv_literal(it.get("internal_discussion_url") or ""),
         ])
 
 
