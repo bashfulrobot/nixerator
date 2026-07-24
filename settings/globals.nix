@@ -42,13 +42,14 @@ rec {
   };
 
   # Local AI (Ollama) defaults. Single source for the model that both the
-  # server-side pull (apps.cli.ollama.loadModels) and the goose client default
-  # (GOOSE_MODEL) reference, so the pulled model and the requested model cannot
-  # drift out of sync. Qwen3-14B: dense 14B (9.3 GB Q4_K_M) from the Ollama
-  # library, with native tool-calling and a thinking mode. Chosen for Goose,
-  # which needs reliable native tool-calling for every action; being dense it
-  # avoids the MoE-under-Ollama tool-calling flakiness that made Mellum2
-  # unusable here. Fits 16 GB with the full 32k context configured on qbert.
+  # server-side pull (apps.cli.ollama.loadModels) and the opencode client
+  # default (apps.cli.ollama.defaultOpencodeModel) reference, so the pulled
+  # model and the requested model cannot drift out of sync. Qwen3-14B: dense
+  # 14B (9.3 GB Q4_K_M) from the Ollama library, with native tool-calling and a
+  # thinking mode. Chosen for opencode, which needs reliable native tool-calling
+  # for every action; being dense it avoids the MoE-under-Ollama tool-calling
+  # flakiness that made Mellum2 unusable here. Fits 16 GB with the full 32k
+  # context configured on qbert.
   ai = {
     localCodeModel = "qwen3:14b";
   };

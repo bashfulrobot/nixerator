@@ -31,10 +31,12 @@
     sessionVariables = {
       EDITOR = lib.mkForce (lib.getExe pkgs.${globals.preferences.editor});
     };
-    # goose is defaulted to the local model via GOOSE_PROVIDER/GOOSE_MODEL
-    # exported from the ollama module (apps.cli.ollama.defaultGooseModel, enabled
-    # in modules.nix). Those go through fish shellInit, not home.sessionVariables,
-    # because this host's fish does not source hm-session-vars.
+    # opencode is defaulted to the local model via programs.opencode.settings
+    # contributed by the ollama module (apps.cli.ollama.defaultOpencodeModel,
+    # enabled in modules.nix), which writes ~/.config/opencode/opencode.json.
+    # The ollama CLI reaches the same server via OLLAMA_HOST from fish shellInit
+    # (not home.sessionVariables, since this host's fish does not source
+    # hm-session-vars).
 
   };
 
