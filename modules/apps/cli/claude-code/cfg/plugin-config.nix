@@ -68,6 +68,26 @@ let
     # tests against Claude Code 2.1.206 through 2.1.207. Re-check compatibility
     # (and skim the diff, since each bump re-grants a process-spawning surface)
     # when bumping the SHA or the pinned claude-code.
+    #
+    # Trust decision (accepted). Fleet Deck's board relays permission prompts
+    # and offers an in-browser terminal across every local Claude Code session,
+    # a larger grant than the render/capture plugins (impeccable, hyperframes).
+    # Claude Code clones and runs the plugin at session start as the user (not at
+    # activation, not as root; see cfg/activation.nix). That grant is acceptable
+    # on the single-user, human-driven workstations this is enabled on, which is
+    # why headless srv omits it (hosts/srv/modules.nix) and why each SHA bump is
+    # a security review, not a routine bump. Do not enable it on any host that
+    # runs Claude Code unattended, where no human is present to catch an
+    # auto-approved prompt.
+    #
+    # The board binds loopback (127.0.0.1:4711). Port 4711 is never in any
+    # host's allowedTCPPorts and the tailscale interface is not firewall-trusted,
+    # so NixOS default-deny drops inbound to it even if a future version widened
+    # the bind. The residual risk is same-host (a local process or a browser
+    # doing DNS-rebinding against the fixed loopback port). That is fleet-deck's
+    # own responsibility, so before relying on the board confirm the pinned
+    # revision binds loopback only, validates the Host header, and gates access
+    # behind a per-session token. None of those is enforceable from Nix.
     fleetdeck.source = {
       source = "github";
       repo = "lacion/fleet-deck";
