@@ -22,7 +22,10 @@
   # Workstations reach this by module auto-import. srv imports by hand, so it
   # also carries the path in hosts/srv/modules.nix.
   #
-  # mkDefault so a host that schedules nothing can opt out with `linger = false`.
+  # mkDefault so a host that schedules nothing can opt out with
+  # `linger = false`. Note that `false` is not the same as unmanaged: it runs
+  # `loginctl disable-linger`, stripping the on-disk flag even if something
+  # else set it. To leave the user alone entirely, force it back to null.
   #
   # Background, and the headless audit of the units this affects, is in
   # .claude/docs/user-lingering.md.
@@ -35,8 +38,16 @@
   # rather than leaning on an upstream default.
   #
   # Guarded on manageLingering because that option is what defines
-  # linger-users.service upstream. Without the guard, turning it off would leave
-  # behind a unit built from nothing but this ordering line, with no ExecStart.
+  # linger-users.service upstream. Without the guard, a host with lingering
+  # unmanaged would be left a unit built from nothing but this ordering line,
+  # with no ExecStart.
+  #
+  # Reaching that state takes two steps, not one. users-groups.nix asserts
+  # `user.linger != null -> cfg.manageLingering`, so setting
+  # `users.manageLingering = false` on its own is now a hard eval failure while
+  # this module is imported. Turning lingering off means
+  # `users.users.<name>.linger = lib.mkForce null` alongside it, and that pair
+  # is the case this guard covers.
   systemd.services.linger-users = lib.mkIf config.users.manageLingering {
     after = [ "home-manager-${globals.user.name}.service" ];
   };

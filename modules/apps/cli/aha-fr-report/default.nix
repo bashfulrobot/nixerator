@@ -136,9 +136,12 @@ in
       # pointing gws at a copy of the config with the token cache removed (so a
       # refresh was forced) and DBUS_SESSION_BUS_ADDRESS aimed at a dead
       # socket. The Drive call still succeeded, and deleting .encryption_key
-      # from that copy is what turned it into "Decryption failed". The default
-      # `keyring` backend gets to the same file by silent fallback, so pin the
-      # backend rather than depending on a fallback nothing documents.
+      # from that copy is what turned it into "Decryption failed".
+      #
+      # The `file` backend is pinned on the gws binary itself rather than here,
+      # so `gws auth login` and a scheduled run cannot end up on different
+      # keys. See modules/apps/cli/gws/build for why that difference is
+      # destructive rather than merely inconsistent.
       #
       # This does mean the timer cannot be bound to graphical-session.target.
       # Doing that would look like a safety measure and would instead stop the
@@ -154,10 +157,24 @@ in
         };
 
         systemd.user.services.aha-fr-report = {
-          Unit.Description = "Refresh per-customer Aha! FR reports (Sheet + PDF)";
+          # Retry on failure, matching ballpoint-probe.service. Without a
+          # session to wait for, the user manager starts early in the boot and
+          # Persistent fires the catch-up run straight away, potentially before
+          # DHCP and tailscale have settled. There is no network-online.target
+          # in the user manager to order against. Persistent also stamps on
+          # trigger rather than on success, so a first attempt that fails
+          # against a dead network would consume the missed occurrence and the
+          # report would silently not happen that day. RestartSec is minutes
+          # rather than seconds so the retries outlast a slow link coming up.
+          Unit = {
+            Description = "Refresh per-customer Aha! FR reports (Sheet + PDF)";
+            StartLimitBurst = 5;
+            StartLimitIntervalSec = "1h";
+          };
           Service = {
             Type = "oneshot";
-            Environment = [ "GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file" ];
+            Restart = "on-failure";
+            RestartSec = "2min";
             ExecStart = "${aha-fr-report}/bin/aha-fr-report";
           };
         };

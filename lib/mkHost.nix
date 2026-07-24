@@ -210,6 +210,38 @@ in
           # System state version
           system.stateVersion = stateVersion;
         }
+
+        # Every host has to reach modules/system/linger, whichever import style
+        # it uses. Workstations find it through the `../../modules` auto-import;
+        # srv imports by hand and lists the path in hosts/srv/modules.nix.
+        # Nothing forces the second case, and this declaration has already gone
+        # missing twice without breaking a build, so assert it rather than
+        # trusting each host's import list. Background is in
+        # .claude/docs/user-lingering.md.
+        #
+        # An assertion is safe to state from here in a way the module import is
+        # not. Importing the module from mkHost *and* letting auto-import find
+        # it produces two different module keys, so it evaluates twice and its
+        # list-typed `after` concatenates into a duplicated After= in the built
+        # unit. Assertions are a list that merges, so a second definition costs
+        # nothing.
+        (
+          { config, ... }:
+          {
+            assertions = [
+              {
+                assertion = (config.users.users.${globals.user.name}.linger or null) != null;
+                message = ''
+                  ${hostname}: users.users.${globals.user.name}.linger is unset, so this host's
+                  systemd.user timers would only be scheduled once someone logged in.
+                  Import modules/system/linger. Workstations get it from ../../modules.
+                  A host that imports modules by hand needs the path listed explicitly,
+                  the way hosts/srv/modules.nix does.
+                '';
+              }
+            ];
+          }
+        )
       ]
       ++ extraModules;
     };

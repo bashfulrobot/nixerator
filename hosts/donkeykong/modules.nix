@@ -19,10 +19,14 @@ _:
     render-secrets.enable = true;
 
     # On-demand aha-fr-report-one / aha-fr-report commands (no schedule here
-    # -- qbert's daily user-session timer is the scheduled copy; this just
-    # makes the same binary available for ad hoc / Claude-skill-triggered
-    # runs). gws + wkhtmltopdf already come from the workstation archetype's
-    # suites.core / suites.offcomms.
+    # -- qbert carries the scheduled copy; this just makes the same binary
+    # available for ad hoc / Claude-skill-triggered runs). Not a
+    # session-availability call, since the user lingers on both workstations
+    # and the timer would fire here too. One scheduled writer is enough for a
+    # job that rewrites the same Drive files, and qbert is the desktop that is
+    # usually up rather than a laptop that is often off. gws + wkhtmltopdf
+    # already come from the workstation archetype's suites.core /
+    # suites.offcomms.
     aha-fr-report.enable = true;
 
     # Attach-only: install the `work` fish function so donkeykong can attach

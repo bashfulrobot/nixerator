@@ -45,15 +45,22 @@ Because of that asymmetry, `loginctl show-user <name>` reporting `Linger=yes` on
 an existing host proves nothing about the configuration. It reads `yes` whether
 the option is declared, absent, or was deleted three releases ago.
 
-Check the built system instead:
+Check the built system instead. The user list is not in the unit file. NixOS
+compiles the `script` option to its own store path, so the unit carries only an
+`ExecStart=` pointing at it, and grepping the unit for the list always comes
+back empty whether or not the declaration exists. Resolve the script first:
 
 ```
 just build-host qbert
-grep lingeringUserNames result/etc/systemd/system/linger-users.service
+grep lingeringUserNames "$(grep -oP '(?<=^ExecStart=)\S+' \
+  result/etc/systemd/system/linger-users.service)"
 ```
 
-`lingeringUserNames` must contain the user. The same file should carry
-`After=systemd-logind.service home-manager-<name>.service`.
+`lingeringUserNames` must contain the user. `nonLingeringUserNames` is the
+`disable-linger` list and should stay empty. The unit file itself should carry
+`After=systemd-logind.service home-manager-<name>.service`, on one line, with
+`home-manager-<name>.service` appearing exactly once. A repeat there means the
+module was imported twice.
 
 ## Ordering against home-manager
 
@@ -73,6 +80,13 @@ undefined service would generate a unit with no `ExecStart`.
 Lingering starts the user manager at boot, so anything installed into
 `default.target` or `timers.target` now runs with no session. Units bound to
 `graphical-session.target` are unaffected and still wait for a session.
+
+The table below is the workstation generation. srv is the other host wired up
+here and it is not represented, because there is nothing to represent: its
+`~/.config/systemd/user` holds only `tray.target`, and it already reported
+`Linger=yes` from an imperative leftover before this change. Nothing on srv
+changes. Anyone adding a user timer there is adding the first one, and should
+redo this audit for it rather than reading the rows below as covering srv.
 
 | Unit | Install target | Headless behaviour |
 |------|----------------|--------------------|
@@ -97,9 +111,17 @@ socket. An authenticated Drive call still succeeded. Deleting `.encryption_key`
 from that copy is what turned it into `Decryption failed`.
 
 The default `keyring` backend reaches the same file by silent fallback when no
-session bus is available. `aha-fr-report.service` sets
-`GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file` so the behaviour is pinned rather
-than depending on an undocumented fallback.
+session bus is available. Relying on that fallback is worse than undocumented,
+it is unsafe, because it makes the backend depend on who is calling. A
+`gws auth login` from a desktop terminal has a session bus and would write the
+new key to the OS keyring, while a scheduled run with no session keeps reading
+the stale `.encryption_key`. gws answers a store it cannot decrypt by deleting
+it, so the two halves diverging costs the credentials outright.
+
+The backend is therefore pinned on the gws binary itself, in
+`modules/apps/cli/gws/build`, not on any one unit. Pinning it on a unit would
+cover the units we write and leave `gws` on the default everywhere else, which
+is the split that causes the problem.
 
 Never run `gws auth export` to investigate this. It prints decrypted credentials
 to stdout.
