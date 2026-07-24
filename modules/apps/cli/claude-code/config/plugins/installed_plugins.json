@@ -273,16 +273,6 @@
         "lastUpdated": "2026-07-21T21:43:14.823Z",
         "gitCommitSha": "ef2dd6c9f0e770a694d91388dd7b02469cc43dca"
       }
-    ],
-    "fleetdeck@fleetdeck": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/fleetdeck/fleetdeck/0.19.0",
-        "version": "0.19.0",
-        "installedAt": "2026-07-24T19:28:25.898Z",
-        "lastUpdated": "2026-07-24T19:28:25.898Z",
-        "gitCommitSha": "3529904b17996ceb0522ece31eab614537b9d88c"
-      }
     ]
   }
 }

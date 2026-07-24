@@ -261,12 +261,6 @@ let
   hasHyperframes = lib.elem "hyperframes@hyperframes" cfg.plugins;
   hyperframesBrowserPath = "/run/current-system/sw/bin/${globals.preferences.browser}";
 
-  # Fleet Deck needs Node >= 22.5 (mandatory) and tmux >= 3.4 (worker spawning +
-  # in-browser terminals; the core board works without tmux). Gate the runtime
-  # deps on plugin-list membership so the closure is unchanged on hosts where the
-  # plugin isn't enabled (same approach as hasHyperframes above).
-  hasFleetdeck = lib.elem "fleetdeck@fleetdeck" cfg.plugins;
-
   # Conditional env vars exported into both system and HM session scopes.
   # Built once here so the two consumer sites can't drift.
   #
@@ -394,19 +388,6 @@ in
             # keeps the hyperframes branch self-contained -- the gate no longer
             # silently depends on suites.dev being co-enabled.
             (lib.hiPrio pkgs.nodejs_22)
-          ]
-          ++ lib.optionals hasFleetdeck [
-            # Fleet Deck requires Node >= 22.5. Same buildEnv collision reasoning
-            # as the hyperframes branch: hiPrio lifts nodejs_22 above the default
-            # pkgs.nodejs (pulled in by suites.dev/pnpm). When hyperframes is also
-            # enabled this resolves to the same store path, so it dedupes rather
-            # than colliding; keeping it here leaves the fleetdeck gate
-            # self-contained if hyperframes is ever dropped.
-            (lib.hiPrio pkgs.nodejs_22)
-            # tmux drives Fleet Deck's worker spawning and in-browser terminals.
-            # The workstation multiplexer is zellij, so tmux isn't otherwise on
-            # PATH here.
-            pkgs.tmux
           ]
           ++ skillUpdatesConfig.packages
           ++ reapConfig.packages;
