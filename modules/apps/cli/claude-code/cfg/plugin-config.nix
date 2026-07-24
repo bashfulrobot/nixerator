@@ -83,11 +83,19 @@ let
     # The board binds loopback (127.0.0.1:4711). Port 4711 is never in any
     # host's allowedTCPPorts and the tailscale interface is not firewall-trusted,
     # so NixOS default-deny drops inbound to it even if a future version widened
-    # the bind. The residual risk is same-host (a local process or a browser
-    # doing DNS-rebinding against the fixed loopback port). That is fleet-deck's
-    # own responsibility, so before relying on the board confirm the pinned
-    # revision binds loopback only, validates the Host header, and gates access
-    # behind a per-session token. None of those is enforceable from Nix.
+    # the bind. The remaining question, whether a web page you merely visit could
+    # reach the board, was verified against the pinned v0.18.0 source
+    # (scripts/fleetd/http.mjs, tests/lan-auth.test.mjs):
+    #   - Bind defaults to 127.0.0.1; LAN is an explicit opt-in (FLEETDECK_BIND).
+    #   - A Host-header wall refuses any request whose Host re-resolves to the box
+    #     (Host: evil.example gets 403), which is the DNS-rebinding defense.
+    #   - A same-origin wall refuses every cross-origin state-changing POST, both
+    #     WebSocket upgrades, and /api/spawn, so a visited page cannot drive the
+    #     terminal or spawn agents.
+    #   - The loopback token exemption only benefits local processes already
+    #     running as the user; set FLEETDECK_REQUIRE_TOKEN=on to require the token
+    #     even on loopback (for a shared machine, which these are not).
+    # Re-verify these on each SHA bump; none of them is enforceable from Nix.
     fleetdeck.source = {
       source = "github";
       repo = "lacion/fleet-deck";
