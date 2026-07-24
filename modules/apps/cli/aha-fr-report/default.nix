@@ -99,10 +99,9 @@ in
         default = false;
         description = ''
           Run aha-fr-report (all customers.txt entries) on a systemd user
-          timer bound to the desktop session, so gws can use the same
-          session keyring interactive use already relies on. Only makes
-          sense on a workstation host with a graphical session and
-          home-manager.
+          timer. The primary user lingers, so the timer fires from boot and
+          does not need anyone to log in. Requires home-manager and a
+          completed `gws auth login` on the host.
         '';
       };
 
@@ -123,46 +122,44 @@ in
     })
 
     (lib.mkIf (cfg.enable && cfg.schedule.enable) {
-      # A user-session timer, not a system one: it runs inside the desktop
-      # session so gws can reach the already-unlocked session keyring, the
-      # same one interactive `aha-fr-report-one` calls already use. No
-      # separate headless credential (no MATERIALIZE copy, no file-backend
-      # keyring) needed. Trade-off: it only fires while logged into a
-      # graphical session. Persistent = true means a run missed because the
-      # machine was asleep/logged-out at OnCalendar fires as soon as the
-      # session comes back up, not skipped outright.
+      # A user timer, not a system one, so the report runs as the user whose
+      # gws credentials it uses. The primary user lingers (see
+      # modules/system/linger), so the user manager is up from boot and this
+      # fires on schedule whether or not anyone has logged in. Persistent
+      # means a run missed while the machine was off happens at the next boot
+      # rather than being skipped.
       #
-      # The timer installs into graphical-session.target, NOT timers.target.
-      # The user manager now starts at boot (users.users.<name>.linger in
-      # suites/core), so a timers.target install would fire this headless,
-      # where gws cannot reach the still-locked login keyring. The service's
-      # own After/PartOf do not prevent that: After only orders units within
-      # a single transaction, and the boot-time start is a transaction the
-      # graphical target is absent from, while PartOf propagates stop and
-      # never blocks a start. The failure would also be silent and sticky,
-      # because systemd stamps Persistent on last *trigger* rather than last
-      # success, so one failed headless run eats that day's catch-up.
+      # Running with no session is safe here, which is worth recording because
+      # it is not obvious. gws does not need the login keyring: its credential
+      # store is ~/.config/gws/credentials.enc, decrypted with a key that the
+      # `file` backend keeps in ~/.config/gws/.encryption_key. Checked by
+      # pointing gws at a copy of the config with the token cache removed (so a
+      # refresh was forced) and DBUS_SESSION_BUS_ADDRESS aimed at a dead
+      # socket. The Drive call still succeeded, and deleting .encryption_key
+      # from that copy is what turned it into "Decryption failed". The default
+      # `keyring` backend gets to the same file by silent fallback, so pin the
+      # backend rather than depending on a fallback nothing documents.
+      #
+      # This does mean the timer cannot be bound to graphical-session.target.
+      # Doing that would look like a safety measure and would instead stop the
+      # report from ever running on a machine that reboots unattended.
       home-manager.users.${globals.user.name} = {
         systemd.user.timers.aha-fr-report = {
-          Unit = {
-            Description = "aha-fr-report timer";
-            PartOf = [ "graphical-session.target" ];
-          };
+          Unit.Description = "aha-fr-report timer";
           Timer = {
             Persistent = true;
             OnCalendar = cfg.schedule.onCalendar;
           };
-          Install.WantedBy = [ "graphical-session.target" ];
+          Install.WantedBy = [ "timers.target" ];
         };
 
         systemd.user.services.aha-fr-report = {
-          Unit = {
-            Description = "Refresh per-customer Aha! FR reports (Sheet + PDF)";
-            After = [ "graphical-session.target" ];
-            PartOf = [ "graphical-session.target" ];
+          Unit.Description = "Refresh per-customer Aha! FR reports (Sheet + PDF)";
+          Service = {
+            Type = "oneshot";
+            Environment = [ "GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file" ];
+            ExecStart = "${aha-fr-report}/bin/aha-fr-report";
           };
-          Service.Type = "oneshot";
-          Service.ExecStart = "${aha-fr-report}/bin/aha-fr-report";
         };
       };
     })

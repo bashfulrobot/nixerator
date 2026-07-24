@@ -405,111 +405,119 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.services.incident-investigator = {
-      description = "Read-only Claude Code darkstar alert investigator (webhook receiver)";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
+    # LAN-only firewall opening for the miniserve port (see
+    # incident-investigator-serve-lan below). Scoped to the LAN interface, so
+    # the bundles are never reachable over the tailnet (which has its own
+    # authenticated serve) or a WAN link.
+    networking.firewall.interfaces.${cfg.publish.lan.interface}.allowedTCPPorts = lib.mkIf (
+      cfg.publish.enable && cfg.publish.lan.enable
+    ) [ cfg.publish.lan.port ];
 
-      serviceConfig = {
-        Type = "simple";
-        User = globals.user.name;
-        Group = "users";
-        # opRunExec loads the host SA token from ~/.config/op/service-account-token
-        # into OP_SERVICE_ACCOUNT_TOKEN, then `op run` resolves the op:// refs in
-        # the env and execs receiver.py with the real values in its environment;
-        # the investigate.sh children it spawns inherit them. Nothing secret is
-        # written to disk or the Nix store.
-        ExecStart = opRunExec "${pkgs.python3}/bin/python3 ${scriptsDir}/receiver.py";
-        Environment = runtimeEnv;
-        Restart = "on-failure";
-        RestartSec = 10;
-        # Light hardening only. The process shells out to `claude` (Node), which
-        # breaks under SystemCallFilter / MemoryDenyWriteExecute, and it needs
-        # its own $HOME for credentials -- so ProtectHome/ProtectSystem stay off.
-        # The real containment is investigate.sh's read-only tool allowlist plus
-        # the view-only kubeconfig; this service is loopback-only.
-        NoNewPrivileges = true;
-        LockPersonality = true;
-        ProtectKernelTunables = true;
-        ProtectKernelModules = true;
-        ProtectControlGroups = true;
-      };
-    };
+    systemd = {
+      services = {
+        incident-investigator = {
+          description = "Read-only Claude Code darkstar alert investigator (webhook receiver)";
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          wantedBy = [ "multi-user.target" ];
 
-    # The Cloudflare tunnel that reaches the receiver. Your tunnel is
-    # remotely-managed (Config type: Remote), so cloudflared runs with a token
-    # and pulls its ingress (remediator.srvrs.co -> http://localhost:8099) from
-    # the dashboard. The native services.cloudflared module is credentials-file
-    # only and can't drive a token tunnel, hence this small service. Runs as the
-    # user so `op run` finds the host SA token to resolve TUNNEL_TOKEN.
-    systemd.services.cloudflared-remediator = lib.mkIf cfg.tunnel.enable {
-      description = "cloudflared tunnel (remediator.srvrs.co) for the incident-investigator receiver";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "simple";
-        User = globals.user.name;
-        Group = "users";
-        Environment = [
-          "HOME=${homeDir}"
-          "PATH=${
-            lib.makeBinPath [
-              pkgs.cloudflared
-              pkgs._1password-cli
-            ]
-          }"
-          "TUNNEL_TOKEN=${cfg.tunnel.tokenRef}"
-        ];
-        ExecStart = opRunExec "${pkgs.cloudflared}/bin/cloudflared tunnel --no-autoupdate run";
-        Restart = "on-failure";
-        RestartSec = 10;
-        NoNewPrivileges = true;
-        LockPersonality = true;
-        ProtectKernelTunables = true;
-        ProtectKernelModules = true;
-        ProtectControlGroups = true;
-      };
-    };
+          serviceConfig = {
+            Type = "simple";
+            User = globals.user.name;
+            Group = "users";
+            # opRunExec loads the host SA token from ~/.config/op/service-account-token
+            # into OP_SERVICE_ACCOUNT_TOKEN, then `op run` resolves the op:// refs in
+            # the env and execs receiver.py with the real values in its environment;
+            # the investigate.sh children it spawns inherit them. Nothing secret is
+            # written to disk or the Nix store.
+            ExecStart = opRunExec "${pkgs.python3}/bin/python3 ${scriptsDir}/receiver.py";
+            Environment = runtimeEnv;
+            Restart = "on-failure";
+            RestartSec = 10;
+            # Light hardening only. The process shells out to `claude` (Node), which
+            # breaks under SystemCallFilter / MemoryDenyWriteExecute, and it needs
+            # its own $HOME for credentials -- so ProtectHome/ProtectSystem stay off.
+            # The real containment is investigate.sh's read-only tool allowlist plus
+            # the view-only kubeconfig; this service is loopback-only.
+            NoNewPrivileges = true;
+            LockPersonality = true;
+            ProtectKernelTunables = true;
+            ProtectKernelModules = true;
+            ProtectControlGroups = true;
+          };
+        };
 
-    # Publish incident bundles on the tailnet so the RCA Pushover ping can link
-    # to a phone-readable rca.html instead of a filesystem path. `tailscale serve`
-    # mounts OUT_ROOT under https://<tailnetHost><path>/ over the tailnet ONLY
-    # (serve, not funnel -> never public). Runs as root because the CLI talks to
-    # the tailscaled socket. Idempotent: serve config persists in tailscaled
-    # state, so re-asserting it on each boot is a no-op. HTTPS must be enabled for
-    # the tailnet; the node provisions its own *.ts.net cert on first serve.
-    systemd.services.incident-investigator-serve = lib.mkIf cfg.publish.enable {
-      description = "Publish incident bundles on the tailnet (tailscale serve)";
-      after = [
-        "tailscaled.service"
-        "network-online.target"
-      ];
-      wants = [
-        "tailscaled.service"
-        "network-online.target"
-      ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=${cfg.publish.path} ${cfg.outRoot}";
-        # `-` prefix: don't fail the stop if the toggle syntax is rejected. Targets
-        # only this path, so any unrelated serve config is left untouched.
-        ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=${cfg.publish.path} off";
-      };
-    };
+        # The Cloudflare tunnel that reaches the receiver. Your tunnel is
+        # remotely-managed (Config type: Remote), so cloudflared runs with a token
+        # and pulls its ingress (remediator.srvrs.co -> http://localhost:8099) from
+        # the dashboard. The native services.cloudflared module is credentials-file
+        # only and can't drive a token tunnel, hence this small service. Runs as the
+        # user so `op run` finds the host SA token to resolve TUNNEL_TOKEN.
+        cloudflared-remediator = lib.mkIf cfg.tunnel.enable {
+          description = "cloudflared tunnel (remediator.srvrs.co) for the incident-investigator receiver";
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            Type = "simple";
+            User = globals.user.name;
+            Group = "users";
+            Environment = [
+              "HOME=${homeDir}"
+              "PATH=${
+                lib.makeBinPath [
+                  pkgs.cloudflared
+                  pkgs._1password-cli
+                ]
+              }"
+              "TUNNEL_TOKEN=${cfg.tunnel.tokenRef}"
+            ];
+            ExecStart = opRunExec "${pkgs.cloudflared}/bin/cloudflared tunnel --no-autoupdate run";
+            Restart = "on-failure";
+            RestartSec = 10;
+            NoNewPrivileges = true;
+            LockPersonality = true;
+            ProtectKernelTunables = true;
+            ProtectKernelModules = true;
+            ProtectControlGroups = true;
+          };
+        };
 
-    # LAN publisher: a plain read-only static server (miniserve) bound to the
-    # host's LAN address, so the RCA link works on home wifi with tailscale off.
-    # The tailscale serve above binds the tailnet interface only and cannot cover
-    # the LAN. Runs as the user (OUT_ROOT is user-owned); miniserve is read-only
-    # by default (no upload flags). The firewall port is opened on the LAN
-    # interface only (below), so this is never reachable over the tailnet or WAN.
-    systemd.services.incident-investigator-serve-lan =
-      lib.mkIf (cfg.publish.enable && cfg.publish.lan.enable)
-        {
+        # Publish incident bundles on the tailnet so the RCA Pushover ping can link
+        # to a phone-readable rca.html instead of a filesystem path. `tailscale serve`
+        # mounts OUT_ROOT under https://<tailnetHost><path>/ over the tailnet ONLY
+        # (serve, not funnel -> never public). Runs as root because the CLI talks to
+        # the tailscaled socket. Idempotent: serve config persists in tailscaled
+        # state, so re-asserting it on each boot is a no-op. HTTPS must be enabled for
+        # the tailnet; the node provisions its own *.ts.net cert on first serve.
+        incident-investigator-serve = lib.mkIf cfg.publish.enable {
+          description = "Publish incident bundles on the tailnet (tailscale serve)";
+          after = [
+            "tailscaled.service"
+            "network-online.target"
+          ];
+          wants = [
+            "tailscaled.service"
+            "network-online.target"
+          ];
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=${cfg.publish.path} ${cfg.outRoot}";
+            # `-` prefix: don't fail the stop if the toggle syntax is rejected. Targets
+            # only this path, so any unrelated serve config is left untouched.
+            ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=${cfg.publish.path} off";
+          };
+        };
+
+        # LAN publisher: a plain read-only static server (miniserve) bound to the
+        # host's LAN address, so the RCA link works on home wifi with tailscale off.
+        # The tailscale serve above binds the tailnet interface only and cannot cover
+        # the LAN. Runs as the user (OUT_ROOT is user-owned); miniserve is read-only
+        # by default (no upload flags). The firewall port is opened on the LAN
+        # interface only (above), so this is never reachable over the tailnet or WAN.
+        incident-investigator-serve-lan = lib.mkIf (cfg.publish.enable && cfg.publish.lan.enable) {
           description = "Serve incident bundles on the LAN (miniserve, read-only)";
           after = [ "network-online.target" ];
           wants = [ "network-online.target" ];
@@ -536,41 +544,36 @@ in
           };
         };
 
-    # LAN-only firewall opening for the miniserve port. Scoped to the LAN
-    # interface, so the bundles are never reachable over the tailnet (which has
-    # its own authenticated serve) or a WAN link.
-    networking.firewall.interfaces.${cfg.publish.lan.interface}.allowedTCPPorts = lib.mkIf (
-      cfg.publish.enable && cfg.publish.lan.enable
-    ) [ cfg.publish.lan.port ];
-
-    # Weekly cluster-wide rightsizing sweep: read-only, writes a bundle and
-    # Pushes an over/under-provisioned summary. A oneshot service on a timer,
-    # separate from the alert-driven receiver above.
-    systemd.services.incident-investigator-rightsizing = lib.mkIf cfg.rightsizingSweep.enable {
-      description = "Weekly cluster-wide rightsizing sweep (read-only)";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        User = globals.user.name;
-        Group = "users";
-        ExecStart = opRunExec "${pkgs.bash}/bin/bash ${scriptsDir}/rightsizing-sweep.sh";
-        Environment = sweepEnv;
-        NoNewPrivileges = true;
-        LockPersonality = true;
-        ProtectKernelTunables = true;
-        ProtectKernelModules = true;
-        ProtectControlGroups = true;
+        # Weekly cluster-wide rightsizing sweep: read-only, writes a bundle and
+        # Pushes an over/under-provisioned summary. A oneshot service on a timer,
+        # separate from the alert-driven receiver above.
+        incident-investigator-rightsizing = lib.mkIf cfg.rightsizingSweep.enable {
+          description = "Weekly cluster-wide rightsizing sweep (read-only)";
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = globals.user.name;
+            Group = "users";
+            ExecStart = opRunExec "${pkgs.bash}/bin/bash ${scriptsDir}/rightsizing-sweep.sh";
+            Environment = sweepEnv;
+            NoNewPrivileges = true;
+            LockPersonality = true;
+            ProtectKernelTunables = true;
+            ProtectKernelModules = true;
+            ProtectControlGroups = true;
+          };
+        };
       };
-    };
 
-    systemd.timers.incident-investigator-rightsizing = lib.mkIf cfg.rightsizingSweep.enable {
-      description = "Weekly trigger for the rightsizing sweep";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = cfg.rightsizingSweep.schedule;
-        Persistent = true;
-        RandomizedDelaySec = "1h";
+      timers.incident-investigator-rightsizing = lib.mkIf cfg.rightsizingSweep.enable {
+        description = "Weekly trigger for the rightsizing sweep";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = cfg.rightsizingSweep.schedule;
+          Persistent = true;
+          RandomizedDelaySec = "1h";
+        };
       };
     };
   };

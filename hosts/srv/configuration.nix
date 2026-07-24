@@ -92,18 +92,7 @@
       "networkmanager"
     ];
     shell = pkgs.${globals.preferences.shell};
-
-    # srv never enables suites.core, so it does not inherit the workstation
-    # linger declaration and needs its own. It owns no user timers today, but
-    # it is the always-on headless host, so it is where a scheduled user unit
-    # is most likely to land next. Without lingering such a unit would simply
-    # never fire, with no build error and no assertion to explain why.
-    linger = true;
   };
-
-  # Same first-boot ordering guard as suites/core: do not start the user
-  # manager before home-manager has written ~/.config/systemd/user.
-  systemd.services.linger-users.after = [ "home-manager-${globals.user.name}.service" ];
 
   users.groups.${globals.user.name} = { };
 
