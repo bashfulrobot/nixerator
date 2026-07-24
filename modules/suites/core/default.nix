@@ -105,6 +105,12 @@ in
         "wheel"
       ];
       shell = pkgs.${globals.preferences.shell};
+      # Keep the user's systemd manager running without an active login session,
+      # so home-manager `systemd.user.timers` fire at boot rather than at first
+      # login. aha-fr-report's daily timer depends on this. Was previously
+      # enabled imperatively via `loginctl enable-linger`, so it would not have
+      # survived a fresh install.
+      linger = true;
     };
 
     # Nautilus right-click "Copy Path" extension (top-level context menu)
