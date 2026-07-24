@@ -56,6 +56,16 @@ let
       repo = "heygen-com/hyperframes";
       sha = "553688c996408cb33de27ce4573bef6c8cf27454";
     };
+    # Fleet Deck: a localhost "mission control" board for Claude Code sessions
+    # (https://github.com/lacion/fleet-deck). Ships one plugin, `fleetdeck`, from
+    # a relative-path (`./`) source, so pinning the marketplace SHA pins the
+    # plugin (same model as impeccable/hyperframes above). Runtime deps (Node,
+    # tmux) are gated in default.nix on this id, not registered here.
+    fleetdeck.source = {
+      source = "github";
+      repo = "lacion/fleet-deck";
+      sha = "5b91e17c602a7b7b25156617adc15d1278717883";
+    };
   };
 
   marketplaceOf = pluginId: lib.last (lib.splitString "@" pluginId);
