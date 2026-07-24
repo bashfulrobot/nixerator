@@ -46,9 +46,34 @@ pkgs.stdenv.mkDerivation {
   # other caller on the default. `--set` rather than `--set-default` because a
   # scheduled unit never inherits the shell environment, so a shell-level
   # override would reintroduce exactly the split this closes.
+  #
+  # The pin alone still has one destructive edge. A credential store that was
+  # written while the key lived in the OS keyring leaves credentials.enc on disk
+  # with no .encryption_key beside it. Handing that to the file backend is the
+  # case gws answers by deleting the store and exiting 0, so the first run after
+  # the pin lands would silently destroy credentials that a `gws auth login`
+  # under the old backend could still decrypt. The guard below refuses that one
+  # state and says what to do instead. An unwrapped `.gws-wrapped` is still
+  # there for anyone who needs to get at the old backend.
+  guard = ''
+    gws_cfg="''${XDG_CONFIG_HOME:-$HOME/.config}/gws"
+    if [ -f "$gws_cfg/credentials.enc" ] && [ ! -f "$gws_cfg/.encryption_key" ]; then
+      echo "gws: refusing to run." >&2
+      echo "  $gws_cfg/credentials.enc exists but $gws_cfg/.encryption_key does not." >&2
+      echo "  This build pins the credential backend to 'file', and gws answers a store" >&2
+      echo "  it cannot decrypt by deleting it. Those credentials were almost certainly" >&2
+      echo "  encrypted with a key still held in the OS keyring." >&2
+      echo "  Re-authenticate to rebuild the store under the file backend:" >&2
+      echo "    mv \"$gws_cfg/credentials.enc\" \"$gws_cfg/credentials.enc.keyring-backup\"" >&2
+      echo "    gws auth login" >&2
+      exit 78
+    fi
+  '';
+
   postFixup = ''
     wrapProgram $out/bin/gws \
-      --set GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND file
+      --set GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND file \
+      --run "$guard"
   '';
 
   meta = with lib; {

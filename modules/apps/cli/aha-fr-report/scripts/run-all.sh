@@ -4,8 +4,16 @@
 # Aha!/Drive error doesn't kill the whole scheduled run.
 #
 # Usage:
-#   run-all.sh                     # uses ../customers.txt
+#   run-all.sh                     # uses $AHA_FR_CUSTOMERS_FILE
 #   run-all.sh /path/to/list.txt   # explicit list file
+#
+# The live list is not part of this package. It names customers, their Aha!
+# organization ids and their Drive folder ids, and the flake that ships these
+# scripts is a public repository whose contents also land in the world-readable
+# /nix/store. The Nix wrapper exports AHA_FR_CUSTOMERS_FILE (default
+# ~/.config/aha-fr-report/customers.txt); running the script straight out of the
+# store without it needs the path as an argument. ../customers.txt.example
+# documents the format.
 #
 # customers.txt line format:
 #   Drive folder name[|aha_org_id[,aha_org_id2,...]][|Display Name][|pdf_folder_id]
@@ -26,10 +34,22 @@
 set -uo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-list_file="${1:-$here/../customers.txt}"
+list_file="${1:-${AHA_FR_CUSTOMERS_FILE:-}}"
+
+[[ -n "$list_file" ]] || {
+  echo "ERROR: no customer list given." >&2
+  echo "  Pass one as an argument, or set AHA_FR_CUSTOMERS_FILE." >&2
+  echo "  The aha-fr-report wrapper sets it from apps.cli.aha-fr-report.customersFile." >&2
+  exit 2
+}
 
 [[ -r "$list_file" ]] || {
   echo "ERROR: customer list not found/readable at $list_file" >&2
+  echo "  The list is kept off-store and out of the flake on purpose, so a fresh" >&2
+  echo "  host has to be given one once:" >&2
+  echo "    mkdir -p \"$(dirname "$list_file")\"" >&2
+  echo "    cp ${here}/../customers.txt.example \"$list_file\"" >&2
+  echo "    \$EDITOR \"$list_file\"" >&2
   exit 2
 }
 

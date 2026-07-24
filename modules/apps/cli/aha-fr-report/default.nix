@@ -15,16 +15,22 @@ let
   # or not gws happens to be separately enabled on a given host.
   gws = pkgs.callPackage ../gws/build { inherit versions; };
 
-  # The whole package directory (vendor/, scripts/, assets/, customers.txt)
-  # copied into one Nix store path as-is, so the scripts' own relative-path
-  # resolution ($(dirname "$0")-style, matching the aha skill's own scripts)
-  # keeps working unchanged rather than needing per-file substituteInPlace.
+  # The whole package directory (vendor/, scripts/, assets/) copied into one Nix
+  # store path as-is, so the scripts' own relative-path resolution
+  # ($(dirname "$0")-style, matching the aha skill's own scripts) keeps working
+  # unchanged rather than needing per-file substituteInPlace.
+  #
+  # customers.txt is deliberately not among them. It names customers, their Aha!
+  # organization ids and their Drive folder ids, and this flake is a public
+  # repository whose contents also land in the world-readable /nix/store. Only
+  # customers.txt.example ships; the live list is read at runtime from
+  # cfg.customersFile, the same off-store treatment secretsFile gets.
   src = pkgs.runCommand "aha-fr-report-src" { } ''
     mkdir -p "$out"
     cp -r ${./vendor} "$out/vendor"
     cp -r ${./scripts} "$out/scripts"
     cp -r ${./assets} "$out/assets"
-    cp ${./customers.txt} "$out/customers.txt"
+    cp ${./customers.txt.example} "$out/customers.txt.example"
     chmod -R u+w "$out"
     chmod +x "$out"/scripts/*.sh "$out"/scripts/*.py "$out"/vendor/*.sh
   '';
@@ -57,6 +63,7 @@ let
       exit 1
     fi
     export AHA_API_TOKEN="$token"
+    export AHA_FR_CUSTOMERS_FILE="${cfg.customersFile}"
     exec "${src}/scripts/${target}" "$@"
   '';
 
@@ -90,6 +97,19 @@ in
       description = ''
         Path to the off-store JSON secrets file (rendered by render-secrets)
         that aha-fr-report reads `.aha.apiToken` from at runtime.
+      '';
+    };
+
+    customersFile = lib.mkOption {
+      type = lib.types.str;
+      default = "${globals.user.homeDirectory}/.config/aha-fr-report/customers.txt";
+      description = ''
+        Path to the live customer list, read at runtime. Kept off-store and out
+        of this repository for the same reason as secretsFile: it names
+        customers, their Aha! organization ids and their Drive folder ids, and
+        both a public flake and /nix/store are world-readable. See
+        modules/apps/cli/aha-fr-report/customers.txt.example for the format and
+        the one-time setup.
       '';
     };
 
@@ -185,9 +205,14 @@ in
             StartLimitBurst = 10;
             StartLimitIntervalSec = "1h";
           };
+          #
+          # Exit 2 is run-all.sh's configuration error: no customer list, or a
+          # list with no usable entries. Retrying that ten times changes
+          # nothing, so it fails once and says why in the journal instead.
           Service = {
             Type = "oneshot";
             Restart = "on-failure";
+            RestartPreventExitStatus = 2;
             RestartSec = "3min";
             ExecStart = "${aha-fr-report}/bin/aha-fr-report";
           };

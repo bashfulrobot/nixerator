@@ -96,6 +96,31 @@ redo this audit for it rather than reading the rows below as covering srv.
 | `dsearch.service` | `default.target` | Behaviour change. Starts at boot and no longer stops at logout. Owned by hyprflake's dank module, not by this repo, so it is not changed here. Worth revisiting on the laptop if a filesystem indexer running on battery after logout is unwanted. |
 | `dms`, `hyprpaper`, `insync`, `snappy-switcher`, `voxtype`, `wl-clip-persist` | `graphical-session.target` | Unaffected, still session-bound. |
 
+`~/.config/systemd/user` is only half the picture. NixOS also installs user units
+into `/etc/systemd/user`, and those reach `default.target` and `sockets.target`
+the same way. Enumerate them per host, they are generation-dependent:
+
+```bash
+ls /etc/systemd/user/default.target.wants /etc/systemd/user/sockets.target.wants
+```
+
+On the workstation generation this landed against, that is
+`gcr-ssh-agent.service`, `geoclue-agent.service` and `nixos-activation.service`
+under `default.target`, plus `dbus.socket`, `gcr-ssh-agent.socket`,
+`gpg-agent.socket`, `pipewire.socket`, `pipewire-pulse.socket` and
+`speech-dispatcher.socket` under `sockets.target`. The sockets only listen, so
+what they front does not start until something connects.
+
+The credential agents are the part worth thinking about, and the reason is the
+manager's lifetime rather than any one unit. Without lingering `user@1000.service`
+stops when the last session closes, which takes the agents with it. With
+lingering it keeps running until reboot, so an ssh or gpg key unlocked during a
+session stays loaded and usable for signing after logout. On a single-user
+workstation that is the same trust boundary as before, since anyone who can talk
+to the agent socket already has the account. On a shared or physically exposed
+machine it is a real change, and the answer there is an agent TTL rather than
+turning lingering off.
+
 ## gws does not need the login keyring
 
 It is tempting to assume anything touching Google credentials has to be bound to

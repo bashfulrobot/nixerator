@@ -33,6 +33,12 @@
     ../../modules/server/kvm
     ../../modules/server/nfs
     ../../modules/server/postgres
+    # Host-wide invariant, not a feature: declares users.users.<name>.linger so
+    # systemd.user timers are scheduled from boot. Workstations get it from
+    # ../../modules; srv imports by hand, so it needs the path spelled out.
+    # lib/mkHost.nix asserts every host reaches it. Import it from exactly one
+    # place per host: a second import path is a second module key, which
+    # evaluates the module twice and duplicates its After= entry.
     ../../modules/system/linger
     ../../modules/system/resilient-boot
     ../../modules/system/ssh
@@ -111,7 +117,8 @@
     extraSetFlags = [ "--advertise-routes=192.168.168.0/23" ];
   };
 
-  # System modules
+  # System modules. One `system` attrset rather than three dotted paths
+  # scattered through the file, which reads as a repeated key.
   system = {
     # Note: this is unrelated to the self-hosted netboot.xyz admin UI that
     # used to live at `server.netbootXyz` (archived, unused). This enables the
@@ -125,10 +132,10 @@
     # and defeat keychain's single-agent model.
     ssh.enable = true;
 
-    # Materialises the GitHub token that the nix.extraOptions `!include`
-    # below reads. The runtime dir is created by installValue's own
-    # `mkdir -p`; a systemd.tmpfiles rule would not help because tmpfiles is
-    # applied by a systemd unit that only runs after activation scripts.
+    # Materialises the GitHub access token read by the nix.extraOptions
+    # `!include` further down. The runtime dir is created by installValue's
+    # own `mkdir -p`; a systemd.tmpfiles rule would not help because tmpfiles
+    # is applied by a systemd unit that only runs after activation scripts.
     activationScripts.nixAccessToken = lib.stringAfter [ "etc" ] (
       secretsLib.installValue {
         jq = "${pkgs.jq}/bin/jq";
@@ -283,7 +290,8 @@
   # root-only 0600 file and pulled in via nix.conf `!include` (read by the nix
   # daemon at runtime), so it never enters the world-readable /etc/nix/nix.conf
   # or the store (issue #265). `!include` no-ops when the file is absent.
-  # Written by system.activationScripts.nixAccessToken above.
+  # The file this includes is written by system.activationScripts.nixAccessToken
+  # in the system block above.
   nix.extraOptions = ''
     !include /run/nixos-secrets/nix-access-tokens.conf
   '';

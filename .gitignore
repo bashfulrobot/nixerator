@@ -33,3 +33,9 @@ prompt.txt
 AGENTS.md
 docs/superpowers/
 __pycache__/
+
+# Live aha-fr-report customer list. Names customers, their Aha! organization
+# ids and their Drive folder ids, and this repository is public. It lives at
+# apps.cli.aha-fr-report.customersFile (~/.config/aha-fr-report/customers.txt);
+# only customers.txt.example is tracked.
+modules/apps/cli/aha-fr-report/customers.txt

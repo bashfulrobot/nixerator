@@ -405,10 +405,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # LAN-only firewall opening for the miniserve port (see
-    # incident-investigator-serve-lan below). Scoped to the LAN interface, so
-    # the bundles are never reachable over the tailnet (which has its own
-    # authenticated serve) or a WAN link.
+    # LAN-only firewall opening for the miniserve port. Scoped to the LAN
+    # interface, so the bundles are never reachable over the tailnet (which has
+    # its own authenticated serve) or a WAN link.
     networking.firewall.interfaces.${cfg.publish.lan.interface}.allowedTCPPorts = lib.mkIf (
       cfg.publish.enable && cfg.publish.lan.enable
     ) [ cfg.publish.lan.port ];
@@ -516,7 +515,8 @@ in
         # The tailscale serve above binds the tailnet interface only and cannot cover
         # the LAN. Runs as the user (OUT_ROOT is user-owned); miniserve is read-only
         # by default (no upload flags). The firewall port is opened on the LAN
-        # interface only (above), so this is never reachable over the tailnet or WAN.
+        # interface only (the networking.firewall block above this systemd block),
+        # so this is never reachable over the tailnet or WAN.
         incident-investigator-serve-lan = lib.mkIf (cfg.publish.enable && cfg.publish.lan.enable) {
           description = "Serve incident bundles on the LAN (miniserve, read-only)";
           after = [ "network-online.target" ];
