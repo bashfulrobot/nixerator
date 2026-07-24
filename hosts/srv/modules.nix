@@ -19,6 +19,7 @@
     ../../modules/apps/cli/git
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/media-rename
+    ../../modules/apps/cli/opencode
     ../../modules/apps/cli/render-secrets
     ../../modules/apps/cli/restic
     ../../modules/apps/cli/skillfish
@@ -47,6 +48,10 @@
     git.enable = true;
     helix.enable = true;
     media-rename.enable = true;
+    # opencode CLI agent + its LSP language servers (kotlin-lsp/yaml-schema-router
+    # are already built for helix above, so no extra closure). Points at cloud
+    # models by default; srv has no local Ollama provider wiring (qbert-only).
+    opencode.enable = true;
     # srv renders its own document-backed secrets (feral-arr download-sync key,
     # incus cert, filebot license) via its 1Password CLI, rather than only
     # receiving them by `just push-secrets srv`. Needs a valid SA token on the

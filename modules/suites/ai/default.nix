@@ -1,8 +1,6 @@
 {
   lib,
   config,
-  pkgs,
-  globals,
   ...
 }:
 
@@ -94,12 +92,9 @@ in
     # a text source. The local model is an unpinned pull (see the trust note on
     # apps.cli.ollama.loadModels).
     #
-    # Uses the programs.opencode home-manager module: enable installs the
-    # package and lets the ollama module contribute its local-provider settings
-    # to ~/.config/opencode/opencode.json via programs.opencode.settings.
-    home-manager.users.${globals.user.name}.programs.opencode = {
-      enable = true;
-      package = pkgs.llm-agents.opencode;
-    };
+    # Delivered by the dedicated apps.cli.opencode module: it installs the
+    # package, wires the LSP language servers, and lets the ollama module
+    # contribute its local-provider settings to opencode.json.
+    apps.cli.opencode.enable = true;
   };
 }
