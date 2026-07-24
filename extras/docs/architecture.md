@@ -82,7 +82,7 @@ in
 | offcomms       | Signal, Obsidian                                        |
 | infrastructure | Cloud CLI tools                                         |
 | k8s            | kubectl                                                 |
-| av             | Affinity, Jellyfin Desktop, Spotify, VLC, mpv           |
+| av             | Affinity, Spotify, VLC, mpv                             |
 | kong           | Insomnia, deck, Salesforce CLI, Calendar                |
 | ai             | Claude Code (agent-scan, agentos), Gemini CLI           |
 

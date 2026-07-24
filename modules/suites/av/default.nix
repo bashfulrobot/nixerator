@@ -23,10 +23,6 @@ in
       budslink.enable = true;
       cameractrls.enable = true;
       comics.enable = true;
-      # Jellyfin direct-play via mpv. Replaces the native jellyfin-desktop
-      # package (nixpkgs pins a broken tagless pre-release; its mpv renderer
-      # fails on Wayland/AMD -- `vo/libmpv: No render context set`).
-      jellyfin-mpv-shim.enable = true;
     };
 
     apps.cli = {

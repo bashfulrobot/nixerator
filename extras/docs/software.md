@@ -57,7 +57,6 @@ Complete inventory of software managed by this NixOS configuration.
 | Helium         | Privacy-focused Chromium-based browser (beta) with 1Password integration      | Local build                    |
 | Insomnia       | API client (Kong) with local package override for newer versions              | Local build                    |
 | Insync         | Google Drive sync client with optional Nautilus integration                   | nixpkgs                        |
-| LocalSend      | Local file sharing utility with firewall integration and tray autostart       | nixpkgs                        |
 | Obsidian       | Notes application with obsidian-export tool                                   | nixpkgs                        |
 | Signal Desktop | Encrypted messaging app with optional GNOME libsecret integration             | nixpkgs                        |
 | Spicetify      | Spotify desktop client with theming                                           | nixpkgs (spicetify-nix input)  |
