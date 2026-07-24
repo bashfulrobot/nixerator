@@ -61,6 +61,13 @@ let
     # a relative-path (`./`) source, so pinning the marketplace SHA pins the
     # plugin (same model as impeccable/hyperframes above). Runtime deps (Node,
     # tmux) are gated in default.nix on this id, not registered here.
+    #
+    # This is a young 0.x tool that hooks Claude Code's session lifecycle and
+    # spawns tmux workers, so pin deliberately to a release tag you have run,
+    # not to tracking HEAD. The SHA below is the v0.18.0 tag, whose manifest
+    # tests against Claude Code 2.1.206 through 2.1.207. Re-check compatibility
+    # (and skim the diff, since each bump re-grants a process-spawning surface)
+    # when bumping the SHA or the pinned claude-code.
     fleetdeck.source = {
       source = "github";
       repo = "lacion/fleet-deck";
