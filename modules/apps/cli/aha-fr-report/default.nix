@@ -164,17 +164,31 @@ in
           # in the user manager to order against. Persistent also stamps on
           # trigger rather than on success, so a first attempt that fails
           # against a dead network would consume the missed occurrence and the
-          # report would silently not happen that day. RestartSec is minutes
-          # rather than seconds so the retries outlast a slow link coming up.
+          # report would silently not happen that day.
+          #
+          # The numbers are a window, so state it rather than leaving it to be
+          # worked out: 10 starts at 3 minutes apart covers roughly 27 minutes
+          # from the first attempt, well inside the 1h limit interval. A link
+          # that takes longer than that to come up loses the day anyway, since
+          # Persistent has already stamped the occurrence.
+          #
+          # Retrying the whole batch is only safe because the run is
+          # idempotent. run-all.sh exits non-zero only when *nothing* succeeded
+          # (a dead network or an expired login), never for a partial failure,
+          # and each artifact is uploaded with drive-lib.sh's
+          # upload_or_replace_file, which replaces a same-named file rather than
+          # stacking a second copy beside it. Without both of those, a single
+          # broken customer would re-run the batch on every attempt and litter
+          # customer-facing folders with duplicates.
           Unit = {
             Description = "Refresh per-customer Aha! FR reports (Sheet + PDF)";
-            StartLimitBurst = 5;
+            StartLimitBurst = 10;
             StartLimitIntervalSec = "1h";
           };
           Service = {
             Type = "oneshot";
             Restart = "on-failure";
-            RestartSec = "2min";
+            RestartSec = "3min";
             ExecStart = "${aha-fr-report}/bin/aha-fr-report";
           };
         };

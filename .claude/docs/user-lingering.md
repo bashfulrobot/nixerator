@@ -94,7 +94,7 @@ redo this audit for it rather than reading the rows below as covering srv.
 | `hyprflake-updates.timer` | `timers.target` | Fine. The script writes its state file before notifying and guards `notify-send` with `\|\| true`, so only the desktop popup is skipped. The fish notice still appears at the next interactive shell. |
 | `aha-fr-report.timer` | `timers.target` | Fine, and this is the unit that benefits most. See the gws note below. |
 | `dsearch.service` | `default.target` | Behaviour change. Starts at boot and no longer stops at logout. Owned by hyprflake's dank module, not by this repo, so it is not changed here. Worth revisiting on the laptop if a filesystem indexer running on battery after logout is unwanted. |
-| `insync.service` | `graphical-session.target` | Unaffected, still session-bound. |
+| `dms`, `hyprpaper`, `insync`, `snappy-switcher`, `voxtype`, `wl-clip-persist` | `graphical-session.target` | Unaffected, still session-bound. |
 
 ## gws does not need the login keyring
 
@@ -125,3 +125,37 @@ is the split that causes the problem.
 
 Never run `gws auth export` to investigate this. It prints decrypted credentials
 to stdout.
+
+### Check before rolling the pin out to a host
+
+The pin is one-way for existing state. A config dir whose key went to the OS
+keyring rather than to `.encryption_key` cannot be decrypted once the backend is
+forced, and gws responds to a store it cannot decrypt by deleting it and exiting
+zero. Nothing fails loudly; the credentials are simply gone, and getting them
+back means the interactive OAuth browser flow.
+
+So check each host before the rebuild, and check every profile, not just the
+default one. `~/.config/gws` is the default dir and each subdirectory of
+`~/.config/gws-profiles` is a separate one (see the `gwscfg` switcher in
+`modules/apps/cli/fish`):
+
+```
+for d in ~/.config/gws ~/.config/gws-profiles/*/; do
+  test -f "$d/.encryption_key" && echo "ok   $d" || echo "MISSING $d"
+done
+GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file gws drive files list \
+  --params '{"pageSize":1,"fields":"files(id)"}' >/dev/null && echo "decrypts"
+```
+
+A dir with no `.encryption_key`, or one that does not decrypt under the forced
+backend, needs `gws auth logout && gws auth login` under the wrapped binary
+before it is used again.
+
+`--set` rather than `--set-default` in the wrapper means a shell-level override
+cannot reintroduce the split, and it also means there is no way to run one call
+on the `keyring` backend to migrate a key across. Re-authenticating is the
+supported path. The unwrapped binary is the escape hatch if that is ever needed:
+
+```
+"$(dirname "$(readlink -f "$(command -v gws)")")/.gws-wrapped" --version
+```

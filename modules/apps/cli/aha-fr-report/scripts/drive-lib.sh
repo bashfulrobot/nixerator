@@ -111,6 +111,47 @@ find_file_in_folder() {
   echo "$results" | jq -r '.files[0].id // empty'
 }
 
+# upload_or_replace_file PARENT_ID NAME MIME_TYPE LOCAL_PATH
+# Uploads LOCAL_PATH into PARENT_ID under NAME, replacing the contents of an
+# existing file of the same name+mimeType rather than adding a second copy.
+# Prints "file_id<TAB>webViewLink".
+#
+# Drive permits duplicate names within a folder, so a bare `files create` is not
+# idempotent: a second run on the same day leaves two files carrying the same
+# dated name. That matters because the scheduled unit retries on failure and
+# these folders are customer-facing, so a create-only upload turns one transient
+# error into a stack of identical reports someone else has to clean up.
+# Replacing in place also keeps the file id stable, so a link already handed to
+# a customer keeps resolving to the current report.
+upload_or_replace_file() {
+  local parent_id name mime path existing result id
+  parent_id="$1"
+  name="$2"
+  mime="$3"
+  path="$4"
+
+  existing="$(find_file_in_folder "$parent_id" "$name" "$mime")"
+  if [[ -n "$existing" ]]; then
+    result="$(gws drive files update \
+      --params "{\"fileId\":\"${existing}\",\"supportsAllDrives\":true,\"fields\":\"id,webViewLink\"}" \
+      --upload "$path" \
+      --upload-content-type "$mime" 2>/dev/null)"
+  else
+    result="$(gws drive files create \
+      --json "{\"name\":\"${name}\",\"parents\":[\"${parent_id}\"]}" \
+      --upload "$path" \
+      --upload-content-type "$mime" \
+      --params '{"supportsAllDrives":true,"fields":"id,webViewLink"}' 2>/dev/null)"
+  fi
+
+  id="$(echo "$result" | jq -r '.id // empty')"
+  [[ -n "$id" ]] || {
+    echo "ERROR: upload of '${name}' failed: ${result}" >&2
+    return 1
+  }
+  printf '%s\t%s\n' "$id" "$(echo "$result" | jq -r '.webViewLink // empty')"
+}
+
 # resolve_customer_frs_folder CUSTOMER_NAME
 # Resolves <Customer>/CS/FRs, plus the Customer-PDF-Reports subfolder inside it,
 # creating any level that doesn't exist yet.

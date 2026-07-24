@@ -95,5 +95,28 @@ echo "=============================================="
 echo "Done: ${ok} succeeded, ${#failed[@]} failed."
 if [[ ${#failed[@]} -gt 0 ]]; then
   echo "Failed: ${failed[*]}" >&2
-  exit 1
 fi
+
+# The exit status is a retry signal, not a report card. systemd restarts the
+# scheduled unit on failure (see modules/apps/cli/aha-fr-report/default.nix), so
+# a non-zero exit here means "run the whole batch again". Exiting non-zero for a
+# partial failure would re-run the customers that already succeeded on account
+# of one broken org name, and that entry stays broken every attempt, so it would
+# burn the restart budget without ever clearing.
+#
+# At least one success proves the run had credentials and a network, which are
+# the conditions a retry can actually fix. The per-customer failures are still
+# reported above and in the journal.
+if [[ $ok -gt 0 ]]; then
+  exit 0
+fi
+
+# Nothing succeeded. Either every customer failed, which is the shape a dead
+# network or an expired login takes, or the list turned out to be empty. Both
+# are worth exiting non-zero for: the first is what the retry exists for, and
+# the second would otherwise report success while doing nothing at all.
+if [[ ${#failed[@]} -eq 0 ]]; then
+  echo "ERROR: no customers processed; '${list_file}' has no usable entries." >&2
+  exit 2
+fi
+exit 1

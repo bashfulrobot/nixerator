@@ -47,7 +47,9 @@
   # `users.manageLingering = false` on its own is now a hard eval failure while
   # this module is imported. Turning lingering off means
   # `users.users.<name>.linger = lib.mkForce null` alongside it, and that pair
-  # is the case this guard covers.
+  # is the case this guard covers. lib/mkHost.nix's reachability assertion is
+  # gated on the same option, so the pair evaluates rather than tripping the
+  # assertion that exists to catch a *missing* import.
   systemd.services.linger-users = lib.mkIf config.users.manageLingering {
     after = [ "home-manager-${globals.user.name}.service" ];
   };

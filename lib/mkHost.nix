@@ -225,18 +225,29 @@ in
         # list-typed `after` concatenates into a duplicated After= in the built
         # unit. Assertions are a list that merges, so a second definition costs
         # nothing.
+        #
+        # Gated on users.manageLingering so it catches the accident without
+        # blocking the deliberate opt-out. modules/system/linger documents
+        # turning lingering off as `manageLingering = false` plus
+        # `linger = lib.mkForce null`; an unconditional assertion would make
+        # that documented pair a hard eval failure, and would say "import the
+        # module" to someone who had imported it and switched it off on purpose.
         (
           { config, ... }:
           {
             assertions = [
               {
-                assertion = (config.users.users.${globals.user.name}.linger or null) != null;
+                assertion =
+                  !config.users.manageLingering || (config.users.users.${globals.user.name}.linger or null) != null;
                 message = ''
                   ${hostname}: users.users.${globals.user.name}.linger is unset, so this host's
                   systemd.user timers would only be scheduled once someone logged in.
                   Import modules/system/linger. Workstations get it from ../../modules.
                   A host that imports modules by hand needs the path listed explicitly,
                   the way hosts/srv/modules.nix does.
+
+                  To turn lingering off on purpose instead, set users.manageLingering = false
+                  alongside users.users.${globals.user.name}.linger = lib.mkForce null.
                 '';
               }
             ];

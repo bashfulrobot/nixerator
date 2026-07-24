@@ -30,6 +30,8 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FETCH_IDEAS="$here/fetch-ideas.sh"
+# shellcheck source=./drive-lib.sh
+source "$here/drive-lib.sh"
 
 die() {
   echo "ERROR: $*" >&2
@@ -91,15 +93,10 @@ echo "Uploading ${csv_name} to Drive..." >&2
 # be a read-only Nix store path once packaged -- upload from $workdir (a real
 # mktemp -d), exactly as export-customer-pdf.sh does.
 cd "$workdir"
-result="$(gws drive files create \
-  --json "{\"name\":\"${csv_name}\",\"parents\":[\"${csv_exports_folder_id}\"]}" \
-  --upload "./$csv_name" \
-  --upload-content-type "text/csv" \
-  --params '{"supportsAllDrives":true,"fields":"id,webViewLink"}' 2>/dev/null)"
-
-csv_id="$(echo "$result" | jq -r '.id // empty')"
-csv_link="$(echo "$result" | jq -r '.webViewLink // empty')"
-[[ -n "$csv_id" ]] || die "upload failed: $result"
+upload_result="$(upload_or_replace_file "$csv_exports_folder_id" "$csv_name" \
+  "text/csv" "./$csv_name")" || die "upload failed for ${csv_name}"
+csv_id="${upload_result%%$'\t'*}"
+csv_link="${upload_result#*$'\t'}"
 
 printf '%s\t%s\n' "$csv_id" "$csv_link"
 echo "Done: ${csv_link}" >&2
