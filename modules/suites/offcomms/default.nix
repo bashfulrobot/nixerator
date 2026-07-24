@@ -24,7 +24,6 @@ in
       gui = {
         cauldron.enable = true;
         insync.enable = true;
-        localsend.enable = true;
         obsidian.enable = true;
         signal.enable = true;
         typora.enable = true;
