@@ -201,8 +201,8 @@ Route on `workflow_step`.
 | `implement` | Code the solution in the worktree |
 | `verify` | Invoke `superpowers:verification-before-completion` |
 | `push` | `github-issue push <N>` (rebases silently, creates PR, propagates labels) |
-| `review_dev` | Invoke `/review-dev` via Skill tool, handle findings; on clean auto-chain to `review_security` |
-| `review_security` | Invoke `/review-security` via Skill tool, handle findings. On clean: `github-issue auto-merge <N>`, transition to `waiting` |
+| `review_dev` | Review round 1. Run `/review-dev` and `/review-security` against one diff, freeze the finding ledger, fix the whole batch, verify, push |
+| `review_security` | Delta rounds against the fix delta until the gate clears (max 3). Then `github-issue auto-merge <N>`, transition to `waiting` |
 | `waiting` | Re-check status. CLI auto-fetches and auto-heals BEHIND. Only act manually if `pr.merge_state_status == BEHIND` persists across reconciliations (auto-refresh failed; run `github-issue push <N>` to surface a structured `error.cause`). |
 | `revamp` | Review feedback received. Run `github-issue review-feedback <N>`, evaluate, fix. |
 | `ci_fix` | Post-push CI failure. Diagnose from `check-ci`, fix, re-verify, push. |
@@ -349,46 +349,128 @@ Report `pr_url` and `ci_status` from response. Then:
 github-issue transition <N> review_dev --note "PR created: <url>"
 ```
 
-### Review (Dev)
+### Review: freeze, fix, verify
 
-Invoke `/review-dev` directly via the `Skill` tool. Announce: `"PR created: <pr_url>. Running /review-dev."`
+Review is one loop with a proof of termination, not an open-ended
+review-until-nobody-complains. Both reviewers run against the same diff, their
+findings are frozen into a ledger, everything gets fixed in one batch, and every
+later round looks only at the fix delta.
 
-After dev review completes, parse the summary line:
-- `REVIEW_DEV_SUMMARY: verdict=block`. Critical issue. Fix the blocker, plus
-  every Important and Minor finding the same review surfaced. Verify and push
-  before continuing.
-- `REVIEW_DEV_SUMMARY: verdict=fix`. Batch every Critical, Important, **and**
-  Minor finding in a single pass. No deferral, no follow-up issues, no "out of
-  scope". Then one verify-push cycle. Log: "Batched N fixes."
-- `verdict=clean`. Transition and **immediately auto-chain into
-  `/review-security`**. The diff is unchanged, so security review runs against
-  the same state in the same turn.
-- No summary line. Ask the user if there are findings to address.
+Why the ledger. A fresh reviewer handed the whole mutated diff each round has no
+memory of what it already cleared, and every fix creates new surface for it to
+comment on. "Keep reviewing until a brand-new skeptic finds nothing" is not a
+terminating condition. Delta rounds shrink; full rounds do not.
 
-After all fixes (or clean):
+#### Round 1: freeze
+
+Announce: `"PR created: <pr_url>. Running review."`
+
+Fetch the diff once and run both reviews against it. Invoke `/review-dev` and
+`/review-security` via the `Skill` tool. The diff is identical for both, so
+dispatch them in the same turn rather than waiting for dev to finish before
+starting security.
+
+Security review runs for every PR. There is no UI-only skip path. Small PRs
+still go through it; it catches what verification alone can't (new dependencies,
+sketchy patterns, credential leaks).
+
+Each skill returns a summary line ending in `findings=<path>`. Feed those files
+straight into the ledger without reading them:
 
 ```bash
-github-issue transition <N> review_security --note "Dev review: <verdict>. <brief>"
+github-issue findings <N> set  --json "$(cat <dev-findings-path>)"
+github-issue findings <N> add  --json "$(cat <security-findings-path>)"
+github-issue findings <N> round --base-sha "$(git rev-parse HEAD)"
 ```
 
-### Review (Security)
+The finding list stays on disk and in the state file. It never has to sit in
+your context to be tracked, which is the whole point.
 
-Invoke `/review-security` directly via the `Skill` tool. Announce: `"Running /review-security."`
+#### Round 1: fix
 
-Security review runs for every PR. There is no UI-only skip path. Small PRs still go through it; it's fast and catches the things that verification alone can't (new dependencies, sketchy patterns, credential leaks).
+Read the pending set once:
 
-After security review completes, parse the summary:
-- `REVIEW_SECURITY_SUMMARY: verdict=block`. Fix the blocker plus every High,
-  Medium, and Low finding the same review surfaced. Verify and push.
-- `REVIEW_SECURITY_SUMMARY: verdict=fix`. Batch every Critical, High, Medium,
-  and Low finding in one pass. No deferral. Then one verify-push cycle.
-- `verdict=clean`. Enable auto-merge and transition to waiting.
+```bash
+github-issue findings <N> get --pending
+```
 
-After fixes are clean:
+Fix **every** finding in it, at every severity, in a single batch. Critical,
+Important, Minor, High, Medium, Low. No deferral, no follow-up issues, no "out
+of scope". Then one verify-push cycle for the whole batch.
+
+Mark each one as you go:
+
+```bash
+github-issue findings <N> resolve <id> [<id>...]
+```
+
+If a finding is genuinely wrong (the reviewer misread the code, the concern does
+not apply), reject it with the reasoning instead of silently skipping:
+
+```bash
+github-issue findings <N> reject <id> --reason "<why the reviewer is wrong>"
+```
+
+A rejection is a judgement you are recording, not a way to duck work. If you
+cannot write a specific reason, it is not a rejection, it is a fix you owe.
+
+Once the batch is verified and pushed:
+
+```bash
+github-issue transition <N> review_security --note "Round 1: N findings frozen, M fixed."
+```
+
+The two `review_*` steps split the loop by phase, not by reviewer: `review_dev`
+holds round 1, `review_security` holds the delta rounds and the gate.
+
+#### Round 2+: delta verify
+
+After the fix batch is pushed, start a new round pinned to the previous base:
+
+```bash
+github-issue findings <N> round --bump --base-sha "$(git rev-parse HEAD)"
+```
+
+Re-invoke the two review skills in **delta mode**, passing the previous
+`review_base_sha` and the pending ledger entries. Delta rounds review only the
+fix delta, confirm the frozen findings are actually addressed, and flag what the
+fix itself broke. They post no PR comment; the round-1 comment and the fix
+commits are the public record.
+
+Feed any new findings back in:
+
+```bash
+github-issue findings <N> add --json "$(cat <findings-path>)"
+```
+
+#### When to stop
+
+Read the gate, don't eyeball it:
+
+```bash
+github-issue findings <N> get --pending
+```
+
+- **`summary.gating_open > 0`** — fix them and run another delta round.
+- **`summary.gating_open == 0` and `summary.open > 0`** — the only things left
+  are Minor or Low. Fix them, push, and **stop**. Do not spend another round
+  confirming a cleanup commit.
+- **`summary.open == 0`** — done.
+
+Gating severities are `critical`, `important`, `high`, `medium`. That is not a
+statement about what is worth fixing; everything gets fixed. It is a statement
+about what justifies paying for another review round.
+
+**Hard cap: 3 rounds.** If gating findings still remain after round 3, stop the
+loop and surface it to the user with the pending ledger. Three rounds of a
+shrinking delta that still turns up blockers means something structural is
+wrong with the change, and a fourth round will not find it.
+
+#### After the loop
 
 ```bash
 github-issue auto-merge <N>
-github-issue transition <N> waiting --note "Security review: clean. Auto-merge enabled."
+github-issue transition <N> waiting --note "Review: N rounds, M findings resolved. Auto-merge enabled."
 ```
 
 GitHub will merge the moment branch protection and required checks are satisfied. Reconciliation detects the merge and routes to `done`.

@@ -22,12 +22,23 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && { [[ "${1:-}" == "--help" ]] || [[ "${
   info "                                             with --rescue, cherry-pick + push if it didn't"
   info "                                             (use after stacked-PR squash-merge races)"
   info "  post-mortem <number>                    -- gather close-context for agent synthesis"
+  info "  findings <number> <set|add|resolve|reject|get|round>"
+  info "                                          -- frozen review-finding ledger (see 'findings' below)"
   info "  queue-state <get|set --json '<json>'|clear>"
   info "                                          -- read/write the github-issues-auto queue cursor (reboot-safe resume)"
+  info ""
+  info "findings actions:"
+  info "  findings <n> set --json '<array>'       -- freeze the round-1 finding set (replaces)"
+  info "  findings <n> add --json '<array>'       -- append delta-round findings (rejects duplicate ids)"
+  info "  findings <n> resolve <id> [<id>...]     -- mark findings fixed"
+  info "  findings <n> reject <id> --reason '...' -- mark a finding rejected, rationale required"
+  info "  findings <n> get [--pending]            -- read the ledger + gating summary"
+  info "  findings <n> round --bump [--base-sha <sha>]"
+  info "                                          -- start a new review round, pin the delta base"
   exit 0
 fi
 
-# ── State v3 constants ────────────────────────────────────────────────────────
+# ── State v4 constants ────────────────────────────────────────────────────────
 
 VALID_STEPS=(setup assess design plan implement verify push review_dev review_security waiting revamp ci_fix "done" closed)
 
@@ -49,6 +60,21 @@ declare -A VALID_TRANSITIONS=(
   [done]=""
   [closed]=""
 )
+
+# ── Review-finding severities ────────────────────────────────────────────────
+# Each reviewer has its own severity vocabulary; `dev` mirrors /review-dev's
+# Critical/Important/Minor tiers, `security` mirrors /review-security's
+# Critical/High/Medium/Low tiers.
+#
+# "Gating" is *not* "worth fixing". Every finding gets fixed in the PR that
+# surfaced it, gating or not. Gating answers a narrower question: after the fix
+# batch lands, does an unresolved finding at this severity justify spending
+# another review round? A missed auth check does. A stale comment on a five-line
+# fix delta does not, and treating it as if it did is what turns the review loop
+# into an unbounded search.
+FINDING_SEVERITIES_DEV="critical important minor"
+FINDING_SEVERITIES_SECURITY="critical high medium low"
+FINDING_SEVERITIES_GATING="critical important high medium"
 
 # ── Helper functions ─────────────────────────────────────────────────────────
 
@@ -159,7 +185,7 @@ create_issue_state() {
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   local json
   json="$(jq -n \
-    --argjson version 3 \
+    --argjson version 4 \
     --arg type "issue" \
     --arg issue_number "$issue_number" \
     --arg issue_title "$issue_title" \
@@ -186,7 +212,7 @@ create_issue_state() {
       pr_url: $pr_url,
       session_id: $session_id,
       workflow_step: $workflow_step,
-      workflow_detail: {complexity: null, plan_file: null, review_stage: null, revamp_round: 0, blockers: $blockers, open_threads: []},
+      workflow_detail: {complexity: null, plan_file: null, review_stage: null, revamp_round: 0, blockers: $blockers, open_threads: [], findings: [], review_round: 0, review_base_sha: null},
       step_history: [{step: "setup", completed_at: $started_at, note: $setup_note}],
       started_at: $started_at,
       updated_at: $updated_at
@@ -213,9 +239,10 @@ is_valid_transition() {
   return 1
 }
 
-# Migrate state files forward: v1 (no version) -> v2 -> v3.
+# Migrate state files forward: v1 (no version) -> v2 -> v3 -> v4.
 # v1 lacks `version`; v2 has version=2; v3 has version=3 plus base_ref, per-step
-# notes, workflow_detail.blockers (array), workflow_detail.open_threads.
+# notes, workflow_detail.blockers (array), workflow_detail.open_threads; v4 adds
+# the review-finding ledger (findings, review_round, review_base_sha).
 migrate_state() {
   local wt_path="$1"
   local state_file="${wt_path}/.worktree-state.json"
@@ -288,6 +315,33 @@ migrate_state() {
       }')"
     write_state "$updated" "$wt_path"
     ok "migrated state v2 -> v3 (added base_ref=${inferred_base}, blockers array, open_threads, per-step notes)"
+    version="3"
+  fi
+
+  # v3 -> v4: add the review-finding ledger. A v3 worktree mid-review has no
+  # frozen finding set, so it starts empty at round 0; the next review round
+  # freezes into it normally.
+  if [[ "$version" == "3" ]]; then
+    local timestamp current updated
+    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    current="$(cat "$state_file")"
+    updated="$(printf '%s' "$current" | jq \
+      --argjson version 4 \
+      --arg updated_at "$timestamp" \
+      '. + {
+        version: $version,
+        workflow_detail: (
+          (.workflow_detail // {})
+          | . + {
+              findings: (.findings // []),
+              review_round: (.review_round // 0),
+              review_base_sha: (.review_base_sha // null)
+            }
+        ),
+        updated_at: $updated_at
+      }')"
+    write_state "$updated" "$wt_path"
+    ok "migrated state v3 -> v4 (added findings ledger, review_round, review_base_sha)"
   fi
 }
 
@@ -1887,6 +1941,332 @@ cmd_transition() {
       current_step: $current_step, note: $note, updated_at: $updated_at}')"
 }
 
+# ── Review-finding ledger ────────────────────────────────────────────────────
+#
+# Round 1 runs the full adversarial review and freezes its findings here. Every
+# later round reviews only the fix delta and appends what that delta introduced.
+# The point is that already-cleared code is never re-read by a fresh reviewer who
+# has no memory that it was cleared, which is what previously made the loop
+# unbounded: each round mutated the diff, and each new skeptic invented new minor
+# findings about the mutation.
+#
+# The ledger lives in the worktree state file so the orchestrator never has to
+# carry the finding list in context across rounds. It also means a resumed
+# session picks up mid-review with the frozen set intact.
+
+# Open a state file for a findings mutation: resolve the worktree, take the
+# single-writer lock, migrate forward. Sets _FINDINGS_WT_PATH rather than
+# echoing it, because acquire_worktree_lock opens fd 9 and a command
+# substitution would take that lock in a subshell that exits immediately,
+# leaving the caller unlocked.
+_FINDINGS_WT_PATH=""
+_findings_open() {
+  local issue_number="$1"
+  if [[ ! "$issue_number" =~ ^[0-9]+$ ]]; then
+    json_error_obj "$(jq -nc --arg n "$issue_number" \
+      '{message: ("invalid issue number: " + $n), cause: "invalid_issue_number"}')"
+  fi
+  local wt_path
+  wt_path="$(worktree_base)/issue-${issue_number}"
+  if [[ ! -d "$wt_path" ]]; then
+    json_error_obj "$(jq -nc --arg n "$issue_number" \
+      '{message: ("no worktree for issue #" + $n), cause: "no_worktree"}')"
+  fi
+  acquire_worktree_lock "$wt_path"
+  if [[ ! -f "${wt_path}/.worktree-state.json" ]]; then
+    json_error_obj "$(jq -nc '{message: "worktree exists but no state file", cause: "no_state_file"}')"
+  fi
+  migrate_state "$wt_path"
+  _FINDINGS_WT_PATH="$wt_path"
+}
+
+# Persist a new findings array onto the state file.
+_findings_write() {
+  local wt_path="$1" findings="$2"
+  local state_file="${wt_path}/.worktree-state.json"
+  local timestamp updated
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  updated="$(jq \
+    --argjson findings "$findings" \
+    --arg t "$timestamp" \
+    '.workflow_detail = ((.workflow_detail // {}) + {findings: $findings}) |
+     .updated_at = $t' "$state_file")"
+  write_state "$updated" "$wt_path"
+}
+
+# Validate an incoming findings array and stamp status/round onto each entry.
+# Echoes the stamped array, or an error string on stderr with a non-zero exit.
+_findings_validate() {
+  local incoming="$1" existing="$2" round="$3"
+  jq -n \
+    --argjson incoming "$incoming" \
+    --argjson existing "$existing" \
+    --argjson round "$round" \
+    --arg sev_dev "$FINDING_SEVERITIES_DEV" \
+    --arg sev_sec "$FINDING_SEVERITIES_SECURITY" \
+    '
+    ($sev_dev | split(" ")) as $dev |
+    ($sev_sec | split(" ")) as $sec |
+    ($existing | map(.id)) as $taken |
+    if ($incoming | type) != "array" then
+      error("--json must be a JSON array of finding objects")
+    else . end |
+    ($incoming | map(
+      if type != "object" then error("each finding must be an object") else . end |
+      if (.id // "") == "" then error("finding is missing a non-empty id") else . end |
+      if (.title // "") == "" then error("finding \(.id) is missing a non-empty title") else . end |
+      if (.source // "") as $s | ($s != "dev" and $s != "security")
+        then error("finding \(.id): source must be \"dev\" or \"security\"") else . end |
+      (if .source == "dev" then $dev else $sec end) as $allowed |
+      if (.severity // "") as $v | ($allowed | index($v)) == null
+        then error("finding \(.id): severity \(.severity // "null") is not one of \($allowed | join(", ")) for source \(.source)")
+        else . end |
+      {
+        id: .id,
+        source: .source,
+        severity: .severity,
+        title: .title,
+        location: (.location // null),
+        status: "open",
+        round: $round,
+        note: null
+      }
+    )) as $stamped |
+    ($stamped | map(.id)) as $new_ids |
+    if ($new_ids | unique | length) != ($new_ids | length)
+      then error("duplicate ids within the submitted batch") else . end |
+    ($new_ids | map(select(. as $i | $taken | index($i) != null))) as $clash |
+    if ($clash | length) > 0
+      then error("id already in the ledger: \($clash | join(", "))") else . end |
+    $stamped
+    '
+}
+
+# Summarise a findings array: per-status counts plus the gating-open count that
+# decides whether another review round is justified.
+_findings_summary() {
+  jq -n --argjson f "$1" --arg gating "$FINDING_SEVERITIES_GATING" '
+    ($gating | split(" ")) as $g |
+    ($f | map(select(.status == "open"))) as $open |
+    {
+      total: ($f | length),
+      open: ($open | length),
+      fixed: ($f | map(select(.status == "fixed")) | length),
+      rejected: ($f | map(select(.status == "rejected")) | length),
+      gating_open: ($open | map(select(.severity as $s | $g | index($s) != null)) | length),
+      by_severity: ($open | group_by(.severity) | map({key: .[0].severity, value: length}) | from_entries)
+    }'
+}
+
+cmd_findings() {
+  local usage="usage: github-issue findings <issue-number> <set|add|resolve|reject|get|round> [args]"
+  [[ $# -ge 2 ]] || die "$usage"
+  local issue_number="$1" action="$2"
+  shift 2
+
+  local wt_path state_file existing round
+  _findings_open "$issue_number"
+  wt_path="$_FINDINGS_WT_PATH"
+  state_file="${wt_path}/.worktree-state.json"
+  existing="$(jq -c '.workflow_detail.findings // []' "$state_file")"
+  round="$(jq -r '.workflow_detail.review_round // 0' "$state_file")"
+
+  case "$action" in
+    set | add)
+      local payload=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --json)
+            payload="${2:?--json requires a value}"
+            shift 2
+            ;;
+          *) die "unknown option: $1" ;;
+        esac
+      done
+      [[ -n "$payload" ]] || json_error_obj "$(jq -nc \
+        '{message: "findings set/add requires --json '"'"'<array>'"'"'", cause: "missing_json"}')"
+      if ! printf '%s' "$payload" | jq -e . >/dev/null 2>&1; then
+        json_error_obj "$(jq -nc '{message: "findings: --json is not valid JSON", cause: "invalid_json"}')"
+      fi
+
+      # `set` freezes round 1 and replaces; `add` appends to the frozen set. A
+      # `set` over a non-empty ledger is refused, because silently discarding a
+      # frozen set would drop unfixed findings from the gate.
+      local base_existing="$existing"
+      if [[ "$action" == "set" ]]; then
+        local open_count
+        open_count="$(printf '%s' "$existing" | jq 'length')"
+        if [[ "$open_count" != "0" ]]; then
+          json_error_obj "$(jq -nc --argjson n "$open_count" \
+            '{message: ("findings set refuses to replace a ledger that already holds " + ($n|tostring) + " finding(s); use `add` for later rounds"),
+              cause: "ledger_not_empty", existing: $n}')"
+        fi
+        base_existing="[]"
+      fi
+
+      # Round 1 is implicit for the initial freeze so callers do not have to
+      # bump the round before the first review has happened.
+      local stamp_round="$round"
+      [[ "$stamp_round" == "0" ]] && stamp_round=1
+
+      # jq reports validation failures through `error()` on stderr, so capture
+      # them to a private temp file and re-surface as a normal JSON error.
+      local stamped err errfile
+      errfile="$(mktemp -t github-issue-findings.XXXXXX)"
+      if ! stamped="$(_findings_validate "$payload" "$base_existing" "$stamp_round" 2>"$errfile")"; then
+        err="$(tr '\n' ' ' <"$errfile")"
+        rm -f "$errfile"
+        json_error_obj "$(jq -nc --arg e "${err:-validation failed}" \
+          '{message: ("findings: " + ($e | sub("^jq: error[^:]*: *";"") | sub(" *$";""))),
+            cause: "invalid_finding"}')"
+      fi
+      rm -f "$errfile"
+
+      local merged
+      merged="$(jq -nc --argjson a "$base_existing" --argjson b "$stamped" '$a + $b')"
+      _findings_write "$wt_path" "$merged"
+      # Round 1's freeze is also the point the round counter starts, so a later
+      # `round --bump` moves to 2 rather than re-numbering the frozen set.
+      if [[ "$round" == "0" ]]; then
+        local bumped
+        bumped="$(jq '.workflow_detail.review_round = 1' "$state_file")"
+        write_state "$bumped" "$wt_path"
+      fi
+      json_ok "$(jq -nc \
+        --argjson n "$issue_number" \
+        --arg action "$action" \
+        --argjson added "$(printf '%s' "$stamped" | jq 'length')" \
+        --argjson findings "$merged" \
+        --argjson summary "$(_findings_summary "$merged")" \
+        '{issue_number: $n, action: $action, added: $added, summary: $summary, findings: $findings}')"
+      ;;
+
+    resolve | reject)
+      local ids=() reason=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --reason)
+            reason="${2:?--reason requires a value}"
+            shift 2
+            ;;
+          -*) die "unknown option: $1" ;;
+          *)
+            ids+=("$1")
+            shift
+            ;;
+        esac
+      done
+      [[ ${#ids[@]} -gt 0 ]] || json_error_obj "$(jq -nc --arg a "$action" \
+        '{message: ("findings " + $a + " requires at least one finding id"), cause: "missing_id"}')"
+      # A rejection is a judgement that the reviewer was wrong. It has to carry
+      # its reasoning, otherwise the ledger cannot distinguish "considered and
+      # dismissed" from "quietly skipped".
+      if [[ "$action" == "reject" && -z "$reason" ]]; then
+        json_error_obj "$(jq -nc \
+          '{message: "findings reject requires --reason '"'"'<why this finding is wrong>'"'"'", cause: "missing_reason"}')"
+      fi
+
+      local ids_json
+      ids_json="$(printf '%s\n' "${ids[@]}" | jq -Rc 'select(length > 0)' | jq -sc .)"
+
+      local unknown
+      unknown="$(jq -nc --argjson f "$existing" --argjson ids "$ids_json" \
+        '($f | map(.id)) as $have | $ids | map(select(. as $i | $have | index($i) == null))')"
+      if [[ "$(printf '%s' "$unknown" | jq 'length')" != "0" ]]; then
+        json_error_obj "$(jq -nc --argjson u "$unknown" \
+          '{message: ("unknown finding id(s): " + ($u | join(", "))), cause: "unknown_finding", ids: $u}')"
+      fi
+
+      local new_status="fixed"
+      [[ "$action" == "reject" ]] && new_status="rejected"
+      local updated
+      updated="$(jq -nc \
+        --argjson f "$existing" \
+        --argjson ids "$ids_json" \
+        --arg status "$new_status" \
+        --arg reason "$reason" \
+        '$f | map(if (.id as $i | $ids | index($i) != null)
+                  then . + {status: $status, note: (if $reason == "" then .note else $reason end)}
+                  else . end)')"
+      _findings_write "$wt_path" "$updated"
+      json_ok "$(jq -nc \
+        --argjson n "$issue_number" \
+        --arg action "$action" \
+        --argjson ids "$ids_json" \
+        --argjson summary "$(_findings_summary "$updated")" \
+        '{issue_number: $n, action: $action, ids: $ids, summary: $summary}')"
+      ;;
+
+    get)
+      local pending_only=0
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --pending)
+            pending_only=1
+            shift
+            ;;
+          *) die "unknown option: $1" ;;
+        esac
+      done
+      local out="$existing"
+      [[ $pending_only -eq 1 ]] && out="$(printf '%s' "$existing" | jq -c 'map(select(.status == "open"))')"
+      json_ok "$(jq -nc \
+        --argjson n "$issue_number" \
+        --argjson findings "$out" \
+        --argjson round "$round" \
+        --arg base_sha "$(jq -r '.workflow_detail.review_base_sha // ""' "$state_file")" \
+        --argjson summary "$(_findings_summary "$existing")" \
+        '{issue_number: $n, review_round: $round,
+          review_base_sha: (if $base_sha == "" then null else $base_sha end),
+          summary: $summary, findings: $findings}')"
+      ;;
+
+    round)
+      local bump=0 base_sha=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --bump)
+            bump=1
+            shift
+            ;;
+          --base-sha)
+            base_sha="${2:?--base-sha requires a value}"
+            shift 2
+            ;;
+          *) die "unknown option: $1" ;;
+        esac
+      done
+      [[ $bump -eq 1 || -n "$base_sha" ]] || json_error_obj "$(jq -nc \
+        '{message: "findings round requires --bump and/or --base-sha <sha>", cause: "missing_arg"}')"
+
+      local next="$round"
+      [[ $bump -eq 1 ]] && next="$((round + 1))"
+      local timestamp updated
+      timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+      updated="$(jq \
+        --argjson round "$next" \
+        --arg base_sha "$base_sha" \
+        --arg t "$timestamp" \
+        '.workflow_detail = ((.workflow_detail // {}) + {review_round: $round})
+         | (if $base_sha != "" then .workflow_detail.review_base_sha = $base_sha else . end)
+         | .updated_at = $t' "$state_file")"
+      write_state "$updated" "$wt_path"
+      json_ok "$(jq -nc \
+        --argjson n "$issue_number" \
+        --argjson round "$next" \
+        --arg base_sha "$(printf '%s' "$updated" | jq -r '.workflow_detail.review_base_sha // ""')" \
+        --argjson summary "$(_findings_summary "$existing")" \
+        '{issue_number: $n, review_round: $round,
+          review_base_sha: (if $base_sha == "" then null else $base_sha end),
+          summary: $summary}')"
+      ;;
+
+    *)
+      die "unknown findings action: ${action} (expected set, add, resolve, reject, get, or round)"
+      ;;
+  esac
+}
+
 cmd_validate_cwd() {
   local issue_number="${1:?usage: github-issue validate-cwd <issue-number>}"
   local wt_path
@@ -2559,6 +2939,13 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       _JSON_MODE=1
       shift
       cmd_queue_state "$@"
+      ;;
+    findings)
+      # Same reasoning as queue-state: the ledger lives entirely in the
+      # worktree state file, so it works on a Forgejo-hosted PR too.
+      _JSON_MODE=1
+      shift
+      cmd_findings "$@"
       ;;
     *)
       die "usage: github-issue <subcommand> [args] -- run 'github-issue --help' for details"

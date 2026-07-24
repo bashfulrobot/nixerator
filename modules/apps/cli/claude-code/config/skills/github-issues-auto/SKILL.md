@@ -30,12 +30,13 @@ on top:
 1. **Stacking.** Issue N+1 is branched off issue N's branch so changes compose.
 2. **Autonomy override.** When the underlying skill would pause for a user
    decision, make the call yourself and document it as a PR comment.
-3. **Hard completion of every outstanding item.** Every review finding
-   (Critical, Important, *and* Minor), every TODO surfaced during
+3. **Hard completion of every outstanding item.** Every finding in the review
+   ledger (Critical, Important, *and* Minor), every TODO surfaced during
    implementation, every pre-existing bug noticed in adjacent code, every
-   lint/format/test failure that turns up gets fixed in the same PR. No
-   deferral, no follow-up issues, no "out of scope". Scope expansion to
-   complete the work is expected, not avoided.
+   lint/format/test failure that turns up gets fixed in the same PR, or
+   explicitly rejected with a technical reason on the record. No deferral, no
+   follow-up issues, no "out of scope". Scope expansion to complete the work is
+   expected, not avoided.
 4. **No auto-merge, ever.** Auto-merge is disabled on every PR, regardless of
    repo defaults or what `github-issue` would otherwise do. Human reviews and
    merges each PR by hand.
@@ -80,12 +81,13 @@ proceed without further interaction.
   No other skill or workflow should infer permission to stack from this one.
 - **Reviews are not a checkpoint to negotiate around.** Every finding must be
   remediated in the PR that surfaced it. Do not file a follow-up issue, mark
-  a finding "minor, accept", "out of scope", or "addressed in #...". Findings
-  leave the queue only by being fixed.
+  a finding "minor, accept", "out of scope", or "addressed in #...". A finding
+  leaves the ledger by being fixed, or by `findings reject --reason` with a
+  specific technical argument for why it is not a defect. Nothing else clears it.
 - **Never auto-merge.** Even if the repo default or the underlying skill would
   enable auto-merge, disable it. The human reviews each PR and decides when to
   merge. This is a hard rule. Do not negotiate around it.
-- **Don't wait for merges.** Once a PR is open and both reviews are clean,
+- **Don't wait for merges.** Once a PR is open and the finding ledger is clear,
   immediately start issue N+1. PRs sit in ready for review until the human
   merges them.
 
@@ -195,7 +197,9 @@ Skill(skill: "github-issue", args: "<N>")
 The `github-issue` skill walks `assess` → `design` → `plan` → `implement` →
 `verify` → `push` → `review_dev` → `review_security` → `waiting`. It already
 invokes `/review-dev` and `/review-security` at the right steps and enables
-auto-merge on a clean run.
+auto-merge on a clean run. The two `review_*` steps split the loop by phase, not
+by reviewer: `review_dev` is the round-1 freeze-and-fix, `review_security` is the
+delta rounds and the ledger gate.
 
 Your job during the handoff is to apply the two override rules below.
 
@@ -249,29 +253,57 @@ Each individual post also goes through the text-polish pass before
 
 ### 2d. Force completion of every review finding
 
-When `/review-dev` posts its summary line:
+`github-issue` runs the review as freeze → fix → delta-verify, and the finding
+ledger lives in the worktree state file rather than in your context. Follow that
+contract exactly; the rules below are what "hard completion" means under it.
 
+**Round 1.** Both reviews run against one diff. Freeze what they found:
+
+```bash
+github-issue findings <N> set --json "$(cat "$DEV_FINDINGS_FILE")"
+github-issue findings <N> add --json "$(cat "$SEC_FINDINGS_FILE")"
+github-issue findings <N> round --base-sha "$(git rev-parse HEAD)"
 ```
-REVIEW_DEV_SUMMARY: verdict=<v> critical=<C> important=<I> minor=<M>
+
+Then fix **every** finding in the ledger in one batch, at every severity. A
+Minor or a Low is not "just polish" you can leave for the human; the whole point
+of freezing the list is that it gets cleared in this PR. The only alternative to
+fixing one is rejecting it with a specific technical reason:
+
+```bash
+github-issue findings <N> resolve dev-1 dev-4 sec-2
+github-issue findings <N> reject dev-7 --reason "<why this is not a defect here>"
 ```
 
-Treat the rules below as binding, regardless of what the underlying skill
-would otherwise do:
+"Out of scope", "pre-existing", and "will do later" are not reasons. If you
+cannot state what makes the finding wrong, it is a fix you owe.
 
-- `verdict=block`. Fix the blocker, plus every Important and Minor finding,
-  in the same PR. Verify, push.
-- `verdict=fix`. Fix every Critical, Important, *and* Minor finding. Don't
-  let any minor finding slide because it's "just polish". Verify, push.
-- `verdict=clean`. Pass through.
+Verify, push, then start a delta round:
 
-The same rules apply to `/review-security` (`REVIEW_SECURITY_SUMMARY`).
+```bash
+github-issue findings <N> round --bump --base-sha "$(git rev-parse HEAD)"
+```
 
-Re-run the relevant review after fixes; both dev and security must end at
-`verdict=clean` before this issue is considered done and the next one begins.
-If a second review finds *new* issues, fix those too, then re-review.
+**Rounds 2+.** Re-run the reviews in `delta` mode against the fix delta only.
+They check whether each open finding is actually closed and flag what the fix
+itself broke. Record the result the same way, then read the gate:
 
-**Loop guard.** If the same review keeps surfacing the same finding after two
-fix attempts, stop the queue and escalate (see Failure Handling).
+```bash
+github-issue findings <N> get --pending
+```
+
+- `summary.gating_open > 0`. Fix them, push, run another delta round.
+- `summary.gating_open == 0` and `summary.open > 0`. Only Minor or Low remain.
+  Fix them, push, and **stop**. Do not burn a round confirming a cleanup commit.
+- `summary.open == 0`. Done; move to the next issue.
+
+Do not use `verdict=clean` as the exit condition. A fresh reviewer handed a
+freshly mutated diff will keep producing new small findings indefinitely, which
+is what made this loop unbounded before. The ledger gate is the exit condition.
+
+**Round cap: 3.** If gating findings still remain after the third delta round,
+stop the queue and escalate (see Failure Handling), carrying the output of
+`github-issue findings <N> get --pending` so the human sees exactly what is left.
 
 ### 2e. Annotate merge order on the PR
 
@@ -363,8 +395,8 @@ update the merge-order block on every PR to the complete list.
 
 ### 2f. Disable auto-merge and move on
 
-On GitHub, `github-issue` enables auto-merge automatically when both reviews
-come back clean. **Override this.** Immediately disable auto-merge so the PR
+On GitHub, `github-issue` enables auto-merge automatically once the finding
+ledger clears. **Override this.** Immediately disable auto-merge so the PR
 sits in ready-for-review until the human merges it manually. Auto-merge is a
 GitHub concept, so this whole step is host-gated:
 
@@ -486,7 +518,8 @@ the batch.
 
 ## Step 3: Final Report
 
-After the last issue's PR is open with both reviews clean, emit one summary.
+After the last issue's PR is open and its finding ledger is clear, emit one
+summary.
 The summary is shown to the user, not posted to GitHub, so the strict
 text-polish rules don't apply, but keep the voice consistent:
 
@@ -545,7 +578,9 @@ github-issue queue-state clear
 Stop the queue (do not silently skip) when:
 
 - An issue has an OPEN blocker not in the queue
-- The same review finding survives two fix attempts (loop guard)
+- Gating findings remain after the third delta review round (round cap). Carry
+  `github-issue findings <N> get --pending` into the escalation so the human sees
+  what is still open
 - Pre-push rebase produces a conflict that hits the hard-escalate signals in
   the `github-issue` skill (lockfiles, migrations, generated code, or test +
   source both conflicting)
