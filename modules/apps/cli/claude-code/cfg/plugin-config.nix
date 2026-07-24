@@ -56,6 +56,51 @@ let
       repo = "heygen-com/hyperframes";
       sha = "553688c996408cb33de27ce4573bef6c8cf27454";
     };
+    # Fleet Deck: a localhost "mission control" board for Claude Code sessions
+    # (https://github.com/lacion/fleet-deck). Ships one plugin, `fleetdeck`, from
+    # a relative-path (`./`) source, so pinning the marketplace SHA pins the
+    # plugin (same model as impeccable/hyperframes above). Runtime deps (Node,
+    # tmux) are gated in default.nix on this id, not registered here.
+    #
+    # This is a young 0.x tool that hooks Claude Code's session lifecycle and
+    # spawns tmux workers, so pin deliberately to a release tag you have run,
+    # not to tracking HEAD. The SHA below is the v0.18.0 tag, whose manifest
+    # tests against Claude Code 2.1.206 through 2.1.207. Re-check compatibility
+    # (and skim the diff, since each bump re-grants a process-spawning surface)
+    # when bumping the SHA or the pinned claude-code.
+    #
+    # Trust decision (accepted). Fleet Deck's board relays permission prompts
+    # and offers an in-browser terminal across every local Claude Code session,
+    # a larger grant than the render/capture plugins (impeccable, hyperframes).
+    # Claude Code clones and runs the plugin at session start as the user (not at
+    # activation, not as root; see cfg/activation.nix). That grant is acceptable
+    # on the single-user, human-driven workstations this is enabled on, which is
+    # why headless srv omits it (hosts/srv/modules.nix) and why each SHA bump is
+    # a security review, not a routine bump. Do not enable it on any host that
+    # runs Claude Code unattended, where no human is present to catch an
+    # auto-approved prompt.
+    #
+    # The board binds loopback (127.0.0.1:4711). Port 4711 is never in any
+    # host's allowedTCPPorts and the tailscale interface is not firewall-trusted,
+    # so NixOS default-deny drops inbound to it even if a future version widened
+    # the bind. The remaining question, whether a web page you merely visit could
+    # reach the board, was verified against the pinned v0.18.0 source
+    # (scripts/fleetd/http.mjs, tests/lan-auth.test.mjs):
+    #   - Bind defaults to 127.0.0.1; LAN is an explicit opt-in (FLEETDECK_BIND).
+    #   - A Host-header wall refuses any request whose Host re-resolves to the box
+    #     (Host: evil.example gets 403), which is the DNS-rebinding defense.
+    #   - A same-origin wall refuses every cross-origin state-changing POST, both
+    #     WebSocket upgrades, and /api/spawn, so a visited page cannot drive the
+    #     terminal or spawn agents.
+    #   - The loopback token exemption only benefits local processes already
+    #     running as the user; set FLEETDECK_REQUIRE_TOKEN=on to require the token
+    #     even on loopback (for a shared machine, which these are not).
+    # Re-verify these on each SHA bump; none of them is enforceable from Nix.
+    fleetdeck.source = {
+      source = "github";
+      repo = "lacion/fleet-deck";
+      sha = "5b91e17c602a7b7b25156617adc15d1278717883";
+    };
   };
 
   marketplaceOf = pluginId: lib.last (lib.splitString "@" pluginId);
