@@ -87,18 +87,19 @@
     # variant is the accelerator (vulkan is the fallback if a ROCm regression
     # ever bites, mirroring voxtype/whisper-server here). Prefetch Qwen3-14B
     # (dense, 9.3 GB Q4_K_M) from the Ollama library; it fits VRAM with room for
-    # the 32k context below. loadModels and defaultGooseModel both read
-    # globals.ai.localCodeModel, so the pulled model and the model goose
+    # the 32k context below. loadModels and defaultOpencodeModel both read
+    # globals.ai.localCodeModel, so the pulled model and the model opencode
     # requests cannot drift. The module exports
-    # OLLAMA_HOST so goose (from suites.ai) reaches this server without endpoint
-    # flags, and defaultGooseModel points goose at it with no goose configure.
+    # OLLAMA_HOST so the ollama CLI reaches this server without endpoint flags,
+    # and defaultOpencodeModel wires opencode (from suites.ai) to it as a local
+    # OpenAI-compatible provider with no manual setup.
     ollama = {
       enable = true;
       acceleration = "rocm";
       loadModels = [ globals.ai.localCodeModel ];
-      defaultGooseModel = globals.ai.localCodeModel;
+      defaultOpencodeModel = globals.ai.localCodeModel;
       # Ollama defaults the context window to a few thousand tokens, which
-      # truncates long goose sessions well before Qwen3's 32k native limit.
+      # truncates long opencode sessions well before Qwen3's 32k native limit.
       # 32k is about what a 16 GB card holds with a full-precision KV cache, and
       # flash attention shrinks that cache for free (no quality cost), so it is
       # on by default. To push to 64k+, add kvCacheType = "q8_0" (smaller KV
