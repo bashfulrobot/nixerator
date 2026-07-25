@@ -51,6 +51,12 @@ decision() {
     'set -x'
     'set -euxo pipefail'
     'bash -x ./script.sh'
+    'cat ~/.local/share/rtk/tee/1753300000_just-render-secrets.log'
+    'tail -50 $HOME/.local/share/rtk/tee/1753300000_op-inject.log'
+    'grep -i token ~/.local/share/rtk/tee/1753300000_just-rs.log'
+    'rtk read ~/.config/nixos-secrets/secrets.json'
+    'rtk grep -i token ~/.config/nixos-secrets/secrets.json'
+    'rtk read ~/.local/share/rtk/tee/1753300000_just-rs.log'
   )
   for cmd in "${deny_cases[@]}"; do
     if [ "$(decision "$cmd")" != deny ]; then
@@ -83,6 +89,13 @@ decision() {
     'echo "please set the token here"'
     'cat ~/.ssh/id_ed25519.pub'
     'curl -K <(printf "header=\"Authorization: Bearer %s\"\n" "$FORGEJO_TOKEN") https://x'
+    'ls ~/.local/share/rtk/tee/'
+    'rtk gain --history'
+    'rm -rf ~/.local/share/rtk/tee'
+    # Pins the trailing slash on the share/rtk/tee/ pattern: without it, `tee`
+    # also matches the prefix of unrelated filenames under ~/.local/share/rtk/.
+    'head -c 100 ~/.local/share/rtk/teensy-notes.txt'
+    'rtk proxy just render-secrets'
   )
   for cmd in "${allow_cases[@]}"; do
     if [ "$(decision "$cmd")" != allow ]; then
