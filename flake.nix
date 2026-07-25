@@ -109,7 +109,7 @@
       url = "github:bashfulrobot/ballpoint";
     };
 
-    # Pinned upstream for the `humanizer` skill (claude-code + gemini-cli).
+    # Pinned upstream for the `humanizer` skill (claude-code + antigravity).
     # Tracks blader/humanizer; bump via `nix flake update humanizer-skill`
     # or `just upgrade`. `flake = false` because the repo ships a SKILL.md,
     # not a flake.

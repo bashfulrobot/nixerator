@@ -7,12 +7,12 @@ Complete inventory of software managed by this NixOS configuration.
 | Software              | Description                                                                           | Source                           |
 | --------------------- | ------------------------------------------------------------------------------------- | -------------------------------- |
 | Amber                 | Code search (`ambs`) and replace (`ambr`) tool                                        | Local build                      |
+| Antigravity CLI       | Google's `agy` agent CLI with commit helper (`gcommit`), commit + humanizer skills     | llm-agents                       |
 | Claude Code           | AI coding assistant CLI with MCP servers, LSP, status line, hooks, skills, and agents | Local build                      |
 | CPX                   | Fast Rust-based `cp` replacement with progress bars and resume; aliased as `cp`       | Local build                      |
 | Docker                | Container runtime with daemon, socket access, and CLI tools                           | nixpkgs                          |
 | Fish                  | Shell with custom functions (kcfg, tcfg, copy, kns) and navigation aliases            | nixpkgs                          |
 | GCMT                  | Interactive conventional commit tool for structured git messages                      | Local script                     |
-| Gemini CLI            | Google Gemini AI CLI with commit helper (`gcommit`) and humanizer skill               | nixpkgs                          |
 | Git                   | Version control with gcom (branch/worktree management), git-crypt, lazygit, gh CLI    | nixpkgs                          |
 | Gurk                  | Signal Messenger TUI client                                                           | Local build                      |
 | GWS                   | Google Workspace CLI for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin            | Local build                      |

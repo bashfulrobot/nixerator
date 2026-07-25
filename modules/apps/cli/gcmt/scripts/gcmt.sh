@@ -18,7 +18,7 @@ die() {
 # ── Usage ─────────────────────────────────────────────────────────────────────
 usage() {
   cat <<'EOF'
-Usage: gcmt [--ai claude|gemini] [--push]
+Usage: gcmt [--ai claude|antigravity] [--push]
 
 Interactive conventional commit tool with gum UI and AI-generated body.
 
@@ -41,7 +41,7 @@ DO_PUSH=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --ai)
-      [[ $# -ge 2 ]] || die "--ai requires an argument (claude|gemini)"
+      [[ $# -ge 2 ]] || die "--ai requires an argument (claude|antigravity)"
       AI_TOOL="$2"
       shift 2
       ;;
@@ -57,9 +57,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# `agy` and the retired `gemini` spelling both fold into antigravity so old
+# muscle memory keeps working.
 case "$AI_TOOL" in
-  claude | gemini) ;;
-  *) die "unsupported AI tool: $AI_TOOL (choose claude or gemini)" ;;
+  claude) ;;
+  antigravity | agy | gemini) AI_TOOL="antigravity" ;;
+  *) die "unsupported AI tool: $AI_TOOL (choose claude or antigravity)" ;;
 esac
 
 # ── Guard ─────────────────────────────────────────────────────────────────────
@@ -182,12 +185,18 @@ Git diff:
 $DIFF"
 
 BODY=""
-if [[ "$AI_TOOL" == "gemini" ]]; then
-  if command -v gemini >/dev/null 2>&1; then
-    info "Generating commit body with gemini..."
-    BODY=$(printf '%s' "$AI_PROMPT" | gemini -p "Write the commit body bullet points." 2>/dev/null) || BODY=""
+if [[ "$AI_TOOL" == "antigravity" ]]; then
+  if command -v agy >/dev/null 2>&1; then
+    info "Generating commit body with antigravity..."
+    # Unlike claude, agy ignores stdin once a prompt arrives via flag
+    # (antigravity-cli#76, fixed in 1.1.1), so the diff has to travel inside
+    # --print. `< /dev/null` guards the historical inherited-pipe hang.
+    BODY=$(agy --dangerously-skip-permissions --print-timeout 120s \
+      --print "$AI_PROMPT
+
+Write the commit body bullet points." </dev/null 2>/dev/null) || BODY=""
   else
-    warn "gemini not found — falling back to claude"
+    warn "agy not found — falling back to claude"
     AI_TOOL="claude"
   fi
 fi

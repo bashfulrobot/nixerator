@@ -12,10 +12,10 @@
   imports = [
     ../../modules/apps/cli/agent-scan
     ../../modules/apps/cli/agentos
+    ../../modules/apps/cli/antigravity
     ../../modules/apps/cli/claude-code
     ../../modules/apps/cli/fish
     ../../modules/apps/cli/gcmt
-    ../../modules/apps/cli/gemini-cli
     ../../modules/apps/cli/git
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/media-rename
@@ -70,6 +70,7 @@
     # Claude Code stack (cherry-picked from suites/ai for headless srv)
     agent-scan.enable = true;
     agentos.enable = true;
+    antigravity.enable = true;
     claude-code = {
       enable = true;
       serverProfile = "minimal";
@@ -101,7 +102,6 @@
         "ralph-loop@claude-plugins-official"
       ];
     };
-    gemini-cli.enable = true;
     skillfish.enable = true;
     superpowers.enable = true;
   };

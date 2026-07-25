@@ -84,7 +84,7 @@ in
 | k8s            | kubectl                                                 |
 | av             | Affinity, Spotify, VLC, mpv                             |
 | kong           | Insomnia, deck, Salesforce CLI, Calendar                |
-| ai             | Claude Code (agent-scan, agentos), Gemini CLI           |
+| ai             | Claude Code (agent-scan, agentos), Antigravity CLI      |
 
 ## Globals
 

@@ -9,10 +9,10 @@ Enabled automatically with `apps.cli.git.enable = true;`, or independently: `app
 ## Usage
 
 ```bash
-gcmt [--ai claude|gemini]
+gcmt [--ai claude|antigravity]
 ```
 
-Default AI backend: `claude`. Falls back gracefully if tool is not in PATH.
+Default AI backend: `claude`. Falls back gracefully if tool is not in PATH. `--ai agy` and the retired `--ai gemini` are both accepted as synonyms for `antigravity`.
 
 ## Workflow
 
