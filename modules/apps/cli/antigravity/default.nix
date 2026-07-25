@@ -20,6 +20,7 @@ let
     verbosity = "low";
     enableTelemetry = false;
     showFeedbackSurvey = false;
+    customInstructions = "When creating git commits, ALWAYS use the `commit` skill (`/commit`). Never run raw unformatted git commit commands directly without invoking or following the `commit` skill.";
   };
 
   # Guidelines shared between the commit skill and the gcommit script
@@ -89,56 +90,6 @@ let
         git commit -S -m "$msg"
   '';
 
-  # Antigravity has no TOML slash commands: skills are the slash-command
-  # mechanism, so this ships as a skill rather than a `commands/commit.toml`.
-  # Consequently the gemini-cli `!{...}` shell-injection and `{{args}}`
-  # placeholders are gone -- the agent runs the git commands itself.
-  commit-skill = ''
-    ---
-    name: commit
-    description: Create conventional commits with optional push, tagging, or GitHub releases
-    ---
-
-    # Commit
-
-    ${commit-guidelines}
-
-    ## Rules
-    - No branding/secrets.
-    - Sign with `git commit -S`. Split unrelated changes atomically.
-
-    ## Examples
-    ✅ feat(auth): add OAuth2 login flow
-    ✅ fix(api): resolve race condition in token refresh
-    ❌ feat: add OAuth2 (missing scope)
-
-    ## Inputs
-    Optional flags, taken from how the user invoked this skill:
-    - `--tag <level>`: Tag version (major|minor|patch).
-    - `--release`: Create GitHub release (requires --tag).
-
-    ## Outputs
-    - One or more signed commits.
-    - Optional signed tag and GitHub release.
-
-    ## Preflight
-    - Ensure you are in the repo root before running git commands.
-    - Gather context yourself, then review it before writing anything:
-      - `git log --oneline -5` -- match the existing message style.
-      - `git status` -- see the working tree.
-      - `git diff --staged` -- see what is actually being committed.
-    - Avoid committing unrelated changes.
-
-    ## Process
-    1. Parse the flags above from the invocation.
-    2. Review the context gathered in Preflight.
-    3. Stage all changes: `git add -A`.
-    4. Split into atomic commits (use `git reset HEAD <files>` + `git add`) if needed.
-    5. For each: `git commit -S -m "<type>(<scope>): <description>"`
-    6. If --tag: `git tag -s v<version> -m "Release v<version>"`
-    7. Always push: `git push && git push --tags` (if tagged).
-    8. If --release: `gh release create v<version> --notes-from-tag`.
-  '';
 in
 {
   options = {
@@ -168,6 +119,13 @@ in
           # Create ~/.gemini/antigravity-cli/settings.json -- agy keeps its own
           # config under the legacy ~/.gemini tree.
           ".gemini/antigravity-cli/settings.json".text = settingsJson;
+
+          # Global instructions read by Antigravity CLI and IDE:
+          ".gemini/instructions.md".text = ''
+            # Global Antigravity Instructions
+
+            - **Git Commits**: ALWAYS use the `commit` skill (`/commit`) for creating git commits. Follow the conventional commit rules, signed commits, and explicit pathspec staging defined in the `commit` skill.
+          '';
 
           # Skills double as slash commands. ~/.gemini/config/skills is the one
           # global location both the agy CLI and the Antigravity IDE read.
