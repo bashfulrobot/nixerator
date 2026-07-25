@@ -173,18 +173,11 @@ in
           # global location both the agy CLI and the Antigravity IDE read.
           #
           # Claude Code is the source of truth for shared skills:
-          # - commit: read directly from claude-code module to avoid drift.
-          # - humanizer: pinned read-only symlink to upstream blader/humanizer.
-          # - text-polish: ported directly from claude-code skill & concision rules.
-          ".gemini/config/skills/commit/SKILL.md".text =
-            builtins.readFile ../claude-code/config/skills/commit/SKILL.md;
-
+          # Directory symlinks keep all files/subdirectories (references, scripts)
+          # 100% DRY without needing to manually list sub-paths.
+          ".gemini/config/skills/commit".source = ../claude-code/config/skills/commit;
           ".gemini/config/skills/humanizer/SKILL.md".source = inputs.humanizer-skill + "/SKILL.md";
-
-          ".gemini/config/skills/text-polish/SKILL.md".text =
-            builtins.readFile ../claude-code/config/skills/text-polish/SKILL.md;
-          ".gemini/config/skills/text-polish/references/concision-rules.md".text =
-            builtins.readFile ../claude-code/config/skills/text-polish/references/concision-rules.md;
+          ".gemini/config/skills/text-polish".source = ../claude-code/config/skills/text-polish;
         };
       };
 
