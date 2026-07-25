@@ -75,18 +75,19 @@
       # list's marketplaces get registered + pinned for srv (all built-in here,
       # so none). Two occurrences = below the rule-of-three threshold; do not
       # extract into a shared lib until a third consumer appears.
+      #
+      # It also omits learning-output-style, pr-review-toolkit, feature-dev, and
+      # context7 for the same reason the workstation list does. See the comment
+      # in modules/suites/ai/default.nix and issue #294 before re-adding any of
+      # them here.
       plugins = [
         "frontend-design@claude-plugins-official"
         "asana@claude-plugins-official"
         "code-review@claude-plugins-official"
-        "context7@claude-plugins-official"
         "github@claude-plugins-official"
-        "feature-dev@claude-plugins-official"
         "commit-commands@claude-plugins-official"
         "security-guidance@claude-plugins-official"
-        "pr-review-toolkit@claude-plugins-official"
         "atlassian@claude-plugins-official"
-        "learning-output-style@claude-plugins-official"
         "slack@claude-plugins-official"
         "gopls-lsp@claude-plugins-official"
         "skill-creator@claude-plugins-official"

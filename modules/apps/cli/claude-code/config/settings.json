@@ -278,5 +278,6 @@
   },
   "smallModelOverride": "haiku",
   "coAuthor": "",
-  "remoteControlEnabled": true
+  "remoteControlEnabled": true,
+  "outputStyle": "compact"
 }
