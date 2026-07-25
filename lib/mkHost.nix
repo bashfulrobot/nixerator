@@ -59,6 +59,9 @@ in
                 llm-agents = inputs.llm-agents.packages.${final.stdenv.hostPlatform.system};
               })
 
+              # jacopone/antigravity-nix overlay (exposes pkgs.google-antigravity, pkgs.google-antigravity-cli, pkgs.google-antigravity-ide)
+              inputs.antigravity-nix.overlays.default
+
               # Work around a nixpkgs bug that breaks `google-cloud-sdk.withExtraComponents`.
               #
               # Background: `package.nix` builds gcloud against Python 3.14, and the

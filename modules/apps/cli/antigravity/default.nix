@@ -156,9 +156,13 @@ in
 
     home-manager.users.${globals.user.name} = {
       home = {
-        # From the llm-agents input rather than nixpkgs: upstream ships the
-        # unfree Google binary, and nixpkgs does not package it.
-        packages = [ pkgs.llm-agents.antigravity-cli ];
+        # From jacopone/antigravity-nix rather than llm-agents:
+        # Ships the CLI (agy), Antigravity 2.0 app, and IDE packages.
+        packages = [
+          pkgs.google-antigravity-cli
+          pkgs.google-antigravity
+          pkgs.google-antigravity-ide
+        ];
 
         file = {
           # Create ~/.gemini/antigravity-cli/settings.json -- agy keeps its own
