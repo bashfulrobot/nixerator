@@ -176,7 +176,10 @@ in
           # Directory symlinks keep all files/subdirectories (references, scripts)
           # 100% DRY without needing to manually list sub-paths.
           ".gemini/config/skills/commit".source = ../claude-code/config/skills/commit;
+          ".gemini/config/skills/github-issue".source = ../worktree-flow/skills/github-issue;
+          ".gemini/config/skills/github-issues-auto".source = ../claude-code/config/skills/github-issues-auto;
           ".gemini/config/skills/humanizer/SKILL.md".source = inputs.humanizer-skill + "/SKILL.md";
+          ".gemini/config/skills/log-github-issue".source = ../claude-code/config/skills/log-github-issue;
           ".gemini/config/skills/text-polish".source = ../claude-code/config/skills/text-polish;
         };
       };
