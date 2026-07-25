@@ -75,7 +75,7 @@ let
       globals
       homeDir
       ;
-    rtk = pkgs.rtk;
+    inherit (pkgs) rtk;
     humanizerSkillSrc = inputs.humanizer-skill;
     # Reference the rules file by path, not through
     # `config.apps.cli.text-polish.rulesFile`. Reading the option made this
