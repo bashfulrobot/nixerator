@@ -52,7 +52,7 @@ audit. If the article is gone, search for an updated tips list and substitute.
 ### Not covered
 
 - **Tip 2 -- Voice / whisper.** No local transcription set up in this module.
-- **Tip 11 -- Gemini CLI fallback for blocked sites.** `GEMINI_API_KEY` is wired (`default.nix` env block), but no `reddit-fetch`-style skill wraps the Gemini CLI for Cloudflare/Reddit-blocked URLs.
+- **Tip 11 -- Second-agent fallback for blocked sites.** `GEMINI_API_KEY` is wired (`apps/cli/fish`) and `agy` is on PATH (`apps/cli/antigravity`), but no `reddit-fetch`-style skill wraps either for Cloudflare/Reddit-blocked URLs.
 - **Tip 15 -- Slim system prompt by patching CLI bundle.** Skipped intentionally -- conflicts with Nix's read-only store and version pinning.
 - **Tip 21 -- Containerised `--dangerously-skip-permissions`.** `skipDangerousModePermissionPrompt: true` is set without container isolation. Defensible under the documented threat model (single-user host, git-crypt secrets), but worth re-checking each cycle.
 - **Tip 23 -- Clone / half-clone conversations.** No script or `dx` plugin equivalent.
@@ -60,7 +60,7 @@ audit. If the article is gone, search for an updated tips list and substitute.
 
 ### Suggested low-effort wins (next pass)
 
-1. **Gemini-CLI fetch skill** for Reddit/Cloudflare-blocked pages (Tip 11). `GEMINI_API_KEY` already exported; skill is ~20 lines.
+1. **Second-agent fetch skill** for Reddit/Cloudflare-blocked pages (Tip 11). `GEMINI_API_KEY` already exported and `agy` already on PATH; skill is ~20 lines.
 2. **Document exponential-backoff convention** in global CLAUDE.md "Use of tools" (Tip 17). `ScheduleWakeup` / `Monitor` already support it; only the convention is missing.
 3. **Annotate `skipDangerousModePermissionPrompt: true`** (`config/settings.json`) with a comment explaining the single-user threat-model rationale (Tip 21), or gate it to non-headless hosts only.
 

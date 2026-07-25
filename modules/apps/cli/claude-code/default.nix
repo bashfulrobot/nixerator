@@ -427,7 +427,6 @@ in
         pkgs.ffmpeg-full
       ];
 
-    # Gemini API key for generate-images / visual-explainer skills.
     # Puppeteer env vars only applied when the hyperframes plugin is enabled --
     # keeps the system environment clean on hosts that don't use it.
     # `claudeEnv` (see `let` block) builds this attrset once; reused below

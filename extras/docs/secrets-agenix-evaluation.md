@@ -147,7 +147,7 @@ file per (host × value) or duplicate; sops keeps the single-doc fan-out.
 |---|---|
 | `todoist-cli` | `environment.variables` + `home.sessionVariables.TODOIST_API_TOKEN` |
 | `claude-code` | `GEMINI_API_KEY`, `AHA_API_TOKEN`, `WAVE_FULL_ACCESS_TOKEN` env |
-| `gemini-cli`, `agent-scan` (snyk) | env / wrapper |
+| `agent-scan` (snyk) | env / wrapper |
 
 agenix and sops both produce **files**, not environment variables. For systemd
 services you bridge with `EnvironmentFile=`. But there is **no clean
