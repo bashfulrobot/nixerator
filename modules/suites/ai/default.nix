@@ -33,19 +33,31 @@ in
           # superpowers module. Headless srv keeps a smaller list in
           # hosts/srv/modules.nix (no browser-dependent hyperframes, no kong CS
           # tooling, fewer LSPs).
+          #
+          # Deliberately absent (see issue #294, a token-surface audit over 90
+          # days of transcripts). Every plugin here costs standing context on
+          # every turn, so a plugin that ships agents or an output style has to
+          # earn it:
+          #   learning-output-style -- injects a system-prompt block telling
+          #     Claude to stop and hand TODOs back for the user to write. The
+          #     opposite of what's wanted, and it inflates turn count.
+          #   pr-review-toolkit     -- six agent definitions (~1.8k tokens
+          #     resident), dispatched once ever. review-dev/review-security
+          #     cover this via the local reviewer-* agents.
+          #   feature-dev           -- three agent definitions, never dispatched.
+          #   context7              -- duplicate mount. The user-scoped server in
+          #     cfg/mcp-servers.nix is the single source; the plugin only added a
+          #     second copy of the same tool schemas.
+          # Re-adding any of these should come with usage data, not a hunch.
           plugins = [
             # claude-plugins-official (built-in marketplace)
             "frontend-design@claude-plugins-official"
             "asana@claude-plugins-official"
             "code-review@claude-plugins-official"
-            "context7@claude-plugins-official"
             "github@claude-plugins-official"
-            "feature-dev@claude-plugins-official"
             "commit-commands@claude-plugins-official"
             "security-guidance@claude-plugins-official"
-            "pr-review-toolkit@claude-plugins-official"
             "atlassian@claude-plugins-official"
-            "learning-output-style@claude-plugins-official"
             "slack@claude-plugins-official"
             "skill-creator@claude-plugins-official"
             "ralph-loop@claude-plugins-official"
