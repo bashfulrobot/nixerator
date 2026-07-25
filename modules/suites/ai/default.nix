@@ -83,7 +83,7 @@ in
             "hyperframes@hyperframes"
           ];
         };
-        gemini-cli.enable = true;
+        antigravity.enable = true;
         superpowers.enable = true;
         skillfish.enable = true;
         skill-cache.enable = true;
@@ -93,7 +93,7 @@ in
     # opencode, the CLI agent harness for driving local (Ollama) or cloud
     # models (opencode from the llm-agents input, the same source as
     # claude-code). Provider-agnostic, so it rides along on every AI-suite host
-    # (qbert, donkeykong) the same way claude-code and gemini-cli already do,
+    # (qbert, donkeykong) the same way claude-code and antigravity already do,
     # usable against cloud models without any local server. Only the local
     # Ollama server and the opencode provider/model wiring that points at it are
     # qbert-only (they need the GPU, see hosts/qbert and the ollama module);
