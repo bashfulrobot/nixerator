@@ -170,13 +170,21 @@ in
           ".gemini/antigravity-cli/settings.json".text = settingsJson;
 
           # Skills double as slash commands. ~/.gemini/config/skills is the one
-          # global location both the agy CLI and the Antigravity IDE read, so
-          # everything here is shared between them.
-          ".gemini/config/skills/commit/SKILL.md".text = commit-skill;
+          # global location both the agy CLI and the Antigravity IDE read.
+          #
+          # Claude Code is the source of truth for shared skills:
+          # - commit: read directly from claude-code module to avoid drift.
+          # - humanizer: pinned read-only symlink to upstream blader/humanizer.
+          # - text-polish: ported directly from claude-code skill & concision rules.
+          ".gemini/config/skills/commit/SKILL.md".text =
+            builtins.readFile ../claude-code/config/skills/commit/SKILL.md;
 
-          # Install humanizer skill -- read-only symlink into /nix/store keeps
-          # it pinned to the upstream flake input.
           ".gemini/config/skills/humanizer/SKILL.md".source = inputs.humanizer-skill + "/SKILL.md";
+
+          ".gemini/config/skills/text-polish/SKILL.md".text =
+            builtins.readFile ../claude-code/config/skills/text-polish/SKILL.md;
+          ".gemini/config/skills/text-polish/references/concision-rules.md".text =
+            builtins.readFile ../claude-code/config/skills/text-polish/references/concision-rules.md;
         };
       };
 
