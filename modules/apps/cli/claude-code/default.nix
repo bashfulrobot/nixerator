@@ -75,6 +75,7 @@ let
       globals
       homeDir
       ;
+    rtk = pkgs.rtk;
     humanizerSkillSrc = inputs.humanizer-skill;
     # Reference the rules file by path, not through
     # `config.apps.cli.text-polish.rulesFile`. Reading the option made this
@@ -221,6 +222,76 @@ let
     ];
     text = builtins.readFile ./cfg/scripts/guard-secret-commands.sh;
   };
+
+  # rtk config (~/.config/rtk/config.toml, deployed via xdg.configFile below).
+  # Generated here rather than hand-written because a malformed file degrades
+  # SILENTLY: Config::load() propagates the parse error, but get_rewritten() in
+  # rtk's src/hooks/hook_cmd.rs swallows it with unwrap_or_default(), so a typo
+  # drops every exclusion and quietly starts wrapping the 1Password recipes with
+  # no signal. Verified on 0.43.0: against a truncated exclude_commands array
+  # `rtk hook check` still proposes the rewrite, while `rtk config` reports the
+  # parse error. Only [hooks] is pinned; [tee], [telemetry] and [tracking] are
+  # deliberately left at the pinned rtk's own defaults.
+  #
+  # The two `just` patterns and the `op` pattern are defensive, not load-bearing.
+  # Neither `just` nor `op` is in rtk's hook-rewrite registry as of 0.43.0, so
+  # rtk proposes no rewrite for those commands with or without this file, and
+  # the patterns exclude candidates that do not exist. They stay as insurance
+  # against a later rtk teaching itself either binary. `just` does have an
+  # output filter, but that only applies to an explicit `rtk just ...`. Re-check
+  # after a nixpkgs bump with `rtk hook check '<cmd>'`, the dry-run the hook
+  # engine itself runs: "No rewrite for: <cmd>" on stderr means rtk either does
+  # not know the command or is excluding it here, and a printed `rtk ...` line
+  # means it would wrap it. `rtk rewrite` is not a substitute, because it prints
+  # on stdout for identity rewrites too, so an already-wrapped `rtk git status`
+  # echoes itself back and reads as a hit. Two just patterns because `just`
+  # takes either the short alias or the full recipe name; the name pattern has
+  # no trailing anchor so it still catches fetch-gmailctl-creds-kong, whose
+  # keyword sits mid-name. Alternation order inside a pattern means nothing:
+  # exclude_commands is a boolean is_match and Rust's regex engine matches
+  # whatever the branch order.
+  #
+  # The path pattern is the one that actually fires. rtk DOES rewrite cat, head,
+  # tail, grep, rg, find, ls, wc, git, gh, kubectl and docker among others, and
+  # tee runs in "failures" mode, so a failed read of a secrets file would
+  # otherwise land unfiltered under ~/.local/share/rtk/tee/. The alternation
+  # mirrors the path list in guard-secret-commands.sh rule 3, minus that rule's
+  # `.pub` negative lookahead, which Rust's regex crate has no syntax for.
+  # Excluding id_*.pub along with the private keys costs nothing.
+  #
+  # The leading `^` is required. A pattern that does not already start with `^`
+  # gets escaped and anchored to command start, so a bare 'nixos-secrets' leaves
+  # `cat /tmp/nixos-secrets/f.json` rewritten while '^.*nixos-secrets' excludes
+  # it. That same rule dictates where the case flag goes: the guard greps with
+  # -i, so the path pattern needs `^(?i).*` to fold case the same way, whereas a
+  # leading `(?i)` would demote the whole pattern to an escaped literal and
+  # disable the exclusion outright. Verified against the 0.43.0 binary.
+  #
+  # `share/rtk/tee/` tracks rtk's default tee location, which is NOT pinned
+  # here because `[tee] directory` takes no portable value. A relative path
+  # resolves against the caller's cwd, `~` goes unexpanded (rtk creates a
+  # literal `~` directory), only an absolute path works, all four sibling keys
+  # turn mandatory once the section exists, and RTK_TEE_DIR overrides the config
+  # regardless. Setting either one means moving this literal and the matching
+  # one in guard-secret-commands.sh.
+  #
+  # Known upstream gap, same binary: the numeric shorthand forms `head -5 F`,
+  # `tail -3 F` and `head --lines=5 F` skip the exclusion check entirely. Even a
+  # catch-all '^.*' exclusion leaves them rewritten, so no pattern here can
+  # close it. `head F` and `head -n 5 F` are excluded correctly. The
+  # guard-secret-commands deny hook still covers the shorthand forms.
+  #
+  # TOML *literal* strings (single quotes) get no escape processing, so \s
+  # reaches the regex engine as written. Basic strings would need \\s.
+  rtkConfigFile = pkgs.writeText "rtk-config.toml" ''
+    [hooks]
+    exclude_commands = [
+      '^just (rs|ps|cs|fs|rot|fgck|fgc)($|\s)',
+      '^just [a-z-]*(secret|op-token|cred|signature)',
+      '^op($|\s)',
+      '^(?i).*(secrets\.json|nixos-secrets|service-account-token|/\.config/op/|credentials\.json|share/rtk/tee/|\.ssh/id_)',
+    ]
+  '';
 
   # PostToolUse output scrubber: redacts secret values (literal values from
   # secrets.json + known token-shaped prefixes) from a Bash tool's stdout/stderr
@@ -371,6 +442,10 @@ in
         packages =
           (with pkgs; [
             llm-agents.claude-code
+            # Output-compression proxy. Installed per-user, not in
+            # environment.systemPackages, because its state (tee logs, learned
+            # command stats) lives under ~/.local/share/rtk/.
+            rtk
           ])
           ++ lib.optionals (cfg.serverProfile == "full") (
             with pkgs;
@@ -402,6 +477,13 @@ in
         # Preserve per-server files for mcp-pick workflow compatibility.
         file = mcpConfig.files // lspConfig.files // contextsConfig.files;
       };
+
+      # rtk reads this with a plain exists/read/parse and no trust gate
+      # (src/core/config.rs), so a read-only store symlink is fine here. No line
+      # numbers: the source is pinned only through nixpkgs and would rot.
+      # rtk's *filter* files are different -- those are SHA-trust-gated and would
+      # be silently skipped -- but we ship none of those.
+      xdg.configFile."rtk/config.toml".source = rtkConfigFile;
     };
   };
 }

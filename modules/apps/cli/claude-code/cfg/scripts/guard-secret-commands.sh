@@ -64,8 +64,8 @@ fi
 # 3. Raw read of a known secret file. jq is intentionally NOT matched, so the
 #    safe structural inspection `jq 'keys' secrets.json` still works. Public
 #    keys (id_*.pub) are excluded.
-if grep -qiP '\b(cat|bat|nl|less|more|head|tail|tac|strings|xxd|od|hexdump|base64|cut|awk|sed|grep|rg|ag)\b[^|;&]*(secrets\.json|nixos-secrets|service-account-token|/\.config/op/|credentials\.json|\.ssh/id_[A-Za-z0-9_]++(?!\.pub))' <<<"$cmd"; then
-  deny "Refusing: this dumps a secrets/credentials file into the transcript. Inspect structure with jq 'keys' only, or check existence with test -f -- never print the values."
+if grep -qiP '\b(cat|bat|nl|less|more|head|tail|tac|strings|xxd|od|hexdump|base64|cut|awk|sed|grep|rg|ag|rtk)\b[^|;&]*(secrets\.json|nixos-secrets|service-account-token|/\.config/op/|credentials\.json|share/rtk/tee/|\.ssh/id_[A-Za-z0-9_]++(?!\.pub))' <<<"$cmd"; then
+  deny "Refusing: this dumps a secrets/credentials file or an rtk tee log into the transcript, whether read directly or via an rtk-wrapped read (rtk read, rtk grep, ...). Inspect structure with jq 'keys' only, or check existence with test -f -- never print the values. RTK_DISABLED=1 does not help here: it only skips rtk's filtering, so the same values still reach the transcript."
 fi
 
 # 4. 1Password value reveal.
