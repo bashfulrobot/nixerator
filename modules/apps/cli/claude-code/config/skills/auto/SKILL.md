@@ -7,8 +7,8 @@ description: >-
   rm/kill/pkill to no-prompt for this session via a sentinel-gated PreToolUse
   hook (sudo still prompts; deny-list and git guards stay enforced), suppresses
   AskUserQuestion in gated skills for the rest of the run, and iterates until
-  the goal condition exits 0 or the session is genuinely blocked. Auto-reverts
-  on exit. Never auto-merges PRs.
+  the goal condition exits 0, the session is genuinely blocked, or the 150k
+  context budget is reached. Auto-reverts on exit. Never auto-merges PRs.
 argument-hint: "<goal-shell-command>"
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Skill", "Agent", "AskUserQuestion"]
 ---
@@ -83,7 +83,34 @@ rationale: `references/permission-model.md`.
 5. If you genuinely cannot proceed (missing credentials, conflicting
    requirements with no safe default, external system unreachable), jump
    to **Teardown** with `outcome=blocked` and the reason.
-6. Otherwise: go to step 2.
+6. If context usage has reached 150k, jump to **Teardown** with
+   `outcome=budget` (see **Context budget**).
+7. Otherwise: go to step 2.
+
+## Context budget
+
+The run is unattended, so nothing stops it drifting to the context ceiling and
+paying to re-send the whole history on every request. These are hard limits.
+
+- **Stop at 150k tokens.** Check context usage each time you come back to step
+  2. At 150k, stop even if the goal condition is still failing: commit what is
+  on the branch, write the remaining state into `$log` (what is done, what is
+  left, the exact next action you were about to take), then run **Teardown**
+  with `outcome=budget`. An honest stop with a resumable log beats a run that
+  grinds against the ceiling.
+- **Never `/compact` mid-run.** Compaction re-reads the whole context to
+  summarize it, and in a loop the summary gets re-expanded within a few turns,
+  so it buys nothing. Prefer a clean stop and a fresh session. Reaching for
+  `/compact` is the signal that you should already have torn down.
+- **One work item per session.** If the goal decomposes into separate items
+  (issues, tasks, repos), do not chain them here. Finish one, record the rest
+  in `$log`, and tear down. The next item starts in a fresh session.
+- **Delegate verbose reads.** Route logs, full diffs, CI output, test output,
+  and file sweeps through a subagent (`Agent`) that returns the verdict and the
+  handful of lines that matter. Raw output must not land in this session's
+  context. `$ARGUMENTS` itself is the exception, it is a pass/fail check, so
+  read its exit code and keep its output out of the transcript when it is
+  long.
 
 ## Teardown (always run -- success, blocked, or error)
 
@@ -110,4 +137,6 @@ rationale: `references/permission-model.md`.
 - **Never `--no-verify` or `--force` on git.** The bash-guard hook blocks these
   regardless.
 - **Stop conditions are real.** "Blocked" is a first-class exit, not a
-  failure -- the user expects honest reporting over fake progress.
+  failure -- the user expects honest reporting over fake progress. So is
+  `budget`: hitting the 150k ceiling and stopping cleanly is the correct
+  outcome, not a run that failed.
