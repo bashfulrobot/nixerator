@@ -81,6 +81,20 @@ in
             # other third-party (SHA-pinned)
             "impeccable@impeccable"
             "hyperframes@hyperframes"
+            # Context-window auditing. Unlike the plugins struck from this list
+            # under #294, its standing cost (4 skills, 2 commands) buys a
+            # measurement of exactly the thing that audit was about. Needs the
+            # NixOS plumbing in cfg/token-optimizer.nix to run at all, and
+            # carries a noncommercial-only licence -- read
+            # .claude/docs/token-optimizer.md before putting it on a work host.
+            "token-optimizer@alexgreensh-token-optimizer"
+            # Output-side counterpart to token-optimizer: that one measures the
+            # context window, caveman shortens the replies. Runs at `full`
+            # intensity, pinned in the claude-code module (see hasCaveman), so
+            # the ruleset is injected at every SessionStart. Read
+            # .claude/docs/caveman.md for how it interacts with the writing
+            # rules and how to drop out of it per-repo or per-session.
+            "caveman@caveman"
           ];
         };
         antigravity.enable = true;

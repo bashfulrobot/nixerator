@@ -123,6 +123,20 @@
       flake = false;
     };
 
+    # Pinned upstream for the `intent-layer` skill (claude-code). Tracks
+    # crafter-station/skills; bump via `nix flake update crafter-station-skills`
+    # or `just upgrade`. `flake = false` for the same reason as humanizer above:
+    # the repo is a bare collection of skill directories, not a flake.
+    #
+    # Only `context-engineering/intent-layer` is consumed -- the repo's five
+    # other skills are ignored. Its `marketplace.json` sits at the repo root
+    # rather than under `.claude-plugin/`, so `/plugin marketplace add` would
+    # not find it; this is deliberately the skill path, not the plugin path.
+    crafter-station-skills = {
+      url = "github:crafter-station/skills";
+      flake = false;
+    };
+
     # Recursive Nix module importer. Replaces the hand-rolled
     # `lib/autoimport.nix`; consumed by `modules/default.nix` and
     # `modules/apps/webapps/default.nix` via `inputs.import-tree`.
