@@ -145,6 +145,27 @@
         "$skill_dir" "$claude_home/skills/$skill_name/"
     done
 
+    # Sweep up directory shells left behind by a skill deletion. Deleting a
+    # skill from the repo is propagated to ~/.claude by capture-sync, which
+    # runs before this activation on every `just qr`: repo-side gone plus
+    # home-side untouched is its `delete-home` action, and it unlinks the
+    # files. What it does not do is remove the now-empty directories, because
+    # it reconciles files, not trees.
+    #
+    # Deliberately empty-only, and deliberately not provenance-aware. When
+    # capture-sync finds the home copy was EDITED after the repo deleted it, it
+    # raises a conflict and leaves the files in place for `just claude-resolve`
+    # to settle. A prune here that removed any skill missing from the repo
+    # would delete exactly the copy that conflict was protecting, one activation
+    # later, before the user ever saw the prompt. An empty directory has no
+    # SKILL.md, so it is invisible to the skill listing and safe to remove no
+    # matter who created it.
+    #
+    # -depth -empty -delete collapses leaves first, so references/ going empty
+    # lets its parent go too on the same pass.
+    $DRY_RUN_CMD ${pkgs.findutils}/bin/find "$claude_home/skills" \
+      -mindepth 1 -depth -type d -empty -delete 2>/dev/null || true
+
     # text-polish skill -- install the shared concision-rules file into its
     # references. This is the SAME file the SUPER+SHIFT+R keybind filter reads
     # (single source of truth in the text-polish module), copied in after the
