@@ -20,6 +20,7 @@
   homeDir,
   rtk,
   humanizerSkillSrc,
+  intentLayerSkillSrc,
   textPolishRulesFile,
   pluginOverlay,
   userScopeMcpTemplate,
@@ -160,6 +161,15 @@
     # in cfg/fish.nix. Update via `nix flake update humanizer-skill`.
     $DRY_RUN_CMD rm -rf "$claude_home/skills/humanizer"
     $DRY_RUN_CMD ln -snf "${humanizerSkillSrc}" "$claude_home/skills/humanizer"
+
+    # intent-layer skill -- pinned to crafter-station/skills via the
+    # `crafter-station-skills` flake input, symlinked for the same reasons as
+    # humanizer above (read-only, and claude-capture skips top-level symlinks).
+    # The input is the whole six-skill repo; the path points at the one
+    # subdirectory we want. Update via
+    # `nix flake update crafter-station-skills`.
+    $DRY_RUN_CMD rm -rf "$claude_home/skills/intent-layer"
+    $DRY_RUN_CMD ln -snf "${intentLayerSkillSrc}" "$claude_home/skills/intent-layer"
 
     # Output styles -- remove stale symlinks before copying
     for style in "${configDir}"/output-styles/*; do

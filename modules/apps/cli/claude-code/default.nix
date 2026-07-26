@@ -86,6 +86,9 @@ let
     tokenOptimizerActivation = lib.optionalString hasTokenOptimizer tokenOptimizerConfig.activation;
     inherit (pkgs) rtk;
     humanizerSkillSrc = inputs.humanizer-skill;
+    # One skill out of a six-skill repo, so this points at the subdirectory
+    # rather than the input root.
+    intentLayerSkillSrc = inputs.crafter-station-skills + "/context-engineering/intent-layer";
     # Reference the rules file by path, not through
     # `config.apps.cli.text-polish.rulesFile`. Reading the option made this
     # module fail to evaluate on any host that imports claude-code without
@@ -437,6 +440,14 @@ in
         fzf
         jq
         rsync # used by claude-capture + activation to mirror skills
+
+        # The intent-layer skill's estimate_tokens.sh formats its result with
+        # `bc`, under `set -e`, so a missing bc aborts the script on any
+        # directory over 1k estimated tokens -- i.e. every real one. Not in the
+        # default NixOS toolchain, so it has to be named. Unconditional because
+        # intent-layer itself is (see cfg/activation.nix), unlike the
+        # plugin-gated extras below.
+        bc
 
         # Language servers for Claude Code LSP integration
         bash-language-server

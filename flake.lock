@@ -322,6 +322,22 @@
         "type": "github"
       }
     },
+    "crafter-station-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1782865509,
+        "narHash": "sha256-caaVWBtKdC81JjkOn65nD0SttFT6/rHphYCEARPNFm8=",
+        "owner": "crafter-station",
+        "repo": "skills",
+        "rev": "24d77ce6365072c1699a20928e57a971abaa10f2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "crafter-station",
+        "repo": "skills",
+        "type": "github"
+      }
+    },
     "dank-material-shell": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -955,6 +971,7 @@
         "apple-fonts": "apple-fonts",
         "ballpoint": "ballpoint",
         "browser-previews": "browser-previews",
+        "crafter-station-skills": "crafter-station-skills",
         "disko": "disko",
         "home-manager": "home-manager",
         "humanizer-skill": "humanizer-skill",

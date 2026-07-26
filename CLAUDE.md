@@ -18,6 +18,7 @@ See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where cu
 - When touching `systemd.user` timers, `users.users.<name>.linger`, or a unit that assumes a graphical session, read `.claude/docs/user-lingering.md` — `Linger=yes` on a running host is not evidence the declaration exists.
 - When touching the token-optimizer plugin, the `/usr/local/bin/python3` tmpfiles rule, or a token-optimizer hook exiting 127, read `.claude/docs/token-optimizer.md`.
 - When touching the caveman plugin, `~/.config/caveman/config.json`, or you need Claude to stop answering in clipped caveman prose, read `.claude/docs/caveman.md`.
+- When adding, bumping, or debugging a skill vendored from a flake input (`humanizer`, `intent-layer`), read `.claude/docs/vendored-skills.md`.
 
 ## Reference docs
 
