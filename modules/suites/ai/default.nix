@@ -24,7 +24,6 @@ in
 
       cli = {
         agent-scan.enable = true;
-        agentos.enable = true;
         claude-code = {
           enable = true;
           # Workstation plugin set. Drives the declarative, SHA-pinned

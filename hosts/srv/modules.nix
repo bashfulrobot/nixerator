@@ -11,7 +11,6 @@
   # Claude Code + zellij stack.
   imports = [
     ../../modules/apps/cli/agent-scan
-    ../../modules/apps/cli/agentos
     ../../modules/apps/cli/antigravity
     ../../modules/apps/cli/claude-code
     ../../modules/apps/cli/fish
@@ -69,7 +68,6 @@
 
     # Claude Code stack (cherry-picked from suites/ai for headless srv)
     agent-scan.enable = true;
-    agentos.enable = true;
     antigravity.enable = true;
     claude-code = {
       enable = true;
