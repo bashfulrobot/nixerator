@@ -10,25 +10,6 @@
 - **Does NOT apply to the `text-polish` filter (SUPER+SHIFT+R).** That keybind runs `claude -p` as a silent, non-interactive text-rewriting filter whose entire output is pasted straight into whatever field has focus. When you are that filter (the request tells you to output only the rewrite between markers), do NOT invoke the humanizer skill, do NOT deliberate about whether to, and do NOT emit any process narration. Rewrite in place, per the request's own rules, and output only the result. Any reasoning you emit gets pasted into a live document, so there is none.
 - If you're unsure whether something counts as "writing", treat it as writing and humanize it.
 
-## File Sharing
-
-When asked to send a file to my phone, use:
-
-```
-sudo tailscale file cp /PATH/TO/FILE.EXT maximus:
-```
-
-## Clipboard
-
-When asked to copy text to my clipboard ("copy to my clipboard", "add it to my clipboard"), pipe it to `wl-copy`. Background and headless sessions don't export `WAYLAND_DISPLAY`, so derive the live Wayland socket first — its number varies by host and reboot, so never hardcode `wayland-1`:
-
-```
-export WAYLAND_DISPLAY=$(basename "$(ls /run/user/$(id -u)/wayland-* 2>/dev/null | grep -v '\.lock$' | head -1)")
-printf '%s' "TEXT" | wl-copy
-```
-
-If `WAYLAND_DISPLAY` comes back empty, the host is headless (e.g. `srv`) with no Wayland clipboard — tell me instead of silently succeeding.
-
 ## Slack (hard rule)
 
 **Never post, send, schedule, or draft a Slack message via the Slack MCP server.** The Slack MCP `slack_send_message`, `slack_send_message_draft`, `slack_schedule_message`, and any other message-writing tool are off-limits for posting on my behalf — this is a hard boundary, not a preference.
@@ -69,69 +50,10 @@ If `WAYLAND_DISPLAY` comes back empty, the host is headless (e.g. `srv`) with no
 - Without that explicit in-turn ask, merging or pushing to main stays off-limits, no matter how obviously correct it looks as the next step. Surface it as an option instead and let me decide.
 - Force-pushes and other destructive git operations (`git reset --hard`, discarding branches, etc.) are a separate, narrower case: they always need explicit confirmation, in every session, independent of the merge/push-to-main rule above.
 
-### Git Cleanup (phrase-triggered)
-
-When I say "git cleanup" (or an unambiguous equivalent, e.g. "clean up the git stuff", "wrap this branch up"), treat it as my standing, explicit authorization to, in order:
-
-1. Make sure the current work is committed and pushed, opening a PR if one doesn't exist yet.
-2. Merge that PR into `main` (squash, delete the remote branch). This phrase itself is the explicit, in-turn request that satisfies the merge-authorization rule above: don't re-confirm, and don't hand back a command instead of running it, background session or not.
-3. Remove the worktree(s) and local branch(es) tied to that work.
-
-- This phrase is scoped to whatever we were just working on, not a sweep of every stale worktree or open PR in the repo. If it's ambiguous which branch I mean, ask.
-- Outside of this phrase, the default still holds: push the branch and open a PR, but stop there, don't merge unprompted.
-
-### Merge Conflicts (mergiraf)
-
-`mergiraf` is installed globally as a syntax-aware merge driver and runs automatically for every `git merge`, `rebase`, `cherry-pick`, `revert`, and `stash pop` on supported file types (Nix, Kotlin, TS/JS, Go, Rust, Python, TOML, YAML, JSON, HCL, Markdown, etc. — full list in `~/.config/git/attributes`). Conflict style is `diff3` so mergiraf can read all three sides.
-
-- **Do not hand-edit conflict markers as a first move.** If `git status` shows unmerged paths after a rebase/merge, run `mergiraf solve <file>` first — it retries the syntactic merge on a single file and often clears markers without manual work.
-- **Genuine conflicts**: if mergiraf left markers, that's usually a real semantic conflict. Resolve by reading both sides, not by deleting one. Re-run `mergiraf solve` after partial edits.
-- **GitHub PR conflicts run server-side and bypass mergiraf.** The GitHub "Merge pull request" button does not invoke client-side merge drivers. When a PR shows "conflicts must be resolved", the workflow is: `gh pr checkout <num>` → `git rebase origin/main` (mergiraf engages) → `mergiraf solve` on any leftovers → `git push --force-with-lease`. GitHub then fast-forwards cleanly.
-- **Project-local extensions**: `*.gradle.kts` and `*.kts` are not in mergiraf's defaults but parse with the Kotlin grammar. Repos that need them (e.g. upsight) carry their own `.gitattributes` adding those globs.
-
 ### Use of tools
 
 - **Research-First, never Edit-First** — understand context before touching code to ensure you use the most appropriate tool. Prefer surgical edits over rewrites.
 - Use **Reasoning Loops** frequently. Don't skip them.
-
-### rtk (output compression)
-
-`rtk` wraps common dev commands and compresses their output before it reaches
-my context. A `PreToolUse` hook rewrites eligible Bash commands automatically,
-so most of the time there is nothing to do.
-
-- `RTK_DISABLED=1 <cmd>` runs one command unwrapped. Reach for this when a
-  filter has clearly eaten something you need, not as a default.
-- `rtk proxy <cmd>` runs a command unfiltered but still counts it in rtk's
-  usage tracking. It does not compress anything.
-- `rtk gain` reports how many tokens the filters actually saved; `rtk gain
-  --graph` plots daily savings.
-- `rtk discover` scans past Claude Code history for commands that could have
-  been wrapped but were not.
-- The 1Password recipes (`just rs`, `just ps`, `just cs`, and friends) are
-  listed in rtk's `exclude_commands`, so they can never be wrapped even if a
-  later rtk learns to wrap `just`. That list lives in nixerator's
-  `modules/apps/cli/claude-code` module.
-- `exclude_commands` governs only the automatic hook. Calling `rtk` yourself
-  (`rtk just <recipe>`, `rtk proxy <cmd>`, `rtk read <path>`) skips the
-  exclusion list entirely.
-- A failed wrapped command leaves its unfiltered output in
-  `~/.local/share/rtk/tee/`. The secret guard denies reading those logs,
-  because they can hold rendered secrets. Re-running the command without rtk
-  is fine only when you already know its output carries no credentials, and
-  rtk wraps `kubectl`, `docker`, `git` and `gh`, so plenty of them do.
-  Otherwise narrow the command to the specific field you need rather than
-  dumping the whole thing.
-
-### Bug Fixes
-
-- **Reproduce as a failing test before fixing.** For any defect with observable symptoms (wrong output, crash, hang, race), write a test that asserts the *correct* behaviour, confirm it fails with the reported symptom, then fix. If the failure looks different from the report, the test is wrong — fix the test first. Skip only for one-line typos with no realistic test target (e.g. a bad CSS variable name in a single template).
-
-### Code Style
-
-- **Write DRY code where appropriate** — if the same logic appears in three or more places, extract it (function, module, variable, config). Two occurrences is usually a coincidence; three is a pattern.
-- **Do not over-abstract** — DRY applies to genuine duplication of *intent*, not incidental similarity of *shape*. If two code paths happen to look alike but can evolve independently, leave them alone. Premature abstraction is worse than duplication.
-- Before adding a new helper, grep for existing utilities that already cover the case. Reuse beats re-implement.
 
 ### Thinking Depth
 
@@ -145,38 +67,6 @@ so most of the time there is nothing to do.
 - **Flag uncertainty explicitly** — when you are not sure, or when you are proceeding on an assumption because verification is not possible, say so inline using one of: `ASSUMPTION:`, `UNVERIFIED:`, or `LOW CONFIDENCE:`. Never present a guess as fact.
 - **Detect and break loops** — if you have attempted the same fix (or minor variants of it) twice without progress, STOP. Surface the loop to the user with: (1) what you tried, (2) what you observed, (3) why you think it is not working, (4) two or three candidate pivots. Ask the user to choose a direction rather than trying a third variant silently.
 
-## Project context: thin-CLAUDE.md protocol
-
-Each project's `CLAUDE.md` is a thin **table of contents** over per-topic detail files at `.claude/docs/<topic>.md` (preferred) or `docs/claude/<topic>.md`. The root file is loaded on every turn, so it stays small; detail loads on demand.
-
-**Reading.** TOC entries use imperative voice: *"When [trigger], read `.claude/docs/foo.md`."* When the trigger fires for your task, **read the file before acting** — do not infer from the index entry alone. Detail files are single-hop: they never link to other detail files.
-
-**Writing.** When you learn something curated, stable, and PR-reviewable that future sessions will need:
-
-1. Create or extend `.claude/docs/<topic>.md`. One topic per file. Filename matches the topic.
-2. Open the file with a one-line summary describing what it covers.
-3. Add a one-line entry to the project `CLAUDE.md` Topics section in imperative voice.
-4. Keep project `CLAUDE.md` under ~100 lines. If it grows, the cure is more topic files, not longer entries.
-
-**Don't put here:** session-derived facts about user preferences or in-flight context (those go to `~/.claude/projects/.../memory/` auto-memory); information already in code or git history; speculative ideas.
-
-## Where curated knowledge goes
-
-Three homes; pick by shape:
-
-| Shape | Home |
-|-------|------|
-| Procedure with steps, triggered by user invocation or trigger phrase | Skill — `.claude/skills/<name>/` (repo-local) |
-| Reference material consulted by multiple skills or general planning | `.claude/docs/<topic>.md` |
-| Reference material owned by a single skill | `.claude/skills/<name>/references/<topic>.md` |
-| Session-derived fact (user preference, in-flight context, learned project state) | Auto-memory — `~/.claude/projects/.../memory/` |
-
-When something could fit two homes, prefer the one with the strongest trigger:
-
-- User invokes `/foo` or says "do the foo workflow" → skill
-- Claude reads it while planning a task → `.claude/docs/`
-- Claude captures it without being asked → auto-memory
-
 ## skill-cache convention
 
 When creating or modifying a skill that resolves names→IDs or repeatedly queries
@@ -185,15 +75,29 @@ and consider adopting the `skill-cache` convention. For a skill that will be
 shared/published, vendor `scripts/skill-cache.sh` from the canonical source named
 in that doc rather than depending on the packaged CLI.
 
-## Kong Developer Documentation
+## Trigger-scoped rules (detail lives in skills)
 
-Kong's developer docs at `developer.konghq.com` are available in LLM-friendly markdown. To get the markdown version of any content page, append `.md` to the URL path (drop trailing slashes and anchors):
+These rules still bind. Only their detail moved — invoke the named skill before
+acting, don't work from the one-liner alone.
 
-- `https://developer.konghq.com/dev-portal/` → `https://developer.konghq.com/dev-portal.md`
-- `https://developer.konghq.com/konnect-platform/teams-and-roles/#predefined-teams` → `https://developer.konghq.com/konnect-platform/teams-and-roles.md`
-- `https://developer.konghq.com/observability/` → `https://developer.konghq.com/observability.md`
+- Before fixing any defect with an observable symptom, reproduce it as a failing test first — invoke `bug-fix-workflow`.
+- Before extracting a helper or abstraction, apply the three-occurrence DRY threshold — invoke `code-style`.
+- When `git status` shows unmerged paths or a PR reports conflicts, run `mergiraf solve` before hand-editing markers — invoke `merge-conflicts`.
+- When I say "git cleanup", "clean up the git stuff", or "wrap this branch up", that is standing authorization to commit, push, PR, squash-merge to `main`, and remove the worktree — invoke `git-cleanup`.
+- When Bash output looks filtered or truncated, `rtk` wrapped it; `RTK_DISABLED=1 <cmd>` bypasses it once — invoke `rtk-output-compression`.
+- When I ask you to copy something to my clipboard or send a file to my phone, never hardcode `wayland-1` and never guess the transfer command — invoke `send-to-dustin`.
+- Before fetching anything from `developer.konghq.com`, append `.md` to the URL path — invoke `kong-docs-lookup`.
+- When writing a project `CLAUDE.md`, a `.claude/docs/` topic file, or deciding where durable knowledge belongs, follow the thin-CLAUDE.md protocol — invoke `curated-knowledge`.
 
-**Index/site-tree pages do NOT have markdown versions** (e.g., `https://developer.konghq.com/` or `https://developer.konghq.com/index/dev-portal/`).
+# Compact instructions
 
-When researching Kong topics, always prefer fetching the `.md` URL — it is optimized for AI consumption and avoids noisy HTML parsing.
+- **Preserve:** decisions and the reasoning behind them; constraints and rules I
+  stated in conversation; in-flight state — what is done, what is half-done, what
+  remains; file paths, identifiers, and branch/PR/issue numbers still in play;
+  anything I explicitly asked you to remember.
+- **Drop:** raw tool output (build logs, test output, file listings, diff hunks,
+  search results); intermediate steps a later step superseded; exploratory reads
+  that led nowhere; full contents of files already acted on.
+- A fact recoverable by re-reading a file does not need to survive the summary —
+  the path is enough.
 
