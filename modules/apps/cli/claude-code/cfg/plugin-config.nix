@@ -56,6 +56,17 @@ let
       repo = "heygen-com/hyperframes";
       sha = "553688c996408cb33de27ce4573bef6c8cf27454";
     };
+    # Context-window auditing hooks. PolyForm Noncommercial 1.0.0 -- the
+    # README's "small teams get a commercial license automatically" grant is
+    # not in the LICENSE file, so the binding terms are noncommercial only.
+    # NixOS needs extra plumbing for this one (interpreter allow-list, runtime
+    # writes into settings.json); see cfg/token-optimizer.nix.
+    # SHA is v5.11.65.
+    alexgreensh-token-optimizer.source = {
+      source = "github";
+      repo = "alexgreensh/token-optimizer";
+      sha = "5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1";
+    };
   };
 
   marketplaceOf = pluginId: lib.last (lib.splitString "@" pluginId);

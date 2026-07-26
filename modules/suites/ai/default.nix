@@ -81,6 +81,13 @@ in
             # other third-party (SHA-pinned)
             "impeccable@impeccable"
             "hyperframes@hyperframes"
+            # Context-window auditing. Unlike the plugins struck from this list
+            # under #294, its standing cost (4 skills, 2 commands) buys a
+            # measurement of exactly the thing that audit was about. Needs the
+            # NixOS plumbing in cfg/token-optimizer.nix to run at all, and
+            # carries a noncommercial-only licence -- read
+            # .claude/docs/token-optimizer.md before putting it on a work host.
+            "token-optimizer@alexgreensh-token-optimizer"
           ];
         };
         antigravity.enable = true;

@@ -51,6 +51,14 @@ let
     inherit pkgs versions;
     homeDir = globals.user.homeDirectory;
   };
+  # NixOS-specific plumbing for the token-optimizer plugin: the FHS interpreter
+  # symlink its hook launcher demands, and the config flags that stop it
+  # claiming the statusLine slot and self-installing a systemd user unit. Inert
+  # unless the plugin is in this host's list (see hasTokenOptimizer below).
+  tokenOptimizerConfig = import ./cfg/token-optimizer.nix {
+    inherit pkgs;
+    homeDir = globals.user.homeDirectory;
+  };
   fishConfig = import ./cfg/fish.nix {
     inherit globals pkgs statusLineScript;
   };
@@ -75,6 +83,7 @@ let
       globals
       homeDir
       ;
+    tokenOptimizerActivation = lib.optionalString hasTokenOptimizer tokenOptimizerConfig.activation;
     inherit (pkgs) rtk;
     humanizerSkillSrc = inputs.humanizer-skill;
     # Reference the rules file by path, not through
@@ -332,6 +341,8 @@ let
   hasHyperframes = lib.elem "hyperframes@hyperframes" cfg.plugins;
   hyperframesBrowserPath = "/run/current-system/sw/bin/${globals.preferences.browser}";
 
+  hasTokenOptimizer = lib.elem tokenOptimizerConfig.pluginId cfg.plugins;
+
   # Conditional env vars exported into both system and HM session scopes.
   # Built once here so the two consumer sites can't drift.
   #
@@ -432,6 +443,12 @@ in
     # `claudeEnv` (see `let` block) builds this attrset once; reused below
     # for `home.sessionVariables` so the two scopes can't drift.
     environment.variables = claudeEnv;
+
+    # The only part of token-optimizer that cannot be done from home-manager:
+    # its hook launcher hardcodes an interpreter allow-list of FHS prefixes and
+    # /usr/local is root-owned. See cfg/token-optimizer.nix for why there is no
+    # env-var route around it.
+    systemd.tmpfiles.rules = lib.optionals hasTokenOptimizer tokenOptimizerConfig.tmpfilesRules;
 
     home-manager.users.${globals.user.name} = {
       programs.fish = fishConfig;

@@ -15,6 +15,7 @@
   guardSecretCommandsScript,
   scrubSecretOutputScript,
   reapConfig,
+  tokenOptimizerActivation,
   globals,
   homeDir,
   rtk,
@@ -279,5 +280,10 @@
         $DRY_RUN_CMD cp --no-preserve=mode "$plugins_src/blocklist.json" "$claude_home/plugins/blocklist.json"
       fi
     fi
+
+    # token-optimizer -- pin the three flags that keep the plugin out of
+    # Nix-owned state (statusLine, systemd user units) and grant its consent
+    # gate. Empty string on hosts that do not enable the plugin.
+    ${tokenOptimizerActivation}
   '';
 }
