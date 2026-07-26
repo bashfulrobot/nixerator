@@ -162,6 +162,27 @@ in
                   })
                 ];
               })
+
+              # Work around a broken test build in rtk 0.43.0.
+              #
+              # rtk's upstream source carries dead code that the current Rust
+              # toolchain rejects: `FILTERS_TOML` (src/core/constants.rs) and
+              # `TomlFilterRegistry::load` (src/core/toml_filter.rs) are never
+              # used, and the crate compiles the *test* profile under
+              # `-D warnings` (which implies `-D dead-code`), so compiling the
+              # test binary in checkPhase fails with exit code 101 -- even
+              # though the release binary builds and runs fine. This broke every
+              # rebuild that pulls in rtk (the claude-code stack, so all hosts).
+              #
+              # Skip the check phase rather than patching upstream's lint
+              # config; rtk is a token-optimizer CLI whose own test suite we
+              # don't gate on. Remove once nixpkgs ships an rtk release that
+              # compiles cleanly under `-D warnings`.
+              (_final: prev: {
+                rtk = prev.rtk.overrideAttrs (_old: {
+                  doCheck = false;
+                });
+              })
             ];
           };
 
