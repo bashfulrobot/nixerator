@@ -48,6 +48,27 @@ in
         description = "Enable NFS server with configurable exports.";
       };
 
+      threads = lib.mkOption {
+        type = lib.types.int;
+        default = 32;
+        description = ''
+          Number of nfsd kernel threads (services.nfs.server.nproc).
+
+          Upstream defaults to 8, which is a per-server pool shared by every
+          export rather than a per-export one. A single slow export can hold all
+          8 threads in uninterruptible sleep and every other export then queues
+          behind it, however fast its own backing store is. That is not
+          theoretical: on srv, an rsync saturating a 5400 RPM USB disk blocked
+          all 8 threads and stalled the nvme-backed exports serving app configs,
+          which failed their liveness probes and restarted.
+
+          Threads are cheap (a kernel thread each, idle when unused), so size
+          the pool for the number of concurrent clients rather than for the CPU
+          count. 32 gives the fast exports somewhere to run while the slow one
+          is blocked.
+        '';
+      };
+
       exports = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule {
@@ -194,6 +215,7 @@ in
 
     services.nfs.server = {
       enable = true;
+      nproc = cfg.threads;
       exports = lib.concatStringsSep "\n" (lib.mapAttrsToList (_: mkExportLine) cfg.exports);
     };
 
