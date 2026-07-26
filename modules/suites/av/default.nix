@@ -41,6 +41,7 @@ in
       mpv # video player
       v4l-utils # webcam and video device utilities
       go-chromecast # CLI for casting to Chromecast devices
+      audacity # Audio Recording
     ];
   };
 }
