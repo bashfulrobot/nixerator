@@ -1,6 +1,7 @@
 ---
 name: gws-cli
 description: Drive the `gws` (googleworkspace/cli) command-line tool to interact with any Google Workspace service from a shell. Use this skill when the user wants to send a Gmail message from the CLI, create or list calendar events, manage Google Tasks, post into a Chat space, list or move Drive files (metadata only, not edits to Docs/Sheets/Slides), run one of the bundled `+workflow` helpers (`+standup-report`, `+meeting-prep`, `+email-to-task`, `+weekly-digest`, `+file-announce`), set up gws authentication for the first time, debug a 401/403 from gws, or discover how to call a Workspace API method via `gws schema`. Trigger eagerly on phrases like "gws", "googleworkspace cli", "send a gmail from the terminal", "schedule a calendar event", "add a todoist-style task in google tasks", "post to a chat space", "list my drive files", "show today's meetings", "weekly digest", "gws auth login", "gws auth setup", "gws auth status", or "how do I call <google workspace api method>". This skill explicitly defers Google Sheets cell writes, Google Doc create/copy/replace, and Google Slides building to the `gsuite-edit` skill (same underlying `gws` tool, tighter scope for edits). For Drive *reads* of file metadata, `gws drive files list` here is fine; for reads of file *content*, prefer the Drive MCP if available.
+effort: low
 ---
 
 # gws-cli: drive the Google Workspace CLI

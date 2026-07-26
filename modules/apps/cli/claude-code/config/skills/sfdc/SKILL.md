@@ -1,18 +1,19 @@
 ---
 name: sfdc
 description: >-
-  Expert Salesforce CLI (sf) skill for querying and (carefully) updating data
-  in Salesforce orgs. Use ONLY when the user explicitly asks about Salesforce,
-  SFDC, SOQL, running sf CLI commands, or invokes /sfdc. Trigger phrases
-  include "query Salesforce", "run a SOQL query", "pull data from SFDC",
-  "describe this SObject", "update this Account/Contact/Opportunity in
-  Salesforce", "export Cases to CSV". Do NOT trigger on tangential Salesforce
-  mentions (e.g., someone mentioning a Salesforce URL in passing) or on
-  operations that another skill owns -- the log-support-ticket skill owns
-  Case creation; delegate there. Covers SOQL patterns, sobject describes,
-  bulk exports, and destructive operations behind a strict confirmation
-  playbook. Defaults to read-only; any write requires explicit per-run
-  confirmation.
+  Query and (carefully) update Salesforce org data with the `sf` CLI: SOQL
+  patterns, sobject describes, bulk CSV exports, and destructive operations
+  behind a strict confirmation playbook. Defaults to read-only; every write
+  requires explicit per-run confirmation.
+when_to_use: >-
+  Use ONLY when the user explicitly asks about Salesforce, SFDC, SOQL, the sf
+  CLI, or invokes /sfdc -- "query Salesforce", "run a SOQL query", "pull data
+  from SFDC", "describe this SObject", "update this Account/Contact/Opportunity
+  in Salesforce", "export Cases to CSV". Do NOT trigger on a passing Salesforce
+  mention such as someone pasting an SFDC URL, or on operations another skill
+  owns: log-support-ticket owns Case creation, and tableau owns the CS/RevOps
+  reporting dashboards.
+effort: low
 ---
 
 # Salesforce CLI (sfdc)

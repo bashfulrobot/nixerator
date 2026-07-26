@@ -1,17 +1,19 @@
 ---
 name: todoist-triage
 description: >-
-  Use when Dustin wants to triage or audit his Todoist backlog of
-  customer-engagement work — daily task triage, "assess my open tasks", "what's
-  the state of my open work", "what do I need to follow up on", "go through my
-  overdue tasks", "triage Kong-lululemon", "triage my overdue p1s", "audit my
-  work", "what's stale", or a single "what's the status of this task?" with a
-  Todoist task URL/ID. Also use for catching stale tasks, wrong/closed ticket
-  references, and drafting the nudges to unblock stalled customer work. Covers
-  Todoist tasks whose comments carry breadcrumbs (file paths, ticket IDs,
-  email/Slack links). NOT for creating brand-new tasks from scratch (that's
-  todoist-cli), filing feature requests (feature-request / log-aha), or
-  standalone Salesforce/Jira/Slack lookups with no task in play.
+  Interactive triage and audit of Dustin's Todoist backlog of customer
+  engagement work: reads each task's comment breadcrumbs (file paths, ticket
+  IDs, email and Slack links), catches stale tasks and wrong or closed ticket
+  references, and drafts the nudges that unblock stalled customer work.
+when_to_use: >-
+  Use for daily task triage and backlog audits -- "assess my open tasks",
+  "what's the state of my open work", "what do I need to follow up on", "go
+  through my overdue tasks", "triage Kong-lululemon", "triage my overdue p1s",
+  "audit my work", "what's stale" -- and for a single "what's the status of this
+  task?" carrying a Todoist task URL or ID. NOT for creating brand-new tasks
+  from scratch (todoist-cli), the unattended external-update sweep
+  (todoist-task-update), filing feature requests (feature-request / log-aha), or
+  standalone Salesforce, Jira, or Slack lookups with no task in play.
 ---
 
 # Todoist Triage

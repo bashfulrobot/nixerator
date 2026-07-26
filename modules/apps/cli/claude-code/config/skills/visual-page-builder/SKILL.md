@@ -1,6 +1,15 @@
 ---
 name: visual-page-builder
-description: Generate a polished, self-contained HTML page that explains any concept visually using stat cards, flow diagrams, comparison grids, and other components. Use this skill when the user says "visual explanation", "explain this visually", "make a visual page", "build an HTML explainer", or wants a concept turned into a single shareable page.
+description: >-
+  Generate a polished, self-contained HTML page that explains a concept visually
+  -- stat cards, flow diagrams, comparison grids, timelines, dashboards -- with
+  no framework, no dependency, and no build step.
+when_to_use: >-
+  Use when the user says "visual explanation", "explain this visually", "make a
+  visual page", "build an HTML explainer", "make me a one-pager for this", or
+  wants a concept turned into a single shareable page. For a navigable slide
+  deck use revealjs; for a clickable system or pipeline diagram use
+  workflow-visualizer.
 ---
 
 # Visual Page Builder

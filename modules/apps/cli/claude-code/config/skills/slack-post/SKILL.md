@@ -1,22 +1,19 @@
 ---
 name: slack-post
 description: >-
-  Post a Slack message via the Web API using the user's xoxc/xoxd session
-  token, so the message appears as the user with NO third-party app
-  attribution footer (the Slack MCP, by contrast, posts via OAuth and Slack
-  appends "Sent using @Claude" under every message).
-
-  Use when the user wants a clean, hand-authored-looking Slack post: triggers
-  on `/slack-post`, "post a clean slack message", "send slack as me", "send
-  slack without attribution", "DM <user> directly", "no claude footer", or
-  similar. Also use whenever a customer-visible Slack message would be
-  awkward with the "Sent using @Claude" tag (replies in a customer thread,
-  delicate updates, anything you'd otherwise paste-and-send by hand).
-
-  Do NOT trigger for routine internal pings where attribution is fine: the
-  Slack MCP is faster for that. Channel and user lookups can still go
-  through the MCP (`slack_search_channels`, `slack_search_users`); only the
-  send needs to bypass it.
+  Post a Slack message through the Web API using Dustin's own xoxc/xoxd session
+  token, so it appears as him with NO third-party attribution footer (the Slack
+  MCP posts via OAuth, and Slack appends "Sent using @Claude" under every one of
+  those messages).
+when_to_use: >-
+  Manual-only by standing rule. This is the ONLY sanctioned way to send a Slack
+  message on Dustin's behalf, and it runs only when he explicitly asks for it in
+  that turn: /slack-post, "post a clean slack message", "send slack as me",
+  "send slack without attribution", "DM <user> directly", or "no claude footer".
+  Never send proactively or as a side effect of another task. Channel and user
+  lookups may still go through the Slack MCP (slack_search_channels,
+  slack_search_users); only the send itself has to bypass it.
+disable-model-invocation: true
 compatibility: >-
   Requires `slack-token-refresh` to have been run at least once on this
   machine (writes credentials to ~/.config/slack/credentials.json). Requires

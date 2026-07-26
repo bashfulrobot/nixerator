@@ -1,6 +1,16 @@
 ---
 name: csat
-description: Generate weekly CSAT status update for a customer account from running notes, call transcripts, and Salesforce CX data.
+description: Read an account directory of running notes, call transcripts, and Salesforce CX exports, then synthesize the weekly CSAT status update -- exec summary, support notes, and RAG-rated churn indicators -- ready to paste into Salesforce.
+when_to_use: >-
+  Use when the user wants a customer's weekly status or health write-up:
+  "write the CSAT update", "do my CSAT for <account>", "weekly status update
+  for <customer>", "update the CX status", "churn indicators for <account>",
+  "RAG this account", "summarize this week for <customer>", "/csat". Trigger
+  eagerly when the user points at an account folder and asks for the weekly
+  update. Do NOT use for a Success Plan (csp-draft) or for logging a risk
+  record into Salesforce (log-account-risk).
+context: fork
+background: false
 argument-hint: "<path-to-account-directory>"
 allowed-tools: ["Bash", "Read", "Grep", "Glob", "Skill"]
 ---

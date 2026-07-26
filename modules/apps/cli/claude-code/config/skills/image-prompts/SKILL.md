@@ -13,6 +13,15 @@ description: |
   when they match slide content, and offers to bind the palette to the deck's
   theme. Knows Gemini's and OpenAI's real transparency behaviour and bundles the
   magenta-key pipeline for true alpha.
+when_to_use: >-
+  Trigger on the deck and content work that actually needs art, not just on the
+  word "prompt": "this slide needs a graphic", "make me an icon for X", "I need
+  a visual for this section", "generate an image of", "art for the title
+  slide", "some stickers for these bullets", "redo this screenshot in the deck
+  style", "make these images match", "a picture for my LinkedIn post". Use it
+  whenever a deck or page is being built and an image slot is empty -- it is
+  the step that writes the prompt before anything is generated. For SVG drawn
+  in code use svg-specialist; for Kong colours and logo rules use kong-branding.
 allowed-tools:
   - Read
   - Write

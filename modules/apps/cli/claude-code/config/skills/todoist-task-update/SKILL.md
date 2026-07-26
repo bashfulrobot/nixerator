@@ -1,15 +1,19 @@
 ---
 name: todoist-task-update
 description: >-
-  Use when Dustin wants to sync external updates into his Kong Todoist tasks — a
-  batch, unattended sweep that follows each open Kong-* task's breadcrumbs
-  (Slack, Gmail, Google Docs, Aha, Salesforce, Jira, local files) and files a
-  dated comment for any activity newer than the last logged comment. Triggers on
-  "sync my task updates", "pull external updates into my Kong tasks", "check my
-  Kong tasks for updates", "catch up my Kong tasks", "update my task comments from
-  Slack/email/Aha", or /todoist-task-update. NOT for interactive per-task triage
-  and decisions (that's todoist-triage), creating brand-new tasks (todoist-cli),
-  or filing feature requests (feature-request / log-aha).
+  Batch, unattended sweep that syncs external activity into Dustin's open Kong
+  Todoist tasks: follows each task's breadcrumbs (Slack, Gmail, Google Docs,
+  Aha, Salesforce, Jira, local files) and files a dated comment for anything
+  newer than the last logged comment.
+when_to_use: >-
+  Triggers on "sync my task updates", "pull external updates into my Kong
+  tasks", "check my Kong tasks for updates", "catch up my Kong tasks", "update
+  my task comments from Slack/email/Aha", "refresh my task comments", or
+  /todoist-task-update. NOT for interactive per-task triage and decisions (use
+  todoist-triage), creating brand-new tasks (todoist-cli), or filing feature
+  requests (feature-request / log-aha).
+context: fork
+background: false
 ---
 
 # Todoist Task Update

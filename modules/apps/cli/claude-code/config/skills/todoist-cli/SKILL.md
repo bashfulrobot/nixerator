@@ -1,6 +1,8 @@
 ---
 name: todoist-cli
 description: "Manage Todoist tasks, projects, labels, filters, sections, comments, reminders, and workspaces via the `td` CLI. Use when the user wants to view, create, update, complete, or organize Todoist items, or mentions tasks, inbox, today, upcoming, projects, labels, or filters."
+when_to_use: "Use when the user wants to view, create, update, complete, reschedule, or organize Todoist items, or mentions tasks, inbox, today, upcoming, projects, labels, sections, or filters. This is the skill for creating brand-new tasks from scratch. NOT for backlog triage and audits (todoist-triage) or the unattended external-update sweep (todoist-task-update)."
+effort: low
 compatibility: "Requires the td CLI (@doist/todoist-cli) to be installed and authenticated via 'td auth login'."
 license: MIT
 metadata:

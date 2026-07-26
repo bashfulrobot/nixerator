@@ -1,6 +1,18 @@
 ---
 name: quick-research
-description: Research any topic across multiple sources and deliver a clean, sourced summary report. Use this skill when the user says "research this", "look into", "dig into", "what's the deal with", "find out about", "investigate", "give me a breakdown of", "what do you know about", or asks for a comparison or deep dive on a topic.
+description: >-
+  Research a topic across multiple web sources and return one clean, sourced
+  summary report, scoped to what was asked -- quick answer, side-by-side
+  comparison, or deep dive.
+when_to_use: >-
+  Use when the user says "research this", "look into", "dig into", "what's the
+  deal with", "find out about", "investigate", "give me a breakdown of", or asks
+  for a comparison or deep dive on a general-web topic with no local code in
+  play. Prefer the deep-research skill when the user wants an adversarially
+  fact-checked, heavily cited report, and context7 for library, framework, SDK,
+  or CLI documentation lookups.
+context: fork
+background: false
 ---
 
 # Quick Research

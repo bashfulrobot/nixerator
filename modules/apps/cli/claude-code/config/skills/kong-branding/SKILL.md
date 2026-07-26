@@ -1,6 +1,12 @@
 ---
 name: kong-branding
 description: "Kong Inc.'s official 2026 v1.1 brand system — the canonical source for Kong colors, fonts, logos, and trademark/usage rules. Use this whenever producing or reviewing ANY Kong-branded material that isn't a .pptx deck or reveal.js presentation: web pages, HTML/CSS, images, social graphics, email signatures, one-pagers, badges, PDFs, documents, or general brand questions ('what's Kong's accent color', 'what font does Kong use', 'is this on-brand for Kong', 'does this violate Kong's trademark guidelines'). Also use it to AUDIT existing material — a partner's asset, an old deck, a webpage — for brand/trademark compliance; it bundles a mechanical color+font scanner plus the full permitted/prohibited usage rules. Trigger eagerly on 'Kong brand', 'Kong colors', 'Kong logo', 'Kong branding', 'on-brand for Kong', 'brand guidelines', 'brand compliance', or 'compatible with Kong' phrasing questions, even if the user doesn't name this skill directly. For .pptx decks use kong-pptx; for reveal.js presentations use kong-revealjs-theme — this skill is still the right place to check what those skills' brand values SHOULD be if they look wrong."
+when_to_use: >-
+  Load this BEFORE picking any colour, font, or logo for Kong-facing output,
+  not only when the user says "brand". Real asks: "make a Kong one-pager",
+  "landing page for this Kong demo", "a diagram for the customer", "an image
+  for my Kong LinkedIn post", "style this HTML for Kong", "does this partner
+  asset look right". Anything customer-visible carrying Kong's name.
 ---
 
 # Kong Branding

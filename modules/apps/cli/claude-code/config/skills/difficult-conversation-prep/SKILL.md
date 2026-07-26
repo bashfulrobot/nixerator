@@ -1,6 +1,18 @@
 ---
 name: difficult-conversation-prep
-description: Prepare for tough conversations with a script, talking points, and responses to likely pushback. Use this skill when the user says "difficult conversation", "tough conversation", "hard talk", "how do I tell them", "I need to have a conversation about", "prep me for a confrontation", "how to bring up", "negotiate", or any variation of needing to have an uncomfortable or high-stakes conversation.
+description: Prepare for a high-stakes conversation -- an opening script, the two or three points that must land, likely pushback with a response to each, and the walk-away line. Works for customer, vendor, and internal conversations alike.
+when_to_use: >-
+  Use for customer and account conversations a CSM has to get right: delivering
+  bad news on a renewal or roadmap gap, telling a customer a feature is not
+  coming, walking into an escalation or an unhappy exec, pushing back on an
+  unreasonable ask, resetting expectations after a miss, negotiating scope or
+  timelines. Also for internal ones: raising a concern with a manager, giving
+  hard feedback, asking for headcount or a raise. Trigger on "how do I tell
+  them", "how do I break it to", "prep me for this call", "they're going to be
+  unhappy about", "I have to push back on", "difficult conversation", "tough
+  conversation", "how do I bring up", "what do I say when they ask why", or a
+  described conversation the user is dreading. Do NOT use for writing the
+  message itself -- that is writing-style or email-drafter.
 ---
 
 # Difficult Conversation Prep

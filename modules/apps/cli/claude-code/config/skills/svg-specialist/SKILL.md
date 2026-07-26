@@ -1,6 +1,20 @@
 ---
 name: svg-specialist
-description: Author, edit, and optimize production-grade SVG — clean geometry and path data, accessible icon systems with reusable symbols, gradients/filters/clipping, CSS and SMIL animation, and framework (React/Vue/Svelte) integration. Use this skill whenever the work touches a .svg file or inline SVG markup: drawing or hand-tuning vector shapes and paths, building or refactoring an icon set or sprite sheet, shrinking SVG file size with SVGO, making a vector accessible to screen readers, animating a graphic, theming an icon to follow text colour, or embedding an SVG into a component. Trigger even when the user doesn't say "SVG" by name — "make this logo scale crisply", "this icon is huge / won't theme", "animate this checkmark", "turn this graphic into a React component", or "why is my vector blurry / clipped" all belong here.
+description: >-
+  Author, edit, and optimize production-grade SVG: clean geometry and path data,
+  accessible icon systems with reusable symbols, gradients, filters and
+  clipping, CSS and SMIL animation, SVGO size reduction, and React/Vue/Svelte
+  integration.
+when_to_use: >-
+  Use whenever the work touches a .svg file or inline SVG markup -- drawing or
+  hand-tuning vector shapes and paths, building or refactoring an icon set or
+  sprite sheet, shrinking an SVG with SVGO, making a vector accessible to screen
+  readers, animating a graphic, theming an icon to follow text colour, or
+  embedding an SVG into a component. Trigger even when the user never says
+  "SVG": "make this logo scale crisply", "this icon is huge or won't theme",
+  "animate this checkmark", "turn this graphic into a React component", and "why
+  is my vector blurry or clipped" all belong here.
+paths: ["**/*.svg", "**/*.jsx", "**/*.tsx", "**/*.vue", "**/*.svelte", "**/*.html"]
 ---
 
 # SVG Specialist

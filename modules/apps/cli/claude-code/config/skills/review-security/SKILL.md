@@ -1,9 +1,15 @@
 ---
 name: review-security
-description: >
-  Adversarial security/pentester review of the current branch's PR. Use when
-  the user says "security review", "/review-security", or asks for a security
-  audit. Dispatches the reviewer-security subagent.
+description: >-
+  Adversarial security and pentester review of the current branch's PR,
+  dispatched to the reviewer-security subagent: injection, authn/authz,
+  secret exposure, unsafe defaults, and privilege-boundary findings.
+when_to_use: >-
+  Use when the user says "security review", "/review-security", "audit this for
+  security", "pentest this branch", or asks whether a change is safe to ship.
+  Also reach for it unprompted when a diff touches credentials, tokens, network
+  exposure, permissions, sandboxing, or untrusted input parsing.
+effort: xhigh
 allowed-tools: ["Bash", "Read", "Grep", "Glob", "Agent"]
 ---
 

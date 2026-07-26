@@ -1,6 +1,15 @@
 ---
 name: revealjs
-description: Create polished, professional reveal.js presentations. Use when the user asks to create slides, a presentation, a deck, or a slideshow. Supports themes, multi-column layouts, code highlighting, animations, speaker notes, and custom styling. Generates HTML + CSS with no build step required.
+description: >-
+  Author polished reveal.js HTML presentations -- themes, multi-column layouts,
+  code highlighting, fragments and animations, speaker notes, custom styling.
+  Emits standalone HTML plus CSS with no build step.
+when_to_use: >-
+  Use when the user asks for reveal.js by name, or for slides, a deck, a
+  presentation, or a slideshow they want as a browser-openable HTML file with
+  real slide navigation and speaker notes. For Kong-branded output use
+  kong-revealjs-theme (reveal.js) or kong-pptx (PowerPoint) instead; for a
+  single scrolling explainer page use visual-page-builder.
 ---
 
 # Reveal.js Presentations

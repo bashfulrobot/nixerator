@@ -1,9 +1,15 @@
 ---
 name: review-dev
-description: >
-  Adversarial developer review of the current branch's PR. Use when the user
-  says "dev review", "/review-dev", or asks for a thorough code review.
-  Dispatches the reviewer-dev subagent.
+description: >-
+  Adversarial developer review of the current branch's PR, dispatched to the
+  reviewer-dev subagent: correctness bugs, edge cases, error handling, and
+  reuse/simplification findings against the diff.
+when_to_use: >-
+  Use when the user says "dev review", "review this PR", "/review-dev", "tear
+  this branch apart", or asks for a thorough or adversarial code review of the
+  current branch. Pair with review-security when the diff touches auth,
+  secrets, network exposure, or input parsing.
+effort: high
 allowed-tools: ["Bash", "Read", "Grep", "Glob", "Agent"]
 ---
 

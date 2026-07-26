@@ -6,6 +6,17 @@ description: >
   installation health checks. Use when users report failing, stuck, or not-ready Flux resources on a
   cluster, reconciliation errors, controller issues, artifact pull failures, or need live cluster
   Flux Operator troubleshooting.
+when_to_use: >-
+  Use when something is broken on a running cluster: "flux is stuck", "my
+  HelmRelease won't reconcile", "the kustomization is not ready", "why hasn't
+  this deployed", "reconciliation is failing", "check flux on <cluster>",
+  "why is the source controller erroring", "artifact pull is failing", "is
+  flux healthy". Trigger on named clusters (spitfire, darkstar) plus a symptom.
+  For auditing repo files instead of a live cluster, use gitops-repo-audit; for
+  conceptual Flux questions or writing manifests, use gitops-knowledge.
+effort: high
+context: fork
+background: false
 license: Apache-2.0
 compatibility: Requires flux-operator-mcp
 ---

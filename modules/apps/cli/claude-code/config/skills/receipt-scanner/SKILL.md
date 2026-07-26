@@ -1,6 +1,18 @@
 ---
 name: receipt-scanner
-description: Read PDF receipts and invoices, extract vendor/date/amount/category, and build an expense report. Use this skill when the user says "scan my receipts", "build an expense report", "how much did I spend", "process these receipts", "expense report", "read my invoices", or points to a folder of receipts.
+description: >-
+  Extract vendor, date, amount, tax, and category from PDF and image receipts or
+  invoices, then assemble a categorized expense report with totals.
+when_to_use: >-
+  Use when the user says "scan my receipts", "process these receipts", "build an
+  expense report", "expense report", "how much did I spend", "read my invoices",
+  "total up these charges", or points at a folder of receipt PDFs or
+  screenshots. Not for producing a customer-facing invoice -- that is the
+  wave-invoicing skill.
+model: haiku
+effort: low
+context: fork
+background: false
 ---
 
 # Receipt Scanner

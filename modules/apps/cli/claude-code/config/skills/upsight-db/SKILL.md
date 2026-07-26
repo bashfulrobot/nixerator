@@ -1,6 +1,17 @@
 ---
 name: upsight-db
-description: Query the local upsight app's SQLite database directly for accounts, meetings, agendas, cases, tasks, and other CRM data. Use whenever you need to READ upsight data — list accounts, look up an account id by name, list/verify meeting summaries, check for duplicate meetings, or answer "what's in upsight for X". Other upsight skills (e.g. upsight-import) call this skill for their database reads. Triggers on "query upsight", "upsight database", "upsight sqlite", "what accounts are in upsight", "account id for", "meetings in upsight", "check the upsight db".
+description: >-
+  Read the local upsight app's SQLite database directly -- accounts, meetings,
+  agendas, cases, tasks, and other CRM rows. Read-only lookups; other upsight
+  skills call this one for their database reads.
+when_to_use: >-
+  Use whenever you need to READ upsight data: list accounts, resolve an account
+  id from a name, list or verify meeting summaries, check for duplicate
+  meetings, or answer "what's in upsight for X". Triggers on "query upsight",
+  "upsight database", "upsight sqlite", "what accounts are in upsight", "account
+  id for", "meetings in upsight", "check the upsight db".
+model: haiku
+effort: low
 allowed-tools: ["Bash", "Read"]
 ---
 

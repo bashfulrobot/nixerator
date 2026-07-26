@@ -1,7 +1,15 @@
 ---
 name: branch-status
-description: Show current branch status, uncommitted changes, unpushed commits, and next-step recommendations.
-disable-model-invocation: true
+description: Report the current branch's state -- uncommitted changes, unpushed commits, position relative to the default branch -- and recommend the next step. Read-only git plumbing, formatted for a human.
+when_to_use: >-
+  Use when the user asks where a branch stands or what is left to do with it:
+  "where am I", "what's my branch status", "what have I got uncommitted", "am I
+  pushed", "did I push this", "anything unpushed", "what's left on this branch",
+  "/branch-status". Also use when picking work back up after a break and the
+  branch state is unknown. For every task worktree on the machine rather than
+  just the current directory, use fleet-status instead.
+effort: low
+model: haiku
 allowed-tools: ["Bash", "Read"]
 ---
 
