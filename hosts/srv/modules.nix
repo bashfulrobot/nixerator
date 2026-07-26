@@ -32,6 +32,7 @@
     ../../modules/server/incident-investigator
     ../../modules/server/kvm
     ../../modules/server/nfs
+    ../../modules/server/node-exporter
     ../../modules/server/postgres
     # Host-wide invariant, not a feature: declares users.users.<name>.linger so
     # systemd.user timers are scheduled from boot. Workstations get it from
@@ -178,6 +179,16 @@
       # cluster services are deployed; localhost is always trusted for local
       # admin use.
       allowedCIDRs = [ "192.168.168.0/23" ];
+    };
+
+    # srv hosts the darkstar cluster but was not itself in Grafana: the only
+    # node-exporters running were the ones inside the guests, so the hypervisor
+    # underneath them reported nothing. Alloy scrapes this from the cluster over
+    # br0, which carries both 192.168.168.1 and 192.168.169.200 out of the same
+    # /23, so the k8s subnet is the source range.
+    nodeExporter = {
+      enable = true;
+      openFirewallFrom = [ "192.168.168.0/23" ];
     };
 
     nfs = {
