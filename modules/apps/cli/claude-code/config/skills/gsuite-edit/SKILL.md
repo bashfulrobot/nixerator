@@ -1,6 +1,7 @@
 ---
 name: gsuite-edit
 description: Edit Google Sheets cells and create, copy, or replace Google Docs and Slides from the command line using the `gws` (googleworkspace/cli) tool. Use this skill whenever the user wants to write data into a Google Sheet (e.g. "fill in column X", "batchUpdate these cells", "write self-assessment scores", "update notes/evidence column"), create a Google Doc programmatically (e.g. "make a Google Doc from this markdown / HTML"), replace the body of an existing Google Doc (e.g. "rewrite the IDP doc", "swap out the deck content"), build a Google Slides deck from scratch or from a brand template (e.g. "create a deck for these slides", "build a Slides presentation from this content"), or work from a Workspace template (e.g. "copy this template", "fill in the template placeholders", "clone the IDP template and pre-populate it", "make a copy of the QBR deck template"). Also triggers when the user mentions Google Sheets API, Docs API, Slides API, Drive API, batchUpdate, files.copy, replaceAllText, or asks how to edit Workspace files from a script. Prefer this skill over reaching for a Python SDK when the user just needs a few cell writes, a single doc replacement, a Slides deck, or a template-copy-and-fill flow; `gws` is faster and intuitive. For broader gws usage (gmail, calendar, tasks, chat, auth setup, schema discovery), see the `gws-cli` skill instead.
+effort: low
 ---
 
 # gsuite-edit: edit Google Sheets, Docs, and Slides via `gws`

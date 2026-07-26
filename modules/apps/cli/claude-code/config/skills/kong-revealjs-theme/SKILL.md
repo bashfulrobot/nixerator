@@ -1,6 +1,21 @@
 ---
 name: kong-revealjs-theme
-description: Build a Kong-branded reveal.js presentation. Use when the user asks for a Kong-branded deck, mentions "kong theme"/"kong slides"/"brand this as Kong", or builds any reveal.js presentation in a Kong context (QBRs, EBRs, customer reviews, Kong product pitches, internal Kong content). This skill ALWAYS takes priority over the generic revealjs skill when the content is Kong-branded: the palette, typography, layouts, and footer are LOCKED by brand. The deck is authored as data in a deck.js file and rendered by a bundled engine, so you write content, not markup or CSS. Works from any working directory: the theme payload lives at ~/.claude/skills/kong-revealjs-theme/theme/ and gets copied into the project. reveal.js is vendored, so decks need no build step and no network.
+description: >-
+  Build a Kong-branded reveal.js presentation. This skill ALWAYS takes priority
+  over the generic revealjs skill when the content is Kong-branded, because the
+  palette, typography, layouts, and footer are LOCKED by brand. The deck is
+  authored as data in a deck.js file and rendered by a bundled engine, so you
+  write content, not markup or CSS. Works from any working directory -- the
+  theme payload lives in this skill's theme/ folder and is copied into the
+  project. reveal.js is vendored, so decks need no build step and no network.
+when_to_use: >-
+  Use when the user asks for a Kong-branded deck or any reveal.js presentation
+  in a Kong context (QBRs, EBRs, customer reviews, product pitches, internal
+  Kong content): "build a deck for the <customer> QBR", "make me some slides on
+  <topic>", "kong theme", "kong slides", "brand this as Kong", "turn these
+  notes into a presentation", "a deck I can present in the browser". For a
+  .pptx file use kong-pptx; for Kong colours and logo rules outside a deck use
+  kong-branding.
 ---
 
 # Kong Reveal.js Theme

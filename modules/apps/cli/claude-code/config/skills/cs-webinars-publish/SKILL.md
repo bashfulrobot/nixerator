@@ -1,6 +1,20 @@
 ---
 name: cs-webinars-publish
-description: Publish a webinar/session's assets (slides, sample code, scripts) and its docs-site page to the KongHQ-CX/cs-webinars repo as a pull request. Use whenever the user wants to post, publish, add, or upload a webinar or session's materials to cs-webinars, prep a cs-webinars PR, or says things like "add my webinar to cs-webinars", "publish the hardening-konnect session assets", "put the slides up on the webinars repo", or "make a webinar page for the site". Also use when a cs-webinars secret scan (gitleaks) flags a value and the user needs to clear it safely — this skill enforces separation of duties: the PR author proposes an allowlist entry but a reviewer authorizes it, and the author never merges past a red scan. Covers the folder/slug convention, the Zola content-page front matter, a local gitleaks pre-check, and what the release/docs GitHub Actions do on merge.
+description: >-
+  Publish a webinar/session's assets (slides, sample code, scripts) and its
+  docs-site page to the KongHQ-CX/cs-webinars repo as a pull request. Covers the
+  folder/slug convention, the Zola content-page front matter, a local gitleaks
+  pre-check, and what the release/docs GitHub Actions do on merge. Also handles a
+  gitleaks finding that needs clearing, enforcing separation of duties -- the PR
+  author proposes an allowlist entry, a reviewer authorizes it, and the author
+  never merges past a red scan.
+when_to_use: >-
+  Use whenever the user wants to post, publish, add, or upload a webinar or
+  session's materials to cs-webinars, or prep a cs-webinars PR: "add my webinar
+  to cs-webinars", "publish the hardening-konnect session assets", "put the
+  slides up on the webinars repo", "make a webinar page for the site", "my
+  session recording and slides are ready". Also trigger when a cs-webinars
+  secret scan flags a value and the user needs it cleared safely.
 argument-hint: "<session title or path to the assets>"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Grep", "Glob", "Skill"]
 ---

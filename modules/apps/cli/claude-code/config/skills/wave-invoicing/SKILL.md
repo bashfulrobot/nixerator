@@ -1,6 +1,18 @@
 ---
 name: wave-invoicing
-description: Assemble a monthly Wave invoice for a consulting customer — pass-through credit-card chargebacks (no markup) plus consulting hours. Reads evidence PDFs/PNGs in the working dir and consulting hours from the prompt or a file, reconciles against the Insync invoice history to avoid duplicate/skipped billing, creates a DRAFT invoice in Wave, downloads the invoice PDF, renames + zips the evidence, and writes a polished email body into a local folder. Use when the user says "wave invoicing", "create the monthly invoice", "bill Camino", "/wave-invoicing", or drops chargeback screenshots/PDFs and asks to invoice a customer. Does NOT send the email (the user sends it by hand) and leaves the Wave invoice as DRAFT.
+description: >-
+  Assemble a monthly Wave invoice for a consulting customer: pass-through
+  credit-card chargebacks at no markup plus consulting hours. Reads the evidence
+  PDFs and PNGs in the working directory, reconciles against the Insync invoice
+  history so nothing is double-billed or skipped, creates a DRAFT invoice in
+  Wave, downloads the invoice PDF, renames and zips the evidence, and writes the
+  email body to a local folder. Leaves the invoice as DRAFT and never sends the
+  email.
+when_to_use: >-
+  Use when the user says "wave invoicing", "create the monthly invoice", "bill
+  Camino", "do this month's invoice", "/wave-invoicing", or drops chargeback
+  screenshots and PDFs and asks to invoice a customer. Not for reading personal
+  expense receipts -- that is receipt-scanner.
 ---
 
 # Wave Invoicing
