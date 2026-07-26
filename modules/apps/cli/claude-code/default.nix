@@ -343,6 +343,33 @@ let
 
   hasTokenOptimizer = lib.elem tokenOptimizerConfig.pluginId cfg.plugins;
 
+  # caveman ships a SessionStart hook that injects a terse-output ruleset, and
+  # a UserPromptSubmit hook that re-injects it every turn while a mode is
+  # active. `full` is the middle intensity and matches upstream's own default;
+  # it is pinned here rather than left implicit so an upstream change to that
+  # default can't silently move the host.
+  #
+  # Two consequences of running any mode other than `off`, both intended:
+  #   - The ruleset is injected at every SessionStart, so it competes with the
+  #     `compact` output style and the humanizer prose rules in
+  #     ~/.claude/CLAUDE.md. caveman's own Boundaries section exempts commits,
+  #     PRs and security warnings, which covers most of the overlap.
+  #   - The tracker's brevity autodetect goes live. "be brief", "be terse",
+  #     "less tokens", "fewer tokens" and "shorter answers" all re-assert this
+  #     mode, and it is a session-wide persistent switch, not a one-off. Say
+  #     "normal mode" or "/caveman off" to drop out.
+  #
+  # Store symlink is safe: caveman reads this path with a plain
+  # readFileSync/JSON.parse and no symlink or trust gate (its symlink refusal
+  # applies to the flag file and to repo-local .caveman.json, not here).
+  # Overriding without a rebuild works two ways -- the CAVEMAN_DEFAULT_MODE env
+  # var outranks this file, and a repo-local .caveman.json outranks it
+  # per-project, which is the escape hatch for a prose-heavy repo.
+  hasCaveman = lib.elem "caveman@caveman" cfg.plugins;
+  cavemanConfigFile = pkgs.writeText "caveman-config.json" (
+    builtins.toJSON { defaultMode = "full"; }
+  );
+
   # Conditional env vars exported into both system and HM session scopes.
   # Built once here so the two consumer sites can't drift.
   #
@@ -499,7 +526,13 @@ in
       # numbers: the source is pinned only through nixpkgs and would rot.
       # rtk's *filter* files are different -- those are SHA-trust-gated and would
       # be silently skipped -- but we ship none of those.
-      xdg.configFile."rtk/config.toml".source = rtkConfigFile;
+      xdg.configFile = {
+        "rtk/config.toml".source = rtkConfigFile;
+      }
+      // lib.optionalAttrs hasCaveman {
+        # See hasCaveman above for why the mode is pinned rather than implicit.
+        "caveman/config.json".source = cavemanConfigFile;
+      };
     };
   };
 }
