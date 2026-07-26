@@ -5,6 +5,18 @@ description: >
   runs Kubernetes schema validation, detects deprecated Flux APIs, reviews RBAC/multi-tenancy/secrets
   management, and produces a prioritized GitOps report. Use when users ask to audit, analyze,
   validate, review, or security-check a GitOps repo.
+when_to_use: >-
+  Use when pointed at a cluster repo rather than a live cluster: "audit the
+  homelab repo", "check my Flux manifests", "are my HelmReleases configured
+  right", "validate these kustomizations", "any deprecated Flux APIs in here",
+  "review the GitOps repo for security", "is this multi-tenancy set up
+  correctly", "lint the cluster manifests". Trigger on repos holding
+  `clusters/`, `kustomization.yaml`, HelmRelease, or Flux CRDs. For a live
+  cluster whose resources are stuck or failing, use gitops-cluster-debug; for
+  conceptual Flux questions or manifest authoring, use gitops-knowledge.
+effort: high
+context: fork
+background: false
 license: Apache-2.0
 compatibility: Requires awk, git, kustomize, kubeconform, flux, yq
 ---

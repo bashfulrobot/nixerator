@@ -14,6 +14,7 @@ description: >-
   or otherwise wants GitHub issues processed without supervision. Trigger
   eagerly even if the user only hints at hands-off issue work. This skill
   exists for exactly that case.
+effort: high
 ---
 
 # Autonomous Issues

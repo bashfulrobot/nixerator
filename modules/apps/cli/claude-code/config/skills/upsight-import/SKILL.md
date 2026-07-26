@@ -1,6 +1,19 @@
 ---
 name: upsight-import
-description: Bulk-import customer meeting transcripts into the upsight app via the `upsight summarize` CLI, and reconcile disk transcripts against the upsight database to find what's missing or duplicated. Use when the user wants to import meetings into upsight, "catch up upsight", process the last N days/weeks of meeting notes, check which meetings are already in upsight, or find/clean duplicate meeting summaries. Triggers on "import meetings into upsight", "what meetings are missing from upsight", "bulk summarize", "upsight is behind", or after downloading a batch of meeting transcripts.
+description: >-
+  Bulk-import customer meeting transcripts into the upsight app via the
+  `upsight summarize` CLI, and reconcile on-disk transcripts against the upsight
+  database to find what is missing or duplicated.
+when_to_use: >-
+  Use when the user wants to import meetings into upsight, "catch up upsight",
+  process the last N days or weeks of meeting notes, check which meetings are
+  already in upsight, or find and clean duplicate meeting summaries. Triggers on
+  "import meetings into upsight", "what meetings are missing from upsight",
+  "bulk summarize", "upsight is behind", or right after downloading a batch of
+  meeting transcripts.
+effort: low
+context: fork
+background: false
 allowed-tools: ["Bash", "Read", "Grep", "Glob"]
 ---
 

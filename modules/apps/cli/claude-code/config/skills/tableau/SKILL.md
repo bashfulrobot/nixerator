@@ -1,25 +1,26 @@
 ---
 name: tableau
 description: >-
-  Query Kong's Tableau Cloud site via the local `@tableau/mcp-server` MCP
-  tools (list-projects, list-workbooks, list-datasources, search-content,
-  get-workbook, get-view, get-view-data, query-datasource, Pulse metric
-  tools, and more). Use this whenever the user asks about Tableau,
-  dashboards, or reports on the Kong site -- especially customer health
-  score, renewal risk, consumption/usage, churn risk, NPS/CSAT, bookings,
-  or pipeline data pulled from Tableau. Also trigger for "Account 360",
-  "Kong 360", "book of business", "pull up the churn risk dashboard",
-  "what's this account's health score in Tableau", "check the renewal
-  pipeline", "Kong Command Center", "active contract", "Konnect
-  subscription usage", "Konnect capacity consumption", or any request to
-  list/search/export a Tableau
-  workbook, view, or data source, even if the user doesn't say the word
-  "Tableau" explicitly but clearly means the CS/RevOps reporting site
-  (e.g. "what does the dashboard say about Acme's renewal risk"). Do NOT
-  trigger for Salesforce/SFDC queries that don't reference Tableau
-  reporting (the `sfdc` skill owns those) or for building new success-plan
-  documents (the `csp-draft` skill owns that, though it may call
-  into this skill for data).
+  Query Kong's Tableau Cloud site through the local `@tableau/mcp-server` MCP
+  tools: list-projects, list-workbooks, list-datasources, search-content,
+  get-workbook, get-view, get-view-data, query-datasource, and the Pulse metric
+  tools.
+when_to_use: >-
+  Use whenever the user asks about Tableau, dashboards, or reports on the Kong
+  site -- customer health score, renewal risk, consumption or usage, churn risk,
+  NPS/CSAT, bookings, or pipeline. Also "Account 360", "Kong 360", "book of
+  business", "pull up the churn risk dashboard", "what's this account's health
+  score", "check the renewal pipeline", "Kong Command Center", "active
+  contract", "Konnect subscription usage", "Konnect capacity consumption", or
+  any request to list, search, or export a Tableau workbook, view, or data
+  source. Trigger even when the word "Tableau" is absent but the CS/RevOps
+  reporting site is clearly meant ("what does the dashboard say about Acme's
+  renewal risk"). Do NOT trigger for Salesforce/SFDC queries with no Tableau
+  reporting angle (the sfdc skill owns those) or for building success-plan
+  documents (csp-draft owns that, though it may call into this skill for data).
+effort: low
+context: fork
+background: false
 ---
 
 # Tableau (Kong's Tableau Cloud)

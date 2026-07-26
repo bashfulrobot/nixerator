@@ -1,6 +1,13 @@
 ---
 name: workflow-visualizer
-description: Map any system or workflow as an interactive HTML diagram with clickable nodes, hover details, and data-flow arrows. Use this skill when the user says "visualize this workflow", "map out this system", "diagram my workflow", "show how this works", or describes a multi-step process/pipeline they want diagrammed.
+description: >-
+  Map a system or workflow as an interactive, self-contained HTML diagram with
+  clickable nodes, hover detail panels, and data-flow arrows.
+when_to_use: >-
+  Use when the user says "visualize this workflow", "map out this system",
+  "diagram my workflow", "show how this works", "chart this pipeline", or
+  describes a multi-step process or pipeline they want diagrammed. For a static
+  explainer page use visual-page-builder; for a slide deck use revealjs.
 ---
 
 # Workflow Visualizer

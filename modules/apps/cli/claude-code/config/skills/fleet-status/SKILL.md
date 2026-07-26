@@ -1,7 +1,14 @@
 ---
 name: fleet-status
 description: Worktree-aware resume board. Enumerate every task worktree on the machine under the shared worktree root and, for each, show repo, issue number, branch, workflow step, dirty and ahead/behind counts, claim owner, and the exact `work <repo>#N` command to resume it. Flags orphaned worktrees (referenced issue is closed) and stale claims (issue claimed by another host). A worktree with no issue number is a benign "untracked" row, not an error. Read-only. Use after a reboot, or when several agents have run across many repos, to see every in-flight task and how to re-attach. The multi-worktree generalization of branch-status.
-disable-model-invocation: true
+when_to_use: >-
+  Use when the user asks what is in flight across repos, or how to get back to
+  something: "what am I working on", "what's in flight", "list my worktrees",
+  "what tasks are open", "where did I leave off", "show me the fleet", "any
+  stale worktrees", "/fleet-status". Also after a reboot, or once several
+  background agents have run across repos. For only the current directory's
+  branch, use branch-status instead.
+effort: low
 allowed-tools: ["Bash", "Read"]
 ---
 

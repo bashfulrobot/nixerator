@@ -1,6 +1,15 @@
 ---
 name: commit
-description: Create conventional commits, push, tagging, or GitHub/Forgejo releases.
+description: Stage and write conventional commits from the working diff, push the branch, and optionally tag or cut a GitHub/Forgejo release. Enforces the repo's commit conventions and the no-AI-attribution rule.
+when_to_use: >-
+  Use whenever work is ready to be recorded in git: "commit this", "commit and
+  push", "check this in", "save this", "write a commit message", "stage and
+  commit", "push my changes", "/commit", "cut a release", "tag a patch
+  release", "bump the version and tag it". Trigger eagerly at the end of any
+  change the user is happy with, and when the user asks what the commit message
+  should be. Do NOT use for merging a PR to main or removing a worktree -- that
+  is git-cleanup.
+effort: low
 argument-hint: "[--tag <major|minor|patch>] [--release]"
 allowed-tools: ["Bash", "Grep", "Read"]
 ---

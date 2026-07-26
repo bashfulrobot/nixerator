@@ -1,17 +1,21 @@
 ---
 name: release-app
 description: >-
-  Cut a release in an application repo and immediately propagate the new
-  version into the workstation/consumer repo so it can be dogfooded. Runs
-  the app's release recipe, captures the published version, updates the
-  downstream repo's version anchor, commits + pushes via /commit, and
-  rebuilds the workstation. Use whenever the user says "/release-app",
-  "cut a release", "ship upsight", "release and dogfood", "release patch
-  on upsight", "bump upsight on my workstation", "release X then update
-  nixerator", or otherwise wants the end-to-end "publish a release →
-  update my workstation to use it" loop. Trigger eagerly when the user is
-  about to ship one of the apps in the registry below — this is the
-  workflow they're describing, even if they don't name the skill.
+  Cut a release in an application repo and propagate the new version into the
+  consumer/workstation repo in one pass: run the app's release recipe, capture
+  the published version, update the downstream version anchor, commit and push
+  via /commit, then rebuild the workstation so the release is dogfooded
+  immediately.
+when_to_use: >-
+  Manual-only. This skill publishes a release, pushes, and rebuilds the
+  workstation, so it runs only when Dustin invokes /release-app himself -- never
+  inferred from context, and never as a side effect of another task. Once
+  invoked it covers the whole "publish a release, then update my workstation to
+  use it" loop for the apps in the registry below: cutting a release, shipping
+  upsight, releasing a patch and bumping it on the workstation, or releasing one
+  app and then updating nixerator. Confirm the target app and the bump level
+  before running.
+disable-model-invocation: true
 ---
 
 # Release App
