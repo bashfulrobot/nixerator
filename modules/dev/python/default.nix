@@ -30,7 +30,13 @@ in
       (pipx.overridePythonAttrs (_: {
         doCheck = false;
       }))
-      poetry # Alternate dependency / packaging manager
+      # poetry 2.4.1 test suite fails on python3.14: the yanked-package
+      # warning tests (test_execute_prints_warning_for_yanked_package) assert
+      # against output the installer no longer emits verbatim. Disable tests
+      # until nixpkgs catches up.
+      (poetry.overridePythonAttrs (_: {
+        doCheck = false;
+      })) # Alternate dependency / packaging manager
       ruff # Linter + formatter (replaces black, isort, flake8, pylint)
       basedpyright # Type checker / LSP server
       mypy # Static type checker
