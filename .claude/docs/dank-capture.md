@@ -15,11 +15,11 @@ With `hyprflake.desktop.dank.capture.enable = true` (set in the desktop suite), 
 
 ## justfile integration (host-agnostic)
 
-Dank capture is folded into the capture flow alongside claude/agentos, but unlike them it runs on **every** host (any workstation may contribute), not just qbert:
+Dank capture is folded into the capture flow alongside the Claude Code capture, but unlike it it runs on **every** host (any workstation may contribute), not just qbert:
 
 - **`pre-rebuild`** runs `dank-capture` **before** the flake is evaluated, so the *same* rebuild's seed re-derives exactly what was captured (no clobber-guard "un-captured edits" warning). Ordering is the point — capturing after activation would lag a rebuild and warn.
 - **`post-rebuild`** surfaces any `dank-profiles/` change with a `chore(dank): …` commit suggestion (captures are never auto-committed — only `flake.lock` is).
-- **`just capture`** always applies `dank-capture` (on any host) before the qbert-gated claude/agentos block.
+- **`just capture`** always applies `dank-capture` (on any host) before the qbert-gated Claude Code capture block.
 
 So the loop on any host is: tweak DMS in the GUI → `just qr`/`just qu` (or `just capture`) → review the `dank-profiles/` diff → commit only what you intend to share.
 

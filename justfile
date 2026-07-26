@@ -329,7 +329,7 @@ update-skills:
     nix flake update humanizer-skill || echo "humanizer-skill update failed (non-fatal)"
     echo "Skills updated"
 
-# Ad-hoc capture of live ~/.claude, ~/agent-os, and DMS (dank) state into the repo.
+# Ad-hoc capture of live ~/.claude and DMS (dank) state into the repo.
 #
 # Auto-capture during rebuild is gated to qbert (the designated source of
 # truth) so non-canonical hosts don't regress the repo. Use this recipe to
@@ -348,7 +348,7 @@ capture:
     set -uo pipefail
     # DMS (dank) is host-agnostic: any workstation may capture its DMS settings
     # into the shared dank-profiles/<group>.json, so it ALWAYS applies here --
-    # it is not gated to qbert like the claude/agentos capture below. Review the
+    # it is not gated to qbert like the Claude Code capture below. Review the
     # resulting dank-profiles/ diff and commit only deliberate changes (a shared
     # full-file profile means any per-host DMS divergence shows up as a diff).
     if command -v dank-capture >/dev/null 2>&1 && [[ -e "$HOME/.config/DankMaterialShell/settings.json" ]]; then
@@ -357,8 +357,8 @@ capture:
         echo ""
     fi
     if [[ "$(hostname)" != "qbert" && "${JUST_CAPTURE_FORCE:-0}" != "1" ]]; then
-        echo "just capture: claude/agentos capture is gated to qbert; on $(hostname) those run in DRY-RUN mode (DMS was captured above)."
-        echo "  To also apply claude/agentos here, re-run with JUST_CAPTURE_FORCE=1 just capture."
+        echo "just capture: Claude Code capture is gated to qbert; on $(hostname) it runs in DRY-RUN mode (DMS was captured above)."
+        echo "  To also apply it here, re-run with JUST_CAPTURE_FORCE=1 just capture."
         echo ""
         # capture-sync respects --dry-run. Anchor paths on
         # justfile_directory() rather than $(pwd) so the recipe is safe
@@ -381,10 +381,8 @@ capture:
     fi
     echo "Capturing Claude Code config..."
     fish -c 'claude-capture' || echo "Claude capture failed (non-fatal)"
-    echo "Capturing Agent OS config..."
-    fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
     echo ""
-    echo "Review with: git status && git diff modules/apps/cli/claude-code modules/apps/cli/agentos dank-profiles"
+    echo "Review with: git status && git diff modules/apps/cli/claude-code dank-profiles"
 
 # Resolve a capture-sync conflict by picking which side wins.
 # Usage: just capture-resolve skills/gsuite-edit/SKILL.md --home
@@ -439,7 +437,7 @@ secrets-nudge:
 # instead of tripping the seed clobber-guard's "un-captured GUI edits" warning.
 # Capturing after activation would lag a rebuild and warn. The dank module
 # preserves un-captured edits rather than wiping them, so there is no data-loss
-# risk. Unlike claude/agentos (qbert-only), DMS capture runs on EVERY host: any
+# risk. Unlike the Claude Code capture (qbert-only), DMS capture runs on EVERY host: any
 # workstation may contribute DMS settings to the shared profile. The captures are
 # never auto-committed -- post-rebuild surfaces the diff for you to review, so a
 # host with divergent DMS state can't silently clobber the shared profile.
@@ -459,7 +457,7 @@ pre-rebuild mode="quiet":
             dank-capture &>/dev/null || echo "DMS pre-capture failed (non-fatal)"
         fi
     fi
-    # claude/agentos capture flows live ~/.claude state into the repo. Only qbert
+    # The Claude Code capture flows live ~/.claude state into the repo. Only qbert
     # is the designated source -- other hosts (donkeykong, srv, ...) carry
     # narrower live state and would silently regress the repo if allowed to
     # auto-capture. For ad-hoc captures from another host (e.g. a newly
@@ -471,13 +469,9 @@ pre-rebuild mode="quiet":
     if [[ "{{mode}}" == "interactive" ]]; then
         gum spin --spinner dot --title "Capturing live Claude Code config (pre-rebuild)..." \
             -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Pre-capture failed (non-fatal)"
-        gum spin --spinner dot --title "Capturing live Agent OS config (pre-rebuild)..." \
-            -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS pre-capture failed (non-fatal)"
     else
         echo "Capturing live Claude Code config (pre-rebuild)..."
         fish -c 'claude-capture' &>/dev/null || echo "Pre-capture failed (non-fatal)"
-        echo "Capturing live Agent OS config (pre-rebuild)..."
-        fish -c 'agentos-capture' &>/dev/null || echo "Agent OS pre-capture failed (non-fatal)"
     fi
 
 # Post-rebuild: sync plugins, restart DMS, capture config, check for changes
@@ -537,8 +531,6 @@ post-rebuild mode="quiet":
         if $is_capture_source; then
             gum spin --spinner dot --title "Capturing Claude Code config..." \
                 -- bash -c 'fish -c "claude-capture" &>/dev/null' || gum style --foreground 220 "Capture failed (non-fatal)"
-            gum spin --spinner dot --title "Capturing Agent OS config..." \
-                -- bash -c 'fish -c "agentos-capture" &>/dev/null' || gum style --foreground 220 "Agent OS capture failed (non-fatal)"
         fi
     else
         # Plugins synced declaratively at activation; no runtime sync step.
@@ -559,8 +551,6 @@ post-rebuild mode="quiet":
         if $is_capture_source; then
             echo "Capturing Claude Code config..."
             fish -c 'claude-capture' || echo "Capture failed (non-fatal)"
-            echo "Capturing Agent OS config..."
-            fish -c 'agentos-capture' || echo "Agent OS capture failed (non-fatal)"
         fi
     fi
 
@@ -579,7 +569,7 @@ post-rebuild mode="quiet":
     # files are staged. Net effect: scoped commit regardless of what else is
     # staged, and never a `git add -A` commit.
     #
-    # Host gate: claude/agentos capture stays gated to the capture source
+    # Host gate: the Claude Code capture stays gated to the capture source
     # (qbert) via is_capture_source; DMS (dank) settings commit on every host.
     branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)
     on_main=false
@@ -600,10 +590,10 @@ post-rebuild mode="quiet":
         if $on_main; then
             git add -- "${paths[@]}" 2>/dev/null || true
             # `git commit -- <pathspec>` aborts the WHOLE commit if any pathspec
-            # matches no tracked files (e.g. agentos/config when the capture
-            # produced no diffs and the dir holds nothing git-known). Commit only
-            # the paths that actually have staged changes so one empty capture
-            # path can't sink a sibling path's real changes.
+            # matches no tracked files (a capture path that produced no diffs and
+            # holds nothing git-known). Commit only the paths that actually have
+            # staged changes so one empty capture path can't sink a sibling
+            # path's real changes.
             local committable=()
             for p in "${paths[@]}"; do
                 git diff --cached --quiet -- "$p" 2>/dev/null || committable+=("$p")
@@ -626,9 +616,9 @@ post-rebuild mode="quiet":
     }
 
     if $is_capture_source; then
-        commit_captures "Claude/Agent OS config" \
+        commit_captures "Claude Code config" \
             'chore(claude-code): update captured config state' \
-            modules/apps/cli/claude-code/config modules/apps/cli/agentos/config
+            modules/apps/cli/claude-code/config
     fi
     # DMS (dank) settings are captured in pre-rebuild (before the seed) on EVERY
     # host -- not gated to qbert -- so commit any change on its own scope here.
