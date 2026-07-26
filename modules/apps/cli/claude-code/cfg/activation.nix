@@ -15,10 +15,12 @@
   guardSecretCommandsScript,
   scrubSecretOutputScript,
   reapConfig,
+  tokenOptimizerActivation,
   globals,
   homeDir,
   rtk,
   humanizerSkillSrc,
+  intentLayerSkillSrc,
   textPolishRulesFile,
   pluginOverlay,
   userScopeMcpTemplate,
@@ -160,6 +162,15 @@
     $DRY_RUN_CMD rm -rf "$claude_home/skills/humanizer"
     $DRY_RUN_CMD ln -snf "${humanizerSkillSrc}" "$claude_home/skills/humanizer"
 
+    # intent-layer skill -- pinned to crafter-station/skills via the
+    # `crafter-station-skills` flake input, symlinked for the same reasons as
+    # humanizer above (read-only, and claude-capture skips top-level symlinks).
+    # The input is the whole six-skill repo; the path points at the one
+    # subdirectory we want. Update via
+    # `nix flake update crafter-station-skills`.
+    $DRY_RUN_CMD rm -rf "$claude_home/skills/intent-layer"
+    $DRY_RUN_CMD ln -snf "${intentLayerSkillSrc}" "$claude_home/skills/intent-layer"
+
     # Output styles -- remove stale symlinks before copying
     for style in "${configDir}"/output-styles/*; do
       $DRY_RUN_CMD rm -f "$claude_home/output-styles/$(basename "$style")"
@@ -279,5 +290,10 @@
         $DRY_RUN_CMD cp --no-preserve=mode "$plugins_src/blocklist.json" "$claude_home/plugins/blocklist.json"
       fi
     fi
+
+    # token-optimizer -- pin the three flags that keep the plugin out of
+    # Nix-owned state (statusLine, systemd user units) and grant its consent
+    # gate. Empty string on hosts that do not enable the plugin.
+    ${tokenOptimizerActivation}
   '';
 }
