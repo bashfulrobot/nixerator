@@ -29,6 +29,11 @@ in
       spotify.enable = true;
     };
 
+    system.streaming = {
+      sunshine.enable = true;
+      moonlight.enable = true;
+    };
+
     environment.systemPackages = with pkgs; [
       inkscape # vector graphics editor
       losslesscut-bin # lossless video/audio cutting and merging
