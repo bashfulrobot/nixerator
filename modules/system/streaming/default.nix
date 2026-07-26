@@ -67,6 +67,22 @@ in
           48010
         ];
       };
+
+      # Launcher entry for Sunshine's local admin web UI. Plain browser
+      # window rather than the mkWebApp PWA wrapper -- the WebUI is a local
+      # self-signed-cert admin console, not a cloud service needing its own
+      # persistent profile/extensions.
+      home-manager.users.${globals.user.name}.xdg.desktopEntries.sunshine-webui = {
+        name = "Sunshine";
+        comment = "Configure the Sunshine streaming host";
+        exec = "${globals.preferences.browser} --new-window https://localhost:47990";
+        icon = "dev.lizardbyte.app.Sunshine";
+        categories = [
+          "Settings"
+          "Network"
+        ];
+        terminal = false;
+      };
     })
 
     (lib.mkIf cfg.moonlight.enable {
