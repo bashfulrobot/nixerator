@@ -89,12 +89,9 @@
       # them here.
       plugins = [
         "frontend-design@claude-plugins-official"
-        "asana@claude-plugins-official"
         "code-review@claude-plugins-official"
-        "github@claude-plugins-official"
         "commit-commands@claude-plugins-official"
         "security-guidance@claude-plugins-official"
-        "atlassian@claude-plugins-official"
         "slack@claude-plugins-official"
         "gopls-lsp@claude-plugins-official"
         "skill-creator@claude-plugins-official"
