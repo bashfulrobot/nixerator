@@ -432,6 +432,23 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Keep the global CLAUDE.md thin (#294): it deploys verbatim to
+    # ~/.claude/CLAUDE.md and is re-sent on every turn, so an unbounded
+    # regrowth silently erodes the token-budget win that issue fixed. Trips
+    # at eval time (any `just build-host` / `just qr`) rather than waiting
+    # for the next transcript audit to notice. The 8000 ceiling matches
+    # #294's own target exactly rather than leaving slack, so the file
+    # currently sits within ~200 bytes of it -- the next addition to this
+    # file should come with an equivalent trim, not a threshold bump.
+    assertions = [
+      {
+        assertion = builtins.stringLength (builtins.readFile (configDir + "/CLAUDE.md")) < 8000;
+        message = "modules/apps/cli/claude-code/config/CLAUDE.md must stay under 8000 characters (see #294); it is currently ${
+          toString (builtins.stringLength (builtins.readFile (configDir + "/CLAUDE.md")))
+        }.";
+      }
+    ];
+
     # System packages for MCP tooling and LSP servers
     environment.systemPackages =
       (with pkgs; [
