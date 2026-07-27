@@ -67,7 +67,6 @@ named doc before acting — don't work from the one-liner alone.
 - When I ask you to copy something to my clipboard or send a file to my phone, never hardcode `wayland-1` and never guess the transfer command — invoke `send-to-dustin`.
 - Before fetching anything from `developer.konghq.com`, append `.md` to the URL path — invoke `kong-docs-lookup`.
 - When writing a project `CLAUDE.md`, a `.claude/docs/` topic file, or deciding where durable knowledge belongs, follow the thin-CLAUDE.md protocol — invoke `curated-knowledge`.
-- When moving 1Password values (references, placeholders, blind copy, verification), read `/home/dustin/git/nixerator/extras/docs/secrets.md`.
 - When a skill resolves names to IDs or repeatedly queries an external API, read `/home/dustin/git/nixerator/.claude/docs/skill-cache.md` for the `skill-cache` convention.
 
 # Compact instructions

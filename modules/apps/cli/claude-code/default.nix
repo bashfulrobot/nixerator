@@ -436,7 +436,10 @@ in
     # ~/.claude/CLAUDE.md and is re-sent on every turn, so an unbounded
     # regrowth silently erodes the token-budget win that issue fixed. Trips
     # at eval time (any `just build-host` / `just qr`) rather than waiting
-    # for the next transcript audit to notice.
+    # for the next transcript audit to notice. The 8000 ceiling matches
+    # #294's own target exactly rather than leaving slack, so the file
+    # currently sits within ~200 bytes of it -- the next addition to this
+    # file should come with an equivalent trim, not a threshold bump.
     assertions = [
       {
         assertion = builtins.stringLength (builtins.readFile (configDir + "/CLAUDE.md")) < 8000;
