@@ -74,6 +74,12 @@ hooks/stop.js        31aa625f9102257e25a1dfb080f901674ad8468152dc4205104cd6d583b
 bin/render.js        a15c14dbcc2fd5d3ae7ac81ee3379035632be6d9bcd3c6f7dfef1aba7db770da
 ```
 
+Reproduce with `gh api "repos/Or1onn/Semagraph/contents/<path>?ref=<sha>" | jq
+-r '.content' | base64 -d | sha256sum`, no newline normalization applied. A
+mismatch against these values on a re-fetch of the same SHA means the fetch
+method differs (CRLF vs LF, a proxy rewriting content), not that the plugin
+changed; re-derive with the exact command above before treating it as drift.
+
 A SHA bump re-grants that trust wholesale. Re-run the same depth of review
 (read every hook entrypoint and any auto-approval matcher in full, not just
 a diff against the old SHA) before bumping a single-author marketplace,
