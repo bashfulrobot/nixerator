@@ -81,6 +81,16 @@ let
       repo = "alexgreensh/token-optimizer";
       sha = "5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1";
     };
+    # Semantic change-summary cards after an editing turn: a Stop hook detects
+    # file edits and asks the agent to render a "tldr, why, how, files, risks"
+    # card from its own intent rather than an AST diff. Zero dependencies, no
+    # network access (verified by reading hooks/stop.js, hooks/preapprove.js
+    # and bin/render.js at pin time). MIT.
+    semagraph.source = {
+      source = "github";
+      repo = "Or1onn/Semagraph";
+      sha = "9e57466bfdd220de164c7e29f578c79f9b12b1b7";
+    };
   };
 
   marketplaceOf = pluginId: lib.last (lib.splitString "@" pluginId);

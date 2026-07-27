@@ -94,6 +94,10 @@ in
             # .claude/docs/caveman.md for how it interacts with the writing
             # rules and how to drop out of it per-repo or per-session.
             "caveman@caveman"
+            # Semantic change-summary cards (issue #303). See
+            # cfg/plugin-config.nix for why it's trusted; interactive-only,
+            # so headless srv keeps its own smaller list without it.
+            "semagraph@semagraph"
           ];
         };
         antigravity.enable = true;
