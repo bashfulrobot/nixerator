@@ -66,6 +66,22 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
 - `workflow_detail.review_round`. Integer, `0` before the first freeze. Round 1 is the full adversarial review; every later round reviews only the fix delta.
 - `workflow_detail.review_base_sha`. The HEAD the current round's delta is measured from. `findings round --base-sha` sets it; the review skills diff `"$review_base_sha"...HEAD`.
 
+### Skill-managed fields (not CLI-versioned)
+
+- `workflow_detail.review_scope`. `full` | `dev` | `security` | `none`. Set
+  once, immediately, by the `github-issue` skill's Review & Merge Scope step
+  (SKILL.md), from either explicit wording in the invocation or a one-time
+  `AskUserQuestion`. Read on resume so the question is never asked twice for
+  the same issue.
+- `workflow_detail.merge_mode`. `manual` (default) | `auto`. Same lifecycle
+  as `review_scope`. Read at the end of the review loop (or right after push,
+  if `review_scope` is `none`) to decide whether to call `auto-merge`.
+
+Neither field is part of the CLI's own state migrations (`version` stays
+whatever it already was); they're plain `workflow_detail` keys the skill
+writes via `transition --detail-json` and reads back on every resume, the
+same mechanism as `complexity` or `plan_file`.
+
 ## Workflow Steps
 
 | Step | Meaning |
@@ -76,9 +92,9 @@ Path: `<worktree>/.worktree-state.json` (`.gitignore`d)
 | `implement` | Active development |
 | `verify` | Running tests/linters/build |
 | `push` | Ready to push branch and create/update PR |
-| `review_dev` | PR created. Review round 1: both reviews run, findings are frozen into the ledger, the whole batch is fixed |
+| `review_dev` | PR created. Review round 1: whichever reviewer(s) `review_scope` calls for run, findings are frozen into the ledger, the whole batch is fixed |
 | `review_security` | Delta rounds against the fix delta until the ledger gate clears (max 3) |
-| `waiting` | Ledger clear, auto-merge enabled, waiting for CI + branch protection |
+| `waiting` | Gate clear (or `review_scope: none`); merge mode decided at the start — auto-merge enabled, or held for manual merge — waiting for CI + branch protection |
 | `revamp` | Reviewer requested changes |
 | `ci_fix` | Post-push CI failure. Diagnose and fix (distinct from `revamp`). |
 | `done` | PR merged |
@@ -183,6 +199,8 @@ Every reconciliation writes a new `step_history` entry with `reconciled: true` a
 **PR closed without merge (`closed`):** Run `github-issue post-mortem <N>` for close-context, draft a comment on the issue, then ask the user: reopen the PR, create a new one, or abandon.
 
 **Ambiguous complexity (during `assess`):** Read the issue body and classify as trivial / standard / complex. Auto-skip confirmation only when all three signals (prescriptive paths + prescriptive code + acceptance criteria) are present.
+
+**Review scope and merge mode not yet decided (`workflow_detail.review_scope` absent):** Detect from invocation wording first; ask once via `AskUserQuestion` (no default) only if neither axis was already stated. See SKILL.md's Review & Merge Scope section. Decided once per issue, never re-asked once persisted.
 
 **Blocked work:** Open blockers are surfaced at `setup` from the `blockers` array. With the no-stacks rule, prefer to wait for the blocker to merge rather than branching off it.
 
