@@ -116,6 +116,63 @@ refactor that would dwarf the original change. Default to fixing it inline.
 The principle from the project's global guidelines applies: **own every
 problem**. If you can fix it in this PR, fix it in this PR.
 
+## Review & Merge Scope
+
+Not every issue needs the full adversarial review gate, and not every PR needs
+you to sit around waiting to click merge. Both are decided once per issue,
+immediately, before any implementation work starts.
+
+**Two independent choices:**
+
+1. **Review scope.** `full` (dev + security), `dev` (dev review only),
+   `security` (security review only), or `none` (skip the review gate
+   entirely; CI and your own verification are the only gate).
+2. **Merge mode.** `manual` (default: no auto-merge, PR waits for you to
+   review and merge by hand) or `auto` (enable GitHub auto-merge once the
+   gate clears, and let cleanup run the moment it merges).
+
+**Detect from what was already said, first.** If the issue came with words
+that already answer either question — in your invocation, or in a calling
+skill's own invocation text (e.g. `github-issues-auto` handing off a single
+issue) — act on it and do not ask. A calling skill that already made the call
+and states it plainly counts exactly like a human saying it.
+
+Signals to recognize:
+
+- **Skip review.** "no review needed", "skip review", "just installing X",
+  "trivial config change, skip the gate", "don't bother with review for this
+  one" → `review_scope: none`.
+- **One reviewer only.** "dev review only" / "just a dev pass" →
+  `review_scope: dev`. "security review only" / "just check for anything
+  sketchy" → `review_scope: security`.
+- **Merge approved.** "merges approved", "go ahead and merge", "auto-merge
+  this", "merge it when it's green", "you can merge this one" →
+  `merge_mode: auto`.
+- **Explicit manual.** "hold it for me", "let me merge it myself", "don't
+  auto-merge" → `merge_mode: manual` (already the default; stating it just
+  confirms rather than changes anything).
+
+**Otherwise, ask once.** If either axis wasn't already answered, use
+`AskUserQuestion` with no default pre-selected — force an explicit choice
+rather than silently picking one:
+
+- Q1, "Which review(s) should this issue's PR go through before merge?" —
+  options: full gate (dev + security), dev only, security only, skip both.
+- Q2, "Once it's ready, should I auto-merge and let cleanup run
+  automatically, or leave the PR for you to merge by hand?" — options:
+  auto-merge + auto cleanup, leave for manual merge (default).
+
+**Persist immediately.** Fold `review_scope` and `merge_mode` into the
+`--detail-json` of whatever `transition` call comes next — normally assess's
+transition to `design`/`plan`/`implement`; after a `resume`, the first
+`implement` → `verify` transition, since `resume` sets `workflow_step`
+directly and skips assess. Once persisted, later steps and later sessions
+read it back from `workflow_detail` and never ask again for this issue.
+
+If `workflow_detail.review_scope` is already set — a prior session already
+decided, and `status` shows it — skip detection and the question entirely.
+Just use what's stored.
+
 ## Branching Rules
 
 - **Base is always `origin/main`** (or the repo's default branch). The CLI pins the branch to this base at `setup` time; the worktree does not inherit from current HEAD. A SessionStart `git-sync` hook keeps local main fresh.
@@ -200,9 +257,9 @@ Route on `workflow_step`.
 | `plan` | Invoke `superpowers:writing-plans` |
 | `implement` | Code the solution in the worktree |
 | `verify` | Invoke `superpowers:verification-before-completion` |
-| `push` | `github-issue push <N>` (rebases silently, creates PR, propagates labels) |
-| `review_dev` | Review round 1. Run `/review-dev` and `/review-security` against one diff, freeze the finding ledger, fix the whole batch, verify, push |
-| `review_security` | Delta rounds against the fix delta until the gate clears (max 3). Then `github-issue auto-merge <N>`, transition to `waiting` |
+| `push` | `github-issue push <N>` (rebases silently, creates PR, propagates labels); routes to `review_dev`, or straight to `waiting` if `review_scope` is `none` |
+| `review_dev` | Review round 1. Run whichever review(s) `review_scope` calls for against one diff, freeze the finding ledger, fix the whole batch, verify, push |
+| `review_security` | Delta rounds against the fix delta until the gate clears (max 3). Then route on `merge_mode`: auto-merge, or hold for manual merge |
 | `waiting` | Re-check status. CLI auto-fetches and auto-heals BEHIND. Only act manually if `pr.merge_state_status == BEHIND` persists across reconciliations (auto-refresh failed; run `github-issue push <N>` to surface a structured `error.cause`). |
 | `revamp` | Review feedback received. Run `github-issue review-feedback <N>`, evaluate, fix. |
 | `ci_fix` | Post-push CI failure. Diagnose from `check-ci`, fix, re-verify, push. |
@@ -241,6 +298,12 @@ github-issue resume <number>
 
 It re-attaches the worktree on the existing branch and prefers origin as the source of truth. It keeps any local-only commits and warns when the local branch is ahead of origin, so nothing is silently discarded. It links the open same-repo PR it finds via `gh pr list --head <branch>` (fork PRs that merely share the branch name are excluded), so the next `github-issue push` updates that PR rather than opening a second one. It takes the issue lease as a reentrant takeover for the resuming host, so a cross-host pickup is not refused with `issue_claimed`. Resume sets `workflow_step: "implement"` so you re-orient on the branch, then carry forward through verify and push as usual.
 
+Resume rebuilds `workflow_detail` from scratch (the old worktree, and its
+state file, are gone), so `review_scope` and `merge_mode` are unset here even
+if a prior session had already decided them. Determine both now, the same way
+as **Assess** would (see **Review & Merge Scope**), and fold them into the
+next transition you make — normally `implement` → `verify` once work resumes.
+
 Switch the session into the worktree with the `EnterWorktree` tool (`path: <worktree>`), then continue from the recorded step.
 
 Route on `error.cause`:
@@ -268,13 +331,19 @@ Read the issue body (available in `status` response as `issue_body`). Classify c
 
 If any of the three is absent, present the assessment and ask the user to confirm or override.
 
-Then transition:
+**Also determine `review_scope` and `merge_mode` here, if not already set** (see
+**Review & Merge Scope** above — detect from what was already said, otherwise
+ask once). Fold both into the same transition call as `complexity`:
 
 ```bash
 github-issue transition <N> <target> \
   --note "Classified as <level>. <reason>" \
-  --detail-json '{"complexity":"<level>"}'
+  --detail-json '{"complexity":"<level>","review_scope":"<full|dev|security|none>","merge_mode":"<manual|auto>"}'
 ```
+
+If `workflow_detail.review_scope` was already set before reaching this step
+(a resumed run, or a calling skill that decided it), keep `--detail-json` to
+`{"complexity":"<level>"}` alone; there's nothing new to persist.
 
 ### Design
 
@@ -322,7 +391,13 @@ Run the project's test suite, linters, and build.
 - If verification fails: `github-issue transition <N> implement --note "verify failed (<which suite, what error>). Returning to implement."`
 - If verification passes: `github-issue transition <N> push --note "All checks green: <suites run>"`
 
-Every PR walks the full review gate. There is no trivial fast-path.
+Whether this PR walks the review gate, and how much of it, was already
+decided at the start (see **Review & Merge Scope**). This step doesn't
+re-litigate it. The one exception is a resumed session where
+`workflow_detail.review_scope` is still unset (see **Resume** above); if so,
+determine it now and add `--detail-json
+'{"review_scope":"<...>","merge_mode":"<...>"}'` to whichever transition call
+above actually fires.
 
 ### Push
 
@@ -343,11 +418,25 @@ If `push` returns an error object, route on `error.cause`:
 - `protected_branch`. State file resolved the branch name to `main`/`master`. Should never happen on a well-formed state file; surface as data corruption.
 - `worktree_locked` or `setup_locked`. Another `github-issue` process is mid-operation on this worktree (or this issue's setup). Surface; do not retry.
 
-Report `pr_url` and `ci_status` from response. Then:
+Report `pr_url` and `ci_status` from response. Then route on `review_scope`
+(decided at the very start, see **Review & Merge Scope**):
 
-```bash
-github-issue transition <N> review_dev --note "PR created: <url>"
-```
+- `none`:
+
+  ```bash
+  github-issue transition <N> waiting --note "PR created: <url>. Review scope: none (skipped)."
+  ```
+
+  Skip straight to **Waiting**. If `merge_mode` is `auto`, enable auto-merge
+  right now using the same command shown under **After the loop** before
+  moving on; if `manual`, leave it off and report the PR link as ready for
+  your review.
+
+- `dev`, `security`, or `full`:
+
+  ```bash
+  github-issue transition <N> review_dev --note "PR created: <url>"
+  ```
 
 ### Review: freeze, fix, verify
 
@@ -365,21 +454,24 @@ terminating condition. Delta rounds shrink; full rounds do not.
 
 Announce: `"PR created: <pr_url>. Running review."`
 
-Fetch the diff once and run both reviews against it. Invoke `/review-dev` and
-`/review-security` via the `Skill` tool. The diff is identical for both, so
-dispatch them in the same turn rather than waiting for dev to finish before
-starting security.
+Fetch the diff once and run whichever review(s) `review_scope` calls for.
+Invoke `/review-dev` (scope `dev` or `full`) and/or `/review-security` (scope
+`security` or `full`) via the `Skill` tool. When both run, the diff is
+identical for both, so dispatch them in the same turn rather than waiting for
+dev to finish before starting security.
 
-Security review runs for every PR. There is no UI-only skip path. Small PRs
-still go through it; it catches what verification alone can't (new dependencies,
-sketchy patterns, credential leaks).
+`review_scope` was decided once, at the very start (see **Review & Merge
+Scope**), not negotiated mid-review. A PR that reaches this step already has
+a scope; there's no separate skip path here.
 
-Each skill returns a summary line ending in `findings=<path>`. Feed those files
-straight into the ledger without reading them:
+Each skill that ran returns a summary line ending in `findings=<path>`. Feed
+those straight into the ledger without reading them. If both ran, `set` the
+first and `add` the second; if only one is in scope, `set` it alone and skip
+the `add`:
 
 ```bash
-github-issue findings <N> set  --json "$(cat <dev-findings-path>)"
-github-issue findings <N> add  --json "$(cat <security-findings-path>)"
+github-issue findings <N> set  --json "$(cat <first-findings-path>)"
+github-issue findings <N> add  --json "$(cat <second-findings-path>)"   # only if both reviewers ran
 github-issue findings <N> round --base-sha "$(git rev-parse HEAD)"
 ```
 
@@ -431,11 +523,11 @@ After the fix batch is pushed, start a new round pinned to the previous base:
 github-issue findings <N> round --bump --base-sha "$(git rev-parse HEAD)"
 ```
 
-Re-invoke the two review skills in **delta mode**, passing the previous
-`review_base_sha` and the pending ledger entries. Delta rounds review only the
-fix delta, confirm the frozen findings are actually addressed, and flag what the
-fix itself broke. They post no PR comment; the round-1 comment and the fix
-commits are the public record.
+Re-invoke whichever review skill(s) are in scope, in **delta mode**, passing
+the previous `review_base_sha` and the pending ledger entries. Delta rounds
+review only the fix delta, confirm the frozen findings are actually addressed,
+and flag what the fix itself broke. They post no PR comment; the round-1
+comment and the fix commits are the public record.
 
 Feed any new findings back in:
 
@@ -468,12 +560,29 @@ wrong with the change, and a fourth round will not find it.
 
 #### After the loop
 
-```bash
-github-issue auto-merge <N>
-github-issue transition <N> waiting --note "Review: N rounds, M findings resolved. Auto-merge enabled."
-```
+Route on `merge_mode` (decided at the very start, see **Review & Merge
+Scope**):
 
-GitHub will merge the moment branch protection and required checks are satisfied. Reconciliation detects the merge and routes to `done`.
+- `auto`:
+
+  ```bash
+  github-issue auto-merge <N>
+  github-issue transition <N> waiting --note "Review: N rounds, M findings resolved. Auto-merge enabled (pre-approved)."
+  ```
+
+  GitHub will merge the moment branch protection and required checks are
+  satisfied. Reconciliation detects the merge and routes to `done`, which
+  runs cleanup automatically. Nothing further is needed from you.
+
+- `manual` (default):
+
+  ```bash
+  github-issue transition <N> waiting --note "Review: N rounds, M findings resolved. Holding for manual merge, PR ready at <url>."
+  ```
+
+  Do not call `auto-merge`. Report the PR link and stop; merging is your
+  call. Cleanup still runs automatically once the merge is detected, however
+  it happened.
 
 ### Waiting
 
