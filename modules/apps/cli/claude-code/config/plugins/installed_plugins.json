@@ -293,6 +293,16 @@
         "lastUpdated": "2026-07-26T03:15:48.442Z",
         "gitCommitSha": "5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1"
       }
+    ],
+    "semagraph@semagraph": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/semagraph/semagraph/0.6.1",
+        "version": "0.6.1",
+        "installedAt": "2026-07-27T16:03:03.164Z",
+        "lastUpdated": "2026-07-27T16:03:03.164Z",
+        "gitCommitSha": "9e57466bfdd220de164c7e29f578c79f9b12b1b7"
+      }
     ]
   }
 }
