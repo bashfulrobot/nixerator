@@ -81,6 +81,30 @@ let
       repo = "alexgreensh/token-optimizer";
       sha = "5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1";
     };
+    # Semantic change-summary cards after an editing turn: a Stop hook detects
+    # file edits and blocks once to have the agent render a "tldr, why, how,
+    # files, risks" card from its own intent rather than an AST diff. That
+    # block forces one additional model round-trip, but only on turns that
+    # touched a file, unlike the #294 audit's "resident cost" concern, which is
+    # about plugins that inject a system-prompt block or dispatch agents on
+    # every single turn regardless of what happened.
+    # Verified marketplace/plugin names match this id exactly (both declared
+    # as "semagraph" in .claude-plugin/marketplace.json at the pinned SHA, so
+    # this isn't the alexgreensh-token-optimizer case above where the key
+    # differs from the repo basename). Zero dependencies, no network access
+    # (verified by reading hooks/stop.js, hooks/preapprove.js and
+    # bin/render.js in full at pin time: preapprove.js only auto-approves an
+    # anchored, single-quoted-heredoc invocation of this plugin's own
+    # render.js, which itself has no fs writes, no child_process/net/http
+    # requires, and no eval -- a pure JSON-in-markdown-out formatter). MIT.
+    # Single-author, one-star upstream, unlike the other entries here, so the
+    # SHA pin matters more than usual: re-read the full hook + render source
+    # before ever bumping it, the same depth as this review, not just a diff.
+    semagraph.source = {
+      source = "github";
+      repo = "Or1onn/Semagraph";
+      sha = "9e57466bfdd220de164c7e29f578c79f9b12b1b7";
+    };
   };
 
   marketplaceOf = pluginId: lib.last (lib.splitString "@" pluginId);

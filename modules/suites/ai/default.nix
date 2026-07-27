@@ -94,6 +94,13 @@ in
             # .claude/docs/caveman.md for how it interacts with the writing
             # rules and how to drop out of it per-repo or per-session.
             "caveman@caveman"
+            # Semantic change-summary cards (issue #303). See
+            # cfg/plugin-config.nix for why it's trusted. The Stop hook has no
+            # browser/GPU dependency, unlike hyperframes above, so nothing
+            # here would stop it working headless; it's simply not part of
+            # srv's own curated minimal list (hosts/srv/modules.nix), the same
+            # reason that list omits the kong CS tooling and some LSPs.
+            "semagraph@semagraph"
           ];
         };
         antigravity.enable = true;
