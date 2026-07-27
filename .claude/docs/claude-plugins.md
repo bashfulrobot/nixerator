@@ -61,6 +61,19 @@ match. `render.js` itself was read in full and has no `fs` writes, no
 `require('child_process'|'net'|'http'|'https')`, and no `eval`; it parses JSON
 and writes markdown. That is what makes the auto-approval acceptable here.
 
+The claims above aren't independently checkable from inside this repo (the
+vendored plugin source isn't committed here, only referenced by SHA), so a
+future reader has to trust the prose. Below is the SHA256 of each reviewed
+file's raw content (not the git blob hash) at `9e57466bfdd220de164c7e29f578c79f9b12b1b7`,
+so a bump can diff the new content against what was actually read instead of
+against what a comment claims:
+
+```
+hooks/preapprove.js  b1635822fde5e640b5b45ea09f625781299003bc50ebcf1b336fcd07c6306418
+hooks/stop.js        31aa625f9102257e25a1dfb080f901674ad8468152dc4205104cd6d583bf7603
+bin/render.js        a15c14dbcc2fd5d3ae7ac81ee3379035632be6d9bcd3c6f7dfef1aba7db770da
+```
+
 A SHA bump re-grants that trust wholesale. Re-run the same depth of review
 (read every hook entrypoint and any auto-approval matcher in full, not just
 a diff against the old SHA) before bumping a single-author marketplace,

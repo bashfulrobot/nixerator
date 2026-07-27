@@ -83,13 +83,11 @@ let
     };
     # Semantic change-summary cards after an editing turn: a Stop hook detects
     # file edits and blocks once to have the agent render a "tldr, why, how,
-    # files, risks" card from its own intent rather than an AST diff. The card
-    # is produced by the same turn continuing (the Stop hook re-prompts the
-    # in-flight agent; it is not a separate API call), so the standing cost is
-    # bounded to the card's own output tokens on turns that touched a file, not
-    # a second inference pass -- the #294 audit's "resident cost" concern is
+    # files, risks" card from its own intent rather than an AST diff. That
+    # block forces one additional model round-trip, but only on turns that
+    # touched a file, unlike the #294 audit's "resident cost" concern, which is
     # about plugins that inject a system-prompt block or dispatch agents on
-    # every turn regardless of what happened; this only engages after an edit.
+    # every single turn regardless of what happened.
     # Verified marketplace/plugin names match this id exactly (both declared
     # as "semagraph" in .claude-plugin/marketplace.json at the pinned SHA, so
     # this isn't the alexgreensh-token-optimizer case above where the key
