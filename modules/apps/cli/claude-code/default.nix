@@ -59,8 +59,21 @@ let
     inherit pkgs;
     homeDir = globals.user.homeDirectory;
   };
+  # Context-compression CLI, imperatively `uv tool install`-ed at activation
+  # (see cfg/headroom.nix for why it isn't a nix-built derivation). Inert
+  # unless cfg.headroom.enable is set on this host.
+  headroomConfig = import ./cfg/headroom.nix {
+    inherit pkgs versions;
+    homeDir = globals.user.homeDirectory;
+  };
   fishConfig = import ./cfg/fish.nix {
-    inherit globals pkgs statusLineScript;
+    inherit
+      globals
+      pkgs
+      statusLineScript
+      lib
+      hasHeadroom
+      ;
   };
   activationConfig = import ./cfg/activation.nix {
     inherit
@@ -341,6 +354,11 @@ let
 
   hasTokenOptimizer = lib.elem tokenOptimizerConfig.pluginId cfg.plugins;
 
+  # Not a plugin-list membership test like the two above -- headroom has no
+  # marketplace entry, so it gets its own enable option (see the options
+  # block below).
+  hasHeadroom = cfg.headroom.enable;
+
   # caveman ships a SessionStart hook that injects a terse-output ruleset, and
   # a UserPromptSubmit hook that re-injects it every turn while a mode is
   # active. `full` is the middle intensity and matches upstream's own default;
@@ -423,6 +441,14 @@ in
                          and any other entries that require host-local files.
         '';
       };
+      headroom.enable = lib.mkEnableOption ''
+        Headroom (headroomlabs-ai/headroom), a local context-compression CLI
+        installed via `uv tool install` at activation (see cfg/headroom.nix
+        for why -- it's a PyPI-only package with heavy optional ML extras,
+        not a nix-built derivation). Adds the `headroom` binary to PATH and
+        an opt-in `hclaude` fish function ("claude, wrapped by headroom");
+        it does not change what plain `claude` does.
+      '';
     };
   };
 
@@ -533,12 +559,26 @@ in
           ++ skillUpdatesConfig.packages
           ++ reapConfig.packages;
 
+        # `uv tool install` (cfg/headroom.nix) writes the `headroom` shim to
+        # ~/.local/bin. dev.python already puts that dir on PATH when it's
+        # enabled, but claude-code doesn't depend on dev.python, so add it
+        # here too rather than silently relying on another module's opt-in.
+        # Order-independent: a duplicate entry from both modules is harmless.
+        sessionPath = lib.optionals hasHeadroom [ "${homeDir}/.local/bin" ];
+
         # Copy config files as writable copies via activation script.
         # This replaces programs.claude-code.{settings,memory,agents,skills,outputStyles}
         # so that Claude Code can modify its own config at runtime.
-        activation.claudeCodeConfig = inputs.home-manager.lib.hm.dag.entryAfter [
-          "writeBoundary"
-        ] activationConfig.text;
+        activation = {
+          claudeCodeConfig = inputs.home-manager.lib.hm.dag.entryAfter [
+            "writeBoundary"
+          ] activationConfig.text;
+        }
+        // lib.optionalAttrs hasHeadroom {
+          headroomInstall = inputs.home-manager.lib.hm.dag.entryAfter [
+            "writeBoundary"
+          ] headroomConfig.activation;
+        };
 
         # Preserve per-server files for mcp-pick workflow compatibility.
         file = mcpConfig.files // lspConfig.files // contextsConfig.files;
