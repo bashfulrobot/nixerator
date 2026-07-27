@@ -70,6 +70,20 @@
       hash = "sha256-3njs29LxqEzKAGOn7LxEAkD8FLbrzLsX9GRreSqMXB8=";
     };
 
+    # Context-compression CLI (headroomlabs-ai/headroom), consumed by the
+    # claude-code module's cfg/headroom.nix. Ships only as a PyPI package
+    # (`headroom-ai`) with heavy optional ML extras -- there is no nixpkgs
+    # derivation and no github-release asset to prefetch, so `source` is
+    # informational only. updatePolicy=manual because neither update-pkg nor
+    # check-pkg-updates has a "pypi" fetch strategy; bump by hand after
+    # checking https://pypi.org/pypi/headroom-ai/json for the latest version.
+    headroom = {
+      source = "pypi";
+      package = "headroom-ai";
+      updatePolicy = "manual";
+      version = "0.32.1";
+    };
+
     # updatePolicy=manual: the asset URL embeds `shortRev`, a per-release build id
     # (sf-v<version>-<shortRev>-linux-x64.tar.xz). update-pkg has no concept of
     # shortRev, so it bumps `version` alone and leaves shortRev pointing at the

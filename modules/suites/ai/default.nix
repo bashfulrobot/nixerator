@@ -102,6 +102,14 @@ in
             # reason that list omits the kong CS tooling and some LSPs.
             "semagraph@semagraph"
           ];
+          # Local context-compression CLI (issue #313). Not a plugin -- see
+          # cfg/headroom.nix. Workstation-scoped like the rest of this
+          # suite; srv's headless list (hosts/srv/modules.nix) deliberately
+          # leaves it out, same reasoning as hyperframes: the `[all]` extra
+          # is a heavy, workstation-appropriate dependency footprint (ML
+          # compressor model, optional torch), not something worth paying
+          # for on a headless server.
+          headroom.enable = true;
         };
         antigravity.enable = true;
         superpowers.enable = true;
