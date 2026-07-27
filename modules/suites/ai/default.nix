@@ -47,16 +47,16 @@ in
           #   context7              -- duplicate mount. The user-scoped server in
           #     cfg/mcp-servers.nix is the single source; the plugin only added a
           #     second copy of the same tool schemas.
+          #   asana, atlassian, github -- their MCP servers sat unauthenticated
+          #     in `/mcp` with zero real use (github work goes through the `gh`
+          #     CLI, not this MCP). Dropped 2026-07-27; re-add with usage data.
           # Re-adding any of these should come with usage data, not a hunch.
           plugins = [
             # claude-plugins-official (built-in marketplace)
             "frontend-design@claude-plugins-official"
-            "asana@claude-plugins-official"
             "code-review@claude-plugins-official"
-            "github@claude-plugins-official"
             "commit-commands@claude-plugins-official"
             "security-guidance@claude-plugins-official"
-            "atlassian@claude-plugins-official"
             "slack@claude-plugins-official"
             "skill-creator@claude-plugins-official"
             "ralph-loop@claude-plugins-official"
