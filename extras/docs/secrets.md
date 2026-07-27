@@ -45,7 +45,8 @@ agent's context leaks into the model and can be sent off-site.
   status, or check existence/non-emptiness by means that never print the value
   (e.g. transform the value to a present/absent boolean in `jq` before printing).
 
-This mirrors the identical global rule in `~/.claude/CLAUDE.md`.
+The global rule in `~/.claude/CLAUDE.md` states this prohibition inline and
+points here for the mechanics above.
 
 ## One-time per-host setup
 
