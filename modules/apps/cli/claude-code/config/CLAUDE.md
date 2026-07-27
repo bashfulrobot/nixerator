@@ -23,11 +23,11 @@
 
 - **Forbidden:** any command that surfaces a secret value to stdout/the transcript — `op read`, `op item get` with the value revealed, printing a credential field, or even echoing a *partial* value (a prefix, suffix, or length). Partial exposure is still exposure.
 
-Allowed mechanics (references, placeholders, blind copy, verifying a landed secret) are in the Trigger-scoped rules below.
+Allowed mechanics (references, placeholders, blind copy, verifying a landed secret) are at `/home/dustin/git/nixerator/extras/docs/secrets.md`.
 
 ## Claude Code Behaviour Guidelines
 
-- **Own every problem.** Never deflect with "not my changes," "pre-existing issue," or "future work." Diagnose and fix it.
+- **Own every problem.** Never deflect with "not my changes," "pre-existing issue," "known limitation," or "future work." Diagnose and fix it.
 - **Don't stop early or ask permission to continue.** No "good stopping point," no "should I continue?" If you have the knowledge and capability, act.
 - Plan multi-step approaches before acting; recall project conventions from CLAUDE.md files; self-check with reasoning loops before committing or asking for help.
 
