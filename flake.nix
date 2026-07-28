@@ -114,6 +114,15 @@
       url = "github:bashfulrobot/ballpoint";
     };
 
+    # Walkr, the topic-walkthrough renderer. Ships its own flake (packages.walkr,
+    # own nixpkgs pin), same shape as ballpoint: a self-contained Go binary. Also
+    # the source of the walkr-author / walkr-tutorial-author Claude Code skills
+    # (skills/), symlinked into ~/.claude/skills by the claude-code module so the
+    # binary and the skills that author its content stay pinned together.
+    walkr = {
+      url = "github:bashfulrobot/walkr";
+    };
+
     # Pinned upstream for the `humanizer` skill (claude-code + antigravity).
     # Tracks blader/humanizer; bump via `nix flake update humanizer-skill`
     # or `just upgrade`. `flake = false` because the repo ships a SKILL.md,
