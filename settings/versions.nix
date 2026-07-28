@@ -254,18 +254,10 @@
       hash = "sha256-GFe5NPW8nxv+bQsG5G26WCf2Z6qrW1WAZBMWFZD8MFI=";
       vendorHash = null;
     };
-
-    # No tagged releases yet; pinned to main HEAD. Re-pin to a tag once
-    # bashfulrobot/walkr starts cutting releases.
-    walkr = {
-      source = "github-commit";
-      repo = "bashfulrobot/walkr";
-      version = "unstable-2026-07-27";
-      rev = "4ad208a114b0f41a227b5d78c49b30e214437a2b";
-      hash = "sha256-6ZRyaqcoRAtBPOKEv1zn41TiAmNwWL88/JOEhP8D+O8=";
-      vendorHash = "sha256-pkEa4Z+MsvVR5M+/QC3sIyl/H1wMDheHJXqRM60q7Yo=";
-      updatePolicy = "manual"; # commit-pinned, not a version tag; update-pkg only follows release tags
-    };
+    # walkr intentionally has no entry here: it's consumed as a flake input
+    # (see flake.nix), not built via versions.nix + fetchFromGitHub. It ships
+    # its own flake with an overlay, so the package and the
+    # walkr-author/walkr-tutorial-author skills all pin off flake.lock.
 
   };
 

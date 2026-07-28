@@ -102,6 +102,12 @@ let
     # One skill out of a six-skill repo, so this points at the subdirectory
     # rather than the input root.
     intentLayerSkillSrc = inputs.crafter-station-skills + "/context-engineering/intent-layer";
+    # walkr-author and walkr-tutorial-author live under skills/ in walkr's own
+    # repo, alongside the flake that builds the walkr binary (apps/cli/walkr).
+    # Same input, same pin, so the skills and the binary they author content
+    # for never drift apart.
+    walkrAuthorSkillSrc = inputs.walkr + "/skills/walkr-author";
+    walkrTutorialAuthorSkillSrc = inputs.walkr + "/skills/walkr-tutorial-author";
     # Reference the rules file by path, not through
     # `config.apps.cli.text-polish.rulesFile`. Reading the option made this
     # module fail to evaluate on any host that imports claude-code without

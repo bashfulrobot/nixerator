@@ -21,6 +21,8 @@
   rtk,
   humanizerSkillSrc,
   intentLayerSkillSrc,
+  walkrAuthorSkillSrc,
+  walkrTutorialAuthorSkillSrc,
   textPolishRulesFile,
   pluginOverlay,
   userScopeMcpTemplate,
@@ -191,6 +193,15 @@
     # `nix flake update crafter-station-skills`.
     $DRY_RUN_CMD rm -rf "$claude_home/skills/intent-layer"
     $DRY_RUN_CMD ln -snf "${intentLayerSkillSrc}" "$claude_home/skills/intent-layer"
+
+    # walkr-author / walkr-tutorial-author skills -- pinned to bashfulrobot/walkr
+    # via the `walkr` flake input, symlinked for the same reasons as humanizer
+    # above. Same input also builds the walkr binary (apps/cli/walkr), so the
+    # skills and the binary always match. Update via `nix flake update walkr`.
+    $DRY_RUN_CMD rm -rf "$claude_home/skills/walkr-author"
+    $DRY_RUN_CMD ln -snf "${walkrAuthorSkillSrc}" "$claude_home/skills/walkr-author"
+    $DRY_RUN_CMD rm -rf "$claude_home/skills/walkr-tutorial-author"
+    $DRY_RUN_CMD ln -snf "${walkrTutorialAuthorSkillSrc}" "$claude_home/skills/walkr-tutorial-author"
 
     # Output styles -- remove stale symlinks before copying
     for style in "${configDir}"/output-styles/*; do
