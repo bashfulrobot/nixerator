@@ -12,7 +12,7 @@ let
   # adds `walkr` to pkgs) -- consume that directly instead of re-deriving the
   # buildGoModule call here, so the binary and the flake.lock pin are the only
   # place walkr's build gets defined.
-  walkr = (pkgs.extend inputs.walkr.overlays.default).walkr;
+  inherit ((pkgs.extend inputs.walkr.overlays.default)) walkr;
 in
 {
   options = {
