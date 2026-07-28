@@ -2,13 +2,17 @@
   pkgs,
   config,
   lib,
-  versions,
+  inputs,
   ...
 }:
 
 let
   cfg = config.apps.cli.walkr;
-  walkr = pkgs.callPackage ./build { inherit versions; };
+  # walkr ships its own flake with an overlay (inputs.walkr.overlays.default
+  # adds `walkr` to pkgs) -- consume that directly instead of re-deriving the
+  # buildGoModule call here, so the binary and the flake.lock pin are the only
+  # place walkr's build gets defined.
+  walkr = (pkgs.extend inputs.walkr.overlays.default).walkr;
 in
 {
   options = {
