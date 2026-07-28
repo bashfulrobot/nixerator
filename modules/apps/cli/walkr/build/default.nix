@@ -15,7 +15,7 @@ buildGoModule rec {
   src = fetchFromGitHub {
     owner = "bashfulrobot";
     repo = "walkr";
-    rev = v.rev;
+    inherit (v) rev;
     inherit (v) hash;
   };
 
