@@ -17,6 +17,7 @@ buildGoModule rec {
     repo = "walkr";
     inherit (v) rev;
     inherit (v) hash;
+    rev = v.rev;
   };
 
   inherit (v) vendorHash;
