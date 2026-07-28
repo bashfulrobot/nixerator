@@ -257,20 +257,33 @@ let
       };
     };
 
-  # kong-konnect was previously ALSO registered at *user* scope -- auto-loaded,
-  # connected, and advertising tools in every project -- specifically to
-  # shadow the identically-named server the kong-konnect@ai-marketplace plugin
-  # bundles (modules/suites/ai). Deliberately dropped: an always-on connected
-  # server has a standing token cost (its tool schemas ride along every turn),
-  # which outweighs having a dead duplicate lying around instead.
+  # kong-konnect is the one server that must ALSO be registered at *user* scope
+  # rather than only in the mcp-pick library below.
   #
-  # The plugin's own copy references `${KONNECT_TOKEN}`, which is never set
-  # anywhere in this repo, so its Authorization header renders as "Bearer "
-  # and the connection fails auth. Claude Code shows it errored/needs-auth and
-  # advertises zero tools, so leaving it unshadowed costs nothing. The real,
-  # credentialed kong-konnect lives only in the mcp-pick library below
-  # (~/.claude/mcp-servers/kong-konnect/.mcp.json) -- opt in per project.
+  # Why: the kong-konnect@ai-marketplace plugin (modules/suites/ai) bundles its
+  # own server, also called `kong-konnect`, whose `${KONNECT_TOKEN}` is never
+  # set here. A plugin-provided server is active in every project, and Claude
+  # Code offers no way to keep a plugin's skills while dropping its MCP servers.
+  # Registering ours at user scope shadows the dead one everywhere, because
+  # user scope outranks plugin scope; relying on mcp-pick alone would only
+  # shadow it in projects that happen to have a .mcp.json.
   #
+  # Only ~/.claude.json is read for user-scope `mcpServers`. The same key in
+  # settings.json is silently ignored, so activation cannot take the usual
+  # settings.json route. Verified against a throwaway `claude mcp add --scope
+  # user`, which wrote to ~/.claude.json and left settings.json untouched.
+  #
+  # The PAT is deliberately NOT interpolated into this template: it is rendered
+  # to the Nix store, which is world-readable. cfg/activation.nix substitutes
+  # the real value at runtime straight out of the secrets file.
+  userScopeTemplate = builtins.toJSON {
+    mcpServers = lib.optionalAttrs (mcpServers ? kong-konnect) {
+      kong-konnect = lib.recursiveUpdate mcpServers.kong-konnect {
+        headers.Authorization = "Bearer @KONG_KONNECT_PAT@";
+      };
+    };
+  };
+
   # Servers whose config carries a secret. Their .mcp.json is NOT written via
   # home.file (that lands in the world-readable store). Instead cfg/activation.nix
   # writes the real file from the off-store secrets file at 0600 (issue #265).
@@ -334,6 +347,7 @@ in
   inherit
     mcpServers
     files
+    userScopeTemplate
     secretServerFiles
     ;
 }

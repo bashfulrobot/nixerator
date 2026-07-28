@@ -42,6 +42,7 @@ in
         pnpm.enable = true;
         shadowenv.enable = true;
         kotlin-lsp.enable = true;
+        walkr.enable = true;
         worktree-flow.enable = true;
       };
       gui = {
