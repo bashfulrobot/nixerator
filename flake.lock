@@ -1548,11 +1548,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1785291454,
-        "narHash": "sha256-YgiOIhTaAH1e5G/8hZJdWnGi/FsIAMi/738/x4c/FZo=",
+        "lastModified": 1785360842,
+        "narHash": "sha256-scT9OaXcOsZPwRoUtQmLK0xwjiUtvfDOkuia5sy2E/8=",
         "owner": "bashfulrobot",
         "repo": "walkr",
-        "rev": "cbe2d72041c38c25fb9b6af6e377ce0f44e98836",
+        "rev": "19cf194baa6877fe50c9a9c0726caef55248b473",
         "type": "github"
       },
       "original": {
