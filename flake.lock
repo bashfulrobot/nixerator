@@ -1239,11 +1239,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785390183,
-        "narHash": "sha256-JUiUYlIKmJpk8oYI79PBzaqS7uNcEwvc9EJqSG6Lpe4=",
+        "lastModified": 1785395738,
+        "narHash": "sha256-zseNaNG+mh1Wc73PRe3Og1gdkcD9xmXelNapm9MousE=",
         "owner": "bashfulrobot",
         "repo": "snowstorm",
-        "rev": "ae428af43dc3d69ee365ba14468020389f02c2c7",
+        "rev": "c984b2fa1eb76a649c0b3da24e39cdee16220896",
         "type": "github"
       },
       "original": {
