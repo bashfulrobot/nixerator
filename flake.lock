@@ -1239,15 +1239,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1785430671,
-        "narHash": "sha256-cgmrQPGaAa27hdc8a+D0lyTgoT8atV/usBNc6QCItZE=",
+        "lastModified": 1785445147,
+        "narHash": "sha256-BdeUh3U2pF5Hlxo/vmwrGrRob8+ZlcHhFSiyZ8BZJDE=",
         "owner": "bashfulrobot",
         "repo": "snowstorm",
-        "rev": "4796262cc1b382f24351c47ddffb11d224b24a2d",
+        "rev": "8475b4e125577c701aad924b760113618da9a48e",
         "type": "github"
       },
       "original": {
         "owner": "bashfulrobot",
+        "ref": "fix/vendor-hash-charm-deps",
         "repo": "snowstorm",
         "type": "github"
       }
