@@ -8,6 +8,12 @@
 # patchelf the bundled binaries in place, following nixpkgs' `slack`
 # derivation (which packages Slack's .deb the same way).
 #
+# The wrapper also points Cowork's VM backend at its OVMF/virtiofsd
+# dependencies via their documented env-var overrides (CLAUDE_OVMF_CODE_PATH,
+# CLAUDE_VIRTIOFSD_PATH) -- see ../default.nix for why plain systemPackages
+# isn't enough and how the third dependency (qemu-system-x86_64, which has no
+# such override) is handled instead.
+#
 # The bundled Electron keeps us on the exact runtime Anthropic ships (rather
 # than swapping in nixpkgs' electron and risking behavioural drift with the
 # Cowork/Code helpers). The chrome-sandbox binary loses its setuid bit in the
@@ -71,6 +77,10 @@
   libx11,
   libxshmfence,
   libxkbfile,
+
+  # Cowork VM backend dependencies (see comment above and ../default.nix).
+  OVMF,
+  virtiofsd,
 
   versions,
 }:
@@ -191,6 +201,8 @@ stdenv.mkDerivation {
     makeWrapper $out/lib/claude-desktop/claude-desktop $out/bin/claude-desktop \
       --prefix XDG_DATA_DIRS : "$GSETTINGS_SCHEMAS_PATH" \
       --suffix PATH : ${lib.makeBinPath [ xdg-utils ]} \
+      --set CLAUDE_OVMF_CODE_PATH "${OVMF.fd}/FV/OVMF_CODE.fd" \
+      --set CLAUDE_VIRTIOFSD_PATH "${virtiofsd}/bin/virtiofsd" \
       --add-flags "--password-store=gnome-libsecret" \
       --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}"
 
