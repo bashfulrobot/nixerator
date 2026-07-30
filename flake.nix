@@ -58,10 +58,8 @@
 
     # Snowflake data-access CLI (github.com/bashfulrobot/snowstorm). Exposes
     # packages.<system>.default; consumed via apps.cli.snowstorm.
-    # Pinned to the vendorHash-fix branch until bashfulrobot/snowstorm#10
-    # merges; then revert to `github:bashfulrobot/snowstorm` and relock.
     snowstorm = {
-      url = "github:bashfulrobot/snowstorm/fix/vendor-hash-charm-deps";
+      url = "github:bashfulrobot/snowstorm";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
