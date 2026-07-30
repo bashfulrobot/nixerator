@@ -56,6 +56,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Snowflake data-access CLI (github.com/bashfulrobot/snowstorm). Exposes
+    # packages.<system>.default; consumed via apps.cli.snowstorm.
+    snowstorm = {
+      url = "github:bashfulrobot/snowstorm";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-flatpak = {
       url = "github:gmodena/nix-flatpak";
     };

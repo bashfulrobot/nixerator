@@ -94,6 +94,18 @@ MATERIALIZE=(
   # host that runs filebot (modules/apps/cli/media-rename). Dest path matches
   # nixpkgs' filebot package.nix substituteInPlace of APP_DATA/.license.
   "filebot-license|${HOME}/.local/share/filebot/data/.license|600|700|"
+
+  # snowstorm's Snowflake connection profile. No secret value lives in it --
+  # auth is externalbrowser (interactive SSO, no password/token) -- but it
+  # does name the internal account locator, role, warehouse, database, and
+  # schema, which we'd rather not commit in plaintext to this repo. Treated
+  # as a Document like the SSH keys above purely to keep it out of git;
+  # gosnowflake's own loader wants a flat `[name]` table, not the
+  # `[connections.name]` shape the Snowflake CLI/Python connector use.
+  # Workstations only: 700-mode ~/.snowflake matches gosnowflake's own
+  # permission validation (it errors on executable or group/world-writable,
+  # warns on world-readable -- 700/600 satisfies both).
+  "snowflake-connections-toml|${HOME}/.snowflake/connections.toml|600|700|${_WS}"
 )
 
 # Files pushed alongside secrets.json when --push is used. Format per entry:

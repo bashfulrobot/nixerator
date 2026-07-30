@@ -19,6 +19,7 @@ in
         # kong-docs-offline: removed
         deck.enable = true;
         salesforce-cli.enable = true;
+        snowstorm.enable = true;
       };
 
       # Kong GUI applications
