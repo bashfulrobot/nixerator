@@ -13,15 +13,18 @@ let
   homeDir = globals.user.homeDirectory;
 
   # Tool-wide defaults, NOT the Snowflake connection profile (see below).
-  # No account-identifying or secret fields here -- just this user's stated
-  # day-to-day preference for a scannable table over raw JSON, and where
-  # saved queries live on this workstation. `connection` is deliberately
-  # left unset: it comes from connections.toml's own default-connection
-  # marker instead, so it stays resolved at the flag/env layer.
+  # No secret fields here -- this user's stated day-to-day preference for a
+  # scannable table over raw JSON, where saved queries live on this
+  # workstation, and which connections.toml entry to use. `connection` is
+  # pinned to "kong-revops" here because connections.toml (materialized
+  # separately, see below) carries no default_connection_name/[default]
+  # entry of its own -- without this, gosnowflake looks for a connection
+  # literally named "default" and fails to find a DSN.
   snowstormConfigToml = pkgs.writeText "snowstorm-config.toml" ''
-    format    = "table"
-    human     = true
-    query_dir = "${homeDir}/dev/kong/snowstorm/queries/"
+    connection = "kong-revops"
+    format     = "table"
+    human      = true
+    query_dir  = "${homeDir}/dev/kong/snowstorm/queries/"
   '';
 in
 {
