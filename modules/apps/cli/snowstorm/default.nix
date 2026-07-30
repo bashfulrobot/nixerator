@@ -10,16 +10,18 @@
 let
   cfg = config.apps.cli.snowstorm;
   snowstorm = inputs.snowstorm.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  homeDir = globals.user.homeDirectory;
 
   # Tool-wide defaults, NOT the Snowflake connection profile (see below).
   # No account-identifying or secret fields here -- just this user's stated
-  # day-to-day preference for a scannable table over raw JSON. `connection`
-  # and `query_dir` are deliberately left unset: they either come from
-  # connections.toml's own default-connection marker, or vary per host/task,
-  # so they stay resolved at the flag/env layer instead of being pinned here.
+  # day-to-day preference for a scannable table over raw JSON, and where
+  # saved queries live on this workstation. `connection` is deliberately
+  # left unset: it comes from connections.toml's own default-connection
+  # marker instead, so it stays resolved at the flag/env layer.
   snowstormConfigToml = pkgs.writeText "snowstorm-config.toml" ''
-    format = "table"
-    human  = true
+    format    = "table"
+    human     = true
+    query_dir = "${homeDir}/dev/kong/snowstorm/queries/"
   '';
 in
 {
