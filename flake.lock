@@ -1562,10 +1562,10 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1785443160,
+        "lastModified": 1785443838,
         "narHash": "sha256-w3JPgav6xFqijzt6lMmOFtnrjVaFbtQD4/rg7v2Qe2g=",
-        "ref": "fix/pnpm-deps-dompurify-3.4.12",
-        "rev": "2255e8c477d04c7116d04502d880364753ed3a18",
+        "ref": "main",
+        "rev": "7bb14df75d427033a9f7c4fea0f67a572005ef80",
         "revCount": 430,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
