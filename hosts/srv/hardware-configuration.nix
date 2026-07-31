@@ -39,10 +39,15 @@
       fsType = "vfat";
     };
 
-    "/home/dustin/data-disk" = {
-      device = "/dev/disk/by-uuid/3d57bde1-9ee1-465e-9551-adb34b21524a";
-      fsType = "ext4";
-    };
+    # /home/dustin/data-disk (/dev/sda1, uuid 3d57bde1-...) used to be mounted
+    # here too, alongside its raw passthrough into the darkstar-wk01 Talos
+    # guest (modules/talos/storage.tf's ExistingVolumeConfig). Two independent
+    # kernels holding the same ext4 filesystem read-write with no locking is
+    # exactly what corrupted a directory btree on it (EXT4-fs error,
+    # htree_dirblock_to_tree, inode 84279965, 2026-07-31). The disk is
+    # guest-owned only now; srv no longer mounts it. See the removed
+    # jellyfin-media NFS export and media-rename module in hosts/srv/modules.nix
+    # for the two other pieces of this same leftover dual-access setup.
   };
 
   swapDevices = [

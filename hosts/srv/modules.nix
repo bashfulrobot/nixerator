@@ -17,7 +17,6 @@
     ../../modules/apps/cli/gcmt
     ../../modules/apps/cli/git
     ../../modules/apps/cli/helix
-    ../../modules/apps/cli/media-rename
     ../../modules/apps/cli/opencode
     ../../modules/apps/cli/render-secrets
     ../../modules/apps/cli/restic
@@ -54,7 +53,12 @@
     fish.enable = true;
     git.enable = true;
     helix.enable = true;
-    media-rename.enable = true;
+    # media-rename (dlm/dltv) removed 2026-07-31: manual filebot-based
+    # seedbox-pull-and-rename, superseded by the k8s download-sync CronJob +
+    # Sonarr/Radarr import pipeline, and its mediaRoot
+    # (/home/dustin/data-disk/media) was the other half of the dual-mount
+    # that corrupted a directory on the media disk -- see
+    # hardware-configuration.nix.
     # opencode CLI agent + its LSP language servers (kotlin-lsp/yaml-schema-router
     # are already built for helix above, so no extra closure). Points at cloud
     # models by default; srv has no local Ollama provider wiring (qbert-only).
@@ -210,18 +214,14 @@
           uid = 1000;
           gid = 100;
         };
-        jellyfin-media = {
-          path = "/exports/jellyfin-media";
-          bindMount = "/home/dustin/data-disk/media";
-          clients = [ "192.168.168.0/23" ];
-          # Jellyfin's pod runs as UID 1000 (fsGroup), matching the on-disk
-          # owner already -- this is a static PV pointed straight at
-          # existing files, not a CSI provisioner creating subdirs as root,
-          # so root_squash (not darkstar's no_root_squash) is correct.
-          squash = "root_squash";
-          uid = 1000;
-          gid = 100;
-        };
+        # jellyfin-media (path /exports/jellyfin-media, bindMount
+        # /home/dustin/data-disk/media) removed 2026-07-31: stale since issue
+        # #180 retired NFS from darkstar (zero active NFS clients verified on
+        # :2049) and it kept srv mounting /dev/sda1 read-write at the same
+        # time the disk is raw-passthrough-mounted read-write inside the
+        # darkstar-wk01 Talos guest. That dual mount corrupted a directory
+        # btree on it (EXT4-fs error, inode 84279965). The disk is guest-owned
+        # only now.
       };
       additionalPaths = [
         {
