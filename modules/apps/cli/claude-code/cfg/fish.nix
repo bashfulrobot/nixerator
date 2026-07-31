@@ -261,6 +261,23 @@
           # Plugins -- known_marketplaces.json is no longer captured (marketplaces
           # are owned declaratively in cfg/plugin-config.nix). Only installed_plugins.json
           # (SHA-stamped install record) and blocklist.json are captured here.
+          #
+          # WARNING -- these two files are the ONLY capture surface in this module
+          # with no three-way snapshot guard. Everything else routes through
+          # cfg/scripts/capture-sync.py, which diffs home/repo against a snapshot
+          # and reports a conflict. These two are an unconditional copy in each
+          # direction: cfg/activation.nix seeds repo -> live on every rebuild, and
+          # the block below copies live -> repo on every capture. Last writer wins,
+          # and on a single `just qr` activation runs first, so a repo-only edit is
+          # overwritten by the live copy the capture then reads back, while a
+          # live-only edit is overwritten by the next activation.
+          #
+          # Consequence: BOTH sides must always be edited together. Dropping a
+          # plugin from cfg/plugin-config.nix means pruning its key from the repo
+          # copy AND ~/.claude/plugins/*.json AND deleting its
+          # ~/.claude/plugins/cache/<marketplace>/<plugin>/ directory in the same
+          # change. Skipping either half silently reverts. See
+          # .claude/docs/claude-plugins.md ("The fixpoint").
           set -l plugins_dir "$claude_dir/plugins"
           set -l plugins_config "$config_dir/plugins"
           if test -f "$plugins_dir/installed_plugins.json"

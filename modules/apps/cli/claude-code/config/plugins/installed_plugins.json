@@ -21,16 +21,6 @@
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
-    "code-review@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/code-review/unknown",
-        "version": "unknown",
-        "installedAt": "2026-02-03T16:55:11.565Z",
-        "lastUpdated": "2026-04-21T18:14:52.324Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
-      }
-    ],
     "context7@claude-plugins-official": [
       {
         "scope": "user",
@@ -138,16 +128,6 @@
         "version": "unknown",
         "installedAt": "2026-03-14T19:42:41.629Z",
         "lastUpdated": "2026-04-21T18:14:52.330Z",
-        "gitCommitSha": "d5c15b861cd23e3102215c26020368ad5134dc47"
-      }
-    ],
-    "ralph-loop@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/ralph-loop/1.0.0",
-        "version": "1.0.0",
-        "installedAt": "2026-03-14T19:45:42.612Z",
-        "lastUpdated": "2026-03-31T19:17:27.507Z",
         "gitCommitSha": "d5c15b861cd23e3102215c26020368ad5134dc47"
       }
     ],
@@ -272,16 +252,6 @@
         "installedAt": "2026-07-21T21:43:14.823Z",
         "lastUpdated": "2026-07-21T21:43:14.823Z",
         "gitCommitSha": "ef2dd6c9f0e770a694d91388dd7b02469cc43dca"
-      }
-    ],
-    "caveman@caveman": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/caveman/caveman/0d95a81d35a9",
-        "version": "0d95a81d35a9",
-        "installedAt": "2026-07-26T03:15:48.442Z",
-        "lastUpdated": "2026-07-26T03:15:48.442Z",
-        "gitCommitSha": "0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0"
       }
     ],
     "token-optimizer@alexgreensh-token-optimizer": [

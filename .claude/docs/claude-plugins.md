@@ -13,10 +13,35 @@ them and a bare runtime capture cannot unpin them. To add or bump a marketplace,
 edit its entry in `plugin-config.nix` like a lock file.
 
 `~/.claude/plugins/installed_plugins.json` is the opposite. It mirrors the live
-runtime and is captured, not authored. Do not hand-author an entry for a plugin
-that is not actually installed live: the next `just qu`/`qr` capture drops it,
-because the live runtime has nothing backing it. This is exactly what happened to
-the ai-marketplace seed added in #257, which the following capture ate.
+runtime and is captured, not authored. Hand-authoring an entry for a plugin that
+is not installed live gets you nothing useful: it survives in the file but has no
+runtime behind it. That is what happened to the ai-marketplace seed added in
+#257 — it never did anything.
+
+### The fixpoint: prune both sides or neither
+
+`installed_plugins.json` and `blocklist.json` are the **only** capture surface in
+this module with no three-way snapshot guard. `cfg/activation.nix` copies
+repo → live unconditionally on every rebuild; `cfg/fish.nix` copies live → repo
+unconditionally on every capture. Nothing compares against a snapshot to decide
+who wins, so it is last-writer-wins in both directions, and the two writers run
+back to back on a single `just qr`: activation re-seeds live from the repo
+*before* post-rebuild capture reads live back.
+
+The practical consequence: **editing only one side is always silently reverted by
+the other.**
+
+- Delete a stale key from the repo copy only → activation is a no-op for it,
+  but the next capture reads the still-stale live copy and puts it back.
+- Delete it from the live copy only → the next activation re-seeds it from the
+  repo copy.
+
+Do not assume a capture will "clean up" an entry the way it would for a
+genuinely runtime-owned file. When a plugin is dropped from
+`cfg/plugin-config.nix`, prune its key from **both** copies in the same change,
+and delete its `~/.claude/plugins/cache/<marketplace>/<plugin>/` directory too.
+This is why #328's plugin removals left stale state behind until the follow-up
+audit — see the code comment in `cfg/fish.nix` at the capture block.
 
 ## Runbook: Kong Konnect skills missing
 

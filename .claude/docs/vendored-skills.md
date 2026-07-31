@@ -6,14 +6,20 @@ and the per-skill quirks worth knowing before touching one.
 
 ## The pattern
 
-Two skills use it today:
+Four skills from three flake inputs use it today:
 
 | Skill | Flake input | Upstream | Path consumed |
 |---|---|---|---|
 | `humanizer` | `humanizer-skill` | `blader/humanizer` | whole repo |
 | `intent-layer` | `crafter-station-skills` | `crafter-station/skills` | `context-engineering/intent-layer` |
+| `walkr-author` | `walkr` | `bashfulrobot/walkr` | `skills/walkr-author` |
+| `walkr-tutorial-author` | `walkr` | `bashfulrobot/walkr` | `skills/walkr-tutorial-author` |
 
-Both land as **symlinks** into the Nix store, created in `cfg/activation.nix`
+The two walkr skills share the `walkr` input with the `walkr` binary
+(`modules/apps/cli/walkr`), so the tool and the skills that author its content
+are pinned to the same rev by construction.
+
+All four land as **symlinks** into the Nix store, created in `cfg/activation.nix`
 right after the `config/skills/` rsync loop:
 
 ```
@@ -27,9 +33,15 @@ edited locally — upstream owns it — so it stays read-only, and `capture-sync
 refuses to read through a symlink, which means the capture flow skips it for
 free. No exclude list to maintain.
 
-Bump either one with `nix flake update <input>` (or let `just upgrade` sweep
+Bump any of them with `nix flake update <input>` (or let `just upgrade` sweep
 them). `flake.lock` records the rev, so these are pinned the same way every
 other input is.
+
+Bump them **before** a rebuild, never after. Activation resolves each store
+path from `flake.lock`, so a lock bump that lands post-activation cannot reach
+the generation that just switched — it is one full rebuild late by
+construction. That is why `just update-skills` no longer runs
+`nix flake update`; the recipe carries a comment saying so.
 
 ## Adding another
 

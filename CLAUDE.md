@@ -9,7 +9,7 @@ See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where cu
 - When making code changes — builds, rebuilds, lint, format, upgrades, git discipline, secrets — read `.claude/docs/conventions.md`.
 - When adding or modifying a browser-wrapped web app under `modules/apps/webapps/`, read `.claude/docs/webapps.md` — `wmClass` must be verified with `lswt` after rebuild.
 - When you need to look up docs for a Nix tool, library, or flake input, read `.claude/docs/sources.md` (context7 / gitmcp lookup table).
-- When you need a local CLI tool (`amber`, `cpx`, `meetsum`, `gsd`, `nix-init`), read `.claude/docs/tools.md`.
+- When you need a local CLI tool (`amber`, `cpx`, `meetsum`, `nix-init`, `ballpoint`), read `.claude/docs/tools.md`.
 - When the user asks about cross-device session pickup, the `work` fish function, the `claudeWorkHost` archetype, or how to attach to a session from the iPhone, read `.claude/docs/cross-device-workflow.md`.
 - **Secrets (hard rule):** NEVER read rendered secret values — not from `~/.config/nixos-secrets/secrets.json` and not from 1Password (`op read`/`op item get --reveal`), not even a prefix or length. Item titles, field labels, `op://` paths, and placeholders are fine. For the full 1Password flow — adding, rotating, per-host setup, the vault item table — read `extras/docs/secrets.md`.
 - When a skill repeatedly resolves names→IDs or re-queries an external API for the same data, read `.claude/docs/skill-cache.md` for the warm-cache convention and the `skill-cache` CLI.
@@ -17,7 +17,7 @@ See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where cu
 - When working with Claude Code plugins (the declarative marketplace/enabled surface in `cfg/plugin-config.nix`, `installed_plugins.json` capture behavior, or Kong Konnect skills showing installed but missing), read `.claude/docs/claude-plugins.md`.
 - When touching `systemd.user` timers, `users.users.<name>.linger`, or a unit that assumes a graphical session, read `.claude/docs/user-lingering.md` — `Linger=yes` on a running host is not evidence the declaration exists.
 - When touching the token-optimizer plugin, the `/usr/local/bin/python3` tmpfiles rule, or a token-optimizer hook exiting 127, read `.claude/docs/token-optimizer.md`.
-- When adding, bumping, or debugging a skill vendored from a flake input (`humanizer`, `intent-layer`), read `.claude/docs/vendored-skills.md`.
+- When adding, bumping, or debugging a skill vendored from a flake input (`humanizer`, `intent-layer`, `walkr-author`, `walkr-tutorial-author`), read `.claude/docs/vendored-skills.md`.
 - When adding a skill, changing the always-on baseline, or debugging why a skill is missing/present in a project, read `.claude/docs/skill-defaults.md` for the default-off model and `skill-pick`.
 
 ## Reference docs
