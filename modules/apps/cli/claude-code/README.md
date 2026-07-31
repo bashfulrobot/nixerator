@@ -8,11 +8,48 @@ behaviour is enforced via hooks rather than left to discipline.
 
 Last evaluated: **2026-05-05** against
 <https://colobu.com/2026/01/01/40+%20Claude%20Code%20Tips%EF%BC%9A%20From%20Basics%20to%20Advanced/index/>
-("40+ Claude Code Tips: From Basics to Advanced").
+("40+ Claude Code Tips: From Basics to Advanced"). See the tip-by-tip tables
+below.
 
-**Reassess by: 2026-08-05** (3 months). The Claude Code surface and community
-practice change quickly; refetch the article (or successor) and re-run this
-audit. If the article is gone, search for an updated tips list and substitute.
+**Supplementary review: 2026-07-31**, prompted by a full setup review (not a
+re-run of the colobu.com procedure -- that source hasn't changed since May)
+against Anthropic's own
+<https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models>
+("The new rules of context engineering for Claude 5-generation models"),
+fetched and read in full that day. Findings and the changes they drove:
+
+- The article confirms *deferred loading* (search-on-demand, not
+  resident-by-default) as the sanctioned way to keep a large tool/skill
+  surface cheap. This harness already does that for MCP tools (`ToolSearch`)
+  but loads every non-hidden Skill's full description unconditionally --
+  `skillOverrides: "off"` (`cfg/skill-defaults.nix`) is the only lever this
+  module has for the same effect over skills, so a plugin that evades it
+  matters more than a routine prune.
+- Same session, a live-host check found `~/.claude/settings.json`'s
+  `enabledPlugins` still listing plugins dropped from the Nix `plugins` list in
+  #326 (2026-07-30), and `skillOverrides` absent entirely (0 entries). Root
+  cause: the host (qbert) hadn't rebuilt since before #326 landed -- both jq
+  merges in `cfg/activation.nix` are correctly authoritative
+  (`.enabledPlugins = $ov[0].enabledPlugins`), not additive. No code defect;
+  logged so a future session doesn't re-diagnose it as one. A rebuild
+  (`just qr`) applies everything queued since.
+- Dropped `caveman@caveman`: its injected terse-output ruleset directly
+  contradicted `~/.claude/CLAUDE.md`'s non-negotiable "run all prose through
+  humanizer" rule, which is the older "put it all upfront" / prescriptive
+  pattern the article documents Anthropic moving away from. Also dropped
+  `ralph-loop@claude-plugins-official`, the `reap` CLI + slash-command deploy
+  (`cfg/reap.nix`, `build/reap`), and the unmanaged `clay-ralph` user skill --
+  three more autonomous-loop engines duplicating the `auto` skill, retired on
+  the same 596-session intent-log usage-data bar #294 used (`/auto`: 18
+  sessions; the other three: 1-2 each).
+- `superpowers:using-superpowers`'s "1% chance a skill applies -> you MUST
+  invoke it" mandate is in tension with the same guidance (prescriptive
+  must-invoke vs. trusting model judgment). Flagged, not touched -- out of
+  scope unless asked.
+
+**Reassess by: 2026-10-31** (3 months from the supplementary review). Refetch
+whichever of the two sources is still maintained (or a successor) and re-run
+the relevant procedure below.
 
 ### Already covered (often more rigorously than the article)
 
@@ -22,7 +59,7 @@ audit. If the article is gone, search for an updated tips list and substitute.
 | 3. Decompose problems | Plan/Explore agents + `superpowers:writing-plans`/`executing-plans` |
 | 4. Git/gh delegation with safety | `Bash(gh *)` / `Bash(git *)` allowed; `--no-verify` and bare `--force` hard-blocked by PostToolUse hook (`config/settings.json` -- bash-guard) |
 | 5. Fresh context | `cleanupPeriodDays: 15`, intent logs auto-pruned at +15d |
-| 8. Compact context | `PreCompact` hook + REAP `/reap.knowledge` for handoff |
+| 8. Compact context | `PreCompact` hook (checkpoint) + `UserPromptSubmit` post-compact reinject |
 | 12. Invest in workflow | This entire Nix module |
 | 13. Search history | `UserPromptSubmit` writes JSONL to `~/.claude/intent-logs/{session_id}.jsonl` |
 | 14. Multitasking / tmux | tmux-claude hook on every event (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `Stop`, `SubagentStart`, `PreCompact`, `Elicitation`, `SessionEnd`) |
