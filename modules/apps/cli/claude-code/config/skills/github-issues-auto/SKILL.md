@@ -170,6 +170,43 @@ report.
 
 ## Step 1: Pre-flight
 
+### Elevate rm/kill/pkill for this run
+
+Write the same session-bound sentinel `/auto` uses, so worktree cleanup
+(`github-issue cleanup`, which removes a worktree directory) and any
+troubleshooting `kill`/`pkill` don't stall the batch on a permission prompt.
+Unlike `/auto`, do **not** ask for consent first: invoking
+`/github-issues-auto` is itself the consent, since this skill's whole contract
+is zero gates from the first message (see **Operating Principles**) — adding
+an `AskUserQuestion` here would violate that contract for no benefit, the user
+already asked for hands-off issue work by name.
+
+```bash
+jq -nc --arg sid "$CLAUDE_CODE_SESSION_ID" --arg pid "$$" --arg goal "github-issues-auto: $ISSUES" \
+  '{session_id: $sid, pid: $pid, goal: $goal, started: now}' \
+  > ~/.claude/.auto-mode-active
+export CLAUDE_AUTO_MODE=1
+```
+
+The gate this unlocks is scoped, not blanket: `kill`/`pkill` are unconditional
+once the sentinel matches, but `rm` is only auto-allowed inside this session's
+own working tree (each issue's worktree, resolved dynamically per command) or
+a folder pre-authorized in `~/.claude/auto-safe-roots` — an `rm` outside that
+still prompts, and a catastrophic target (bare `/`, bare `$HOME`, system
+roots) is denied outright regardless. Full design:
+[`../auto/references/permission-model.md`](../auto/references/permission-model.md).
+
+State this once in the queue summary narration alongside review/merge scope,
+not as a question: `"rm/kill/pkill elevated for this run, scoped to each
+issue's worktree."` Narrate it once at Pre-flight, not before every command.
+
+If `~/.claude/.auto-mode-active` already exists from a prior crashed run, this
+overwrites it with the current session id — the same stale-sentinel handling
+`/auto` documents in `references/overlay.md` applies here too, but a fresh
+write at the top of every invocation (including a resume) makes an explicit
+cleanup step unnecessary: the old sentinel can never match this session's id
+regardless, and this write immediately supersedes it.
+
 Verify the queue. Each issue must exist and be open:
 
 ```bash
@@ -782,6 +819,14 @@ resume a finished run:
 github-issue queue-state clear
 ```
 
+Then revoke the rm/kill/pkill elevation from Pre-flight — removing the
+sentinel is the entire revoke, there is no settings file to restore:
+
+```bash
+rm -f ~/.claude/.auto-mode-active
+unset CLAUDE_AUTO_MODE
+```
+
 ## Failure Handling
 
 Stop the queue (do not silently skip) when:
@@ -807,8 +852,17 @@ happens mid-issue, before step 2f's advance runs, so persist `cursor` at the
 **current** (un-advanced) index, the position of the issue that just stopped.
 Use the same `github-issue queue-state set` command as step 2f, but do NOT
 advance `cursor` first. Advancing here would move the saved cursor past the
-failed issue and silently drop it from the batch on resume. After persisting,
-report:
+failed issue and silently drop it from the batch on resume. Also revoke the
+Pre-flight rm/kill/pkill elevation here — a stopped queue still ends this
+session's autonomous run, so the sentinel should not outlive it:
+
+```bash
+rm -f ~/.claude/.auto-mode-active
+unset CLAUDE_AUTO_MODE
+```
+
+A resumed run re-writes its own sentinel at the top of Pre-flight, so this
+revoke never blocks the eventual resume. After persisting, report:
 
 - Which issue stopped the queue.
 - What blocker was hit.
