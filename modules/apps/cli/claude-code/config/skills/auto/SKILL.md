@@ -4,11 +4,15 @@ description: >-
   Mark this session as fully autonomous. Use when the user types "/auto",
   says "run autonomously", "I'm AFK", "while I'm away", "hands-off this",
   or provides a verifiable goal condition. Prompts ONCE up front to elevate
-  rm/kill/pkill to no-prompt for this session via a sentinel-gated PreToolUse
-  hook (sudo still prompts; deny-list and git guards stay enforced), suppresses
-  AskUserQuestion in gated skills for the rest of the run, and iterates until
-  the goal condition exits 0, the session is genuinely blocked, or the 150k
-  context budget is reached. Auto-reverts on exit. Never auto-merges PRs.
+  kill/pkill to no-prompt for this session via a sentinel-gated PreToolUse
+  hook, and rm to no-prompt scoped to this session's own working tree (or a
+  pre-authorized folder in ~/.claude/auto-safe-roots) via the same hook -- a
+  catastrophic-target circuit breaker (bare /, bare $HOME, system roots) holds
+  regardless of the sentinel (sudo still prompts; deny-list and git guards
+  stay enforced). Suppresses AskUserQuestion in gated skills for the rest of
+  the run, and iterates until the goal condition exits 0, the session is
+  genuinely blocked, or the 150k context budget is reached. Auto-reverts on
+  exit. Never auto-merges PRs.
 argument-hint: "<goal-shell-command>"
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Skill", "Agent", "AskUserQuestion"]
 ---
@@ -31,11 +35,22 @@ the user to provide a goal condition.
 This run does NOT edit any settings file (that trips the auto-mode classifier).
 It writes a session-bound sentinel, `~/.claude/.auto-mode-active`. A Nix-managed
 PreToolUse hook (`claude-auto-gate`) reads it: while the sentinel is present AND
-its session id matches the running session, `rm`/`kill`/`pkill` are auto-allowed
-(no prompt, including inside subagents); otherwise they prompt as normal. `sudo`
-is never elevated here, and the `deny` list + git guards remain absolute.
-Removing the sentinel at teardown is the entire revoke. Full design and
-rationale: `references/permission-model.md`.
+its session id matches the running session, `kill`/`pkill` are auto-allowed
+against any process (no prompt, including inside subagents) -- there's no
+filesystem path to scope a process signal by, and a troubleshooting run needs
+to reach whatever is stuck. `rm` is auto-allowed too, but scoped to blast
+radius: this session's own working tree (the git worktree/repo toplevel the
+session's cwd sits in, or the cwd itself if it isn't a repo), anything listed
+in `~/.claude/auto-safe-roots` (one pre-authorized folder per line, no rebuild
+needed to add one), and a few universal scratch dirs (`/tmp`,
+`~/.claude/jobs`, `~/.claude/autonomous-runs`). An `rm` target outside all of
+that still prompts, even mid-run -- the sentinel widens WHERE `rm` can run
+unattended, not whether it can run anywhere. A short catastrophic-target
+circuit breaker (bare `/`, bare `$HOME`, and system roots like
+`/etc`/`/nix`/`/boot`) denies `rm` outright regardless of the sentinel, the
+cwd, or the pre-authorized file. `sudo` is never elevated here, and the `deny`
+list + git guards remain absolute. Removing the sentinel at teardown is the
+entire revoke. Full design and rationale: `references/permission-model.md`.
 
 ## Setup (mandatory, in order)
 
@@ -44,10 +59,14 @@ rationale: `references/permission-model.md`.
    `references/overlay.md` before proceeding.
 
 2. **Up-front consent prompt (the ONLY AskUserQuestion of the run).** Ask the
-   user once whether to elevate `rm`/`kill`/`pkill` to no-prompt for this
-   session. State plainly: `sudo` still prompts, the `deny` list and git guards
-   stay enforced, and the grant is removed when the run ends. Offer two options:
-   "Grant for this run" and "Keep prompting me".
+   user once whether to elevate `kill`/`pkill` to no-prompt for this session,
+   and `rm` to no-prompt within this session's own working tree (plus any
+   pre-authorized folder in `~/.claude/auto-safe-roots`). State plainly:
+   `sudo` still prompts, an `rm` target outside the working tree/pre-authorized
+   folders still prompts, a short catastrophic-target list (bare `/`, bare
+   `$HOME`, system roots) is always denied outright, the `deny` list and git
+   guards stay enforced, and the grant is removed when the run ends. Offer two
+   options: "Grant for this run" and "Keep prompting me".
    - If "Keep prompting me": skip step 3 (write no sentinel). The run still
      proceeds autonomously, but `rm`/`kill`/`pkill` will prompt normally -- warn
      that this can stall a genuinely unattended run.
