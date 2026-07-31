@@ -66,6 +66,16 @@ mcp-pick    # select servers to activate; writes .mcp.json (gitignored)
 
 Available: `kubernetes-mcp-server`, `gopls`, `context7`, `kong-konnect`, `slack`, `todoist`, `drawio`.
 
+### Skills (per-project)
+
+```bash
+skill-pick    # select skills to turn OFF here; merges skillOverrides into .claude/settings.local.json (gitignored)
+```
+
+Opposite polarity from `mcp-pick`: skills ship on everywhere by default, so
+picking a skill here disables it for this project. Leave everything unchecked
+to keep the defaults.
+
 ### Output Styles
 
 ```
