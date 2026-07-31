@@ -6,3 +6,7 @@
 # Format: one agent filename per line (match the file name under
 # ~/.claude/agents/, including .md extension). Comments start with '#'.
 # Blank lines are ignored.
+
+# Installed by the REAP plugin (cli.reap in versions.nix); see
+# modules/apps/cli/reap/ for the deployment.
+reap-evolve.md
