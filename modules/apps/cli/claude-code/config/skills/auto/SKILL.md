@@ -1,12 +1,15 @@
 ---
 name: auto
 description: >-
-  Mark this session as fully autonomous. Use when the user types "/auto",
-  says "run autonomously", "I'm AFK", "while I'm away", "hands-off this",
-  or provides a verifiable goal condition. Prompts ONCE up front to elevate
-  kill/pkill to no-prompt for this session via a sentinel-gated PreToolUse
-  hook, and rm to no-prompt scoped to this session's own working tree (or a
-  pre-authorized folder in ~/.claude/auto-safe-roots) via the same hook -- a
+  Mark this session as fully autonomous. Use ONLY when the user explicitly
+  types "/auto <goal-shell-command>". Do NOT infer this from phrases like
+  "run autonomously", "I'm AFK", "while I'm away", or "hands-off this" on
+  their own -- those used to trigger it and no longer should; require the
+  literal command. Writes a session-bound sentinel immediately, no
+  confirmation prompt (typing /auto explicitly IS the consent, same as
+  /github-issues-auto): a PreToolUse hook then takes kill/pkill to no-prompt
+  for this session, and rm to no-prompt scoped to this session's own working
+  tree (or a pre-authorized folder in ~/.claude/auto-safe-roots) -- a
   catastrophic-target circuit breaker (bare /, bare $HOME, system roots) holds
   regardless of the sentinel (sudo still prompts; deny-list and git guards
   stay enforced). Suppresses AskUserQuestion in gated skills for the rest of
@@ -14,15 +17,16 @@ description: >-
   genuinely blocked, or the 150k context budget is reached. Auto-reverts on
   exit. Never auto-merges PRs.
 argument-hint: "<goal-shell-command>"
-allowed-tools: ["Bash", "Read", "Edit", "Write", "Skill", "Agent", "AskUserQuestion"]
+allowed-tools: ["Bash", "Read", "Edit", "Write", "Skill", "Agent"]
 ---
 
 # Autonomous Session
 
 You are now operating in autonomous mode. The user is unavailable for the
-duration of the run. Treat their absence as load-bearing -- after the single
-setup consent prompt below, never call AskUserQuestion again, never stop to
-confirm, never ask "should I continue?". Make decisions and proceed.
+duration of the run. Treat their absence as load-bearing -- never call
+AskUserQuestion, never stop to confirm, never ask "should I continue?".
+Make decisions and proceed. Typing `/auto` explicitly is the user's consent
+to everything below; there is no separate confirmation step.
 
 ## Argument
 
@@ -58,34 +62,22 @@ entire revoke. Full design and rationale: `references/permission-model.md`.
    `/auto` run crashed without teardown. Run the cleanup in
    `references/overlay.md` before proceeding.
 
-2. **Up-front consent prompt (the ONLY AskUserQuestion of the run).** Ask the
-   user once whether to elevate `kill`/`pkill` to no-prompt for this session,
-   and `rm` to no-prompt within this session's own working tree (plus any
-   pre-authorized folder in `~/.claude/auto-safe-roots`). State plainly:
-   `sudo` still prompts, an `rm` target outside the working tree/pre-authorized
-   folders still prompts, a short catastrophic-target list (bare `/`, bare
-   `$HOME`, system roots) is always denied outright, the `deny` list and git
-   guards stay enforced, and the grant is removed when the run ends. Offer two
-   options: "Grant for this run" and "Keep prompting me".
-   - If "Keep prompting me": skip step 3 (write no sentinel). The run still
-     proceeds autonomously, but `rm`/`kill`/`pkill` will prompt normally -- warn
-     that this can stall a genuinely unattended run.
-
-3. **Write the sentinel** (only if consent was granted). The session id binds
-   the grant to THIS session, so a stale sentinel can never elevate another:
+2. **Write the sentinel.** No confirmation prompt -- typing `/auto` explicitly
+   is the consent, same as `/github-issues-auto`. The session id binds the
+   grant to THIS session, so a stale sentinel can never elevate another:
    ```bash
    jq -nc --arg sid "$CLAUDE_CODE_SESSION_ID" --arg pid "$$" --arg goal "$ARGUMENTS" \
      '{session_id: $sid, pid: $pid, goal: $goal, started: now}' \
      > ~/.claude/.auto-mode-active
    ```
 
-4. **Export the gating env var.** Subprocesses and gated skills key off this to
+3. **Export the gating env var.** Subprocesses and gated skills key off this to
    suppress their own AskUserQuestion calls for the run:
    ```bash
    export CLAUDE_AUTO_MODE=1
    ```
 
-5. **Create the run log:**
+4. **Create the run log:**
    ```bash
    mkdir -p ~/.claude/autonomous-runs
    log=~/.claude/autonomous-runs/$(date -u +%Y%m%dT%H%M%SZ).md

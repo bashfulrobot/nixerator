@@ -98,11 +98,12 @@ normal scoped-elevation/ask path instead of a hard deny.
 
 ## Lifecycle
 
-- **Up front:** `/auto` asks one consent question. On grant it writes the
-  sentinel (with `$CLAUDE_CODE_SESSION_ID`). That is the only prompt.
-  `/github-issues-auto` writes the same sentinel without asking -- invoking
-  that skill is itself the consent, since its own contract is zero gates
-  from the first message (see its SKILL.md).
+- **Up front:** both `/auto` and `/github-issues-auto` write the sentinel (with
+  `$CLAUDE_CODE_SESSION_ID`) immediately, no confirmation prompt -- typing the
+  command explicitly is itself the consent. `/auto`'s trigger was narrowed to
+  require the literal command for exactly this reason: with natural-language
+  triggers ("I'm AFK", "hands-off this") gone, there's no ambiguity left for a
+  prompt to resolve.
 - **During:** the hook auto-allows `kill`/`pkill` unconditionally and `rm`
   within its scoped safe roots, for this session only.
 - **End:** teardown does `rm -f ~/.claude/.auto-mode-active`. Removing the
