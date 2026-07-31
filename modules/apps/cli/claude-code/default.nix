@@ -344,6 +344,14 @@ let
 
   mcpPick = builtins.readFile ./cfg/scripts/mcp-pick.bash;
 
+  # Same fzf-picker pattern as mcp-pick, but for skills: skills ship on by
+  # default in every project (unlike MCP servers, which are opt-in via
+  # mcp-pick), so this toggles OFF exceptions per project instead of building
+  # an include set from nothing. Writes skillOverrides into the project's
+  # .claude/settings.local.json, merged in -- not a wholesale overwrite, since
+  # that file also carries permission rules and other local state.
+  skillPick = builtins.readFile ./cfg/scripts/skill-pick.bash;
+
   # Path to config directory (Nix store copy for activation script)
   configDir = ./config;
 
@@ -485,6 +493,7 @@ in
     environment.systemPackages =
       (with pkgs; [
         (writeScriptBin "mcp-pick" mcpPick)
+        (writeScriptBin "skill-pick" skillPick)
         llm-agents.claude-plugins # Plugin & skills manager
         fzf
         jq

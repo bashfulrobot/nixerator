@@ -50,36 +50,34 @@ in
           #   asana, atlassian, github -- their MCP servers sat unauthenticated
           #     in `/mcp` with zero real use (github work goes through the `gh`
           #     CLI, not this MCP). Dropped 2026-07-27; re-add with usage data.
+          #   code-review, kotlin-lsp, rust-analyzer-lsp, kong-skills, kong-skill,
+          #     commit@kong-skills, feature-request@kong-skills, impeccable,
+          #     hyperframes, kong-konnect@ai-marketplace -- zero pluginUsage and
+          #     zero transcript hits over 50 sessions / 3.5 days (claude-code
+          #     doctor, 2026-07-30). code-review/commit@kong-skills/
+          #     feature-request@kong-skills were shadowed by the personal
+          #     review-dev, review-security, commit, and feature-request skills
+          #     the whole time. kotlin-lsp/rust-analyzer-lsp: no Kotlin/Rust
+          #     project has touched this user-scope install; re-add if one does.
+          #     kong-konnect@ai-marketplace (20 Konnect skills): zero use despite
+          #     being Kong's own product -- its bundled MCP server was already
+          #     shadowed (see the old comment this replaced), the skills just
+          #     never got invoked either. Dropped 2026-07-30; re-add with usage
+          #     data, same bar as everything else here.
           # Re-adding any of these should come with usage data, not a hunch.
           plugins = [
             # claude-plugins-official (built-in marketplace)
             "frontend-design@claude-plugins-official"
-            "code-review@claude-plugins-official"
             "commit-commands@claude-plugins-official"
             "security-guidance@claude-plugins-official"
             "slack@claude-plugins-official"
             "skill-creator@claude-plugins-official"
             "ralph-loop@claude-plugins-official"
             "gopls-lsp@claude-plugins-official"
-            "kotlin-lsp@claude-plugins-official"
             "pyright-lsp@claude-plugins-official"
-            "rust-analyzer-lsp@claude-plugins-official"
             # kong-skills (Kong CS marketplace, SHA-pinned)
-            "kong-skills@kong-skills"
-            "kong-skill@kong-skills"
-            "commit@kong-skills"
-            "feature-request@kong-skills"
             "kong-doc-build@kong-skills"
-            # ai-marketplace (Kong's public skills hub, SHA-pinned). One plugin,
-            # 20 Konnect skills. It also bundles an MCP server named
-            # `kong-konnect`, which is shadowed by the identically-named
-            # user-scoped server in cfg/mcp-servers.nix -- user scope outranks
-            # plugin scope, so the 1Password-injected PAT keeps winning over the
-            # plugin's ${KONNECT_TOKEN} placeholder.
-            "kong-konnect@ai-marketplace"
             # other third-party (SHA-pinned)
-            "impeccable@impeccable"
-            "hyperframes@hyperframes"
             # Context-window auditing. Unlike the plugins struck from this list
             # under #294, its standing cost (4 skills, 2 commands) buys a
             # measurement of exactly the thing that audit was about. Needs the
