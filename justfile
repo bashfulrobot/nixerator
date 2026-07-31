@@ -16,11 +16,22 @@ host_flake := ".#" + hostname
 timestamp := `date +%Y-%m-%d_%H-%M-%S`
 
 # === Help ===
+#
+# Listing convention: `just --list` renders the LAST line of the `#` block
+# above a recipe, so a recipe whose comment ends in a long explanation shows a
+# mid-sentence fragment as its description. Where the comment is more than one
+# line, give the recipe an explicit `[doc('...')]` attribute with a one-line
+# summary; the full `#` block stays as the in-file explanation. Single-line
+# comments need no attribute. Every public recipe also carries a `[group()]`
+# so the listing stays navigable.
+
 # Show available recipes
+[group('dev')]
 default:
     @just --list --unsorted
 
 # Open the visual repo tour (extras/docs/index.html) in a browser
+[group('dev')]
 docs:
     #!/usr/bin/env bash
     if command -v xdg-open >/dev/null 2>&1; then xdg-open extras/docs/index.html
@@ -28,6 +39,7 @@ docs:
 
 # === Core Recipes ===
 # Production rebuild of the current host
+[group('rebuild')]
 rebuild:
     #!/usr/bin/env bash
     set -uo pipefail
@@ -65,17 +77,10 @@ rebuild:
 # host config before installing it on the target machine.
 #
 #   just build-host srv
+[doc('Build (not switch) another host to check it still evaluates')]
+[group('rebuild')]
 build-host host:
     nixos-rebuild build --impure --flake ".#{{host}}"
-
-# Stage all, rebuild, unstage on exit
-dev-rebuild:
-    #!/usr/bin/env bash
-    set -uo pipefail
-    gum style --foreground 245 "Staging all changes..."
-    git add -A
-    trap 'git restore --staged .' EXIT
-    just rebuild
 
 # Test a local hyprflake checkout against the current host.
 #
@@ -88,6 +93,8 @@ dev-rebuild:
 #   just hyprflake-test /home/dustin/git/.worktrees/hyprflake-feature
 #
 # Uses {{host_flake}} so it targets whichever host it runs on, like `rebuild`.
+[doc('Rebuild the current host against a local hyprflake checkout')]
+[group('rebuild')]
 hyprflake-test path="/home/dustin/git/hyprflake":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -96,6 +103,10 @@ hyprflake-test path="/home/dustin/git/hyprflake":
         exit 1
     fi
     just secrets-nudge
+    # This performs a real `switch`, so it needs the same pre-rebuild capture
+    # every other switch recipe runs. Without it, any live edit to a
+    # Nix-managed file since the last rebuild is silently lost at activation.
+    just pre-rebuild interactive
     log="{{rebuild_log}}"
     rc=0
     gum spin --spinner dot --title "Rebuilding with local hyprflake ({{path}})..." \
@@ -117,6 +128,7 @@ hyprflake-test path="/home/dustin/git/hyprflake":
     fi
 
 # Full system upgrade
+[group('rebuild')]
 upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
@@ -160,23 +172,7 @@ upgrade:
     else
         gum style --foreground 82 "Upgrade complete"
     fi
-    # Auto-commit + push the refreshed lock so it never lingers uncommitted or
-    # unpushed. Push is gated to main (post-rebuild only pushes main too) and
-    # non-fatal: a failed push keeps the local commit and warns.
-    if ! git diff --quiet flake.lock; then
-        if git add flake.lock && git commit -q -m "chore(flake): update flake lock"; then
-            gum style --foreground 82 "Committed flake.lock"
-            if [[ "$(git branch --show-current 2>/dev/null)" == "main" ]]; then
-                if git push -q origin main 2>/dev/null; then
-                    gum style --foreground 82 "Pushed flake.lock to origin/main"
-                else
-                    gum style --foreground 220 "flake.lock committed but push failed — push manually"
-                fi
-            fi
-        else
-            gum style --foreground 220 "flake.lock updated but commit failed — commit it manually"
-        fi
-    fi
+    just commit-lock "chore(flake): update flake lock" interactive
     just post-rebuild interactive
 
     # Run package update check after successful upgrade
@@ -186,19 +182,18 @@ upgrade:
     bash extras/scripts/check-security-alerts.bash 2>/dev/null || true
 
 # Update a specific flake input
+[group('bump')]
 update input:
     @echo "Updating {{input}}..."
     @nix flake update {{input}}
 
-# Show open Dependabot alerts and what changed since the last check
-check-security:
-    @bash extras/scripts/check-security-alerts.bash
-
 # Run skill-cache unit tests
+[group('test')]
 test-skill-cache:
     nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/skill-cache/tests/
 
 # Run render-secrets unit tests (Forgejo tea-config generation)
+[group('test')]
 test-render-secrets:
     nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/render-secrets/tests/
 
@@ -206,23 +201,28 @@ test-render-secrets:
 # primary-tree-write) plus the capture-sync settings suite in the same dir. git
 # drives the primary-vs-worktree detection, coreutils provides sort/cut for the
 # cwd-replay resolver, and python3 runs the capture-sync reconcile tests.
+#
+# This sweeps the whole tests/ dir, so it also covers capture-sync-settings.bats
+# (the old `test-capture-sync` recipe ran only that one file and was a strict
+# subset of this, so it was removed).
+[doc('Run the claude-code guard-hook + capture-sync test suites')]
+[group('test')]
 test-secret-guard:
     nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gnugrep nixpkgs#git nixpkgs#coreutils nixpkgs#python3 --command bats modules/apps/cli/claude-code/cfg/scripts/tests/
 
-# Run the capture-sync settings.json 3-way reconcile regression tests
-test-capture-sync:
-    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#python3 --command bats modules/apps/cli/claude-code/cfg/scripts/tests/capture-sync-settings.bats
-
 # Run worktree-flow unit tests (github-issue setup branch preflight)
+[group('test')]
 test-worktree-flow:
     nix shell nixpkgs#bats nixpkgs#jq nixpkgs#git --command bats modules/apps/cli/worktree-flow/tests/
 
 # Garbage collection (default: 5 days)
+[group('gc')]
 clean days="5":
     @echo "Cleaning packages older than {{days}} days..."
     @sudo nix-collect-garbage --delete-older-than {{days}}d
 
 # Nuclear garbage collection — maximum cleanup
+[group('gc')]
 gc-nuclear:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -248,6 +248,7 @@ gc-nuclear:
     df -h / | tail -1
 
 # List system generations (with current marker)
+[group('gc')]
 generations:
     @sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
 
@@ -255,6 +256,8 @@ generations:
 # (`nixos-rebuild --rollback`). With arg = jump to that specific gen
 # (e.g. `just rollback 721`). Asks for confirmation before switching
 # because this is destructive to the current generation pointer.
+[doc('Roll back to a previous system generation (no arg = one step back)')]
+[group('gc')]
 rollback gen="":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -284,6 +287,7 @@ rollback gen="":
     sudo nix-env --profile /nix/var/nix/profiles/system --list-generations | grep "(current)"
 
 # Check code health with deadnix and statix
+[group('dev')]
 health:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -298,6 +302,7 @@ health:
     echo "Code health check complete"
 
 # Format all nix files
+[group('dev')]
 fmt:
     @echo "Formatting nix files..."
     @nix fmt
@@ -307,6 +312,8 @@ fmt:
 # The pre-commit hook auto-formats staged .nix files via `nix fmt` so no
 # commit can introduce formatting drift, regardless of editor/agent/human.
 # Run once per clone.
+[doc('Install repo git hooks (points core.hooksPath at .githooks)')]
+[group('dev')]
 setup-hooks:
     @git config core.hooksPath .githooks
     @echo "git hooks installed: core.hooksPath -> .githooks"
@@ -331,6 +338,8 @@ setup-hooks:
 # `just upgrade` / `just quiet-upgrade` run a bare `nix flake update` before
 # the rebuild and commit the lock afterwards -- that is the correct home for
 # the bump, and it sweeps every vendored-skill input. Don't re-add it here.
+[doc('Update manually-installed Claude skills (also runs from post-rebuild)')]
+[group('dev')]
 update-skills:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -353,6 +362,8 @@ update-skills:
 # actually apply on a non-canonical host (uncommon, and the right thing
 # to do if you've just installed something new on that host and want
 # to commit it from there).
+[doc('Ad-hoc capture of live ~/.claude and DMS (dank) state into the repo')]
+[group('capture')]
 capture:
     #!/usr/bin/env bash
     set -uo pipefail
@@ -404,6 +415,8 @@ capture:
 # concatenated into a fish -c command string) so attacker-controlled
 # characters in a filename can't inject shell syntax even if the
 # resulting conflict line ever surfaces such a name to the user.
+[doc('Resolve a capture-sync conflict by picking which side wins')]
+[group('capture')]
 capture-resolve relpath side:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -412,6 +425,54 @@ capture-resolve relpath side:
 # === Shared Helpers ===
 rebuild_log := "/tmp/nixerator-rebuild.log"
 upgrade_log := "/tmp/nixerator-upgrade.log"
+
+# Auto-commit + push a refreshed flake.lock so it never lingers uncommitted or
+# unpushed. Shared by the four recipes that re-lock an input and then need the
+# identical commit/push dance: upgrade, quiet-upgrade, bump-upsight,
+# bump-hyprflake. No-op when flake.lock is unchanged.
+#
+# Push is gated to main (post-rebuild only pushes main too) and non-fatal: a
+# failed push keeps the local commit and warns. A failed commit is non-fatal
+# too -- these run at the tail of a successful rebuild and must not turn a
+# good rebuild into a failed recipe.
+#
+# mode: "interactive" (gum style) or "quiet" (plain echo)
+# sign: "1" to GPG-sign the commit (`git commit -S`), "0" for a plain commit.
+#       The four call sites had diverged here -- bump-hyprflake signed, the
+#       other three did not -- so the flag preserves each caller's existing
+#       behaviour rather than silently picking one. Default is unsigned,
+#       matching the majority.
+[private]
+commit-lock msg mode="quiet" sign="0":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    notice() { if [[ "{{mode}}" == "interactive" ]]; then gum style --foreground 82 "$1"; else echo "$1"; fi; }
+    warn()   { if [[ "{{mode}}" == "interactive" ]]; then gum style --foreground 220 "$1"; else echo "⚠ $1"; fi; }
+
+    git diff --quiet flake.lock && exit 0
+
+    commit_ok=true
+    if git add flake.lock; then
+        if [[ "{{sign}}" == "1" ]]; then
+            git commit -qS -m "{{msg}}" || commit_ok=false
+        else
+            git commit -q -m "{{msg}}" || commit_ok=false
+        fi
+    else
+        commit_ok=false
+    fi
+    if ! $commit_ok; then
+        warn "flake.lock updated but commit failed — commit it manually."
+        exit 0
+    fi
+    notice "Committed flake.lock."
+
+    [[ "$(git branch --show-current 2>/dev/null)" == "main" ]] || exit 0
+    if git push -q origin main 2>/dev/null; then
+        notice "Pushed flake.lock to origin/main."
+    else
+        warn "flake.lock committed but push failed — push manually."
+    fi
 
 # Secrets freshness nudge, run at the top of every switch recipe. A rebuild
 # reads ~/.config/nixos-secrets/secrets.json at eval time, so a stale render can
@@ -652,6 +713,7 @@ post-rebuild mode="quiet":
 # === Quiet Recipes ===
 
 # Quiet rebuild -- captures output, shows only errors on failure
+[group('rebuild')]
 quiet-rebuild:
     #!/usr/bin/env bash
     set -uo pipefail
@@ -688,6 +750,7 @@ quiet-rebuild:
     fi
 
 # Quiet upgrade -- captures output, shows only errors on failure
+[group('rebuild')]
 quiet-upgrade:
     #!/usr/bin/env bash
     set -uo pipefail
@@ -707,23 +770,7 @@ quiet-upgrade:
     } &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Upgrade succeeded. Full log: {{upgrade_log}}"
-        # Auto-commit + push the refreshed lock so it never lingers uncommitted
-        # or unpushed. Push is gated to main (post-rebuild only pushes main too)
-        # and non-fatal: a failed push keeps the local commit and warns.
-        if ! git diff --quiet flake.lock; then
-            if git add flake.lock && git commit -q -m "chore(flake): update flake lock"; then
-                echo "Committed flake.lock."
-                if [[ "$(git branch --show-current 2>/dev/null)" == "main" ]]; then
-                    if git push -q origin main 2>/dev/null; then
-                        echo "Pushed flake.lock to origin/main."
-                    else
-                        echo "⚠ flake.lock committed but push failed — push manually."
-                    fi
-                fi
-            else
-                echo "⚠ flake.lock updated but commit failed — commit it manually."
-            fi
-        fi
+        just commit-lock "chore(flake): update flake lock"
 
         just post-rebuild quiet
     else
@@ -741,9 +788,12 @@ quiet-upgrade:
     fi
 
 # Bump the `upsight` input (github:bashfulrobot/upsight) to latest + rebuild current host; commits + pushes flake.lock to main. For iterating on the app.
+[doc('Bump the upsight input to latest + rebuild; commits + pushes flake.lock')]
+[group('bump')]
 bump-upsight:
     #!/usr/bin/env bash
     set -uo pipefail
+    just secrets-nudge
     just pre-rebuild quiet
     echo "Bumping upsight input + rebuilding (quiet mode)..."
     # Back up the lock so a failed bump reverts cleanly and never leaves the tree
@@ -772,23 +822,7 @@ bump-upsight:
         fi
         rm -f flake.lock-backup-bump
         echo "upsight bumped + rebuilt. Full log: {{rebuild_log}}"
-        # Auto-commit + push the refreshed lock so it never lingers uncommitted
-        # or unpushed. Push is gated to main and non-fatal: a failed push keeps
-        # the local commit and warns.
-        if ! git diff --quiet flake.lock; then
-            if git add flake.lock && git commit -q -m "chore(flake): bump upsight input"; then
-                echo "Committed flake.lock."
-                if [[ "$(git branch --show-current 2>/dev/null)" == "main" ]]; then
-                    if git push -q origin main 2>/dev/null; then
-                        echo "Pushed flake.lock to origin/main."
-                    else
-                        echo "⚠ flake.lock committed but push failed — push manually."
-                    fi
-                fi
-            else
-                echo "⚠ flake.lock updated but commit failed — commit it manually."
-            fi
-        fi
+        just commit-lock "chore(flake): bump upsight input"
 
         just post-rebuild quiet
     else
@@ -810,6 +844,8 @@ bump-upsight:
     fi
 
 # One command: bump + push hyprflake's inputs in its repo, then pull + rebuild here. Reverts the lock if the rebuild fails.
+[doc('Bump + push hyprflake inputs in its repo, then pull + rebuild here')]
+[group('bump')]
 bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -818,6 +854,7 @@ bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
         echo "hyprflake bump failed — aborting before touching nixerator."
         exit 1
     fi
+    just secrets-nudge
     just pre-rebuild quiet
     echo "Bumping hyprflake input + rebuilding (quiet mode)..."
     # Back up the lock so a failed bump reverts cleanly and never leaves the tree
@@ -843,21 +880,9 @@ bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
         fi
         rm -f flake.lock-backup-bump
         echo "hyprflake bumped + rebuilt. Full log: {{rebuild_log}}"
-        # Auto-commit + push the refreshed lock, gated to main; push is non-fatal.
-        if ! git diff --quiet flake.lock; then
-            if git add flake.lock && git commit -qS -m "chore(flake): bump hyprflake input"; then
-                echo "Committed flake.lock."
-                if [[ "$(git branch --show-current 2>/dev/null)" == "main" ]]; then
-                    if git push -q origin main 2>/dev/null; then
-                        echo "Pushed flake.lock to origin/main."
-                    else
-                        echo "⚠ flake.lock committed but push failed — push manually."
-                    fi
-                fi
-            else
-                echo "⚠ flake.lock updated but commit failed — commit it manually."
-            fi
-        fi
+        # sign=1: this is the one lock-bumper that GPG-signs its commit. Kept
+        # as-is when the four commit blocks were folded into commit-lock.
+        just commit-lock "chore(flake): bump hyprflake input" quiet 1
         just post-rebuild quiet
     else
         # Revert so flake.lock isn't left on a broken hyprflake pin.
@@ -877,6 +902,8 @@ bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
 # host. They are NOT re-rendered here — that's `just render-secrets` (local) or
 # `just push-secrets <host>` (render + scp to a peer), run manually when 1Password
 # values change. See extras/docs/secrets.md.
+[doc('Pull and rebuild on another nixerator host over SSH')]
+[group('fleet')]
 remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -902,6 +929,8 @@ remote-rebuild host repo_path="~/git/nixerator":
 # Remote upgrade — pull and full upgrade (flake update + rebuild) on another
 # nixerator host over SSH. Same prereqs as `remote-rebuild`. Heavier than
 # `rr` because the remote runs `nix flake update` before rebuilding.
+[doc('Pull and full-upgrade another nixerator host over SSH')]
+[group('fleet')]
 remote-upgrade host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -927,6 +956,8 @@ remote-upgrade host repo_path="~/git/nixerator":
 # Render Nix-eval secrets locally from 1Password into
 # ~/.config/nixos-secrets/secrets.json. Triggers one biometric prompt per
 # rotation; rebuilds in between read the cached file.
+[doc('Render Nix-eval secrets from 1Password into ~/.config/nixos-secrets/')]
+[group('secrets')]
 render-secrets:
     @render-secrets
 
@@ -940,6 +971,8 @@ render-secrets:
 # Hostnames are validated against an allow-list; render-secrets itself also
 # enforces the same allow-list. The recipe quotes each host individually so a
 # host string containing shell metacharacters cannot inject commands.
+[doc('Render secrets locally AND scp them to one or more peer hosts')]
+[group('secrets')]
 push-secrets +hosts:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -957,6 +990,8 @@ push-secrets +hosts:
 
 # Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
 # Exits non-zero if 1Password values differ from the cached file. Read-only.
+[doc('Check the cached secrets.json against 1Password (read-only)')]
+[group('secrets')]
 check-secrets:
     @render-secrets --check
 
@@ -977,6 +1012,8 @@ check-secrets:
 # `just rotate-op-token` instead -- see below.
 #
 # See extras/docs/helpers.md for the full helper docs.
+[doc('Install the 1Password service-account token on this host (one-time)')]
+[group('secrets')]
 setup-op-token *args:
     @./extras/helpers/setup-op-service-account.sh {{args}}
 
@@ -992,6 +1029,8 @@ setup-op-token *args:
 #   just rotate-op-token --manual    # interactive paste
 #
 # See extras/docs/helpers.md for the full helper docs.
+[doc('Walk through rotating the 1Password service-account token end to end')]
+[group('secrets')]
 rotate-op-token *args:
     @./extras/helpers/rotate-op-service-account.sh {{args}}
 
@@ -1002,6 +1041,8 @@ rotate-op-token *args:
 #
 # Auth is the same as render-secrets -- if you ran `just setup-op-token`
 # first, this runs with no prompts.
+[doc('Bootstrap render of secrets.json on a fresh machine, before the 1st rebuild')]
+[group('secrets')]
 bootstrap-secrets:
     @./extras/helpers/render-secrets-bootstrap.sh
 
@@ -1009,6 +1050,8 @@ bootstrap-secrets:
 # vault (Document items okular-signature + okular-initials) to
 # ~/.kde/share/icons/{signature,initials}.png. One-time per host after
 # `just setup-op-token`; re-run only if you rotate the documents in 1P.
+[doc('Fetch the Okular signature + initials PNGs from 1Password (one-time)')]
+[group('secrets')]
 fetch-signatures:
     @./extras/helpers/fetch-okular-signatures.sh
 
@@ -1017,19 +1060,21 @@ fetch-signatures:
 # them into ~/.gmailctl/credentials.json (0600). One-time per host after
 # `just setup-op-token`; re-run only if you rotate the OAuth client.
 # Afterwards run `gmailctl init` to create token.json.
+[doc('Fetch the gmailctl OAuth client credentials from 1Password (one-time)')]
+[group('secrets')]
 fetch-gmailctl-creds:
     @./extras/helpers/fetch-gmailctl-credentials.sh
 
 # Generic form: fetch the OAuth client into an arbitrary config dir / item.
 # gmailctl picks its dir via --config (NOT cwd), so each account = its own dir.
+# This subsumes the old `fetch-gmailctl-creds-kong` recipe, which was exactly
+# this invocation with the Kong arguments baked in:
 #   just fetch-gmailctl-creds-for ~/.gmailctl-kong gmailctl dustin@konghq.com
+# then: gmailctl --config ~/.gmailctl-kong init
+[doc('Fetch the gmailctl OAuth client into an arbitrary config dir / item')]
+[group('secrets')]
 fetch-gmailctl-creds-for dir item="gmailctl" account="":
     @./extras/helpers/fetch-gmailctl-credentials.sh "{{dir}}" "{{item}}" "{{account}}"
-
-# Kong work account, reusing the SAME OAuth client item (`gmailctl`). Writes
-# ~/.gmailctl-kong/credentials.json; then run `gmailctl --config ~/.gmailctl-kong init`.
-fetch-gmailctl-creds-kong:
-    @./extras/helpers/fetch-gmailctl-credentials.sh "${HOME}/.gmailctl-kong" gmailctl dustin@konghq.com
 
 # === Aliases ===
 alias r := rebuild
@@ -1047,6 +1092,5 @@ alias cs := check-secrets
 alias fs := fetch-signatures
 alias rot := rotate-op-token
 alias fgc := fetch-gmailctl-creds
-alias fgck := fetch-gmailctl-creds-kong
 alias gen := generations
 alias rb := rollback

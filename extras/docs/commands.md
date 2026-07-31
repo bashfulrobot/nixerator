@@ -5,7 +5,6 @@
 Core recipes (run from repo root):
 
 - `just rebuild` / `just r` -- production rebuild of current host
-- `just dev-rebuild` -- stage all, rebuild, unstage on exit
 - `just upgrade` / `just up` -- update flake inputs, rebuild, download voxtype models
 - `just update <input>` -- update a single flake input
 - `just bump-hyprflake` -- one command: bump + push hyprflake's inputs in `~/git/hyprflake`, then pull + rebuild here (reverts the lock only if the new pin fails to build)
@@ -16,6 +15,35 @@ Core recipes (run from repo root):
 - `just fmt` -- format nix files via `nix fmt`
 
 Reference recipes: `just ref <recipe>` -- run `just ref` to list.
+
+Every public root recipe carries a `[group()]`, so `just --list` renders them
+grouped: `rebuild`, `bump`, `secrets`, `capture`, `test`, `gc`, `fleet`, `dev`.
+
+## Tests
+
+Each of these runs a bats suite inside a throwaway `nix shell`, so they need no
+setup and touch nothing outside `/tmp`. None of them build or activate a
+system, so they are all safe to run at any time.
+
+- `just test-secret-guard` -- the claude-code PreToolUse guard hooks
+  (secret-leak redaction, primary-tree-write refusal, output scrubbing) plus
+  the capture-sync `settings.json` three-way reconcile suite. Sweeps the whole
+  `modules/apps/cli/claude-code/cfg/scripts/tests/` directory. **Run it after
+  touching any hook script, the capture-sync reconciler, or the secret
+  deny-lists** -- these are the guards that stop a secret reaching the model or
+  an agent writing into the primary checkout from a worktree.
+- `just test-worktree-flow` -- the worktree-flow helpers behind the
+  `github-issue` / `hack` skills, mainly the branch preflight that decides
+  whether a new worktree can be created and what it bases off. **Run it after
+  changing anything under `modules/apps/cli/worktree-flow/`.**
+- `just test-render-secrets` -- render-secrets unit tests, currently covering
+  the Forgejo `tea` config generation. **Run it after changing the
+  render-secrets script or adding a secret whose rendered output is a config
+  file rather than a bare value.** It exercises the generator only; it never
+  reads real 1Password values.
+- `just test-skill-cache` -- the `skill-cache` CLI (the warm name-to-ID cache
+  skills use instead of re-querying an external API). **Run it after changing
+  `modules/apps/cli/skill-cache/`.**
 
 ## Version Management
 

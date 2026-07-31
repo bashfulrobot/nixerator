@@ -1,44 +1,33 @@
 # Post-rebuild setup — manual steps needed after nixos-rebuild
-# Run `just setup::all` for repeatable steps, or individual recipes as needed
+# Run individual recipes as needed: `just setup::<recipe>`
 
 # Show available setup recipes
 default:
     @just --list setup
 
 # === Repeatable Setup (safe to re-run) ===
-
-# Run all repeatable post-rebuild setup steps
-[group('setup')]
-all:
-    @echo "Running all post-rebuild setup..."
-    @just setup::voxtype
-    @echo ""
-    @echo "All setup complete!"
-
-# Install/update GSD commands, agents, and hooks for Claude Code
 #
-# Disabled 2026-07-31: `gsd-install` no longer exists. Nothing under modules/
-# provides it (the only remaining `gsd` reference in the tree is a `gsd-*`
-# filename skip in cfg/scripts/capture-sync.py, which is a filter, not a
-# provider), so this recipe failed on every `just setup::all`. Kept commented
-# rather than deleted in case the tool is reintroduced.
+# This section is currently empty; both of its recipes were removed and the
+# reasons are kept here so neither gets reintroduced by accident.
+#
+# `voxtype` was a byte-identical duplicate of `ref::voxtype-setup`, and that
+# is the copy the rebuild chain actually calls (`upgrade` and `quiet-upgrade`
+# both run `just ref::voxtype-setup`). Run `just ref::voxtype-setup` by hand
+# if you ever need it standalone.
+#
+# `gsd` was disabled 2026-07-31 because `gsd-install` no longer exists.
+# Nothing under modules/ provides it (the only remaining `gsd` reference in
+# the tree is a `gsd-*` filename skip in cfg/scripts/capture-sync.py, which is
+# a filter, not a provider), so it failed on every run. Kept as a note rather
+# than deleted outright in case the tool is reintroduced:
 #
 # [group('setup')]
 # gsd:
 #     @echo "Setting up GSD (get-shit-done)..."
 #     @gsd-install
-
-# Download Voxtype speech models after upgrades
-[group('setup')]
-voxtype:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! command -v voxtype >/dev/null 2>&1; then
-        echo "Voxtype not installed on this host — skipping model download."
-        exit 0
-    fi
-    echo "Ensuring Voxtype models are downloaded..."
-    voxtype setup --download
+#
+# With both gone, the `all` aggregator had no working steps left, so it was
+# removed too.
 
 # === One-Time Setup (run once after first deploy) ===
 
