@@ -170,6 +170,22 @@ let
     text = builtins.readFile ./cfg/scripts/auto-gate.sh;
   };
 
+  # `auto-permissions` on PATH: manages auto-gate.sh's pre-authorized-folders
+  # file (~/.claude/auto-safe-roots) and reports sentinel status. Validation
+  # rules are a deliberate second copy of auto-gate.sh's own (see the
+  # script's header) -- kept as a real writeShellApplication, not a plain
+  # writeScriptBin like mcp-pick/skill-pick, because it duplicates
+  # permission-sensitive logic that's worth shellcheck + set -e catching a
+  # typo in, same reasoning as autoGateScript above.
+  autoPermissionsScript = pkgs.writeShellApplication {
+    name = "auto-permissions";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/auto-permissions.sh;
+  };
+
   # Context-rot survival. PreCompact writes a recovery snapshot + a per-session
   # sentinel; the next UserPromptSubmit re-injects the hard rules once and clears
   # it. Both are injected at activation and stripped on capture (cfg/fish.nix),
@@ -486,6 +502,7 @@ in
       (with pkgs; [
         (writeScriptBin "mcp-pick" mcpPick)
         (writeScriptBin "skill-pick" skillPick)
+        autoPermissionsScript
         llm-agents.claude-plugins # Plugin & skills manager
         fzf
         jq
