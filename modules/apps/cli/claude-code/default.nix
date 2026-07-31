@@ -292,7 +292,7 @@ let
   # on stdout for identity rewrites too, so an already-wrapped `rtk git status`
   # echoes itself back and reads as a hit. Two just patterns because `just`
   # takes either the short alias or the full recipe name; the name pattern has
-  # no trailing anchor so it still catches fetch-gmailctl-creds-kong, whose
+  # no trailing anchor so it still catches fetch-gmailctl-creds-for, whose
   # keyword sits mid-name. Alternation order inside a pattern means nothing:
   # exclude_commands is a boolean is_match and Rust's regex engine matches
   # whatever the branch order.
@@ -332,7 +332,7 @@ let
   rtkConfigFile = pkgs.writeText "rtk-config.toml" ''
     [hooks]
     exclude_commands = [
-      '^just (rs|ps|cs|fs|rot|fgck|fgc)($|\s)',
+      '^just (rs|ps|cs|fs|rot|fgc)($|\s)',
       '^just [a-z-]*(secret|op-token|cred|signature)',
       '^op($|\s)',
       '^(?i).*(secrets\.json|nixos-secrets|service-account-token|/\.config/op/|credentials\.json|share/rtk/tee/|\.ssh/id_)',

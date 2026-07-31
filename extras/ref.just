@@ -16,15 +16,23 @@ check:
     echo "Validating flake configuration..."
     nix flake check --show-trace
 
-# Check changed nix files only
+# Parse-check every changed .nix file
+#
+# `git diff --name-only` emits paths relative to the repo root, but a module
+# recipe runs with cwd = extras/, so an unqualified `[[ -f "$file" ]]` never
+# matched and the parse loop silently checked nothing while still printing
+# "All checks passed". Every path below is anchored on justfile_directory(),
+# which resolves to the ROOT justfile's directory even inside a module.
+[doc('Parse-check every changed .nix file')]
 [group('validation')]
 check-diff:
     #!/usr/bin/env bash
     set -euo pipefail
+    root="{{justfile_directory()}}"
     echo "Checking changed nix files..."
 
-    changed_files=$(git diff --name-only HEAD 2>/dev/null | grep '\.nix$' || true)
-    staged_files=$(git diff --cached --name-only 2>/dev/null | grep '\.nix$' || true)
+    changed_files=$(git -C "$root" diff --name-only HEAD 2>/dev/null | grep '\.nix$' || true)
+    staged_files=$(git -C "$root" diff --cached --name-only 2>/dev/null | grep '\.nix$' || true)
     all_changed=$(echo -e "$changed_files\n$staged_files" | sort | uniq | grep -v '^$' || true)
 
     if [[ -z "$all_changed" ]]; then
@@ -38,8 +46,8 @@ check-diff:
     echo "Syntax check..."
     failed_files=""
     while IFS= read -r file; do
-        if [[ -f "$file" ]]; then
-            if ! nix-instantiate --parse "$file" >/dev/null 2>&1; then
+        if [[ -f "$root/$file" ]]; then
+            if ! nix-instantiate --parse "$root/$file" >/dev/null 2>&1; then
                 failed_files="$failed_files$file\n"
             fi
         fi
@@ -63,10 +71,15 @@ test:
 
 # === Build Variants ===
 # Rebuild and activate on next boot
+#
+# `--impure` is required here for the same reason every other rebuild recipe
+# passes it: flake.nix reads ~/.config/nixos-secrets/secrets.json via an
+# absolute-path builtins.readFile, which pure evaluation refuses.
+[doc('Rebuild and activate on next boot')]
 [group('build')]
 boot:
     @echo "Building for next boot..."
-    @sudo nixos-rebuild boot --flake {{host_flake}}
+    @sudo nixos-rebuild boot --impure --flake {{host_flake}}
 
 # Build VM for testing
 [group('build')]
@@ -102,12 +115,6 @@ kernel:
     @echo "Boot entries:"
     @sudo ls /boot/EFI/nixos/ 2>/dev/null || sudo ls /boot/loader/entries/ 2>/dev/null || echo "No boot entries found"
 
-# List all system generations
-[group('info')]
-generations:
-    @echo "System generations:"
-    @sudo nix-env --list-generations --profile /nix/var/nix/profiles/system
-
 # Comprehensive system information
 [group('info')]
 sysinfo:
@@ -133,37 +140,47 @@ info:
     @nix flake metadata
 
 # === Maintenance ===
-# Optimize nix store
-[group('maintenance')]
-optimize:
-    @echo "Optimizing nix store..."
-    @nix-store --optimize
-
 # Update nix database for comma tool
 [group('maintenance')]
 update-db:
     @echo "Updating nix database..."
     @nix run 'nixpkgs#nix-index' --extra-experimental-features 'nix-command flakes'
 
-# Lint nix files (all by default, or specify a file/directory)
+# Lint nix files with statix + deadnix (whole repo by default)
+#
+# Pass a file or directory to narrow it; the default `.` means the whole repo.
+# Every path is anchored on justfile_directory() (the ROOT justfile's dir, even
+# from a module) because module recipes run with cwd = extras/: the old bare
+# `.` only ever reached extras/scripts/nix-to-json.nix, and an explicit
+# repo-root-relative target like `modules/apps/cli/foo` resolved to nothing.
+# A relative target is tried against cwd first, then the repo root, so both
+# `just ref::lint modules/system` from the repo root and an absolute path work.
+#
+# Runs both linters because .claude/docs/conventions.md requires both, and
+# `just health` was the only recipe doing so.
+[doc('Lint nix files with statix + deadnix (whole repo by default)')]
 [group('maintenance')]
 lint target=".":
     #!/usr/bin/env bash
     set -euo pipefail
+    root="{{justfile_directory()}}"
     if [[ "{{target}}" == "." ]]; then
-        echo "Linting all nix files..."
-        fd -e nix --hidden --no-ignore --follow . -x statix check {}
+        target="$root"
+    elif [[ -e "{{target}}" ]]; then
+        target="{{target}}"
+    elif [[ -e "$root/{{target}}" ]]; then
+        target="$root/{{target}}"
     else
-        echo "Linting {{target}}..."
-        if [[ -f "{{target}}" ]]; then
-            statix check "{{target}}"
-        elif [[ -d "{{target}}" ]]; then
-            fd -e nix --hidden --no-ignore --follow . "{{target}}" -x statix check {}
-        else
-            echo "Target not found: {{target}}"
-            exit 1
-        fi
+        echo "Target not found: {{target}}"
+        exit 1
     fi
+    echo "Linting $target..."
+    if [[ -f "$target" ]]; then
+        statix check "$target"
+    else
+        fd -e nix --hidden --no-ignore --follow . "$target" -x statix check {}
+    fi
+    deadnix "$target"
 
 # === Helpers ===
 # Search for packages
@@ -176,13 +193,6 @@ pkg-search query:
 [group('helpers')]
 shell packages:
     @nix shell nixpkgs#{{packages}}
-
-# Show config inspection examples
-[group('helpers')]
-inspect:
-    @echo "Config inspection examples:"
-    @echo "nix eval .#nixosConfigurations.{{hostname}}.config.users.users --json"
-    @echo "nix eval .#nixosConfigurations.{{hostname}}.options.services --json"
 
 # Ensure Voxtype models are downloaded after upgrades
 [group('helpers')]
@@ -208,10 +218,16 @@ log days="7":
     git log --since="{{days}} days ago" --pretty=format:"%h - %an: %s (%cr)" --graph
 
 # Hard reset with cleanup
+#
+# Every git call is anchored on justfile_directory() (the ROOT justfile's dir,
+# even from a module). `git clean -fd` is the reason: unlike fetch/reset/pull
+# it is scoped to cwd, and a module recipe runs with cwd = extras/, so an
+# unanchored clean wiped only extras/ while the reset went repo-wide.
+[doc('Hard reset with file cleanup (fetch, reset --hard, clean -fd, pull)')]
 [group('git')]
 reset-hard:
     @echo "Hard reset with file cleanup..."
-    @git fetch
-    @git reset --hard HEAD
-    @git clean -fd
-    @git pull
+    @git -C {{justfile_directory()}} fetch
+    @git -C {{justfile_directory()}} reset --hard HEAD
+    @git -C {{justfile_directory()}} clean -fd
+    @git -C {{justfile_directory()}} pull

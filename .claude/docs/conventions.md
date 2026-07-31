@@ -21,6 +21,7 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 ## Git
 
 - **Never run `git commit` or `git push`.** The user handles commits.
+- **`post-rebuild` is the other sanctioned exception**, alongside the lock-bumpers above. Its `commit_captures` helper stages and pathspec-commits the captured Claude Code config and `dank-profiles/` on every plain `just qr`, then pushes once if anything landed. Both the commit and the push are gated to `main`; on any other branch it only prints the diff for you to review. So a rebuild on `main` moves the remote by design, and that is not an agent violating the rule above.
 - After making changes, suggest a conventional commit scope and title (e.g. `feat(fish): add zoxide integration`).
 - **Do not run `git stash` (push/save).** A PreToolUse hook (`claude-guard-git-stash`) denies it before it runs, so the stash never reaches the shared stack. This is a hard deny, unlike the warn-level `bash-guard` that only nudges on `--no-verify`/`--force`. The stash stack lives at `refs/stash` in the repo's common git directory, which every worktree shares, so two agents stashing in two worktrees push onto the same stack and pop each other's entries. `git stash pop`, `apply`, `list`, `show`, `drop`, and `branch` stay allowed so a human can recover an existing entry. `git stash clear` is denied like a push, since it discards the whole stack.
 
