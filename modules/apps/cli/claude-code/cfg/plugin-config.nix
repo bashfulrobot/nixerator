@@ -56,20 +56,6 @@ let
       repo = "heygen-com/hyperframes";
       sha = "553688c996408cb33de27ce4573bef6c8cf27454";
     };
-    # Output-token compression by prompt injection: a SessionStart hook feeds
-    # in an "answer tersely, like a caveman" ruleset and a UserPromptSubmit
-    # hook re-injects it every turn while active. MIT.
-    #
-    # The module ships ~/.config/caveman/config.json pinning `defaultMode` (see
-    # default.nix) so the active intensity is declared here rather than
-    # inherited from whatever upstream's default happens to be at a given SHA.
-    # See .claude/docs/caveman.md for the intensity levels and the escape
-    # hatches. SHA is v1.9.1.
-    caveman.source = {
-      source = "github";
-      repo = "JuliusBrussee/caveman";
-      sha = "0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0";
-    };
     # Context-window auditing hooks. PolyForm Noncommercial 1.0.0 -- the
     # README's "small teams get a commercial license automatically" grant is
     # not in the LICENSE file, so the binding terms are noncommercial only.
