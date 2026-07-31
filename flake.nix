@@ -114,15 +114,8 @@
       url = "git+ssh://git@github.com/bashfulrobot/upsight?ref=main";
     };
 
-    # Ballpoint, a local Todoist triage tool (walk / probe / dispatch). Keeps
-    # its own nixpkgs pin (no follows), like upsight: a self-contained Go
-    # binary whose Go vendorHash is verified against its own nixpkgs.
-    ballpoint = {
-      url = "github:bashfulrobot/ballpoint";
-    };
-
     # Walkr, the topic-walkthrough renderer. Ships its own flake (packages.walkr,
-    # own nixpkgs pin), same shape as ballpoint: a self-contained Go binary. Also
+    # own nixpkgs pin), a self-contained Go binary. Also
     # the source of the walkr-author / walkr-tutorial-author Claude Code skills
     # (skills/), symlinked into ~/.claude/skills by the claude-code module so the
     # binary and the skills that author its content stay pinned together.
@@ -200,8 +193,6 @@
           homeManagerModules = [
             # Spicetify for customized Spotify
             inputs.spicetify-nix.homeManagerModules.default
-            # Ballpoint Todoist triage tool (programs.ballpoint)
-            inputs.ballpoint.homeManagerModules.default
           ];
         };
 
@@ -218,8 +209,6 @@
           homeManagerModules = [
             # Spicetify for customized Spotify
             inputs.spicetify-nix.homeManagerModules.default
-            # Ballpoint Todoist triage tool (programs.ballpoint)
-            inputs.ballpoint.homeManagerModules.default
           ];
         };
 
