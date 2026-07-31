@@ -35,7 +35,7 @@ rec {
 
   # Editor and shell preferences
   preferences = {
-    editor = "helix"; # Package name in nixpkgs
+    editor = "fresh-editor"; # Package name in nixpkgs
     shell = "fish";
     browser = "google-chrome-stable";
     terminal = "kitty";

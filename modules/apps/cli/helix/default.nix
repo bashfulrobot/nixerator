@@ -26,20 +26,15 @@ in
       helix
     ];
 
-    environment.variables = {
-      EDITOR = "hx";
-    };
-
-    security.sudo.extraConfig = ''
-      Defaults env_keep += "EDITOR"
-    '';
-
     home-manager.users.${globals.user.name} = {
       programs.fish.shellAliases.vi = "hx";
 
       programs.helix = {
         enable = true;
-        defaultEditor = true;
+        # fresh-editor owns EDITOR/VISUAL and the system-wide default now
+        # (see modules/apps/cli/fresh-editor). Flip this back if helix
+        # should win instead.
+        defaultEditor = false;
         package = pkgs.helix;
 
         extraPackages = with pkgs; [
