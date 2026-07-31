@@ -152,16 +152,20 @@ let
     text = builtins.readFile ./statusline.sh;
   };
 
-  # PreToolUse permission gate for /auto autonomous sessions. Sole arbiter for
-  # rm/kill/pkill, gated by the session-bound ~/.claude/.auto-mode-active
-  # sentinel (see config/skills/auto/references/permission-model.md). jq + grep
-  # on PATH via runtimeInputs.
+  # PreToolUse permission gate for /auto and /github-issues-auto autonomous
+  # sessions. Sole arbiter for rm/kill/pkill, gated by the session-bound
+  # ~/.claude/.auto-mode-active sentinel (see
+  # config/skills/auto/references/permission-model.md). rm is further scoped
+  # to the session's own working tree (git toplevel of the hook payload's
+  # .cwd), an optional pre-authorized-folders file, and a short list of
+  # universal scratch roots -- git is needed for the toplevel resolution.
   autoGateScript = pkgs.writeShellApplication {
     name = "claude-auto-gate";
     runtimeInputs = [
       pkgs.jq
       pkgs.gnugrep
       pkgs.coreutils
+      pkgs.git
     ];
     text = builtins.readFile ./cfg/scripts/auto-gate.sh;
   };
