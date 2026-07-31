@@ -11,17 +11,22 @@ default:
 [group('setup')]
 all:
     @echo "Running all post-rebuild setup..."
-    @just setup::gsd
     @just setup::voxtype
-    @just setup::sync-plugins
     @echo ""
     @echo "All setup complete!"
 
 # Install/update GSD commands, agents, and hooks for Claude Code
-[group('setup')]
-gsd:
-    @echo "Setting up GSD (get-shit-done)..."
-    @gsd-install
+#
+# Disabled 2026-07-31: `gsd-install` no longer exists. Nothing under modules/
+# provides it (the only remaining `gsd` reference in the tree is a `gsd-*`
+# filename skip in cfg/scripts/capture-sync.py, which is a filter, not a
+# provider), so this recipe failed on every `just setup::all`. Kept commented
+# rather than deleted in case the tool is reintroduced.
+#
+# [group('setup')]
+# gsd:
+#     @echo "Setting up GSD (get-shit-done)..."
+#     @gsd-install
 
 # Download Voxtype speech models after upgrades
 [group('setup')]

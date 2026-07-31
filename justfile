@@ -315,18 +315,28 @@ setup-hooks:
 #
 # Applies skillfish-tracked updates and reports what changed via
 # claude-skill-updates (which also fires a desktop notify-send on
-# workstation hosts), then bumps any flake-pinned upstream skills
-# (currently just `humanizer-skill` -> blader/humanizer). Skills authored
-# in this repo under config/skills/ are managed by claude-capture and need
-# no separate update step.
+# workstation hosts). Skills authored in this repo under config/skills/
+# are managed by claude-capture and need no separate update step.
+#
+# Deliberately does NOT bump the flake-pinned upstream skills
+# (humanizer-skill, crafter-station-skills, walkr). This recipe runs from
+# post-rebuild, i.e. AFTER `nixos-rebuild switch`, and those skills resolve
+# their store paths from flake.lock at activation time -- so a lock bump
+# landing here can never reach the generation that just activated. It would
+# be one full rebuild late by construction, and it leaves flake.lock dirty
+# with nothing in rebuild/quiet-rebuild to commit it (commit_captures only
+# covers the claude-code config and dank-profiles pathspecs, and
+# quiet-rebuild's `trap git restore --staged .` unstages the rest). It also
+# re-dirtied the lock that bump-upsight/bump-hyprflake had just committed.
+# `just upgrade` / `just quiet-upgrade` run a bare `nix flake update` before
+# the rebuild and commit the lock afterwards -- that is the correct home for
+# the bump, and it sweeps every vendored-skill input. Don't re-add it here.
 update-skills:
     #!/usr/bin/env bash
     set -euo pipefail
     if command -v claude-skill-updates >/dev/null 2>&1; then
         claude-skill-updates || echo "skillfish update failed (non-fatal)"
     fi
-    echo "Bumping flake-pinned upstream skills..."
-    nix flake update humanizer-skill || echo "humanizer-skill update failed (non-fatal)"
     echo "Skills updated"
 
 # Ad-hoc capture of live ~/.claude and DMS (dank) state into the repo.
