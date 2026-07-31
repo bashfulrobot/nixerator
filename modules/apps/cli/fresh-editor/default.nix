@@ -95,14 +95,23 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    environment.variables = {
+      EDITOR = "fresh";
+    };
+
+    security.sudo.extraConfig = ''
+      Defaults env_keep += "EDITOR"
+    '';
+
     home-manager.users.${globals.user.name} = {
       programs.fresh-editor = {
         enable = true;
         package = pkgs.fresh-editor;
 
-        # Left to helix in the dev suite, which owns EDITOR/VISUAL. fresh is
-        # launched explicitly via `fresh`; flip this if it should win instead.
-        defaultEditor = false;
+        # Now the system-wide default (see modules/apps/cli/helix, which
+        # ceded EDITOR/VISUAL ownership here). Flip this back if helix
+        # should win instead.
+        defaultEditor = true;
 
         # LSP servers / formatters are wrapped onto fresh's PATH. This repo is
         # a Nix config, so nixd + nixfmt ship by default; add more as needed.

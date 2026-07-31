@@ -15,6 +15,7 @@
     ../../modules/apps/cli/claude-code
     ../../modules/apps/cli/fish
     ../../modules/apps/cli/gcmt
+    ../../modules/apps/cli/fresh-editor
     ../../modules/apps/cli/git
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/opencode
@@ -51,6 +52,7 @@
   # CLI applications (matching nixcfg srv)
   apps.cli = {
     fish.enable = true;
+    fresh-editor.enable = true;
     git.enable = true;
     helix.enable = true;
     # media-rename (dlm/dltv) removed 2026-07-31: manual filebot-based
