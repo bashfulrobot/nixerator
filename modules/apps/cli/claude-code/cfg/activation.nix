@@ -14,7 +14,6 @@
   guardPrimaryTreeWriteScript,
   guardSecretCommandsScript,
   scrubSecretOutputScript,
-  reapConfig,
   tokenOptimizerActivation,
   globals,
   homeDir,
@@ -297,9 +296,6 @@
         fi
       '') secretServerFiles
     )}
-
-    # REAP -- deploy slash commands to ~/.reap/commands/
-    ${reapConfig.activation}
 
     # Plugins -- known_marketplaces.json and enabledPlugins are owned
     # declaratively (cfg/plugin-config.nix, merged into settings.json above);

@@ -64,6 +64,22 @@ in
           #     shadowed (see the old comment this replaced), the skills just
           #     never got invoked either. Dropped 2026-07-30; re-add with usage
           #     data, same bar as everything else here.
+          #   ralph-loop, reap (cfg/reap.nix + build/reap) -- dropped 2026-07-31.
+          #     Both are "run autonomously until goal" engines, same job as the
+          #     `auto` skill. Intent-log scan across 596 sessions: `/auto` in 18
+          #     sessions, `reap.` in 2, `ralph-loop` in 1 -- `auto` is the one
+          #     actually used, and it already has the sentinel-gated rm/kill/pkill
+          #     PreToolUse wiring (cfg/scripts/auto-gate.sh) the others lack.
+          #     clay-ralph (a user skill, unmanaged by Nix) was the fourth such
+          #     engine and was removed directly from ~/.claude/skills/ for the
+          #     same reason (1 session hit).
+          #   caveman -- dropped 2026-07-31. Its SessionStart/UserPromptSubmit
+          #     ruleset directly contradicted ~/.claude/CLAUDE.md's non-negotiable
+          #     "run all prose through humanizer" hard rule (the plugin's own
+          #     docs admitted the clash and required a manual per-repo/per-session
+          #     drop-out). Removed at the root rather than scoped, per a full
+          #     setup review; see git history (.claude/docs/caveman.md, this
+          #     file's blame) if it comes back.
           # Re-adding any of these should come with usage data, not a hunch.
           plugins = [
             # claude-plugins-official (built-in marketplace)
@@ -72,7 +88,6 @@ in
             "security-guidance@claude-plugins-official"
             "slack@claude-plugins-official"
             "skill-creator@claude-plugins-official"
-            "ralph-loop@claude-plugins-official"
             "gopls-lsp@claude-plugins-official"
             "pyright-lsp@claude-plugins-official"
             # kong-skills (Kong CS marketplace, SHA-pinned)
@@ -85,13 +100,6 @@ in
             # carries a noncommercial-only licence -- read
             # .claude/docs/token-optimizer.md before putting it on a work host.
             "token-optimizer@alexgreensh-token-optimizer"
-            # Output-side counterpart to token-optimizer: that one measures the
-            # context window, caveman shortens the replies. Runs at `full`
-            # intensity, pinned in the claude-code module (see hasCaveman), so
-            # the ruleset is injected at every SessionStart. Read
-            # .claude/docs/caveman.md for how it interacts with the writing
-            # rules and how to drop out of it per-repo or per-session.
-            "caveman@caveman"
             # Semantic change-summary cards (issue #303). See
             # cfg/plugin-config.nix for why it's trusted. The Stop hook has no
             # browser/GPU dependency, unlike hyperframes above, so nothing

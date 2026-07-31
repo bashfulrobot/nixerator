@@ -152,21 +152,6 @@
       vendorHash = "sha256-/6DyRRvfyShQUSFmpmuSxrd1bhBh6Km8kaMutA4xrH4=";
     };
 
-    # HELD at 0.16.4. Like todoist-cli, this vendors build/reap/package-lock.json
-    # (still at 0.16.4) and `npm ci` rejects a lock/package version mismatch.
-    # update-pkg does not regenerate vendored locks, so bumping means refreshing
-    # the lock and npmDepsHash by hand. updatePolicy=manual stops the tool
-    # proposing a bump it cannot actually complete.
-    reap = {
-      source = "npm";
-      repo = "c-d-cc/reap";
-      npmPkg = "@c-d-cc/reap";
-      updatePolicy = "manual";
-      version = "0.16.4";
-      hash = "sha256-ABgVEgvlYrPZh9MzTpNlTZp7jfhsOjFlloU0Rltkkio=";
-      npmDepsHash = "sha256-Hdf0YhSTfUUeTnfMKrokdAha8Vw70WMB0BS8OIpArEI=";
-    };
-
     # HELD at 262.2310.0 (this note supersedes the earlier "262.4739.0 is
     # available but upstream renamed assets" one; same root cause, still true).
     # The version is read from GitHub releases, but the artifact comes from

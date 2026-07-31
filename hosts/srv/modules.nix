@@ -91,15 +91,21 @@
       # context7 for the same reason the workstation list does. See the comment
       # in modules/suites/ai/default.nix and issue #294 before re-adding any of
       # them here.
+      #
+      # 2026-07-31: dropped code-review@claude-plugins-official (the workstation
+      # list already documents this one as shadowed by the personal
+      # review-dev/review-security skills, zero pluginUsage in #294's scan --
+      # srv had simply never had the same prune applied) and
+      # ralph-loop@claude-plugins-official (an autonomous-loop engine redundant
+      # with the `auto` skill; see the longer usage-data note in
+      # modules/suites/ai/default.nix).
       plugins = [
         "frontend-design@claude-plugins-official"
-        "code-review@claude-plugins-official"
         "commit-commands@claude-plugins-official"
         "security-guidance@claude-plugins-official"
         "slack@claude-plugins-official"
         "gopls-lsp@claude-plugins-official"
         "skill-creator@claude-plugins-official"
-        "ralph-loop@claude-plugins-official"
       ];
     };
     skillfish.enable = true;
