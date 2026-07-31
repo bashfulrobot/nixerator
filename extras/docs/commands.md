@@ -69,12 +69,15 @@ Available: `kubernetes-mcp-server`, `gopls`, `context7`, `kong-konnect`, `slack`
 ### Skills (per-project)
 
 ```bash
-skill-pick    # select skills to turn OFF here; merges skillOverrides into .claude/settings.local.json (gitignored)
+skill-pick    # select skills to turn ON here; writes only the diff from default into .claude/settings.local.json (gitignored)
 ```
 
-Opposite polarity from `mcp-pick`: skills ship on everywhere by default, so
-picking a skill here disables it for this project. Leave everything unchecked
-to keep the defaults.
+Most skills default OFF everywhere (`cfg/skill-defaults.nix` holds the
+always-on baseline -- humanizer, commit, text-polish, review-dev/security,
+and the handful your global CLAUDE.md names directly). Same UX as `mcp-pick`
+now: checked = on. Only writes an override where a pick differs from the
+Nix-owned default, so most projects need one `skill-pick` run to turn on
+whatever's relevant, nothing more.
 
 ### Output Styles
 

@@ -25,6 +25,7 @@
   walkrTutorialAuthorSkillSrc,
   textPolishRulesFile,
   pluginOverlay,
+  skillOverlay,
   userScopeMcpTemplate,
   secretServerFiles,
   secretsFile,
@@ -64,6 +65,17 @@
       ${pkgs.jq}/bin/jq --slurpfile ov ${pluginOverlay} \
         '.extraKnownMarketplaces = $ov[0].extraKnownMarketplaces
          | .enabledPlugins = $ov[0].enabledPlugins' \
+        "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+      mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+
+      # Default-off skill surface (cfg/skill-defaults.nix) is Nix-owned the
+      # same way: force-set at user scope so a captured runtime edit can't
+      # drift it. skill-pick's per-project "on" entries live in a different
+      # file entirely (.claude/settings.local.json) and are unaffected --
+      # the settings cascade resolves each skill name independently, so a
+      # project opt-in still wins over this default.
+      ${pkgs.jq}/bin/jq --slurpfile sk ${skillOverlay} \
+        '.skillOverrides = $sk[0].skillOverrides' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 

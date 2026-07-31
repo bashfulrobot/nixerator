@@ -19,6 +19,7 @@ See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where cu
 - When touching the token-optimizer plugin, the `/usr/local/bin/python3` tmpfiles rule, or a token-optimizer hook exiting 127, read `.claude/docs/token-optimizer.md`.
 - When touching the caveman plugin, `~/.config/caveman/config.json`, or you need Claude to stop answering in clipped caveman prose, read `.claude/docs/caveman.md`.
 - When adding, bumping, or debugging a skill vendored from a flake input (`humanizer`, `intent-layer`), read `.claude/docs/vendored-skills.md`.
+- When adding a skill, changing the always-on baseline, or debugging why a skill is missing/present in a project, read `.claude/docs/skill-defaults.md` for the default-off model and `skill-pick`.
 
 ## Reference docs
 
