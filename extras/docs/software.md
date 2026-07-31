@@ -28,7 +28,6 @@ Complete inventory of software managed by this NixOS configuration.
 | Pandoc                | Document converter with LaTeX/PDF support and `md2pdf` fish function                  | nixpkgs                          |
 | Percollate            | Web-to-PDF converter with sitemap support and `web2pdf` fish function                 | nixpkgs                          |
 | Plannotator           | Interactive plan review and annotation tool for AI coding agents                      | Local build                      |
-| Reap                  | Claude Code context reaper for managing conversation context                          | Local build (npm)                |
 | Restic                | Backup suite with restic, backrest UI, and autorestic                                 | nixpkgs                          |
 | Salesforce CLI        | Salesforce development and administration CLI (`sf`)                                  | Local build                      |
 | Shadowenv             | Directory-based environment variable switching with fish integration                  | nixpkgs                          |
@@ -123,7 +122,7 @@ Modules that exist but are currently disabled (set to `false` or commented out i
 
 All version-pinned packages managed in `settings/versions.nix`:
 
-**CLI:** amber, cpx, gurk, gws, jwtx, kubernetes-mcp-server, lswt, meetsum, plannotator, reap, salesforce-cli
+**CLI:** amber, cpx, gurk, gws, jwtx, kubernetes-mcp-server, lswt, meetsum, plannotator, salesforce-cli
 
 **GUI:** comics-downloader, helium, insomnia
 

@@ -28,7 +28,8 @@
   #   - URLs built from fields update-pkg doesn't track       e.g. salesforce-cli
   #     (shortRev)
   #   - npm packages with a vendored package-lock.json, since
-  #     the lock + npmDepsHash must be regenerated together   e.g. todoist-cli, reap
+  #     the lock + npmDepsHash must be regenerated together   e.g. todoist-cli,
+  #                                                                skillfish
   #   - archived modules that nothing imports/builds          e.g. graymatter
   #   - artifacts hosted off-GitHub whose naming can drift
   #     independently of the release tag                      e.g. kotlin-lsp
@@ -208,6 +209,13 @@
       source = "npm";
       repo = "knoxgraeme/skillfish";
       npmPkg = "skillfish";
+      # updatePolicy=manual: build/package-lock.json is vendored (the published
+      # npm tarball ships none -- see the regeneration note in
+      # modules/apps/cli/skillfish/build/default.nix), and update-pkg does not
+      # regenerate vendored locks; it only warns (extras/scripts/update-pkg.bash
+      # lines 222 and 231). Auto-bumping would leave the lock on the old version
+      # and `npm ci` would reject the mismatch. Same hazard as todoist-cli.
+      updatePolicy = "manual";
       version = "1.0.38";
       hash = "sha256-oe1j2O5a2hF6Q8oP5RLnx0kDwew/AHnMJMIcfVgc+Oo=";
       npmDepsHash = "sha256-P3J4+OiMaucsNjCaWtMTc8zlGT4fA+ItFy/D6RhBWJ0=";
