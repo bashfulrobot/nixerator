@@ -12,7 +12,7 @@ let
   # Stylix palette (base16). Always present, like the vscode/google-chrome
   # modules; the generated theme is only wired in when Stylix is enabled.
   inherit (config.lib.stylix) colors;
-  stylixEnabled = config.stylix.enable;
+  stylixEnabled = config.stylix.enable or false;
 
   # fresh themes take [r,g,b] integer triples. base16.nix exposes each slot's
   # decimal channels as strings (e.g. colors."base00-rgb-r"), so convert here.
