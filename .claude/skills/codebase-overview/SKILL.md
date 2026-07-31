@@ -112,7 +112,7 @@ What actually differs:
 | Module import | `../../modules` auto-import | `../../modules` auto-import | hand-imported paths in `modules.nix` |
 | Archetypes enabled | `workstation` | `workstation` + `claudeWorkHost` | `claudeWorkHost` only |
 | `extraModules` | disko, hyprflake, nixos-hardware (T14 gen6) | disko, hyprflake | none |
-| `homeManagerModules` | spicetify, ballpoint | spicetify, ballpoint | none |
+| `homeManagerModules` | spicetify | spicetify | none |
 | User/packages | via modules | via modules | declared inline in `configuration.nix` |
 
 More: `hosts/CLAUDE.md`, `extras/docs/hosts.md`, `extras/docs/adding-hosts.md`.
