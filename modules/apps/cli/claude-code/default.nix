@@ -44,6 +44,25 @@ let
   pluginOverlayFile = pkgs.writeText "claude-plugin-overlay.json" (
     builtins.toJSON (pluginConfig.mkOverlay cfg.plugins)
   );
+  # Default-off skill surface (see cfg/skill-defaults.nix for the always-on
+  # baseline and why each entry earned its spot). Same overlay pattern as
+  # pluginOverlayFile above: force-merged into settings.json at activation,
+  # stripped from capture, so Nix owns the default and a per-project
+  # skill-pick "on" is the only way around it.
+  skillDefaultsConfig = import ./cfg/skill-defaults.nix { inherit lib; };
+  skillOverlayFile = pkgs.writeText "claude-skill-overlay.json" (
+    builtins.toJSON (
+      skillDefaultsConfig.mkOverlay {
+        configSkillsDir = configDir + "/skills";
+        vendoredNames = [
+          "humanizer"
+          "intent-layer"
+          "walkr-author"
+          "walkr-tutorial-author"
+        ];
+      }
+    )
+  );
   skillUpdatesConfig = import ./cfg/skill-updates.nix {
     inherit pkgs;
   };
@@ -115,6 +134,7 @@ let
     # its default, so the two can't drift, and activation only ever `cp`s it.
     textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
+    skillOverlay = skillOverlayFile;
     userScopeMcpTemplate = userScopeMcpTemplateFile;
     inherit (mcpConfig) secretServerFiles;
     inherit secretsFile;

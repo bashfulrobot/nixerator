@@ -143,7 +143,7 @@
           if test -f "$claude_dir/settings.json"
             set settings_tmp (mktemp)
             sed "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" "$claude_dir/settings.json" \
-              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask)
+              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .skillOverrides)
                     | .hooks = ((.hooks // {})
                         | map_values(map(select((.hooks[0].command // "")
                             | test("/nix/store/") | not)))
