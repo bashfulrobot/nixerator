@@ -114,6 +114,13 @@
       url = "git+ssh://git@github.com/bashfulrobot/upsight?ref=main";
     };
 
+    # claudoist, the Todoist task-level UI Extension receiver deployed by
+    # server.claudoist (modules/server/claudoist). Private repo, same
+    # git+ssh rationale as upsight above -- srv needs SSH read access.
+    claudoist = {
+      url = "git+ssh://git@github.com/bashfulrobot/claudoist?ref=main";
+    };
+
     # Walkr, the topic-walkthrough renderer. Ships its own flake (packages.walkr,
     # own nixpkgs pin), a self-contained Go binary. Also
     # the source of the walkr-author / walkr-tutorial-author Claude Code skills
