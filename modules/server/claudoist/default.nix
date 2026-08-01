@@ -4,6 +4,7 @@
   config,
   globals,
   inputs,
+  versions,
   ...
 }:
 # claudoist -- the srv side of the Todoist task-level UI Extension. See
@@ -38,10 +39,17 @@ let
   receiverPkg = inputs.claudoist.packages.${system}.default;
   actionsDir = "${cfg.repoDir}/actions";
 
+  # There is no pkgs.todoist-cli attribute -- apps.cli.todoist-cli builds it
+  # the same way, locally, via callPackage (see
+  # modules/apps/cli/todoist-cli/default.nix). Build it here too rather than
+  # depending on that module's option being enabled, so this service's `td`
+  # doesn't silently disappear if that toggle ever changes.
+  todoistCliPkg = pkgs.callPackage ../../apps/cli/todoist-cli/build { inherit versions; };
+
   runtimePath = lib.makeBinPath [
     pkgs.bash
     pkgs.llm-agents.claude-code
-    pkgs.todoist-cli
+    todoistCliPkg
     pkgs._1password-cli
     pkgs.jq
     pkgs.curl
