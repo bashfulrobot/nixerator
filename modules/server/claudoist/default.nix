@@ -34,7 +34,7 @@
 let
   cfg = config.server.claudoist;
   homeDir = globals.user.homeDirectory;
-  system = pkgs.stdenv.hostPlatform.system;
+  inherit (pkgs.stdenv.hostPlatform) system;
 
   receiverPkg = inputs.claudoist.packages.${system}.default;
   actionsDir = "${cfg.repoDir}/actions";
