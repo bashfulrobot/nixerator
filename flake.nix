@@ -117,8 +117,13 @@
     # claudoist, the Todoist task-level UI Extension receiver deployed by
     # server.claudoist (modules/server/claudoist). Private repo, same
     # git+ssh rationale as upsight above -- srv needs SSH read access.
+    # Unlike upsight, claudoist's own flake.nix has no reproducibility
+    # constraint pinning it to a specific nixpkgs (just plain
+    # nixos-unstable), so follow this flake's own pin rather than carrying
+    # a second nixpkgs into srv's closure.
     claudoist = {
       url = "git+ssh://git@github.com/bashfulrobot/claudoist?ref=main";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Walkr, the topic-walkthrough renderer. Ships its own flake (packages.walkr,

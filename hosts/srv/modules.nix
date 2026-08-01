@@ -162,18 +162,26 @@
   # Server-specific modules
   server = {
     # Todoist task-level UI Extension receiver (see modules/server/claudoist).
-    # Prerequisites (Task 14 of the claudoist implementation plan, owner:
-    # Dustin, manual, not automatable here):
+    # Enabled ahead of its prerequisites (Task 14 of the claudoist
+    # implementation plan, owner: Dustin, manual, not automatable here) so
+    # the module + flake wiring can be reviewed and merged as one unit.
+    # Until Task 14 is done, items 2/4/5 below are NOT yet satisfied and
+    # both claudoist.service and cloudflared-claudoist.service will
+    # crash-loop (loud `op run` failures on missing 1Password fields, no
+    # secret ever half-resolves) rather than silently running broken:
     #   1. `claude` already logged in on srv (~/.claude/.credentials.json).
+    #      -- satisfied: shared with incidentInvestigator, already enabled.
     #   2. 1Password automation vault item `claudoist`:
     #      `hmac-verification-token` (from the Todoist App Management Console
     #      UI Extension) and `cloudflared-token` (the tunnel's "Get tunnel
-    #      token" value).
-    #   3. ~/git/claudoist cloned on srv.
+    #      token" value). -- NOT YET DONE.
+    #   3. ~/git/claudoist cloned on srv (repoDir default). -- NOT YET DONE.
     #   4. Todoist App Management Console: a context-menu UI Extension on
     #      Task, data-exchange endpoint https://claudoist.srvrs.co/process.
+    #      -- NOT YET DONE.
     #   5. Cloudflare Tunnel (remotely-managed / Config type Remote) routing
     #      claudoist.srvrs.co -> http://localhost:8100 (cfg.port's default).
+    #      -- NOT YET DONE.
     claudoist = {
       enable = true;
       tunnel.enable = true;
