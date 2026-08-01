@@ -376,44 +376,42 @@ in
           '';
           target = ".local/share/applications/syncthing-ui.desktop";
         };
-
-        "dev/.stignore" = {
-          text = ''
-            .git
-          '';
-          target = "dev/.stignore";
-        };
-
-        "upsight-data/.stignore" = {
-          text = ''
-            upsight.db-wal
-            upsight.db-shm
-            upsight.db.lock
-            *.db.backup-v*
-            *.pre-restore
-            config.toml.tmp
-            config.toml.bak
-            upsight.session.tmp
-            *.sync-conflict-*
-          '';
-          target = ".local/share/upsight/.stignore";
-        };
-
-        "upsight-config/.stignore" = {
-          text = ''
-            upsight.db-wal
-            upsight.db-shm
-            upsight.db.lock
-            *.db.backup-v*
-            *.pre-restore
-            config.toml.tmp
-            config.toml.bak
-            upsight.session.tmp
-            *.sync-conflict-*
-          '';
-          target = ".config/upsight/.stignore";
-        };
       };
+
+      # .stignore files deliberately do NOT go through home.file: that always
+      # deploys as a symlink into /nix/store, and Syncthing's own ignore-file
+      # loader refuses to follow it ("too many levels of symbolic links"),
+      # even though a plain open()/cat() of the same path succeeds. When that
+      # happens, the folder's initial scan fails at startup and Syncthing
+      # never retries it automatically -- the folder silently sits on
+      # whatever index state it last had (observed: multiple weeks stale,
+      # both peers agreeing on a stale "global" state, needBytes staying 0
+      # even though the real files had diverged). install -Dm644 below
+      # copies the content into a real, non-symlinked file at the target, so
+      # Syncthing opens a regular file directly. Idempotent; reapplies every
+      # activation.
+      home.activation.syncthingStignoreFiles = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+        let
+          upsightIgnores = ''
+            upsight.db-wal
+            upsight.db-shm
+            upsight.db.lock
+            *.db.backup-v*
+            *.pre-restore
+            config.toml.tmp
+            config.toml.bak
+            upsight.session.tmp
+            *.sync-conflict-*
+          '';
+        in
+        ''
+          install -Dm644 ${pkgs.writeText "dev-stignore" ''
+            .git
+          ''} "$HOME/dev/.stignore"
+          install -Dm644 ${pkgs.writeText "upsight-data-stignore" upsightIgnores} "$HOME/.local/share/upsight/.stignore"
+          install -Dm644 ${pkgs.writeText "upsight-config-stignore" upsightIgnores} "$HOME/.config/upsight/.stignore"
+        ''
+      );
     };
   };
 }
