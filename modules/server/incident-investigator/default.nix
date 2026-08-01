@@ -54,6 +54,19 @@ let
     pkgs.jq
     pkgs.curl
     pkgs.git
+    pkgs.gh
+    # RCA notification redesign: gh issue create/comment on a genuinely
+    # impacted verdict. This service runs as User=dustin with no dedicated
+    # service account, so it shares whatever `gh auth login` credential is
+    # stored under this $HOME with your own interactive use on this host --
+    # in practice your broad personal token, not a fine-grained PAT scoped
+    # to bashfulrobot/homelab as originally designed (see homelab
+    # docs/superpowers/specs/2026-07-31-rca-notification-redesign-design.md
+    # for the original intent, and incident-investigator/README.md for why
+    # it didn't hold up). The stored token persists the same way
+    # ~/.claude/.credentials.json already does (no ProtectHome on this
+    # service), so auth is a one-time manual step either way.
+
     pkgs.coreutils
     pkgs.gnugrep
     pkgs.gnused
