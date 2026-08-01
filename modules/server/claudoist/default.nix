@@ -92,6 +92,10 @@ let
       echo "Rendered secrets file not found at ${secretsFile}; run render-secrets first." >&2
       exit 1
     fi
+    if ! ${pkgs.jq}/bin/jq -e '.todoist_token // empty' ${secretsFile} >/dev/null 2>&1; then
+      echo "No .todoist_token field in ${secretsFile}; run render-secrets or check the field name." >&2
+      exit 1
+    fi
     TODOIST_API_TOKEN="$(${pkgs.jq}/bin/jq -r '.todoist_token' ${secretsFile})"
     export TODOIST_API_TOKEN
 
@@ -102,6 +106,7 @@ let
     "HOME=${homeDir}"
     "PATH=${runtimePath}"
     "PORT=${toString cfg.port}"
+    "HOST=127.0.0.1"
     "VERIFICATION_TOKEN=${cfg.verificationTokenRef}"
     "ACTIONS_DIR=${actionsDir}"
     "PUSHOVER_TOKEN=${cfg.pushoverTokenRef}"
