@@ -219,6 +219,15 @@ in
           Environment = runtimeEnv;
           Restart = "on-failure";
           RestartSec = 10;
+          # KillMode defaults to "control-group": a restart or redeploy would
+          # SIGTERM/SIGKILL every process in this unit's cgroup, including
+          # any in-flight detached action script (and the `claude -p` it
+          # spawned) that src/server.ts's spawn(..., {detached: true})
+          # deliberately tries to let outlive the receiver process. "process"
+          # limits the kill to the receiver's own main PID, so an action
+          # already running when this service restarts finishes normally
+          # instead of silently losing its Todoist comment.
+          KillMode = "process";
           # Same rationale as incident-investigator: this process shells out
           # to `claude` (Node) via actions/*.sh, which needs its own $HOME
           # for credentials, so ProtectHome/ProtectSystem stay off.
