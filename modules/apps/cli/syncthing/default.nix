@@ -1,5 +1,6 @@
 {
   globals,
+  inputs,
   lib,
   pkgs,
   config,
@@ -390,28 +391,38 @@ in
       # copies the content into a real, non-symlinked file at the target, so
       # Syncthing opens a regular file directly. Idempotent; reapplies every
       # activation.
-      home.activation.syncthingStignoreFiles = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-        let
-          upsightIgnores = ''
-            upsight.db-wal
-            upsight.db-shm
-            upsight.db.lock
-            *.db.backup-v*
-            *.pre-restore
-            config.toml.tmp
-            config.toml.bak
-            upsight.session.tmp
-            *.sync-conflict-*
-          '';
-        in
-        ''
-          install -Dm644 ${pkgs.writeText "dev-stignore" ''
-            .git
-          ''} "$HOME/dev/.stignore"
-          install -Dm644 ${pkgs.writeText "upsight-data-stignore" upsightIgnores} "$HOME/.local/share/upsight/.stignore"
-          install -Dm644 ${pkgs.writeText "upsight-config-stignore" upsightIgnores} "$HOME/.config/upsight/.stignore"
-        ''
-      );
+      #
+      # This value is a plain attrset (not a function), so a bare `lib.hm`
+      # reference here would resolve to this file's own plain nixpkgs `lib`
+      # arg (no `.hm` extension) and throw "attribute 'hm' missing" --
+      # home-manager only injects its own extended `lib` into modules it
+      # evaluates as functions. Reach the dag helper via the flake input's
+      # exposed lib instead, matching the existing pattern in
+      # modules/apps/cli/claude-code/default.nix.
+      home.activation.syncthingStignoreFiles =
+        inputs.home-manager.lib.hm.dag.entryAfter [ "writeBoundary" ]
+          (
+            let
+              upsightIgnores = ''
+                upsight.db-wal
+                upsight.db-shm
+                upsight.db.lock
+                *.db.backup-v*
+                *.pre-restore
+                config.toml.tmp
+                config.toml.bak
+                upsight.session.tmp
+                *.sync-conflict-*
+              '';
+            in
+            ''
+              install -Dm644 ${pkgs.writeText "dev-stignore" ''
+                .git
+              ''} "$HOME/dev/.stignore"
+              install -Dm644 ${pkgs.writeText "upsight-data-stignore" upsightIgnores} "$HOME/.local/share/upsight/.stignore"
+              install -Dm644 ${pkgs.writeText "upsight-config-stignore" upsightIgnores} "$HOME/.config/upsight/.stignore"
+            ''
+          );
     };
   };
 }
