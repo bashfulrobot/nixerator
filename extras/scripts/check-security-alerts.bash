@@ -31,8 +31,8 @@ if ! command -v jq &>/dev/null; then
     exit 0
 fi
 if ! gh auth status &>/dev/null; then
-    err "gh not authenticated -- skipping security check"
-    exit 0
+    err "gh not authenticated -- security check FAILED (run 'gh auth login')"
+    exit 1
 fi
 
 # Resolve owner/repo from the git remote so this works for any clone.
@@ -52,8 +52,8 @@ info "Checking Dependabot alerts on $repo_slug..."
 
 # --- Fetch current open alerts ---
 current=$(gh api "repos/$repo_slug/dependabot/alerts?state=open&per_page=100" --paginate 2>/dev/null) || {
-    err "failed to query Dependabot API (is the repo private? does the token have security_events scope?)"
-    exit 0
+    err "failed to query Dependabot API -- security check FAILED (is the repo private? does the token have security_events scope?)"
+    exit 1
 }
 
 # Compact representation: {number, severity, package, manifest_path, created_at, ghsa}
