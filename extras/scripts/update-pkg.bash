@@ -16,10 +16,12 @@ if [[ -n "${GITHUB_TOKEN:-}" ]]; then
 fi
 
 # --- Color helpers ---
-info()  { echo -e "\033[1;34m[update]\033[0m $*"; }
-ok()    { echo -e "\033[1;32m[update]\033[0m $*"; }
-warn()  { echo -e "\033[1;33m[update]\033[0m $*"; }
-err()   { echo -e "\033[1;31m[update]\033[0m $*" >&2; }
+# shellcheck source=lib/colors.sh
+source "$REPO_ROOT/extras/scripts/lib/colors.sh"
+info()  { echo -e "${COLOR_BLUE}[update]${COLOR_RESET} $*"; }
+ok()    { echo -e "${COLOR_GREEN}[update]${COLOR_RESET} $*"; }
+warn()  { echo -e "${COLOR_YELLOW}[update]${COLOR_RESET} $*"; }
+err()   { echo -e "${COLOR_RED}[update]${COLOR_RESET} $*" >&2; }
 
 # --- Usage ---
 usage() {

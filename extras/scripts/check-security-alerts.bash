@@ -14,10 +14,12 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SNAPSHOT_FILE="/tmp/nixerator-security-status.json"
 
-info()  { echo -e "\033[1;34m[security]\033[0m $*"; }
-ok()    { echo -e "\033[1;32m  ✓\033[0m $*"; }
-warn()  { echo -e "\033[1;33m  ↑\033[0m $*"; }
-err()   { echo -e "\033[1;31m  ✗\033[0m $*" >&2; }
+# shellcheck source=lib/colors.sh
+source "$REPO_ROOT/extras/scripts/lib/colors.sh"
+info()  { echo -e "${COLOR_BLUE}[security]${COLOR_RESET} $*"; }
+ok()    { echo -e "${COLOR_GREEN}  ✓${COLOR_RESET} $*"; }
+warn()  { echo -e "${COLOR_YELLOW}  ↑${COLOR_RESET} $*"; }
+err()   { echo -e "${COLOR_RED}  ✗${COLOR_RESET} $*" >&2; }
 
 # --- Preflight ---
 if ! command -v gh &>/dev/null; then
