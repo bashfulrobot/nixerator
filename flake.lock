@@ -303,6 +303,26 @@
         "type": "github"
       }
     },
+    "claudio": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785794097,
+        "narHash": "sha256-k7Decg2+MfQ5IrOkO0Xtc518m/RDzneNShhe+CLslBM=",
+        "owner": "bashfulrobot",
+        "repo": "claudio",
+        "rev": "aad86968a2cb063b011427ea79afc68c16810615",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bashfulrobot",
+        "repo": "claudio",
+        "type": "github"
+      }
+    },
     "claudoist": {
       "inputs": {
         "flake-utils": "flake-utils_3",
@@ -998,6 +1018,7 @@
         "antigravity-nix": "antigravity-nix",
         "apple-fonts": "apple-fonts",
         "browser-previews": "browser-previews",
+        "claudio": "claudio",
         "claudoist": "claudoist",
         "crafter-station-skills": "crafter-station-skills",
         "disko": "disko",
