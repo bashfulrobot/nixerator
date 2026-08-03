@@ -89,9 +89,11 @@ rebuild:
 
         # Run package update check in background, show results when done
         echo ""
-        bash extras/scripts/check-pkg-updates.bash 2>/dev/null || true
+        bash extras/scripts/check-pkg-updates.bash \
+            || gum style --foreground 214 "Package update check failed (exit $?) -- see above"
         echo ""
-        bash extras/scripts/check-security-alerts.bash 2>/dev/null || true
+        bash extras/scripts/check-security-alerts.bash \
+            || gum style --foreground 214 "Security alert check failed (exit $?) -- see above"
     else
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
         bat --paging=always "$log"
@@ -187,9 +189,11 @@ upgrade:
 
     # Run package update check after successful upgrade
     echo ""
-    bash extras/scripts/check-pkg-updates.bash 2>/dev/null || true
+    bash extras/scripts/check-pkg-updates.bash \
+        || gum style --foreground 214 "Package update check failed (exit $?) -- see above"
     echo ""
-    bash extras/scripts/check-security-alerts.bash 2>/dev/null || true
+    bash extras/scripts/check-security-alerts.bash \
+        || gum style --foreground 214 "Security alert check failed (exit $?) -- see above"
 
 # Update a specific flake input
 [group('bump')]
