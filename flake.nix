@@ -239,6 +239,11 @@
                   enable = true;
                   user = globals.user.name;
                   listenAddr = "127.0.0.1:8787";
+                  # systemd services don't inherit the user's shell PATH, so
+                  # "claude" alone isn't found -- point at the stable
+                  # per-user profile symlink instead of a /nix/store path
+                  # that changes every generation.
+                  claudeBinary = "/etc/profiles/per-user/${globals.user.name}/bin/claude";
                   roots = [
                     "/home/${globals.user.name}/git"
                     "/home/${globals.user.name}/dev"
