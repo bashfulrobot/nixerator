@@ -18,17 +18,9 @@ in
   # manual: Moonlight "Add Host" by the peer's Tailscale IP/MagicDNS name,
   # then approve the PIN in Sunshine's web UI (https://<host>:47990).
   options.system.streaming = {
-    sunshine.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Sunshine, a self-hosted game/desktop stream host for Moonlight.";
-    };
+    sunshine.enable = lib.mkEnableOption "Sunshine, a self-hosted game/desktop stream host for Moonlight";
 
-    moonlight.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Moonlight, the streaming client for a Sunshine host.";
-    };
+    moonlight.enable = lib.mkEnableOption "Moonlight, the streaming client for a Sunshine host";
   };
 
   config = lib.mkMerge [

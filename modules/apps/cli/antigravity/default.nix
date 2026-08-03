@@ -93,11 +93,7 @@ let
 in
 {
   options = {
-    apps.cli.antigravity.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Antigravity CLI (`agy`) with commit helper.";
-    };
+    apps.cli.antigravity.enable = lib.mkEnableOption "Antigravity CLI (`agy`) with commit helper";
   };
 
   config = lib.mkIf cfg.enable {

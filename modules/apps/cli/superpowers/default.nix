@@ -8,11 +8,7 @@ let
 in
 {
   options = {
-    apps.cli.superpowers.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable superpowers agentic skills framework for Claude Code.";
-    };
+    apps.cli.superpowers.enable = lib.mkEnableOption "superpowers agentic skills framework for Claude Code";
   };
 
   config = lib.mkIf cfg.enable {

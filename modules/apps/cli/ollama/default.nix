@@ -21,11 +21,7 @@ in
 {
   options = {
     apps.cli.ollama = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable Ollama local LLM server.";
-      };
+      enable = lib.mkEnableOption "Ollama local LLM server";
 
       acceleration = lib.mkOption {
         type = lib.types.nullOr (

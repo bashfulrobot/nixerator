@@ -12,11 +12,7 @@ in
 {
 
   options = {
-    apps.gui.one-password.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable 1Password password manager.";
-    };
+    apps.gui.one-password.enable = lib.mkEnableOption "1Password password manager";
   };
 
   config = lib.mkIf cfg.enable {

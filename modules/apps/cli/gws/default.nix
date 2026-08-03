@@ -12,11 +12,7 @@ let
 in
 {
   options = {
-    apps.cli.gws.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable gws - Google Workspace CLI for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin, and more.";
-    };
+    apps.cli.gws.enable = lib.mkEnableOption "gws - Google Workspace CLI for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin, and more";
   };
 
   config = lib.mkIf cfg.enable {

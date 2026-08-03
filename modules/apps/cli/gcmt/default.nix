@@ -18,11 +18,7 @@ let
   };
 in
 {
-  options.apps.cli.gcmt.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable gcmt — interactive conventional commit CLI tool.";
-  };
+  options.apps.cli.gcmt.enable = lib.mkEnableOption "gcmt — interactive conventional commit CLI tool";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ gcmt ];

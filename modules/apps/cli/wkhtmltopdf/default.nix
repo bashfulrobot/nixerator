@@ -25,11 +25,7 @@ let
 in
 {
   options = {
-    apps.cli.wkhtmltopdf.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable wkhtmltopdf and the wkhtmltopdf-domain helper.";
-    };
+    apps.cli.wkhtmltopdf.enable = lib.mkEnableOption "wkhtmltopdf and the wkhtmltopdf-domain helper";
   };
 
   config = lib.mkIf cfg.enable {

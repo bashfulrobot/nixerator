@@ -13,11 +13,7 @@ let
 in
 {
   options = {
-    dev.python.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Python tooling with LSP, linting, and formatting.";
-    };
+    dev.python.enable = lib.mkEnableOption "Python tooling with LSP, linting, and formatting";
   };
 
   config = lib.mkIf cfg.enable {

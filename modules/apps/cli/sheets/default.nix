@@ -12,11 +12,7 @@ let
 in
 {
   options = {
-    apps.cli.sheets.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable sheets terminal spreadsheet TUI for CSV files.";
-    };
+    apps.cli.sheets.enable = lib.mkEnableOption "sheets terminal spreadsheet TUI for CSV files";
   };
 
   config = lib.mkIf cfg.enable {

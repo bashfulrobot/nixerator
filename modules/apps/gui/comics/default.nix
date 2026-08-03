@@ -12,11 +12,7 @@ let
 in
 {
   options = {
-    apps.gui.comics.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable comics suite with Komikku manga reader and comics-downloader.";
-    };
+    apps.gui.comics.enable = lib.mkEnableOption "comics suite with Komikku manga reader and comics-downloader";
   };
 
   config = lib.mkIf cfg.enable {

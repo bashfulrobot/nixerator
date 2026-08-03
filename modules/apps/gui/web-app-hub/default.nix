@@ -113,11 +113,7 @@ let
 in
 {
   options = {
-    apps.gui.web-app-hub.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Web App Hub for creating progressive web apps.";
-    };
+    apps.gui.web-app-hub.enable = lib.mkEnableOption "Web App Hub for creating progressive web apps";
   };
 
   config = lib.mkIf cfg.enable {

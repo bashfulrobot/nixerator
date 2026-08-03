@@ -10,11 +10,7 @@ let
 in
 {
   options = {
-    apps.cli.tailscale.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable tailscale mesh VPN.";
-    };
+    apps.cli.tailscale.enable = lib.mkEnableOption "tailscale mesh VPN";
 
     apps.cli.tailscale.preferLanCidrs = lib.mkOption {
       type = lib.types.listOf lib.types.str;

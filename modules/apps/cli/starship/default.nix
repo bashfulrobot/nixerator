@@ -10,11 +10,7 @@ let
 in
 {
   options = {
-    apps.cli.starship.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable starship prompt.";
-    };
+    apps.cli.starship.enable = lib.mkEnableOption "starship prompt";
   };
 
   config = lib.mkIf cfg.enable {

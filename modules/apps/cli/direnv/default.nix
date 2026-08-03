@@ -10,11 +10,7 @@ let
 in
 {
   options = {
-    apps.cli.direnv.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable direnv with nix-direnv for automatic directory-based environments.";
-    };
+    apps.cli.direnv.enable = lib.mkEnableOption "direnv with nix-direnv for automatic directory-based environments";
   };
 
   config = lib.mkIf cfg.enable {

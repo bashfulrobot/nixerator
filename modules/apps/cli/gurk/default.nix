@@ -12,11 +12,7 @@ let
 in
 {
   options = {
-    apps.cli.gurk.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable gurk-rs, a Signal Messenger TUI client.";
-    };
+    apps.cli.gurk.enable = lib.mkEnableOption "gurk-rs, a Signal Messenger TUI client";
   };
 
   config = lib.mkIf cfg.enable {

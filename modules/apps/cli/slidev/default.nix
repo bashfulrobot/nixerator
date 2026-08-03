@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    apps.cli.slidev.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Slidev presentation slides for developers.";
-    };
+    apps.cli.slidev.enable = lib.mkEnableOption "Slidev presentation slides for developers";
   };
 
   config = lib.mkIf cfg.enable {

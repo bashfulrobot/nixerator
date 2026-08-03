@@ -68,11 +68,7 @@ let
 in
 {
   options = {
-    apps.cli.meetsum.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable meetsum - AI-powered meeting summarizer.";
-    };
+    apps.cli.meetsum.enable = lib.mkEnableOption "meetsum - AI-powered meeting summarizer";
   };
 
   config = lib.mkIf cfg.enable {

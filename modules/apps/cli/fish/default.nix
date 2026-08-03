@@ -10,11 +10,7 @@ let
 in
 {
   options = {
-    apps.cli.fish.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable fish shell via home-manager.";
-    };
+    apps.cli.fish.enable = lib.mkEnableOption "fish shell via home-manager";
   };
 
   config = lib.mkIf cfg.enable {

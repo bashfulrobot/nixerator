@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    apps.cli.docker.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Docker CLI and container runtime.";
-    };
+    apps.cli.docker.enable = lib.mkEnableOption "Docker CLI and container runtime";
   };
 
   config = lib.mkIf cfg.enable {

@@ -11,11 +11,8 @@ let
   todoistCli = pkgs.callPackage ./build { inherit versions; };
 in
 {
-  options.apps.cli.todoist-cli.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable the official Doist Todoist CLI (`td`). AI-friendly task creation, reading, and management.";
-  };
+  options.apps.cli.todoist-cli.enable =
+    lib.mkEnableOption "the official Doist Todoist CLI (`td`). AI-friendly task creation, reading, and management";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ todoistCli ];
