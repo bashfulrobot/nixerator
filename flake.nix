@@ -139,6 +139,16 @@
       url = "github:bashfulrobot/walkr";
     };
 
+    # claudio, the phone-friendly Claude Code session manager (spawn/list/
+    # delete `claude --bg --remote-control` sessions). Own flake, own
+    # nixpkgs pin followed so its buildGoModule output stays aligned with
+    # the rest of the system. Exposes nixosModules.default (services.claudio),
+    # wired into srv below.
+    claudio = {
+      url = "github:bashfulrobot/claudio";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Pinned upstream for the `humanizer` skill (claude-code + antigravity).
     # Tracks blader/humanizer; bump via `nix flake update humanizer-skill`
     # or `just upgrade`. `flake = false` because the repo ships a SKILL.md,
@@ -232,7 +242,50 @@
           inherit globals versions;
           hostname = "srv";
           system = "x86_64-linux";
-          extraModules = [ ];
+          extraModules = [
+            inputs.claudio.nixosModules.default
+            (
+              { config, ... }:
+              {
+                services.claudio = {
+                  enable = true;
+                  user = globals.user.name;
+                  listenAddr = "127.0.0.1:8787";
+                  roots = [
+                    "/home/${globals.user.name}/git"
+                    "/home/${globals.user.name}/dev"
+                  ];
+                };
+
+                # Publish claudio on the tailnet only, via `tailscale serve`
+                # -- never a raw firewall port. Mirrors the publish pattern
+                # in modules/server/incident-investigator/default.nix.
+                systemd.services.claudio-serve = {
+                  description = "Publish claudio on the tailnet (tailscale serve)";
+                  after = [
+                    "tailscaled.service"
+                    "network-online.target"
+                    "claudio.service"
+                  ];
+                  wants = [
+                    "tailscaled.service"
+                    "network-online.target"
+                  ];
+                  wantedBy = [ "multi-user.target" ];
+                  serviceConfig = {
+                    Type = "oneshot";
+                    RemainAfterExit = true;
+                    ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=/claudio 127.0.0.1:8787";
+                    # `-` prefix: don't fail the stop if the toggle syntax is
+                    # rejected. Targets only this path, so any unrelated
+                    # serve config (e.g. incident-investigator's) is left
+                    # untouched.
+                    ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=/claudio off";
+                  };
+                };
+              }
+            )
+          ];
           homeManagerModules = [ ];
         };
       };
