@@ -65,11 +65,6 @@
         "/home/dustin/.local/share/upsight"
       ];
       restorePath = "/tmp/restic-restore";
-      schedule = "*-*-* 03:00:00";
-      keepDaily = 7;
-      keepWeekly = 4;
-      keepMonthly = 12;
-      keepYearly = 2;
     };
 
     text-polish.enable = true;

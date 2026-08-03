@@ -15,6 +15,40 @@ hostname := `hostname`
 host_flake := ".#" + hostname
 timestamp := `date +%Y-%m-%d_%H-%M-%S`
 
+# === Private Helpers ===
+# Shared by the rebuild/upgrade/bump recipes below. `[private]` hides these
+# from `just --list`.
+
+# Print a warning-count summary for a log, or a success message if there are none
+[private]
+warn-summary log warn_msg success_msg:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    warnings=$(grep -c -E -i 'warning:' {{log}} 2>/dev/null || true)
+    if [[ "$warnings" -gt 0 ]]; then
+        gum style --foreground 220 "{{warn_msg}} with $warnings warning(s)"
+        if gum confirm "View warnings in log?"; then
+            bat --paging=always {{log}}
+        fi
+    else
+        gum style --foreground 82 "{{success_msg}}"
+    fi
+
+# Rewrite a failed build log in place: filtered errors/warnings up top, full log below
+[private]
+filter-log log:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{log}} | head -80)
+    {
+        echo "=== FILTERED ERRORS/WARNINGS ==="
+        echo "$filtered"
+        echo ""
+        echo "=== FULL BUILD LOG ==="
+        cat {{log}}
+    } > {{log}}.tmp
+    mv {{log}}.tmp {{log}}
+
 # === Help ===
 #
 # Listing convention: `just --list` renders the LAST line of the `#` block
@@ -50,15 +84,7 @@ rebuild:
     gum spin --spinner dot --title "Rebuilding NixOS configuration..." \
         -- bash -c 'sudo nixos-rebuild switch --impure --flake {{host_flake}} &> "'"$log"'"' || rc=$?
     if [[ "$rc" -eq 0 ]]; then
-        warnings=$(grep -c -E -i 'warning:' "$log" 2>/dev/null || true)
-        if [[ "$warnings" -gt 0 ]]; then
-            gum style --foreground 220 "Rebuild succeeded with $warnings warning(s)"
-            if gum confirm "View warnings in log?"; then
-                bat --paging=always "$log"
-            fi
-        else
-            gum style --foreground 82 "Rebuild succeeded"
-        fi
+        just warn-summary "$log" "Rebuild succeeded" "Rebuild succeeded"
         just post-rebuild interactive
 
         # Run package update check in background, show results when done
@@ -112,15 +138,7 @@ hyprflake-test path="/home/dustin/git/hyprflake":
     gum spin --spinner dot --title "Rebuilding with local hyprflake ({{path}})..." \
         -- bash -c 'sudo nixos-rebuild switch --impure --flake {{host_flake}} --override-input hyprflake path:{{path}} &> "'"$log"'"' || rc=$?
     if [[ "$rc" -eq 0 ]]; then
-        warnings=$(grep -c -E -i 'warning:' "$log" 2>/dev/null || true)
-        if [[ "$warnings" -gt 0 ]]; then
-            gum style --foreground 220 "Rebuild succeeded with $warnings warning(s)"
-            if gum confirm "View warnings in log?"; then
-                bat --paging=always "$log"
-            fi
-        else
-            gum style --foreground 82 "Rebuild succeeded (local hyprflake override active)"
-        fi
+        just warn-summary "$log" "Rebuild succeeded" "Rebuild succeeded (local hyprflake override active)"
     else
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
         bat --paging=always "$log"
@@ -163,15 +181,7 @@ upgrade:
         exit "$rc"
     fi
     gum style --foreground 82 "Voxtype configured"
-    warnings=$(grep -c -E -i 'warning:' "$log" 2>/dev/null || true)
-    if [[ "$warnings" -gt 0 ]]; then
-        gum style --foreground 220 "Upgrade completed with $warnings warning(s)"
-        if gum confirm "View warnings in log?"; then
-            bat --paging=always "$log"
-        fi
-    else
-        gum style --foreground 82 "Upgrade complete"
-    fi
+    just warn-summary "$log" "Upgrade completed" "Upgrade complete"
     just commit-lock "chore(flake): update flake lock" interactive
     just post-rebuild interactive
 
@@ -736,15 +746,7 @@ quiet-rebuild:
 
         just post-rebuild quiet
     else
-        filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{rebuild_log}} | head -80)
-        {
-            echo "=== FILTERED ERRORS/WARNINGS ==="
-            echo "$filtered"
-            echo ""
-            echo "=== FULL BUILD LOG ==="
-            cat {{rebuild_log}}
-        } > {{rebuild_log}}.tmp
-        mv {{rebuild_log}}.tmp {{rebuild_log}}
+        just filter-log {{rebuild_log}}
         echo "Rebuild FAILED (exit $rc). Use a Nix subagent to diagnose {{rebuild_log}} and fix the issue."
         exit "$rc"
     fi
@@ -774,15 +776,7 @@ quiet-upgrade:
 
         just post-rebuild quiet
     else
-        filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{upgrade_log}} | head -80)
-        {
-            echo "=== FILTERED ERRORS/WARNINGS ==="
-            echo "$filtered"
-            echo ""
-            echo "=== FULL BUILD LOG ==="
-            cat {{upgrade_log}}
-        } > {{upgrade_log}}.tmp
-        mv {{upgrade_log}}.tmp {{upgrade_log}}
+        just filter-log {{upgrade_log}}
         echo "Upgrade FAILED (exit $rc). Use a Nix subagent to diagnose {{upgrade_log}} and fix the issue."
         exit "$rc"
     fi
@@ -830,15 +824,7 @@ bump-upsight:
         # upsight commit; the system stays buildable on the prior good pin.
         mv -f flake.lock-backup-bump flake.lock
         echo "Reverted flake.lock (bump failed) — tree left on the prior good pin."
-        filtered=$(grep -E -i '(^error|error:|warning:|trace:|fatal|failed to)' {{rebuild_log}} | head -80)
-        {
-            echo "=== FILTERED ERRORS/WARNINGS ==="
-            echo "$filtered"
-            echo ""
-            echo "=== FULL BUILD LOG ==="
-            cat {{rebuild_log}}
-        } > {{rebuild_log}}.tmp
-        mv {{rebuild_log}}.tmp {{rebuild_log}}
+        just filter-log {{rebuild_log}}
         echo "upsight bump FAILED (exit $rc). Use a Nix subagent to diagnose {{rebuild_log}} and fix the issue."
         exit "$rc"
     fi

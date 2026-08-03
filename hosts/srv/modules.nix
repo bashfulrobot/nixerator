@@ -314,11 +314,6 @@
         "/srv/nfs"
       ];
       restorePath = "/srv/nfs/restores";
-      schedule = "*-*-* 03:00:00";
-      keepDaily = 7;
-      keepWeekly = 4;
-      keepMonthly = 12;
-      keepYearly = 2;
     };
   };
 

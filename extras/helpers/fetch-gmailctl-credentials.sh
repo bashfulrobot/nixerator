@@ -35,6 +35,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+# shellcheck source=lib/op-sa-token.sh
+source "${SCRIPT_DIR}/lib/op-sa-token.sh"
+
 # Parameters (all optional, defaults preserve the original personal-account
 # behaviour so existing callers / the `fetch-gmailctl-creds` recipe are unchanged):
 #   $1  config dir       (default ~/.gmailctl)              -> gmailctl --config
@@ -46,7 +50,6 @@ GMAILCTL_DIR="${1:-${HOME}/.gmailctl}"
 OP_ITEM="${2:-gmailctl}"
 ACCOUNT_LABEL="${3:-dustin@bashfulrobot.com}"
 CRED_PATH="${GMAILCTL_DIR}/credentials.json"
-SA_TOKEN_FILE="${HOME}/.config/op/service-account-token"
 
 if ! command -v op >/dev/null 2>&1; then
   echo "fetch-gmailctl-credentials: 'op' (1Password CLI) not in PATH." >&2
@@ -57,16 +60,7 @@ fi
 
 # Service account auto-source -- same pattern as render-secrets. Skips
 # biometric entirely once `just setup-op-token` has been run.
-if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" && -f "${SA_TOKEN_FILE}" ]]; then
-  sa_perms="$(stat -c '%a' "${SA_TOKEN_FILE}")"
-  if [[ "${sa_perms}" != "600" ]]; then
-    echo "fetch-gmailctl-credentials: ${SA_TOKEN_FILE} perms ${sa_perms}, must be 600" >&2
-    echo "  Fix:  chmod 600 ${SA_TOKEN_FILE}" >&2
-    exit 1
-  fi
-  OP_SERVICE_ACCOUNT_TOKEN="$(<"${SA_TOKEN_FILE}")"
-  export OP_SERVICE_ACCOUNT_TOKEN
-fi
+op_source_sa_token "fetch-gmailctl-credentials"
 
 if ! op whoami >/dev/null 2>&1; then
   echo "fetch-gmailctl-credentials: 'op' not authenticated." >&2

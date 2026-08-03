@@ -16,11 +16,13 @@ if [[ -n "${GITHUB_TOKEN:-}" ]]; then
 fi
 
 # --- Color helpers ---
-info()  { echo -e "\033[1;34m[check]\033[0m $*"; }
-ok()    { echo -e "\033[1;32m  ✓\033[0m $*"; }
-warn()  { echo -e "\033[1;33m  ↑\033[0m $*"; }
-err()   { echo -e "\033[1;31m  ✗\033[0m $*"; }
-manual(){ echo -e "\033[1;35m  ?\033[0m $*"; }
+# shellcheck source=lib/colors.sh
+source "$REPO_ROOT/extras/scripts/lib/colors.sh"
+info()  { echo -e "${COLOR_BLUE}[check]${COLOR_RESET} $*"; }
+ok()    { echo -e "${COLOR_GREEN}  ✓${COLOR_RESET} $*"; }
+warn()  { echo -e "${COLOR_YELLOW}  ↑${COLOR_RESET} $*"; }
+err()   { echo -e "${COLOR_RED}  ✗${COLOR_RESET} $*"; }
+manual(){ echo -e "${COLOR_MAGENTA}  ?${COLOR_RESET} $*"; }
 
 # --- Load versions.nix as JSON ---
 info "Loading versions from settings/versions.nix..."

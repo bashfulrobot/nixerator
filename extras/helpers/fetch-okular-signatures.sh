@@ -22,10 +22,13 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+# shellcheck source=lib/op-sa-token.sh
+source "${SCRIPT_DIR}/lib/op-sa-token.sh"
+
 ICONS_DIR="${HOME}/.kde/share/icons"
 SIG_PATH="${ICONS_DIR}/signature.png"
 INIT_PATH="${ICONS_DIR}/initials.png"
-SA_TOKEN_FILE="${HOME}/.config/op/service-account-token"
 
 if ! command -v op >/dev/null 2>&1; then
   echo "fetch-okular-signatures: 'op' (1Password CLI) not in PATH." >&2
@@ -36,16 +39,7 @@ fi
 
 # Service account auto-source — same pattern as render-secrets. Skips
 # biometric entirely once `just setup-op-token` has been run.
-if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" && -f "${SA_TOKEN_FILE}" ]]; then
-  sa_perms="$(stat -c '%a' "${SA_TOKEN_FILE}")"
-  if [[ "${sa_perms}" != "600" ]]; then
-    echo "fetch-okular-signatures: ${SA_TOKEN_FILE} perms ${sa_perms}, must be 600" >&2
-    echo "  Fix:  chmod 600 ${SA_TOKEN_FILE}" >&2
-    exit 1
-  fi
-  OP_SERVICE_ACCOUNT_TOKEN="$(<"${SA_TOKEN_FILE}")"
-  export OP_SERVICE_ACCOUNT_TOKEN
-fi
+op_source_sa_token "fetch-okular-signatures"
 
 if ! op whoami >/dev/null 2>&1; then
   echo "fetch-okular-signatures: 'op' not authenticated." >&2
