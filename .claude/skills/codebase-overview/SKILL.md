@@ -205,13 +205,17 @@ Repo-local, `.claude/docs/`:
 - `claude-plugins.md` — declarative plugin marketplace surface, capture behaviour.
 - `user-lingering.md` — `systemd.user` timers, `linger`, the no-enable-option invariant pattern.
 - `skill-cache.md` — warm-cache convention for query skills.
-- `2026-06-10-skill-cache-convention-{design,plan}.md` — historical, not in the CLAUDE.md TOC.
+- `token-optimizer.md` — the token-optimizer plugin, the `/usr/local/bin/python3` tmpfiles rule, hook exit 127.
+- `vendored-skills.md` — adding/bumping/debugging a skill vendored from a flake input.
+- `skill-defaults.md` — the always-on baseline, default-off model, and `skill-pick`.
 
 Deep dives, `extras/docs/`: `architecture.md`, `module-development.md`,
-`hosts.md`, `adding-hosts.md`, `secrets.md`, `local-packages.md`,
-`software.md`, `helpers.md`, `commands.md`, `ssh.md`, `gpu-reference.md`,
-`hyprland-windowrules.md`, `vm-development.md`, `declarative-claude.md`,
-`claude-plugins.md`, `bootstrap.txt`, and `CLAUDE.md` for editing
+`hosts.md`, `adding-hosts.md`, `secrets.md`, `secrets-agenix-evaluation.md`,
+`local-packages.md`, `software.md`, `helpers.md`, `commands.md`, `ssh.md`,
+`gpu-reference.md`, `hyprland-windowrules.md`, `vm-development.md`,
+`declarative-claude.md`, `claude-plugins.md`, `bootstrap.txt`,
+`external-deps.md`, `gcmt.md`, `google-chrome.md`, `termly-remote.md`,
+`todoist-cli.md`, `todoist-report.md`, and `CLAUDE.md` for editing
 `index.html`.
 
 Nested `CLAUDE.md` files worth reading in place: `modules/CLAUDE.md`,
