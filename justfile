@@ -304,7 +304,7 @@ health:
     echo "Running code health checks..."
     echo ""
     echo "Checking for unused code with deadnix..."
-    deadnix .
+    deadnix --fail .
     echo ""
     echo "Running statix linter..."
     fd -e nix --hidden --no-ignore --follow . -x statix check {}
