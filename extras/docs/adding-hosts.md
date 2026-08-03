@@ -106,7 +106,7 @@ string path. See `extras/docs/secrets.md`.
 
 ## Server Hosts
 
-Server hosts (using `archetypes.server`) do not auto-import all modules. Unlike workstations, you must manually import each needed module path in `modules.nix` alongside setting the enable option. See `hosts/srv/modules.nix` for an example.
+Server hosts (like `srv`) skip the `modules/` auto-import path entirely -- there is no `archetypes.server`. Unlike workstations, you must manually import each needed module path in `modules.nix` alongside setting the enable option. See `hosts/srv/modules.nix` for an example.
 
 ## Checklist
 

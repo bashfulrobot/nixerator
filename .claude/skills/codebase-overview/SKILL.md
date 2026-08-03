@@ -24,7 +24,7 @@ file contents. Detail lives in the topic files it points at.
 | `settings/globals.nix` | User identity, paths, defaults (stateVersion/timezone/locale), preferences, AI defaults, remoteEdit, git, per-host network identity. |
 | `settings/versions.nix` | Centralized version pins, keyed `cli.*`, `gui.*`, `fish-plugins.*`. |
 | `modules/` | Every module. Auto-imported by `modules/default.nix`. |
-| `modules/archetypes/` | `workstation`, `server`, `claudeWorkHost` — top of the cascade. |
+| `modules/archetypes/` | `workstation`, `claudeWorkHost` — top of the cascade. |
 | `modules/suites/` | 12 feature bundles that mostly just enable other modules. |
 | `modules/apps/{cli,gui,webapps}/` | Per-app modules. |
 | `modules/{system,server,dev}/` | System services, server services, dev environments. |
@@ -222,17 +222,8 @@ Nested `CLAUDE.md` files worth reading in place: `modules/CLAUDE.md`,
 Verified against the tree; treat this file as the correction until they are
 fixed.
 
-- `extras/docs/architecture.md` lists only two archetypes (`workstation`,
-  `server`). There are three; `claudeWorkHost` is missing.
-- `archetypes.server` is defined but **enabled by no host**. srv builds itself
-  from hand-imported module paths plus `claudeWorkHost`. Do not assume
-  `archetypes.server` describes srv.
-- `extras/docs/architecture.md` places restic under `modules/server/`. It lives
-  at `modules/apps/cli/restic/`.
 - `doc/` (singular) holds only a placeholder roadmap template and is unrelated
   to `docs/` and `extras/docs/`.
-- Two dated `skill-cache` files in `.claude/docs/` have no CLAUDE.md TOC entry,
-  which the thin-CLAUDE.md protocol requires.
 
 ## What makes this stale
 
@@ -241,7 +232,7 @@ Recheck when any of these stop matching. All change on the order of months.
 | Claim | Check with |
 |---|---|
 | Three hosts, their `extraModules` / `homeManagerModules` | `grep -n 'lib.mkHost' -A12 flake.nix` |
-| Three archetypes, and which host enables which | `ls modules/archetypes/` and `grep -rn 'archetypes\..*\.enable' hosts/` |
+| Two archetypes, and which host enables which | `ls modules/archetypes/` and `grep -rn 'archetypes\..*\.enable' hosts/` |
 | 12 suites | `ls modules/suites/` |
 | Auto-import exclusion set | `modules/default.nix` (the `isExcluded` predicate) |
 | Recipe and alias list | `grep -nE '^[a-zA-Z_][^ ]*.*:( \|$)\|^alias ' justfile` |

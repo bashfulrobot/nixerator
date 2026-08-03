@@ -108,13 +108,13 @@
 │   ├─ <span class="f">mkHost.nix</span><span class="an">         host builder: wires globals + versions + secrets into every module</span>
 │   └─ <span class="f">mkWebApp.nix</span><span class="an">       Chrome-PWA module factory for apps/webapps/*</span>
 ├─ <span class="d">modules/</span><span class="ac">              the bulk of the repo — every feature is a module</span>
-│   ├─ <span class="d">archetypes/</span><span class="an">       workstation · server · claudeWorkHost — machine profiles</span>
+│   ├─ <span class="d">archetypes/</span><span class="an">       workstation · claudeWorkHost — machine profiles</span>
 │   ├─ <span class="d">suites/</span><span class="an">           12 feature bundles (core, dev, desktop, kong, ai, ...)</span>
-│   ├─ <span class="d">apps/cli/</span><span class="an">         60 CLI tools, package builds in each module's build/</span>
-│   ├─ <span class="d">apps/gui/</span><span class="an">         19 GUI apps</span>
+│   ├─ <span class="d">apps/cli/</span><span class="an">         62 CLI tools, package builds in each module's build/</span>
+│   ├─ <span class="d">apps/gui/</span><span class="an">         17 GUI apps</span>
 │   ├─ <span class="d">apps/webapps/</span><span class="an">     2 Chrome-PWA wraps via mkWebApp</span>
-│   ├─ <span class="d">system/</span><span class="an">           8 system-level services (ssh, flatpak, nix config)</span>
-│   ├─ <span class="d">server/</span><span class="an">           5 server modules (kvm, nfs, restic, postgres)</span>
+│   ├─ <span class="d">system/</span><span class="an">           11 system-level services (ssh, flatpak, nix config)</span>
+│   ├─ <span class="d">server/</span><span class="an">           8 server-only modules (kvm, nfs, postgres, node-exporter, ...)</span>
 │   ├─ <span class="d">dev/</span><span class="an">              2 dev environments</span>
 │   └─ <span class="d">archive/</span><span class="gi">          retired modules, same relative path, excluded from eval</span>
 ├─ <span class="d">hosts/</span><span class="an">                donkeykong · qbert · srv — per-host config</span>

@@ -14,13 +14,13 @@ nixerator/
 │   ├── mkHost.nix         # Host builder
 │   └── mkWebApp.nix       # Web app (PWA) module factory
 ├── modules/
-│   ├── archetypes/        # workstation, server
+│   ├── archetypes/        # workstation, claudeWorkHost
 │   ├── suites/            # Feature bundles (core, dev, desktop, ...)
-│   ├── apps/cli/          # CLI apps (module-local packages in build/)
+│   ├── apps/cli/          # CLI apps (module-local packages in build/, incl. restic)
 │   ├── apps/gui/          # GUI apps
 │   ├── apps/webapps/      # PWAs
 │   ├── system/            # System services (ssh, flatpak, nix)
-│   ├── server/            # Server modules (kvm, nfs, restic)
+│   ├── server/            # Server-only modules (kvm, nfs, postgres, node-exporter, ...)
 │   └── dev/               # Dev environments (go, ...)
 ├── hosts/                 # Per-host configs (donkeykong, qbert, srv)
 └── extras/                # Docs, helper scripts
@@ -46,6 +46,8 @@ Mechanism: `inputs.import-tree.filterNot <predicate> ./.` (see [denful/import-tr
 - `suites.*` -- Module collections
 - `system.*` -- System-level settings
 - `dev.*` -- Development tools
+- `server.*` -- Server-only modules
+- `archetypes.*` -- Top-of-cascade host roles (workstation, claudeWorkHost)
 
 ## Module Template
 
@@ -67,7 +69,11 @@ in
 ## Archetypes
 
 - `archetypes.workstation.enable = true;` -- enables: core, desktop, terminal, browsers, security, dev, offcomms, infrastructure, k8s, kong, av, ai
-- `archetypes.server.enable = true;` -- enables: terminal, system.ssh, apps.cli.tailscale
+- `archetypes.claudeWorkHost.enable = true;` -- enables: zellij (+ cheatsheet), work-launcher, system.ssh. Turns a host into a peer reachable via the `work` fish function or `ssh <host> zellij attach`.
+
+srv has no workstation archetype at all -- it isn't part of `modules/`
+auto-import and instead hand-imports each module path it needs directly in
+`hosts/srv/modules.nix`, on top of `archetypes.claudeWorkHost`.
 
 ## Suites
 
