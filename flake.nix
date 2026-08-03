@@ -231,18 +231,6 @@
             inputs.disko.nixosModules.disko
             # Hyprland desktop environment
             inputs.hyprflake.nixosModules.default
-          ];
-          homeManagerModules = [
-            # Spicetify for customized Spotify
-            inputs.spicetify-nix.homeManagerModules.default
-          ];
-        };
-
-        srv = lib.mkHost {
-          inherit globals versions;
-          hostname = "srv";
-          system = "x86_64-linux";
-          extraModules = [
             inputs.claudio.nixosModules.default
             (
               { config, ... }:
@@ -278,14 +266,24 @@
                     ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=/claudio 127.0.0.1:8787";
                     # `-` prefix: don't fail the stop if the toggle syntax is
                     # rejected. Targets only this path, so any unrelated
-                    # serve config (e.g. incident-investigator's) is left
-                    # untouched.
+                    # serve config on qbert is left untouched.
                     ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=/claudio off";
                   };
                 };
               }
             )
           ];
+          homeManagerModules = [
+            # Spicetify for customized Spotify
+            inputs.spicetify-nix.homeManagerModules.default
+          ];
+        };
+
+        srv = lib.mkHost {
+          inherit globals versions;
+          hostname = "srv";
+          system = "x86_64-linux";
+          extraModules = [ ];
           homeManagerModules = [ ];
         };
       };
