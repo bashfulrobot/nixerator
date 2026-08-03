@@ -87,11 +87,7 @@ let
 in
 {
   options = {
-    apps.cli.fresh-editor.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the fresh terminal editor (LSP-capable, github.com/sinelaw/fresh).";
-    };
+    apps.cli.fresh-editor.enable = lib.mkEnableOption "the fresh terminal editor (LSP-capable, github.com/sinelaw/fresh)";
   };
 
   config = lib.mkIf cfg.enable {

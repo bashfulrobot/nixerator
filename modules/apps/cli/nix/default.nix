@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    apps.cli.nix.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable nix tooling.";
-    };
+    apps.cli.nix.enable = lib.mkEnableOption "nix tooling";
   };
 
   config = lib.mkIf cfg.enable {

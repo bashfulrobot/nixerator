@@ -18,11 +18,7 @@ let
   };
 in
 {
-  options.apps.cli.todoist-report.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable todoist-report CLI tool.";
-  };
+  options.apps.cli.todoist-report.enable = lib.mkEnableOption "todoist-report CLI tool";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ todoistReport ];

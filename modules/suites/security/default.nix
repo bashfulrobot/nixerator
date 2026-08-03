@@ -5,11 +5,7 @@ let
 in
 {
   options = {
-    suites.security.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable security suite for security tools.";
-    };
+    suites.security.enable = lib.mkEnableOption "security suite for security tools";
   };
 
   config = lib.mkIf cfg.enable {

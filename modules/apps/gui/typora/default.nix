@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    apps.gui.typora.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the Typora markdown editor.";
-    };
+    apps.gui.typora.enable = lib.mkEnableOption "the Typora markdown editor";
 
     apps.gui.typora.nautilusIntegration = lib.mkOption {
       type = lib.types.bool;

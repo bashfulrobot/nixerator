@@ -13,11 +13,7 @@ in
 
   options = {
     server.kvm = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable KVM and virt manager.";
-      };
+      enable = lib.mkEnableOption "KVM and virt manager";
 
       trustedBridgePrefix = lib.mkOption {
         type = lib.types.str;
@@ -71,11 +67,7 @@ in
       };
 
       routing = {
-        enable = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
-          description = "Enable KVM network routing and NAT configuration.";
-        };
+        enable = lib.mkEnableOption "KVM network routing and NAT configuration";
 
         externalInterface = lib.mkOption {
           type = lib.types.str;

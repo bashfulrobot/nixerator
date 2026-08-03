@@ -5,11 +5,7 @@ let
 in
 {
   options = {
-    apps.gui.budslink.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable BudsLink - desktop control for Bluetooth earbuds (AirPods, Galaxy Buds, etc.).";
-    };
+    apps.gui.budslink.enable = lib.mkEnableOption "BudsLink - desktop control for Bluetooth earbuds (AirPods, Galaxy Buds, etc.)";
   };
 
   config = lib.mkIf cfg.enable {

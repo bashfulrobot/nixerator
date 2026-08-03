@@ -10,11 +10,7 @@ let
 in
 {
   options = {
-    suites.terminal.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable terminal suite with shell, prompt, and terminal utilities.";
-    };
+    suites.terminal.enable = lib.mkEnableOption "terminal suite with shell, prompt, and terminal utilities";
   };
 
   config = lib.mkIf cfg.enable {

@@ -72,11 +72,7 @@ let
 in
 {
   options = {
-    apps.gui.brave-origin.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Brave Origin (minimalist standalone Brave, nightly channel).";
-    };
+    apps.gui.brave-origin.enable = lib.mkEnableOption "Brave Origin (minimalist standalone Brave, nightly channel)";
 
     apps.gui.brave-origin.extensions = lib.mkOption {
       type = lib.types.listOf lib.types.str;

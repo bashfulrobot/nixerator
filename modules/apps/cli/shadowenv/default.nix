@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    apps.cli.shadowenv.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable shadowenv for directory-based environment switching.";
-    };
+    apps.cli.shadowenv.enable = lib.mkEnableOption "shadowenv for directory-based environment switching";
   };
 
   config = lib.mkIf cfg.enable {

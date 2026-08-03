@@ -5,11 +5,7 @@ let
 in
 {
   options = {
-    apps.gui.cameractrls.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable cameractrls - Camera controls for Linux.";
-    };
+    apps.gui.cameractrls.enable = lib.mkEnableOption "cameractrls - Camera controls for Linux";
   };
 
   config = lib.mkIf cfg.enable {

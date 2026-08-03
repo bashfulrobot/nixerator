@@ -12,11 +12,7 @@ let
 in
 {
   options = {
-    apps.gui.upsight.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Upsight CSM desktop application.";
-    };
+    apps.gui.upsight.enable = lib.mkEnableOption "Upsight CSM desktop application";
   };
 
   config = lib.mkIf cfg.enable {

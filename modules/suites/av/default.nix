@@ -10,11 +10,7 @@ let
 in
 {
   options = {
-    suites.av.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable audio/visual suite with creative applications and media players.";
-    };
+    suites.av.enable = lib.mkEnableOption "audio/visual suite with creative applications and media players";
   };
 
   config = lib.mkIf cfg.enable {

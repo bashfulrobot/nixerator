@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    suites.desktop.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable desktop environment suite with Hyprland via hyprflake.";
-    };
+    suites.desktop.enable = lib.mkEnableOption "desktop environment suite with Hyprland via hyprflake";
   };
 
   config = lib.mkIf cfg.enable {

@@ -13,11 +13,7 @@ let
 in
 {
   options = {
-    apps.cli.zoxide.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable zoxide for smarter directory navigation.";
-    };
+    apps.cli.zoxide.enable = lib.mkEnableOption "zoxide for smarter directory navigation";
   };
 
   config = lib.mkIf cfg.enable {

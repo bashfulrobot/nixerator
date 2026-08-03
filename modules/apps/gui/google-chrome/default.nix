@@ -136,11 +136,7 @@ let
 in
 {
   options = {
-    apps.gui.google-chrome.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Google Chrome web browser.";
-    };
+    apps.gui.google-chrome.enable = lib.mkEnableOption "Google Chrome web browser";
     apps.gui.google-chrome.enableDev = lib.mkOption {
       type = lib.types.bool;
       default = false;

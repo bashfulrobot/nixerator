@@ -42,11 +42,7 @@ in
 {
   options = {
     server.nfs = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable NFS server with configurable exports.";
-      };
+      enable = lib.mkEnableOption "NFS server with configurable exports";
 
       threads = lib.mkOption {
         type = lib.types.int;

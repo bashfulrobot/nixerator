@@ -12,11 +12,7 @@ let
 in
 {
   options = {
-    apps.cli.salesforce-cli.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Salesforce CLI (sf) for Salesforce development and administration.";
-    };
+    apps.cli.salesforce-cli.enable = lib.mkEnableOption "Salesforce CLI (sf) for Salesforce development and administration";
   };
 
   config = lib.mkIf cfg.enable {

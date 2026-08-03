@@ -28,11 +28,7 @@ let
 in
 {
   options = {
-    apps.cli.spotify.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable spotify players.";
-    };
+    apps.cli.spotify.enable = lib.mkEnableOption "spotify players";
   };
 
   config = lib.mkIf cfg.enable {

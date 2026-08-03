@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    apps.cli.kubectl.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable kubectl with OIDC authentication support.";
-    };
+    apps.cli.kubectl.enable = lib.mkEnableOption "kubectl with OIDC authentication support";
   };
 
   config = lib.mkIf cfg.enable {

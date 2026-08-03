@@ -19,11 +19,7 @@ let
 in
 {
   options = {
-    apps.gui.claude-desktop.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the Claude desktop app (Chat, Cowork, and Claude Code).";
-    };
+    apps.gui.claude-desktop.enable = lib.mkEnableOption "the Claude desktop app (Chat, Cowork, and Claude Code)";
   };
 
   config = lib.mkIf cfg.enable {
