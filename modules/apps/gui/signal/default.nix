@@ -26,11 +26,7 @@ in
 {
   options = {
     apps.gui.signal = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable Signal desktop messaging application.";
-      };
+      enable = lib.mkEnableOption "Signal desktop messaging application";
       forceGnomeLibsecret = lib.mkOption {
         type = lib.types.bool;
         default = false;

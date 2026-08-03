@@ -10,11 +10,7 @@ let
 in
 {
   options = {
-    suites.infrastructure.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable infrastructure management suite with cloud and IaC tools.";
-    };
+    suites.infrastructure.enable = lib.mkEnableOption "infrastructure management suite with cloud and IaC tools";
   };
 
   config = lib.mkIf cfg.enable {

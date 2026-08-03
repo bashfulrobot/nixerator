@@ -5,11 +5,7 @@ let
 in
 {
   options = {
-    suites.browsers.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable browser suite with various browsers.";
-    };
+    suites.browsers.enable = lib.mkEnableOption "browser suite with various browsers";
   };
 
   config = lib.mkIf cfg.enable {

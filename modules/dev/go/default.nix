@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    dev.go.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Go tooling with clang support for CGO.";
-    };
+    dev.go.enable = lib.mkEnableOption "Go tooling with clang support for CGO";
   };
 
   config = lib.mkIf cfg.enable {

@@ -16,11 +16,7 @@ let
 in
 {
   options = {
-    apps.cli.walkr.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable walkr, the renderer for hand-authored topic walkthroughs (static wizard-style teaching sites).";
-    };
+    apps.cli.walkr.enable = lib.mkEnableOption "walkr, the renderer for hand-authored topic walkthroughs (static wizard-style teaching sites)";
   };
 
   config = lib.mkIf cfg.enable {

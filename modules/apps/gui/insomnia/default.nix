@@ -32,11 +32,7 @@ let
 in
 {
   options = {
-    apps.gui.insomnia.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Insomnia API Client (using local package override).";
-    };
+    apps.gui.insomnia.enable = lib.mkEnableOption "Insomnia API Client (using local package override)";
 
     apps.gui.insomnia.beta.enable = lib.mkOption {
       type = lib.types.bool;

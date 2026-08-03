@@ -15,11 +15,7 @@ in
 {
   options = {
     server.whisper-server = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable whisper.cpp HTTP server for remote transcription.";
-      };
+      enable = lib.mkEnableOption "whisper.cpp HTTP server for remote transcription";
 
       model = lib.mkOption {
         type = lib.types.str;

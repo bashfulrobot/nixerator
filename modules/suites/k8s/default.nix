@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    suites.k8s.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Kubernetes tooling suite.";
-    };
+    suites.k8s.enable = lib.mkEnableOption "Kubernetes tooling suite";
   };
 
   config = lib.mkIf cfg.enable {

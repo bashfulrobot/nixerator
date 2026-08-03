@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    apps.gui.obsidian.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Obsidian Notes.";
-    };
+    apps.gui.obsidian.enable = lib.mkEnableOption "Obsidian Notes";
   };
 
   config = lib.mkIf cfg.enable {

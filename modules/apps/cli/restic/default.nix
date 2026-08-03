@@ -118,18 +118,10 @@ in
 {
   options = {
     apps.cli.restic = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable restic backup tool.";
-      };
+      enable = lib.mkEnableOption "restic backup tool";
 
       backup = {
-        enable = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
-          description = "Enable scheduled restic backups with backup-mgr.";
-        };
+        enable = lib.mkEnableOption "scheduled restic backups with backup-mgr";
 
         secretsProfile = lib.mkOption {
           type = lib.types.str;

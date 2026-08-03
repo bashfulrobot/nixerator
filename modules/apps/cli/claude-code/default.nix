@@ -437,11 +437,7 @@ in
 {
   options = {
     apps.cli.claude-code = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable claude-code CLI tool with custom configuration.";
-      };
+      enable = lib.mkEnableOption "claude-code CLI tool with custom configuration";
       plugins = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];

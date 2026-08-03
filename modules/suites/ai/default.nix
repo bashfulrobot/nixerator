@@ -9,11 +9,7 @@ let
 in
 {
   options = {
-    suites.ai.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable AI suite with assistant and transcription tools.";
-    };
+    suites.ai.enable = lib.mkEnableOption "AI suite with assistant and transcription tools";
   };
 
   config = lib.mkIf cfg.enable {

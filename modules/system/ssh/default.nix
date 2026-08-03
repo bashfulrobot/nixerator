@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    system.ssh.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable OpenSSH server and client with predefined host configurations.";
-    };
+    system.ssh.enable = lib.mkEnableOption "OpenSSH server and client with predefined host configurations";
   };
 
   config = lib.mkIf cfg.enable {

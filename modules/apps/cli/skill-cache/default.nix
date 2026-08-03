@@ -17,11 +17,8 @@ let
   };
 in
 {
-  options.apps.cli.skill-cache.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable skill-cache — warm cache CLI for query skills.";
-  };
+  options.apps.cli.skill-cache.enable =
+    lib.mkEnableOption "skill-cache — warm cache CLI for query skills";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ skill-cache ];

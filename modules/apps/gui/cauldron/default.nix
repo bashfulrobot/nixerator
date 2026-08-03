@@ -5,11 +5,7 @@ let
 in
 {
   options = {
-    apps.gui.cauldron.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Cauldron - a GTK desktop client for Instapaper.";
-    };
+    apps.gui.cauldron.enable = lib.mkEnableOption "Cauldron - a GTK desktop client for Instapaper";
   };
 
   config = lib.mkIf cfg.enable {

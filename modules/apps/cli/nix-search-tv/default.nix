@@ -25,11 +25,7 @@ let
 in
 {
   options = {
-    apps.cli.nix-search-tv.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable nix-search-tv fuzzy search for Nix packages.";
-    };
+    apps.cli.nix-search-tv.enable = lib.mkEnableOption "nix-search-tv fuzzy search for Nix packages";
   };
 
   config = lib.mkIf cfg.enable {

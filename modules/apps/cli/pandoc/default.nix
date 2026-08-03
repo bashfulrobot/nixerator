@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    apps.cli.pandoc.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable pandoc document converter with PDF support.";
-    };
+    apps.cli.pandoc.enable = lib.mkEnableOption "pandoc document converter with PDF support";
   };
 
   config = lib.mkIf cfg.enable {

@@ -55,11 +55,7 @@ let
 in
 {
   options = {
-    apps.cli.git.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable git and related tools.";
-    };
+    apps.cli.git.enable = lib.mkEnableOption "git and related tools";
   };
 
   config = lib.mkIf cfg.enable {

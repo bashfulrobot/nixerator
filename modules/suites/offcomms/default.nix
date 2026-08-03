@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    suites.offcomms.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable communications suite with Signal and other secure messaging applications.";
-    };
+    suites.offcomms.enable = lib.mkEnableOption "communications suite with Signal and other secure messaging applications";
   };
 
   config = lib.mkIf cfg.enable {

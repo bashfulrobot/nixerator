@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    suites.dev.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable development suite with AI coding assistants and dev tools.";
-    };
+    suites.dev.enable = lib.mkEnableOption "development suite with AI coding assistants and dev tools";
   };
 
   config = lib.mkIf cfg.enable {

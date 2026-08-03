@@ -65,11 +65,8 @@ let
   };
 in
 {
-  options.apps.cli.worktree-flow.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable worktree-flow: AI-powered isolated worktree workflows for GitHub issues and quick tasks.";
-  };
+  options.apps.cli.worktree-flow.enable =
+    lib.mkEnableOption "worktree-flow: AI-powered isolated worktree workflows for GitHub issues and quick tasks";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [

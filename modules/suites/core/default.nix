@@ -11,11 +11,7 @@ let
 in
 {
   options = {
-    suites.core.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable core system infrastructure suite with SSH, Flatpak, GNOME Online Accounts (Google Drive), Web App Hub, backup tools (restic), and essential system tools.";
-    };
+    suites.core.enable = lib.mkEnableOption "core system infrastructure suite with SSH, Flatpak, GNOME Online Accounts (Google Drive), Web App Hub, backup tools (restic), and essential system tools";
   };
 
   config = lib.mkIf cfg.enable {

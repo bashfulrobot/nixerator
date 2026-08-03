@@ -14,11 +14,7 @@ let
 in
 {
   options = {
-    apps.cli.helix.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the helix editor.";
-    };
+    apps.cli.helix.enable = lib.mkEnableOption "the helix editor";
   };
 
   config = lib.mkIf cfg.enable {

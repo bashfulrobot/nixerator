@@ -5,11 +5,7 @@ let
 in
 {
   options = {
-    archetypes.workstation.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable workstation archetype with core system infrastructure, browsers, security, development, infrastructure, and k8s suites.";
-    };
+    archetypes.workstation.enable = lib.mkEnableOption "workstation archetype with core system infrastructure, browsers, security, development, infrastructure, and k8s suites";
   };
 
   config = lib.mkIf cfg.enable {

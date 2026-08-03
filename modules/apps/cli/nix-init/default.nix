@@ -10,11 +10,7 @@ let
 in
 {
   options = {
-    apps.cli.nix-init.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable nix-init, a CLI that scaffolds a Nix derivation from a URL — it detects the build system and prefetches source and dependency hashes (cargoHash/vendorHash). Authoring aid only; adapt its output to the repo's versions.nix + build/ layout.";
-    };
+    apps.cli.nix-init.enable = lib.mkEnableOption "nix-init, a CLI that scaffolds a Nix derivation from a URL — it detects the build system and prefetches source and dependency hashes (cargoHash/vendorHash). Authoring aid only; adapt its output to the repo's versions.nix + build/ layout";
   };
 
   config = lib.mkIf cfg.enable {

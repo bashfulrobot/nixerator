@@ -12,11 +12,7 @@ let
 in
 {
   options = {
-    apps.cli.lswt.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable lswt - List Wayland toplevels.";
-    };
+    apps.cli.lswt.enable = lib.mkEnableOption "lswt - List Wayland toplevels";
   };
 
   config = lib.mkIf cfg.enable {

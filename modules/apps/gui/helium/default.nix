@@ -23,11 +23,7 @@ let
 in
 {
   options = {
-    apps.gui.helium.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Helium browser (privacy-focused Chromium-based browser).";
-    };
+    apps.gui.helium.enable = lib.mkEnableOption "Helium browser (privacy-focused Chromium-based browser)";
   };
 
   config = lib.mkIf cfg.enable {
