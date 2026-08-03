@@ -63,12 +63,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # No nixpkgs.follows: nix-flatpak's flake declares no nixpkgs input of its
+    # own to follow (verified via `nix flake lock` — an override here errors
+    # as "non-existent input 'nixpkgs'").
     nix-flatpak = {
       url = "github:gmodena/nix-flatpak";
     };
 
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     spicetify-nix = {
