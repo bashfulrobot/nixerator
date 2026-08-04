@@ -22,6 +22,7 @@
     ../../modules/apps/cli/render-secrets
     ../../modules/apps/cli/restic
     ../../modules/apps/cli/skillfish
+    ../../modules/apps/cli/slack-token-refresh
     ../../modules/apps/cli/starship
     ../../modules/apps/cli/superpowers
     ../../modules/apps/cli/tailscale
@@ -71,6 +72,17 @@
     # receiving them by `just push-secrets srv`. Needs a valid SA token on the
     # host; see extras/docs/secrets.md.
     render-secrets.enable = true;
+    # Extracts Slack xoxc/xoxd session cookies via a persistent Chromium
+    # profile (Playwright) so the slack-post skill can send from srv.
+    # Separate credential path from claudoist's Slack MCP (Task 1/3-4 of
+    # this plan) -- this one backs slack-tracker/slack-post's direct Web
+    # API calls, not the MCP tools. First login needs a real browser
+    # window (ssh -X srv, then `slack-token-refresh`); after that the
+    # persistent profile lets `slack-token-refresh --headless` refresh it
+    # without one. Mirrors qbert/donkeykong's enablement via
+    # suites.offcomms, cherry-picked here the same way this file already
+    # cherry-picks individual apps.cli entries for headless srv.
+    slack-token-refresh.enable = true;
     starship.enable = true;
     tailscale.enable = true;
 
