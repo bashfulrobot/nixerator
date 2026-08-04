@@ -1559,11 +1559,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1785719198,
-        "narHash": "sha256-Xdfr+n+TpvlBL5sKokbrRYVkJ9aYDA55PH7rpH9Mej8=",
+        "lastModified": 1785858500,
+        "narHash": "sha256-ARklFeOqaGbwskhGNiwmga4p+lD/Cc99GSBSVk/8t8c=",
         "ref": "main",
-        "rev": "f196a0b32ae17ef844a214328306dbd79d2df7cc",
-        "revCount": 433,
+        "rev": "9b45b7391527f347e5a434f7310ceab734d0d961",
+        "revCount": 434,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
       },
