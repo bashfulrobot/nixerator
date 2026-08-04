@@ -978,6 +978,44 @@ push-secrets +hosts:
     done
     render-secrets --push {{hosts}}
 
+# scp this machine's ~/.config/gws/ (gws OAuth credentials + encryption key)
+# to one or more peer hosts that have no browser of their own to run
+# `gws auth login` -- do the OAuth flow here first, then push the result.
+#
+#   just push-gws-creds srv
+#
+# Same host allow-list and per-host quoting as push-secrets above. Copies the
+# whole directory (including gws's own cache/, which is harmless to carry
+# along and not credential material) then tightens permissions on the peer
+# to owner-only, since scp doesn't reliably preserve source modes. This
+# recipe only ever references paths -- it never cats/reads the credential
+# files themselves.
+[doc("scp this machine's gws OAuth credentials to a peer host")]
+[group('secrets')]
+push-gws-creds +hosts:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for host in {{hosts}}; do
+        case "$host" in
+            qbert|donkeykong|srv) ;;
+            *)
+                echo "Refusing to push to unrecognized host: $host"
+                echo "Allowed: qbert, donkeykong, srv"
+                exit 1
+                ;;
+        esac
+    done
+    if [ ! -d "$HOME/.config/gws" ]; then
+        echo "No ~/.config/gws locally -- run 'gws auth login' here first."
+        exit 1
+    fi
+    for host in {{hosts}}; do
+        ssh "$host" 'mkdir -p ~/.config'
+        scp -rq "$HOME/.config/gws" "$host:~/.config/gws"
+        ssh "$host" 'chmod -R go-rwx ~/.config/gws'
+        echo "Pushed gws credentials to $host"
+    done
+
 # Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
 # Exits non-zero if 1Password values differ from the cached file. Read-only.
 [doc('Check the cached secrets.json against 1Password (read-only)')]
