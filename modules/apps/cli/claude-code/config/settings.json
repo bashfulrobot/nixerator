@@ -136,7 +136,7 @@
   "model": "opusplan",
   "env": {
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5",
-    "PATH": "/run/wrappers/bin:/etc/profiles/per-user/dustin/bin:/run/current-system/sw/bin:${PATH}"
+    "PATH": "/run/wrappers/bin:/etc/profiles/per-user/@USER_NAME@/bin:/run/current-system/sw/bin:${PATH}"
   },
   "hooks": {
     "PostToolUse": [
