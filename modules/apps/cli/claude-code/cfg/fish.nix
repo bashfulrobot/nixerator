@@ -23,27 +23,38 @@
       };
     }
     // {
-      # Internal: pick a collision-free `--worktree` name for a claude --bg
-      # spawn from the primary checkout. `claude --worktree <name>` (and the
-      # EnterWorktree tool it shares a code path with) does NOT error or
-      # auto-rename on a name collision -- it silently RESUMES whatever
-      # worktree/branch already sits at that name, carrying over an earlier
-      # session's commits. The bare `claude` wrapper's default name is just
-      # `(basename $PWD)`, so accepting the default from the same folder
-      # twice reuses the same worktree by construction, defeating isolation
-      # (found live: nixerator PR #365 merged without this guard, and the
-      # very session investigating it got evicted mid-command when a
+      # Internal: pick a GUARANTEED collision-free `--worktree` name for a
+      # claude --bg spawn from the primary checkout. `claude --worktree
+      # <name>` (and the EnterWorktree tool it shares a code path with) does
+      # NOT error or auto-rename on a name collision -- it silently RESUMES
+      # whatever worktree/branch already sits at that name, carrying over an
+      # earlier session's commits. The bare `claude` wrapper's default name
+      # is just `(basename $PWD)`, so accepting the default from the same
+      # folder twice reuses the same worktree by construction, defeating
+      # isolation (found live: nixerator PR #365 merged without this guard,
+      # and the very session investigating it got evicted mid-command when a
       # concurrent process cleaned up the worktree it had silently resumed).
+      #
+      # Every new spawn must get its own worktree -- a 1:1 worktree:agent
+      # mapping, never an accidental resume. So unlike a fixed candidate
+      # list with a colliding fallback, this LOOPS: each retry appends a
+      # strictly incrementing attempt counter to a time-based suffix, which
+      # cannot repeat a prior candidate in the same loop, so it provably
+      # terminates on a free name. The bound below is pure paranoia against
+      # an unrelated logic bug ever turning this into an infinite loop --
+      # ordinary use resolves in one or two iterations. On the (should be
+      # unreachable) exhaustion path this REFUSES to spawn rather than ever
+      # handing back a name that could resume someone else's worktree.
+      #
       # Mirrors claudio's own collision-avoidance (git.go worktreeName /
-      # worktreeCollides): check both the worktree dir and the branch
-      # EnterWorktree/`--worktree` actually create (`worktree-<name>`), and
-      # on collision suffix -HHMM then -HHMMSS. Not called for a folder
-      # that's already a linked worktree (isolation is skipped there
-      # entirely), so deliberately resuming a specific worktree is still
-      # possible -- just by cd-ing into it, not by retyping its name from
+      # worktreeCollides), strengthened to a hard guarantee rather than a
+      # best-effort suffix. Not called for a folder that's already a linked
+      # worktree (isolation is skipped there entirely), so deliberately
+      # resuming a specific worktree is still possible -- just by cd-ing
+      # into it, or by `claude attach`/`-r`, not by retyping its name from
       # the primary checkout.
       __claude_worktree_name = {
-        description = "Internal: collision-free --worktree name (see claude/cj)";
+        description = "Internal: guaranteed collision-free --worktree name (see claude/cj)";
         body = ''
           set -l base $argv[1]
           set -l repo_root (command git rev-parse --show-toplevel 2>/dev/null)
@@ -52,18 +63,18 @@
               return 0
           end
 
-          set -l candidates $base "$base-"(date +%H%M) "$base-"(date +%H%M%S)
-          for c in $candidates
-              if not test -e "$repo_root/.claude/worktrees/$c"
-                 and not command git rev-parse --verify --quiet "refs/heads/worktree-$c" >/dev/null 2>&1
-                  echo $c
-                  return 0
+          set -l candidate $base
+          set -l attempt 0
+          while test -e "$repo_root/.claude/worktrees/$candidate"
+             or command git rev-parse --verify --quiet "refs/heads/worktree-$candidate" >/dev/null 2>&1
+              set attempt (math $attempt + 1)
+              if test $attempt -ge 25
+                  echo "claude: refusing to spawn -- could not find a free worktree name for '$base' after $attempt attempts (would risk silently resuming another session's worktree)" >&2
+                  return 1
               end
+              set candidate "$base-"(date +%H%M%S)"-$attempt"
           end
-          # Every candidate collided (pathological: repeated spawns within the
-          # same second) -- fall back to the last one, matching claudio's own
-          # worst-case fallback. --worktree will then silently resume it.
-          echo $candidates[-1]
+          echo $candidate
         '';
       };
 
@@ -96,15 +107,19 @@
               # resolve to different paths), since `git worktree add`
               # refuses to nest one worktree inside another anyway.
               # CLAUDE_NO_WORKTREE=1 is the escape hatch for a deliberate
-              # plain spawn. __claude_worktree_name picks a collision-free
-              # name so two sessions never silently land in the same worktree
-              # (see its own comment for why that matters).
+              # plain spawn. __claude_worktree_name guarantees a fresh,
+              # collision-free name -- 1:1 worktree:agent, never a silent
+              # resume (see its own comment for why that matters).
               set -l worktree_args
               if test -z "$CLAUDE_NO_WORKTREE"; and command git rev-parse --git-dir >/dev/null 2>&1
                   set -l git_dir (realpath -- (command git rev-parse --git-dir))
                   set -l common_dir (realpath -- (command git rev-parse --git-common-dir))
                   if test "$git_dir" = "$common_dir"
-                      set worktree_args --worktree (__claude_worktree_name $name)
+                      set -l wt_name (__claude_worktree_name $name)
+                      if test $status -ne 0
+                          return 1
+                      end
+                      set worktree_args --worktree $wt_name
                   end
               end
 
@@ -583,14 +598,18 @@
           set -l name (basename $pick)
 
           # Same worktree-by-default isolation as the bare `claude` wrapper
-          # above -- see its comment for the reasoning, the collision-free
-          # naming, and the CLAUDE_NO_WORKTREE escape hatch.
+          # above -- see its comment for the reasoning, the guaranteed
+          # collision-free naming, and the CLAUDE_NO_WORKTREE escape hatch.
           set -l worktree_args
           if test -z "$CLAUDE_NO_WORKTREE"; and command git rev-parse --git-dir >/dev/null 2>&1
               set -l git_dir (realpath -- (command git rev-parse --git-dir))
               set -l common_dir (realpath -- (command git rev-parse --git-common-dir))
               if test "$git_dir" = "$common_dir"
-                  set worktree_args --worktree (__claude_worktree_name $name)
+                  set -l wt_name (__claude_worktree_name $name)
+                  if test $status -ne 0
+                      return 1
+                  end
+                  set worktree_args --worktree $wt_name
               end
           end
 

@@ -105,6 +105,7 @@ let
       guardRawNixScript
       guardGitStashScript
       guardPrimaryTreeWriteScript
+      guardEnterWorktreeCollisionScript
       guardSecretCommandsScript
       scrubSecretOutputScript
       globals
@@ -272,6 +273,25 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/guard-primary-tree-write.sh;
+  };
+
+  # Hard PreToolUse deny for an EnterWorktree(name=...) call that would
+  # collide with an existing worktree directory or the branch EnterWorktree
+  # itself creates (worktree-<name>). EnterWorktree silently RESUMES on a
+  # collision rather than erroring, which breaks the 1:1 worktree:agent
+  # guarantee the fish `__claude_worktree_name` launch-time helper
+  # (cfg/fish.nix) provides for new spawns; this is the backstop for
+  # EnterWorktree called mid-session, which no wrapper script can reach. A
+  # path-based EnterWorktree call (deliberate resume) is never denied. Fails
+  # open on ambiguity; a deny can't be overridden by an allow.
+  guardEnterWorktreeCollisionScript = pkgs.writeShellApplication {
+    name = "claude-guard-enter-worktree-collision";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.git
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/guard-enter-worktree-collision.sh;
   };
 
   # Hard PreToolUse deny for commands that would print a secret into the
