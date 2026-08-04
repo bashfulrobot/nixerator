@@ -310,11 +310,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785832077,
-        "narHash": "sha256-vT0hN1umNtZ6IrKJTt5JB77qRHf/W+i+2wpilDXNMhY=",
+        "lastModified": 1785861554,
+        "narHash": "sha256-BA86S+1O4JDOOu7Gu5eQCPqFc/jiUfPHRNErkfqiu5Y=",
         "owner": "bashfulrobot",
         "repo": "claudio",
-        "rev": "fa88870f75a4f9073b90dfbb9c8b689d97ec53e6",
+        "rev": "2b0147c7c709529edef324d3afca5e6f976d57e0",
         "type": "github"
       },
       "original": {
