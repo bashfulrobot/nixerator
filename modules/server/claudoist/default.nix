@@ -46,10 +46,18 @@ let
   # doesn't silently disappear if that toggle ever changes.
   todoistCliPkg = pkgs.callPackage ../../apps/cli/todoist-cli/build { inherit versions; };
 
+  # Same self-contained pattern as todoistCliPkg above: build gws locally
+  # rather than depending on apps.cli.gws.enable, so this service's `gws`
+  # doesn't silently disappear if that toggle ever changes, and srv's
+  # otherwise-deliberate "no gws here" posture (see hosts/qbert/modules.nix)
+  # stays scoped to just this one systemd service.
+  gwsPkg = pkgs.callPackage ../../apps/cli/gws/build { inherit versions; };
+
   runtimePath = lib.makeBinPath [
     pkgs.bash
     pkgs.llm-agents.claude-code
     todoistCliPkg
+    gwsPkg
     pkgs._1password-cli
     pkgs.jq
     pkgs.curl
