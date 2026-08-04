@@ -31,11 +31,11 @@ in
           command_timeout = 300;
           add_newline = false;
           format = "$custom$character";
-          right_format = "$all";
+          right_format = "$directory$git_branch$git_status$kubernetes$hostname";
 
           character = {
-            success_symbol = "[⦿](bold)";
-            error_symbol = "[⦿](bold red)";
+            success_symbol = "[❯](bold)";
+            error_symbol = "[❯](bold red)";
           };
 
           line_break.disabled = true;
@@ -74,50 +74,17 @@ in
             shell = "fish";
             ignore_timeout = true;
           };
-          rust = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          scala = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          nix_shell = {
-            format = "[$symbol$name ]($style)";
-            symbol = " ";
-          };
-          nodejs = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          golang = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          java = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          deno = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          lua = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          docker_context = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          python = {
-            format = "[$symbol]($style)";
-            symbol = " ";
-          };
-          cmd_duration = {
-            min_time = 500;
-            format = "took [$duration]($style) ";
-          };
+          rust.disabled = true;
+          scala.disabled = true;
+          nix_shell.disabled = true;
+          nodejs.disabled = true;
+          golang.disabled = true;
+          java.disabled = true;
+          deno.disabled = true;
+          lua.disabled = true;
+          docker_context.disabled = true;
+          python.disabled = true;
+          cmd_duration.disabled = true;
           kubernetes = {
             disabled = false;
             format = "[$symbol$context( \\($namespace\\))]($style) ";
