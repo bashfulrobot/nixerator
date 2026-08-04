@@ -165,6 +165,14 @@ in
             diff.algorithm = "histogram";
             core.excludesFile = "~/.config/git/ignore";
 
+            # difftastic as the git difftool default (mkForce: programs.kitty
+            # also sets this via mkDefault, and kitty's `kitten diff` needs
+            # kitty's terminal graphics protocol -- Rio, the terminal actually
+            # in use, doesn't render it). Plain `git diff` is untouched
+            # (diff.external is not set), so scripts/git-apply keep working.
+            diff.tool = lib.mkForce "difftastic";
+            difftool.difftastic.cmd = ''${lib.getExe pkgs.difftastic} --background=dark --color=always "$LOCAL" "$REMOTE"'';
+
             # SSH signing configuration
             commit.gpgsign = true;
             tag.gpgsign = true;
@@ -183,6 +191,8 @@ in
               br = "branch";
               df = "diff";
               dfs = "diff --staged";
+              gdt = "difftool -y -t difftastic";
+              gdts = "difftool -y -t difftastic --staged";
               lg = "log --oneline --graph --decorate";
               ll = "log --oneline -n 20";
               last = "log -1 HEAD";
@@ -204,7 +214,14 @@ in
 
         difftastic = {
           enable = true;
-          git.enable = true;
+          # git.enable stays off: its "difftool" mode sets diff.tool via
+          # mkDefault, same priority as programs.kitty's own mkDefault "kitty"
+          # -- a real conflicting-definition eval error, not a preference tie.
+          # difftool.difftastic.cmd is wired by hand below, and diff.tool is
+          # forced to difftastic (kitty's `kitten diff` needs kitty's terminal
+          # graphics protocol, which Rio -- the terminal actually in use --
+          # doesn't render).
+          git.enable = false;
           options = {
             background = "dark";
             color = "always";
