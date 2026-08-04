@@ -978,7 +978,7 @@ push-secrets +hosts:
     done
     render-secrets --push {{hosts}}
 
-# scp this machine's ~/.config/gws/ (gws OAuth credentials + encryption key)
+# Copy this machine's ~/.config/gws/ (gws OAuth credentials + encryption key)
 # to one or more peer hosts that have no browser of their own to run
 # `gws auth login` -- do the OAuth flow here first, then push the result.
 #
@@ -987,10 +987,14 @@ push-secrets +hosts:
 # Same host allow-list and per-host quoting as push-secrets above. Copies the
 # whole directory (including gws's own cache/, which is harmless to carry
 # along and not credential material) then tightens permissions on the peer
-# to owner-only, since scp doesn't reliably preserve source modes. This
-# recipe only ever references paths -- it never cats/reads the credential
-# files themselves.
-[doc("scp this machine's gws OAuth credentials to a peer host")]
+# to owner-only, since the transfer doesn't reliably preserve source modes.
+# Uses rsync with a trailing slash on the source, NOT `scp -r`: scp -r nests
+# the source dir one level deeper (~/.config/gws/gws/...) if the destination
+# already exists, which it will on any host that's ever started the
+# corresponding systemd service -- rsync's trailing-slash form merges into
+# an existing target correctly instead. This recipe only ever references
+# paths -- it never cats/reads the credential files themselves.
+[doc("Copy this machine's gws OAuth credentials to a peer host")]
 [group('secrets')]
 push-gws-creds +hosts:
     #!/usr/bin/env bash
@@ -1010,10 +1014,55 @@ push-gws-creds +hosts:
         exit 1
     fi
     for host in {{hosts}}; do
-        ssh "$host" 'mkdir -p ~/.config'
-        scp -rq "$HOME/.config/gws" "$host:~/.config/gws"
+        ssh "$host" 'mkdir -p ~/.config/gws'
+        rsync -a "$HOME/.config/gws/" "$host:~/.config/gws/"
         ssh "$host" 'chmod -R go-rwx ~/.config/gws'
         echo "Pushed gws credentials to $host"
+    done
+
+# Copy this machine's ~/.config/slack/ (slack-token-refresh's persistent
+# Chromium profile + extracted xoxc/xoxd credentials.json) to a peer host
+# that has no browser to log in with. The whole browser-profile directory
+# has to travel, not just credentials.json -- it holds the session cookies
+# `slack-token-refresh --headless` needs to refresh tokens later without an
+# interactive login. This is a different credential store from gws's own
+# (push-gws-creds above) and from claudoist's Slack MCP OAuth (Gap 1 in
+# docs/superpowers/specs/2026-08-04-persistent-srv-tooling-design.md) --
+# three separate Slack/Google auth paths, don't conflate them.
+#
+#   just push-slack-token-creds srv
+#
+# Same host allow-list/quoting/permission-tightening as push-gws-creds, and
+# the same rsync-with-trailing-slash reasoning: `scp -r` nests the source
+# dir one level deeper if the destination already exists (it will, on any
+# host that's ever started the slack-token-refresh service), silently
+# leaving the real profile invisible to a later `--headless` refresh. The
+# browser profile is large (a few hundred MB) -- expect this to take a
+# while over a slow link. Never reads the credential files' contents.
+[doc("Copy this machine's slack-token-refresh credentials to a peer host")]
+[group('secrets')]
+push-slack-token-creds +hosts:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for host in {{hosts}}; do
+        case "$host" in
+            qbert|donkeykong|srv) ;;
+            *)
+                echo "Refusing to push to unrecognized host: $host"
+                echo "Allowed: qbert, donkeykong, srv"
+                exit 1
+                ;;
+        esac
+    done
+    if [ ! -d "$HOME/.config/slack" ]; then
+        echo "No ~/.config/slack locally -- run 'slack-token-refresh' here first."
+        exit 1
+    fi
+    for host in {{hosts}}; do
+        ssh "$host" 'mkdir -p ~/.config/slack'
+        rsync -a "$HOME/.config/slack/" "$host:~/.config/slack/"
+        ssh "$host" 'chmod -R go-rwx ~/.config/slack'
+        echo "Pushed slack-token-refresh credentials to $host"
     done
 
 # Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
