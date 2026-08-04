@@ -43,7 +43,26 @@
               end
               test -z "$name"; and set name $default_name
 
-              set -l out (command claude --bg --name "$name" --remote-control "$name")
+              # Isolate every new background session into its own git
+              # worktree by default, so parallel sessions never share a
+              # checkout and stomp on each other's uncommitted work --
+              # mirrors claudio's own worktree-by-default spawn behavior.
+              # Skipped for non-git folders and for a folder that's already
+              # a linked worktree (its --git-dir and --git-common-dir
+              # resolve to different paths), since `git worktree add`
+              # refuses to nest one worktree inside another anyway.
+              # CLAUDE_NO_WORKTREE=1 is the escape hatch for a deliberate
+              # plain spawn.
+              set -l worktree_args
+              if test -z "$CLAUDE_NO_WORKTREE"; and command git rev-parse --git-dir >/dev/null 2>&1
+                  set -l git_dir (realpath -- (command git rev-parse --git-dir))
+                  set -l common_dir (realpath -- (command git rev-parse --git-common-dir))
+                  if test "$git_dir" = "$common_dir"
+                      set worktree_args --worktree $name
+                  end
+              end
+
+              set -l out (command claude --bg --name "$name" --remote-control "$name" $worktree_args)
               printf '%s\n' $out
               set -l id (string match -rg 'claude attach (\S+)' -- $out)
               if test -n "$id"
@@ -517,7 +536,19 @@
           cd $pick; or return 1
           set -l name (basename $pick)
 
-          set -l out (command claude --bg --name "$name" --remote-control "$name")
+          # Same worktree-by-default isolation as the bare `claude` wrapper
+          # above -- see its comment for the reasoning and the
+          # CLAUDE_NO_WORKTREE escape hatch.
+          set -l worktree_args
+          if test -z "$CLAUDE_NO_WORKTREE"; and command git rev-parse --git-dir >/dev/null 2>&1
+              set -l git_dir (realpath -- (command git rev-parse --git-dir))
+              set -l common_dir (realpath -- (command git rev-parse --git-common-dir))
+              if test "$git_dir" = "$common_dir"
+                  set worktree_args --worktree $name
+              end
+          end
+
+          set -l out (command claude --bg --name "$name" --remote-control "$name" $worktree_args)
           printf '%s\n' $out
           set -l id (string match -rg 'claude attach (\S+)' -- $out)
           if test -n "$id"
