@@ -11,6 +11,7 @@
     ./hardware-configuration.nix # Hardware-specific settings
     ./boot.nix # Bootloader configuration
     ./gpu.nix # Intel iGPU hardware video acceleration
+    ./power.nix # CPU frequency ceiling (thermal/fan-noise cap)
     ./modules.nix # Module configuration
   ];
 
