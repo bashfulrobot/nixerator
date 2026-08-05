@@ -275,6 +275,24 @@
                     ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=/claudio off";
                   };
                 };
+
+                # Launcher entry for Claudio's local web UI. Plain browser
+                # window rather than the mkWebApp PWA wrapper -- this is a
+                # loopback-only admin console for the local claudio.service,
+                # not a cloud service needing its own persistent profile/
+                # extensions (same rationale as modules/system/streaming's
+                # sunshine-webui entry).
+                home-manager.users.${globals.user.name}.xdg.desktopEntries.claudio = {
+                  name = "Claudio";
+                  comment = "Open the Claudio session manager";
+                  exec = "${globals.preferences.browser} --new-window http://127.0.0.1:8787/";
+                  icon = "utilities-terminal";
+                  categories = [
+                    "Development"
+                    "Utility"
+                  ];
+                  terminal = false;
+                };
               }
             )
           ];
