@@ -114,6 +114,10 @@
     # and then silently falls back to the stale cached commit (so every bump
     # rebuilt an ancient version). SSH uses the existing key and always resolves
     # real HEAD. Hosts that rebuild upsight need SSH read access to the repo.
+    # CI's nightly lock bump (.github/workflows/update-flake-lock.yml)
+    # authenticates the same way via a dedicated read-only deploy key stored
+    # as the NIXERATOR_DEPLOY_KEY repo secret, added to both upsight and
+    # claudoist below -- not Dustin's personal key.
     upsight = {
       url = "git+ssh://git@github.com/bashfulrobot/upsight?ref=main";
     };
