@@ -42,6 +42,32 @@ jobs:
             exit 1
           fi
 
+      - name: Validate NIXERATOR_DEPLOY_KEY shape
+        env:
+          K: ${{ secrets.NIXERATOR_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$K" ]; then
+            echo "NIXERATOR_DEPLOY_KEY is empty" >&2
+            exit 1
+          fi
+
+      # upsight and claudoist (flake.nix) are fetched over git+ssh because
+      # they're private repos and the github: scheme needs a PAT that would
+      # otherwise silently fall back to a stale cached commit on 404. The
+      # HTTPS PAT below (NIXERATOR_FLAKE_TOKEN) doesn't cover SSH transport,
+      # so `nix flake update` had no way to authenticate those two inputs and
+      # failed on every scheduled run. NIXERATOR_DEPLOY_KEY is a dedicated
+      # read-only deploy key added to just those two repos -- not Dustin's
+      # personal key -- so a compromised runner can only read those repos.
+      - name: Start SSH agent for git+ssh flake inputs
+        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.NIXERATOR_DEPLOY_KEY }}
+
+      - name: Trust github.com host key
+        run: ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
         with:
