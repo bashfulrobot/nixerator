@@ -176,6 +176,40 @@
       flake = false;
     };
 
+    # Pinned upstream for the seven `awwwards-*` / `visual-redesign` /
+    # `pixel-perfect` / `brandkit-gen` / `imagegen-frontend` VibeCurb design
+    # skills (claude-code). `flake = false` for the same reason as humanizer
+    # above: the repo is a bare collection of skill directories
+    # (skills/<name>/SKILL.md) plus a small CLI wrapper, not a flake, and it
+    # ships no `.claude-plugin/marketplace.json` so the plugin-marketplace
+    # path doesn't apply.
+    #
+    # Pinned to an explicit rev, not a bare branch tracking URL, same
+    # rationale and same pattern as import-tree's tag pin below: this repo's
+    # own `update-flake-lock` GitHub Action runs `nix flake update` on a
+    # daily cron and pushes the result straight to `main` with no PR and no
+    # review. A bare `github:Yu-369/VibeCurb` would let that job silently
+    # advance to whatever the single-maintainer upstream's default branch
+    # has moved to -- and the payload here is instruction text a Claude Code
+    # agent reads and follows, not compiled code, so none of the usual
+    # build-time sandboxing applies to a hostile change. With the rev
+    # embedded in the URL, the daily job's `nix flake update` is a no-op for
+    # this input; bumping is a deliberate, reviewable commit that shows the
+    # rev change, the same as bumping import-tree's tag.
+    #
+    # rev 1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0 reviewed 2026-08-05: all
+    # seven skill directories contain only a SKILL.md (no scripts, verified
+    # via the upstream repo tree), MIT licensed (verified via the GitHub
+    # license API), and neither imagegen-frontend nor brandkit-gen (the two
+    # image-generation skills) reference a credential, an API endpoint, or a
+    # network call anywhere in their prompt text -- see
+    # .claude/docs/vendored-skills.md for the full note. Re-review before
+    # advancing this rev.
+    vibecurb-skills = {
+      url = "github:Yu-369/VibeCurb/1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0";
+      flake = false;
+    };
+
     # Recursive Nix module importer. Replaces the hand-rolled
     # `lib/autoimport.nix`; consumed by `modules/default.nix` and
     # `modules/apps/webapps/default.nix` via `inputs.import-tree`.

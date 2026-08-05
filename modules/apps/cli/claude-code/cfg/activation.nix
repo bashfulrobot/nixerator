@@ -24,6 +24,8 @@
   intentLayerSkillSrc,
   walkrAuthorSkillSrc,
   walkrTutorialAuthorSkillSrc,
+  vibecurbSkillsSrc,
+  vibecurbSkillNames,
   textPolishRulesFile,
   pluginOverlay,
   skillOverlay,
@@ -221,6 +223,31 @@
     $DRY_RUN_CMD ln -snf "${walkrAuthorSkillSrc}" "$claude_home/skills/walkr-author"
     $DRY_RUN_CMD rm -rf "$claude_home/skills/walkr-tutorial-author"
     $DRY_RUN_CMD ln -snf "${walkrTutorialAuthorSkillSrc}" "$claude_home/skills/walkr-tutorial-author"
+
+    # VibeCurb design skills -- pinned to a specific Yu-369/VibeCurb rev via
+    # the `vibecurb-skills` flake input URL (see flake.nix for why this is a
+    # rev pin, not a bare branch-tracking URL). Symlinked for the same
+    # reasons as humanizer above. Seven skills share one input, so this loops
+    # instead of repeating the two-line rm/ln pair per skill (default.nix
+    # asserts every name is path-safe and resolves against the pinned rev
+    # before this ever runs). Off by default (see cfg/skill-defaults.nix);
+    # opt in per project with skill-pick. Bump by editing the rev in
+    # flake.nix's vibecurb-skills url, then `nix flake lock` -- a bare
+    # `nix flake update vibecurb-skills` is a no-op against a rev-pinned URL.
+    for skill in ${lib.concatStringsSep " " vibecurbSkillNames}; do
+      target="$claude_home/skills/$skill"
+      # A real (non-symlink) directory here is a user- or agent-authored
+      # skill sharing this name, not a stale copy of our own doing -- leave
+      # it alone and warn instead of silently deleting it. (default.nix's
+      # collision assertion catches the config/skills/ case at eval time;
+      # this covers one created at runtime instead.)
+      if [ -e "$target" ] && [ ! -L "$target" ]; then
+        echo "warning: $target exists and is not a symlink -- leaving it in place instead of overwriting with the vendored $skill skill" >&2
+      else
+        $DRY_RUN_CMD rm -rf "$target"
+        $DRY_RUN_CMD ln -snf "${vibecurbSkillsSrc}/$skill" "$target"
+      fi
+    done
 
     # Output styles -- remove stale symlinks before copying
     for style in "${configDir}"/output-styles/*; do
