@@ -136,7 +136,8 @@
   "model": "opusplan",
   "env": {
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5",
-    "PATH": "/run/wrappers/bin:/etc/profiles/per-user/@USER_NAME@/bin:/run/current-system/sw/bin:${PATH}"
+    "PATH": "/run/wrappers/bin:/etc/profiles/per-user/@USER_NAME@/bin:/run/current-system/sw/bin:${PATH}",
+    "SSH_AUTH_SOCK": "${XDG_RUNTIME_DIR}/gcr/ssh"
   },
   "hooks": {
     "PostToolUse": [
