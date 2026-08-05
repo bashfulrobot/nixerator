@@ -101,6 +101,7 @@ let
       reinjectScript
       remindersFile
       remindersScript
+      gitSyncScript
       guardGeneratedPathsScript
       guardRawNixScript
       guardGitStashScript
@@ -219,6 +220,20 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/reminders.sh;
+  };
+
+  # SessionStart git-sync (issue: primary-checkout resets clobbering another
+  # live session's view of the tree). Reports ahead/behind status everywhere;
+  # only auto-`git reset`s a linked worktree, and only when it's clean. Never
+  # resets the shared primary checkout (epic #252 invariant 1, same
+  # git-dir/git-common-dir check as guardPrimaryTreeWriteScript below).
+  gitSyncScript = pkgs.writeShellApplication {
+    name = "claude-git-sync";
+    runtimeInputs = [
+      pkgs.git
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/git-sync.sh;
   };
 
   # Hardened PostToolUse guards (warn-level): editing Nix-generated ~/.claude
