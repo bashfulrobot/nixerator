@@ -50,16 +50,41 @@ let
   # stripped from capture, so Nix owns the default and a per-project
   # skill-pick "on" is the only way around it.
   skillDefaultsConfig = import ./cfg/skill-defaults.nix { inherit lib; };
+  # The seven VibeCurb design skills all live under skills/<name>/SKILL.md
+  # in the same upstream repo (see cfg/activation.nix for the symlink loop
+  # that consumes this same list).
+  vibecurbSkillNames = [
+    "awwwards-hero"
+    "awwwards-motion"
+    "awwwards-sections"
+    "brandkit-gen"
+    "imagegen-frontend"
+    "pixel-perfect"
+    "visual-redesign"
+  ];
+  # Every symlinked-skill name Nix installs, vibecurb's seven plus the four
+  # pre-existing ones. Single source of truth for the skill-overlay call
+  # below and the collision assertion further down -- both need the exact
+  # same list.
+  allVendoredSkillNames = [
+    "humanizer"
+    "intent-layer"
+    "walkr-author"
+    "walkr-tutorial-author"
+  ]
+  ++ vibecurbSkillNames;
+  # Same directory-listing computation skill-defaults.nix's mkOverlay does
+  # internally for configSkillsDir, duplicated here only because mkOverlay
+  # doesn't expose its intermediate configNames and the collision assertion
+  # below needs it too.
+  configSkillNames = builtins.attrNames (
+    lib.filterAttrs (_: type: type == "directory") (builtins.readDir (configDir + "/skills"))
+  );
   skillOverlayFile = pkgs.writeText "claude-skill-overlay.json" (
     builtins.toJSON (
       skillDefaultsConfig.mkOverlay {
         configSkillsDir = configDir + "/skills";
-        vendoredNames = [
-          "humanizer"
-          "intent-layer"
-          "walkr-author"
-          "walkr-tutorial-author"
-        ];
+        vendoredNames = allVendoredSkillNames;
       }
     )
   );
@@ -124,6 +149,11 @@ let
     # for never drift apart.
     walkrAuthorSkillSrc = inputs.walkr + "/skills/walkr-author";
     walkrTutorialAuthorSkillSrc = inputs.walkr + "/skills/walkr-tutorial-author";
+    # VibeCurb design skills -- one input, seven skill directories under
+    # skills/. inherit vibecurbSkillNames so activation.nix's symlink loop
+    # and this module's skill-overlay vendoredNames list stay in sync.
+    vibecurbSkillsSrc = inputs.vibecurb-skills + "/skills";
+    inherit vibecurbSkillNames;
     # Reference the rules file by path, not through
     # `config.apps.cli.text-polish.rulesFile`. Reading the option made this
     # module fail to evaluate on any host that imports claude-code without
@@ -525,6 +555,37 @@ in
         message = "modules/apps/cli/claude-code/config/CLAUDE.md must stay under 8000 characters (see #294); it is currently ${
           toString (builtins.stringLength (builtins.readFile (configDir + "/CLAUDE.md")))
         }.";
+      }
+      {
+        # cfg/activation.nix interpolates vibecurbSkillNames, unquoted, into a
+        # shell `for skill in ${...}; do rm -rf "$claude_home/skills/$skill"; ...;
+        # done` loop. A name with a space splits into extra iterations, one
+        # with a glob character expands at the `for` line, and one with `/`
+        # or `..` escapes ~/.claude/skills entirely -- all of that lands in an
+        # `rm -rf` under $HOME. Every current entry is a safe literal; this
+        # guards the next one.
+        assertion = lib.all (
+          n: builtins.match "[A-Za-z0-9._-]+" n != null && n != "." && n != ".."
+        ) vibecurbSkillNames;
+        message = "vibecurbSkillNames (default.nix) must be plain path-safe names (no spaces, globs, or path separators) -- cfg/activation.nix interpolates this list unquoted into a shell loop that feeds `rm -rf`. Got: ${toString vibecurbSkillNames}.";
+      }
+      {
+        # `ln -snf` succeeds even when its target is missing, so a typo here
+        # or an upstream rename at the next `vibecurb-skills` rev bump would
+        # otherwise activate cleanly and just leave a dangling symlink --
+        # the skill silently stops existing with no build-time signal.
+        assertion = lib.all (
+          n: builtins.pathExists (inputs.vibecurb-skills + "/skills/" + n)
+        ) vibecurbSkillNames;
+        message = "vibecurbSkillNames (default.nix) lists a name with no matching skills/<name> directory in the pinned vibecurb-skills rev -- check the name against that rev's skills/ listing before bumping the input.";
+      }
+      {
+        # activation.nix rsyncs config/skills/* first, then the vendored-skill
+        # symlink pairs (including the vibecurb loop) rm -rf whatever is at
+        # that path and replace it. A same-named repo skill would be silently
+        # shadowed on every rebuild with no warning.
+        assertion = lib.intersectLists allVendoredSkillNames configSkillNames == [ ];
+        message = "A vendored skill name (default.nix's allVendoredSkillNames) collides with a repo-owned skill under config/skills/ -- activation.nix's rm -rf/ln -snf pass would silently delete and replace the repo copy on every rebuild. Rename one side.";
       }
     ];
 
