@@ -1034,6 +1034,7 @@
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
         "upsight": "upsight",
+        "vibecurb-skills": "vibecurb-skills",
         "voxtype": "voxtype",
         "walkr": "walkr"
       }
@@ -1571,6 +1572,22 @@
         "ref": "main",
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
+      }
+    },
+    "vibecurb-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785910232,
+        "narHash": "sha256-asO4kBhrNDFV6opQGimaQWM5A70G1Vfd9VCcWjedKKM=",
+        "owner": "Yu-369",
+        "repo": "VibeCurb",
+        "rev": "1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Yu-369",
+        "repo": "VibeCurb",
+        "type": "github"
       }
     },
     "voxtype": {

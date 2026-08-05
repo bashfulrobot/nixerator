@@ -176,6 +176,19 @@
       flake = false;
     };
 
+    # Pinned upstream for the seven `awwwards-*` / `visual-redesign` /
+    # `pixel-perfect` / `brandkit-gen` / `imagegen-frontend` VibeCurb design
+    # skills (claude-code). Tracks Yu-369/VibeCurb; bump via
+    # `nix flake update vibecurb-skills` or `just upgrade`. `flake = false`
+    # for the same reason as humanizer above: the repo is a bare collection
+    # of skill directories (skills/<name>/SKILL.md) plus a small CLI wrapper,
+    # not a flake, and it ships no `.claude-plugin/marketplace.json` so the
+    # plugin-marketplace path doesn't apply.
+    vibecurb-skills = {
+      url = "github:Yu-369/VibeCurb";
+      flake = false;
+    };
+
     # Recursive Nix module importer. Replaces the hand-rolled
     # `lib/autoimport.nix`; consumed by `modules/default.nix` and
     # `modules/apps/webapps/default.nix` via `inputs.import-tree`.

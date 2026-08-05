@@ -24,6 +24,8 @@
   intentLayerSkillSrc,
   walkrAuthorSkillSrc,
   walkrTutorialAuthorSkillSrc,
+  vibecurbSkillsSrc,
+  vibecurbSkillNames,
   textPolishRulesFile,
   pluginOverlay,
   skillOverlay,
@@ -221,6 +223,17 @@
     $DRY_RUN_CMD ln -snf "${walkrAuthorSkillSrc}" "$claude_home/skills/walkr-author"
     $DRY_RUN_CMD rm -rf "$claude_home/skills/walkr-tutorial-author"
     $DRY_RUN_CMD ln -snf "${walkrTutorialAuthorSkillSrc}" "$claude_home/skills/walkr-tutorial-author"
+
+    # VibeCurb design skills -- pinned to Yu-369/VibeCurb via the
+    # `vibecurb-skills` flake input, symlinked for the same reasons as
+    # humanizer above. Seven skills share one input, so this loops instead of
+    # repeating the two-line rm/ln pair per skill. Off by default (see
+    # cfg/skill-defaults.nix); opt in per project with skill-pick. Update via
+    # `nix flake update vibecurb-skills`.
+    for skill in ${lib.concatStringsSep " " vibecurbSkillNames}; do
+      $DRY_RUN_CMD rm -rf "$claude_home/skills/$skill"
+      $DRY_RUN_CMD ln -snf "${vibecurbSkillsSrc}/$skill" "$claude_home/skills/$skill"
+    done
 
     # Output styles -- remove stale symlinks before copying
     for style in "${configDir}"/output-styles/*; do

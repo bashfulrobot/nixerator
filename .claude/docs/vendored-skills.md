@@ -6,7 +6,7 @@ and the per-skill quirks worth knowing before touching one.
 
 ## The pattern
 
-Four skills from three flake inputs use it today:
+Eleven skills from four flake inputs use it today:
 
 | Skill | Flake input | Upstream | Path consumed |
 |---|---|---|---|
@@ -14,10 +14,21 @@ Four skills from three flake inputs use it today:
 | `intent-layer` | `crafter-station-skills` | `crafter-station/skills` | `context-engineering/intent-layer` |
 | `walkr-author` | `walkr` | `bashfulrobot/walkr` | `skills/walkr-author` |
 | `walkr-tutorial-author` | `walkr` | `bashfulrobot/walkr` | `skills/walkr-tutorial-author` |
+| `awwwards-hero`, `awwwards-motion`, `awwwards-sections`, `brandkit-gen`, `imagegen-frontend`, `pixel-perfect`, `visual-redesign` | `vibecurb-skills` | `Yu-369/VibeCurb` | `skills/<name>` (seven directories) |
 
 The two walkr skills share the `walkr` input with the `walkr` binary
 (`modules/apps/cli/walkr`), so the tool and the skills that author its content
 are pinned to the same rev by construction.
+
+The seven VibeCurb skills share one input the same way, but unlike the other
+three vendored skills (each wired with its own explicit `rm -rf` + `ln -snf`
+pair), `cfg/activation.nix` symlinks them with a `for skill in
+${vibecurbSkillNames}` loop over the shared name list defined once in
+`default.nix` -- past the project's three-occurrence DRY threshold for seven
+near-identical lines. `default.nix`'s `vibecurbSkillNames` list is the single
+source of truth: it feeds both the activation loop and the skill-overlay
+`vendoredNames` (see `cfg/skill-defaults.nix`), so adding or removing a
+VibeCurb skill only means editing that one list.
 
 All four land as **symlinks** into the Nix store, created in `cfg/activation.nix`
 right after the `config/skills/` rsync loop:
@@ -94,3 +105,20 @@ MIT-equivalent single-`SKILL.md` repo, no scripts, no dependencies. Load-bearing
 for the global writing rule in `~/.claude/CLAUDE.md` — every piece of prose
 drafted for the user runs through it. `text-polish` wraps it plus a concision
 pass, so anything already polished must not be humanized again.
+
+## VibeCurb
+
+MIT. Seven `SKILL.md`-only directories (no scripts, no dependencies) that
+constrain a frontend-design agent to a strict audit-extract-build-verify
+pipeline instead of generic AI defaults: `awwwards-hero` (hero sections),
+`awwwards-motion` (scroll/kinetic animation), `awwwards-sections` (pricing
+cards, bento grids, footers), `brandkit-gen` and `imagegen-frontend` (image
+generation), `pixel-perfect` (screenshot-to-code replication), and
+`visual-redesign` (restyle existing markup without touching logic).
+
+Off by default like every other skill covered by `skill-defaults.md`; opt in
+per project with `skill-pick` when working on a frontend/webapp module. Not a
+replacement for the `frontend-design` plugin (`installed_plugins.json`) —
+that one is Anthropic's general-purpose design-quality skill, VibeCurb is a
+narrower, stricter, multi-skill pipeline. The two can be enabled together;
+`skill-pick` treats them as independent entries.

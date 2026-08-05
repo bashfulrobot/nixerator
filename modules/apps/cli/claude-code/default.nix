@@ -50,6 +50,18 @@ let
   # stripped from capture, so Nix owns the default and a per-project
   # skill-pick "on" is the only way around it.
   skillDefaultsConfig = import ./cfg/skill-defaults.nix { inherit lib; };
+  # The seven VibeCurb design skills all live under skills/<name>/SKILL.md
+  # in the same upstream repo (see cfg/activation.nix for the symlink loop
+  # that consumes this same list).
+  vibecurbSkillNames = [
+    "awwwards-hero"
+    "awwwards-motion"
+    "awwwards-sections"
+    "brandkit-gen"
+    "imagegen-frontend"
+    "pixel-perfect"
+    "visual-redesign"
+  ];
   skillOverlayFile = pkgs.writeText "claude-skill-overlay.json" (
     builtins.toJSON (
       skillDefaultsConfig.mkOverlay {
@@ -59,7 +71,8 @@ let
           "intent-layer"
           "walkr-author"
           "walkr-tutorial-author"
-        ];
+        ]
+        ++ vibecurbSkillNames;
       }
     )
   );
@@ -124,6 +137,11 @@ let
     # for never drift apart.
     walkrAuthorSkillSrc = inputs.walkr + "/skills/walkr-author";
     walkrTutorialAuthorSkillSrc = inputs.walkr + "/skills/walkr-tutorial-author";
+    # VibeCurb design skills -- one input, seven skill directories under
+    # skills/. inherit vibecurbSkillNames so activation.nix's symlink loop
+    # and this module's skill-overlay vendoredNames list stay in sync.
+    vibecurbSkillsSrc = inputs.vibecurb-skills + "/skills";
+    inherit vibecurbSkillNames;
     # Reference the rules file by path, not through
     # `config.apps.cli.text-polish.rulesFile`. Reading the option made this
     # module fail to evaluate on any host that imports claude-code without
