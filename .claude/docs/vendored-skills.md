@@ -21,17 +21,21 @@ The two walkr skills share the `walkr` input with the `walkr` binary
 are pinned to the same rev by construction.
 
 The seven VibeCurb skills share one input the same way, but unlike the other
-three vendored skills (each wired with its own explicit `rm -rf` + `ln -snf`
+four vendored skills (each wired with its own explicit `rm -rf` + `ln -snf`
 pair), `cfg/activation.nix` symlinks them with a `for skill in
 ${vibecurbSkillNames}` loop over the shared name list defined once in
 `default.nix` -- past the project's three-occurrence DRY threshold for seven
 near-identical lines. `default.nix`'s `vibecurbSkillNames` list is the single
 source of truth: it feeds both the activation loop and the skill-overlay
 `vendoredNames` (see `cfg/skill-defaults.nix`), so adding or removing a
-VibeCurb skill only means editing that one list.
+VibeCurb skill only means editing that one list. `default.nix` also asserts,
+at eval time, that every name in the list is path-safe and resolves against
+the pinned rev, and that no vendored name collides with a `config/skills/`
+directory -- see the assertions block right after the `CLAUDE.md` length
+check.
 
-All four land as **symlinks** into the Nix store, created in `cfg/activation.nix`
-right after the `config/skills/` rsync loop:
+All eleven land as **symlinks** into the Nix store, created in
+`cfg/activation.nix` right after the `config/skills/` rsync loop:
 
 ```
 ln -snf "${humanizerSkillSrc}" "$claude_home/skills/humanizer"
@@ -44,9 +48,18 @@ edited locally — upstream owns it — so it stays read-only, and `capture-sync
 refuses to read through a symlink, which means the capture flow skips it for
 free. No exclude list to maintain.
 
-Bump any of them with `nix flake update <input>` (or let `just upgrade` sweep
-them). `flake.lock` records the rev, so these are pinned the same way every
-other input is.
+Bump `humanizer-skill`, `crafter-station-skills`, or `walkr` with `nix flake
+update <input>` (or let `just upgrade` sweep them). `flake.lock` records the
+rev, so these three are pinned the same way every other input is.
+
+`vibecurb-skills` is different: its `url` in `flake.nix` embeds an explicit
+rev (`github:Yu-369/VibeCurb/<rev>`), not a bare branch-tracking URL, because
+this repo's `update-flake-lock` GitHub Action runs `nix flake update` on a
+daily cron and pushes straight to `main` with no review -- see the comment on
+the input in `flake.nix` for the full reasoning. A bare `nix flake update
+vibecurb-skills` is therefore a no-op. Bump it by editing the rev in the URL
+by hand, then `nix flake lock`, the same way `import-tree`'s tag pin is
+bumped by editing the tag.
 
 Bump them **before** a rebuild, never after. Activation resolves each store
 path from `flake.lock`, so a lock bump that lands post-activation cannot reach
@@ -60,8 +73,24 @@ construction. That is why `just update-skills` no longer runs
 2. Bind it in `default.nix` next to `humanizerSkillSrc` — append the
    subdirectory if the repo ships more than the one skill you want.
 3. Pass it through the `activationConfig` argument set and add the two-line
-   `rm -rf` + `ln -snf` pair in `cfg/activation.nix`.
-4. If the skill's scripts call a binary NixOS does not ship by default, add it
+   `rm -rf` + `ln -snf` pair in `cfg/activation.nix`. If the input ships three
+   or more skill directories worth taking (VibeCurb's seven, say), pass a Nix
+   list of names instead and loop over it in the shell script — see the
+   VibeCurb section below and `vibecurbSkillNames` in `default.nix`. Either
+   way, guard the delete: check `[ -e "$target" ] && [ ! -L "$target" ]`
+   before the `rm -rf` and warn instead of deleting, so a same-named skill a
+   user or agent created at runtime doesn't vanish silently.
+4. If the input's `url` has no explicit rev (a bare `github:org/repo`),
+   decide whether it should be pinned the way `vibecurb-skills` is. The
+   deciding question is whether this repo's `update-flake-lock` Action sweeps
+   this input on its daily unattended cron: if so, and the vendored content
+   is agent instruction text rather than compiled code, an unpinned URL lets
+   a hostile upstream push reach `main` with no review inside 24 hours. Pin
+   to an explicit rev in the URL if so, and add an eval-time `assertions`
+   entry in `default.nix` confirming every consumed path still exists at
+   that rev (`builtins.pathExists`) — see `vibecurbSkillNames`'s assertions
+   for the pattern.
+5. If the skill's scripts call a binary NixOS does not ship by default, add it
    to `environment.systemPackages` in `default.nix` — see `bc` below.
 
 Prefer this over a plugin marketplace pin only when upstream ships a bare skill
@@ -122,3 +151,26 @@ replacement for the `frontend-design` plugin (`installed_plugins.json`) —
 that one is Anthropic's general-purpose design-quality skill, VibeCurb is a
 narrower, stricter, multi-skill pipeline. The two can be enabled together;
 `skill-pick` treats them as independent entries.
+
+The default-off overlay is a visibility default, not a trust boundary: per
+the settings-cascade precedence in `skill-defaults.md`, a project-scope
+`skillOverrides` entry (including one checked into a cloned repo's own
+`.claude/settings.json`, not just the gitignored `settings.local.json`
+`skill-pick` writes) beats the user-scope `"off"` default. A repo the user
+opens can turn any of these seven back on without `skill-pick` ever running.
+The seven skill files are also present on disk regardless of the override —
+the overlay only controls whether the model sees them, not whether they're
+installed. What actually bounds the risk of a compromised skill is the rev
+pin on `vibecurb-skills` (see `flake.nix`): content can't change under this
+project without a reviewed commit, whether the skill happens to be on or off
+in any given project.
+
+**Review note (rev `1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0`, reviewed
+2026-08-05).** Confirmed via the upstream repo tree: all seven `skills/<name>`
+directories contain only a `SKILL.md`, no scripts, no other file types.
+Confirmed via the GitHub license API: MIT. Read `imagegen-frontend` and
+`brandkit-gen` (the two image-generation skills) in full: neither references
+an API key, a credential, a specific network endpoint, or any outbound call —
+they produce structured text prompts for whatever image-generation capability
+the calling agent already has, they don't reach out themselves. Re-verify
+this note before bumping the pinned rev.

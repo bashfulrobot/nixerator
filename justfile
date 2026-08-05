@@ -340,7 +340,10 @@ setup-hooks:
 # are managed by claude-capture and need no separate update step.
 #
 # Deliberately does NOT bump the flake-pinned upstream skills
-# (humanizer-skill, crafter-station-skills, walkr). This recipe runs from
+# (humanizer-skill, crafter-station-skills, walkr, vibecurb-skills -- the
+# last one is rev-pinned in its flake.nix url rather than tracking a branch,
+# so a bare `nix flake update` doesn't move it anyway; see
+# .claude/docs/vendored-skills.md). This recipe runs from
 # post-rebuild, i.e. AFTER `nixos-rebuild switch`, and those skills resolve
 # their store paths from flake.lock at activation time -- so a lock bump
 # landing here can never reach the generation that just activated. It would

@@ -15,7 +15,11 @@ for cmd in fzf jq; do
 done
 
 mapfile -t skills < <(
-  find "$skills_dir" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" \
+  # -L dereferences symlinks so vendored skills (symlinked into
+  # ~/.claude/skills by activation.nix, see .claude/docs/vendored-skills.md)
+  # show up here too. Without it, every symlinked skill is -type l, not
+  # -type d, and is silently skipped -- installed but never pickable.
+  find -L "$skills_dir" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" \
     | while read -r name; do
         [[ -f "$skills_dir/$name/SKILL.md" ]] && printf '%s\n' "$name"
       done \
