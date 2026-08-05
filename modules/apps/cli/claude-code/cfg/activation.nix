@@ -13,6 +13,7 @@
   guardRawNixScript,
   guardGitStashScript,
   guardPrimaryTreeWriteScript,
+  guardEnterWorktreeCollisionScript,
   guardSecretCommandsScript,
   scrubSecretOutputScript,
   tokenOptimizerActivation,
@@ -118,6 +119,9 @@
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-primary-tree-write") | not)))
              + [{matcher: "Bash", hooks: [{type: "command", command: "${guardPrimaryTreeWriteScript}/bin/claude-guard-primary-tree-write"}]}])
+         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-guard-enter-worktree-collision") | not)))
+             + [{matcher: "EnterWorktree", hooks: [{type: "command", command: "${guardEnterWorktreeCollisionScript}/bin/claude-guard-enter-worktree-collision"}]}])
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-secret-commands") | not)))
              + [{matcher: "Bash", hooks: [{type: "command", command: "${guardSecretCommandsScript}/bin/claude-guard-secret-commands"}]}])
