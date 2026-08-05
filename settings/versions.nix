@@ -82,7 +82,7 @@
       source = "pypi";
       package = "headroom-ai";
       updatePolicy = "manual";
-      version = "0.32.1";
+      version = "0.33.0";
     };
 
     # updatePolicy=manual: the asset URL embeds `shortRev`, a per-release build id
