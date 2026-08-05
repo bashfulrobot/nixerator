@@ -8,6 +8,7 @@
   reinjectScript,
   remindersFile,
   remindersScript,
+  gitSyncScript,
   guardGeneratedPathsScript,
   guardRawNixScript,
   guardGitStashScript,
@@ -108,6 +109,9 @@
          | .hooks.SessionStart = (((.hooks.SessionStart // [])
              | map(select((.hooks[0].command // "") | test("claude-session-reminders") | not)))
              + [{hooks: [{type: "command", command: "${remindersScript}/bin/claude-session-reminders"}]}])
+         | .hooks.SessionStart = (((.hooks.SessionStart // [])
+             | map(select((.hooks[0].command // "") | test("claude-git-sync|\\[git-sync\\]") | not)))
+             + [{matcher: "startup", hooks: [{type: "command", command: "${gitSyncScript}/bin/claude-git-sync"}]}])
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-git-stash") | not)))
              + [{matcher: "Bash", hooks: [{type: "command", command: "${guardGitStashScript}/bin/claude-guard-git-stash"}]}])
