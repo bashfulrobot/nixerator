@@ -42,13 +42,18 @@ jobs:
             exit 1
           fi
 
-      - name: Validate NIXERATOR_DEPLOY_KEY shape
+      - name: Validate deploy key secrets shape
         env:
-          K: ${{ secrets.NIXERATOR_DEPLOY_KEY }}
+          UP: ${{ secrets.NIXERATOR_DEPLOY_KEY_UPSIGHT }}
+          CL: ${{ secrets.NIXERATOR_DEPLOY_KEY_CLAUDOIST }}
         run: |
           set -euo pipefail
-          if [ -z "$K" ]; then
-            echo "NIXERATOR_DEPLOY_KEY is empty" >&2
+          if [ -z "$UP" ]; then
+            echo "NIXERATOR_DEPLOY_KEY_UPSIGHT is empty" >&2
+            exit 1
+          fi
+          if [ -z "$CL" ]; then
+            echo "NIXERATOR_DEPLOY_KEY_CLAUDOIST is empty" >&2
             exit 1
           fi
 
@@ -57,16 +62,46 @@ jobs:
       # otherwise silently fall back to a stale cached commit on 404. The
       # HTTPS PAT below (NIXERATOR_FLAKE_TOKEN) doesn't cover SSH transport,
       # so `nix flake update` had no way to authenticate those two inputs and
-      # failed on every scheduled run. NIXERATOR_DEPLOY_KEY is a dedicated
-      # read-only deploy key added to just those two repos -- not Dustin's
-      # personal key -- so a compromised runner can only read those repos.
-      - name: Start SSH agent for git+ssh flake inputs
-        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
-        with:
-          ssh-private-key: ${{ secrets.NIXERATOR_DEPLOY_KEY }}
+      # failed on every scheduled run. Each repo gets its own dedicated
+      # read-only deploy key (not Dustin's personal key), so a compromised
+      # runner can only read that one repo. GitHub rejects a deploy key
+      # that's already attached to another repo, and its SSH server accepts
+      # any valid key at the auth layer regardless of which repo it's
+      # actually scoped to -- so a single ssh-agent with both keys loaded
+      # would authenticate with whichever key it offers first and then 404
+      # on the other repo. Host aliasing + git url.insteadOf below forces
+      # each repo fetch through the identity file that's actually allowed
+      # to read it.
+      - name: Configure per-repo deploy key identities
+        env:
+          UP: ${{ secrets.NIXERATOR_DEPLOY_KEY_UPSIGHT }}
+          CL: ${{ secrets.NIXERATOR_DEPLOY_KEY_CLAUDOIST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$UP" > ~/.ssh/id_upsight
+          printf '%s\n' "$CL" > ~/.ssh/id_claudoist
+          chmod 600 ~/.ssh/id_upsight ~/.ssh/id_claudoist
 
-      - name: Trust github.com host key
-        run: ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+
+          cat >> ~/.ssh/config <<'EOF'
+          Host github-upsight
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/id_upsight
+            IdentitiesOnly yes
+          Host github-claudoist
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/id_claudoist
+            IdentitiesOnly yes
+          EOF
+          chmod 600 ~/.ssh/config
+
+          git config --global url."ssh://git@github-upsight/bashfulrobot/upsight".insteadOf "ssh://git@github.com/bashfulrobot/upsight"
+          git config --global url."ssh://git@github-claudoist/bashfulrobot/claudoist".insteadOf "ssh://git@github.com/bashfulrobot/claudoist"
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
