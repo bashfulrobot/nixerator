@@ -68,11 +68,11 @@
         "sf-pro": "sf-pro_2"
       },
       "locked": {
-        "lastModified": 1782587760,
-        "narHash": "sha256-I9PRLePA5QNKEyDFsN5eIVk0dxFRGAL0Z/LjOWnA75Y=",
+        "lastModified": 1786018145,
+        "narHash": "sha256-4cjJFmq6JC0Gk9wWt3aZzqovtmM9mikrDWjsBL2ZWu8=",
         "owner": "Lyndeno",
         "repo": "apple-fonts.nix",
-        "rev": "ce044f6829c6b3ccde9624116577ba2c173ca49d",
+        "rev": "66b5379c6a429ad4ea6ff3943cc1f651df55cc70",
         "type": "github"
       },
       "original": {
@@ -828,11 +828,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785978904,
-        "narHash": "sha256-TfyrExXGXxLfjHvKqFUq3OvXpQ1LnP8m7QUwcR0vAwg=",
+        "lastModified": 1786042613,
+        "narHash": "sha256-oZtlgjQFiiRviwr4mXgQR6OFbUCSaaEZlU6kkFqfZ98=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "9e11ccad18b21b22445d090d172d22293d7b606c",
+        "rev": "5f15b2e3a45fcd056e5360c3f4deafd1df16db5c",
         "type": "github"
       },
       "original": {
@@ -1102,7 +1102,7 @@
     "sf-compact_2": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-C2TR3mVBorgBfdP7+L0YDq1ctefH62+iEBi19zlEpLU=",
+        "narHash": "sha256-83JwqfF9O4+gemMQXWHLRg2GNz2jHxsej1F1IkM2dug=",
         "type": "file",
         "url": "https://devimages-cdn.apple.com/design/resources/download/SF-Compact.dmg"
       },
@@ -1198,7 +1198,7 @@
     "sf-pro_2": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-56SORX7J5qTO9xrd4Zvgfwr8GBUrIzLc6pzg5C0c+zU=",
+        "narHash": "sha256-vINUEMyFmNzZRBOX2aQ4heScWur6RyA/MPmsqlMPIx4=",
         "type": "file",
         "url": "https://devimages-cdn.apple.com/design/resources/download/SF-Pro.dmg"
       },
