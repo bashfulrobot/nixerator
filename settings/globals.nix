@@ -89,5 +89,12 @@ rec {
     srv = {
       tailscale_ip = "100.64.187.14";
     };
+    # Mac (nix-darwin, managed by the separate ../mixerator flake). Only
+    # relevant here as a Syncthing peer for upsight-data/upsight-config -- see
+    # apps/cli/syncthing.
+    MH36P2YMHX = {
+      tailscale_ip = "100.100.228.107";
+      syncthing_id = "4BNOXO7-QEJQHJJ-MVBR33P-5CJVRUJ-IJMUSFH-M4NTPHI-4UKQT4D-3VC36AZ";
+    };
   };
 }
