@@ -93,6 +93,13 @@ in
               addresses = [ "tcp://${globals.hosts.qbert.tailscale_ip}:22000" ];
               id = globals.hosts.qbert.syncthing_id;
             };
+
+            # Mac (../mixerator). Only shares upsight-data/upsight-config
+            # below, not the general folders (Desktop, dev, .ssh, etc).
+            "MH36P2YMHX" = {
+              addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
+              id = globals.hosts.MH36P2YMHX.syncthing_id;
+            };
           };
 
           folders = {
@@ -166,13 +173,19 @@ in
 
             "upsight-data" = {
               path = "${globals.user.homeDirectory}/.local/share/upsight";
-              devices = [ "qbert" ];
+              devices = [
+                "qbert"
+                "MH36P2YMHX"
+              ];
               versioning = staggeredVersioning;
             };
 
             "upsight-config" = {
               path = "${globals.user.homeDirectory}/.config/upsight";
-              devices = [ "qbert" ];
+              devices = [
+                "qbert"
+                "MH36P2YMHX"
+              ];
               versioning = simpleVersioning;
             };
 
@@ -190,6 +203,13 @@ in
               addresses = [ "tcp://${globals.hosts.donkeykong.tailscale_ip}:22000" ];
               id = globals.hosts.donkeykong.syncthing_id;
             };
+
+            # Mac (../mixerator). Only shares upsight-data/upsight-config
+            # below, not the general folders (Desktop, dev, .ssh, etc).
+            "MH36P2YMHX" = {
+              addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
+              id = globals.hosts.MH36P2YMHX.syncthing_id;
+            };
           };
 
           folders = {
@@ -263,13 +283,19 @@ in
 
             "upsight-data" = {
               path = "${globals.user.homeDirectory}/.local/share/upsight";
-              devices = [ "donkey-kong" ];
+              devices = [
+                "donkey-kong"
+                "MH36P2YMHX"
+              ];
               versioning = staggeredVersioning;
             };
 
             "upsight-config" = {
               path = "${globals.user.homeDirectory}/.config/upsight";
-              devices = [ "donkey-kong" ];
+              devices = [
+                "donkey-kong"
+                "MH36P2YMHX"
+              ];
               versioning = simpleVersioning;
             };
 
