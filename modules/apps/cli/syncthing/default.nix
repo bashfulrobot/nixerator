@@ -94,12 +94,12 @@ in
               id = globals.hosts.qbert.syncthing_id;
             };
 
-            # Mac (../mixerator). Only shares upsight-data/upsight-config
-            # below, not the general folders (Desktop, dev, .ssh, etc).
-            "MH36P2YMHX" = {
-              addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
-              id = globals.hosts.MH36P2YMHX.syncthing_id;
-            };
+            # The Mac is deliberately NOT a peer of this host. It pairs with
+            # qbert only (its ../donkeykong syncthing.sh declares that one
+            # peer), and the upsight folders below still reach it: this host
+            # syncs them to qbert, and qbert syncs them on to the Mac. Adding
+            # it back here would mean maintaining a second pairing for no extra
+            # reachability.
           };
 
           folders = {
@@ -173,19 +173,13 @@ in
 
             "upsight-data" = {
               path = "${globals.user.homeDirectory}/.local/share/upsight";
-              devices = [
-                "qbert"
-                "MH36P2YMHX"
-              ];
+              devices = [ "qbert" ];
               versioning = staggeredVersioning;
             };
 
             "upsight-config" = {
               path = "${globals.user.homeDirectory}/.config/upsight";
-              devices = [
-                "qbert"
-                "MH36P2YMHX"
-              ];
+              devices = [ "qbert" ];
               versioning = simpleVersioning;
             };
 
@@ -204,8 +198,10 @@ in
               id = globals.hosts.donkeykong.syncthing_id;
             };
 
-            # Mac (../mixerator). Only shares upsight-data/upsight-config
-            # below, not the general folders (Desktop, dev, .ssh, etc).
+            # Mac (../donkeykong). Only shares upsight-data/upsight-config
+            # below, not the general folders (Desktop, dev, .ssh, etc). This is
+            # the Mac's only Syncthing peer, so it is also how upsight data
+            # reaches it from donkeykong: that host syncs to qbert, qbert here.
             "MH36P2YMHX" = {
               addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
               id = globals.hosts.MH36P2YMHX.syncthing_id;
