@@ -89,12 +89,17 @@ rec {
     srv = {
       tailscale_ip = "100.64.187.14";
     };
-    # Mac (nix-darwin, managed by the separate ../mixerator flake). Only
-    # relevant here as a Syncthing peer for upsight-data/upsight-config -- see
-    # apps/cli/syncthing.
+    # Mac, managed by the separate ../donkeykong repo (Homebrew + chezmoi, no
+    # longer nix-darwin/mixerator). Only relevant here as a Syncthing peer for
+    # upsight-data/upsight-config -- see apps/cli/syncthing.
+    #
+    # Both values are the *rebuilt* Mac's, not the one this entry described
+    # before: a reinstall regenerates the Syncthing device identity, and the
+    # tailnet handed it a new address. donkeykong's syncthing.sh prints the ID
+    # it is actually running, which is where these came from.
     MH36P2YMHX = {
-      tailscale_ip = "100.100.228.107";
-      syncthing_id = "4BNOXO7-QEJQHJJ-MVBR33P-5CJVRUJ-IJMUSFH-M4NTPHI-4UKQT4D-3VC36AZ";
+      tailscale_ip = "100.65.120.127";
+      syncthing_id = "M23RLFB-QRXLIZW-67Z2H66-XTZ3RC6-JYHXORL-2I5X36Q-3LXJ5CS-AFIAXQ7";
     };
   };
 }
