@@ -198,10 +198,12 @@ in
               id = globals.hosts.donkeykong.syncthing_id;
             };
 
-            # Mac (../donkeykong). Only shares upsight-data/upsight-config
-            # below, not the general folders (Desktop, dev, .ssh, etc). This is
-            # the Mac's only Syncthing peer, so it is also how upsight data
-            # reaches it from donkeykong: that host syncs to qbert, qbert here.
+            # Mac (../donkeykong). Shares upsight-data, upsight-config and dev
+            # below — not the rest (Desktop, .ssh, .gnupg, .kube, .talos), which
+            # are either NixOS-shaped or hold keys a laptop should not carry.
+            # This is the Mac's only Syncthing peer, so it is also how those
+            # folders reach it from donkeykong: that host syncs to qbert, and
+            # qbert syncs on to here.
             "MH36P2YMHX" = {
               addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
               id = globals.hosts.MH36P2YMHX.syncthing_id;
@@ -247,7 +249,10 @@ in
 
             "dev" = {
               path = globals.paths.devRoot;
-              devices = [ "donkey-kong" ];
+              devices = [
+                "donkey-kong"
+                "MH36P2YMHX"
+              ];
               versioning = staggeredVersioning;
             };
 
