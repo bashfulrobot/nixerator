@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787210449,
-        "narHash": "sha256-WRhpJjhWT1mYLXlOhEgwFpygbdQ+oMoRtgJMtHOEvPg=",
+        "lastModified": 1787296859,
+        "narHash": "sha256-5bU8RrYjyuzT6/HDkq4zJHwSRsC+yEZG98pjmDLNFyM=",
         "owner": "jacopone",
         "repo": "antigravity-nix",
-        "rev": "3088d28136f3914597ba61b4082eefb8eb386647",
+        "rev": "c44bacfbc0dbe594bc6b59ae0c709275dbc3367b",
         "type": "github"
       },
       "original": {
@@ -212,11 +212,11 @@
         "systems": "systems_2"
       },
       "locked": {
-        "lastModified": 1787168608,
-        "narHash": "sha256-nsJKvmrV0qsodA+yyJvwck4bP14H0g0NOw3uWgtDOFc=",
+        "lastModified": 1787341280,
+        "narHash": "sha256-uazDN+nl53aUTGddIFSQaWQiyFY/wsszE+gtA0sMnEE=",
         "owner": "nix-community",
         "repo": "browser-previews",
-        "rev": "635ec2b80c944e3f730b8416dda4d9cbd1f6b9c7",
+        "rev": "84811a0ef6ef090db49a8f51e62897d0568815fd",
         "type": "github"
       },
       "original": {
@@ -868,11 +868,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1787272342,
-        "narHash": "sha256-fJXZTsi2oshLEUZTJc30WFoSi2AnHcr+hL66D2ihmSE=",
+        "lastModified": 1787358818,
+        "narHash": "sha256-DVTVrT7w1wvSzXxNAjRfMMjABAVQ/ocPvPtuOTsbsqs=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "5ea650441a7590b4673f8479e15c434b7f969a83",
+        "rev": "bfeaeea9fa97c78361a3b18d6b56f11fcc9c0143",
         "type": "github"
       },
       "original": {
@@ -1561,11 +1561,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1787272373,
-        "narHash": "sha256-eJLdjJ8jE7CSK3tSvlT6+yBpzd5EFe+t9wILq5Z9cGg=",
+        "lastModified": 1787355900,
+        "narHash": "sha256-ZjhJ8LJoAen6Ue7DAB7lJJ6CkW5JXKUNaYoMFj95Avg=",
         "ref": "main",
-        "rev": "a861a3b6c923781934a5093455333293c9614d25",
-        "revCount": 461,
+        "rev": "5f62a42736cd4adb9400fceea3b64d21c28eccfd",
+        "revCount": 464,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
       },
