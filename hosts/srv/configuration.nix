@@ -68,15 +68,47 @@
       interface = "br0";
     };
 
-    # Open NFS ports for the K8s subnet. NixOS does not auto-open these.
-    firewall.allowedTCPPorts = [
-      111
-      2049
-    ];
-    firewall.allowedUDPPorts = [
-      111
-      2049
-    ];
+    firewall = {
+      # Open NFS ports for the K8s subnet. NixOS does not auto-open these.
+      allowedTCPPorts = [
+        111
+        2049
+      ];
+      allowedUDPPorts = [
+        111
+        2049
+      ];
+
+      # Isolate the ts-exit VM (libvirt's default NAT network, virbr0 /
+      # 192.168.122.0/24) from the home LAN. ts-exit runs Tailscale as a
+      # shared exit node for a friend's tailnet, so it must only ever reach
+      # the internet, never srv's own LAN devices -- libvirt's own
+      # nftables table (`ip libvirt_network`) permits virbr0 -> anywhere
+      # unconditionally, so this drop has to live outside that table. A
+      # `drop` in any base chain attached to the forward hook is final
+      # regardless of that chain's priority relative to libvirt's, so this
+      # is sufficient on its own without needing to out-race libvirt's
+      # chain. SSH into the VM goes over its own tailscale0 interface
+      # (firewalled in the guest), not routed through here.
+      extraForwardRules = ''
+        ip saddr 192.168.122.0/24 ip daddr 192.168.168.0/23 drop
+      '';
+
+      # libvirt's default NAT network (virbr0) is used for the first time by
+      # ts-exit -- darkstar attaches to br0 instead, so nothing on srv
+      # previously exercised virbr0's dnsmasq. server.kvm's trustedBridgePrefix
+      # wildcard only covers Terraform's "vbr-*" per-cluster networks, not
+      # libvirt's own "virbr0", so nixos-fw's default-drop INPUT policy was
+      # silently eating virbr0 guests' DHCP/DNS requests to the host's dnsmasq
+      # (confirmed live: guest fell back to a 169.254.x.x link-local address
+      # until this was added). Scoped to just those two ports rather than
+      # trusting the whole interface, matching this repo's usual
+      # minimum-privilege posture (see server.postgres.allowedCIDRs).
+      extraInputRules = ''
+        iifname "virbr0" udp dport { 53, 67 } accept
+        iifname "virbr0" tcp dport 53 accept
+      '';
+    };
   };
 
   # Localization (from globals)
