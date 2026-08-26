@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787469401,
-        "narHash": "sha256-SO6H7d/lmCK7wGrlXUmNRzSjSutHVmu0d98vGGAczAw=",
+        "lastModified": 1787642511,
+        "narHash": "sha256-PcLcF6SC8YBXY6FzceSAp8A0ybnyEfWYi+1mfl1rpHs=",
         "owner": "jacopone",
         "repo": "antigravity-nix",
-        "rev": "5cca36bb5e898c18cd62f1a8fb01ce2cd2980b3b",
+        "rev": "4ac825aac542934e901b9de89332c2021d6de2a6",
         "type": "github"
       },
       "original": {
@@ -212,11 +212,11 @@
         "systems": "systems_2"
       },
       "locked": {
-        "lastModified": 1787611755,
-        "narHash": "sha256-i32s6raMWHbeh4cS4WrdNByltrUFuyLyEjWg6JJ/tfI=",
+        "lastModified": 1787687350,
+        "narHash": "sha256-N2nLB7XemnYU40xKuMObkFkiw/qUWRVaqVcU7A2GbCM=",
         "owner": "nix-community",
         "repo": "browser-previews",
-        "rev": "c072afb23a1b263641791f97acbe495cee570e0b",
+        "rev": "4ebc44021eec5f3577df8c9b728c94253e0acee4",
         "type": "github"
       },
       "original": {
@@ -774,11 +774,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787540599,
-        "narHash": "sha256-MHwk52ty3NsLhq9a1IbIfBJZlCUJIdiUYFo52JLK9hY=",
+        "lastModified": 1787680808,
+        "narHash": "sha256-9168tNt0NZdtlx5RM5huEuc9NCWMLACJA9O4UK/l2Zc=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "03f4cd46bc1dd4f3a96da778d2ce9f7ce39dd450",
+        "rev": "6840c9a8f50722944eb106ce8bb237c138584f2a",
         "type": "github"
       },
       "original": {
@@ -828,11 +828,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787617816,
-        "narHash": "sha256-x+d+xwT3w8B0nC+/lDb3b0oLUlLIWAxYfDP/54CZOUI=",
+        "lastModified": 1787704280,
+        "narHash": "sha256-KFV+eDBrdjOHxn576lX3rJe+xxHEpvMHELbQGHNrhpk=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "3f45933cf6906b2402ae4e913e1d4dccf5932d0f",
+        "rev": "f630c41ebf2dfb799ccc8ddd4a11e3e5b59c20f8",
         "type": "github"
       },
       "original": {
@@ -868,11 +868,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1787619086,
-        "narHash": "sha256-lGmtUrtQ9xPAowtOr3xAjW2xAhTxYCrRE5Zek9FFbgM=",
+        "lastModified": 1787704590,
+        "narHash": "sha256-WxaT4eXm7WynrXjyi8XZHVD8y7bEE086AFa0zTtxy6A=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "47125a3752de99358240fdb2148e80bca1a07ea8",
+        "rev": "4c7c50e9c7aab5a1fbc8d4e26d196a76fde00fc3",
         "type": "github"
       },
       "original": {
@@ -1561,11 +1561,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1787603098,
-        "narHash": "sha256-M3Vxz+2zjWnD7g27ye5wN7PqYpQguDwry8a12gHbBIQ=",
+        "lastModified": 1787687931,
+        "narHash": "sha256-Gs0mP/k9fQIewRPcj9lOEBfMQ0JPVmMZg4gsN3eHEns=",
         "ref": "main",
-        "rev": "d26c299151f3c343b68dcdb037ed0f7949644217",
-        "revCount": 472,
+        "rev": "84c77faa0af603a6d8abed3e9e017f4391bd5cde",
+        "revCount": 475,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
       },
