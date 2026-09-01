@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787826217,
-        "narHash": "sha256-cqvukKd9jzytRTvPwsFOy2SO81Ch9fpRzSbimlT+f3E=",
+        "lastModified": 1788246982,
+        "narHash": "sha256-1taZcKbaBuSYyO+kbQ8vmy6uSNg++5kUc39rXqhuMnk=",
         "owner": "jacopone",
         "repo": "antigravity-nix",
-        "rev": "cc74d8ab4679b432e5697b70140869e467564f4a",
+        "rev": "57606073a65af70f3daa19cfa5066dec50d9d939",
         "type": "github"
       },
       "original": {
@@ -868,11 +868,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1788225587,
-        "narHash": "sha256-aBbnOXun6q0ry9jUiCUmZmMuJIfv30SL6nbSyaTVWOc=",
+        "lastModified": 1788279991,
+        "narHash": "sha256-qhHcbukPxn4FPeURQDtTwrMNpb/6rmZim2dQ2iwsaTA=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "ea1dc2132fb2669899dc8b3cbe6fe82ed10d23d6",
+        "rev": "84ded9f7d2c878065a38bf801fab28b7fda46fe0",
         "type": "github"
       },
       "original": {
@@ -1258,11 +1258,11 @@
         "systems": "systems_7"
       },
       "locked": {
-        "lastModified": 1788083617,
-        "narHash": "sha256-aXMDRUxm/9se+vgKViKdDcClk1k3qA3sUwT0kAYo3Fg=",
+        "lastModified": 1788263070,
+        "narHash": "sha256-Mw163zYcjr59hB2JMC1iKU1Y69SNKZ2r/haXZ07UWQY=",
         "owner": "Gerg-L",
         "repo": "spicetify-nix",
-        "rev": "bf4ed54253a61c8324a5b461638c42db77c0b980",
+        "rev": "27ff19b00338052e8a504e1d1a34efad82c4bb26",
         "type": "github"
       },
       "original": {
@@ -1561,11 +1561,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1788217158,
-        "narHash": "sha256-JNfKW70WZdP0TO7QOAmJgQlvj/CvUuI3FRhfsv4bMfc=",
+        "lastModified": 1788284872,
+        "narHash": "sha256-wwNhnGEoeswYOsYE/6AJOzCH40KGyltrm6yxrQy0zPw=",
         "ref": "main",
-        "rev": "e8803f91965d16bd765edc7069ac2ebb62c7dcd2",
-        "revCount": 487,
+        "rev": "4d942674de6e1242186f0c3b5bbd166f5bc67c43",
+        "revCount": 488,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
       },
@@ -1600,11 +1600,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788220227,
-        "narHash": "sha256-OT0tVSi9x3U7NwgZU00mojXk3RRWxuFoezpdSknLmmU=",
+        "lastModified": 1788278693,
+        "narHash": "sha256-z2RfaRB5HHlCe1R6cwRxj20rmERIjaRjEs89zDmxu48=",
         "owner": "peteonrails",
         "repo": "voxtype",
-        "rev": "2772bbbaf27c4585ddb91661855fb7e2b8d93492",
+        "rev": "5c00b20b2e102e693912811c87fdf4e99dce0112",
         "type": "github"
       },
       "original": {

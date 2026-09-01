@@ -205,12 +205,6 @@
           # Canonicalization (must reproduce the repo source byte-for-byte when
           # nothing has diverged, so the 3-way hashes line up):
           #   - statusline store path      -> @STATUSLINE_COMMAND@ placeholder
-          #   - per-user profile path      -> @USER_NAME@ placeholder (reverses
-          #     activation.nix's `s|@USER_NAME@|${globals.user.name}|g`; scoped to
-          #     the exact `/etc/profiles/per-user/<user>/bin` substring so it can't
-          #     also mangle unrelated, intentionally-literal "dustin" strings
-          #     elsewhere in the file, e.g. additionalDirectories or a hook body's
-          #     own hardcoded-username grep pattern)
           #   - extraKnownMarketplaces / enabledPlugins: owned by cfg/plugin-config.nix
           #     (merged at activation) -> dropped
           #   - permissions.ask:           Nix-owned (activation pins it) -> dropped
@@ -228,9 +222,7 @@
           set -l settings_tmp ""
           if test -f "$claude_dir/settings.json"
             set settings_tmp (mktemp)
-            sed -e "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" \
-                -e "s|/etc/profiles/per-user/${globals.user.name}/bin|/etc/profiles/per-user/@USER_NAME@/bin|g" \
-                "$claude_dir/settings.json" \
+            sed "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" "$claude_dir/settings.json" \
               | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .skillOverrides)
                     | .hooks = ((.hooks // {})
                         | map_values(map(select((.hooks[0].command // "")
