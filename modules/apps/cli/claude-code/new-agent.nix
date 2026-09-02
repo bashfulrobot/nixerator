@@ -42,7 +42,7 @@ in
       # Declared through hyprflake.hyprland.extraLua (hyprflake writes the
       # file and requires it at the end of hyprland.lua).
       hyprflake.hyprland.extraLua."claude-new-agent" = ''
-        hl.bind("SUPER + SHIFT + N",
+        hl.bind("CTRL + SHIFT + SUPER + C",
           hl.dsp.exec_cmd("${pkgs.bash}/bin/bash ${newAgentScript}"), { description = "Start a new Claude agent in a chosen folder" })
       '';
     };
