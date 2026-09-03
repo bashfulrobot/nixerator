@@ -25,6 +25,11 @@ in
     services.espanso = {
       enable = true;
       package = pkgs.espanso-wayland;
+      # Lets the Wayland worker detect the focused window (wlr-foreign-toplevel-
+      # management protocol) on Hyprland/wlroots, enabling filter_class /
+      # filter_title per-app matches. Without it: "wlrctl missing or not
+      # available for the current wayland DE" and no app-specific matching.
+      extraPackages = [ pkgs.wlrctl ];
     };
 
     # Config/match YAML via xdg.configFile (last resort per modules/CLAUDE.md)
