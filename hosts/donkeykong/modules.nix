@@ -39,6 +39,12 @@ _:
     text-polish.enable = true;
     text-uppercase.enable = true;
 
+    # Text expander. See modules/apps/cli/espanso/default.nix for why this
+    # goes through the system-level services.espanso rather than Home
+    # Manager's -- only the former wires up the CAP_DAC_OVERRIDE wrapper
+    # espanso-wayland needs on Hyprland.
+    espanso.enable = true;
+
     # Same fix as qbert: when donkeykong is home on the LAN (192.168.168.0/23)
     # it also accepts that subnet as a Tailscale route (srv advertises it), and
     # the accepted route would otherwise shadow the direct LAN link and make

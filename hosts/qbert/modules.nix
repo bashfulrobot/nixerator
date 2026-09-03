@@ -70,6 +70,12 @@
     text-polish.enable = true;
     text-uppercase.enable = true;
 
+    # Text expander. See modules/apps/cli/espanso/default.nix for why this
+    # goes through the system-level services.espanso rather than Home
+    # Manager's -- only the former wires up the CAP_DAC_OVERRIDE wrapper
+    # espanso-wayland needs on Hyprland.
+    espanso.enable = true;
+
     # qbert sits on the home LAN (192.168.168.0/23) over WiFi AND accepts that
     # same subnet as a Tailscale route (srv advertises it in hosts/srv/modules.nix).
     # Without this, the accepted route shadows the direct LAN link and qbert
