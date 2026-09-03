@@ -1,0 +1,60 @@
+# espanso match file -- base matches, available in every application.
+#
+# yaml-language-server: $schema=https://raw.githubusercontent.com/espanso/espanso/dev/schemas/match.schema.json
+#
+# Deployed read-only via modules/apps/cli/espanso/default.nix (Home Manager
+# xdg.configFile) -- edit this file and rebuild, don't hand-edit the deployed
+# symlink. Ported from ~/git/donkeykong's (pre-Nix, macOS/chezmoi) espanso
+# config.
+#
+# Trigger convention: prefix custom triggers with ";" (e.g. ";sig"), matching
+# the ";"-prefix used for this user's other custom commands/aliases/bindings,
+# so a trigger never collides with a word someone actually meant to type.
+# Espanso reloads this file automatically on save -- no service restart
+# needed.
+#
+# Exception: typo autocorrects (below) deliberately have no ";" -- the whole
+# point is to catch the actual mistyped word, not a deliberate shortcut.
+# `word: true` keeps them from firing mid-word (so "orchte" isn't touched),
+# and `propagate_case: true` makes "Hte" at a sentence start still fix to
+# "The" instead of clobbering the capital.
+
+matches:
+  # Typo autocorrects -- no ";" prefix, see note above.
+  - trigger: "hte"
+    replace: "the"
+    word: true
+    propagate_case: true
+
+  - trigger: ";cmpc"
+    replace: "commit, merge, push, cleanup"
+
+  - trigger: ";todoist"
+    replace: >-
+      In this task, I need to get the current status by following all links
+      in the task and comments. If there is new information, add a new
+      comment with a mini summary and a link to the source. All writing must
+      use /dk:text-polish. If there are no links, investigate for items on
+      this task via Slack, email, and calendar. All data sources must be
+      linked. Do not get overly verbose -- keep it factual.
+
+  - trigger: ";kong-qa"
+    replace: >-
+      For this Kong topic, research it in the Kong docs first, and cite the
+      exact page URL(s) I used. If the docs give a clear, validated answer,
+      give it to me. If they do not, I need to ask the product team: find
+      the right Slack channel (usually an ask-* channel) and draft a
+      short, to-the-point message for it. Start the message with the
+      customer's original question verbatim as a Slack blockquote (>),
+      included for context and accuracy -- not as a replacement for my own
+      wording. Follow it with, in my own words: the specific environment
+      and state involved (control plane, roles, settings -- whatever is
+      concrete evidence), the precise symptom observed, a link to the doc
+      page(s) I researched, and my own question. If I'm inferring
+      something the docs don't state outright, label it clearly as an
+      assumption rather than presenting it as fact. Close with an open
+      question that offers a few possible explanations (e.g. undocumented
+      requirement, a bug, or something I missed) rather than one leading
+      question. Run the draft through /dk:text-polish, display it, then
+      put it on my clipboard. All research and data must be factual -- no
+      embellishment, and no unlabeled assumption.
