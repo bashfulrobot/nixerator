@@ -19,6 +19,7 @@
   tokenOptimizerActivation,
   globals,
   homeDir,
+  serverProfile,
   rtk,
   humanizerSkillSrc,
   intentLayerSkillSrc,
@@ -61,6 +62,44 @@
         -e 's|@USER_NAME@|${globals.user.name}|g' \
         -e 's|@HOME_DIR@|${globals.user.homeDirectory}|g' \
         "${configDir}/settings.json" > "$claude_home/settings.json"
+
+      # SSH_AUTH_SOCK for env.SSH_AUTH_SOCK -- injected here (not a source
+      # placeholder) because settings.json's `env` block takes only literal
+      # strings: Claude Code performs zero shell/env expansion on it, so a
+      # prior `"''${XDG_RUNTIME_DIR}/gcr/ssh"` literal never resolved and
+      # background/bwrap-sandboxed sessions (which don't inherit systemd's
+      # user-environment import, hence don't get home.sessionVariables
+      # either) fell back to the raw passphrase-protected SSH key.
+      #
+      # Resolved with a real `id -u` here, at real activation time on the
+      # real host -- not at Nix eval time, which can run cross-host (see
+      # `just build-host`) and would bake in the wrong UID.
+      #
+      # serverProfile == "minimal" (srv) has no gcr-ssh-agent: its agent
+      # socket comes from `keychain` (hosts/srv/home.nix) and gets a fresh
+      # random path on every ssh-agent (re)start, so it can never be a safe
+      # static value here -- baking today's path would just go silently
+      # stale after the next reboot. Delete the key there instead of setting
+      # one that's wrong most of the time: Claude Code then falls through to
+      # whatever SSH_AUTH_SOCK the launching shell already had, which is
+      # correct for interactive sessions (keychain's fish init already
+      # exports it) and leaves background sessions exactly as unfixed as
+      # today, never worse.
+      ${
+        if serverProfile == "minimal" then
+          ''
+            ${pkgs.jq}/bin/jq 'del(.env.SSH_AUTH_SOCK)' \
+              "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+            mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+          ''
+        else
+          ''
+            ${pkgs.jq}/bin/jq --arg sock "/run/user/$(id -u)/gcr/ssh" \
+              '.env.SSH_AUTH_SOCK = $sock' \
+              "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+            mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+          ''
+      }
 
       # Plugin surface is owned by Nix (cfg/plugin-config.nix), not by the
       # captured settings.json. Merge the SHA-pinned extraKnownMarketplaces and
