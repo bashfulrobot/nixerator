@@ -22,6 +22,17 @@
 
 # auto_restart: false
 
+# --- Paste shortcut
+
+# On Linux+Wayland espanso's built-in default is SHIFT+INSERT (see
+# https://github.com/espanso/espanso/issues/899), not CTRL+V. Electron/GTK4
+# apps (browser text boxes, Slack, VS Code, Claude's own UI) generally don't
+# bind SHIFT+INSERT, so any match over clipboard_threshold silently lands on
+# the clipboard but the paste keystroke does nothing -- the expansion looks
+# "blank". Force CTRL+V so long matches (";todoist", ";kong-qa") paste the
+# same way short ones type.
+paste_shortcut: "CTRL+V"
+
 # --- Clipboard threshold
 
 # Because injecting long texts char-by-char is a slow operation, espanso
