@@ -26,6 +26,7 @@ in
         default = [
           "com.github.tchx84.Flatseal"
           "org.pvermeer.WebAppHub"
+          "io.github.chidiwilliams.Buzz"
         ];
         description = "List of Flatpak packages to install";
         example = [
