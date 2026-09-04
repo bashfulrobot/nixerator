@@ -92,7 +92,7 @@
     # Local LLM server. qbert has the AMD 6800 XT (gfx1030, 16 GB VRAM), which
     # ROCm supports directly with no HSA_OVERRIDE_GFX_VERSION, so the rocm
     # variant is the accelerator (vulkan is the fallback if a ROCm regression
-    # ever bites, mirroring voxtype/whisper-server here). Prefetch Qwen3-14B
+    # ever bites, mirroring voxtype here). Prefetch Qwen3-14B
     # (dense, 9.3 GB Q4_K_M) from the Ollama library; it fits VRAM with room for
     # the 32k context below. loadModels and defaultOpencodeModel both read
     # globals.ai.localCodeModel, so the pulled model and the model opencode
@@ -118,10 +118,6 @@
 
   # Server modules
   server = {
-    whisper-server = {
-      enable = true;
-      vulkan = true;
-    };
     # Virtualisation on qbert moved back from Incus to libvirt/KVM: Talos VMs
     # need real QEMU block-device semantics and a working qemu-guest-agent
     # channel that Incus VMs don't provide (system extensions, in-place
