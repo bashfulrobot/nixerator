@@ -117,6 +117,14 @@ in
         superpowers.enable = true;
         skillfish.enable = true;
         skill-cache.enable = true;
+        # Agent multiplexer: runs coding-agent sessions under a background
+        # server, so a closed terminal, a dropped SSH connection or a reboot
+        # does not kill work in progress, and the sidebar shows which agents
+        # are working, blocked, or idle. Not a zellij replacement -- zellij
+        # (suites.terminal) multiplexes shells, herdr multiplexes agents and
+        # tracks each one's state. Both stay. Installs its Claude Code hook at
+        # activation; see modules/apps/cli/herdr and extras/docs/herdr.md.
+        herdr.enable = true;
       };
     };
 

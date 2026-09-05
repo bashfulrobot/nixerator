@@ -17,6 +17,7 @@ Complete inventory of software managed by this NixOS configuration.
 | Gurk                  | Signal Messenger TUI client                                                           | Local build                      |
 | GWS                   | Google Workspace CLI for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin            | Local build                      |
 | Helix                 | Terminal text editor with LSP support and language-specific formatters                | nixpkgs                          |
+| Herdr                 | Agent multiplexer: keeps Claude Code/Codex sessions alive in a background server       | llm-agents                       |
 | JWTX                  | Terminal JWT decoder/encoder TUI                                                      | Local build (Go)                 |
 | Kubectl               | Kubernetes CLI with OIDC auth, kubecolor, kubelogin, krew, ktop                       | nixpkgs                          |
 | Kubernetes MCP Server | MCP server for Kubernetes cluster interaction from Claude Code                        | Local build (npm)                |
