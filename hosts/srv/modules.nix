@@ -18,6 +18,7 @@
     ../../modules/apps/cli/fresh-editor
     ../../modules/apps/cli/git
     ../../modules/apps/cli/helix
+    ../../modules/apps/cli/herdr
     ../../modules/apps/cli/opencode
     ../../modules/apps/cli/render-secrets
     ../../modules/apps/cli/restic
@@ -125,6 +126,13 @@
     };
     skillfish.enable = true;
     superpowers.enable = true;
+    # Agent multiplexer (cherry-picked from suites/ai like the rest of this
+    # block). srv is the strongest case for it: sessions started here outlive
+    # the SSH connection that started them, which is the same promise
+    # archetypes.claudeWorkHost already makes with zellij -- zellij for the
+    # shells, herdr for the agents inside them. claudeIntegration follows
+    # claude-code.enable above, so the Claude Code hook is installed here too.
+    herdr.enable = true;
   };
 
   # Tailscale subnet router: advertise the home LAN so qbert and donkeykong

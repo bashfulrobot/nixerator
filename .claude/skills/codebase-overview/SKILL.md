@@ -210,7 +210,7 @@ Repo-local, `.claude/docs/`:
 - `skill-defaults.md` — the always-on baseline, default-off model, and `skill-pick`.
 
 Deep dives, `extras/docs/`: `architecture.md`, `module-development.md`,
-`hosts.md`, `adding-hosts.md`, `secrets.md`, `secrets-agenix-evaluation.md`,
+`hosts.md`, `adding-hosts.md`, `herdr.md`, `secrets.md`, `secrets-agenix-evaluation.md`,
 `local-packages.md`, `software.md`, `helpers.md`, `commands.md`, `ssh.md`,
 `gpu-reference.md`, `hyprland-windowrules.md`, `vm-development.md`,
 `declarative-claude.md`, `claude-plugins.md`, `bootstrap.txt`,

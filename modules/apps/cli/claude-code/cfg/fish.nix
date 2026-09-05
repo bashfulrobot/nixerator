@@ -227,6 +227,15 @@
           #     whenever a new injected hook was added (guard-secret-commands and
           #     scrub-secret-output leaked their store paths into the repo exactly
           #     that way).
+          #   - herdr-agent-state hooks: the ONE Nix-owned hook the store-path rule
+          #     cannot catch. herdr writes its own hook script to
+          #     ~/.claude/hooks/herdr-agent-state.sh -- the script is bundled in the
+          #     herdr binary, not authored here, so `herdr integration install
+          #     claude` runs at activation (modules/apps/cli/herdr) and the command
+          #     it registers is a home path, not a store path. Committing it would
+          #     hand every other host a hook pointing at a script it does not have.
+          #     Named explicitly for that reason; the herdr module is the only thing
+          #     that should ever put it back.
           # After stripping, any event array left empty is dropped entirely.
           set -l settings_tmp ""
           if test -f "$claude_dir/settings.json"
@@ -237,7 +246,7 @@
               | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .skillOverrides, .env.SSH_AUTH_SOCK)
                     | .hooks = ((.hooks // {})
                         | map_values(map(select((.hooks[0].command // "")
-                            | test("/nix/store/") | not)))
+                            | test("/nix/store/|herdr-agent-state") | not)))
                         | with_entries(select(.value | length > 0)))' > "$settings_tmp"
           end
 
