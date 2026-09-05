@@ -123,6 +123,11 @@ in
             gundo = "git reset --soft HEAD~1";
             # tools
             lg = "lazygit";
+            # `gh dash`, not the bare `gh-dash` binary: the extension form is
+            # the one that also works on the Mac (bashfulrobot/donkeykong),
+            # where gh-dash has no Homebrew formula and is installed with
+            # `gh extension install`. Here programs.gh-dash gives both.
+            ghd = "gh dash";
           };
         };
 
@@ -228,14 +233,33 @@ in
           };
         };
 
+        # Only settings that DEPART from a lazygit default. `lazygit --config`
+        # prints the full default set and
+        # https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md
+        # documents every key. The Mac (bashfulrobot/donkeykong) deploys the
+        # same two keys with chezmoi -- at
+        # ~/Library/Application Support/lazygit/config.yml, because lazygit only
+        # honours the XDG path on macOS when XDG_CONFIG_HOME is set and that
+        # machine does not set it. Different path, same settings.
+        #
+        # 2026-09: dropped `gui.theme.lightTheme = false` and corrected
+        # `gui.theme.nerdFontVersion` to `gui.nerdFontsVersion`. Neither old key
+        # exists in lazygit's schema -- lightTheme was removed upstream, and the
+        # font key is plural and sits directly under `gui`, not under `theme`.
+        # lazygit unmarshals its config non-strictly, so both were silently
+        # ignored rather than failing: the icons had been rendering as v2
+        # codepoints this whole time.
         lazygit = {
           enable = true;
           settings = {
+            # Render :emoji: shortcodes in commit messages as emoji. gcmt writes
+            # conventional commits with them, so the log reads as intended
+            # rather than as literal colon-wrapped names.
             git.parseEmoji = true;
-            gui.theme = {
-              lightTheme = false;
-              nerdFontVersion = "3";
-            };
+            # The Nerd Font glyph set to draw from. Empty (the default) shows no
+            # icons at all; "2" gives codepoints that moved in v3 and render as
+            # tofu against the v3 font the terminal actually uses.
+            gui.nerdFontsVersion = "3";
           };
         };
 
@@ -254,6 +278,38 @@ in
               rv = "pr review";
               run = "run list";
               rw = "run watch";
+            };
+          };
+        };
+
+        # Terminal dashboard for PRs, issues and notifications
+        # (https://www.gh-dash.dev). The home-manager module installs the
+        # package AND registers it in programs.gh.extensions above, so both
+        # `gh dash` and the bare `gh-dash` binary work.
+        #
+        # Only settings that DEPART from a default live here. gh-dash's own
+        # defaults already give the three sections worth having -- "My Pull
+        # Requests", "Needs My Review", "Involved" (is:open author:@me,
+        # review-requested:@me, involves:@me -author:@me) -- and restating them
+        # would pin values this repo never meant to choose. The full schema is
+        # at https://gh-dash.dev/schema.json.
+        #
+        # The Mac (bashfulrobot/donkeykong) deploys the same settings to the
+        # same ~/.config/gh-dash/config.yml path with chezmoi; gh-dash resolves
+        # that path identically on Linux and macOS. Change one, change the other.
+        gh-dash = {
+          enable = true;
+          settings = {
+            # Lets `gh dash` open a PR's checkout locally instead of only in a
+            # browser. Every repo is cloned to ~/git/<name> on both machines
+            # (globals.paths.nixerator is ~/git/nixerator, and the Mac's README
+            # clones to ~/git/donkeykong), so one wildcard covers them all. The
+            # schema requires the value to carry the asterisk when the key does.
+            #
+            # Literal "~", not globals.user.homeDirectory: gh-dash expands it,
+            # and it keeps this byte-identical to the Mac's chezmoi copy.
+            repoPaths = {
+              "bashfulrobot/*" = "~/git/*";
             };
           };
         };
