@@ -91,6 +91,22 @@ let
       repo = "Or1onn/Semagraph";
       sha = "9e57466bfdd220de164c7e29f578c79f9b12b1b7";
     };
+    # This user's own personal-skills marketplace (dk, kong-cs, gitops, plus
+    # the third-party humanizer/mattpocock-skills/gitops it references in
+    # turn). Ports and supersedes most of what used to live vendored under
+    # config/skills/ in this repo -- see the collision note above
+    # allVendoredSkillNames in default.nix and the retirement note atop
+    # skill-defaults.nix. Unlike every other entry here, this one is bumped
+    # automatically by `just upgrade` / `just quiet-upgrade`
+    # (bump-plugin-marketplace-sha.sh) rather than by hand, on the judgment
+    # that it's this user's own repo and doesn't need the re-read-before-bump
+    # treatment the third-party entries above get. `just bump-claude-skills`
+    # bumps just this one outside a full upgrade.
+    claude-skills.source = {
+      source = "github";
+      repo = "bashfulrobot/claude-skills";
+      sha = "167d9df7e9f9db5f62787b7d74070a17b99d7850";
+    };
   };
 
   marketplaceOf = pluginId: lib.last (lib.splitString "@" pluginId);

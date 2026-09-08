@@ -11,6 +11,18 @@
 # local scope falling back to this user-scope default, so an "on" there
 # beats the "off" here.
 #
+# 2026-09-08: most of the skills named below moved out of config/skills/ and
+# into the claude-skills marketplace (cfg/plugin-config.nix's dk@claude-skills
+# / kong-cs@claude-skills) -- see the retirement note this same commit left
+# in default.nix near allVendoredSkillNames. This list still names them by
+# skill name, not by source, and that keeps working: mkOverlay's allNames is
+# a live `readDir configSkillsDir`, so a name absent from config/skills/ (now
+# most of alwaysOn) simply never reaches offNames either way, and Claude
+# Code's own absent-key-means-on default leaves it enabled -- the same "no
+# explicit override" outcome alwaysOn membership would have produced. Don't
+# read a name's continued presence here as proof it still lives under
+# config/skills/; check the directory.
+#
 # alwaysOn: skills that stay enabled everywhere, no per-project opt-in
 # needed. Two reasons a skill earns a spot here, not a hunch:
 #   - named directly in ~/.claude/CLAUDE.md's trigger-scoped rules (removing

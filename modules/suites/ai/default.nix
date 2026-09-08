@@ -88,6 +88,19 @@ in
             "pyright-lsp@claude-plugins-official"
             # kong-skills (Kong CS marketplace, SHA-pinned)
             "kong-doc-build@kong-skills"
+            # This user's own personal-skills marketplace (SHA-pinned, see
+            # cfg/plugin-config.nix). dk is the personal-utility set,
+            # kong-cs the Kong CS set (depends on dk for text-polish/
+            # writing-style, so both are listed), gitops is fluxcd's own
+            # cluster-debug/repo-audit/knowledge skills referenced from
+            # there rather than vendored. Supersedes most of what used to be
+            # vendored under config/skills/ -- see the retirement note atop
+            # cfg/skill-defaults.nix. Headless srv keeps only dk
+            # (hosts/srv/modules.nix); kong CS work and gitops tooling are
+            # workstation-only here.
+            "dk@claude-skills"
+            "kong-cs@claude-skills"
+            "gitops@claude-skills"
             # other third-party (SHA-pinned)
             # Context-window auditing. Unlike the plugins struck from this list
             # under #294, its standing cost (4 skills, 2 commands) buys a

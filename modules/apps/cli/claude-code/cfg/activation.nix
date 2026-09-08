@@ -232,18 +232,28 @@
     # references. This is the SAME file the SUPER+SHIFT+R keybind filter reads
     # (single source of truth in the text-polish module), copied in after the
     # rsync --delete above so it survives. Editing the source moves both.
+    #
+    # 2026-09-08: text-polish moved out of config/skills/ into
+    # dk@claude-skills, so the rsync loop above no longer creates
+    # $claude_home/skills/text-polish and this `if` is now permanently
+    # false -- left as a no-op rather than deleted, since it costs nothing
+    # and the keybind filter is unaffected either way (it reads
+    # textPolishRulesFile directly, not through this copy; see
+    # modules/apps/cli/text-polish/default.nix). The marketplace skill's own
+    # references/concision-rules.md is a separate file this can't patch.
     if [ -d "$claude_home/skills/text-polish" ]; then
       $DRY_RUN_CMD mkdir -p "$claude_home/skills/text-polish/references"
       $DRY_RUN_CMD cp --no-preserve=mode "${textPolishRulesFile}" \
         "$claude_home/skills/text-polish/references/concision-rules.md"
     fi
 
-    # Humanizer skill -- pinned to upstream blader/humanizer via the
-    # `humanizer-skill` flake input. Symlink (not rsync) so the file stays
-    # read-only and claude-capture auto-skips the top-level symlink check
-    # in cfg/fish.nix. Update via `nix flake update humanizer-skill`.
-    $DRY_RUN_CMD rm -rf "$claude_home/skills/humanizer"
-    $DRY_RUN_CMD ln -snf "${humanizerSkillSrc}" "$claude_home/skills/humanizer"
+    # Humanizer skill: 2026-09-08, stopped symlinking the flake-vendored
+    # copy here. dk@claude-skills (cfg/plugin-config.nix) now depends on the
+    # same upstream (blader/humanizer) as an installed plugin, so this
+    # symlink would only have produced a second, source-drifting "humanizer"
+    # skill next to the plugin-provided one. humanizerSkillSrc/the
+    # humanizer-skill flake input are left in place, unused by this script,
+    # in case a fallback to the Nix-pinned copy is ever needed again.
 
     # intent-layer skill -- pinned to crafter-station/skills via the
     # `crafter-station-skills` flake input, symlinked for the same reasons as
@@ -255,9 +265,18 @@
     $DRY_RUN_CMD ln -snf "${intentLayerSkillSrc}" "$claude_home/skills/intent-layer"
 
     # walkr-author / walkr-tutorial-author skills -- pinned to bashfulrobot/walkr
-    # via the `walkr` flake input, symlinked for the same reasons as humanizer
-    # above. Same input also builds the walkr binary (apps/cli/walkr), so the
-    # skills and the binary always match. Update via `nix flake update walkr`.
+    # via the `walkr` flake input, symlinked for the same reasons humanizer
+    # used to be above. Same input also builds the walkr binary
+    # (apps/cli/walkr), so the skills and the binary always match -- unlike
+    # humanizer, kept symlinked (not retired) even though dk@claude-skills
+    # (cfg/plugin-config.nix) now also ships same-named walkr-author /
+    # walkr-tutorial-author skills: that copy's version is independent of
+    # this machine's walkr binary and can drift out of sync with it, which
+    # this one by construction cannot. The two skills being redundant at
+    # runtime is an accepted, deliberate trade-off for keeping this one
+    # correct; not yet resolved on the claude-skills side (see nixerator
+    # issue tracker if one gets filed for "exclude a plugin's individual
+    # skill"). Update via `nix flake update walkr`.
     $DRY_RUN_CMD rm -rf "$claude_home/skills/walkr-author"
     $DRY_RUN_CMD ln -snf "${walkrAuthorSkillSrc}" "$claude_home/skills/walkr-author"
     $DRY_RUN_CMD rm -rf "$claude_home/skills/walkr-tutorial-author"

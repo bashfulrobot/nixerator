@@ -167,6 +167,18 @@ upgrade:
         exit "$rc"
     fi
     gum style --foreground 82 "Flake inputs updated"
+    # claude-skills (dk/kong-cs/gitops) isn't a flake input -- it's a
+    # commit-SHA pin in cfg/plugin-config.nix, so `nix flake update` above
+    # never touches it. Bump it the same way, right before the rebuild picks
+    # up whatever's currently pinned.
+    gum spin --spinner dot --title "Updating claude-skills marketplace pin..." \
+        -- bash -c 'bash modules/apps/cli/claude-code/cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills main &>> "'"$log"'"' || rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+        gum style --foreground 196 "claude-skills pin bump FAILED (exit $rc)"
+        bat --paging=always "$log"
+        exit "$rc"
+    fi
+    gum style --foreground 82 "claude-skills pin up to date"
     gum spin --spinner dot --title "Rebuilding with upgrades..." \
         -- bash -c 'sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
     if [[ "$rc" -ne 0 ]]; then
@@ -185,6 +197,7 @@ upgrade:
     gum style --foreground 82 "Voxtype configured"
     just warn-summary "$log" "Upgrade completed" "Upgrade complete"
     just commit-lock "chore(flake): update flake lock" interactive
+    just commit-plugin-config "chore(claude-code): bump claude-skills marketplace pin" interactive
     just post-rebuild interactive
 
     # Run package update check after successful upgrade
@@ -200,6 +213,18 @@ upgrade:
 update input:
     @echo "Updating {{input}}..."
     @nix flake update {{input}}
+
+# Bump the claude-skills marketplace pin (dk/kong-cs/gitops) to its current
+# GitHub HEAD, without a full `just upgrade`. Not a flake input -- see
+# cfg/plugin-config.nix's marketplaceSources -- so `just update claude-skills`
+# doesn't reach it; this is that recipe's equivalent for this one pin.
+# Doesn't commit or rebuild on its own: review the diff, then `just rebuild`
+# (or fold it into your next `just upgrade` / `just quiet-upgrade`, which run
+# this automatically).
+[doc('Bump the claude-skills marketplace pin to its current GitHub HEAD')]
+[group('bump')]
+bump-claude-skills:
+    bash modules/apps/cli/claude-code/cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills main
 
 # Run skill-cache unit tests
 [group('test')]
@@ -355,6 +380,18 @@ setup-hooks:
 # `just upgrade` / `just quiet-upgrade` run a bare `nix flake update` before
 # the rebuild and commit the lock afterwards -- that is the correct home for
 # the bump, and it sweeps every vendored-skill input. Don't re-add it here.
+#
+# Also does NOT cover the claude-skills marketplace (dk@claude-skills /
+# kong-cs@claude-skills / gitops@claude-skills) added 2026-09-08: that one is
+# pinned by commit SHA in cfg/plugin-config.nix, not a flake input, so
+# neither this recipe nor a `nix flake update` moves it. Unlike the other
+# SHA-pinned marketplaceSources entries, `just upgrade` / `just
+# quiet-upgrade` DO bump this one automatically now (see
+# bump-plugin-marketplace-sha.sh) -- it's this user's own repo, not a
+# third-party one that needs a manual re-read before every bump. Run `just
+# bump-claude-skills` to bump it on its own, outside a full upgrade. Most of
+# what used to be captured/updated here as loose config/skills/ content now
+# lives there instead -- see the retirement note atop cfg/skill-defaults.nix.
 [doc('Update manually-installed Claude skills (also runs from post-rebuild)')]
 [group('dev')]
 update-skills:
@@ -489,6 +526,47 @@ commit-lock msg mode="quiet" sign="0":
         notice "Pushed flake.lock to origin/main."
     else
         warn "flake.lock committed but push failed — push manually."
+    fi
+
+# Commit + push cfg/plugin-config.nix if bump-claude-skills changed its pin.
+#
+# Separate from commit-lock rather than folding into it: commit-lock's
+# pathspec is hardcoded to flake.lock and is called from more places
+# (bump-upsight, bump-hyprflake) than just the two upgrade recipes, so
+# widening its contract risked committing this file from callers that never
+# touch it. Same shape otherwise -- only stages/commits/pushes when this one
+# file actually changed.
+[private]
+commit-plugin-config msg mode="quiet" sign="0":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    notice() { if [[ "{{mode}}" == "interactive" ]]; then gum style --foreground 82 "$1"; else echo "$1"; fi; }
+    warn()   { if [[ "{{mode}}" == "interactive" ]]; then gum style --foreground 220 "$1"; else echo "⚠ $1"; fi; }
+
+    file="modules/apps/cli/claude-code/cfg/plugin-config.nix"
+    git diff --quiet -- "$file" && exit 0
+
+    commit_ok=true
+    if git add -- "$file"; then
+        if [[ "{{sign}}" == "1" ]]; then
+            git commit -qS -m "{{msg}}" || commit_ok=false
+        else
+            git commit -q -m "{{msg}}" || commit_ok=false
+        fi
+    else
+        commit_ok=false
+    fi
+    if ! $commit_ok; then
+        warn "$file updated but commit failed — commit it manually."
+        exit 0
+    fi
+    notice "Committed $file."
+
+    [[ "$(git branch --show-current 2>/dev/null)" == "main" ]] || exit 0
+    if git push -q origin main 2>/dev/null; then
+        notice "Pushed $file to origin/main."
+    else
+        warn "$file committed but push failed — push manually."
     fi
 
 # Secrets freshness nudge, run at the top of every switch recipe. A rebuild
@@ -770,16 +848,22 @@ quiet-upgrade:
     # Keep only the 5 newest lock backups.
     ls -1t flake.lock-backup-* 2>/dev/null | tail -n +6 | xargs -r rm -f
     rc=0
-    # &&-chain so a failed `nix flake update` aborts instead of rebuilding on
-    # the old lock (a bare `;` group would mask its exit status).
+    # &&-chain so a failed `nix flake update` (or claude-skills pin bump)
+    # aborts instead of rebuilding on stale/half-updated pins (a bare `;`
+    # group would mask its exit status). claude-skills (dk/kong-cs/gitops)
+    # isn't a flake input -- it's a commit-SHA pin in cfg/plugin-config.nix,
+    # so `nix flake update` never touches it; bump-plugin-marketplace-sha.sh
+    # does, the same way this bumps flake.lock.
     {
         nix flake update \
+            && bash modules/apps/cli/claude-code/cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills main \
             && sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} \
             && just ref::voxtype-setup
     } &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Upgrade succeeded. Full log: {{upgrade_log}}"
         just commit-lock "chore(flake): update flake lock"
+        just commit-plugin-config "chore(claude-code): bump claude-skills marketplace pin"
 
         just post-rebuild quiet
     else
