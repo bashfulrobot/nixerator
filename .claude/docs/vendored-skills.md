@@ -6,11 +6,11 @@ and the per-skill quirks worth knowing before touching one.
 
 ## The pattern
 
-Eleven skills from four flake inputs use it today:
+Ten skills from four flake inputs use it today (a former eleventh,
+`humanizer`, was retired 2026-09-08 -- see below):
 
 | Skill | Flake input | Upstream | Path consumed |
 |---|---|---|---|
-| `humanizer` | `humanizer-skill` | `blader/humanizer` | whole repo |
 | `intent-layer` | `crafter-station-skills` | `crafter-station/skills` | `context-engineering/intent-layer` |
 | `walkr-author` | `walkr` | `bashfulrobot/walkr` | `skills/walkr-author` |
 | `walkr-tutorial-author` | `walkr` | `bashfulrobot/walkr` | `skills/walkr-tutorial-author` |
@@ -34,11 +34,11 @@ the pinned rev, and that no vendored name collides with a `config/skills/`
 directory -- see the assertions block right after the `CLAUDE.md` length
 check.
 
-All eleven land as **symlinks** into the Nix store, created in
+All ten land as **symlinks** into the Nix store, created in
 `cfg/activation.nix` right after the `config/skills/` rsync loop:
 
 ```
-ln -snf "${humanizerSkillSrc}" "$claude_home/skills/humanizer"
+ln -snf "${intentLayerSkillSrc}" "$claude_home/skills/intent-layer"
 ```
 
 The symlink is the whole point, not an implementation detail. Repo-owned skills
@@ -48,9 +48,11 @@ edited locally — upstream owns it — so it stays read-only, and `capture-sync
 refuses to read through a symlink, which means the capture flow skips it for
 free. No exclude list to maintain.
 
-Bump `humanizer-skill`, `crafter-station-skills`, or `walkr` with `nix flake
-update <input>` (or let `just upgrade` sweep them). `flake.lock` records the
-rev, so these three are pinned the same way every other input is.
+Bump `crafter-station-skills` or `walkr` with `nix flake update <input>` (or
+let `just upgrade` sweep them). `flake.lock` records the rev, so both are
+pinned the same way every other input is. `humanizer-skill` still exists as
+a flake input (nothing consumes it anymore, see below) but is not part of
+what `just upgrade` needs to keep current for this list's sake.
 
 `vibecurb-skills` is different: its `url` in `flake.nix` embeds an explicit
 rev (`github:Yu-369/VibeCurb/<rev>`), not a bare branch-tracking URL, because
@@ -128,12 +130,30 @@ Two upstream defects to know about:
 The skill has been untouched upstream since 2026-02-05, so do not expect a bump
 to fix either.
 
-## humanizer
+## humanizer (retired as a vendored skill, 2026-09-08)
 
 MIT-equivalent single-`SKILL.md` repo, no scripts, no dependencies. Load-bearing
 for the global writing rule in `~/.claude/CLAUDE.md` — every piece of prose
 drafted for the user runs through it. `text-polish` wraps it plus a concision
 pass, so anything already polished must not be humanized again.
+
+No longer symlinked from the `humanizer-skill` flake input: `dk@claude-skills`
+(`cfg/plugin-config.nix`) declares `humanizer` as an installed-plugin
+dependency, sourced from the same upstream (`blader/humanizer`), so the
+vendored copy would only have shadowed or duplicated the plugin-provided one
+— exactly the "if the repo has a real `.claude-plugin/marketplace.json`, use
+`cfg/plugin-config.nix` instead" guidance in "Adding another" above, applied
+in reverse to retire this one. The `humanizer-skill` input and its
+`humanizerSkillSrc` binding are still present (harmless, unused) rather than
+removed outright.
+
+`walkr-author` / `walkr-tutorial-author` are NOT retired the same way even
+though `dk@claude-skills` ships same-named skills too — see the comment at
+their symlink stanza in `cfg/activation.nix`. Short version: this vendored
+copy is pinned to the same rev as the `walkr` binary; the plugin's copy is
+not, and can drift out of sync with whatever `walkr` version is actually
+installed. The two skills being redundant at runtime is accepted as the
+price of keeping this one correct.
 
 ## VibeCurb
 

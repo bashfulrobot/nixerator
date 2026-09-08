@@ -62,12 +62,20 @@ let
     "pixel-perfect"
     "visual-redesign"
   ];
-  # Every symlinked-skill name Nix installs, vibecurb's seven plus the four
+  # Every symlinked-skill name Nix installs, vibecurb's seven plus the
   # pre-existing ones. Single source of truth for the skill-overlay call
   # below and the collision assertion further down -- both need the exact
   # same list.
+  #
+  # "humanizer" dropped 2026-09-08: dk@claude-skills (cfg/plugin-config.nix)
+  # now depends on the same upstream (blader/humanizer) as an installed
+  # plugin, so the flake-vendored symlink (cfg/activation.nix) was retired
+  # rather than shipping two copies. walkr-author / walkr-tutorial-author
+  # stay here even though dk@claude-skills ships same-named skills too --
+  # see the comment at their symlink stanza in cfg/activation.nix for why
+  # that one specific redundancy is intentional (this copy's version is
+  # pinned to this machine's walkr binary; the plugin's isn't).
   allVendoredSkillNames = [
-    "humanizer"
     "intent-layer"
     "walkr-author"
     "walkr-tutorial-author"

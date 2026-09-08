@@ -99,9 +99,10 @@
       # browser at /run/current-system/sw/bin/${globals.preferences.browser},
       # provisioned via suites.browsers on workstations -- srv is headless), the
       # kong CS plugins, impeccable, and the kotlin/pyright/rust LSPs. Only this
-      # list's marketplaces get registered + pinned for srv (all built-in here,
-      # so none). Two occurrences = below the rule-of-three threshold; do not
-      # extract into a shared lib until a third consumer appears.
+      # list's marketplaces get registered + pinned for srv -- claude-skills
+      # (for dk below) plus claude-plugins-official (built-in, never pinned).
+      # Two occurrences = below the rule-of-three threshold; do not extract
+      # into a shared lib until a third consumer appears.
       #
       # It also omits learning-output-style, pr-review-toolkit, feature-dev, and
       # context7 for the same reason the workstation list does. See the comment
@@ -122,6 +123,14 @@
         "slack@claude-plugins-official"
         "gopls-lsp@claude-plugins-official"
         "skill-creator@claude-plugins-official"
+        # This user's own personal-skills marketplace (SHA-pinned, see
+        # cfg/plugin-config.nix). Only dk (personal-utility skills), same
+        # reasoning as the rest of this list: srv omits kong-cs (Kong CS
+        # tooling) and gitops (workstation-only, see
+        # modules/suites/ai/default.nix). Supersedes most of what used to
+        # be vendored under config/skills/ -- see the retirement note atop
+        # cfg/skill-defaults.nix.
+        "dk@claude-skills"
       ];
     };
     skillfish.enable = true;
