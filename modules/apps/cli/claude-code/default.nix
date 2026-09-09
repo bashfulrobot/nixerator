@@ -67,18 +67,23 @@ let
   # below and the collision assertion further down -- both need the exact
   # same list.
   #
-  # "humanizer" dropped 2026-09-08: dk@claude-skills (cfg/plugin-config.nix)
-  # now depends on the same upstream (blader/humanizer) as an installed
-  # plugin, so the flake-vendored symlink (cfg/activation.nix) was retired
-  # rather than shipping two copies. walkr-author / walkr-tutorial-author
-  # stay here even though dk@claude-skills ships same-named skills too --
-  # see the comment at their symlink stanza in cfg/activation.nix for why
-  # that one specific redundancy is intentional (this copy's version is
-  # pinned to this machine's walkr binary; the plugin's isn't).
+  # "humanizer" dropped 2026-09-08, "walkr-author" / "walkr-tutorial-author"
+  # dropped 2026-09-09: dk@claude-skills (cfg/plugin-config.nix) ships all
+  # three now (humanizer as an installed-plugin dependency on the same
+  # upstream, blader/humanizer; walkr-author/walkr-tutorial-author as its
+  # own skills), so the flake-vendored symlinks (cfg/activation.nix) were
+  # retired rather than shipping two copies of each. This machine, not just
+  # donkeykong (this user's non-Nix machine, which never had a vendored
+  # copy to begin with) now accepts the same trade the walkr binary's own
+  # Gofile entry there already documents: the skill copy and the walkr
+  # binary version can drift apart, and that's fine. walkr-author and
+  # walkr-tutorial-author were default-off before this (they were never in
+  # skill-defaults.nix's alwaysOn) -- since they're no longer in
+  # allVendoredSkillNames, mkOverlay's
+  # extraOff below is what keeps them default-off rather than silently
+  # flipping to Claude Code's absent-key-means-on default.
   allVendoredSkillNames = [
     "intent-layer"
-    "walkr-author"
-    "walkr-tutorial-author"
   ]
   ++ vibecurbSkillNames;
   # Same directory-listing computation skill-defaults.nix's mkOverlay does
@@ -93,6 +98,15 @@ let
       skillDefaultsConfig.mkOverlay {
         configSkillsDir = configDir + "/skills";
         vendoredNames = allVendoredSkillNames;
+        # Preserves the pre-2026-09-09 default-off behavior for two skills
+        # that used to reach this default through allVendoredSkillNames
+        # membership (see the comment there): once a skill's source is
+        # claude-skills only, mkOverlay has no way to know it exists at all,
+        # so it can no longer land in offNames on its own.
+        extraOff = [
+          "walkr-author"
+          "walkr-tutorial-author"
+        ];
       }
     )
   );

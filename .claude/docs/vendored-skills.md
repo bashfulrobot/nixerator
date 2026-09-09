@@ -6,22 +6,22 @@ and the per-skill quirks worth knowing before touching one.
 
 ## The pattern
 
-Ten skills from four flake inputs use it today (a former eleventh,
-`humanizer`, was retired 2026-09-08 -- see below):
+Eight skills from three flake inputs use it today (a former `humanizer`,
+retired 2026-09-08, and a former `walkr-author` / `walkr-tutorial-author`,
+retired 2026-09-09, are covered below instead):
 
 | Skill | Flake input | Upstream | Path consumed |
 |---|---|---|---|
 | `intent-layer` | `crafter-station-skills` | `crafter-station/skills` | `context-engineering/intent-layer` |
-| `walkr-author` | `walkr` | `bashfulrobot/walkr` | `skills/walkr-author` |
-| `walkr-tutorial-author` | `walkr` | `bashfulrobot/walkr` | `skills/walkr-tutorial-author` |
 | `awwwards-hero`, `awwwards-motion`, `awwwards-sections`, `brandkit-gen`, `imagegen-frontend`, `pixel-perfect`, `visual-redesign` | `vibecurb-skills` | `Yu-369/VibeCurb` | `skills/<name>` (seven directories) |
 
-The two walkr skills share the `walkr` input with the `walkr` binary
-(`modules/apps/cli/walkr`), so the tool and the skills that author its content
-are pinned to the same rev by construction.
+The `walkr` flake input still exists and is still consumed -- just not for
+these two skills anymore. It also builds the `walkr` binary
+(`modules/apps/cli/walkr`), which is unrelated to and unaffected by the
+skill retirement below.
 
 The seven VibeCurb skills share one input the same way, but unlike the other
-four vendored skills (each wired with its own explicit `rm -rf` + `ln -snf`
+vendored skills (each wired with its own explicit `rm -rf` + `ln -snf`
 pair), `cfg/activation.nix` symlinks them with a `for skill in
 ${vibecurbSkillNames}` loop over the shared name list defined once in
 `default.nix` -- past the project's three-occurrence DRY threshold for seven
@@ -34,7 +34,7 @@ the pinned rev, and that no vendored name collides with a `config/skills/`
 directory -- see the assertions block right after the `CLAUDE.md` length
 check.
 
-All ten land as **symlinks** into the Nix store, created in
+All eight land as **symlinks** into the Nix store, created in
 `cfg/activation.nix` right after the `config/skills/` rsync loop:
 
 ```
@@ -48,10 +48,11 @@ edited locally — upstream owns it — so it stays read-only, and `capture-sync
 refuses to read through a symlink, which means the capture flow skips it for
 free. No exclude list to maintain.
 
-Bump `crafter-station-skills` or `walkr` with `nix flake update <input>` (or
-let `just upgrade` sweep them). `flake.lock` records the rev, so both are
-pinned the same way every other input is. `humanizer-skill` still exists as
-a flake input (nothing consumes it anymore, see below) but is not part of
+Bump `crafter-station-skills` with `nix flake update <input>` (or let `just
+upgrade` sweep it). `flake.lock` records the rev, so it's pinned the same way
+every other input is. `walkr` is still bumped this way too, but purely for
+the binary now, not for anything in this list. `humanizer-skill` still exists
+as a flake input (nothing consumes it anymore, see below) but is not part of
 what `just upgrade` needs to keep current for this list's sake.
 
 `vibecurb-skills` is different: its `url` in `flake.nix` embeds an explicit
@@ -130,30 +131,51 @@ Two upstream defects to know about:
 The skill has been untouched upstream since 2026-02-05, so do not expect a bump
 to fix either.
 
-## humanizer (retired as a vendored skill, 2026-09-08)
+## humanizer, walkr-author, walkr-tutorial-author (retired as vendored skills)
 
-MIT-equivalent single-`SKILL.md` repo, no scripts, no dependencies. Load-bearing
-for the global writing rule in `~/.claude/CLAUDE.md` — every piece of prose
-drafted for the user runs through it. `text-polish` wraps it plus a concision
-pass, so anything already polished must not be humanized again.
+Three skills `dk@claude-skills` now ships that used to be symlinked from a
+flake input here. Both retirements follow the "if the repo has a real
+`.claude-plugin/marketplace.json`, use `cfg/plugin-config.nix` instead"
+guidance in "Adding another" above, applied in reverse: once the same
+content is available from the marketplace, a second Nix-vendored copy is
+redundant, not extra safety.
 
-No longer symlinked from the `humanizer-skill` flake input: `dk@claude-skills`
-(`cfg/plugin-config.nix`) declares `humanizer` as an installed-plugin
-dependency, sourced from the same upstream (`blader/humanizer`), so the
-vendored copy would only have shadowed or duplicated the plugin-provided one
-— exactly the "if the repo has a real `.claude-plugin/marketplace.json`, use
-`cfg/plugin-config.nix` instead" guidance in "Adding another" above, applied
-in reverse to retire this one. The `humanizer-skill` input and its
+**humanizer** (retired 2026-09-08). MIT-equivalent single-`SKILL.md` repo,
+no scripts, no dependencies. Load-bearing for the global writing rule in
+`~/.claude/CLAUDE.md` — every piece of prose drafted for the user runs
+through it. `text-polish` wraps it plus a concision pass, so anything
+already polished must not be humanized again. No longer symlinked from the
+`humanizer-skill` flake input: `dk@claude-skills` declares `humanizer` as an
+installed-plugin dependency, sourced from the same upstream
+(`blader/humanizer`). The `humanizer-skill` input and its
 `humanizerSkillSrc` binding are still present (harmless, unused) rather than
 removed outright.
 
-`walkr-author` / `walkr-tutorial-author` are NOT retired the same way even
-though `dk@claude-skills` ships same-named skills too — see the comment at
-their symlink stanza in `cfg/activation.nix`. Short version: this vendored
-copy is pinned to the same rev as the `walkr` binary; the plugin's copy is
-not, and can drift out of sync with whatever `walkr` version is actually
-installed. The two skills being redundant at runtime is accepted as the
-price of keeping this one correct.
+**walkr-author / walkr-tutorial-author** (retired 2026-09-09, a day after
+humanizer and for a less clear-cut reason worth spelling out). This
+vendored copy was pinned to the exact same rev as the `walkr` binary
+(`modules/apps/cli/walkr`, same `walkr` flake input), so the skill text and
+the renderer's actual content-format contract could never drift apart —
+unlike humanizer, retiring this one gives up a real correctness guarantee,
+not just deduplicates identical content. Retired anyway, on the explicit
+call that every machine should source these skills the same way: donkeykong
+(this user's non-Nix machine) never had a vendored copy to begin with and
+already runs on `dk@claude-skills` alone, with its `Gofile` installing
+`walkr@latest` unpinned and a comment acknowledging the binary and the
+skill copies "want bumping together" with nothing enforcing it. This
+machine now accepts the same risk instead of being the one host that's
+different. `walkrAuthorSkillSrc` / `walkrTutorialAuthorSkillSrc` and the
+`walkr` flake input itself are left in place (the input still builds the
+binary) rather than removed.
+
+Both were **default-off** before retirement (`skill-pick` opt-in, not in
+`skill-defaults.nix`'s `alwaysOn`) via `allVendoredSkillNames` membership.
+Since a skill absent from `config/skills/` and `allVendoredSkillNames`
+can't reach `skill-defaults.nix`'s `offNames` computation at all, it would
+silently flip to Claude Code's absent-key-means-on default on retirement —
+`mkOverlay`'s `extraOff` parameter (added for exactly this) is what keeps
+`walkr-author` / `walkr-tutorial-author` default-off instead. `humanizer`
+needed no such handling: it was already in `alwaysOn`.
 
 ## VibeCurb
 
