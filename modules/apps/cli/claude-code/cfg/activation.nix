@@ -264,23 +264,27 @@
     $DRY_RUN_CMD rm -rf "$claude_home/skills/intent-layer"
     $DRY_RUN_CMD ln -snf "${intentLayerSkillSrc}" "$claude_home/skills/intent-layer"
 
-    # walkr-author / walkr-tutorial-author skills -- pinned to bashfulrobot/walkr
-    # via the `walkr` flake input, symlinked for the same reasons humanizer
-    # used to be above. Same input also builds the walkr binary
-    # (apps/cli/walkr), so the skills and the binary always match -- unlike
-    # humanizer, kept symlinked (not retired) even though dk@claude-skills
-    # (cfg/plugin-config.nix) now also ships same-named walkr-author /
-    # walkr-tutorial-author skills: that copy's version is independent of
-    # this machine's walkr binary and can drift out of sync with it, which
-    # this one by construction cannot. The two skills being redundant at
-    # runtime is an accepted, deliberate trade-off for keeping this one
-    # correct; not yet resolved on the claude-skills side (see nixerator
-    # issue tracker if one gets filed for "exclude a plugin's individual
-    # skill"). Update via `nix flake update walkr`.
-    $DRY_RUN_CMD rm -rf "$claude_home/skills/walkr-author"
-    $DRY_RUN_CMD ln -snf "${walkrAuthorSkillSrc}" "$claude_home/skills/walkr-author"
-    $DRY_RUN_CMD rm -rf "$claude_home/skills/walkr-tutorial-author"
-    $DRY_RUN_CMD ln -snf "${walkrTutorialAuthorSkillSrc}" "$claude_home/skills/walkr-tutorial-author"
+    # walkr-author / walkr-tutorial-author skills: 2026-09-09, stopped
+    # symlinking the flake-vendored copy here, matching the humanizer
+    # retirement above -- same reasoning applied a day later. dk@claude-skills
+    # ships both under the same names now. This one carried a real trade-off
+    # the humanizer retirement didn't: this copy was pinned to the exact same
+    # rev as the walkr binary (apps/cli/walkr, same `walkr` flake input), so
+    # the skill text and the renderer's actual content-format contract could
+    # never drift apart; the plugin's copy has no such guarantee. Retired
+    # anyway, on the explicit call that every machine should source these
+    # skills the same way -- donkeykong (this user's non-Nix machine) already
+    # runs this exact trade: its Gofile installs `walkr@latest` unpinned and
+    # gets the skills from dk@claude-skills alone, with a comment
+    # acknowledging the binary and the skill copies "want bumping together"
+    # with no mechanism enforcing it. This machine now accepts the same risk
+    # instead of being the one host that's different. walkrAuthorSkillSrc /
+    # walkrTutorialAuthorSkillSrc and the `walkr` flake input itself are left
+    # in place -- the input still builds the walkr binary, unrelated to this
+    # symlink loop -- unused here now, in case a fallback is ever needed
+    # again. See cfg/skill-defaults.nix's `extraOff` for how these two stay
+    # default-off (skill-pick opt-in) the way they always were, now that
+    # they're no longer tracked in allVendoredSkillNames.
 
     # VibeCurb design skills -- pinned to a specific Yu-369/VibeCurb rev via
     # the `vibecurb-skills` flake input URL (see flake.nix for why this is a

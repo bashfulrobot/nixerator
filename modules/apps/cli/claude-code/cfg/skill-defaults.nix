@@ -68,10 +68,20 @@ let
   # allNames: every skill name Nix installs into ~/.claude/skills -- the
   # config/skills/* directory listing plus the vendored (symlinked)
   # flake-input skills, which don't live under config/skills.
+  #
+  # extraOff: names to force "off" even though they aren't (or are no
+  # longer) in allNames -- for a skill whose only installed copy comes from
+  # a marketplace plugin, not from anything this module vendors or tracks,
+  # so it would otherwise never reach offNames and would default to
+  # Claude Code's own absent-key-means-on. Exists specifically for
+  # walkr-author / walkr-tutorial-author (see default.nix's call site);
+  # add to it rather than fake an entry into vendoredNames if another such
+  # case comes up.
   mkOverlay =
     {
       configSkillsDir,
       vendoredNames,
+      extraOff ? [ ],
     }:
     let
       configNames = builtins.attrNames (
@@ -81,7 +91,7 @@ let
       offNames = lib.subtractLists alwaysOn allNames;
     in
     {
-      skillOverrides = lib.genAttrs offNames (_: "off");
+      skillOverrides = (lib.genAttrs offNames (_: "off")) // (lib.genAttrs extraOff (_: "off"));
     };
 in
 {
