@@ -24,6 +24,7 @@ in
     # Development CLI applications
     apps = {
       cli = {
+        airship.enable = true;
         amber.enable = true;
         direnv.enable = true;
         # cue: removed
