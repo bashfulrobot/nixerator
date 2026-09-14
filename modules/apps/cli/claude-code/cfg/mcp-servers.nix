@@ -59,6 +59,22 @@ let
         "mcp"
       ];
     };
+    # MarkItDown -- converts PDF, Office (docx/pptx/xlsx), HTML, images, audio,
+    # EPUB and more to Markdown, exposed as a single convert_to_markdown tool
+    # so Claude can pull a file or URL straight into Markdown context instead
+    # of shelling out to a converter first. `uv tool run` (== `uvx`) fetches
+    # and caches the PyPI package on first use, the same ephemeral-run shape
+    # as the npx -y servers below (qmd, chrome-devtools, playwright) --
+    # no nixpkgs derivation exists for `markitdown-mcp`, and no persistent
+    # install/version-pin is worth it for a single-tool stdio server.
+    markitdown = {
+      command = "${pkgs.uv}/bin/uv";
+      args = [
+        "tool"
+        "run"
+        "markitdown-mcp"
+      ];
+    };
     # GitMCP -- query docs, code, and READMEs of any public GitHub repo on demand.
     # The /docs endpoint is the generic/dynamic entry point; per-repo URLs of the
     # form https://gitmcp.io/{owner}/{repo} also exist if a single repo is wanted.
