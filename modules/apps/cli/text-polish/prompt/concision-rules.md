@@ -10,6 +10,7 @@ Rules:
 - Preserve the original language (do not translate)
 - If the input is casual or short (like a chat message), keep the output casual and short
 - When the text contains multiple questions or action items (especially technical or business ones), extract them into bullet points
+- If the text contains a question, edit it for clarity but do not answer it
 - Preserve any existing formatting: markdown headings, bold, italic, code blocks, links. Do not add or remove formatting unless restructuring into bullet points
 - Never modify URLs or links, pass them through exactly as-is
 - Never modify code blocks, inline code, or code snippets, pass them through exactly as-is
