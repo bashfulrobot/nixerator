@@ -14,10 +14,53 @@ for cmd in fzf jq; do
   fi
 done
 
-mapfile -t servers < <(find "$mcp_dir" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | sort)
-if [[ ${#servers[@]} -eq 0 ]]; then
+mapfile -t all_servers < <(find "$mcp_dir" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | sort)
+if [[ ${#all_servers[@]} -eq 0 ]]; then
   echo "No MCP servers found in $mcp_dir" >&2
   exit 1
+fi
+
+# Servers whose $mcp_dir/<name>/.mcp.json carries a live, already-substituted
+# secret (cfg/mcp-servers.nix's secretServerNames, plus opentabs which
+# activation.nix bridges the same way). Their file is deliberately kept out
+# of the Nix store and written at 0600 -- but a project's ./.mcp.json has
+# neither guarantee: it can be group/world-readable, and this repo's own
+# projects are routinely Syncthing-synced across machines. Merging one of
+# these in copies the real secret out of its 0600 home into that wider
+# exposure, which is exactly how a live Konnect PAT + Tableau PAT ended up
+# sitting in plaintext in ~/dev/kong/.mcp.json (2026-09-16). Keep this list
+# in sync with secretServerNames in cfg/mcp-servers.nix.
+secret_servers=(kong-konnect tableau context7 opentabs)
+is_secret_server() {
+  local name="$1" s
+  for s in "${secret_servers[@]}"; do
+    [[ "$name" == "$s" ]] && return 0
+  done
+  return 1
+}
+
+servers=()
+hidden=()
+for name in "${all_servers[@]}"; do
+  if is_secret_server "$name"; then
+    hidden+=("$name")
+  else
+    servers+=("$name")
+  fi
+done
+if [[ ${#servers[@]} -eq 0 ]]; then
+  echo "No pickable MCP servers found in $mcp_dir (all present servers carry live secrets, see below)" >&2
+  exit 1
+fi
+if [[ ${#hidden[@]} -gt 0 ]]; then
+  echo "Hiding secret-bearing servers from the picker: ${hidden[*]}" >&2
+  echo "  These already carry a live, resolved credential in their $mcp_dir/<name>/.mcp.json (0600)." >&2
+  echo "  Merging one into a project ./.mcp.json would copy that credential out of its 0600 home" >&2
+  echo "  into a file with no permission or sync guarantee. kong-konnect never needs picking --" >&2
+  echo "  it's already registered at user scope (see mcp-servers.nix's userScopeTemplate)." >&2
+  echo "  For the others, reference the server manually with a \${VAR}-style placeholder instead" >&2
+  echo "  of picking it here, or ask for a per-project registration approach that doesn't require" >&2
+  echo "  plaintext secret duplication." >&2
 fi
 
 output=".mcp.json"
@@ -32,7 +75,10 @@ if [[ -f "$output" ]]; then
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
     configured["$name"]=1
-    if [[ -d "$mcp_dir/$name" ]]; then
+    # Hidden secret servers count as "extra" too: they're a real directory
+    # under $mcp_dir, but not in the pickable `servers` list above, so an
+    # overwrite would silently drop them same as anything else not offered.
+    if [[ -d "$mcp_dir/$name" ]] && ! is_secret_server "$name"; then
       configured_known+=("$name")
     else
       configured_extra+=("$name")
