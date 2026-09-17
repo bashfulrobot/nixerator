@@ -29,6 +29,12 @@ matches:
   - trigger: ";cmpc"
     replace: "commit, merge, push, cleanup"
 
+  - trigger: ";cb"
+    replace: >-
+      Put the final output on my clipboard: pipe it into `pbcopy` on macOS
+      or `wl-copy` on Linux, whichever matches this machine. Do not print
+      the contents in the conversation as a substitute for copying it.
+
   - trigger: ";todoist"
     replace: >-
       In this task, I need to get the current status by following all links
