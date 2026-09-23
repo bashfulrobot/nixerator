@@ -27,7 +27,7 @@ matches:
     propagate_case: true
 
   - trigger: ";cmpc"
-    replace: "commit, merge, push, cleanup"
+    replace: "/commit push git cleanup"
 
   - trigger: ";cb"
     replace: >-
