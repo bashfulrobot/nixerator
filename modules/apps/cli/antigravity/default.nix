@@ -129,12 +129,15 @@ in
           # Claude Code is the source of truth for shared skills:
           # Directory symlinks keep all files/subdirectories (references, scripts)
           # 100% DRY without needing to manually list sub-paths.
-          ".gemini/config/skills/commit".source = ../claude-code/config/skills/commit;
+          #
+          # `commit`, `github-issues-auto`, `log-github-issue`, and `text-polish`
+          # used to be symlinked from claude-code/config/skills/ too, but commit
+          # 0f5521d2 (2026-09-08) retired those directories in favor of the
+          # dk@claude-skills marketplace plugin -- a Claude Code-only mechanism
+          # antigravity/gemini has no equivalent consumer for. There is currently
+          # no vendored source left to link them from.
           ".gemini/config/skills/github-issue".source = ../worktree-flow/skills/github-issue;
-          ".gemini/config/skills/github-issues-auto".source = ../claude-code/config/skills/github-issues-auto;
           ".gemini/config/skills/humanizer/SKILL.md".source = inputs.humanizer-skill + "/SKILL.md";
-          ".gemini/config/skills/log-github-issue".source = ../claude-code/config/skills/log-github-issue;
-          ".gemini/config/skills/text-polish".source = ../claude-code/config/skills/text-polish;
         };
       };
 
