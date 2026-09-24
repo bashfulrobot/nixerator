@@ -24,14 +24,27 @@
 # the on-disk token file on its own), and a systemd service doesn't inherit the
 # login shell's export -- so the opRunExec wrapper loads the host SA token from
 # ~/.config/op/service-account-token (installed by `just setup-op-token`) before
-# exec'ing `op run`. `claude` picks up the user's subscription credentials at
-# ~/.claude. No API key or nixos-secrets entry is needed by this module.
+# exec'ing `op run`. No API key or nixos-secrets entry is needed by this module.
 #
-# The subscription path needs a one-time `claude` login on srv so
-# ~/.claude/.credentials.json exists. After that an idle box is fine: the file
-# also holds a long-lived refresh token, and the service (running as the user
-# with its own $HOME, no ProtectHome) refreshes an expired access token from it
-# and writes the new one back, no interactive session required.
+# Claude auth: a long-lived subscription OAuth token from `claude setup-token`,
+# stored at claudeOauthTokenRef in 1Password and passed to `claude` as
+# CLAUDE_CODE_OAUTH_TOKEN. It replaced the interactive `/login` credential in
+# ~/.claude/.credentials.json: that file's refresh token died after about nine
+# days on 2026-09-14, and every RCA then exited 1 with "OAuth session expired"
+# until someone logged in again by hand.
+#
+# ROTATE BEFORE 2027-09-24. The token was minted 2026-09-24 and expires one year
+# later. When it lapses, RCAs fail with "Failed to authenticate" and
+# investigate.sh pages "Claude login expired". To rotate: run `claude setup-token`
+# on any machine logged in to the subscription, put the new value in the
+# 1Password item behind claudeOauthTokenRef (do not paste it anywhere else), then
+# `systemctl restart incident-investigator` so `op run` re-resolves it. Set a
+# calendar reminder for about 2027-09-10.
+#
+# The token is inference-only, but it rides in claude's own environment, so a
+# prompt-injected run could read it (investigate.sh cannot strip it, claude needs
+# it to authenticate; GRAFANA_READ_TOKEN has the same exposure). It draws on the
+# same subscription usage pool as interactive use, with no separate bill.
 let
   cfg = config.server.incidentInvestigator;
   homeDir = globals.user.homeDirectory;
@@ -126,6 +139,7 @@ let
     "SHARED_SECRET=${cfg.sharedSecretRef}"
     "PUSHOVER_TOKEN=${cfg.pushoverTokenRef}"
     "PUSHOVER_USER=${cfg.pushoverUserRef}"
+    "CLAUDE_CODE_OAUTH_TOKEN=${cfg.claudeOauthTokenRef}"
     # gcq (read-only Grafana Cloud queries) reads these. The token and instance
     # ids stay op:// refs resolved by `op run`; the URLs are public. gcq queries
     # Mimir/Loki directly with a least-privilege metrics:read+logs:read token,
@@ -240,6 +254,19 @@ in
       type = lib.types.str;
       default = "op://automation/Pushover-api/user-key";
       description = "1Password `op://` reference for the Pushover user key.";
+    };
+
+    claudeOauthTokenRef = lib.mkOption {
+      type = lib.types.str;
+      default = "op://automation/Claude-oauth-token/Oauth-token";
+      description = ''
+        1Password `op://` reference for the long-lived Claude subscription OAuth
+        token (`claude setup-token`) the investigator's `claude -p` runs
+        authenticate with. Resolved at runtime via `op run` and passed as
+        `CLAUDE_CODE_OAUTH_TOKEN`; never on argv or disk. It expires 2027-09-24
+        (minted 2026-09-24, one year): rotate it before then, see the header
+        comment for the steps.
+      '';
     };
 
     grafanaReadTokenRef = lib.mkOption {
