@@ -20,7 +20,7 @@ let
     verbosity = "low";
     enableTelemetry = false;
     showFeedbackSurvey = false;
-    customInstructions = "When creating git commits, ALWAYS use the `commit` skill (`/commit`). Never run raw unformatted git commit commands directly without invoking or following the `commit` skill.";
+    customInstructions = "When creating git commits, ALWAYS use the `gcommit` script. Never run raw unformatted git commit commands directly.\n\n${commit-guidelines}";
   };
 
   # Guidelines shared between the commit skill and the gcommit script
@@ -120,7 +120,12 @@ in
           ".gemini/instructions.md".text = ''
             # Global Antigravity Instructions
 
-            - **Git Commits**: ALWAYS use the `commit` skill (`/commit`) for creating git commits. Follow the conventional commit rules, signed commits, and explicit pathspec staging defined in the `commit` skill.
+            - **Git Commits**: ALWAYS use the `gcommit` script for creating git
+              commits (drafts a Conventional Commit message from the staged
+              diff, then signs it). Never run raw unformatted git commit
+              commands directly.
+
+              ${commit-guidelines}
           '';
 
           # Skills double as slash commands. ~/.gemini/config/skills is the one
@@ -135,7 +140,9 @@ in
           # 0f5521d2 (2026-09-08) retired those directories in favor of the
           # dk@claude-skills marketplace plugin -- a Claude Code-only mechanism
           # antigravity/gemini has no equivalent consumer for. There is currently
-          # no vendored source left to link them from.
+          # no vendored source left to link them from. Git commits fall back to
+          # the gcommit script/instructions.md above instead of the gone
+          # `commit` skill; the other three simply aren't available to agy.
           ".gemini/config/skills/github-issue".source = ../worktree-flow/skills/github-issue;
           ".gemini/config/skills/humanizer/SKILL.md".source = inputs.humanizer-skill + "/SKILL.md";
         };
