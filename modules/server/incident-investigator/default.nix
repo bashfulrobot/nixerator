@@ -543,6 +543,14 @@ in
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
+            # `After=tailscaled.service` only waits for the unit to start, not for
+            # tailscaled to finish logging into the tailnet -- on boot it can still be
+            # in `NoState`, which fails this with "unexpected state: NoState". Retry
+            # so the unit self-heals instead of needing a manual restart post-reboot.
+            Restart = "on-failure";
+            RestartSec = 5;
+            StartLimitIntervalSec = 60;
+            StartLimitBurst = 10;
             ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=${cfg.publish.path} ${cfg.outRoot}";
             # `-` prefix: don't fail the stop if the toggle syntax is rejected. Targets
             # only this path, so any unrelated serve config is left untouched.
