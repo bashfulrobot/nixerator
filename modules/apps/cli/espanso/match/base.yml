@@ -29,6 +29,9 @@ matches:
   - trigger: ";cmpc"
     replace: "/commit push git cleanup"
 
+  - trigger: ";repos"
+    replace: "It needs to be done in two repositories. ~/git/donkeykong and ~/git/nixerator"
+
   - trigger: ";cb"
     replace: >-
       Put the final output on my clipboard: pipe it into `pbcopy` on macOS
