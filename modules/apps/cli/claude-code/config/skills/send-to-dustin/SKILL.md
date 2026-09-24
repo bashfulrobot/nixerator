@@ -30,6 +30,14 @@ export WAYLAND_DISPLAY=$(basename "$(ls /run/user/$(id -u)/wayland-* 2>/dev/null
 printf '%s' "TEXT" | wl-copy
 ```
 
+When the text contains git (a push command, a branch name), do not pipe it inline. In a worktree-isolated session the harness refuses any command whose text names git, because it cannot prove the command stays inside the worktree. Write the text to a scratch file with the Write tool, then feed the file in, so the payload never appears on the command line:
+
+```
+wl-copy < /path/to/scratch.txt
+```
+
+Also print the text in the reply, as a fallback if the copy did not land.
+
 If `WAYLAND_DISPLAY` comes back empty, the host is headless (e.g. `srv`) with no Wayland clipboard — tell me instead of silently succeeding.
 
 ## Related
