@@ -36,9 +36,35 @@ include `SENT` (outstanding) and `PAID`.
 ## invoiceCreate
 Input `InvoiceCreateInput`: `businessId`, `customerId`, `status` (DRAFT),
 `invoiceNumber`, `invoiceDate`, `dueDate`,
-`items: [{ productId, description, quantity, price }]`.
+`items: [{ productId, description, quantity, unitPrice }]` (verified via
+introspection 2026-09-24; the field is `unitPrice`, not `price`).
 Selection: `didSucceed`, `inputErrors{message,code,path}`,
 `invoice{ id pdfUrl viewUrl invoiceNumber status }`.
-Invoices default to DRAFT; this skill never sends/finalizes them.
+Invoices default to DRAFT; `wave-create-invoice.sh` never sends/finalizes them.
 Line items REQUIRE a `productId` — create "Consulting" and "Reimbursable
 Expenses" products in Wave and record their ids in `config.json`.
+
+## invoiceApprove (see `scripts/wave-invoice-approve.sh`)
+Input `InvoiceApproveInput`: `invoiceId` only. Moves a DRAFT invoice to
+Approved/Saved. Does not notify the customer in any way — verified via
+introspection 2026-09-24. Selection: `didSucceed`, `inputErrors`,
+`invoice{ id invoiceNumber status }`.
+
+## invoiceMarkSent (see `scripts/wave-invoice-mark-sent.sh`)
+Input `InvoiceMarkSentInput`: `invoiceId`, `sendMethod` (enum
+`InvoiceSendMethod`), optional `sentAt` (DateTime). Records the invoice as
+sent in Wave's own bookkeeping — it does **not** deliver anything; Wave sends
+no email for this mutation. `sendMethod: MARKED_SENT` is the right value when
+delivery happened outside Wave (e.g. the user emailed the PDF from Gmail
+themselves, which is this skill's whole model). Other enum values observed:
+`EXPORT_PDF`, `GMAIL`, `NOT_SENT`, `OUTLOOK`, `SHARED_LINK`, `SKIPPED`,
+`WAVE`, `YAHOO`. Selection: `didSucceed`, `inputErrors`,
+`invoice{ id invoiceNumber status }`.
+
+## invoiceSend — deliberately NOT wrapped
+Input `InvoiceSendInput` (`invoiceId`, `to`, `subject`, `message`,
+`attachPDF`, `fromAddress`, `ccMyself`) has Wave itself email the invoice to
+the customer. That conflicts with this skill's model, where the user sends
+their own cover email (`email.md`) by hand. No script calls this mutation —
+don't add one without an explicit ask, since it changes who the customer
+hears from.

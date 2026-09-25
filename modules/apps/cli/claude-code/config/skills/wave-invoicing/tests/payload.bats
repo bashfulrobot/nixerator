@@ -1,10 +1,14 @@
 #!/usr/bin/env bats
 load helper
 
-# Two line items: one consulting (qty=hours, price=rate), one pass-through (qty=1).
+# Two line items: one consulting (qty=hours, unitPrice=rate), one pass-through (qty=1).
+# Field is unitPrice, not price -- that's what Wave's InvoiceCreateItemInput
+# actually accepts (verified via introspection 2026-09-24); build_invoice_payload
+# itself is pass-through and doesn't care about item field names, but the fixture
+# should still model the real payload shape.
 items='[
-  {"productId":"PROD_CONS","description":"Consulting — June","quantity":10,"price":150},
-  {"productId":"PROD_PASS","description":"DigitalOcean (pass-through)","quantity":1,"price":42.50}
+  {"productId":"PROD_CONS","description":"Consulting — June","quantity":10,"unitPrice":150},
+  {"productId":"PROD_PASS","description":"DigitalOcean (pass-through)","quantity":1,"unitPrice":42.50}
 ]'
 
 @test "build_invoice_payload nests input with business, customer, number, dates, items" {
@@ -18,5 +22,5 @@ items='[
   [ "$(echo "$output" | jq -r '.input.status')" = "DRAFT" ]
   [ "$(echo "$output" | jq -r '.input.items | length')" = "2" ]
   # Representation-agnostic: jq may preserve the literal 42.50, so compare numerically.
-  [ "$(echo "$output" | jq -r '.input.items[1].price == 42.5')" = "true" ]
+  [ "$(echo "$output" | jq -r '.input.items[1].unitPrice == 42.5')" = "true" ]
 }
