@@ -68,11 +68,11 @@
         "sf-pro": "sf-pro_2"
       },
       "locked": {
-        "lastModified": 1787373040,
-        "narHash": "sha256-mSpL69LSAA/+cQx+v9tC2XC/DD7cUepUmhiMx0/Hw64=",
+        "lastModified": 1789419105,
+        "narHash": "sha256-T5A/AqlF4iL908aIZh45e35Mvj8lTJKq8ddS5bk7nd8=",
         "owner": "Lyndeno",
         "repo": "apple-fonts.nix",
-        "rev": "69f20e9ba294420e4b6407a827c6b5aea3afcc12",
+        "rev": "3861e2249cb244bfbc7cfab2303c152cf5f9d9e9",
         "type": "github"
       },
       "original": {
@@ -371,11 +371,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788455394,
-        "narHash": "sha256-Qjpv8Oq255lsCsm/rCFFr73W2euvw2HTbNnZ2xnf2jk=",
+        "lastModified": 1790189954,
+        "narHash": "sha256-ABpB7PW53cwhADKUMvVRrhdfpgy8m2DWH711F1oQZ20=",
         "owner": "AvengeMedia",
         "repo": "dank-greeter",
-        "rev": "54e41b9d97938ca055bf090ab08e2684b5030989",
+        "rev": "1cd1193e1d423d21130ea8338d4c357093326b34",
         "type": "github"
       },
       "original": {
@@ -411,11 +411,11 @@
     "dank-qml-common": {
       "flake": false,
       "locked": {
-        "lastModified": 1788376015,
-        "narHash": "sha256-/tT8rTznLADndTwLBzdgzzgfJH1ZhYQibYo5v/F8U+U=",
+        "lastModified": 1790075259,
+        "narHash": "sha256-IKF/lGSBXM5Iqbh+dNM13qTPAXoRThwtbrerhMjk7xI=",
         "owner": "AvengeMedia",
         "repo": "dank-qml-common",
-        "rev": "26396ce432d6c71c3f5367438f96f4a8d667e160",
+        "rev": "a88b16e8de115570f6442effa03207a1fc09bac1",
         "type": "github"
       },
       "original": {
@@ -885,11 +885,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788505154,
-        "narHash": "sha256-QTqSwIp5sl18dDV3CZsoWuMTEvKQ8GqIg37hxBqRkQE=",
+        "lastModified": 1790307794,
+        "narHash": "sha256-ATHG9/yZhQzdyOrpdfk22vKVK0NNdlGDMtlSVBDw4Vo=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "1648c82de660d849689f98c14e08f331be35b8ca",
+        "rev": "3f97865e24ef0532fd122f99145525288e072590",
         "type": "github"
       },
       "original": {
@@ -1159,7 +1159,7 @@
     "sf-compact_2": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-83JwqfF9O4+gemMQXWHLRg2GNz2jHxsej1F1IkM2dug=",
+        "narHash": "sha256-KjCzuJOrNxgptsMLGaR8wcrU/bBxCpwtUGzGDcCxJTc=",
         "type": "file",
         "url": "https://devimages-cdn.apple.com/design/resources/download/SF-Compact.dmg"
       },
@@ -1255,7 +1255,7 @@
     "sf-pro_2": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-vINUEMyFmNzZRBOX2aQ4heScWur6RyA/MPmsqlMPIx4=",
+        "narHash": "sha256-dvGLO786y9ygKRSKDJlhIF6AGmn2NTJ5tBulKinPRxY=",
         "type": "file",
         "url": "https://devimages-cdn.apple.com/design/resources/download/SF-Pro.dmg"
       },
@@ -1273,11 +1273,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787234058,
-        "narHash": "sha256-HH7Pmw6LHJhuV07FOsVlyZNwztZgz4IRi6XT5G+qroA=",
+        "lastModified": 1788878136,
+        "narHash": "sha256-UO9tWTCNkpX011xrrxop2FU5Sw5yWcVXDuOVXuxmkxk=",
         "owner": "OpalAayan",
         "repo": "snappy-switcher",
-        "rev": "da6bb208264cb59a4defec4c21320bd2dc576518",
+        "rev": "e12ad51aca77e16913723769849804b2a1efb849",
         "type": "github"
       },
       "original": {
@@ -1618,11 +1618,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1788294711,
-        "narHash": "sha256-eFxZuI0anxCRPP5tJu191u7UxkJJFynMNFSBvMM7pZA=",
+        "lastModified": 1790266804,
+        "narHash": "sha256-OuWDkFbMyazYmBU8pHwCtPglQa6d+iOta1XwNOTL2+o=",
         "ref": "main",
-        "rev": "ca4bbaf245f58713b678815a1a942a90b3aeb7d7",
-        "revCount": 489,
+        "rev": "1307b84c4cd974662e131091b782ee7897fea24f",
+        "revCount": 500,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
       },
