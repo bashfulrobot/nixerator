@@ -33,6 +33,8 @@
 #     text-polish, humanizer, commit, github-issue, review-dev,
 #     review-security, writing-style, auto, log-github-issue, sfdc,
 #     kong-technical-csm, todoist-cli, gws-cli, slack-post
+#   - slack-edit: added 2026-09-25 as slack-post's sibling (same dk plugin,
+#     same credentials), no usage data yet
 #
 # github-issue is listed above for documentation but has no effect here: it
 # ships from apps/cli/worktree-flow, not config/skills, so it never appears
@@ -63,6 +65,7 @@ let
     "todoist-cli"
     "gws-cli"
     "slack-post"
+    "slack-edit"
   ];
 
   # allNames: every skill name Nix installs into ~/.claude/skills -- the

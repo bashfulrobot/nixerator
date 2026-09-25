@@ -55,6 +55,12 @@ Confirmed heavy, cross-project usage by a claude-code doctor scan
 `review-security`, `writing-style`, `auto`, `log-github-issue`, `sfdc`,
 `kong-technical-csm`, `todoist-cli`, `gws-cli`, `slack-post`
 
+`slack-edit` (added 2026-09-25) is the exception to the usage-data bar: it is
+`slack-post`'s sibling from the same `dk` plugin, so it rides along with no
+usage data yet. Like `github-issue`, it ships from a plugin rather than
+`config/skills`, so the entry documents intent and the plugin's
+absent-key-means-on default does the work.
+
 `github-issue` is listed for documentation but has no actual effect in
 `skill-defaults.nix`: it ships from `apps/cli/worktree-flow`, not
 `config/skills`, so it never appears in the file's name list. It stays on by
