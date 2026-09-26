@@ -90,5 +90,16 @@ in
         tries = 3;
       };
     };
+
+    # systemd-bless-boot marks the current boot entry good once per boot and
+    # is not idempotent: re-running it against an already-blessed entry fails
+    # with "Can't find boot counter source file" (the +N-M suffix is already
+    # stripped). Any rebuild that changes systemd's own store path (e.g. a
+    # nixpkgs bump) makes systemd restart every unit whose file changed,
+    # including this one -- which then fails and leaves
+    # switch-to-configuration-ng exiting 4 even though the deploy succeeded.
+    # nixpkgs sets restartIfChanged = false for sibling once-per-boot oneshots
+    # (nixos/modules/system/boot/systemd.nix) but misses this one.
+    systemd.services.systemd-bless-boot.restartIfChanged = false;
   };
 }
