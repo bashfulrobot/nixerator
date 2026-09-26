@@ -68,12 +68,6 @@
     # npm tarball ships none -- see the regeneration note in
     # modules/apps/cli/happy/build/default.nix), and update-pkg does not
     # regenerate vendored locks. Same hazard as todoist-cli/skillfish.
-    #
-    # npmDepsHash below is a PLACEHOLDER (32 zero bytes, matching nixpkgs'
-    # `lib.fakeHash`), not a real value -- this sandbox has no Nix, so it
-    # could not be computed here. The first `just qr` / `just build-host`
-    # after this lands will fail with a hash mismatch that prints the real
-    # sha256-... value; paste that in to replace the placeholder.
     happy = {
       source = "npm";
       repo = "slopus/happy";
@@ -81,7 +75,7 @@
       updatePolicy = "manual";
       version = "1.1.9";
       hash = "sha256-dvaFYNqgucwjL4oVdI6p/tt94vlTdhPfX2HAj5hAIko=";
-      npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      npmDepsHash = "sha256-DEF1TFes/Ewg7p0bGnU0vQNLIFPcjN0j61sKppt3ZAY=";
     };
 
     gws = {
