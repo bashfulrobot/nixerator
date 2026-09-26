@@ -1,0 +1,52 @@
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -35,6 +35,7 @@
+   "dependencies": {
+     "@clack/core": "^1.2.0",
+     "@clack/prompts": "^1.2.0",
++    "@onecli-sh/sdk": "2.2.1",
+     "better-sqlite3": "13.0.3",
+     "chat": "4.29.0",
+     "cron-parser": "5.5.0",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -14,6 +14,9 @@ importers:
+       '@clack/prompts':
+         specifier: ^1.2.0
+         version: 1.2.0
++      '@onecli-sh/sdk':
++        specifier: 2.2.1
++        version: 2.2.1
+       better-sqlite3:
+         specifier: 13.0.3
+         version: 13.0.3
+@@ -303,6 +306,10 @@ packages:
+       '@emnapi/core': ^1.7.1
+       '@emnapi/runtime': ^1.7.1
+ 
++  '@onecli-sh/sdk@2.2.1':
++    resolution: {integrity: sha512-q2mCW4ZsARlLEoTxz/P0NQ4MiCh7Z2n28pxkSc7srS+tozyw40PdTnWYW7NI8hfSYplZTx5856Adq1iPi4KN3Q==}
++    engines: {node: '>=20'}
++
+   '@oxc-project/types@0.124.0':
+     resolution: {integrity: sha512-VBFWMTBvHxS11Z5Lvlr3IWgrwhMTXV+Md+EQF0Xf60+wAdsGFTBx7X7K/hP4pi8N7dcm1RvcHwDxZ16Qx8keUg==}
+ 
+@@ -1563,6 +1570,8 @@ snapshots:
+       '@tybys/wasm-util': 0.10.1
+     optional: true
+ 
++  '@onecli-sh/sdk@2.2.1': {}
++
+   '@oxc-project/types@0.124.0': {}
+ 
+   '@rolldown/binding-android-arm64@1.0.0-rc.15':
+diff --git a/src/gateway-providers/installed.ts b/src/gateway-providers/installed.ts
+--- a/src/gateway-providers/installed.ts
++++ b/src/gateway-providers/installed.ts
+@@ -5,3 +5,4 @@
+  * and the provider container-config barrel. Nothing outside this directory is
+  * rewritten to install a gateway.
+  */
++import './onecli.js';
