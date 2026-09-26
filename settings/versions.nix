@@ -63,6 +63,27 @@
       hash = "sha256-dbQ4ypYrGr0vyA67fcD+pSHHSVEAKNitdzKOM6hig2U=";
     };
 
+    # Happy -- mobile/web remote control for Claude Code (happy.engineering).
+    # updatePolicy=manual: build/package-lock.json is vendored (the published
+    # npm tarball ships none -- see the regeneration note in
+    # modules/apps/cli/happy/build/default.nix), and update-pkg does not
+    # regenerate vendored locks. Same hazard as todoist-cli/skillfish.
+    #
+    # npmDepsHash below is a PLACEHOLDER (32 zero bytes, matching nixpkgs'
+    # `lib.fakeHash`), not a real value -- this sandbox has no Nix, so it
+    # could not be computed here. The first `just qr` / `just build-host`
+    # after this lands will fail with a hash mismatch that prints the real
+    # sha256-... value; paste that in to replace the placeholder.
+    happy = {
+      source = "npm";
+      repo = "slopus/happy";
+      npmPkg = "happy-coder";
+      updatePolicy = "manual";
+      version = "1.1.9";
+      hash = "sha256-dvaFYNqgucwjL4oVdI6p/tt94vlTdhPfX2HAj5hAIko=";
+      npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    };
+
     gws = {
       source = "github-release";
       repo = "googleworkspace/cli";
