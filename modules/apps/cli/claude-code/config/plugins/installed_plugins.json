@@ -4,10 +4,10 @@
     "frontend-design@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/frontend-design/0742692199b4",
-        "version": "0742692199b4",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
+        "version": "unknown",
         "installedAt": "2026-04-30T15:55:43.816Z",
-        "lastUpdated": "2026-04-30T15:55:43.816Z",
+        "lastUpdated": "2026-09-26T23:23:10.417Z",
         "gitCommitSha": "0742692199b49af5c6c33cd68ee674fb2e679d50"
       }
     ],
@@ -64,10 +64,10 @@
     "security-guidance@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/unknown",
-        "version": "unknown",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/2.0.8",
+        "version": "2.0.8",
         "installedAt": "2026-02-03T16:56:26.138Z",
-        "lastUpdated": "2026-04-21T18:14:52.329Z",
+        "lastUpdated": "2026-09-26T23:23:10.417Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
@@ -84,10 +84,10 @@
     "atlassian@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/atlassian/9b52fb18e184",
-        "version": "9b52fb18e184",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/atlassian/eb9a5956a7ac",
+        "version": "eb9a5956a7ac",
         "installedAt": "2026-02-03T16:56:48.268Z",
-        "lastUpdated": "2026-04-16T05:31:27.877Z",
+        "lastUpdated": "2026-09-26T23:23:11.997Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
@@ -104,10 +104,10 @@
     "slack@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/slack/1.0.0",
-        "version": "1.0.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/slack/1.3.0",
+        "version": "1.3.0",
         "installedAt": "2026-02-03T16:58:07.503Z",
-        "lastUpdated": "2026-03-06T18:16:27.028Z",
+        "lastUpdated": "2026-09-26T23:23:11.843Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
@@ -144,10 +144,10 @@
     "superpowers@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7",
-        "version": "5.0.7",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/superpowers/6.4.1",
+        "version": "6.4.1",
         "installedAt": "2026-03-20T07:25:46.359Z",
-        "lastUpdated": "2026-04-01T04:41:49.596Z",
+        "lastUpdated": "2026-09-26T23:23:12.002Z",
         "gitCommitSha": "8ea39819eed74fe2a0338e71789f06b30e953041"
       }
     ],
@@ -272,6 +272,34 @@
         "installedAt": "2026-07-27T16:03:03.164Z",
         "lastUpdated": "2026-07-27T16:03:03.164Z",
         "gitCommitSha": "9e57466bfdd220de164c7e29f578c79f9b12b1b7"
+      }
+    ],
+    "dk@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/2.19.0",
+        "version": "2.19.0",
+        "installedAt": "2026-09-26T23:19:45.043Z",
+        "lastUpdated": "2026-09-26T23:19:45.043Z",
+        "gitCommitSha": "4faa4afcd1041c3a9c784af34e1e37547d08a148"
+      }
+    ],
+    "gitops@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/gitops/88fb00c7e584",
+        "installedAt": "2026-09-26T23:19:45.043Z",
+        "lastUpdated": "2026-09-26T23:19:45.043Z"
+      }
+    ],
+    "kong-cs@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-cs/1.18.0",
+        "version": "1.18.0",
+        "installedAt": "2026-09-26T23:19:45.043Z",
+        "lastUpdated": "2026-09-26T23:19:45.043Z",
+        "gitCommitSha": "4faa4afcd1041c3a9c784af34e1e37547d08a148"
       }
     ]
   }
