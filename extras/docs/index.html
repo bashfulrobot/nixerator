@@ -237,6 +237,7 @@
       <span class="b">read at eval, --impure</span>
     </div>
     <p class="note" style="margin-top:16px">This repo <b style="color:var(--tx)">used to</b> use git-crypt for secrets in the tree; that was retired in favour of the 1Password + <span class="mono">render-secrets</span> flow because it produces secret <b>values</b> (usable in files, env vars, or inline config) rather than just file paths. <span class="mono">just render-secrets</span> renders locally; <span class="mono">just push-secrets &lt;hosts&gt;</span> pushes the rendered file to headless peers over SSH.</p>
+    <p class="note" style="margin-top:12px"><b style="color:var(--tx)">One exception:</b> srv's <span class="mono" style="color:var(--purple)">server.nanoclaw</span> uses agenix. <span class="mono" style="color:var(--blue)">secrets/nanoclaw-*.age</span> decrypt to <span class="mono">/run/agenix/</span> at activation, for that service only. See <span class="mono" style="color:var(--blue)">extras/docs/nanoclaw/</span>.</p>
   </div>
 
   <!-- DAY 2 -->

@@ -345,6 +345,24 @@
     };
   };
 
+  server = {
+    # NanoClaw host (modules/server/nanoclaw/build), consumed by server.nanoclaw
+    # on srv. updatePolicy=manual: build/onecli-gateway.patch edits package.json
+    # and pnpm-lock.yaml (the /add-onecli skill's @onecli-sh/sdk dependency), so
+    # a rev bump must rebase that patch and refresh BOTH hashes; update-pkg can
+    # do neither. Upstream's in-repo CLAUDE.md also warns that major versions
+    # are breaking rewrites -- read CHANGELOG.md before bumping.
+    nanoclaw = {
+      source = "github-commit";
+      repo = "nanocoai/nanoclaw";
+      updatePolicy = "manual";
+      version = "2.4.0-unstable-2026-09-25";
+      rev = "d4ff64f49f1defea8c46a3d884d932a1d967e6d9";
+      hash = "sha256-LrHbf/i31N32SMg5m4OJZ6z2Bd/7BkdIGfAje6q/IHg=";
+      pnpmDepsHash = "sha256-4D2EC9q6FABZ16IWIgIc/G5dpBXY5Cpkhpa5+2pDnnU=";
+    };
+  };
+
   fish-plugins = {
     zoxide-fish = {
       source = "github-release";

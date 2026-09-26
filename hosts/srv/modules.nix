@@ -1,11 +1,22 @@
 {
   lib,
   pkgs,
+  config,
   secretsLib,
   globals,
   ...
 }:
 
+let
+  # server.nanoclaw's two agenix payloads. You create these (see
+  # extras/docs/nanoclaw/README.md); until BOTH exist the service stays off and
+  # eval warns, so srv keeps building in the meantime.
+  nanoclawSecrets = {
+    nanoclaw-claude-token = ../../secrets/nanoclaw-claude-token.age;
+    nanoclaw-onecli-db-password = ../../secrets/nanoclaw-onecli-db-password.age;
+  };
+  nanoclawReady = lib.all builtins.pathExists (lib.attrValues nanoclawSecrets);
+in
 {
   # Import only modules that srv used in nixcfg, plus the cherry-picked
   # Claude Code + zellij stack.
@@ -32,6 +43,7 @@
     ../../modules/server/claudoist
     ../../modules/server/incident-investigator
     ../../modules/server/kvm
+    ../../modules/server/nanoclaw
     ../../modules/server/nfs
     ../../modules/server/node-exporter
     ../../modules/server/postgres
@@ -321,7 +333,33 @@
       publish.enable = true;
     };
 
+    # server.nanoclaw: see the NanoClaw note below, above age.secrets.
+    nanoclaw = lib.mkIf nanoclawReady {
+      enable = true;
+      claudeTokenFile = config.age.secrets.nanoclaw-claude-token.path;
+      onecli.dbPasswordFile = config.age.secrets.nanoclaw-onecli-db-password.path;
+      # A re-encrypted token changes this store path, which re-runs the vault
+      # sync on `just qr`. Encrypted bytes only; never a plaintext value.
+      secretsRestartTriggers = [ config.age.secrets.nanoclaw-claude-token.file ];
+    };
   };
+
+  # NanoClaw personal assistant (modules/server/nanoclaw): host process + one
+  # Docker container per agent session, credentials held by the OneCLI Agent
+  # Vault so agent containers only ever see a placeholder. Authenticates with
+  # the Claude subscription (setup-token), never an API key. Operator guide:
+  # extras/docs/nanoclaw/README.md.
+  #
+  # agenix is scoped to this service alone. Its secrets decrypt to
+  # /run/agenix/<name> (root, 0400) at activation; the module reads them only
+  # through systemd LoadCredential, so no value is ever evaluated by Nix.
+  age.secrets = lib.mkIf nanoclawReady (lib.mapAttrs (_: file: { inherit file; }) nanoclawSecrets);
+
+  warnings = lib.optional (!nanoclawReady) ''
+    server.nanoclaw is configured on srv but DISABLED: create
+    secrets/nanoclaw-claude-token.age and secrets/nanoclaw-onecli-db-password.age
+    (extras/docs/nanoclaw/README.md, "Provision the secrets").
+  '';
 
   apps.cli.restic = {
     enable = true;

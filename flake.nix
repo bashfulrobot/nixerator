@@ -222,6 +222,20 @@
     # next `nix flake update`. Bump this tag explicitly when re-auditing
     # upstream.
     import-tree.url = "github:denful/import-tree/v0.2.0";
+
+    # agenix: runtime-decrypted secrets (/run/agenix/<name>) for srv's
+    # server.nanoclaw only. The rest of the repo stays on 1Password; see
+    # extras/docs/nanoclaw/README.md for why this one service is different.
+    # darwin is a macOS-only input we never evaluate, so it is emptied rather
+    # than fetched.
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+        darwin.follows = "";
+      };
+    };
   };
 
   outputs =
@@ -346,7 +360,7 @@
           inherit globals versions;
           hostname = "srv";
           system = "x86_64-linux";
-          extraModules = [ ];
+          extraModules = [ inputs.agenix.nixosModules.default ];
           homeManagerModules = [ ];
         };
       };
