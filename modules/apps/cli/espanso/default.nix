@@ -10,8 +10,7 @@ let
   cfg = config.apps.cli.espanso;
 in
 {
-  options.apps.cli.espanso.enable =
-    lib.mkEnableOption "Espanso text expander (Wayland/Hyprland)";
+  options.apps.cli.espanso.enable = lib.mkEnableOption "Espanso text expander (Wayland/Hyprland)";
 
   config = lib.mkIf cfg.enable {
     # System-level services.espanso, not Home Manager's, because only this

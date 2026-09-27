@@ -54,10 +54,10 @@ current_sha="$(
     $0 ~ key { in_block = 1 }
     in_block { print }
     in_block && /};/ { exit }
-  ' "$plugin_config" \
-    | grep -oE '"[0-9a-f]{7,64}"' \
-    | head -1 \
-    | tr -d '"'
+  ' "$plugin_config" |
+    grep -oE '"[0-9a-f]{7,64}"' |
+    head -1 |
+    tr -d '"'
 )"
 
 [[ -n "$current_sha" ]] || die "could not find an existing '${key}.source' sha in $plugin_config -- add the entry by hand first"
@@ -77,7 +77,7 @@ awk -v key="${key}\\.source" -v old="$current_sha" -v new="$new_sha" '
     in_block = 0
   }
   { print }
-' "$plugin_config" > "$tmp"
+' "$plugin_config" >"$tmp"
 
 mv "$tmp" "$plugin_config"
 echo "bump-plugin-marketplace-sha: ${key} ${current_sha:0:12} -> ${new_sha:0:12} (${branch})"

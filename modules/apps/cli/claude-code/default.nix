@@ -159,7 +159,7 @@ let
       globals
       homeDir
       ;
-    serverProfile = cfg.serverProfile;
+    inherit (cfg) serverProfile;
     tokenOptimizerActivation = lib.optionalString hasTokenOptimizer tokenOptimizerConfig.activation;
     inherit (pkgs) rtk;
     humanizerSkillSrc = inputs.humanizer-skill;
