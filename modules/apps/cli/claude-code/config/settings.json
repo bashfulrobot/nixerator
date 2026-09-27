@@ -135,7 +135,7 @@
     ],
     "defaultMode": "auto",
     "additionalDirectories": [
-      "/home/dustin/git/.worktrees"
+      "/home/dustin/git"
     ]
   },
   "model": "opusplan",
