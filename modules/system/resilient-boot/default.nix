@@ -94,12 +94,40 @@ in
     # systemd-bless-boot marks the current boot entry good once per boot and
     # is not idempotent: re-running it against an already-blessed entry fails
     # with "Can't find boot counter source file" (the +N-M suffix is already
-    # stripped). Any rebuild that changes systemd's own store path (e.g. a
-    # nixpkgs bump) makes systemd restart every unit whose file changed,
-    # including this one -- which then fails and leaves
-    # switch-to-configuration-ng exiting 4 even though the deploy succeeded.
-    # nixpkgs sets restartIfChanged = false for sibling once-per-boot oneshots
-    # (nixos/modules/system/boot/systemd.nix) but misses this one.
-    systemd.services.systemd-bless-boot.restartIfChanged = false;
+    # stripped). Two independent triggers cause a re-run, and both need
+    # covering -- fixing only one leaves the other still flipping the unit to
+    # `failed` and switch-to-configuration-ng exiting 4 even though the
+    # deploy succeeded:
+    #
+    # 1. Any rebuild that changes systemd's own store path (e.g. a nixpkgs
+    #    bump) makes switch-to-configuration-ng restart every unit whose file
+    #    changed, including this one. nixpkgs sets restartIfChanged = false
+    #    for sibling once-per-boot oneshots (nixos/modules/system/boot/
+    #    systemd.nix) but misses this one.
+    # 2. switch-to-configuration-ng unconditionally re-issues a start job for
+    #    every currently-active target unit on every switch (to pull in new
+    #    dependencies), and basic.target -- which WantedBy=basic.target
+    #    depends on -- is active on every normal switch. Starting an
+    #    already-active target still cascades a start attempt to any Wanted
+    #    unit that isn't itself active, so once this unit is ever not
+    #    `active` (from trigger 1, a crash, or a manual reset-failed) it gets
+    #    re-tried and re-fails on *every subsequent switch* until the next
+    #    real reboot gives it a fresh, unblessed boot entry. restartIfChanged
+    #    does not gate this path at all (verified against
+    #    switch-to-configuration-ng's source: the active-target start-cascade
+    #    is unconditional).
+    #
+    # SuccessExitStatus=1 closes both: the only failure exit code this binary
+    # produces for "already blessed" is 1, so treating it as success makes a
+    # redundant re-run a harmless no-op instead of a failure, regardless of
+    # which trigger caused it. This also masks any *other* failure inside
+    # systemd-bless-boot that happens to exit 1 -- accepted, matching this
+    # module's existing best-effort posture on boot counting (see the
+    # tries-left comment above): the only thing degraded is the fallback
+    # rollback safety net, never the boot itself.
+    systemd.services.systemd-bless-boot = {
+      restartIfChanged = false;
+      serviceConfig.SuccessExitStatus = "1";
+    };
   };
 }
