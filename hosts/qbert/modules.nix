@@ -1,9 +1,16 @@
 { globals, ... }:
 
 {
-  apps.gui = {
-    # Go + Wails + Svelte rewrite of the original Kotlin app.
-    upsight.enable = true;
+  apps = {
+    gui = {
+      # Go + Wails + Svelte rewrite of the original Kotlin app.
+      upsight.enable = true;
+    };
+
+    # Chrome-wrapped shortcut for app.happy.engineering, alongside the
+    # apps.cli.happy daemon below -- srv has no graphical session, so this
+    # stays qbert-only.
+    webapps.happy.enable = true;
   };
 
   # Adopt the Claude work-host archetype (symmetric peer to srv): zellij +
