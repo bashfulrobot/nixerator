@@ -7,7 +7,7 @@
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
         "version": "unknown",
         "installedAt": "2026-04-30T15:55:43.816Z",
-        "lastUpdated": "2026-09-27T00:01:51.736Z",
+        "lastUpdated": "2026-09-27T01:29:57.341Z",
         "gitCommitSha": "0742692199b49af5c6c33cd68ee674fb2e679d50"
       }
     ],
@@ -67,7 +67,7 @@
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/2.0.8",
         "version": "2.0.8",
         "installedAt": "2026-02-03T16:56:26.138Z",
-        "lastUpdated": "2026-09-27T00:01:51.737Z",
+        "lastUpdated": "2026-09-27T01:29:57.342Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
@@ -87,7 +87,7 @@
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/atlassian/eb9a5956a7ac",
         "version": "eb9a5956a7ac",
         "installedAt": "2026-02-03T16:56:48.268Z",
-        "lastUpdated": "2026-09-27T00:01:52.925Z",
+        "lastUpdated": "2026-09-27T01:29:58.560Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
@@ -107,7 +107,7 @@
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/slack/1.3.0",
         "version": "1.3.0",
         "installedAt": "2026-02-03T16:58:07.503Z",
-        "lastUpdated": "2026-09-27T00:01:53.145Z",
+        "lastUpdated": "2026-09-27T01:29:58.812Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
@@ -147,7 +147,7 @@
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/superpowers/6.4.1",
         "version": "6.4.1",
         "installedAt": "2026-03-20T07:25:46.359Z",
-        "lastUpdated": "2026-09-27T00:01:53.247Z",
+        "lastUpdated": "2026-09-27T01:29:58.814Z",
         "gitCommitSha": "8ea39819eed74fe2a0338e71789f06b30e953041"
       }
     ],
@@ -279,8 +279,8 @@
         "scope": "user",
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/2.19.0",
         "version": "2.19.0",
-        "installedAt": "2026-09-26T23:53:28.658Z",
-        "lastUpdated": "2026-09-26T23:53:28.658Z",
+        "installedAt": "2026-09-27T01:21:11.681Z",
+        "lastUpdated": "2026-09-27T01:21:11.681Z",
         "gitCommitSha": "4faa4afcd1041c3a9c784af34e1e37547d08a148"
       }
     ],
@@ -289,8 +289,8 @@
         "scope": "user",
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-cs/1.18.0",
         "version": "1.18.0",
-        "installedAt": "2026-09-26T23:53:28.658Z",
-        "lastUpdated": "2026-09-26T23:53:28.658Z",
+        "installedAt": "2026-09-27T01:21:11.681Z",
+        "lastUpdated": "2026-09-27T01:21:11.681Z",
         "gitCommitSha": "4faa4afcd1041c3a9c784af34e1e37547d08a148"
       }
     ]
