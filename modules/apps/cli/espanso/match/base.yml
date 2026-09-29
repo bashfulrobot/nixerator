@@ -29,6 +29,9 @@ matches:
   - trigger: ";cmpc"
     replace: "/commit push git cleanup"
 
+  - trigger: ";do"
+    replace: "follow links, get updates and current state"
+
   - trigger: ";repos"
     replace: "It needs to be done in two repositories. ~/git/donkeykong and ~/git/nixerator"
 
