@@ -45,7 +45,7 @@ Named directly in `~/.claude/CLAUDE.md`'s trigger-scoped rules -- removing
 one would leave that rule pointing at nothing:
 
 `bug-fix-workflow`, `code-style`, `merge-conflicts`, `git-cleanup`,
-`rtk-output-compression`, `send-to-dustin`, `kong-docs-lookup`,
+`send-to-dustin`, `kong-docs-lookup`,
 `curated-knowledge`
 
 Confirmed heavy, cross-project usage by a claude-code doctor scan

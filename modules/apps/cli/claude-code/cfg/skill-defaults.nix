@@ -27,7 +27,7 @@
 # needed. Two reasons a skill earns a spot here, not a hunch:
 #   - named directly in ~/.claude/CLAUDE.md's trigger-scoped rules (removing
 #     it would leave that rule pointing at nothing): bug-fix-workflow,
-#     code-style, merge-conflicts, git-cleanup, rtk-output-compression,
+#     code-style, merge-conflicts, git-cleanup,
 #     send-to-dustin, kong-docs-lookup, curated-knowledge
 #   - heavy, cross-project usage confirmed by claude-code doctor (2026-07-30):
 #     text-polish, humanizer, commit, github-issue, review-dev,
@@ -50,7 +50,6 @@ let
     "code-style"
     "merge-conflicts"
     "git-cleanup"
-    "rtk-output-compression"
     "send-to-dustin"
     "kong-docs-lookup"
     "curated-knowledge"
