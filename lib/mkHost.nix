@@ -143,7 +143,7 @@ in
               # build fails -- even though click-threading itself works fine.
               # vdirsyncer depends on it (pulled in transitively by hyprflake's
               # desktop.dank.calendar module on the workstations), so this broke
-              # every donkeykong/qbert rebuild.
+              # every qbert rebuild.
               #
               # Remove once nixpkgs fixes click-threading's pytest collection (or
               # adds setuptools as a checkInput upstream).

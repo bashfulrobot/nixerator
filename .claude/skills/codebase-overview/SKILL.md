@@ -80,7 +80,7 @@ in {
   inside the webapp module (it is not re-exported through `lib/default.nix`).
 
 **Wiring a new module so it is actually evaluated.** Dropping the file under
-`modules/` is enough for donkeykong and qbert, which import `../../modules`.
+`modules/` is enough for qbert, which imports `../../modules`.
 It is *not* enough for srv, which hand-imports every module path in
 `hosts/srv/modules.nix`. A module needed on srv requires both the import path
 and the enable. Details and the enable-option conventions: `modules/CLAUDE.md`,
@@ -106,14 +106,14 @@ roles.
 
 What actually differs:
 
-| | donkeykong | qbert | srv |
-|---|---|---|---|
-| Role | laptop, often off | desktop, usually up | headless server, always on |
-| Module import | `../../modules` auto-import | `../../modules` auto-import | hand-imported paths in `modules.nix` |
-| Archetypes enabled | `workstation` | `workstation` + `claudeWorkHost` | `claudeWorkHost` only |
-| `extraModules` | disko, hyprflake, nixos-hardware (T14 gen6) | disko, hyprflake | none |
-| `homeManagerModules` | spicetify | spicetify | none |
-| User/packages | via modules | via modules | declared inline in `configuration.nix` |
+| | qbert | srv |
+|---|---|---|
+| Role | desktop, usually up | headless server, always on |
+| Module import | `../../modules` auto-import | hand-imported paths in `modules.nix` |
+| Archetypes enabled | `workstation` + `claudeWorkHost` | `claudeWorkHost` only |
+| `extraModules` | disko, hyprflake | none |
+| `homeManagerModules` | spicetify | none |
+| User/packages | via modules | declared inline in `configuration.nix` |
 
 More: `hosts/CLAUDE.md`, `extras/docs/hosts.md`, `extras/docs/adding-hosts.md`.
 

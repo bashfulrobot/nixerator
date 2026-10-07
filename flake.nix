@@ -70,11 +70,6 @@
       url = "github:gmodena/nix-flatpak";
     };
 
-    nixos-hardware = {
-      url = "github:NixOS/nixos-hardware";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     spicetify-nix = {
       url = "github:Gerg-L/spicetify-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -244,24 +239,6 @@
     {
       # NixOS configurations
       nixosConfigurations = {
-        donkeykong = lib.mkHost {
-          inherit globals versions;
-          hostname = "donkeykong";
-          system = "x86_64-linux";
-          extraModules = [
-            # Disko declarative disk partitioning
-            inputs.disko.nixosModules.disko
-            # Hyprland desktop environment
-            inputs.hyprflake.nixosModules.default
-            # Hardware-specific configuration for Lenovo ThinkPad T14 Intel Gen 6
-            inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t14-intel-gen6
-          ];
-          homeManagerModules = [
-            # Spicetify for customized Spotify
-            inputs.spicetify-nix.homeManagerModules.default
-          ];
-        };
-
         qbert = lib.mkHost {
           inherit globals versions;
           hostname = "qbert";

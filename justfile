@@ -407,7 +407,7 @@ update-skills:
 # Auto-capture during rebuild is gated to qbert (the designated source of
 # truth) so non-canonical hosts don't regress the repo. Use this recipe to
 # manually surface a new skill/agent/setting or DMS GUI change installed on any
-# other host (donkeykong, etc.) -- review the resulting diff and commit only the
+# other host -- review the resulting diff and commit only the
 # bits that should propagate. DMS settings land in dank-profiles/<group>.json.
 #
 # When run off qbert this is a DRY-RUN by default: capture-sync still
@@ -624,7 +624,7 @@ pre-rebuild mode="quiet":
         fi
     fi
     # The Claude Code capture flows live ~/.claude state into the repo. Only qbert
-    # is the designated source -- other hosts (donkeykong, srv, ...) carry
+    # is the designated source -- other hosts (srv, ...) carry
     # narrower live state and would silently regress the repo if allowed to
     # auto-capture. For ad-hoc captures from another host (e.g. a newly
     # installed skill), run `just capture` explicitly.
@@ -985,10 +985,10 @@ remote-rebuild host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
     case "{{host}}" in
-        qbert|donkeykong|srv) ;;
+        qbert|srv) ;;
         *)
             echo "Refusing to ssh to unrecognized host: {{host}}"
-            echo "Allowed: qbert, donkeykong, srv"
+            echo "Allowed: qbert, srv"
             exit 1
             ;;
     esac
@@ -1012,10 +1012,10 @@ remote-upgrade host repo_path="~/git/nixerator":
     #!/usr/bin/env bash
     set -uo pipefail
     case "{{host}}" in
-        qbert|donkeykong|srv) ;;
+        qbert|srv) ;;
         *)
             echo "Refusing to ssh to unrecognized host: {{host}}"
-            echo "Allowed: qbert, donkeykong, srv"
+            echo "Allowed: qbert, srv"
             exit 1
             ;;
     esac
@@ -1055,10 +1055,10 @@ push-secrets +hosts:
     set -euo pipefail
     for host in {{hosts}}; do
         case "$host" in
-            qbert|donkeykong|srv) ;;
+            qbert|srv) ;;
             *)
                 echo "Refusing to push to unrecognized host: $host"
-                echo "Allowed: qbert, donkeykong, srv"
+                echo "Allowed: qbert, srv"
                 exit 1
                 ;;
         esac
@@ -1088,10 +1088,10 @@ push-gws-creds +hosts:
     set -euo pipefail
     for host in {{hosts}}; do
         case "$host" in
-            qbert|donkeykong|srv) ;;
+            qbert|srv) ;;
             *)
                 echo "Refusing to push to unrecognized host: $host"
-                echo "Allowed: qbert, donkeykong, srv"
+                echo "Allowed: qbert, srv"
                 exit 1
                 ;;
         esac
@@ -1133,10 +1133,10 @@ push-slack-token-creds +hosts:
     set -euo pipefail
     for host in {{hosts}}; do
         case "$host" in
-            qbert|donkeykong|srv) ;;
+            qbert|srv) ;;
             *)
                 echo "Refusing to push to unrecognized host: $host"
-                echo "Allowed: qbert, donkeykong, srv"
+                echo "Allowed: qbert, srv"
                 exit 1
                 ;;
         esac

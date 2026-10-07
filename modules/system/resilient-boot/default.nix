@@ -40,10 +40,10 @@ in
     # SYSTEMD_SULOGIN_FORCE=1 hands out an unauthenticated root shell to
     # anyone who selects this entry from the boot menu (no boot-loader
     # password is set on any host this module targets). Accepted risk: none
-    # of srv/donkeykong/qbert expose a network-reachable BMC/IPMI/remote-KVM,
+    # of srv/qbert expose a network-reachable BMC/IPMI/remote-KVM,
     # so reaching this entry requires physical presence at the machine, which
     # already implies unencrypted-disk access on qbert/srv (no LUKS) and a
-    # LUKS passphrase prompt on donkeykong. If this module is ever applied to
+    # LUKS passphrase prompt on a laptop. If this module is ever applied to
     # a host with remote out-of-band console access, gate this specialisation
     # behind a systemd-boot menu password first.
     #
@@ -67,7 +67,7 @@ in
     };
 
     # Bundled as one flag rather than three independent sub-options: all
-    # three current consumers (srv, donkeykong, qbert) want all three
+    # current consumers (srv, qbert) want all three
     # features identically, and nothing today needs a different `tries`
     # value or a subset. Split this up if a host ever needs to diverge, or if
     # a host with a different physical/console-access trust model than these

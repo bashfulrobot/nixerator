@@ -83,7 +83,7 @@
     # API calls, not the MCP tools. First login needs a real browser
     # window (ssh -X srv, then `slack-token-refresh`); after that the
     # persistent profile lets `slack-token-refresh --headless` refresh it
-    # without one. Mirrors qbert/donkeykong's enablement via
+    # without one. Mirrors qbert's enablement via
     # suites.offcomms, cherry-picked here the same way this file already
     # cherry-picks individual apps.cli entries for headless srv.
     slack-token-refresh.enable = true;
@@ -140,7 +140,7 @@
     superpowers.enable = true;
   };
 
-  # Tailscale subnet router: advertise the home LAN so qbert and donkeykong
+  # Tailscale subnet router: advertise the home LAN so qbert
   # can reach k8s VM IPs (192.168.168.x) via the tailnet when off the
   # physical LAN. Once applied, approve the route in the Tailscale admin
   # console (or via ACL autoApprovers). useRoutingFeatures="server" enables

@@ -21,7 +21,7 @@ TPL="@TPL@"
 # allow-list `justfile`'s remote-rebuild recipes use. Defends against a
 # user typing (or pasting) an attacker hostname / `user@host` string and
 # silently exfiltrating the rendered secrets via scp.
-ALLOWED_HOSTS=(qbert donkeykong srv clanker)
+ALLOWED_HOSTS=(qbert srv clanker)
 
 # Document-backed files materialized from the `nixerator` vault onto this host,
 # alongside the rendered secrets.json. Each entry is pipe-separated:
@@ -40,7 +40,7 @@ ALLOWED_HOSTS=(qbert donkeykong srv clanker)
 #
 # Workstation hosts (archetypes.workstation.enable = true). Private SSH keys and
 # per-repo git-crypt keys are scoped to these, so the pure server never gets them.
-_WS="host:donkeykong,nixerator,qbert"
+_WS="host:nixerator,qbert"
 MATERIALIZE=(
   "homelab git-crypt key|${HOME}/.config/git-crypt/homelab.key|600|700|${HOME}/git/homelab"
 
@@ -56,12 +56,12 @@ MATERIALIZE=(
   # can be locked to a forced rsync command on feral), the wider placement is a
   # bounded risk. Consumed in-cluster by homelab's
   # `just workloads::create-arr-ssh-secret`, which reads this same document.
-  "feral-arr|${HOME}/.ssh/feral-arr|600|700|host:donkeykong,nixerator,qbert,srv"
+  "feral-arr|${HOME}/.ssh/feral-arr|600|700|host:nixerator,qbert,srv"
   # SSH public keys
   "id_ed25519.pub|${HOME}/.ssh/id_ed25519.pub|644|700|${_WS}"
   "id_rsa.pub|${HOME}/.ssh/id_rsa.pub|644|700|${_WS}"
   "id_rsa_np.pub|${HOME}/.ssh/id_rsa_np.pub|644|700|${_WS}"
-  "feral-arr.pub|${HOME}/.ssh/feral-arr.pub|644|700|host:donkeykong,nixerator,qbert,srv"
+  "feral-arr.pub|${HOME}/.ssh/feral-arr.pub|644|700|host:nixerator,qbert,srv"
 
   # Per-repo git-crypt keys (workstations only)
   "mixerator-git-crypt-key|${HOME}/.ssh/mixerator-git-crypt-key|600|700|${_WS}"

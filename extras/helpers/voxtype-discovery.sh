@@ -71,8 +71,8 @@ has clinfo && run "clinfo | head -n 120" || run "echo 'clinfo missing'"
 section "Nix voxtype context"
 if [ -d "$REPO_DIR/.git" ] && has nix; then
   run "cd '$REPO_DIR' && XDG_CACHE_HOME='$NIX_CACHE' nix eval --impure --json --expr 'let f = builtins.getFlake (toString ./.); in builtins.attrNames f.inputs.hyprflake.inputs.voxtype.packages.x86_64-linux'"
-  run "cd '$REPO_DIR' && XDG_CACHE_HOME='$NIX_CACHE' nix eval --impure .#nixosConfigurations.donkeykong.config.hyprflake.desktop.voxtype.threads"
-  run "cd '$REPO_DIR' && XDG_CACHE_HOME='$NIX_CACHE' nix eval --impure --raw .#nixosConfigurations.donkeykong.config.hyprflake.desktop.voxtype.package.name"
+  run "cd '$REPO_DIR' && XDG_CACHE_HOME='$NIX_CACHE' nix eval --impure .#nixosConfigurations.qbert.config.hyprflake.desktop.voxtype.threads"
+  run "cd '$REPO_DIR' && XDG_CACHE_HOME='$NIX_CACHE' nix eval --impure --raw .#nixosConfigurations.qbert.config.hyprflake.desktop.voxtype.package.name"
 else
   run "echo 'Repo not found at $REPO_DIR or nix missing; skipping flake evals'"
 fi

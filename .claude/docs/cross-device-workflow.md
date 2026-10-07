@@ -39,10 +39,8 @@ Auto-renames the zellij session to `<repo>#<N>` when invoked inside zellij. An i
 ## Components
 
 - `archetypes.claudeWorkHost` (enabled on srv + qbert) — bundles zellij + ssh + work-launcher.
-- `apps.cli.work-launcher` (enabled on srv + qbert + donkeykong) — ships the `work` fish function. `peers` defaults to `[ "srv" "qbert" ]`.
+- `apps.cli.work-launcher` (enabled on srv + qbert) — ships the `work` fish function. `peers` defaults to `[ "srv" "qbert" ]`.
 - `apps.cli.zellij` (enabled by the archetype) — provides `zj` and `czj` wrappers.
-
-donkeykong is **attach-only** in v1: it has the `work` function but does NOT host sessions for peers. Promotable later by flipping `archetypes.claudeWorkHost.enable = true;` and adding it to the peers list.
 
 ## Attack surface
 
