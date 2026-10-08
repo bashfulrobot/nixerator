@@ -3,14 +3,79 @@
 How the claude-code module manages Claude Code's plugin surface, and how to fix
 the one failure mode that has actually bitten us.
 
-## Declarative surface (Nix-owned)
+## Declarative surface (manifest-owned, Nix-applied)
 
-`modules/apps/cli/claude-code/cfg/plugin-config.nix` is the single source of
-truth for `extraKnownMarketplaces` (marketplaces pinned to commit SHAs) and
-`enabledPlugins`. Activation merges these two keys into the deployed
-`~/.claude/settings.json`, and capture (`cfg/fish.nix`) strips them, so Nix owns
-them and a bare runtime capture cannot unpin them. To add or bump a marketplace,
-edit its entry in `plugin-config.nix` like a lock file.
+The plugin and marketplace set is no longer authored in this repo. It comes from
+the claude-stack manifest in `bashfulrobot/claude-skills`
+(`claude-stack/claude-stack.json`; schema in that repo's
+`docs/ai/claude-stack.md` and `unified-stack.md`). Its resolver writes
+`claude-stack/resolved/<host>.json`, and this repo carries a committed snapshot
+of the NixOS hosts' files:
+
+```
+modules/apps/cli/claude-code/cfg/claude-stack/qbert.json
+modules/apps/cli/claude-code/cfg/claude-stack/srv.json
+```
+
+`cfg/plugin-config.nix` reads the snapshot for `apps.cli.claude-code.stackHost`
+(default: the hostname; donkeykong has no manifest entry and is set to `qbert`
+in `hosts/donkeykong/modules.nix`) with `builtins.fromJSON` and builds two keys:
+
+- `enabledPlugins`: state `enabled` -> `true`, `disabled` -> `false`, `absent`
+  -> key omitted.
+- `extraKnownMarketplaces`: the manifest's resolved non-builtin marketplaces,
+  each pinned to its manifest sha. `claude-skills` is `selfPin` in the manifest
+  (no sha), so its sha comes from the pin in `plugin-config.nix`.
+
+Activation merges these two keys into the deployed `~/.claude/settings.json`,
+and capture (`cfg/fish.nix`) strips them, so Nix owns them and a bare runtime
+capture cannot unpin them. Per-host `plugins = [ ... ]` lists no longer exist:
+`modules/suites/ai`, `hosts/srv/modules.nix` and the superpowers module carry
+only pointer comments. Plugin-gated extras (`hasTokenOptimizer`,
+`hasHyperframes`) test the snapshot's enabled ids. The manifest's `config` and
+`secrets` per plugin are not applied by Nix yet (userConfig/secret wiring is a
+later phase); only state and marketplaces are.
+
+### Changing the set, and the pin/snapshot coupling
+
+Add, drop or re-pin a plugin or marketplace in `claude-stack.json` in
+claude-skills, run `just stack-resolve` there, merge, then here run
+`just bump-claude-skills` (or `just upgrade`). The bump script resolves the new
+claude-skills sha, fetches `claude-stack/resolved/{qbert,srv}.json` at THAT sha
+with `gh api` (private repo, no flake input), validates them, and rewrites both
+the pin and the snapshot files in one go, so pin and snapshot always come from
+the same sha. `just commit-plugin-config` commits the pin and the snapshot
+together. Pass a 40-hex sha instead of a branch to pin an exact commit.
+
+Snapshot seeded from the unmerged claude-skills PR #54 (branch
+`feat/claude-stack-phase1`). Once #54 merges, re-run
+`just bump-claude-skills` so the pin and snapshot come from a main sha.
+
+### Dropped plugins: why (moved from the old per-host lists)
+
+The old workstation list's rationale, kept here so it survives the list's
+removal. All were dropped on usage data (#294 token-surface audit over 90 days
+of transcripts; claude-code doctor 2026-07-30), and re-adding any needs usage
+data, not a hunch:
+
+- learning-output-style: injects a system-prompt block that hands TODOs back
+  to the user; inflates turn count.
+- pr-review-toolkit, feature-dev: agent definitions (~1.8k tokens resident for
+  the former), dispatched once or never; review-dev/review-security cover it.
+- context7: duplicate mount; the user-scoped server in `cfg/mcp-servers.nix` is
+  the single source.
+- asana, atlassian, github: MCP servers sat unauthenticated, no real use
+  (github work goes through `gh`).
+- code-review, kotlin-lsp, rust-analyzer-lsp, kong-skills@kong-skills,
+  kong-skill, commit@kong-skills, feature-request@kong-skills, impeccable,
+  hyperframes, kong-konnect@ai-marketplace: zero usage over 50 sessions; several
+  were shadowed by the personal review-dev, commit and feature-request skills.
+- ralph-loop, reap, caveman: autonomous-loop engines duplicating `auto`
+  (`/auto` 18 sessions vs 1-2), and caveman's terse-output ruleset contradicted
+  the global "run all prose through humanizer" rule.
+
+Marketplaces no longer registered because no non-absent plugin needs them:
+`ai-marketplace`, `impeccable`, `hyperframes`.
 
 `~/.claude/plugins/installed_plugins.json` is the opposite. It mirrors the live
 runtime and is captured, not authored. Hand-authoring an entry for a plugin that
@@ -37,9 +102,33 @@ the other.**
   repo copy.
 
 Do not assume a capture will "clean up" an entry the way it would for a
-genuinely runtime-owned file. When a plugin is dropped from
-`cfg/plugin-config.nix`, prune its key from **both** copies in the same change,
-and delete its `~/.claude/plugins/cache/<marketplace>/<plugin>/` directory too.
+genuinely runtime-owned file. When a plugin is dropped from the manifest (so
+from the snapshot), prune its key from **both** copies in the same change, and
+delete its `~/.claude/plugins/cache/<marketplace>/<plugin>/` directory too.
+The repo copy is pruned in the PR that drops the plugin; the live copy and cache
+are pruned by hand on each host, before the rebuild that runs activation:
+
+```bash
+# Per host, for each dropped <plugin>@<marketplace>. Keep set = every
+# non-absent plugin id in that host's snapshot; the repo copy is a union over
+# qbert and srv, so keep the union on both hosts.
+f=~/.claude/plugins/installed_plugins.json
+jq 'del(.plugins["<plugin>@<marketplace>"])' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+rm -rf ~/.claude/plugins/cache/<marketplace>/<plugin>
+```
+
+Phase 4 (manifest-driven plugins) dropped these ids, now pruned from the repo
+copy; run the block above on qbert, srv and donkeykong for each, then `just qr`:
+
+```
+asana atlassian context7 feature-dev github kotlin-lsp learning-output-style
+pr-review-toolkit rust-analyzer-lsp           (@claude-plugins-official)
+commit feature-request kong-skill kong-skills (@kong-skills)
+hyperframes@hyperframes  impeccable@impeccable  kong-konnect@ai-marketplace
+```
+
+After the rebuild, a second `just qr` must show no diff in
+`config/plugins/installed_plugins.json` (the fixpoint check).
 This is why #328's plugin removals left stale state behind until the follow-up
 audit — see the code comment in `cfg/fish.nix` at the capture block.
 
@@ -68,7 +157,7 @@ plugin-install log; use `claude --debug` if you need to watch the load.
 
 ## Pin-time trust review, and re-review on bump
 
-Most marketplaces pinned in `plugin-config.nix` trace to a recognizable
+Most marketplaces pinned in the manifest trace to a recognizable
 source (Kong, heygen-com, pbakaus, JuliusBrussee, alexgreensh). A pin from a
 single-author or low-star repo carries more risk per byte, especially if the
 plugin ships a hook that can auto-approve a tool call (a `PreToolUse` hook
@@ -105,7 +194,8 @@ mismatch against these values on a re-fetch of the same SHA means the fetch
 method differs (CRLF vs LF, a proxy rewriting content), not that the plugin
 changed; re-derive with the exact command above before treating it as drift.
 
-A SHA bump re-grants that trust wholesale. Re-run the same depth of review
+The manifest records this as the marketplace's `review` field; the resolved
+snapshot carries it. A SHA bump re-grants that trust wholesale. Re-run the same depth of review
 (read every hook entrypoint and any auto-approval matcher in full, not just
 a diff against the old SHA) before bumping a single-author marketplace,
 and update the pin comment with what changed.
