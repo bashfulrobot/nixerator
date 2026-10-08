@@ -117,7 +117,7 @@
     "dk@claude-skills": {
       "state": "enabled"
     },
-    "frontend-design@claude-plugins-official": {
+    "frontend-design@claude-skills": {
       "state": "enabled"
     },
     "gitops@claude-skills": {
