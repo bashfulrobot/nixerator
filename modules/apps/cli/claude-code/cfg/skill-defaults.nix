@@ -23,6 +23,11 @@
 # read a name's continued presence here as proof it still lives under
 # config/skills/; check the directory.
 #
+# 2026-10-08: 23 more skills that were byte-identical to dk / kong-cs copies
+# were deleted from config/skills/ (everything but revealjs and wave-invoicing,
+# which differ). They are no longer in allNames, so none of them gets an "off"
+# override any more; they follow the plugin's absent-key-means-on default.
+#
 # alwaysOn: skills that stay enabled everywhere, no per-project opt-in
 # needed. Two reasons a skill earns a spot here, not a hunch:
 #   - named directly in ~/.claude/CLAUDE.md's trigger-scoped rules (removing

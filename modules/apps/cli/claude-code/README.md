@@ -68,7 +68,7 @@ against the same article, four days after the supplementary review above --
 not a re-fetch (the article hadn't changed), just working through that
 review's three low-effort wins:
 
-- **Shipped.** `blocked-page-fetch` skill added (`config/skills/`), closing
+- **Shipped.** `blocked-page-fetch` skill added (`config/skills/`; since 2026-10-08 it ships only from `dk@claude-skills`), closing
   Tip 11. Wraps `agy --dangerously-skip-permissions --print-timeout 120s
   --print "..." < /dev/null` -- the same second-agent pattern
   `apps/cli/gcmt/scripts/gcmt.sh` already uses -- as a WebFetch fallback for
