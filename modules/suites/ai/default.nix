@@ -42,6 +42,9 @@ in
           # compressor model, optional torch), not something worth paying
           # for on a headless server.
           headroom.enable = true;
+          # Clone + build the binary the kong-docs-rag plugin launches
+          # (cfg/kong-docs-rag.nix). qbert snapshot enables the plugin; srv does not.
+          kongDocsRag.enable = true;
         };
         antigravity.enable = true;
         superpowers.enable = true;

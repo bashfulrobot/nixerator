@@ -27,7 +27,6 @@ let
       fluxOperatorMcp
       isoTopologyPkg
       kubeconfigFile
-      homeDir
       ;
     inherit (cfg) serverProfile;
   };
@@ -129,6 +128,12 @@ let
   # unless cfg.headroom.enable is set on this host.
   headroomConfig = import ./cfg/headroom.nix {
     inherit pkgs versions;
+    homeDir = globals.user.homeDirectory;
+  };
+  # Clone + build of the kong-docs-rag plugin's backing binary (see
+  # cfg/kong-docs-rag.nix). Inert unless cfg.kongDocsRag.enable is set.
+  kongDocsRagConfig = import ./cfg/kong-docs-rag.nix {
+    inherit pkgs;
     homeDir = globals.user.homeDirectory;
   };
   fishConfig = import ./cfg/fish.nix {
@@ -450,6 +455,13 @@ in
                          and any other entries that require host-local files.
         '';
       };
+      kongDocsRag.enable = lib.mkEnableOption ''
+        Provision the checkout and binary behind the kong-docs-rag plugin
+        (kong-docs-rag@claude-skills): clone bashfulrobot/kong-docs-rag to
+        ~/git/kong-docs-rag and `go build` bin/kong-docs-rag at activation
+        when missing (cfg/kong-docs-rag.nix). Does not index, pull, or set the
+        plugin's repo_path config; those stay manual
+      '';
       headroom.enable = lib.mkEnableOption ''
         Headroom (headroomlabs-ai/headroom), a local context-compression CLI
         installed via `uv tool install` at activation (see cfg/headroom.nix
@@ -603,6 +615,11 @@ in
           claudeCodeConfig = inputs.home-manager.lib.hm.dag.entryAfter [
             "writeBoundary"
           ] activationConfig.text;
+        }
+        // lib.optionalAttrs cfg.kongDocsRag.enable {
+          kongDocsRagProvision = inputs.home-manager.lib.hm.dag.entryAfter [
+            "writeBoundary"
+          ] kongDocsRagConfig.activation;
         }
         // lib.optionalAttrs hasHeadroom {
           headroomInstall = inputs.home-manager.lib.hm.dag.entryAfter [

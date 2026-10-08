@@ -26,8 +26,8 @@ in
     # FHS compatibility
     system.compat.enable = true;
 
-    # Run foreign manylinux binaries (uv/pip ML wheels, e.g. the kongdex
-    # kong-docs MCP server's numpy/onnxruntime/torch stack).
+    # Run foreign manylinux binaries (uv/pip ML wheels, e.g. the
+    # numpy/onnxruntime/torch stack headroom installs via uv).
     system.nix-ld.enable = true;
 
     # Enable workstation suites
