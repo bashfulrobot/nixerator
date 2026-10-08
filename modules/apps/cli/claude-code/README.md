@@ -68,7 +68,7 @@ against the same article, four days after the supplementary review above --
 not a re-fetch (the article hadn't changed), just working through that
 review's three low-effort wins:
 
-- **Shipped.** `blocked-page-fetch` skill added (`config/skills/`), closing
+- **Shipped.** `blocked-page-fetch` skill added (`config/skills/`; since 2026-10-08 it ships only from `dk@claude-skills`), closing
   Tip 11. Wraps `agy --dangerously-skip-permissions --print-timeout 120s
   --print "..." < /dev/null` -- the same second-agent pattern
   `apps/cli/gcmt/scripts/gcmt.sh` already uses -- as a WebFetch fallback for
@@ -109,7 +109,7 @@ the relevant procedure below.
 | 24. Realpath | `Bash(realpath *)` allowed |
 | 25. CLAUDE.md vs skills vs commands vs plugins | Documented in `~/.claude/CLAUDE.md` ("Where curated knowledge goes") |
 | 26. Interactive PR reviews | `/review-dev`, `/review-security`, `/review`, `/ultrareview` |
-| 27. Research tool | gitmcp + context7 + qmd + chrome-devtools + playwright MCPs |
+| 27. Research tool | gitmcp + qmd + chrome-devtools + playwright MCPs |
 | 28. Output verification | `superpowers:verification-before-completion` (mandatory) |
 | 29. DevOps automation | `devops` agent + `fluxcd` + `gitops-*` skills |
 | 30. Keep CLAUDE.md simple | Thin-CLAUDE.md protocol is the documented standard |

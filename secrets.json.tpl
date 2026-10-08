@@ -41,9 +41,6 @@
       "b2_account_key": "{{ op://nixerator/b2-credentials/applicationKey }}"
     }
   },
-  "context7": {
-    "apiKey": "{{ op://nixerator/context7/credential }}"
-  },
   "zai": {
     "apiKey": "{{ op://nixerator/zai/credential }}"
   },

@@ -55,6 +55,12 @@ Confirmed heavy, cross-project usage by a claude-code doctor scan
 `review-security`, `writing-style`, `auto`, `log-github-issue`, `sfdc`,
 `kong-technical-csm`, `todoist-cli`, `gws-cli`, `slack-post`
 
+Since 2026-10-08 only `revealjs` and `wave-invoicing` remain under
+`config/skills/`; the other skills that used to live there ship from
+`dk@claude-skills` / `kong-cs@claude-skills` only. They no longer reach the
+default-off overlay (so they are on by default), and `skill-pick` does not see
+them because it only lists `~/.claude/skills`.
+
 `slack-edit` (added 2026-09-25) is the exception to the usage-data bar: it is
 `slack-post`'s sibling from the same `dk` plugin, so it rides along with no
 usage data yet. Like `github-issue`, it ships from a plugin rather than
