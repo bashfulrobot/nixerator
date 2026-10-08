@@ -11,46 +11,6 @@
         "gitCommitSha": "0742692199b49af5c6c33cd68ee674fb2e679d50"
       }
     ],
-    "asana@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/asana/unknown",
-        "version": "unknown",
-        "installedAt": "2026-02-03T16:54:25.740Z",
-        "lastUpdated": "2026-04-21T18:14:52.323Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
-      }
-    ],
-    "context7@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/context7/unknown",
-        "version": "unknown",
-        "installedAt": "2026-02-03T16:55:30.545Z",
-        "lastUpdated": "2026-04-21T18:14:52.326Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
-      }
-    ],
-    "github@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/github/unknown",
-        "version": "unknown",
-        "installedAt": "2026-02-03T16:55:39.042Z",
-        "lastUpdated": "2026-04-21T18:14:52.325Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
-      }
-    ],
-    "feature-dev@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/feature-dev/unknown",
-        "version": "unknown",
-        "installedAt": "2026-02-03T16:55:52.408Z",
-        "lastUpdated": "2026-04-21T18:14:52.327Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
-      }
-    ],
     "commit-commands@claude-plugins-official": [
       {
         "scope": "user",
@@ -68,36 +28,6 @@
         "version": "2.0.8",
         "installedAt": "2026-02-03T16:56:26.138Z",
         "lastUpdated": "2026-09-27T01:29:57.342Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
-      }
-    ],
-    "pr-review-toolkit@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/unknown",
-        "version": "unknown",
-        "installedAt": "2026-02-03T16:56:36.061Z",
-        "lastUpdated": "2026-04-21T18:14:52.329Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
-      }
-    ],
-    "atlassian@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/atlassian/eb9a5956a7ac",
-        "version": "eb9a5956a7ac",
-        "installedAt": "2026-02-03T16:56:48.268Z",
-        "lastUpdated": "2026-09-27T01:29:58.560Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
-      }
-    ],
-    "learning-output-style@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/learning-output-style/1.0.0",
-        "version": "1.0.0",
-        "installedAt": "2026-02-03T16:57:51.820Z",
-        "lastUpdated": "2026-03-31T19:17:27.495Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
@@ -131,16 +61,6 @@
         "gitCommitSha": "d5c15b861cd23e3102215c26020368ad5134dc47"
       }
     ],
-    "rust-analyzer-lsp@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/rust-analyzer-lsp/1.0.0",
-        "version": "1.0.0",
-        "installedAt": "2026-03-16T16:19:33.928Z",
-        "lastUpdated": "2026-03-16T16:19:33.928Z",
-        "gitCommitSha": "d5c15b861cd23e3102215c26020368ad5134dc47"
-      }
-    ],
     "superpowers@claude-plugins-official": [
       {
         "scope": "user",
@@ -149,16 +69,6 @@
         "installedAt": "2026-03-20T07:25:46.359Z",
         "lastUpdated": "2026-09-27T01:29:58.814Z",
         "gitCommitSha": "8ea39819eed74fe2a0338e71789f06b30e953041"
-      }
-    ],
-    "kotlin-lsp@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/kotlin-lsp/1.0.0",
-        "version": "1.0.0",
-        "installedAt": "2026-03-28T02:36:20.669Z",
-        "lastUpdated": "2026-03-28T02:36:20.669Z",
-        "gitCommitSha": "451c481b2b33600dad4563513c99e2268f056f5f"
       }
     ],
     "pyright-lsp@claude-plugins-official": [
@@ -170,58 +80,6 @@
         "lastUpdated": "2026-04-29T21:44:11.215Z"
       }
     ],
-    "hyperframes@hyperframes": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/hyperframes/hyperframes/0.1.0",
-        "version": "0.1.0",
-        "installedAt": "2026-05-11T05:47:52.000Z",
-        "lastUpdated": "2026-05-11T05:47:52.000Z",
-        "gitCommitSha": "553688c996408cb33de27ce4573bef6c8cf27454"
-      }
-    ],
-    "impeccable@impeccable": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/impeccable/impeccable/3.5.0",
-        "version": "3.5.0",
-        "installedAt": "2026-06-09T21:00:46.872Z",
-        "lastUpdated": "2026-06-09T21:00:46.872Z",
-        "gitCommitSha": "e3e22007a974fbb2023d36a3abf643f49dfd1fb3"
-      }
-    ],
-    "kong-skills@kong-skills": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-skills/kong-skills/fe5c4d1b8f1f",
-        "version": "fe5c4d1b8f1f",
-        "installedAt": "2026-06-12T16:42:57.686Z",
-        "lastUpdated": "2026-06-12T16:42:57.686Z",
-        "gitCommitSha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22"
-      }
-    ],
-    "commit@kong-skills": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-skills/commit/fe5c4d1b8f1f",
-        "version": "fe5c4d1b8f1f",
-        "installedAt": "2026-06-12T16:42:57.694Z",
-        "lastUpdated": "2026-06-12T16:42:57.694Z",
-        "gitCommitSha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22",
-        "auto": true
-      }
-    ],
-    "kong-skill@kong-skills": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-skills/kong-skill/fe5c4d1b8f1f",
-        "version": "fe5c4d1b8f1f",
-        "installedAt": "2026-06-12T16:42:57.696Z",
-        "lastUpdated": "2026-06-12T16:42:57.696Z",
-        "gitCommitSha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22",
-        "auto": true
-      }
-    ],
     "kong-doc-build@kong-skills": [
       {
         "scope": "user",
@@ -231,27 +89,6 @@
         "lastUpdated": "2026-06-12T16:42:57.703Z",
         "gitCommitSha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22",
         "auto": true
-      }
-    ],
-    "feature-request@kong-skills": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-skills/feature-request/fe5c4d1b8f1f",
-        "version": "fe5c4d1b8f1f",
-        "installedAt": "2026-06-12T16:42:57.705Z",
-        "lastUpdated": "2026-06-12T16:42:57.705Z",
-        "gitCommitSha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22",
-        "auto": true
-      }
-    ],
-    "kong-konnect@ai-marketplace": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/ai-marketplace/kong-konnect/1.0.0",
-        "version": "1.0.0",
-        "installedAt": "2026-07-21T21:43:14.823Z",
-        "lastUpdated": "2026-07-21T21:43:14.823Z",
-        "gitCommitSha": "ef2dd6c9f0e770a694d91388dd7b02469cc43dca"
       }
     ],
     "token-optimizer@alexgreensh-token-optimizer": [

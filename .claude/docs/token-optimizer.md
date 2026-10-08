@@ -10,7 +10,7 @@ Pinned at v5.11.65 (`5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1`), added 2026-07-2
 
 | Concern | File |
 |---|---|
-| Marketplace SHA pin | `modules/apps/cli/claude-code/cfg/plugin-config.nix` |
+| Marketplace SHA pin | `claude-stack/claude-stack.json` in claude-skills (snapshot: `modules/apps/cli/claude-code/cfg/claude-stack/<host>.json`) |
 | NixOS plumbing (tmpfiles rule, config flags) | `modules/apps/cli/claude-code/cfg/token-optimizer.nix` |
 | Wiring (`hasTokenOptimizer` gate, `systemd.tmpfiles.rules`) | `modules/apps/cli/claude-code/default.nix` |
 | Activation splice | `modules/apps/cli/claude-code/cfg/activation.nix` |
@@ -93,7 +93,8 @@ the reason you want it.
 ## Bumping
 
 Same as any pinned marketplace: find the new HEAD, update the SHA in
-`cfg/plugin-config.nix`, rebuild.
+`claude-stack.json` in claude-skills, resolve and merge there, run
+`just bump-claude-skills` here to refresh the snapshot, rebuild.
 
 ```bash
 git -C ~/.claude/plugins/marketplaces/alexgreensh-token-optimizer rev-parse origin/main

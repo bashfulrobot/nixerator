@@ -215,8 +215,12 @@
           #     host-resolved value, or deletes the key on serverProfile ==
           #     "minimal" -- see cfg/activation.nix) -> dropped
           #   - extraKnownMarketplaces / enabledPlugins: owned by cfg/plugin-config.nix
-          #     (merged at activation) -> dropped
+          #     (derived from the claude-stack snapshot, merged at activation) -> dropped
           #   - permissions.ask:           Nix-owned (activation pins it) -> dropped
+          #   - permissions.allow:         deliberately KEPT. It is runtime-owned;
+          #     activation only appends the claude-stack snapshot's rules to it
+          #     (add-only union, cfg/activation.nix), so captured rules include
+          #     the appended ones and the next activation appends nothing.
           #   - hooks with a /nix/store command: EVERY Nix-owned hook is injected at
           #     activation (cfg/activation.nix) with its store path, so its volatile
           #     hash must never be committed. Stripping any hook whose command lives
@@ -358,7 +362,7 @@
           test -n "$settings_tmp"; and rm -f $settings_tmp
 
           # Plugins -- known_marketplaces.json is no longer captured (marketplaces
-          # are owned declaratively in cfg/plugin-config.nix). Only installed_plugins.json
+          # are owned declaratively: claude-stack snapshot via cfg/plugin-config.nix). Only installed_plugins.json
           # (SHA-stamped install record) and blocklist.json are captured here.
           #
           # WARNING -- these two files are the ONLY capture surface in this module
@@ -372,7 +376,7 @@
           # live-only edit is overwritten by the next activation.
           #
           # Consequence: BOTH sides must always be edited together. Dropping a
-          # plugin from cfg/plugin-config.nix means pruning its key from the repo
+          # plugin from the claude-stack manifest means pruning its key from the repo
           # copy AND ~/.claude/plugins/*.json AND deleting its
           # ~/.claude/plugins/cache/<marketplace>/<plugin>/ directory in the same
           # change. Skipping either half silently reverts. See

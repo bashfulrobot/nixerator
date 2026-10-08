@@ -36,13 +36,24 @@ let
     inherit (mcpConfig) mcpServers;
   };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
-  # Declarative, SHA-pinned plugin surface. mkOverlay turns the per-host
-  # cfg.plugins list into the { extraKnownMarketplaces, enabledPlugins } object
-  # merged into settings.json at activation (and stripped from capture so Nix
-  # owns these keys). Replaces the old imperative cfg/plugins.nix sync.
-  pluginConfig = import ./cfg/plugin-config.nix { inherit lib; };
+  # Declarative, SHA-pinned plugin surface, derived from the claude-stack
+  # manifest snapshot for cfg.stackHost (cfg/claude-stack/<host>.json, copied
+  # from bashfulrobot/claude-skills by the pin-bump script). The overlay is the
+  # { extraKnownMarketplaces, enabledPlugins } object merged into settings.json
+  # at activation (and stripped from capture so Nix owns these keys).
+  # pluginConfig.enabled is the list of plugin ids this host enables, used by
+  # the plugin-gated extras below.
+  pluginConfig = import ./cfg/plugin-config.nix {
+    inherit lib;
+    stackHost = cfg.stackHost;
+  };
   pluginOverlayFile = pkgs.writeText "claude-plugin-overlay.json" (
-    builtins.toJSON (pluginConfig.mkOverlay cfg.plugins)
+    builtins.toJSON pluginConfig.overlay
+  );
+  # Manifest permissions.allow for this host, unioned (add-only) into
+  # settings.json at activation. Unlike the overlay, the key is runtime-owned.
+  stackPermissionsFile = pkgs.writeText "claude-stack-permissions.json" (
+    builtins.toJSON pluginConfig.permissionsAllow
   );
   # Default-off skill surface (see cfg/skill-defaults.nix for the always-on
   # baseline and why each entry earned its spot). Same overlay pattern as
@@ -183,6 +194,7 @@ let
     # its default, so the two can't drift, and activation only ever `cp`s it.
     textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
+    stackPermissions = stackPermissionsFile;
     skillOverlay = skillOverlayFile;
     userScopeMcpTemplate = userScopeMcpTemplateFile;
     inherit (mcpConfig) secretServerFiles;
@@ -420,10 +432,10 @@ let
   # /run/current-system/sw/bin so a future switch to chromium / brave / vivaldi
   # is one globals.preferences.browser flip away. This intentionally couples to
   # the user's XDG-style preference slot rather than hardcoding a package.
-  hasHyperframes = lib.elem "hyperframes@hyperframes" cfg.plugins;
+  hasHyperframes = lib.elem "hyperframes@hyperframes" pluginConfig.enabled;
   hyperframesBrowserPath = "/run/current-system/sw/bin/${globals.preferences.browser}";
 
-  hasTokenOptimizer = lib.elem tokenOptimizerConfig.pluginId cfg.plugins;
+  hasTokenOptimizer = lib.elem tokenOptimizerConfig.pluginId pluginConfig.enabled;
 
   # Not a plugin-list membership test like the two above -- headroom has no
   # marketplace entry, so it gets its own enable option (see the options
@@ -455,14 +467,17 @@ in
   options = {
     apps.cli.claude-code = {
       enable = lib.mkEnableOption "claude-code CLI tool with custom configuration";
-      plugins = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
+      stackHost = lib.mkOption {
+        type = lib.types.str;
+        default = config.networking.hostName;
+        defaultText = lib.literalExpression "config.networking.hostName";
         description = ''
-          Plugin identifiers ("<plugin>@<marketplace>") to enable for this host.
-          Definitions from multiple modules merge. Drives the declarative,
-          SHA-pinned settings.json overlay (cfg/plugin-config.nix): each id is
-          enabled and its (non-built-in) marketplace is registered + pinned.
+          Which claude-stack snapshot (cfg/claude-stack/<host>.json, a copy of
+          claude-skills' claude-stack/resolved/<host>.json) drives this host's
+          plugins and marketplaces. Defaults to the hostname; override when a
+          host should follow another host's declared stack. Replaces the old
+          per-module `plugins` list option: plugin membership now lives only in
+          the claude-skills manifest.
         '';
       };
       serverProfile = lib.mkOption {

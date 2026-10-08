@@ -1,135 +1,112 @@
-{ lib }:
+{ lib, stackHost }:
 
-# Declarative, version-pinned Claude Code plugin surface.
+# Declarative, version-pinned Claude Code plugin surface, derived from the
+# claude-stack manifest snapshot.
 #
-# `mkOverlay pluginIds` turns a per-host list of "<plugin>@<marketplace>" ids
-# (the `apps.cli.claude-code.plugins` option) into the JSON object merged into
-# the deployed ~/.claude/settings.json at activation (see cfg/activation.nix):
-# `enabledPlugins` (every id, enabled) and `extraKnownMarketplaces` (only the
-# pinned third-party marketplaces actually referenced by the list). Those keys
-# are stripped from the captured repo settings.json (cfg/fish.nix) so Nix --
-# not the captured runtime state -- owns them. Keeping this a function of the
-# plugin list preserves per-host variation (e.g. headless srv runs a smaller
-# set than the workstations) while still pinning marketplaces to commit SHAs.
+# Source of truth: bashfulrobot/claude-skills, claude-stack/claude-stack.json
+# (schema: docs/ai/claude-stack.md there). Its resolver writes one file per
+# host to claude-stack/resolved/<host>.json; the bump script
+# (cfg/scripts/bump-plugin-marketplace-sha.sh) copies qbert.json and srv.json
+# into ./claude-stack/ here, at the same claude-skills sha it pins below, in
+# the same commit. claude-skills is private, so there is no flake input; the
+# committed snapshot is what `builtins.fromJSON` reads. Which host's file
+# applies is `apps.cli.claude-code.stackHost` (defaults to the hostname).
+#
+# `mkOverlay stack` turns that file into the JSON object merged into the
+# deployed ~/.claude/settings.json at activation (cfg/activation.nix):
+#   - `enabledPlugins`: state enabled -> true, disabled -> false, absent ->
+#     dropped (an absent plugin must not appear in settings.json at all).
+#   - `extraKnownMarketplaces`: the non-builtin marketplaces the manifest
+#     resolved for this host (it already limits them to marketplaces a
+#     non-absent plugin references), each pinned to its manifest sha.
+# Both keys are stripped from the captured repo settings.json (cfg/fish.nix),
+# so Nix, not captured runtime state, owns them.
+#
+# Marketplaces and plugins are no longer declared in this file. To add, drop or
+# re-pin one, edit claude-stack.json in claude-skills, run `just stack-resolve`
+# there, merge, then re-bump (`just bump-claude-skills`). Rationale for each
+# marketplace/plugin (licence, review-before-bump, why dropped) lives in the
+# manifest's `notes`/`review` fields and in .claude/docs/claude-plugins.md.
 #
 # Pinning model: for git-backed marketplaces Claude Code resolves a plugin's
 # version from `plugin.json` version > marketplace-entry version > the
-# marketplace repo's commit SHA. The third-party plugins here use relative-path
+# marketplace repo's commit SHA, and the third-party plugins use relative-path
 # sources inside their marketplace repo, so pinning the *marketplace* to a SHA
-# pins every plugin it ships. Bump a SHA the way you bump flake.lock (find the
-# new HEAD with `git -C ~/.claude/plugins/marketplaces/<name> rev-parse origin/main`).
-#
-# claude-plugins-official is the built-in Anthropic marketplace and is never
-# declared. A marketplace is only declared when a plugin from it is enabled, so
-# dormant trust grants (e.g. superpowers-marketplace, claude-code-lsps,
-# kong-se-skills) never reappear -- superpowers and the LSP plugins all ship
-# from claude-plugins-official, and the project's own Nix LSP marketplace
-# (nix-lsps) is generated in cfg/lsp-plugins.nix.
+# pins every plugin it ships. The nix-lsps marketplace is generated locally in
+# cfg/lsp-plugins.nix and is not part of the manifest.
 let
   # Built-in marketplaces that are always known and must not be declared.
   builtinMarketplaces = [ "claude-plugins-official" ];
 
-  # Active third-party marketplaces, pinned to commit SHAs.
-  marketplaceSources = {
-    kong-skills.source = {
-      source = "github";
-      repo = "Kong/kong-skills";
-      sha = "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22";
-    };
-    # Kong's public AI marketplace (https://developer.konghq.com/skills/) --
-    # ships the single `kong-konnect` plugin bundling the 20 Konnect product
-    # skills (deck, kongctl, dev portal, terraform, gateway/observability
-    # triage, ...). Distinct from kong-skills above, which is the internal CS
-    # tooling marketplace.
-    ai-marketplace.source = {
-      source = "github";
-      repo = "Kong/ai-marketplace";
-      sha = "ef2dd6c9f0e770a694d91388dd7b02469cc43dca";
-    };
-    impeccable.source = {
-      source = "github";
-      repo = "pbakaus/impeccable";
-      sha = "e3e22007a974fbb2023d36a3abf643f49dfd1fb3";
-    };
-    hyperframes.source = {
-      source = "github";
-      repo = "heygen-com/hyperframes";
-      sha = "553688c996408cb33de27ce4573bef6c8cf27454";
-    };
-    # Context-window auditing hooks. PolyForm Noncommercial 1.0.0 -- the
-    # README's "small teams get a commercial license automatically" grant is
-    # not in the LICENSE file, so the binding terms are noncommercial only.
-    # NixOS needs extra plumbing for this one (interpreter allow-list, runtime
-    # writes into settings.json); see cfg/token-optimizer.nix.
-    # SHA is v5.11.65.
-    alexgreensh-token-optimizer.source = {
-      source = "github";
-      repo = "alexgreensh/token-optimizer";
-      sha = "5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1";
-    };
-    # Semantic change-summary cards after an editing turn: a Stop hook detects
-    # file edits and blocks once to have the agent render a "tldr, why, how,
-    # files, risks" card from its own intent rather than an AST diff. That
-    # block forces one additional model round-trip, but only on turns that
-    # touched a file, unlike the #294 audit's "resident cost" concern, which is
-    # about plugins that inject a system-prompt block or dispatch agents on
-    # every single turn regardless of what happened.
-    # Verified marketplace/plugin names match this id exactly (both declared
-    # as "semagraph" in .claude-plugin/marketplace.json at the pinned SHA, so
-    # this isn't the alexgreensh-token-optimizer case above where the key
-    # differs from the repo basename). Zero dependencies, no network access
-    # (verified by reading hooks/stop.js, hooks/preapprove.js and
-    # bin/render.js in full at pin time: preapprove.js only auto-approves an
-    # anchored, single-quoted-heredoc invocation of this plugin's own
-    # render.js, which itself has no fs writes, no child_process/net/http
-    # requires, and no eval -- a pure JSON-in-markdown-out formatter). MIT.
-    # Single-author, one-star upstream, unlike the other entries here, so the
-    # SHA pin matters more than usual: re-read the full hook + render source
-    # before ever bumping it, the same depth as this review, not just a diff.
-    semagraph.source = {
-      source = "github";
-      repo = "Or1onn/Semagraph";
-      sha = "9e57466bfdd220de164c7e29f578c79f9b12b1b7";
-    };
-    # This user's own personal-skills marketplace (dk, kong-cs, gitops, plus
-    # the third-party humanizer/mattpocock-skills/gitops it references in
-    # turn). Ports and supersedes most of what used to live vendored under
-    # config/skills/ in this repo -- see the collision note above
-    # allVendoredSkillNames in default.nix and the retirement note atop
-    # skill-defaults.nix. Unlike every other entry here, this one is bumped
-    # automatically by `just upgrade` / `just quiet-upgrade`
-    # (bump-plugin-marketplace-sha.sh) rather than by hand, on the judgment
-    # that it's this user's own repo and doesn't need the re-read-before-bump
-    # treatment the third-party entries above get. `just bump-claude-skills`
-    # bumps just this one outside a full upgrade.
+  # Marketplaces the manifest marks `selfPin: true` carry no sha of their own;
+  # their sha comes from here. Only claude-skills (the manifest's own repo)
+  # qualifies. Bumped by `just upgrade` / `just quiet-upgrade` /
+  # `just bump-claude-skills` (cfg/scripts/bump-plugin-marketplace-sha.sh),
+  # which rewrites the sha line below AND refreshes the ./claude-stack snapshot
+  # at that same sha. It's this user's own repo, so it doesn't need the
+  # re-read-before-bump treatment the manifest's `review` entries ask for.
+  selfPins = {
     claude-skills.source = {
       source = "github";
       repo = "bashfulrobot/claude-skills";
-      sha = "b14531fcbba57ef8802e90a0929e42247cd626e1";
+      sha = "2c695da736b77306e5b2daf922886482530b822a";
     };
   };
 
+  snapshotFile = ./claude-stack + "/${stackHost}.json";
+
+  stack =
+    lib.throwIfNot (builtins.pathExists snapshotFile)
+      "claude-code plugin-config: no claude-stack snapshot for host '${stackHost}' (${toString snapshotFile}); set apps.cli.claude-code.stackHost to qbert or srv, or run cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills"
+      (builtins.fromJSON (builtins.readFile snapshotFile));
+
   marketplaceOf = pluginId: lib.last (lib.splitString "@" pluginId);
 
+  # Manifest marketplace entry -> the settings.json extraKnownMarketplaces
+  # value. `{source, sha}` pins directly; `selfPin` takes the sha from selfPins.
+  mkMarketplace =
+    name: m:
+    if m ? sha then
+      { source = m.source // { inherit (m) sha; }; }
+    else if (m.selfPin or false) && selfPins ? ${name} then
+      selfPins.${name}
+    else
+      throw "claude-code plugin-config: marketplace '${name}' has no sha and no selfPins entry in cfg/plugin-config.nix";
+
   mkOverlay =
-    pluginIds:
+    stack:
     let
-      referenced = lib.unique (map marketplaceOf pluginIds);
-      # Marketplaces that are neither built-in nor pinned here -- fail loudly
-      # rather than silently failing to register them at runtime.
-      unknown = lib.filter (
-        m: !(lib.elem m builtinMarketplaces) && !(marketplaceSources ? ${m})
-      ) referenced;
-      neededExtra = lib.filter (m: marketplaceSources ? ${m}) referenced;
+      verOk = lib.throwIf (
+        (stack.schemaVersion or 0) != 1
+      ) "claude-code plugin-config: claude-stack snapshot schemaVersion is not 1; update cfg/plugin-config.nix for the new schema" true;
+
+      active = lib.filterAttrs (_: p: p.state != "absent") stack.plugins;
+      marketplaces = lib.filterAttrs (_: m: !(m.builtin or false)) stack.marketplaces;
+      referenced = lib.unique (map marketplaceOf (lib.attrNames active));
+      # Referenced by a live plugin but neither built-in nor in the manifest's
+      # resolved marketplaces: fail loudly rather than silently not registering.
+      unknown = lib.filter (m: !(lib.elem m builtinMarketplaces) && !(marketplaces ? ${m})) referenced;
     in
+    assert verOk;
     lib.throwIf (unknown != [ ])
-      "claude-code plugin-config: plugin(s) reference unknown marketplace(s) ${toString unknown}; add a pinned source to marketplaceSources in cfg/plugin-config.nix"
+      "claude-code plugin-config: plugin(s) reference unknown marketplace(s) ${toString unknown}; fix claude-stack.json in claude-skills and re-bump the snapshot"
       {
-        extraKnownMarketplaces = lib.genAttrs neededExtra (m: marketplaceSources.${m});
-        enabledPlugins = lib.genAttrs pluginIds (_: true);
+        extraKnownMarketplaces = lib.mapAttrs mkMarketplace marketplaces;
+        enabledPlugins = lib.mapAttrs (_: p: p.state == "enabled") active;
       };
+
+  # Ids of plugins this host enables (disabled and absent excluded). Used for
+  # plugin-gated extras (hyperframes deps, token-optimizer plumbing).
+  enabledIds = stack: lib.attrNames (lib.filterAttrs (_: p: p.state == "enabled") stack.plugins);
 in
 {
-  # mkOverlay : [ "name@marketplace" ] -> { extraKnownMarketplaces; enabledPlugins; }
-  inherit mkOverlay;
+  inherit stack mkOverlay enabledIds;
+  # For this host's snapshot, ready for default.nix.
+  overlay = mkOverlay stack;
+  # permissions.allow rules the manifest declares for this host (already
+  # normalised to `X(a *)` and deduplicated by the resolver). NOT part of the
+  # overlay: activation unions them into settings.json add-only
+  # (cfg/activation.nix), it never overwrites the key.
+  permissionsAllow = stack.permissions.allow or [ ];
+  enabled = enabledIds stack;
 }

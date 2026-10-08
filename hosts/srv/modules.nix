@@ -96,45 +96,13 @@
     claude-code = {
       enable = true;
       serverProfile = "minimal";
-      # NOTE: headless srv intentionally runs a SMALLER plugin set than the
-      # workstation suite (modules/suites/ai/default.nix). It deliberately omits
-      # hyperframes (needs ffmpeg + node + puppeteer and a Chromium-family
-      # browser at /run/current-system/sw/bin/${globals.preferences.browser},
-      # provisioned via suites.browsers on workstations -- srv is headless), the
-      # kong CS plugins, impeccable, and the kotlin/pyright/rust LSPs. Only this
-      # list's marketplaces get registered + pinned for srv -- claude-skills
-      # (for dk below) plus claude-plugins-official (built-in, never pinned).
-      # Two occurrences = below the rule-of-three threshold; do not extract
-      # into a shared lib until a third consumer appears.
-      #
-      # It also omits learning-output-style, pr-review-toolkit, feature-dev, and
-      # context7 for the same reason the workstation list does. See the comment
-      # in modules/suites/ai/default.nix and issue #294 before re-adding any of
-      # them here.
-      #
-      # 2026-07-31: dropped code-review@claude-plugins-official (the workstation
-      # list already documents this one as shadowed by the personal
-      # review-dev/review-security skills, zero pluginUsage in #294's scan --
-      # srv had simply never had the same prune applied) and
-      # ralph-loop@claude-plugins-official (an autonomous-loop engine redundant
-      # with the `auto` skill; see the longer usage-data note in
-      # modules/suites/ai/default.nix).
-      plugins = [
-        "frontend-design@claude-plugins-official"
-        "commit-commands@claude-plugins-official"
-        "security-guidance@claude-plugins-official"
-        "slack@claude-plugins-official"
-        "gopls-lsp@claude-plugins-official"
-        "skill-creator@claude-plugins-official"
-        # This user's own personal-skills marketplace (SHA-pinned, see
-        # cfg/plugin-config.nix). Only dk (personal-utility skills), same
-        # reasoning as the rest of this list: srv omits kong-cs (Kong CS
-        # tooling) and gitops (workstation-only, see
-        # modules/suites/ai/default.nix). Supersedes most of what used to
-        # be vendored under config/skills/ -- see the retirement note atop
-        # cfg/skill-defaults.nix.
-        "dk@claude-skills"
-      ];
+      # Headless srv runs a SMALLER plugin set than the workstations (no
+      # kong CS tooling, gitops, or hyperframes' browser stack). Which plugins
+      # and marketplaces it gets comes from the srv claude-stack snapshot
+      # (cfg/claude-stack/srv.json, see cfg/plugin-config.nix), not a list
+      # here. Edit claude-stack.json in claude-skills to change it; the prune
+      # history and rationale are in git history of this file and in
+      # .claude/docs/claude-plugins.md.
     };
     skillfish.enable = true;
     superpowers.enable = true;

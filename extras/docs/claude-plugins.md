@@ -49,8 +49,9 @@ and stay consistent across hosts. The two surfaces are handled differently:
 
 - **Skills** are *captured* from runtime (discover/author in `~/.claude`, then
   `claude-capture` mirrors them into git).
-- **Plugins + marketplaces** are *authored directly in Nix* (`plugin-config.nix`,
-  SHA-pinned) and merged into the deployed `settings.json` -- they are **not**
+- **Plugins + marketplaces** are *declared in the claude-stack manifest*
+  (claude-skills repo), snapshotted into `cfg/claude-stack/<host>.json`, read by
+  `plugin-config.nix` (SHA-pinned) and merged into the deployed `settings.json` -- they are **not**
   captured. The `claude-plugins` / `claude plugin` CLIs above are for ad-hoc
   discovery and experimentation only; the durable, reproducible state lives in
   `plugin-config.nix`.

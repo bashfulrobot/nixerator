@@ -4,6 +4,22 @@ Nix-managed Claude Code configuration: settings, hooks, agents, skills, MCP
 servers, plugins, status line. Built around the thin-CLAUDE.md protocol; most
 behaviour is enforced via hooks rather than left to discipline.
 
+## Plugins and marketplaces
+
+Driven by the claude-stack manifest, not by lists in this repo. The manifest
+(`claude-stack/claude-stack.json` in `bashfulrobot/claude-skills`) resolves to
+one file per host; `cfg/claude-stack/{qbert,srv}.json` here are committed
+snapshots of those files, refreshed together with the claude-skills sha pin by
+`cfg/scripts/bump-plugin-marketplace-sha.sh` (`just bump-claude-skills`,
+`just upgrade`). `cfg/plugin-config.nix` reads the snapshot chosen by
+`apps.cli.claude-code.stackHost` (default: hostname) and produces the
+`enabledPlugins` (enabled -> true, disabled -> false, absent -> omitted) and
+`extraKnownMarketplaces` overlay merged into `settings.json` at activation and
+stripped on capture. The old `apps.cli.claude-code.plugins` option is gone.
+Dropping a plugin means pruning `config/plugins/installed_plugins.json`, its
+live copy and the cache dir together; see `.claude/docs/claude-plugins.md`
+("The fixpoint").
+
 ## External best-practices audit
 
 Last evaluated: **2026-05-05** against

@@ -22,101 +22,18 @@ in
         agent-scan.enable = true;
         claude-code = {
           enable = true;
-          # Workstation plugin set. Drives the declarative, SHA-pinned
-          # settings.json overlay (cfg/plugin-config.nix) -- each id is enabled
-          # and its marketplace registered + pinned. superpowers is added by the
-          # superpowers module. Headless srv keeps a smaller list in
-          # hosts/srv/modules.nix (no browser-dependent hyperframes, no kong CS
-          # tooling, fewer LSPs).
-          #
-          # Deliberately absent (see issue #294, a token-surface audit over 90
-          # days of transcripts). Every plugin here costs standing context on
-          # every turn, so a plugin that ships agents or an output style has to
-          # earn it:
-          #   learning-output-style -- injects a system-prompt block telling
-          #     Claude to stop and hand TODOs back for the user to write. The
-          #     opposite of what's wanted, and it inflates turn count.
-          #   pr-review-toolkit     -- six agent definitions (~1.8k tokens
-          #     resident), dispatched once ever. review-dev/review-security
-          #     cover this via the local reviewer-* agents.
-          #   feature-dev           -- three agent definitions, never dispatched.
-          #   context7              -- duplicate mount. The user-scoped server in
-          #     cfg/mcp-servers.nix is the single source; the plugin only added a
-          #     second copy of the same tool schemas.
-          #   asana, atlassian, github -- their MCP servers sat unauthenticated
-          #     in `/mcp` with zero real use (github work goes through the `gh`
-          #     CLI, not this MCP). Dropped 2026-07-27; re-add with usage data.
-          #   code-review, kotlin-lsp, rust-analyzer-lsp, kong-skills, kong-skill,
-          #     commit@kong-skills, feature-request@kong-skills, impeccable,
-          #     hyperframes, kong-konnect@ai-marketplace -- zero pluginUsage and
-          #     zero transcript hits over 50 sessions / 3.5 days (claude-code
-          #     doctor, 2026-07-30). code-review/commit@kong-skills/
-          #     feature-request@kong-skills were shadowed by the personal
-          #     review-dev, review-security, commit, and feature-request skills
-          #     the whole time. kotlin-lsp/rust-analyzer-lsp: no Kotlin/Rust
-          #     project has touched this user-scope install; re-add if one does.
-          #     kong-konnect@ai-marketplace (20 Konnect skills): zero use despite
-          #     being Kong's own product -- its bundled MCP server was already
-          #     shadowed (see the old comment this replaced), the skills just
-          #     never got invoked either. Dropped 2026-07-30; re-add with usage
-          #     data, same bar as everything else here.
-          #   ralph-loop, reap (cfg/reap.nix + build/reap) -- dropped 2026-07-31.
-          #     Both are "run autonomously until goal" engines, same job as the
-          #     `auto` skill. Intent-log scan across 596 sessions: `/auto` in 18
-          #     sessions, `reap.` in 2, `ralph-loop` in 1 -- `auto` is the one
-          #     actually used, and it already has the sentinel-gated rm/kill/pkill
-          #     PreToolUse wiring (cfg/scripts/auto-gate.sh) the others lack.
-          #     clay-ralph (a user skill, unmanaged by Nix) was the fourth such
-          #     engine and was removed directly from ~/.claude/skills/ for the
-          #     same reason (1 session hit).
-          #   caveman -- dropped 2026-07-31. Its SessionStart/UserPromptSubmit
-          #     ruleset directly contradicted ~/.claude/CLAUDE.md's non-negotiable
-          #     "run all prose through humanizer" hard rule (the plugin's own
-          #     docs admitted the clash and required a manual per-repo/per-session
-          #     drop-out). Removed at the root rather than scoped, per a full
-          #     setup review; see git history (.claude/docs/caveman.md, this
-          #     file's blame) if it comes back.
-          # Re-adding any of these should come with usage data, not a hunch.
-          plugins = [
-            # claude-plugins-official (built-in marketplace)
-            "frontend-design@claude-plugins-official"
-            "commit-commands@claude-plugins-official"
-            "security-guidance@claude-plugins-official"
-            "slack@claude-plugins-official"
-            "skill-creator@claude-plugins-official"
-            "gopls-lsp@claude-plugins-official"
-            "pyright-lsp@claude-plugins-official"
-            # kong-skills (Kong CS marketplace, SHA-pinned)
-            "kong-doc-build@kong-skills"
-            # This user's own personal-skills marketplace (SHA-pinned, see
-            # cfg/plugin-config.nix). dk is the personal-utility set,
-            # kong-cs the Kong CS set (depends on dk for text-polish/
-            # writing-style, so both are listed), gitops is fluxcd's own
-            # cluster-debug/repo-audit/knowledge skills referenced from
-            # there rather than vendored. Supersedes most of what used to be
-            # vendored under config/skills/ -- see the retirement note atop
-            # cfg/skill-defaults.nix. Headless srv keeps only dk
-            # (hosts/srv/modules.nix); kong CS work and gitops tooling are
-            # workstation-only here.
-            "dk@claude-skills"
-            "kong-cs@claude-skills"
-            "gitops@claude-skills"
-            # other third-party (SHA-pinned)
-            # Context-window auditing. Unlike the plugins struck from this list
-            # under #294, its standing cost (4 skills, 2 commands) buys a
-            # measurement of exactly the thing that audit was about. Needs the
-            # NixOS plumbing in cfg/token-optimizer.nix to run at all, and
-            # carries a noncommercial-only licence -- read
-            # .claude/docs/token-optimizer.md before putting it on a work host.
-            "token-optimizer@alexgreensh-token-optimizer"
-            # Semantic change-summary cards (issue #303). See
-            # cfg/plugin-config.nix for why it's trusted. The Stop hook has no
-            # browser/GPU dependency, unlike hyperframes above, so nothing
-            # here would stop it working headless; it's simply not part of
-            # srv's own curated minimal list (hosts/srv/modules.nix), the same
-            # reason that list omits the kong CS tooling and some LSPs.
-            "semagraph@semagraph"
-          ];
+          # Plugins and marketplaces for this host come from the claude-stack
+          # manifest snapshot (cfg/claude-stack/<host>.json, see
+          # cfg/plugin-config.nix), not from a list here. Edit
+          # claude-stack.json in claude-skills to add, drop or pin one. The
+          # rationale that used to live in this list (the #294 token-surface
+          # audit and the 2026-07-30/31 usage-data drops: learning-output-style,
+          # pr-review-toolkit, feature-dev, context7, asana/atlassian/github,
+          # code-review, the kotlin/rust LSPs, kong-skills extras, impeccable,
+          # hyperframes, kong-konnect@ai-marketplace, ralph-loop, reap,
+          # caveman) is in git history of this file and in
+          # .claude/docs/claude-plugins.md. Re-adding any of them needs usage
+          # data, not a hunch.
           # Local context-compression CLI (issue #313). Not a plugin -- see
           # cfg/headroom.nix. Workstation-scoped like the rest of this
           # suite; srv's headless list (hosts/srv/modules.nix) deliberately
