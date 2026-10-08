@@ -445,6 +445,7 @@ in
             ''
               install -Dm644 ${pkgs.writeText "dev-stignore" ''
                 .git
+                .mcp.json
               ''} "$HOME/dev/.stignore"
               install -Dm644 ${pkgs.writeText "upsight-data-stignore" upsightIgnores} "$HOME/.local/share/upsight/.stignore"
               install -Dm644 ${pkgs.writeText "upsight-config-stignore" upsightIgnores} "$HOME/.config/upsight/.stignore"
