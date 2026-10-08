@@ -241,7 +241,6 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `aha` | API Credential | `credential` | `secrets.aha.apiToken` (injected as `AHA_API_TOKEN` by the claude-code module for the `aha` skill) |
 | `wave` | API Credential | `credential` | `secrets.wave.fullAccessToken` (injected as `WAVE_FULL_ACCESS_TOKEN` by the claude-code module for the `wave-invoicing` skill; Wave Full Access Token — personal-use bearer, no OAuth) |
 | `forgejo-api` | API Credential | `token` | `.forgejo.apiToken` in the rendered blob, read at **runtime** (never through the Nix store): the fish module exports it as `FORGEJO_TOKEN` for skills that curl the Forgejo (`git.srvrs.co`) REST API, and the git module renders `~/.config/tea/config.yml` for the `tea` CLI. High-privilege token — skills using it default read-only and gate writes. |
-| `context7` | API Credential | `credential` | `secrets.context7.apiKey` |
 | `zai` | API Credential | `credential` | `secrets.zai.apiKey` |
 | `gemini` | API Credential | `credential` | `secrets.gemini.apiKey` |
 | `snyk` | API Credential | `credential` | `secrets.snyk.token` |

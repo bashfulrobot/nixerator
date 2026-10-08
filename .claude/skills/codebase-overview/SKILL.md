@@ -198,7 +198,7 @@ Repo-local, `.claude/docs/`:
 
 - `conventions.md` — build/rebuild/lint/format/upgrade rules, git discipline, secrets rules, path discipline.
 - `webapps.md` — adding a browser-wrapped web app; `wmClass` verification.
-- `sources.md` — context7/gitmcp lookup table for Nix tool and flake-input docs.
+- `sources.md` — gitmcp lookup table for Nix tool and flake-input docs.
 - `tools.md` — the local CLI tools (`amber`, `cpx`, `meetsum`, `nix-init`, `ballpoint`).
 - `cross-device-workflow.md` — `claudeWorkHost`, the `work` fish function, session pickup.
 - `dank-capture.md` — DMS capture/seed flow, `dank-profiles/`.

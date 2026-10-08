@@ -1,21 +1,21 @@
 # Documentation sources
 
-How to look up authoritative docs for the languages, tools, and flake inputs nixerator depends on. Skip context7's `resolve-library-id` round-trip when the IDs below already cover what you need.
+How to look up authoritative docs for the languages, tools, and flake inputs nixerator depends on.
 
-## context7 (major upstream Nix tooling)
+## Major upstream Nix tooling
 
-| Source | Library ID | Use it when |
+Read these through gitmcp (below) or the official manuals; no docs-indexing MCP is configured.
+
+| Source | Repo / manual | Use it when |
 |---|---|---|
-| nixpkgs options/manual | `/websites/nixos_manual_nixpkgs_unstable` | Looking up a NixOS option (`services.foo.bar`) by keyword and you don't know the exact path |
-| nixpkgs general | `/nixos/nixpkgs` | Asking how a package is built/overridden, or about nixpkgs library functions (`lib.*`, `mkDerivation`, overlays) |
-| home-manager OPTIONS | `/websites/home-manager-options_extranix` | You need the right HM option name, its type, default, or example, and you don't already know the path. Beats grepping HM source for option discovery. Skip it if you already have the exact `programs.x.y` path — grep is faster |
-| home-manager guide | `/websites/nix-community_github_io_home-manager` | "How does home-manager *do* X" conceptual / workflow questions (activation, generations, integration with NixOS) — not option lookups |
-| stylix | `/websites/nix-community_github_io_stylix` | Any stylix theming, target enable/disable, color/font/wallpaper option |
-| disko | `/nix-community/disko` | Disk layout authoring, partition types, migration between table → gpt, disko-install usage |
-| flake-parts | `/websites/flake_parts` | Writing or restructuring a flake-parts module, perSystem patterns, importing community modules |
-| fish-shell | `/fish-shell/fish-shell` | Fish builtin / syntax / scripting questions — covers ~95% of fish surface |
+| nixpkgs options/manual | `NixOS/nixpkgs`, nixos.org manual | Looking up a NixOS option, how a package is built/overridden, or nixpkgs `lib.*` functions |
+| home-manager | `nix-community/home-manager` | The right HM option name, type, default, or example, and conceptual "how does HM do X" questions |
+| stylix | `nix-community/stylix` | Any stylix theming, target enable/disable, color/font/wallpaper option |
+| disko | `nix-community/disko` | Disk layout authoring, partition types, disko-install usage |
+| flake-parts | `hercules-ci/flake-parts` | Writing or restructuring a flake-parts module, perSystem patterns |
+| fish-shell | `fish-shell/fish-shell` | Fish builtin / syntax / scripting questions |
 
-## gitmcp (personal / niche flake inputs not indexed by context7)
+## gitmcp (any GitHub repo, including personal / niche flake inputs)
 
 Use `mcp__gitmcp__fetch_generic_documentation` with owner + repo for:
 

@@ -109,7 +109,7 @@ the relevant procedure below.
 | 24. Realpath | `Bash(realpath *)` allowed |
 | 25. CLAUDE.md vs skills vs commands vs plugins | Documented in `~/.claude/CLAUDE.md` ("Where curated knowledge goes") |
 | 26. Interactive PR reviews | `/review-dev`, `/review-security`, `/review`, `/ultrareview` |
-| 27. Research tool | gitmcp + context7 + qmd + chrome-devtools + playwright MCPs |
+| 27. Research tool | gitmcp + qmd + chrome-devtools + playwright MCPs |
 | 28. Output verification | `superpowers:verification-before-completion` (mandatory) |
 | 29. DevOps automation | `devops` agent + `fluxcd` + `gitops-*` skills |
 | 30. Keep CLAUDE.md simple | Thin-CLAUDE.md protocol is the documented standard |

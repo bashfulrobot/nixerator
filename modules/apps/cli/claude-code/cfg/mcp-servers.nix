@@ -11,8 +11,6 @@
 }:
 
 let
-  context7ApiKey = (secrets.context7 or { }).apiKey or null;
-
   mcpServers = {
     # Go code intelligence via official gopls MCP (detached mode)
     # Tools: go_diagnostics, go_references, go_search, go_symbol_references, etc.
@@ -199,18 +197,6 @@ let
       ];
     };
   }
-  // lib.optionalAttrs (context7ApiKey != null) {
-    context7 = {
-      type = "http";
-      url = "https://mcp.context7.com/mcp";
-      headers = {
-        # Placeholder only; the real key is substituted into ~/.claude/mcp-servers
-        # at activation from the off-store secrets file (issue #265), so it never
-        # lands in the world-readable store.
-        CONTEXT7_API_KEY = "@CONTEXT7_API_KEY@";
-      };
-    };
-  }
   // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
     kong-konnect = {
       type = "http";
@@ -305,18 +291,11 @@ let
   # writes the real file from the off-store secrets file at 0600 (issue #265).
   # Each entry maps its placeholders to jq paths in the rendered secrets JSON.
   secretServerNames = [
-    "context7"
     "kong-konnect"
     "tableau"
   ];
 
   secretServerSubs = {
-    context7 = [
-      {
-        placeholder = "@CONTEXT7_API_KEY@";
-        path = ".context7.apiKey";
-      }
-    ];
     kong-konnect = [
       {
         placeholder = "@KONG_KONNECT_PAT@";

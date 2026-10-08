@@ -30,7 +30,7 @@ fi
 # exposure, which is exactly how a live Konnect PAT + Tableau PAT ended up
 # sitting in plaintext in ~/dev/kong/.mcp.json (2026-09-16). Keep this list
 # in sync with secretServerNames in cfg/mcp-servers.nix.
-secret_servers=(kong-konnect tableau context7 opentabs)
+secret_servers=(kong-konnect tableau opentabs)
 is_secret_server() {
   local name="$1" s
   for s in "${secret_servers[@]}"; do

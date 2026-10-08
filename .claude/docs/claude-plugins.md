@@ -85,8 +85,8 @@ data, not a hunch:
   to the user; inflates turn count.
 - pr-review-toolkit, feature-dev: agent definitions (~1.8k tokens resident for
   the former), dispatched once or never; review-dev/review-security cover it.
-- context7: duplicate mount; the user-scoped server in `cfg/mcp-servers.nix` is
-  the single source.
+- context7: duplicate mount. The user-scoped server in `cfg/mcp-servers.nix` was
+  the single source until it was removed too (no context7 in nixerator now).
 - asana, atlassian, github: MCP servers sat unauthenticated, no real use
   (github work goes through `gh`).
 - code-review, kotlin-lsp, rust-analyzer-lsp, kong-skills@kong-skills,
@@ -240,5 +240,4 @@ instead of `op://nixerator/...`. The account that runs `just render-secrets`
 (and `op inject`) must have read access to `automation`.
 
 Still `op://nixerator/...` (not used by the Mac, no `automation` item known):
-everything else in `secrets.json.tpl`, notably `context7/credential`. context7
-needs the item created in the `automation` vault first, then the ref repointed.
+everything else in `secrets.json.tpl`.
