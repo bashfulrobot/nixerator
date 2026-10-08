@@ -217,6 +217,10 @@
           #   - extraKnownMarketplaces / enabledPlugins: owned by cfg/plugin-config.nix
           #     (derived from the claude-stack snapshot, merged at activation) -> dropped
           #   - permissions.ask:           Nix-owned (activation pins it) -> dropped
+          #   - permissions.allow:         deliberately KEPT. It is runtime-owned;
+          #     activation only appends the claude-stack snapshot's rules to it
+          #     (add-only union, cfg/activation.nix), so captured rules include
+          #     the appended ones and the next activation appends nothing.
           #   - hooks with a /nix/store command: EVERY Nix-owned hook is injected at
           #     activation (cfg/activation.nix) with its store path, so its volatile
           #     hash must never be committed. Stripping any hook whose command lives
