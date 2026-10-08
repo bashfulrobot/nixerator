@@ -103,5 +103,10 @@ in
   inherit stack mkOverlay enabledIds;
   # For this host's snapshot, ready for default.nix.
   overlay = mkOverlay stack;
+  # permissions.allow rules the manifest declares for this host (already
+  # normalised to `X(a *)` and deduplicated by the resolver). NOT part of the
+  # overlay: activation unions them into settings.json add-only
+  # (cfg/activation.nix), it never overwrites the key.
+  permissionsAllow = stack.permissions.allow or [ ];
   enabled = enabledIds stack;
 }

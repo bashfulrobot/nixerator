@@ -28,6 +28,7 @@
   vibecurbSkillNames,
   textPolishRulesFile,
   pluginOverlay,
+  stackPermissions,
   skillOverlay,
   userScopeMcpTemplate,
   secretServerFiles,
@@ -106,6 +107,24 @@
       ${pkgs.jq}/bin/jq --slurpfile ov ${pluginOverlay} \
         '.extraKnownMarketplaces = $ov[0].extraKnownMarketplaces
          | .enabledPlugins = $ov[0].enabledPlugins' \
+        "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+      mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+
+      # permissions.allow from the claude-stack snapshot: ADD-ONLY ordered union.
+      # Unlike the plugin keys above, permissions are runtime-owned (rules the
+      # user approves in a session are captured into the repo settings.json),
+      # so this never replaces or removes anything: existing rules keep their
+      # order, and declared rules not already present are appended in manifest
+      # order. "Already present" compares the `X(a:*)` and `X(a *)` spellings
+      # as equal (the manifest normalises to `X(a *)`), so a legacy-syntax rule
+      # is not duplicated. Idempotent: a second run appends nothing. Capture
+      # (cfg/fish.nix) keeps permissions.allow, so appended rules round-trip
+      # into the repo copy and stay a fixpoint.
+      ${pkgs.jq}/bin/jq --slurpfile decl ${stackPermissions} \
+        'def norm: sub(":\\*\\)$"; " *)");
+         (.permissions.allow // []) as $cur
+         | ($cur | map(norm)) as $have
+         | .permissions.allow = ($cur + [$decl[0][] | select(norm as $n | $have | any(. == $n) | not)])' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 

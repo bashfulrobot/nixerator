@@ -50,6 +50,11 @@ let
   pluginOverlayFile = pkgs.writeText "claude-plugin-overlay.json" (
     builtins.toJSON pluginConfig.overlay
   );
+  # Manifest permissions.allow for this host, unioned (add-only) into
+  # settings.json at activation. Unlike the overlay, the key is runtime-owned.
+  stackPermissionsFile = pkgs.writeText "claude-stack-permissions.json" (
+    builtins.toJSON pluginConfig.permissionsAllow
+  );
   # Default-off skill surface (see cfg/skill-defaults.nix for the always-on
   # baseline and why each entry earned its spot). Same overlay pattern as
   # pluginOverlayFile above: force-merged into settings.json at activation,
@@ -189,6 +194,7 @@ let
     # its default, so the two can't drift, and activation only ever `cp`s it.
     textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
+    stackPermissions = stackPermissionsFile;
     skillOverlay = skillOverlayFile;
     userScopeMcpTemplate = userScopeMcpTemplateFile;
     inherit (mcpConfig) secretServerFiles;

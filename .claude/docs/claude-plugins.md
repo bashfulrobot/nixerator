@@ -34,7 +34,29 @@ capture cannot unpin them. Per-host `plugins = [ ... ]` lists no longer exist:
 only pointer comments. Plugin-gated extras (`hasTokenOptimizer`,
 `hasHyperframes`) test the snapshot's enabled ids. The manifest's `config` and
 `secrets` per plugin are not applied by Nix yet (userConfig/secret wiring is a
-later phase); only state and marketplaces are.
+later phase); only state and marketplaces are. Their `secrets` refs already
+use the single `automation` 1Password vault (see below).
+
+### Permissions: add-only union, runtime-owned
+
+The snapshot's `permissions.allow` (manifest syntax is the normalised
+`Bash(x *)`; the resolver already folds `Bash(x:*)` into it) is merged into
+`~/.claude/settings.json` at activation as an ordered, add-only union
+(`cfg/activation.nix`, fed by `permissionsAllow` in `plugin-config.nix`).
+Existing rules keep their order and are never removed; declared rules not
+already present are appended in manifest order. A live `Bash(x:*)` counts as
+present for a declared `Bash(x *)`, so the legacy spelling is not duplicated.
+`permissions.deny` is not touched.
+
+This is unlike `enabledPlugins`: permissions stay runtime-owned. Capture
+(`cfg/fish.nix`) strips only `permissions.ask`, so `permissions.allow`
+round-trips into `config/settings.json`, appended rules included. The union is
+idempotent, so capture -> activation -> capture is a fixpoint. Consequence:
+removing a rule from the manifest does not revoke it on a host; delete it from
+`config/settings.json` and the live file by hand. Both snapshots currently
+declare an empty allow list, so the merge is a no-op until the manifest gains
+rules. Not verified end to end (no nix on the authoring Mac); the jq filter was
+tested standalone for ordering, `:*` normalisation and idempotence.
 
 ### Changing the set, and the pin/snapshot coupling
 
@@ -199,3 +221,15 @@ snapshot carries it. A SHA bump re-grants that trust wholesale. Re-run the same 
 (read every hook entrypoint and any auto-approval matcher in full, not just
 a diff against the old SHA) before bumping a single-author marketplace,
 and update the pin comment with what changed.
+
+## 1Password vault: `automation`
+
+One vault, the same refs as the Mac (donkeykong `Claudefile`). `secrets.json.tpl`
+now reads `kong-konnect-pat/lab-pat-2026-06` and all four `Tableau-PAT` fields
+(`hostname`, `Site-Name`, `username`, `credential`) from `op://automation/...`
+instead of `op://nixerator/...`. The account that runs `just render-secrets`
+(and `op inject`) must have read access to `automation`.
+
+Still `op://nixerator/...` (not used by the Mac, no `automation` item known):
+everything else in `secrets.json.tpl`, notably `context7/credential`. context7
+needs the item created in the `automation` vault first, then the ref repointed.
