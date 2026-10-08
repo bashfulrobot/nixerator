@@ -31,12 +31,6 @@
       "scope": "library",
       "type": "stdio"
     },
-    "context7": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://mcp.context7.com/mcp"
-    },
     "flux-operator-mcp": {
       "managedBy": "nix",
       "scope": "library",
