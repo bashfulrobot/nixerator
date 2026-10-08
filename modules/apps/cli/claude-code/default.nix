@@ -146,7 +146,6 @@ let
       lib
       configDir
       statusLineScript
-      autoGateScript
       precompactScript
       reinjectScript
       remindersFile
@@ -207,40 +206,6 @@ let
       pkgs.gawk
     ];
     text = builtins.readFile ./statusline.sh;
-  };
-
-  # PreToolUse permission gate for /auto and /github-issues-auto autonomous
-  # sessions. Sole arbiter for rm/kill/pkill, gated by the session-bound
-  # ~/.claude/.auto-mode-active sentinel (see
-  # config/skills/auto/references/permission-model.md). rm is further scoped
-  # to the session's own working tree (git toplevel of the hook payload's
-  # .cwd), an optional pre-authorized-folders file, and a short list of
-  # universal scratch roots -- git is needed for the toplevel resolution.
-  autoGateScript = pkgs.writeShellApplication {
-    name = "claude-auto-gate";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.gnugrep
-      pkgs.coreutils
-      pkgs.git
-    ];
-    text = builtins.readFile ./cfg/scripts/auto-gate.sh;
-  };
-
-  # `auto-permissions` on PATH: manages auto-gate.sh's pre-authorized-folders
-  # file (~/.claude/auto-safe-roots) and reports sentinel status. Validation
-  # rules are a deliberate second copy of auto-gate.sh's own (see the
-  # script's header) -- kept as a real writeShellApplication, not a plain
-  # writeScriptBin like mcp-pick/skill-pick, because it duplicates
-  # permission-sensitive logic that's worth shellcheck + set -e catching a
-  # typo in, same reasoning as autoGateScript above.
-  autoPermissionsScript = pkgs.writeShellApplication {
-    name = "auto-permissions";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.coreutils
-    ];
-    text = builtins.readFile ./cfg/scripts/auto-permissions.sh;
   };
 
   # Context-rot survival. PreCompact writes a recovery snapshot + a per-session
@@ -316,7 +281,7 @@ let
   # warn-level guards above, this blocks the command before it runs, because a
   # stash pushed onto the shared refs/stash stack is already a hazard the
   # moment a second agent is active in the repo. PreToolUse deny composes with
-  # the auto-gate (an allow can never override a deny).
+  # the dk plugin's auto-gate (an allow can never override a deny).
   guardGitStashScript = pkgs.writeShellApplication {
     name = "claude-guard-git-stash";
     runtimeInputs = [
@@ -550,7 +515,6 @@ in
       (with pkgs; [
         (writeScriptBin "mcp-pick" mcpPick)
         (writeScriptBin "skill-pick" skillPick)
-        autoPermissionsScript
         llm-agents.claude-plugins # Plugin & skills manager
         fzf
         jq
