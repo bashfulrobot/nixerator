@@ -39,6 +39,12 @@ _:
     text-polish.enable = true;
     text-uppercase.enable = true;
 
+    # donkeykong has no entry of its own in the claude-stack manifest (the
+    # NixOS laptop is out of its scope), and it runs the same workstation
+    # suite as qbert, so follow qbert's declared plugins/marketplaces instead
+    # of failing on a missing cfg/claude-stack/donkeykong.json.
+    claude-code.stackHost = "qbert";
+
     # Text expander. See modules/apps/cli/espanso/default.nix for why this
     # goes through the system-level services.espanso rather than Home
     # Manager's -- only the former wires up the CAP_DAC_OVERRIDE wrapper
