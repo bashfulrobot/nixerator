@@ -26,7 +26,7 @@
 # place. No-op, exit 0, if the pin is already current.
 #
 # Deliberately scoped to one entry per invocation: the third-party pins in the
-# manifest (semagraph, alexgreensh-token-optimizer, ...) carry a `review`
+# manifest (semagraph, ...) carry a `review`
 # requirement ("re-read the source before ever bumping"), and they change only
 # when the manifest does. claude-skills is this user's own repo, reviewed by
 # writing it, so it's the one entry safe to wire into an unattended

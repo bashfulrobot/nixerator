@@ -13,8 +13,7 @@
       # (below) -- headroom starts its own local proxy + Serena semantic-code
       # server and routes traffic through its compressors, which is worth
       # trying deliberately rather than silently changing what plain `claude`
-      # does every time, especially since token-optimizer already sits
-      # in the context/output-compression space.
+      # does every time.
       hclaude = {
         description = "Start Claude Code wrapped by Headroom (context compression)";
         body = ''

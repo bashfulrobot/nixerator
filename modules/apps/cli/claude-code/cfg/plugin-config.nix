@@ -101,7 +101,7 @@ let
       };
 
   # Ids of plugins this host enables (disabled and absent excluded). Used for
-  # plugin-gated extras (hyperframes deps, token-optimizer plumbing).
+  # plugin-gated extras (hyperframes deps).
   enabledIds = stack: lib.attrNames (lib.filterAttrs (_: p: p.state == "enabled") stack.plugins);
 in
 {

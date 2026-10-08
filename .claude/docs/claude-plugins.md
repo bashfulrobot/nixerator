@@ -31,8 +31,9 @@ Activation merges these two keys into the deployed `~/.claude/settings.json`,
 and capture (`cfg/fish.nix`) strips them, so Nix owns them and a bare runtime
 capture cannot unpin them. Per-host `plugins = [ ... ]` lists no longer exist:
 `modules/suites/ai`, `hosts/srv/modules.nix` and the superpowers module carry
-only pointer comments. Plugin-gated extras (`hasTokenOptimizer`,
-`hasHyperframes`) test the snapshot's enabled ids. The manifest's `config` and
+only pointer comments. The plugin-gated extra `hasHyperframes`
+tests the snapshot's enabled ids. (token-optimizer and its `hasTokenOptimizer`
+plumbing were removed everywhere; see below.) The manifest's `config` and
 `secrets` per plugin are not applied by Nix yet (userConfig/secret wiring is a
 later phase); only state and marketplaces are. Their `secrets` refs already
 use the single `automation` 1Password vault (see below).
@@ -92,6 +93,14 @@ data, not a hunch:
   kong-skill, commit@kong-skills, feature-request@kong-skills, impeccable,
   hyperframes, kong-konnect@ai-marketplace: zero usage over 50 sessions; several
   were shadowed by the personal review-dev, commit and feature-request skills.
+- token-optimizer@alexgreensh-token-optimizer: removed everywhere (module
+  option, `cfg/token-optimizer.nix`, tmpfiles `/usr/local/bin/python3` rule,
+  activation flag pinning, reminder, `installed_plugins.json` entry, doc). The
+  Mac does not use it and NixOS follows the Mac's patterns. The `qbert.json`
+  snapshot still lists it until `just bump-claude-skills` pulls a snapshot
+  regenerated from claude-skills `feat/claude-stack-unify`; do not hand-edit it.
+  Leftovers on already-deployed hosts (`~/.claude/plugins/data/token-optimizer-*`,
+  the `/usr/local/bin/python3` symlink goes away on rebuild) can be deleted by hand.
 - ralph-loop, reap, caveman: autonomous-loop engines duplicating `auto`
   (`/auto` 18 sessions vs 1-2), and caveman's terse-output ruleset contradicted
   the global "run all prose through humanizer" rule.
@@ -180,7 +189,7 @@ plugin-install log; use `claude --debug` if you need to watch the load.
 ## Pin-time trust review, and re-review on bump
 
 Most marketplaces pinned in the manifest trace to a recognizable
-source (Kong, heygen-com, pbakaus, JuliusBrussee, alexgreensh). A pin from a
+source (Kong, heygen-com, pbakaus, JuliusBrussee). A pin from a
 single-author or low-star repo carries more risk per byte, especially if the
 plugin ships a hook that can auto-approve a tool call (a `PreToolUse` hook
 returning `permissionDecision: "allow"`) rather than only reading transcript

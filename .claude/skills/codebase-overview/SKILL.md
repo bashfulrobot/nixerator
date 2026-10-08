@@ -205,7 +205,6 @@ Repo-local, `.claude/docs/`:
 - `claude-plugins.md` — declarative plugin marketplace surface, capture behaviour.
 - `user-lingering.md` — `systemd.user` timers, `linger`, the no-enable-option invariant pattern.
 - `skill-cache.md` — warm-cache convention for query skills.
-- `token-optimizer.md` — the token-optimizer plugin, the `/usr/local/bin/python3` tmpfiles rule, hook exit 127.
 - `vendored-skills.md` — adding/bumping/debugging a skill vendored from a flake input.
 - `skill-defaults.md` — the always-on baseline, default-off model, and `skill-pick`.
 
