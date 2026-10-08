@@ -1,14 +1,6 @@
 {
   "host": "qbert",
   "marketplaces": {
-    "alexgreensh-token-optimizer": {
-      "notes": "PolyForm Noncommercial license; NixOS needs extra plumbing (nixerator cfg/token-optimizer.nix).",
-      "sha": "5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1",
-      "source": {
-        "repo": "alexgreensh/token-optimizer",
-        "source": "github"
-      }
-    },
     "claude-skills": {
       "notes": "Own marketplace. Tracks the repo itself, so no sha.",
       "selfPin": true,
@@ -106,11 +98,71 @@
     }
   },
   "permissions": {
-    "allow": [],
+    "allow": [
+      "Bash(gh *)",
+      "Bash(gcloud *)",
+      "Bash(git *)",
+      "Bash(docker *)",
+      "Bash(kubectl *)",
+      "Bash(helm *)",
+      "Bash(tofu *)",
+      "Bash(k3d *)",
+      "Bash(k9s *)",
+      "Bash(flux *)",
+      "Bash(kubeseal *)",
+      "Bash(trivy *)",
+      "Bash(popeye *)",
+      "Bash(dive *)",
+      "Bash(cilium *)",
+      "Bash(deck *)",
+      "Bash(krew *)",
+      "Bash(go *)",
+      "Bash(node *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(uv *)",
+      "Bash(jq *)",
+      "Bash(yq *)",
+      "Bash(mlr *)",
+      "Bash(gron *)",
+      "Bash(pandoc *)",
+      "Bash(gitleaks *)",
+      "Bash(chezmoi *)",
+      "Bash(just *)",
+      "Bash(direnv *)",
+      "Bash(shellcheck *)",
+      "Bash(shfmt *)",
+      "Bash(bats *)",
+      "Bash(fd *)",
+      "Bash(rg *)",
+      "Bash(bat *)",
+      "Bash(eza *)",
+      "Bash(dust *)",
+      "Bash(sd *)",
+      "Bash(delta *)",
+      "Bash(procs *)",
+      "Bash(tokei *)",
+      "Bash(tldr *)",
+      "Bash(broot *)",
+      "Bash(viddy *)",
+      "Bash(btm *)",
+      "Bash(fzf *)",
+      "Bash(zoxide *)",
+      "Bash(gum *)",
+      "Bash(flock *)",
+      "Bash(ffmpeg *)",
+      "Bash(ollama *)",
+      "Bash(todoist *)"
+    ],
     "deny": []
   },
   "platform": "linux",
   "plugins": {
+    "atlassian@claude-plugins-official": {
+      "state": "absent"
+    },
     "commit-commands@claude-plugins-official": {
       "state": "enabled"
     },
@@ -119,6 +171,9 @@
     },
     "frontend-design@claude-skills": {
       "state": "enabled"
+    },
+    "github@claude-plugins-official": {
+      "state": "absent"
     },
     "gitops@claude-skills": {
       "state": "enabled"
@@ -193,9 +248,6 @@
       "state": "enabled"
     },
     "superpowers@claude-plugins-official": {
-      "state": "enabled"
-    },
-    "token-optimizer@alexgreensh-token-optimizer": {
       "state": "enabled"
     }
   },
