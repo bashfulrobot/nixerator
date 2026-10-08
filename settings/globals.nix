@@ -82,10 +82,6 @@ rec {
       tailscale_ip = "100.74.137.95";
       syncthing_id = "P4GTYZK-MK4AIO5-6JCS4PG-VUACBUS-DP6XERC-ZQGAJAI-PU5WNPB-XTUVEQ2";
     };
-    donkeykong = {
-      tailscale_ip = "100.117.210.113";
-      syncthing_id = "L5XTMUP-FJ4RF5U-GIHYCX6-ZCB3CNA-VY276FE-2INLPNI-Z4M6KQ6-4PPP2AS";
-    };
     srv = {
       tailscale_ip = "100.64.187.14";
     };

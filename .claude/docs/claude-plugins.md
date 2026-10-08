@@ -18,8 +18,8 @@ modules/apps/cli/claude-code/cfg/claude-stack/srv.json
 ```
 
 `cfg/plugin-config.nix` reads the snapshot for `apps.cli.claude-code.stackHost`
-(default: the hostname; donkeykong has no manifest entry and is set to `qbert`
-in `hosts/donkeykong/modules.nix`) with `builtins.fromJSON` and builds two keys:
+(default: the hostname; a host with no manifest entry can set it to follow
+another host's snapshot) with `builtins.fromJSON` and builds two keys:
 
 - `enabledPlugins`: state `enabled` -> `true`, `disabled` -> `false`, `absent`
   -> key omitted.
@@ -149,7 +149,7 @@ rm -rf ~/.claude/plugins/cache/<marketplace>/<plugin>
 ```
 
 Phase 4 (manifest-driven plugins) dropped these ids, now pruned from the repo
-copy; run the block above on qbert, srv and donkeykong for each, then `just qr`:
+copy; run the block above on qbert and srv for each, then `just qr`:
 
 ```
 asana atlassian context7 feature-dev github kotlin-lsp learning-output-style
@@ -233,7 +233,7 @@ and update the pin comment with what changed.
 
 ## 1Password vault: `automation`
 
-One vault, the same refs as the Mac (donkeykong `Claudefile`). `secrets.json.tpl`
+One vault, the same refs as the Mac (the Mac's donkeykong `Claudefile`). `secrets.json.tpl`
 now reads `kong-konnect-pat/lab-pat-2026-06` and all four `Tableau-PAT` fields
 (`hostname`, `Site-Name`, `username`, `credential`) from `op://automation/...`
 instead of `op://nixerator/...`. The account that runs `just render-secrets`

@@ -35,12 +35,6 @@ in
       enable = lib.mkEnableOption "Syncthing file synchronization";
 
       host = {
-        donkeykong = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
-          description = "Enable Syncthing configuration for donkeykong host.";
-        };
-
         qbert = lib.mkOption {
           type = lib.types.bool;
           default = false;
@@ -83,127 +77,15 @@ in
         # read from the off-store secrets file (issue #265).
       }
 
-      # donkeykong host configuration
-      (lib.mkIf cfg.host.donkeykong {
-        configDir = "${globals.user.homeDirectory}/.config/syncthing/donkeykong";
-
-        settings = {
-          devices = {
-            "qbert" = {
-              addresses = [ "tcp://${globals.hosts.qbert.tailscale_ip}:22000" ];
-              id = globals.hosts.qbert.syncthing_id;
-            };
-
-            # The Mac is deliberately NOT a peer of this host. It pairs with
-            # qbert only (its ../donkeykong syncthing.sh declares that one
-            # peer), and the upsight folders below still reach it: this host
-            # syncs them to qbert, and qbert syncs them on to the Mac. Adding
-            # it back here would mean maintaining a second pairing for no extra
-            # reachability.
-          };
-
-          folders = {
-            "Desktop" = {
-              path = "${globals.user.homeDirectory}/Desktop";
-              devices = [ "qbert" ];
-              versioning = simpleVersioning;
-            };
-
-            "Documents" = {
-              path = "${globals.user.homeDirectory}/Documents";
-              devices = [ "qbert" ];
-              versioning = staggeredVersioning;
-            };
-
-            "Downloads" = {
-              path = "${globals.user.homeDirectory}/Downloads";
-              devices = [ "qbert" ];
-              versioning = simpleVersioning;
-            };
-
-            "Music" = {
-              path = "${globals.user.homeDirectory}/Music";
-              devices = [ "qbert" ];
-              versioning = simpleVersioning;
-            };
-
-            "Pictures" = {
-              path = "${globals.user.homeDirectory}/Pictures";
-              devices = [ "qbert" ];
-              versioning = simpleVersioning;
-            };
-
-            "Videos" = {
-              path = "${globals.user.homeDirectory}/Videos";
-              devices = [ "qbert" ];
-              versioning = simpleVersioning;
-            };
-
-            "dev" = {
-              path = globals.paths.devRoot;
-              devices = [ "qbert" ];
-              versioning = staggeredVersioning;
-            };
-
-            ".gnupg" = {
-              path = "${globals.user.homeDirectory}/.gnupg";
-              devices = [ "qbert" ];
-              ignorePerms = false;
-              versioning = staggeredVersioning;
-            };
-
-            ".ssh" = {
-              path = "${globals.user.homeDirectory}/.ssh";
-              devices = [ "qbert" ];
-              ignorePerms = false;
-              versioning = staggeredVersioning;
-            };
-
-            ".kube" = {
-              path = "${globals.user.homeDirectory}/.kube";
-              devices = [ "qbert" ];
-              versioning = staggeredVersioning;
-            };
-
-            ".talos" = {
-              path = "${globals.user.homeDirectory}/.talos";
-              devices = [ "qbert" ];
-              versioning = staggeredVersioning;
-            };
-
-            "upsight-data" = {
-              path = "${globals.user.homeDirectory}/.local/share/upsight";
-              devices = [ "qbert" ];
-              versioning = staggeredVersioning;
-            };
-
-            "upsight-config" = {
-              path = "${globals.user.homeDirectory}/.config/upsight";
-              devices = [ "qbert" ];
-              versioning = simpleVersioning;
-            };
-
-          };
-        };
-      })
-
       # qbert host configuration
       (lib.mkIf cfg.host.qbert {
         configDir = "${globals.user.homeDirectory}/.config/syncthing/qbert";
 
         settings = {
           devices = {
-            "donkey-kong" = {
-              addresses = [ "tcp://${globals.hosts.donkeykong.tailscale_ip}:22000" ];
-              id = globals.hosts.donkeykong.syncthing_id;
-            };
-
             # Mac (../donkeykong). Shares upsight-data, upsight-config and dev
-            # below — not the rest (Desktop, .ssh, .gnupg, .kube, .talos), which
-            # are either NixOS-shaped or hold keys a laptop should not carry.
-            # This is the Mac's only Syncthing peer, so it is also how those
-            # folders reach it from donkeykong: that host syncs to qbert, and
-            # qbert syncs on to here.
+            # below -- not the rest, which are either NixOS-shaped or hold keys a
+            # laptop should not carry. qbert is the Mac's only Syncthing peer.
             "MH36P2YMHX" = {
               addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
               id = globals.hosts.MH36P2YMHX.syncthing_id;
@@ -211,92 +93,21 @@ in
           };
 
           folders = {
-            "Desktop" = {
-              path = "${globals.user.homeDirectory}/Desktop";
-              devices = [ "donkey-kong" ];
-              versioning = simpleVersioning;
-            };
-
-            "Documents" = {
-              path = "${globals.user.homeDirectory}/Documents";
-              devices = [ "donkey-kong" ];
-              versioning = staggeredVersioning;
-            };
-
-            "Downloads" = {
-              path = "${globals.user.homeDirectory}/Downloads";
-              devices = [ "donkey-kong" ];
-              versioning = simpleVersioning;
-            };
-
-            "Music" = {
-              path = "${globals.user.homeDirectory}/Music";
-              devices = [ "donkey-kong" ];
-              versioning = simpleVersioning;
-            };
-
-            "Pictures" = {
-              path = "${globals.user.homeDirectory}/Pictures";
-              devices = [ "donkey-kong" ];
-              versioning = simpleVersioning;
-            };
-
-            "Videos" = {
-              path = "${globals.user.homeDirectory}/Videos";
-              devices = [ "donkey-kong" ];
-              versioning = simpleVersioning;
-            };
-
             "dev" = {
               path = globals.paths.devRoot;
-              devices = [
-                "donkey-kong"
-                "MH36P2YMHX"
-              ];
-              versioning = staggeredVersioning;
-            };
-
-            ".gnupg" = {
-              path = "${globals.user.homeDirectory}/.gnupg";
-              devices = [ "donkey-kong" ];
-              ignorePerms = false;
-              versioning = staggeredVersioning;
-            };
-
-            ".ssh" = {
-              path = "${globals.user.homeDirectory}/.ssh";
-              devices = [ "donkey-kong" ];
-              ignorePerms = false;
-              versioning = staggeredVersioning;
-            };
-
-            ".kube" = {
-              path = "${globals.user.homeDirectory}/.kube";
-              devices = [ "donkey-kong" ];
-              versioning = staggeredVersioning;
-            };
-
-            ".talos" = {
-              path = "${globals.user.homeDirectory}/.talos";
-              devices = [ "donkey-kong" ];
+              devices = [ "MH36P2YMHX" ];
               versioning = staggeredVersioning;
             };
 
             "upsight-data" = {
               path = "${globals.user.homeDirectory}/.local/share/upsight";
-              devices = [
-                "donkey-kong"
-                "MH36P2YMHX"
-              ];
+              devices = [ "MH36P2YMHX" ];
               versioning = staggeredVersioning;
             };
 
             "upsight-config" = {
               path = "${globals.user.homeDirectory}/.config/upsight";
-              devices = [
-                "donkey-kong"
-                "MH36P2YMHX"
-              ];
+              devices = [ "MH36P2YMHX" ];
               versioning = simpleVersioning;
             };
 

@@ -1,6 +1,6 @@
 # Hosts Reference
 
-Active `nixosConfigurations` outputs: `donkeykong`, `qbert`, `srv`.
+Active `nixosConfigurations` outputs: `qbert`, `srv`.
 
 ## qbert (Desktop Workstation)
 
@@ -11,15 +11,6 @@ Active `nixosConfigurations` outputs: `donkeykong`, `qbert`, `srv`.
 - USB wakeup, Wake-on-LAN, Syncthing, KVM with network routing, whisper-server
 - `reboot-windows.nix` for dual-boot EFI reboot
 - hyprflake: `desktop.idle.suspendTimeout = 0` (AMD suspend bugs)
-
-## donkeykong (ThinkPad T14 Laptop)
-
-**Hardware**: Lenovo ThinkPad T14 Intel Gen 6
-**Archetype**: workstation
-
-- LUKS full-disk encryption, disko ext4 partitioning, 32GB swap
-- nixos-hardware: `lenovo-thinkpad-t14-intel-gen6`
-- `usb-wakeup.nix`, Syncthing, KVM with WiFi routing
 
 ## srv (Home Server)
 

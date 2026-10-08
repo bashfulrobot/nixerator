@@ -1,6 +1,6 @@
 # Nixerator
 
-Personal NixOS / home-manager flake covering Dustin's hosts (`donkeykong`, `qbert`, `srv`). Module-based config, justfile-driven rebuilds, secrets via 1Password (`op inject`; git-crypt retired), claude-code stack auto-imported.
+Personal NixOS / home-manager flake covering Dustin's hosts (`qbert`, `srv`). Module-based config, justfile-driven rebuilds, secrets via 1Password (`op inject`; git-crypt retired), claude-code stack auto-imported.
 
 See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where curated knowledge goes* rubric. Project topic files live in `.claude/docs/`.
 
@@ -39,6 +39,6 @@ which governs prose sent elsewhere (Slack, email, docs):
 
 ## Reference docs
 
-For a one-scroll visual overview — file map, module anatomy, the rebuild pipeline, the three hosts, secrets flow — open `extras/docs/index.html` (`just docs`). When building or editing that page, read `extras/docs/CLAUDE.md`.
+For a one-scroll visual overview — file map, module anatomy, the rebuild pipeline, the two hosts, secrets flow — open `extras/docs/index.html` (`just docs`). When building or editing that page, read `extras/docs/CLAUDE.md`.
 
 For deep-dive topics — directory structure, hosts, adding hosts, modules, packages, secrets, SSH, GPU, hyprland, VM dev, bootstrap — browse `extras/docs/` (one `.md` per topic). Start with `extras/docs/architecture.md` for the layout map.
