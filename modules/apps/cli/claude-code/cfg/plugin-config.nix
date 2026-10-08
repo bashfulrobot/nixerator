@@ -67,7 +67,11 @@ let
   mkMarketplace =
     name: m:
     if m ? sha then
-      { source = m.source // { inherit (m) sha; }; }
+      {
+        source = m.source // {
+          inherit (m) sha;
+        };
+      }
     else if (m.selfPin or false) && selfPins ? ${name} then
       selfPins.${name}
     else
@@ -76,9 +80,10 @@ let
   mkOverlay =
     stack:
     let
-      verOk = lib.throwIf (
-        (stack.schemaVersion or 0) != 1
-      ) "claude-code plugin-config: claude-stack snapshot schemaVersion is not 1; update cfg/plugin-config.nix for the new schema" true;
+      verOk =
+        lib.throwIf ((stack.schemaVersion or 0) != 1)
+          "claude-code plugin-config: claude-stack snapshot schemaVersion is not 1; update cfg/plugin-config.nix for the new schema"
+          true;
 
       active = lib.filterAttrs (_: p: p.state != "absent") stack.plugins;
       marketplaces = lib.filterAttrs (_: m: !(m.builtin or false)) stack.marketplaces;

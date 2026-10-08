@@ -45,7 +45,7 @@ let
   # the plugin-gated extras below.
   pluginConfig = import ./cfg/plugin-config.nix {
     inherit lib;
-    stackHost = cfg.stackHost;
+    inherit (cfg) stackHost;
   };
   pluginOverlayFile = pkgs.writeText "claude-plugin-overlay.json" (
     builtins.toJSON pluginConfig.overlay
