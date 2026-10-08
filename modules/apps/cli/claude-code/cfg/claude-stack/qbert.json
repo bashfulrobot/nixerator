@@ -1,0 +1,214 @@
+{
+  "host": "qbert",
+  "marketplaces": {
+    "alexgreensh-token-optimizer": {
+      "notes": "PolyForm Noncommercial license; NixOS needs extra plumbing (nixerator cfg/token-optimizer.nix).",
+      "sha": "5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1",
+      "source": {
+        "repo": "alexgreensh/token-optimizer",
+        "source": "github"
+      }
+    },
+    "claude-skills": {
+      "notes": "Own marketplace. Tracks the repo itself, so no sha.",
+      "selfPin": true,
+      "source": {
+        "repo": "bashfulrobot/claude-skills",
+        "source": "github"
+      }
+    },
+    "kong-skills": {
+      "sha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22",
+      "source": {
+        "repo": "Kong/kong-skills",
+        "source": "github"
+      }
+    },
+    "semagraph": {
+      "review": "re-read hooks/preapprove.js, hooks/stop.js, bin/render.js in full before bump",
+      "sha": "9e57466bfdd220de164c7e29f578c79f9b12b1b7",
+      "source": {
+        "repo": "Or1onn/Semagraph",
+        "source": "github"
+      }
+    }
+  },
+  "mcpServers": {
+    "chrome-devtools": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "context7": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "flux-operator-mcp": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "gitmcp": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://gitmcp.io/docs"
+    },
+    "gopls": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "grafana": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://mcp.grafana.com/mcp"
+    },
+    "iso-topology": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "kubernetes-mcp-server": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "markitdown": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "playwright": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "qmd": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "tactiq": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://mcp.tactiq.io"
+    },
+    "todoist": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://ai.todoist.net/mcp"
+    }
+  },
+  "permissions": {
+    "allow": [],
+    "deny": []
+  },
+  "platform": "linux",
+  "plugins": {
+    "commit-commands@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "dk@claude-skills": {
+      "state": "enabled"
+    },
+    "frontend-design@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "gitops@claude-skills": {
+      "state": "enabled"
+    },
+    "gopls-lsp@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "humanizer@claude-skills": {
+      "state": "enabled"
+    },
+    "kode@claude-skills": {
+      "secrets": {
+        "kode_apikey": "op://automation/Kode Internal MCP API Key/password"
+      },
+      "state": "enabled"
+    },
+    "kong-cs@claude-skills": {
+      "state": "enabled"
+    },
+    "kong-demo-config-generator@claude-skills": {
+      "state": "enabled"
+    },
+    "kong-doc-build@kong-skills": {
+      "state": "enabled"
+    },
+    "kong-docs-rag@claude-skills": {
+      "config": {
+        "repo_path": "${HOME}/git/kong-docs-rag"
+      },
+      "state": "enabled"
+    },
+    "kong-konnect@claude-skills": {
+      "config": {
+        "konnect_url": "https://us.mcp.konghq.com/"
+      },
+      "secrets": {
+        "konnect_pat": "op://automation/kong-konnect-pat/lab-pat-2026-06"
+      },
+      "state": "disabled"
+    },
+    "kong-tableau@claude-skills": {
+      "secrets": {
+        "tableau_pat_name": "op://automation/Tableau-PAT/username",
+        "tableau_pat_value": "op://automation/Tableau-PAT/credential",
+        "tableau_server": "op://automation/Tableau-PAT/hostname",
+        "tableau_site_name": "op://automation/Tableau-PAT/Site-Name"
+      },
+      "state": "disabled"
+    },
+    "mattpocock-skills@claude-skills": {
+      "state": "enabled"
+    },
+    "plugin-dev@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "pyright-lsp@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "se-harness@claude-skills": {
+      "state": "enabled"
+    },
+    "security-guidance@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "semagraph@semagraph": {
+      "state": "enabled"
+    },
+    "skill-creator@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "slack@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "superpowers@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "token-optimizer@alexgreensh-token-optimizer": {
+      "state": "enabled"
+    }
+  },
+  "profiles": [
+    "base",
+    "workstation",
+    "linux",
+    "linux-workstation"
+  ],
+  "schemaVersion": 1,
+  "unmanaged": {
+    "pluginScopes": [
+      "synced"
+    ]
+  }
+}

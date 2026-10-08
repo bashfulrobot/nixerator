@@ -1,0 +1,116 @@
+{
+  "host": "srv",
+  "marketplaces": {
+    "claude-skills": {
+      "notes": "Own marketplace. Tracks the repo itself, so no sha.",
+      "selfPin": true,
+      "source": {
+        "repo": "bashfulrobot/claude-skills",
+        "source": "github"
+      }
+    }
+  },
+  "mcpServers": {
+    "gitmcp": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://gitmcp.io/docs"
+    },
+    "gopls": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "grafana": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://mcp.grafana.com/mcp"
+    },
+    "markitdown": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "qmd": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "stdio"
+    },
+    "tactiq": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://mcp.tactiq.io"
+    },
+    "todoist": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://ai.todoist.net/mcp"
+    }
+  },
+  "permissions": {
+    "allow": [],
+    "deny": []
+  },
+  "platform": "linux",
+  "plugins": {
+    "commit-commands@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "dk@claude-skills": {
+      "state": "enabled"
+    },
+    "frontend-design@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "gopls-lsp@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "humanizer@claude-skills": {
+      "state": "enabled"
+    },
+    "kode@claude-skills": {
+      "secrets": {
+        "kode_apikey": "op://automation/Kode Internal MCP API Key/password"
+      },
+      "state": "enabled"
+    },
+    "kong-demo-config-generator@claude-skills": {
+      "state": "enabled"
+    },
+    "mattpocock-skills@claude-skills": {
+      "state": "enabled"
+    },
+    "plugin-dev@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "se-harness@claude-skills": {
+      "state": "enabled"
+    },
+    "security-guidance@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "skill-creator@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "slack@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "superpowers@claude-plugins-official": {
+      "state": "enabled"
+    }
+  },
+  "profiles": [
+    "base",
+    "linux"
+  ],
+  "schemaVersion": 1,
+  "unmanaged": {
+    "pluginScopes": [
+      "synced"
+    ]
+  }
+}

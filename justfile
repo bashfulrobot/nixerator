@@ -215,8 +215,8 @@ update input:
     @nix flake update {{input}}
 
 # Bump the claude-skills marketplace pin (dk/kong-cs/gitops) to its current
-# GitHub HEAD, without a full `just upgrade`. Not a flake input -- see
-# cfg/plugin-config.nix's marketplaceSources -- so `just update claude-skills`
+# GitHub HEAD and refresh the claude-stack snapshot at that sha, without a full `just upgrade`. Not a flake input -- see
+# cfg/plugin-config.nix's selfPins (plus the cfg/claude-stack snapshot) -- so `just update claude-skills`
 # doesn't reach it; this is that recipe's equivalent for this one pin.
 # Doesn't commit or rebuild on its own: review the diff, then `just rebuild`
 # (or fold it into your next `just upgrade` / `just quiet-upgrade`, which run
@@ -528,7 +528,8 @@ commit-lock msg mode="quiet" sign="0":
         warn "flake.lock committed but push failed — push manually."
     fi
 
-# Commit + push cfg/plugin-config.nix if bump-claude-skills changed its pin.
+# Commit + push cfg/plugin-config.nix and the cfg/claude-stack snapshot if
+# bump-claude-skills changed the pin or the snapshot.
 #
 # Separate from commit-lock rather than folding into it: commit-lock's
 # pathspec is hardcoded to flake.lock and is called from more places
@@ -543,11 +544,13 @@ commit-plugin-config msg mode="quiet" sign="0":
     notice() { if [[ "{{mode}}" == "interactive" ]]; then gum style --foreground 82 "$1"; else echo "$1"; fi; }
     warn()   { if [[ "{{mode}}" == "interactive" ]]; then gum style --foreground 220 "$1"; else echo "⚠ $1"; fi; }
 
+    # The pin and the claude-stack snapshot must land in one commit.
     file="modules/apps/cli/claude-code/cfg/plugin-config.nix"
-    git diff --quiet -- "$file" && exit 0
+    stack_dir="modules/apps/cli/claude-code/cfg/claude-stack"
+    git diff --quiet -- "$file" "$stack_dir" && exit 0
 
     commit_ok=true
-    if git add -- "$file"; then
+    if git add -- "$file" "$stack_dir"; then
         if [[ "{{sign}}" == "1" ]]; then
             git commit -qS -m "{{msg}}" || commit_ok=false
         else
