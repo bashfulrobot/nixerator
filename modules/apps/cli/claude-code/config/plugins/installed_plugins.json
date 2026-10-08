@@ -91,16 +91,6 @@
         "auto": true
       }
     ],
-    "token-optimizer@alexgreensh-token-optimizer": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/alexgreensh-token-optimizer/token-optimizer/5.11.65",
-        "version": "5.11.65",
-        "installedAt": "2026-07-26T03:15:48.442Z",
-        "lastUpdated": "2026-07-26T03:15:48.442Z",
-        "gitCommitSha": "5c0af3bf9dc92f7d548ef211bde39a8a01ac03e1"
-      }
-    ],
     "semagraph@semagraph": [
       {
         "scope": "user",

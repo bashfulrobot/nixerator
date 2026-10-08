@@ -11,9 +11,5 @@ pkgs.writeText "claude-reminders.json" (
       due = "2026-10-31";
       message = "claude-code module best-practices audit is due (colobu.com tips last run 2026-05-05; supplementary context-engineering review 2026-07-31). Offer to re-run the procedure at the bottom of modules/apps/cli/claude-code/README.md.";
     }
-    {
-      due = "2026-10-25";
-      message = "token-optimizer pin is 3 months old (v5.11.65, added 2026-07-25). Check whether it still earns its standing context cost, re-read its LICENSE for a commercial grant, and bump the SHA in claude-skills claude-stack/claude-stack.json (then just bump-claude-skills). Details in .claude/docs/token-optimizer.md.";
-    }
   ]
 )

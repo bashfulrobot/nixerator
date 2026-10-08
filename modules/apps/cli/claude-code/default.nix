@@ -124,14 +124,6 @@ let
   skillUpdatesConfig = import ./cfg/skill-updates.nix {
     inherit pkgs;
   };
-  # NixOS-specific plumbing for the token-optimizer plugin: the FHS interpreter
-  # symlink its hook launcher demands, and the config flags that stop it
-  # claiming the statusLine slot and self-installing a systemd user unit. Inert
-  # unless the plugin is in this host's list (see hasTokenOptimizer below).
-  tokenOptimizerConfig = import ./cfg/token-optimizer.nix {
-    inherit pkgs;
-    homeDir = globals.user.homeDirectory;
-  };
   # Context-compression CLI, imperatively `uv tool install`-ed at activation
   # (see cfg/headroom.nix for why it isn't a nix-built derivation). Inert
   # unless cfg.headroom.enable is set on this host.
@@ -171,7 +163,6 @@ let
       homeDir
       ;
     inherit (cfg) serverProfile;
-    tokenOptimizerActivation = lib.optionalString hasTokenOptimizer tokenOptimizerConfig.activation;
     humanizerSkillSrc = inputs.humanizer-skill;
     # One skill out of a six-skill repo, so this points at the subdirectory
     # rather than the input root.
@@ -435,8 +426,6 @@ let
   hasHyperframes = lib.elem "hyperframes@hyperframes" pluginConfig.enabled;
   hyperframesBrowserPath = "/run/current-system/sw/bin/${globals.preferences.browser}";
 
-  hasTokenOptimizer = lib.elem tokenOptimizerConfig.pluginId pluginConfig.enabled;
-
   # Not a plugin-list membership test like the two above -- headroom has no
   # marketplace entry, so it gets its own enable option (see the options
   # block below).
@@ -607,12 +596,6 @@ in
     # `claudeEnv` (see `let` block) builds this attrset once; reused below
     # for `home.sessionVariables` so the two scopes can't drift.
     environment.variables = claudeEnv;
-
-    # The only part of token-optimizer that cannot be done from home-manager:
-    # its hook launcher hardcodes an interpreter allow-list of FHS prefixes and
-    # /usr/local is root-owned. See cfg/token-optimizer.nix for why there is no
-    # env-var route around it.
-    systemd.tmpfiles.rules = lib.optionals hasTokenOptimizer tokenOptimizerConfig.tmpfilesRules;
 
     home-manager.users.${globals.user.name} = {
       programs.fish = fishConfig;

@@ -49,7 +49,7 @@ let
     claude-skills.source = {
       source = "github";
       repo = "bashfulrobot/claude-skills";
-      sha = "2c695da736b77306e5b2daf922886482530b822a";
+      sha = "3cc457b03bea9446b8f806f5f0e28d0a8880de2a";
     };
   };
 
@@ -101,7 +101,7 @@ let
       };
 
   # Ids of plugins this host enables (disabled and absent excluded). Used for
-  # plugin-gated extras (hyperframes deps, token-optimizer plumbing).
+  # plugin-gated extras (hyperframes deps).
   enabledIds = stack: lib.attrNames (lib.filterAttrs (_: p: p.state == "enabled") stack.plugins);
 in
 {
