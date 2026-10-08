@@ -1,6 +1,6 @@
 {
   "kong": {
-    "kongKonnectPAT": "{{ op://nixerator/kong-konnect-pat/lab-pat-2026-06 }}"
+    "kongKonnectPAT": "{{ op://automation/kong-konnect-pat/lab-pat-2026-06 }}"
   },
   "aha": {
     "apiToken": "{{ op://nixerator/aha/credential }}"
@@ -77,9 +77,9 @@
     "dashboardsToken": "{{ op://automation/grafana-cloud-dashboards/token }}"
   },
   "tableau": {
-    "server": "{{ op://nixerator/Tableau-PAT/hostname }}",
-    "siteName": "{{ op://nixerator/Tableau-PAT/Site-Name }}",
-    "patName": "{{ op://nixerator/Tableau-PAT/username }}",
-    "patValue": "{{ op://nixerator/Tableau-PAT/credential }}"
+    "server": "{{ op://automation/Tableau-PAT/hostname }}",
+    "siteName": "{{ op://automation/Tableau-PAT/Site-Name }}",
+    "patName": "{{ op://automation/Tableau-PAT/username }}",
+    "patValue": "{{ op://automation/Tableau-PAT/credential }}"
   }
 }
