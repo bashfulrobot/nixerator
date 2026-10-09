@@ -42,6 +42,9 @@ in
       cmctl # cert-manager CLI (status / renew / check)
       talhelper # Declarative Talos machine-config management
       headlamp # OSS K8s GUI
+      kubectx # kubectx + kubens, for switching between mesh zones
+      k3d # Local k3s clusters in docker, for dry-running the mesh demo
+      checkov # IaC policy scan for Terraform/OpenTofu
     ];
 
     # Home Manager configuration
