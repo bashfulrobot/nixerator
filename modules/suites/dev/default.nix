@@ -55,6 +55,10 @@ in
       [
         filezilla # FTP/SFTP client
         just # Task runner for project commands
+        gitleaks # Secret scan (mirrors the cs-webinars CI check)
+        pre-commit # Runs the gitleaks hook in service-mesh-webinar
+        pass # GPG-backed password store for project secrets
+        gnupg # Decryption backend for pass
         statix # Nix linter and code quality checker
         fq # jq for binary formats (media, networking, serialization)
         jq # JSON processor
