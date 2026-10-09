@@ -24,10 +24,10 @@
     "security-guidance@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/2.0.8",
-        "version": "2.0.8",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/2.0.11",
+        "version": "2.0.11",
         "installedAt": "2026-02-03T16:56:26.138Z",
-        "lastUpdated": "2026-09-27T01:29:57.342Z",
+        "lastUpdated": "2026-10-09T01:38:51.961Z",
         "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
       }
     ],
