@@ -189,8 +189,14 @@ Nixerator no longer carries its own copies of what the dk plugin ships:
   the private clone; setting the plugin's `repo_path` (Nix does not apply
   manifest `config` yet, see above); `ollama pull nomic-embed-text` and an
   Ollama server (qbert's `apps.cli.ollama` provides the server, not the
-  model); the first `bin/kong-docs-rag index -data-dir data`, and any later
-  re-index or `git pull` + rebuild.
+  model) and the first `bin/kong-docs-rag index -data-dir data`. Re-indexing is
+  automatic: a `kong-docs-rag-reindex` systemd user timer (daily 06:00,
+  `Persistent`, the NixOS counterpart of donkeykong's LaunchAgent of the same
+  name) runs `git pull --ff-only`, rebuilds if HEAD moved, then the index
+  command. It is skipped while `bin/kong-docs-rag` is missing, and every
+  failure (offline, dirty tree, build error, Ollama down) is logged and exits 0.
+  Check it with `systemctl --user list-timers kong-docs-rag-reindex` and
+  `journalctl --user -u kong-docs-rag-reindex`.
 
 ## Runbook: Kong Konnect skills missing
 

@@ -55,9 +55,13 @@ Confirmed heavy, cross-project usage by a claude-code doctor scan
 `review-security`, `writing-style`, `auto`, `log-github-issue`, `sfdc`,
 `kong-technical-csm`, `todoist-cli`, `gws-cli`, `slack-post`
 
-Since 2026-10-08 only `revealjs` and `wave-invoicing` remain under
-`config/skills/`; the other skills that used to live there ship from
-`dk@claude-skills` / `kong-cs@claude-skills` only. They no longer reach the
+Since 2026-10-08 the skills that used to live under `config/skills/` ship
+from `dk@claude-skills` / `kong-cs@claude-skills` only. `revealjs` and
+`wave-invoicing` were the last two and were deleted in the follow-up (dk's
+copies are newer; `wave-invoicing`'s Camino Insync path moved to the
+`WAVE_INSYNC_ROOT` env var in `default.nix`'s `claudeEnv`). `config/skills/`
+now holds only `.capture-ignore`; keep the directory, `builtins.readDir`
+on it fails at eval time if it disappears. They no longer reach the
 default-off overlay (so they are on by default), and `skill-pick` does not see
 them because it only lists `~/.claude/skills`.
 

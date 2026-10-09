@@ -24,9 +24,11 @@
 # config/skills/; check the directory.
 #
 # 2026-10-08: 23 more skills that were byte-identical to dk / kong-cs copies
-# were deleted from config/skills/ (everything but revealjs and wave-invoicing,
-# which differ). They are no longer in allNames, so none of them gets an "off"
-# override any more; they follow the plugin's absent-key-means-on default.
+# were deleted from config/skills/. The last two, revealjs and wave-invoicing,
+# followed (dk's copies are newer: CSRF fix, no hardcoded insync path), so
+# config/skills/ now holds no skill directories at all. None of them is in
+# allNames any more, so none gets an "off" override; they follow the plugin's
+# absent-key-means-on default.
 #
 # alwaysOn: skills that stay enabled everywhere, no per-project opt-in
 # needed. Two reasons a skill earns a spot here, not a hunch:

@@ -209,7 +209,12 @@
     # If a previous activation left a stale symlink (e.g. directly into the
     # Nix store), remove it first -- rsync would otherwise try to write through
     # the symlink and fail with EROFS on the read-only store target.
+    #
+    # config/skills/ can be empty of skill directories (everything ships from a
+    # plugin now); with no match the glob stays literal, so skip a non-directory
+    # instead of mkdir-ing a skill named "*".
     for skill_dir in "${configDir}"/skills/*/; do
+      [ -d "$skill_dir" ] || continue
       skill_name="$(basename "$skill_dir")"
       if [ -L "$claude_home/skills/$skill_name" ]; then
         $DRY_RUN_CMD rm -f "$claude_home/skills/$skill_name"

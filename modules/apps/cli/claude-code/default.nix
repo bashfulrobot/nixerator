@@ -414,6 +414,13 @@ let
       PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
       PUPPETEER_SKIP_DOWNLOAD = "1";
     }
+    // lib.optionalAttrs config.apps.gui.insync.enable {
+      # dk's wave-invoicing skill reads the Camino invoices folder from
+      # $WAVE_INSYNC_ROOT (per host, never in the repo). This is the path the
+      # retired config/skills/wave-invoicing/config.json carried as
+      # customers.camino.insync_root. Only hosts that run Insync have it.
+      WAVE_INSYNC_ROOT = "${homeDir}/insync/bashfulrobot/My-drive/Professional/Consulting/Camino-corp/Financial/Invoices";
+    }
     // {
       # Force conversation auto-compaction at 400k tokens — below the point
       # where 1M-context Opus quality measurably degrades. Env var name
@@ -459,8 +466,11 @@ in
         Provision the checkout and binary behind the kong-docs-rag plugin
         (kong-docs-rag@claude-skills): clone bashfulrobot/kong-docs-rag to
         ~/git/kong-docs-rag and `go build` bin/kong-docs-rag at activation
-        when missing (cfg/kong-docs-rag.nix). Does not index, pull, or set the
-        plugin's repo_path config; those stay manual
+        when missing (cfg/kong-docs-rag.nix). Also installs a systemd user
+        timer (daily 06:00) that runs `git pull --ff-only`, rebuilds when the
+        checkout moved, then `bin/kong-docs-rag index -data-dir data`; it is
+        skipped while the binary is missing and tolerates Ollama being down.
+        Does not set the plugin's repo_path config; that stays manual
       '';
       headroom.enable = lib.mkEnableOption ''
         Headroom (headroomlabs-ai/headroom), a local context-compression CLI
@@ -575,6 +585,9 @@ in
 
     home-manager.users.${globals.user.name} = {
       programs.fish = fishConfig;
+
+      # Daily kong-docs-rag re-index (cfg/kong-docs-rag.nix).
+      systemd.user = lib.mkIf cfg.kongDocsRag.enable kongDocsRagConfig.systemdUser;
 
       home = {
         sessionVariables = claudeEnv;
