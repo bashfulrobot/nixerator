@@ -459,8 +459,11 @@ in
         Provision the checkout and binary behind the kong-docs-rag plugin
         (kong-docs-rag@claude-skills): clone bashfulrobot/kong-docs-rag to
         ~/git/kong-docs-rag and `go build` bin/kong-docs-rag at activation
-        when missing (cfg/kong-docs-rag.nix). Does not index, pull, or set the
-        plugin's repo_path config; those stay manual
+        when missing (cfg/kong-docs-rag.nix). Also installs a systemd user
+        timer (daily 06:00) that runs `git pull --ff-only`, rebuilds when the
+        checkout moved, then `bin/kong-docs-rag index -data-dir data`; it is
+        skipped while the binary is missing and tolerates Ollama being down.
+        Does not set the plugin's repo_path config; that stays manual
       '';
       headroom.enable = lib.mkEnableOption ''
         Headroom (headroomlabs-ai/headroom), a local context-compression CLI
@@ -575,6 +578,9 @@ in
 
     home-manager.users.${globals.user.name} = {
       programs.fish = fishConfig;
+
+      # Daily kong-docs-rag re-index (cfg/kong-docs-rag.nix).
+      systemd.user = lib.mkIf cfg.kongDocsRag.enable kongDocsRagConfig.systemdUser;
 
       home = {
         sessionVariables = claudeEnv;
