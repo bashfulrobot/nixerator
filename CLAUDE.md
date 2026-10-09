@@ -42,3 +42,20 @@ which governs prose sent elsewhere (Slack, email, docs):
 For a one-scroll visual overview — file map, module anatomy, the rebuild pipeline, the two hosts, secrets flow — open `extras/docs/index.html` (`just docs`). When building or editing that page, read `extras/docs/CLAUDE.md`.
 
 For deep-dive topics — directory structure, hosts, adding hosts, modules, packages, secrets, SSH, GPU, hyprland, VM dev, bootstrap — browse `extras/docs/` (one `.md` per topic). Start with `extras/docs/architecture.md` for the layout map.
+
+## TODO
+
+Open items from the claude-stack consolidation (Oct 2026). None of the Nix
+edits were evaluated on macOS, so the first rebuild on each host is the real
+test. Tick an item off in the same commit that finishes it.
+
+- [ ] **qbert:** `git pull`, prune stale plugins and cache dirs per `.claude/docs/claude-plugins.md`, run `just qr` twice (the second run must show no capture diff), then `python3 ~/git/claude-skills/scripts/claude_stack.py drift --host qbert`.
+- [ ] **srv:** same, with `--host srv`.
+- [ ] **Gate runs once:** after the first activation, confirm the old `claude-auto-gate` entry is gone from live `~/.claude/settings.json`. The `dk` plugin now supplies the gate, so a leftover entry runs it twice.
+- [ ] **kong-docs-rag on qbert:** GitHub auth for the private clone, `ollama pull nomic-embed-text`, set the plugin's `repo_path` (Nix does not apply manifest `config` yet), then the first `bin/kong-docs-rag index -data-dir data`. `go.mod` needs Go 1.26.6, so the activation build may fetch a toolchain.
+- [ ] **Plugin secrets:** Nix does not apply per-plugin `config` or `secrets` from the manifest (`kode_apikey`, `kong-konnect`, `kong-tableau`). Set them on NixOS with `claude plugin configure` under `op run`.
+- [ ] **Flake input:** run `nix flake lock` to drop the now-unused `nixos-hardware` input (`flake.lock` was not edited without Nix).
+- [ ] **Re-pin after manifest changes:** `just bump-claude-skills` refreshes the pin and the `qbert`/`srv` snapshots in one commit.
+- [ ] **Linux clipboard permission:** allow `Bash(wl-copy *)` in `modules/apps/cli/claude-code/config/settings.json`, then declare it in the manifest's `linux` profile in claude-skills.
+- [ ] **NixOS-only guard hooks:** decide whether `guard-secret-commands`, `scrub-secret-output`, `guard-git-stash`, `guard-primary-tree-write`, `guard-enter-worktree-collision`, `git-sync` and the precompact hooks move into the `dk` plugin (so the Mac gets them) or stay here.
+- [ ] **1Password vault:** `kong-konnect-pat` and `Tableau-PAT` now read from `op://automation/`. Decide whether the remaining `op://nixerator/` refs (aha, wave, forgejo, restic, zai, github-pat) also move.
