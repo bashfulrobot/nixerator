@@ -82,7 +82,7 @@ rebuild:
     log="{{rebuild_log}}"
     rc=0
     gum spin --spinner dot --title "Rebuilding NixOS configuration..." \
-        -- bash -c 'sudo nixos-rebuild switch --impure --flake {{host_flake}} &> "'"$log"'"' || rc=$?
+        -- bash -c 'sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --impure --flake {{host_flake}} &> "'"$log"'"' || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         just warn-summary "$log" "Rebuild succeeded" "Rebuild succeeded"
         just post-rebuild interactive
@@ -138,7 +138,7 @@ hyprflake-test path="/home/dustin/git/hyprflake":
     log="{{rebuild_log}}"
     rc=0
     gum spin --spinner dot --title "Rebuilding with local hyprflake ({{path}})..." \
-        -- bash -c 'sudo nixos-rebuild switch --impure --flake {{host_flake}} --override-input hyprflake path:{{path}} &> "'"$log"'"' || rc=$?
+        -- bash -c 'sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --impure --flake {{host_flake}} --override-input hyprflake path:{{path}} &> "'"$log"'"' || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         just warn-summary "$log" "Rebuild succeeded" "Rebuild succeeded (local hyprflake override active)"
     else
@@ -180,7 +180,7 @@ upgrade:
     fi
     gum style --foreground 82 "claude-skills pin up to date"
     gum spin --spinner dot --title "Rebuilding with upgrades..." \
-        -- bash -c 'sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
+        -- bash -c 'sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --impure --upgrade --flake {{host_flake}} &>> "'"$log"'"' || rc=$?
     if [[ "$rc" -ne 0 ]]; then
         gum style --foreground 196 "Rebuild FAILED (exit $rc)"
         bat --paging=always "$log"
@@ -828,7 +828,7 @@ quiet-rebuild:
     git add -A
     trap 'git restore --staged .' EXIT
     rc=0
-    sudo nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
+    sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --impure --flake {{host_flake}} &> {{rebuild_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
         echo "Rebuild succeeded. Full log: {{rebuild_log}}"
 
@@ -860,7 +860,7 @@ quiet-upgrade:
     {
         nix flake update \
             && bash modules/apps/cli/claude-code/cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills main \
-            && sudo nixos-rebuild switch --impure --upgrade --flake {{host_flake}} \
+            && sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --impure --upgrade --flake {{host_flake}} \
             && just ref::voxtype-setup
     } &> {{upgrade_log}} || rc=$?
     if [[ "$rc" -eq 0 ]]; then
@@ -895,7 +895,7 @@ bump-upsight:
         # iterations always re-query GitHub HEAD instead of re-locking to a
         # cached commit (which silently no-ops the rebuild).
         nix flake update upsight --refresh \
-            && sudo nixos-rebuild switch --impure --flake {{host_flake}}
+            && sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --impure --flake {{host_flake}}
     } &> {{rebuild_log}} || rc=$?
     # `nixos-rebuild switch` exits non-zero when a unit fails to (re)start during
     # activation (e.g. systemd-bless-boot on a boot entry without a counter) even
@@ -945,7 +945,7 @@ bump-hyprflake hyprflake_path="/home/dustin/git/hyprflake":
         # --refresh bypasses Nix's tarball-ttl so the just-pushed hyprflake HEAD
         # is re-queried instead of a cached commit (which would no-op the bump).
         nix flake update hyprflake --refresh \
-            && sudo nixos-rebuild switch --impure --flake {{host_flake}}
+            && sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --impure --flake {{host_flake}}
     } &> {{rebuild_log}} || rc=$?
     # `nixos-rebuild switch` exits non-zero when a unit fails to (re)start during
     # activation (e.g. systemd-bless-boot on a boot entry without a counter) even

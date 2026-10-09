@@ -11,6 +11,7 @@ let
   cfg = config.apps.cli.happy;
   happy = pkgs.callPackage ./build { inherit versions; };
   claudePath = "${pkgs.llm-agents.claude-code}/bin/claude";
+  antigravityEnabled = config.apps.cli.antigravity.enable;
 in
 {
   options.apps.cli.happy.enable =
@@ -42,7 +43,9 @@ in
         # (which shell out to a small, fixed set of tools), a Happy session can
         # run arbitrary project tooling, so the fallback system + per-user
         # profile directories are appended too rather than curating an exact
-        # tool list.
+        # tool list. `agy` (Antigravity CLI) joins the same PATH, gated on
+        # apps.cli.antigravity.enable, so `happy agy` sessions (the daemon's
+        # AgyBackend, upstream slopus/happy src/agy/) can spawn it too.
         #
         # Not gated on prior `happy auth` pairing: with no credentials yet,
         # the daemon's own startup throws and this unit restarts every
@@ -61,13 +64,16 @@ in
             ExecStart = "${happy}/bin/happy daemon start-sync";
             Environment = [
               "PATH=${
-                lib.makeBinPath [
-                  happy
-                  pkgs.llm-agents.claude-code
-                  pkgs.git
-                  pkgs.bash
-                  pkgs.coreutils
-                ]
+                lib.makeBinPath (
+                  [
+                    happy
+                    pkgs.llm-agents.claude-code
+                    pkgs.git
+                    pkgs.bash
+                    pkgs.coreutils
+                  ]
+                  ++ lib.optional antigravityEnabled pkgs.google-antigravity-cli
+                )
               }:/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
               # happy-coder's own `claude` discovery (scripts/claude_version_utils.cjs)
               # resolves `which claude` via fs.realpathSync, lands on
@@ -80,6 +86,9 @@ in
               # installed". HAPPY_CLAUDE_PATH is checked first, unconditionally,
               # bypassing that broken shim heuristic entirely.
               "HAPPY_CLAUDE_PATH=${claudePath}"
+              # agy has no equivalent detection bug (findAgyBin's `command -v
+              # agy` probe works fine), so it just needs to be on PATH above --
+              # no HAPPY_AGY_PATH override required.
             ];
             Restart = "always";
             RestartSec = 10;
