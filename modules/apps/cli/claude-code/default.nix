@@ -414,11 +414,13 @@ let
       PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
       PUPPETEER_SKIP_DOWNLOAD = "1";
     }
-    // lib.optionalAttrs config.apps.gui.insync.enable {
+    // lib.optionalAttrs (lib.attrByPath [ "apps" "gui" "insync" "enable" ] false config) {
       # dk's wave-invoicing skill reads the Camino invoices folder from
       # $WAVE_INSYNC_ROOT (per host, never in the repo). This is the path the
       # retired config/skills/wave-invoicing/config.json carried as
       # customers.camino.insync_root. Only hosts that run Insync have it.
+      # attrByPath, not config.apps.gui.insync.enable: headless hosts (srv)
+      # have no apps.gui options at all and the direct access fails to eval.
       WAVE_INSYNC_ROOT = "${homeDir}/insync/bashfulrobot/My-drive/Professional/Consulting/Camino-corp/Financial/Invoices";
     }
     // {
