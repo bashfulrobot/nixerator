@@ -243,6 +243,9 @@
     },
     "superpowers@claude-plugins-official": {
       "state": "enabled"
+    },
+    "terse@claude-skills": {
+      "state": "enabled"
     }
   },
   "profiles": [
