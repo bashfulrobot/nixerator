@@ -22,7 +22,7 @@ nixerator/
 │   ├── system/            # System services (ssh, flatpak, nix)
 │   ├── server/            # Server-only modules (kvm, nfs, postgres, node-exporter, ...)
 │   └── dev/               # Dev environments (go, ...)
-├── hosts/                 # Per-host configs (donkeykong, qbert, srv)
+├── hosts/                 # Per-host configs (qbert, srv)
 └── extras/                # Docs, helper scripts
 ```
 
@@ -109,13 +109,13 @@ rec {
 
 ```nix
 # flake.nix
-nixosConfigurations.donkeykong = lib.mkHost {
-  hostname = "donkeykong";
+nixosConfigurations.qbert = lib.mkHost {
+  hostname = "qbert";
   system = "x86_64-linux";
 };
 ```
 
-Active outputs: `donkeykong`, `qbert`, `srv`.
+Active outputs: `qbert`, `srv`.
 
 ## Per-Host File Layout
 

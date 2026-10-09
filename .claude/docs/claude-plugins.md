@@ -18,8 +18,8 @@ modules/apps/cli/claude-code/cfg/claude-stack/srv.json
 ```
 
 `cfg/plugin-config.nix` reads the snapshot for `apps.cli.claude-code.stackHost`
-(default: the hostname; donkeykong has no manifest entry and is set to `qbert`
-in `hosts/donkeykong/modules.nix`) with `builtins.fromJSON` and builds two keys:
+(default: the hostname; a host with no manifest entry can set it to follow
+another host's snapshot) with `builtins.fromJSON` and builds two keys:
 
 - `enabledPlugins`: state `enabled` -> `true`, `disabled` -> `false`, `absent`
   -> key omitted.
@@ -149,7 +149,7 @@ rm -rf ~/.claude/plugins/cache/<marketplace>/<plugin>
 ```
 
 Phase 4 (manifest-driven plugins) dropped these ids, now pruned from the repo
-copy; run the block above on qbert, srv and donkeykong for each, then `just qr`:
+copy; run the block above on qbert and srv for each, then `just qr`:
 
 ```
 asana atlassian context7 feature-dev github kotlin-lsp learning-output-style
@@ -162,6 +162,35 @@ After the rebuild, a second `just qr` must show no diff in
 `config/plugins/installed_plugins.json` (the fixpoint check).
 This is why #328's plugin removals left stale state behind until the follow-up
 audit — see the code comment in `cfg/fish.nix` at the capture block.
+
+## Plugin-owned hooks, agents and MCP (dk, kong-docs-rag)
+
+Nixerator no longer carries its own copies of what the dk plugin ships:
+
+- **auto-gate / auto-permissions.** The `/dk:auto` rm/kill/pkill gate is dk's
+  `hooks/hooks.json` (PreToolUse, matcher `Bash`), and the pre-authorized-folders
+  CLI is dk's `scripts/auto-permissions.sh`. Activation (`cfg/activation.nix`)
+  now only pins `permissions.ask` and deletes any leftover `claude-auto-gate`
+  store-path entry from a previous generation. Differences from the removed
+  nixerator copy: dk's gate resolves `jq`, `git`, GNU `grep -P` and `realpath -m`
+  from the ambient PATH (nixerator pinned them via `writeShellApplication`); and
+  `auto-permissions` is no longer a bare command on PATH, it is invoked as
+  `${CLAUDE_PLUGIN_ROOT}/scripts/auto-permissions.sh` by the dk `auto-permissions`
+  skill. The bats suites for the removed scripts went with them.
+- **reviewer-dev / reviewer-security** agents come from the dk plugin. Their
+  `config/.capture-state.json` snapshot entries are kept on purpose so capture
+  treats the files as deleted-at-home, not as new live files to re-import.
+- **kong-docs MCP.** The kongdex (`uv run kongdex`) server is gone. The
+  `kong-docs-rag@claude-skills` plugin (enabled in the qbert snapshot) launches
+  `<repo_path>/bin/kong-docs-rag serve -data-dir <repo_path>/data`.
+  `cfg/kong-docs-rag.nix` (option `apps.cli.claude-code.kongDocsRag.enable`, on
+  in `suites.ai`) clones `bashfulrobot/kong-docs-rag` to `~/git/kong-docs-rag`
+  and runs `go build` when the binary is missing. Still manual: GitHub auth for
+  the private clone; setting the plugin's `repo_path` (Nix does not apply
+  manifest `config` yet, see above); `ollama pull nomic-embed-text` and an
+  Ollama server (qbert's `apps.cli.ollama` provides the server, not the
+  model); the first `bin/kong-docs-rag index -data-dir data`, and any later
+  re-index or `git pull` + rebuild.
 
 ## Runbook: Kong Konnect skills missing
 
@@ -233,7 +262,7 @@ and update the pin comment with what changed.
 
 ## 1Password vault: `automation`
 
-One vault, the same refs as the Mac (donkeykong `Claudefile`). `secrets.json.tpl`
+One vault, the same refs as the Mac (the Mac's donkeykong `Claudefile`). `secrets.json.tpl`
 now reads `kong-konnect-pat/lab-pat-2026-06` and all four `Tableau-PAT` fields
 (`hostname`, `Site-Name`, `username`, `credential`) from `op://automation/...`
 instead of `op://nixerator/...`. The account that runs `just render-secrets`

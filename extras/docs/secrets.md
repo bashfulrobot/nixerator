@@ -147,7 +147,7 @@ Current PUSH_ALONGSIDE entries (also pushed to remotes by `--push`):
 | `~/.local/share/filebot/data/.license` | 0600 | srv is headless (no 1Password CLI); the license only reaches it via `--push` from a workstation that materialized it locally |
 
 "Workstation hosts" are those with `archetypes.workstation.enable = true`
-(donkeykong, nixerator, qbert), matched by the `host:` guard. The pure server
+(nixerator, qbert), matched by the `host:` guard. The pure server
 never receives the identity SSH keys or per-repo git-crypt keys. The one
 exception is `feral-arr`/`feral-arr.pub`: a single-purpose key for the
 darkstar arr download-sync CronJob's rsync from the feralhosting seedbox,
@@ -181,7 +181,7 @@ files directly off disk:
 
 - **Local rebuild**: `just qr` (or `just switch`)
 - **Remote rebuild from a desktop**: `just remote-rebuild srv` (or
-  `qbert`/`donkeykong`). SSHes to the target and runs `just qr` there;
+  `qbert`). SSHes to the target and runs `just qr` there;
   the target host reads its own cached file.
 
 ## Rotation (when a 1Password value changes)
@@ -227,8 +227,7 @@ render-secrets --tpl ./secrets.json.tpl   # use a different template (must be
                                           # template in a feature branch
 ```
 
-`--push HOST` validates `HOST` against the allow-list (`qbert`, `donkeykong`,
-`srv`); the same list is enforced in the `push-secrets` justfile recipe.
+`--push HOST` validates `HOST` against the allow-list (`qbert`, `srv`); the same list is enforced in the `push-secrets` justfile recipe.
 
 ## `nixerator` vault items
 
@@ -268,7 +267,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 
 Per-host network identity (Tailscale IPs, syncthing peer IDs) is NOT in 1P;
 those values live in `settings/globals.nix` under
-`hosts.{qbert,donkeykong,srv}` because they're already published in
+`hosts.{qbert,srv}` because they're already published in
 plaintext docs in this repo and don't grant access on their own.
 
 ### Authentication: service account vs. desktop biometric

@@ -42,6 +42,9 @@ in
           # compressor model, optional torch), not something worth paying
           # for on a headless server.
           headroom.enable = true;
+          # Clone + build the binary the kong-docs-rag plugin launches
+          # (cfg/kong-docs-rag.nix). qbert snapshot enables the plugin; srv does not.
+          kongDocsRag.enable = true;
         };
         antigravity.enable = true;
         superpowers.enable = true;
@@ -53,7 +56,7 @@ in
     # opencode, the CLI agent harness for driving local (Ollama) or cloud
     # models (opencode from the llm-agents input, the same source as
     # claude-code). Provider-agnostic, so it rides along on every AI-suite host
-    # (qbert, donkeykong) the same way claude-code and antigravity already do,
+    # (qbert) the same way claude-code and antigravity already do,
     # usable against cloud models without any local server. Only the local
     # Ollama server and the opencode provider/model wiring that points at it are
     # qbert-only (they need the GPU, see hosts/qbert and the ollama module);

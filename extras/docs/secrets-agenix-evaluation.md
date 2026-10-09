@@ -98,7 +98,7 @@ So the current model's security posture is:
 
 A migration to agenix/sops only moves the bottom two rows. **If a local
 unprivileged reader of `/nix/store` is not in your threat model, the migration
-buys you very little.** On single-user workstations (`donkeykong`, `qbert`)
+buys you very little.** On single-user workstations (`qbert`)
 you're effectively the only principal anyway. On `srv` — a server with more
 surface and potentially more service accounts — the property is worth more.
 
@@ -138,7 +138,7 @@ from the off-store `secrets.json` at runtime via `jq` (host call sites pass a
 world-readable store script. No new tool, 1Password unchanged.
 
 Shared values (`b2-credentials`, `restic-password`) currently fan out to
-srv/qbert/donkeykong via the JSON blob. agenix would push you to one `.age`
+srv/qbert via the JSON blob. agenix would push you to one `.age`
 file per (host × value) or duplicate; sops keeps the single-doc fan-out.
 
 ### Bucket C — env vars for interactive shells. **Neither tool covers this natively.**

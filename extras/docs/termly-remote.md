@@ -86,7 +86,6 @@ Tailscale IPs:
 | Host       | IP              |
 | ---------- | --------------- |
 | qbert      | 100.74.137.95   |
-| donkeykong | 100.117.210.113 |
 
 ## Troubleshooting
 

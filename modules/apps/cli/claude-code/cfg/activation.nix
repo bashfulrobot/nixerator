@@ -3,7 +3,6 @@
   lib,
   configDir,
   statusLineScript,
-  autoGateScript,
   precompactScript,
   reinjectScript,
   remindersFile,
@@ -138,22 +137,19 @@
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 
-      # The /auto permission gate is Nix-owned (stripped from capture in
-      # cfg/fish.nix), mirroring the plugin overlay above. Pin the ask list and
-      # inject the sentinel-gated auto-gate PreToolUse hook with its store path
-      # so a captured or runtime-rewritten settings.json can't drift them. This
-      # injection (not a source placeholder) is required because pre-rebuild
-      # capture would wipe a brand-new source key before it is ever built.
+      # The /auto permission gate now ships in the dk plugin (hooks/hooks.json,
+      # PreToolUse Bash). Pin the ask list, and drop any auto-gate hook entry
+      # an earlier generation injected with a nix store path, so the gate does
+      # not run twice (the dk plugin owns it).
       ${pkgs.jq}/bin/jq \
         '.permissions.ask = ["Bash(sudo *)"]
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${autoGateScript}/bin/claude-auto-gate"}]}])' \
+         | .hooks.PreToolUse = ((.hooks.PreToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 
       # Context-rot, reminder, and hardened-guard hooks are Nix-owned, same as
-      # the auto-gate above: injected here with their store paths and stripped on
+      # the hooks above: injected here with their store paths and stripped on
       # capture (cfg/fish.nix strips any hook whose command lives under /nix/store,
       # so a new injected hook needs NO capture-side change). Each clause is
       # idempotent -- it first drops any existing entry carrying its command

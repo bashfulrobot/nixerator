@@ -155,8 +155,8 @@ in
     # hyprflake defaults < shared `settings` (below) < captured overrides.
     #
     # `group` picks the captured-overrides file at dank-profiles/<group>.json:
-    #   - default here is "workstations": donkeykong + qbert share one profile,
-    #     so a GUI change captured on either propagates to both on rebuild.
+    #   - default here is "workstations": every workstation host shares one profile,
+    #     so a GUI change captured on one propagates to the others on rebuild.
     #   - to isolate a host, override in hosts/<host>/modules.nix with
     #       hyprflake.desktop.dank.capture.group = config.networking.hostName;
     #     or group a subset with e.g. ...capture.group = "laptops";

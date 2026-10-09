@@ -202,7 +202,7 @@ Rotation complete and self-checked on this host. Both the local file and the
 1Password item hold the new token, and op-toggle reads it correctly.
 
 Next: propagate to the rest of the fleet, e.g.:
-  just push-secrets donkeykong srv clanker
+  just push-secrets qbert srv clanker
 (this script does not push automatically -- run that yourself once you're
 happy with the verification above.)
 EOF

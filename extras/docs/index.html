@@ -85,7 +85,7 @@
 <div class="wrap">
 
   <h1>nixerator</h1>
-  <p class="sub">Dustin's NixOS / home-manager flake: three hosts, one repo.</p>
+  <p class="sub">Dustin's NixOS / home-manager flake: two hosts, one repo.</p>
   <div class="chips">
     <span class="chip"><b>Nix flakes</b> declarative config</span>
     <span class="chip"><b>home-manager</b> user-level config</span>
@@ -99,7 +99,7 @@
   <h2>The map</h2>
   <pre class="tree">
 <span class="d">nixerator/</span>
-├─ <span class="f">flake.nix</span><span class="an">              inputs · </span><span class="ac">nixosConfigurations</span><span class="an"> for donkeykong, qbert, srv</span>
+├─ <span class="f">flake.nix</span><span class="an">              inputs · </span><span class="ac">nixosConfigurations</span><span class="an"> for qbert, srv</span>
 ├─ <span class="f">justfile</span><span class="an">              rebuild · upgrade · secrets · capture, one command set</span>
 ├─ <span class="d">settings/</span>
 │   ├─ <span class="f">globals.nix</span><span class="an">        user, paths, timezone, editor/shell/terminal prefs</span>
@@ -117,7 +117,7 @@
 │   ├─ <span class="d">server/</span><span class="an">           8 server-only modules (kvm, nfs, postgres, node-exporter, ...)</span>
 │   ├─ <span class="d">dev/</span><span class="an">              2 dev environments</span>
 │   └─ <span class="d">archive/</span><span class="gi">          retired modules, same relative path, excluded from eval</span>
-├─ <span class="d">hosts/</span><span class="an">                donkeykong · qbert · srv — per-host config</span>
+├─ <span class="d">hosts/</span><span class="an">                qbert · srv — per-host config</span>
 ├─ <span class="d">secrets.json.tpl</span><span class="an">      op:// template rendered per host, git-crypt retired</span>
 └─ <span class="d">extras/</span><span class="an">                docs, helper scripts, secrets render logic</span>
   </pre>
@@ -150,7 +150,7 @@
     <div class="flow" style="justify-content:center;align-items:center">
       <div class="node" style="border-color:var(--teal)">
         <div class="h" style="color:var(--teal)">archetypes.workstation</div>
-        <div class="s">donkeykong · qbert</div>
+        <div class="s">qbert</div>
       </div>
       <div class="arrow">→<small>enables</small></div>
       <div style="display:flex;flex-direction:column;gap:8px">
@@ -199,16 +199,9 @@
   </div>
 
   <!-- HOSTS -->
-  <h2>Three hosts, one repo</h2>
+  <h2>Two hosts, one repo</h2>
   <div class="panel">
-    <div class="grid g3">
-      <div>
-        <div class="mono" style="font-weight:600;margin-bottom:8px;color:var(--blue)">donkeykong</div>
-        <div class="srow"><span class="mk ok">✓</span> workstation <span class="note">laptop</span></div>
-        <div class="srow"><span class="mk ok">✓</span> libvirt/KVM <span class="note">Talos VMs</span></div>
-        <div class="srow mono" style="font-size:11.5px;color:var(--mut)">100.117.210.113</div>
-        <div class="note" style="margin-top:6px">Often powered off — validate with <span class="mono">just build-host donkeykong</span>, not a live SSH check.</div>
-      </div>
+    <div class="grid g2">
       <div>
         <div class="mono" style="font-weight:600;margin-bottom:8px;color:var(--blue)">qbert</div>
         <div class="srow"><span class="mk ok">✓</span> workstation <span class="note">desktop</span></div>
@@ -266,7 +259,7 @@
     </div>
     <div class="panel card">
       <p class="k">Server virtualisation <span class="tag soon">settling</span></p>
-      <p>donkeykong, qbert, and srv all moved back to libvirt/KVM after an Incus detour — Talos VMs need real QEMU block-device semantics and a working qemu-guest-agent channel that Incus didn't provide. <span class="mono">server.noclaw</span> and <span class="mono">server.netbootXyz</span> stay archived rather than nftables-ported, since neither was in active use.</p>
+      <p>qbert and srv both moved back to libvirt/KVM after an Incus detour — Talos VMs need real QEMU block-device semantics and a working qemu-guest-agent channel that Incus didn't provide. <span class="mono">server.noclaw</span> and <span class="mono">server.netbootXyz</span> stay archived rather than nftables-ported, since neither was in active use.</p>
     </div>
   </div>
 

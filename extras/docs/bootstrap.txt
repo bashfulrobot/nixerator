@@ -1,5 +1,5 @@
-# NixOS Installation Guide (Donkeykong)
-# Disko declarative partitioning with LUKS encryption
+# NixOS Installation Guide
+# Disko declarative partitioning (set TARGET_HOST to the host being installed)
 
 ## Prerequisites
 - Boot from NixOS live USB
@@ -14,7 +14,7 @@
 ## Variables (set once)
 
 # bash (for fish, use `set -gx` instead of `export`)
-export TARGET_HOST="donkeykong"
+export TARGET_HOST="qbert"
 export INSTALL_USER="<your-local-username>"       # must match globals.nix user.name
 export SOURCE_USER="<user-on-existing-machine>"
 export SOURCE_HOST="<existing-machine-ip>"
@@ -51,7 +51,7 @@ sudo INSTALL_USER="$INSTALL_USER" ./extras/helpers/bootstrap-install-secrets.sh 
 
 ## Step 5: Verify Disk
 ls -l /dev/disk/by-id/ | grep nvme
-# Must match disk ID in hosts/donkeykong/disko.nix
+# Must match disk ID in hosts/$TARGET_HOST/disko.nix
 # Edit disko.nix if different
 
 ## Step 6: Partition + Format (ERASES ALL DATA)
@@ -61,9 +61,9 @@ sudo nix --experimental-features "nix-command flakes" run github:nix-community/d
 
 ## Step 7: Generate Hardware Config
 sudo nixos-generate-config --root /mnt --no-filesystems
-sudo cp /mnt/etc/nixos/hardware-configuration.nix ./hosts/donkeykong/
-git add hosts/donkeykong/hardware-configuration.nix
-git commit -m "feat(donkeykong): add hardware configuration"
+sudo cp /mnt/etc/nixos/hardware-configuration.nix ./hosts/$TARGET_HOST/
+git add hosts/$TARGET_HOST/hardware-configuration.nix
+git commit -m "feat($TARGET_HOST): add hardware configuration"
 
 ## Step 8: Install NixOS
 # --impure is required: flake.nix reads secretsFile via builtins.readFile of
@@ -110,7 +110,7 @@ sudo umount -R /mnt && sudo reboot
 ## Post-Installation
 
 # Set variables in first-boot shell (bash; for fish use set -gx)
-export TARGET_HOST="donkeykong"
+export TARGET_HOST="qbert"
 export REPO_PATH="$HOME/git/nixerator"
 
 # Fix permissions (run the post-install script, or manually):
@@ -149,6 +149,6 @@ just fetch-signatures            # alias: just fs
 #   install user from globals.nix doesn't match $INSTALL_USER. Set them to match.
 
 ## Important Files
-# hosts/donkeykong/configuration.nix, disko.nix, boot.nix, home.nix
+# hosts/$TARGET_HOST/configuration.nix, disko.nix, boot.nix, home.nix
 # settings/globals.nix -- user identity + per-host network identity (TS IPs, syncthing IDs)
 # secrets.json.tpl -- 1Password references (vault: nixerator)
