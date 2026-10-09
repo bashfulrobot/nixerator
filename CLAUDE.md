@@ -49,6 +49,9 @@ Open items from the claude-stack consolidation (Oct 2026). None of the Nix
 edits were evaluated on macOS, so the first rebuild on each host is the real
 test. Tick an item off in the same commit that finishes it.
 
+- [ ] **Build before switching:** run `just build-host qbert` first. PRs #422 and #425 were merged without a Nix evaluation (no `nix` on the Mac), so this is the first time the new modules (`kong-docs-rag.nix`, the `systemd.user` merge, the `WAVE_INSYNC_ROOT` export) are checked.
+- [ ] **Reindex timer:** after the rebuild, run `systemctl --user list-timers` and confirm the daily `kong-docs-rag` reindex (06:00) is listed. It skips quietly when the binary or Ollama is missing, so check `journalctl --user -u` for its first run.
+- [ ] **Skill leftovers:** confirm `~/.claude/skills/revealjs` and `~/.claude/skills/wave-invoicing` are gone on qbert after capture-sync, and that `echo $WAVE_INSYNC_ROOT` prints the Camino invoices path (the dk `wave-invoicing` skill reads it).
 - [ ] **qbert:** `git pull`, prune stale plugins and cache dirs per `.claude/docs/claude-plugins.md`, run `just qr` twice (the second run must show no capture diff), then `python3 ~/git/claude-skills/scripts/claude_stack.py drift --host qbert`.
 - [ ] **srv:** same, with `--host srv`.
 - [ ] **Gate runs once:** after the first activation, confirm the old `claude-auto-gate` entry is gone from live `~/.claude/settings.json`. The `dk` plugin now supplies the gate, so a leftover entry runs it twice.
