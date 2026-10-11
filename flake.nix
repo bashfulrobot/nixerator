@@ -287,9 +287,25 @@
                     "network-online.target"
                   ];
                   wantedBy = [ "multi-user.target" ];
+                  # `after = tailscaled.service` orders unit start only, and
+                  # tailscaled is "active" well before its ipn backend leaves
+                  # NoState. `tailscale serve` against a NoState backend exits
+                  # 1 ("unexpected state: NoState"), so any rebuild that
+                  # restarts tailscaled -- most nixpkgs/systemd bumps -- loses
+                  # this race and fails the whole activation with
+                  # switch-to-configuration status 4. Retry instead of waiting
+                  # on a readiness signal tailscaled does not expose:
+                  # `on-failure` is the only Restart= systemd permits for
+                  # Type=oneshot, the unit is never restarted on a clean exit,
+                  # and StartLimitBurst bounds a genuinely broken serve config
+                  # to 5 tries rather than looping forever.
+                  startLimitBurst = 5;
+                  startLimitIntervalSec = 300;
                   serviceConfig = {
                     Type = "oneshot";
                     RemainAfterExit = true;
+                    Restart = "on-failure";
+                    RestartSec = 10;
                     ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=/claudio 127.0.0.1:8787";
                     # `-` prefix: don't fail the stop if the toggle syntax is
                     # rejected. Targets only this path, so any unrelated
