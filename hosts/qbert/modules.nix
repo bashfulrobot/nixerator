@@ -80,6 +80,8 @@
     # Mobile/web remote control for Claude Code sessions (happy.engineering).
     # qbert is usually up, so it's a useful pairing target alongside srv.
     happy.enable = true;
+    # Laptop that moves networks; restart the daemon once a link is back up.
+    happy.restartOnNetworkUp = true;
 
     # Text expander. See modules/apps/cli/espanso/default.nix for why this
     # goes through the system-level services.espanso rather than Home
