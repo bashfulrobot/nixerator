@@ -551,7 +551,25 @@ in
             RestartSec = 5;
             StartLimitIntervalSec = 60;
             StartLimitBurst = 10;
-            ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=${cfg.publish.path} ${cfg.outRoot}";
+            # Restart= alone cannot save an activation: switch-to-configuration records
+            # the first failed start and exits 4 even when the retry succeeds later. So
+            # the start loops inside the first attempt (30 tries, 2s apart, 60s ceiling).
+            ExecStart = pkgs.writeShellScript "incident-investigator-serve-start" ''
+              set -u
+              tries=30
+              i=1
+              while [ "$i" -le "$tries" ]; do
+                if ${config.services.tailscale.package}/bin/tailscale serve \
+                  --bg --yes --https=443 --set-path=${cfg.publish.path} ${cfg.outRoot}; then
+                  exit 0
+                fi
+                echo "tailscale serve attempt $i/$tries failed (backend likely still NoState); retrying in 2s" >&2
+                sleep 2
+                i=$((i + 1))
+              done
+              echo "tailscale serve did not succeed within 60s" >&2
+              exit 1
+            '';
             # `-` prefix: don't fail the stop if the toggle syntax is rejected. Targets
             # only this path, so any unrelated serve config is left untouched.
             ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=${cfg.publish.path} off";
