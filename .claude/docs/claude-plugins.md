@@ -153,10 +153,15 @@ copy; run the block above on qbert and srv for each, then `just qr`:
 
 ```
 asana atlassian context7 feature-dev github kotlin-lsp learning-output-style
-pr-review-toolkit rust-analyzer-lsp           (@claude-plugins-official)
+pr-review-toolkit rust-analyzer-lsp frontend-design (@claude-plugins-official)
 commit feature-request kong-skill kong-skills (@kong-skills)
 hyperframes@hyperframes  impeccable@impeccable  kong-konnect@ai-marketplace
 ```
+
+`frontend-design@claude-plugins-official` was pruned from the repo copy later:
+the manifest wants `frontend-design@claude-skills`, whose install record was
+already captured (live installs create it, so it is not hand-authored). Run the
+block above on qbert and srv for it too, or activation re-seeds the old key.
 
 After the rebuild, a second `just qr` must show no diff in
 `config/plugins/installed_plugins.json` (the fixpoint check).
