@@ -168,25 +168,26 @@
       vendorHash = "sha256-/6DyRRvfyShQUSFmpmuSxrd1bhBh6Km8kaMutA4xrH4=";
     };
 
-    # HELD at 262.2310.0 (this note supersedes the earlier "262.4739.0 is
-    # available but upstream renamed assets" one; same root cause, still true).
-    # The version is read from GitHub releases, but the artifact comes from
-    # JetBrains' CDN, and upstream restructured both the CDN path and the
-    # artifact name: 262.2310.0 is published as
-    # /kotlin-lsp/<v>/kotlin-lsp-<v>-linux-x64.zip, while 262.8190.0 moved to
-    # /language-server/kotlin-server/<v>/kotlin-server-<v>... and publishes no
-    # linux-x64 zip we can find (its release notes list Windows builds only).
-    # Every URL shape probed for 262.8190.0 returns 404, so a bump needs
-    # build/default.nix's URL reworked AND a linux artifact to exist upstream.
-    # updatePolicy=manual makes the hold stick: it was a comment-only hold
-    # before, which update-pkg cannot read, so the tool bumped it regardless.
+    # The hold at 262.2310.0 is over: that build was deleted from the CDN
+    # (download-cdn.jetbrains.com/kotlin-lsp/262.2310.0/... now 404s), which
+    # broke every `nixos-rebuild` that evaluates helix/opencode. Upstream's
+    # "Standalone Kotlin LSP Archive" moved to
+    # download.jetbrains.com/language-server/kotlin-server/<v>/kotlin-server-<v>.tar.gz
+    # and the Linux-x64 tarball is published again (verified 200 for
+    # 262.9593.0, 263.4702.0 and 263.6379.0), so build/default.nix now fetches
+    # that URL. The tarball's layout also changed: `jbr/` replaced `jre/`,
+    # `native/` is gone, and the entrypoint is the native launcher
+    # `bin/intellij-server` instead of a hand-built `java -cp` command line.
+    # updatePolicy stays manual because the version comes from GitHub releases
+    # while the artifact comes from the CDN, and upstream has renamed that
+    # artifact twice; confirm the tarball exists before bumping.
     kotlin-lsp = {
       source = "github-release";
       repo = "Kotlin/kotlin-lsp";
       updatePolicy = "manual";
-      version = "262.2310.0";
+      version = "263.6379.0";
       tagPrefix = "kotlin-lsp/v";
-      hash = "sha256-wAQkIVj0teHZF93YSOb2onlIT6WKPivOiEa4B9GtFrE=";
+      hash = "sha256-q4ykRV3C/F/hok2yvMxGwQQlTSxGUVXEJR7mXfjz98w=";
     };
 
     gurk = {
