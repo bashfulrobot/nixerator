@@ -48,6 +48,8 @@
   "batteryLockTimeout": 300,
   "batteryMonitorTimeout": 360,
   "batterySuspendTimeout": 600,
+  "blurEnabled": true,
+  "blurWallpaperOnOverview": true,
   "builtInPluginSettings": {
     "dms_clipboard_search": {
       "trigger": "cb"
