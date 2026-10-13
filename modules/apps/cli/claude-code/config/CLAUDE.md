@@ -63,7 +63,6 @@ named doc before acting — don't work from the one-liner alone.
 - Before extracting a helper or abstraction, apply the three-occurrence DRY threshold — invoke `code-style`.
 - When `git status` shows unmerged paths or a PR reports conflicts, run `mergiraf solve` before hand-editing markers — invoke `merge-conflicts`.
 - When I say "git cleanup", "clean up the git stuff", or "wrap this branch up", that is standing authorization to commit, push, PR, squash-merge to `main`, and remove the worktree — invoke `git-cleanup`.
-- When Bash output looks filtered or truncated, `rtk` wrapped it; `RTK_DISABLED=1 <cmd>` bypasses it once — invoke `rtk-output-compression`.
 - When I ask you to copy something to my clipboard or send a file to my phone, never hardcode `wayland-1` and never guess the transfer command — invoke `send-to-dustin`.
 - Before fetching anything from `developer.konghq.com`, append `.md` to the URL path — invoke `kong-docs-lookup`.
 - When writing a project `CLAUDE.md`, a `.claude/docs/` topic file, or deciding where durable knowledge belongs, follow the thin-CLAUDE.md protocol — invoke `curated-knowledge`.

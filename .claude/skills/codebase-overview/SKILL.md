@@ -11,7 +11,7 @@ description: >
 
 # nixerator: codebase overview
 
-Personal NixOS + home-manager flake for three hosts. This file is the map and
+Personal NixOS + home-manager flake for two hosts. This file is the map and
 the router. It carries structure and entry points only — no option values, no
 file contents. Detail lives in the topic files it points at.
 
@@ -93,7 +93,7 @@ merge, imports do not. See `.claude/docs/user-lingering.md`.
 
 ## Host wiring
 
-All three go through `lib.mkHost` in `flake.nix`, which composes
+Both go through `lib.mkHost` in `flake.nix`, which composes
 `hosts/<host>/configuration.nix`, the home-manager NixOS module, a shared
 nixpkgs/overlay/gc block, the linger assertion, and per-host `extraModules` /
 `homeManagerModules`.
@@ -198,14 +198,13 @@ Repo-local, `.claude/docs/`:
 
 - `conventions.md` — build/rebuild/lint/format/upgrade rules, git discipline, secrets rules, path discipline.
 - `webapps.md` — adding a browser-wrapped web app; `wmClass` verification.
-- `sources.md` — context7/gitmcp lookup table for Nix tool and flake-input docs.
+- `sources.md` — gitmcp lookup table for Nix tool and flake-input docs.
 - `tools.md` — the local CLI tools (`amber`, `cpx`, `meetsum`, `nix-init`, `ballpoint`).
 - `cross-device-workflow.md` — `claudeWorkHost`, the `work` fish function, session pickup.
 - `dank-capture.md` — DMS capture/seed flow, `dank-profiles/`.
 - `claude-plugins.md` — declarative plugin marketplace surface, capture behaviour.
 - `user-lingering.md` — `systemd.user` timers, `linger`, the no-enable-option invariant pattern.
 - `skill-cache.md` — warm-cache convention for query skills.
-- `token-optimizer.md` — the token-optimizer plugin, the `/usr/local/bin/python3` tmpfiles rule, hook exit 127.
 - `vendored-skills.md` — adding/bumping/debugging a skill vendored from a flake input.
 - `skill-defaults.md` — the always-on baseline, default-off model, and `skill-pick`.
 
@@ -235,7 +234,7 @@ Recheck when any of these stop matching. All change on the order of months.
 
 | Claim | Check with |
 |---|---|
-| Three hosts, their `extraModules` / `homeManagerModules` | `grep -n 'lib.mkHost' -A12 flake.nix` |
+| Both hosts, their `extraModules` / `homeManagerModules` | `grep -n 'lib.mkHost' -A12 flake.nix` |
 | Two archetypes, and which host enables which | `ls modules/archetypes/` and `grep -rn 'archetypes\..*\.enable' hosts/` |
 | 12 suites | `ls modules/suites/` |
 | Auto-import exclusion set | `modules/default.nix` (the `isExcluded` predicate) |

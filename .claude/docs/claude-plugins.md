@@ -3,14 +3,110 @@
 How the claude-code module manages Claude Code's plugin surface, and how to fix
 the one failure mode that has actually bitten us.
 
-## Declarative surface (Nix-owned)
+## Declarative surface (manifest-owned, Nix-applied)
 
-`modules/apps/cli/claude-code/cfg/plugin-config.nix` is the single source of
-truth for `extraKnownMarketplaces` (marketplaces pinned to commit SHAs) and
-`enabledPlugins`. Activation merges these two keys into the deployed
-`~/.claude/settings.json`, and capture (`cfg/fish.nix`) strips them, so Nix owns
-them and a bare runtime capture cannot unpin them. To add or bump a marketplace,
-edit its entry in `plugin-config.nix` like a lock file.
+The plugin and marketplace set is no longer authored in this repo. It comes from
+the claude-stack manifest in `bashfulrobot/claude-skills`
+(`claude-stack/claude-stack.json`; schema in that repo's
+`docs/ai/claude-stack.md` and `unified-stack.md`). Its resolver writes
+`claude-stack/resolved/<host>.json`, and this repo carries a committed snapshot
+of the NixOS hosts' files:
+
+```
+modules/apps/cli/claude-code/cfg/claude-stack/qbert.json
+modules/apps/cli/claude-code/cfg/claude-stack/srv.json
+```
+
+`cfg/plugin-config.nix` reads the snapshot for `apps.cli.claude-code.stackHost`
+(default: the hostname; a host with no manifest entry can set it to follow
+another host's snapshot) with `builtins.fromJSON` and builds two keys:
+
+- `enabledPlugins`: state `enabled` -> `true`, `disabled` -> `false`, `absent`
+  -> key omitted.
+- `extraKnownMarketplaces`: the manifest's resolved non-builtin marketplaces,
+  each pinned to its manifest sha. `claude-skills` is `selfPin` in the manifest
+  (no sha), so its sha comes from the pin in `plugin-config.nix`.
+
+Activation merges these two keys into the deployed `~/.claude/settings.json`,
+and capture (`cfg/fish.nix`) strips them, so Nix owns them and a bare runtime
+capture cannot unpin them. Per-host `plugins = [ ... ]` lists no longer exist:
+`modules/suites/ai`, `hosts/srv/modules.nix` and the superpowers module carry
+only pointer comments. The plugin-gated extra `hasHyperframes`
+tests the snapshot's enabled ids. (token-optimizer and its `hasTokenOptimizer`
+plumbing were removed everywhere; see below.) The manifest's `config` and
+`secrets` per plugin are not applied by Nix yet (userConfig/secret wiring is a
+later phase); only state and marketplaces are. Their `secrets` refs already
+use the single `automation` 1Password vault (see below).
+
+### Permissions: add-only union, runtime-owned
+
+The snapshot's `permissions.allow` (manifest syntax is the normalised
+`Bash(x *)`; the resolver already folds `Bash(x:*)` into it) is merged into
+`~/.claude/settings.json` at activation as an ordered, add-only union
+(`cfg/activation.nix`, fed by `permissionsAllow` in `plugin-config.nix`).
+Existing rules keep their order and are never removed; declared rules not
+already present are appended in manifest order. A live `Bash(x:*)` counts as
+present for a declared `Bash(x *)`, so the legacy spelling is not duplicated.
+`permissions.deny` is not touched.
+
+This is unlike `enabledPlugins`: permissions stay runtime-owned. Capture
+(`cfg/fish.nix`) strips only `permissions.ask`, so `permissions.allow`
+round-trips into `config/settings.json`, appended rules included. The union is
+idempotent, so capture -> activation -> capture is a fixpoint. Consequence:
+removing a rule from the manifest does not revoke it on a host; delete it from
+`config/settings.json` and the live file by hand. Both snapshots currently
+declare an empty allow list, so the merge is a no-op until the manifest gains
+rules. Not verified end to end (no nix on the authoring Mac); the jq filter was
+tested standalone for ordering, `:*` normalisation and idempotence.
+
+### Changing the set, and the pin/snapshot coupling
+
+Add, drop or re-pin a plugin or marketplace in `claude-stack.json` in
+claude-skills, run `just stack-resolve` there, merge, then here run
+`just bump-claude-skills` (or `just upgrade`). The bump script resolves the new
+claude-skills sha, fetches `claude-stack/resolved/{qbert,srv}.json` at THAT sha
+with `gh api` (private repo, no flake input), validates them, and rewrites both
+the pin and the snapshot files in one go, so pin and snapshot always come from
+the same sha. `just commit-plugin-config` commits the pin and the snapshot
+together. Pass a 40-hex sha instead of a branch to pin an exact commit.
+
+Snapshot seeded from the unmerged claude-skills PR #54 (branch
+`feat/claude-stack-phase1`). Once #54 merges, re-run
+`just bump-claude-skills` so the pin and snapshot come from a main sha.
+
+### Dropped plugins: why (moved from the old per-host lists)
+
+The old workstation list's rationale, kept here so it survives the list's
+removal. All were dropped on usage data (#294 token-surface audit over 90 days
+of transcripts; claude-code doctor 2026-07-30), and re-adding any needs usage
+data, not a hunch:
+
+- learning-output-style: injects a system-prompt block that hands TODOs back
+  to the user; inflates turn count.
+- pr-review-toolkit, feature-dev: agent definitions (~1.8k tokens resident for
+  the former), dispatched once or never; review-dev/review-security cover it.
+- context7: duplicate mount. The user-scoped server in `cfg/mcp-servers.nix` was
+  the single source until it was removed too (no context7 in nixerator now).
+- asana, atlassian, github: MCP servers sat unauthenticated, no real use
+  (github work goes through `gh`).
+- code-review, kotlin-lsp, rust-analyzer-lsp, kong-skills@kong-skills,
+  kong-skill, commit@kong-skills, feature-request@kong-skills, impeccable,
+  hyperframes, kong-konnect@ai-marketplace: zero usage over 50 sessions; several
+  were shadowed by the personal review-dev, commit and feature-request skills.
+- token-optimizer@alexgreensh-token-optimizer: removed everywhere (module
+  option, `cfg/token-optimizer.nix`, tmpfiles `/usr/local/bin/python3` rule,
+  activation flag pinning, reminder, `installed_plugins.json` entry, doc). The
+  Mac does not use it and NixOS follows the Mac's patterns. The `qbert.json`
+  snapshot still lists it until `just bump-claude-skills` pulls a snapshot
+  regenerated from claude-skills `feat/claude-stack-unify`; do not hand-edit it.
+  Leftovers on already-deployed hosts (`~/.claude/plugins/data/token-optimizer-*`,
+  the `/usr/local/bin/python3` symlink goes away on rebuild) can be deleted by hand.
+- ralph-loop, reap, caveman: autonomous-loop engines duplicating `auto`
+  (`/auto` 18 sessions vs 1-2), and caveman's terse-output ruleset contradicted
+  the global "run all prose through humanizer" rule.
+
+Marketplaces no longer registered because no non-absent plugin needs them:
+`ai-marketplace`, `impeccable`, `hyperframes`.
 
 `~/.claude/plugins/installed_plugins.json` is the opposite. It mirrors the live
 runtime and is captured, not authored. Hand-authoring an entry for a plugin that
@@ -37,11 +133,70 @@ the other.**
   repo copy.
 
 Do not assume a capture will "clean up" an entry the way it would for a
-genuinely runtime-owned file. When a plugin is dropped from
-`cfg/plugin-config.nix`, prune its key from **both** copies in the same change,
-and delete its `~/.claude/plugins/cache/<marketplace>/<plugin>/` directory too.
+genuinely runtime-owned file. When a plugin is dropped from the manifest (so
+from the snapshot), prune its key from **both** copies in the same change, and
+delete its `~/.claude/plugins/cache/<marketplace>/<plugin>/` directory too.
+The repo copy is pruned in the PR that drops the plugin; the live copy and cache
+are pruned by hand on each host, before the rebuild that runs activation:
+
+```bash
+# Per host, for each dropped <plugin>@<marketplace>. Keep set = every
+# non-absent plugin id in that host's snapshot; the repo copy is a union over
+# qbert and srv, so keep the union on both hosts.
+f=~/.claude/plugins/installed_plugins.json
+jq 'del(.plugins["<plugin>@<marketplace>"])' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+rm -rf ~/.claude/plugins/cache/<marketplace>/<plugin>
+```
+
+Phase 4 (manifest-driven plugins) dropped these ids, now pruned from the repo
+copy; run the block above on qbert and srv for each, then `just qr`:
+
+```
+asana atlassian context7 feature-dev github kotlin-lsp learning-output-style
+pr-review-toolkit rust-analyzer-lsp           (@claude-plugins-official)
+commit feature-request kong-skill kong-skills (@kong-skills)
+hyperframes@hyperframes  impeccable@impeccable  kong-konnect@ai-marketplace
+```
+
+After the rebuild, a second `just qr` must show no diff in
+`config/plugins/installed_plugins.json` (the fixpoint check).
 This is why #328's plugin removals left stale state behind until the follow-up
 audit — see the code comment in `cfg/fish.nix` at the capture block.
+
+## Plugin-owned hooks, agents and MCP (dk, kong-docs-rag)
+
+Nixerator no longer carries its own copies of what the dk plugin ships:
+
+- **auto-gate / auto-permissions.** The `/dk:auto` rm/kill/pkill gate is dk's
+  `hooks/hooks.json` (PreToolUse, matcher `Bash`), and the pre-authorized-folders
+  CLI is dk's `scripts/auto-permissions.sh`. Activation (`cfg/activation.nix`)
+  now only pins `permissions.ask` and deletes any leftover `claude-auto-gate`
+  store-path entry from a previous generation. Differences from the removed
+  nixerator copy: dk's gate resolves `jq`, `git`, GNU `grep -P` and `realpath -m`
+  from the ambient PATH (nixerator pinned them via `writeShellApplication`); and
+  `auto-permissions` is no longer a bare command on PATH, it is invoked as
+  `${CLAUDE_PLUGIN_ROOT}/scripts/auto-permissions.sh` by the dk `auto-permissions`
+  skill. The bats suites for the removed scripts went with them.
+- **reviewer-dev / reviewer-security** agents come from the dk plugin. Their
+  `config/.capture-state.json` snapshot entries are kept on purpose so capture
+  treats the files as deleted-at-home, not as new live files to re-import.
+- **kong-docs MCP.** The kongdex (`uv run kongdex`) server is gone. The
+  `kong-docs-rag@claude-skills` plugin (enabled in the qbert snapshot) launches
+  `<repo_path>/bin/kong-docs-rag serve -data-dir <repo_path>/data`.
+  `cfg/kong-docs-rag.nix` (option `apps.cli.claude-code.kongDocsRag.enable`, on
+  in `suites.ai`) clones `bashfulrobot/kong-docs-rag` to `~/git/kong-docs-rag`
+  and runs `go build` when the binary is missing. Still manual: GitHub auth for
+  the private clone; setting the plugin's `repo_path` (Nix does not apply
+  manifest `config` yet, see above); `ollama pull nomic-embed-text` and an
+  Ollama server (qbert's `apps.cli.ollama` provides the server, not the
+  model) and the first `bin/kong-docs-rag index -data-dir data`. Re-indexing is
+  automatic: a `kong-docs-rag-reindex` systemd user timer (daily 06:00,
+  `Persistent`, the NixOS counterpart of donkeykong's LaunchAgent of the same
+  name) runs `git pull --ff-only`, rebuilds if HEAD moved, then the index
+  command. It is skipped while `bin/kong-docs-rag` is missing, and every
+  failure (offline, dirty tree, build error, Ollama down) is logged and exits 0.
+  Check it with `systemctl --user list-timers kong-docs-rag-reindex` and
+  `journalctl --user -u kong-docs-rag-reindex`.
 
 ## Runbook: Kong Konnect skills missing
 
@@ -68,8 +223,8 @@ plugin-install log; use `claude --debug` if you need to watch the load.
 
 ## Pin-time trust review, and re-review on bump
 
-Most marketplaces pinned in `plugin-config.nix` trace to a recognizable
-source (Kong, heygen-com, pbakaus, JuliusBrussee, alexgreensh). A pin from a
+Most marketplaces pinned in the manifest trace to a recognizable
+source (Kong, heygen-com, pbakaus, JuliusBrussee). A pin from a
 single-author or low-star repo carries more risk per byte, especially if the
 plugin ships a hook that can auto-approve a tool call (a `PreToolUse` hook
 returning `permissionDecision: "allow"`) rather than only reading transcript
@@ -105,7 +260,19 @@ mismatch against these values on a re-fetch of the same SHA means the fetch
 method differs (CRLF vs LF, a proxy rewriting content), not that the plugin
 changed; re-derive with the exact command above before treating it as drift.
 
-A SHA bump re-grants that trust wholesale. Re-run the same depth of review
+The manifest records this as the marketplace's `review` field; the resolved
+snapshot carries it. A SHA bump re-grants that trust wholesale. Re-run the same depth of review
 (read every hook entrypoint and any auto-approval matcher in full, not just
 a diff against the old SHA) before bumping a single-author marketplace,
 and update the pin comment with what changed.
+
+## 1Password vault: `automation`
+
+One vault, the same refs as the Mac (the Mac's donkeykong `Claudefile`). `secrets.json.tpl`
+now reads `kong-konnect-pat/lab-pat-2026-06` and all four `Tableau-PAT` fields
+(`hostname`, `Site-Name`, `username`, `credential`) from `op://automation/...`
+instead of `op://nixerator/...`. The account that runs `just render-secrets`
+(and `op inject`) must have read access to `automation`.
+
+Still `op://nixerator/...` (not used by the Mac, no `automation` item known):
+everything else in `secrets.json.tpl`.

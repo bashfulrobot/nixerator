@@ -6,13 +6,10 @@
   fluxOperatorMcp,
   isoTopologyPkg,
   kubeconfigFile,
-  homeDir,
   serverProfile,
 }:
 
 let
-  context7ApiKey = (secrets.context7 or { }).apiKey or null;
-
   mcpServers = {
     # Go code intelligence via official gopls MCP (detached mode)
     # Tools: go_diagnostics, go_references, go_search, go_symbol_references, etc.
@@ -174,42 +171,9 @@ let
         "@playwright/mcp@latest"
       ];
     };
-    # kongdex (https://github.com/KongHQ-CX/kongdex) -- local RAG over the Kong
-    # developer docs (and optionally Kong source), exposed as a stdio MCP server.
-    # Upstream names the server `kong-docs`; kept here so it reads parallel to the
-    # `kong-konnect` live-API server (docs RAG vs Konnect control-plane API) and
-    # matches the bundled kong-expert skill / kong-architect agent references.
-    #
-    # Runs from a local checkout, not a nixpkgs package: clone to
-    # ${homeDir}/git/kongdex, then `uv sync` + `uv run kongdex refresh` to build
-    # the Chroma index before the server has anything to serve. Until then (or if
-    # the checkout is missing) the server just fails to connect in /mcp, same as
-    # the npx-based servers above when their fetch fails.
-    #
-    # Workstation-only (serverProfile == "full"): the local index and embedder
-    # have no place on a headless host, matching chrome-devtools/playwright/tableau.
-    kong-docs = {
-      command = "${pkgs.uv}/bin/uv";
-      args = [
-        "--directory"
-        "${homeDir}/git/kongdex"
-        "run"
-        "kongdex"
-        "serve"
-      ];
-    };
-  }
-  // lib.optionalAttrs (context7ApiKey != null) {
-    context7 = {
-      type = "http";
-      url = "https://mcp.context7.com/mcp";
-      headers = {
-        # Placeholder only; the real key is substituted into ~/.claude/mcp-servers
-        # at activation from the off-store secrets file (issue #265), so it never
-        # lands in the world-readable store.
-        CONTEXT7_API_KEY = "@CONTEXT7_API_KEY@";
-      };
-    };
+    # The Kong docs search MCP is not defined here: NixOS uses the
+    # kong-docs-rag plugin (kong-docs-rag@claude-skills) exactly like the Mac.
+    # Provisioning of its checkout/binary is cfg/kong-docs-rag.nix.
   }
   // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
     kong-konnect = {
@@ -305,18 +269,11 @@ let
   # writes the real file from the off-store secrets file at 0600 (issue #265).
   # Each entry maps its placeholders to jq paths in the rendered secrets JSON.
   secretServerNames = [
-    "context7"
     "kong-konnect"
     "tableau"
   ];
 
   secretServerSubs = {
-    context7 = [
-      {
-        placeholder = "@CONTEXT7_API_KEY@";
-        path = ".context7.apiKey";
-      }
-    ];
     kong-konnect = [
       {
         placeholder = "@KONG_KONNECT_PAT@";

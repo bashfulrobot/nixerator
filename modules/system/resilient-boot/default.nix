@@ -42,8 +42,7 @@ in
     # password is set on any host this module targets). Accepted risk: none
     # of srv/qbert expose a network-reachable BMC/IPMI/remote-KVM,
     # so reaching this entry requires physical presence at the machine, which
-    # already implies unencrypted-disk access on qbert/srv (no LUKS) and a
-    # LUKS passphrase prompt on a laptop. If this module is ever applied to
+    # already implies unencrypted-disk access on qbert/srv (no LUKS). If this module is ever applied to
     # a host with remote out-of-band console access, gate this specialisation
     # behind a systemd-boot menu password first.
     #

@@ -11,12 +11,67 @@ let
   cfg = config.apps.cli.happy;
   happy = pkgs.callPackage ./build { inherit versions; };
   claudePath = "${pkgs.llm-agents.claude-code}/bin/claude";
+  antigravityEnabled = config.apps.cli.antigravity.enable;
+
+  # Happy's daemon gives up on the server when it starts with no network and
+  # never retries on its own (it only leaves offline mode after a successful
+  # API call, and an idle daemon makes none). Restarting it once the link is
+  # up and the server answers is the only recovery path.
+  serverUrl = "https://api.cluster-fluster.com/";
+
+  # Every external command is called by absolute store path and the countdown
+  # is bash arithmetic rather than `seq`. A transient unit started by
+  # systemd-run inherits the *manager's* environment, not the caller's, and on
+  # this system PID 1's PATH carries only dosfstools/mtools/e2fsprogs/
+  # util-linux-minimal/openssh/systemd -- no coreutils. A bare `seq` there
+  # expands to nothing, so `for _ in $(seq ...)` silently skips the whole loop
+  # and the script falls straight through to the failure message: the daemon
+  # would never be restarted, and the only symptom is a failed
+  # happy-daemon-network-up.service.
+  restartWhenOnline = pkgs.writeShellScript "happy-daemon-restart-when-online" ''
+    tries=30
+    while [ "$tries" -gt 0 ]; do
+      if ${pkgs.curl}/bin/curl -fsS -o /dev/null --max-time 5 ${serverUrl}; then
+        exec ${pkgs.systemd}/bin/systemctl --user --machine=${globals.user.name}@.host restart happy-daemon
+      fi
+      ${pkgs.coreutils}/bin/sleep 2
+      tries=$((tries - 1))
+    done
+    echo "happy-daemon: ${serverUrl} unreachable after 60s, not restarting" >&2
+    exit 1
+  '';
+
+  # Runs as root under NetworkManager. The wait is detached into a transient
+  # unit so the dispatcher returns immediately.
+  #
+  # The fixed --unit name means a second "up" event arriving while the first
+  # waiter is still counting down is refused ("unit already exists"). That is
+  # the behaviour we want -- one pending waiter is enough, and it will restart
+  # the daemon as soon as the server answers -- but it must not mark the
+  # dispatcher script itself as failed, so the refusal is swallowed and logged.
+  onNetworkUp = pkgs.writeShellScript "happy-daemon-network-up" ''
+    [ "$2" = up ] || exit 0
+    ${pkgs.systemd}/bin/systemd-run --no-block --collect \
+      --unit=happy-daemon-network-up ${restartWhenOnline} \
+      || echo "happy-daemon: a network-up waiter is already pending, nothing to do" >&2
+    exit 0
+  '';
 in
 {
-  options.apps.cli.happy.enable =
-    lib.mkEnableOption "Happy -- mobile/web remote control for Claude Code sessions (happy.engineering)";
+  options.apps.cli.happy = {
+    enable = lib.mkEnableOption "Happy -- mobile/web remote control for Claude Code sessions (happy.engineering)";
+
+    restartOnNetworkUp = lib.mkEnableOption "restarting the Happy daemon when a network connection comes up, so it recovers from starting offline (intended for laptops like qbert)";
+  };
 
   config = lib.mkIf cfg.enable {
+    networking.networkmanager.dispatcherScripts = lib.mkIf cfg.restartOnNetworkUp [
+      {
+        source = onNetworkUp;
+        type = "basic";
+      }
+    ];
+
     home-manager.users.${globals.user.name} = lib.mkMerge [
       {
         home.packages = [ happy ];
@@ -42,7 +97,9 @@ in
         # (which shell out to a small, fixed set of tools), a Happy session can
         # run arbitrary project tooling, so the fallback system + per-user
         # profile directories are appended too rather than curating an exact
-        # tool list.
+        # tool list. `agy` (Antigravity CLI) joins the same PATH, gated on
+        # apps.cli.antigravity.enable, so `happy agy` sessions (the daemon's
+        # AgyBackend, upstream slopus/happy src/agy/) can spawn it too.
         #
         # Not gated on prior `happy auth` pairing: with no credentials yet,
         # the daemon's own startup throws and this unit restarts every
@@ -61,13 +118,16 @@ in
             ExecStart = "${happy}/bin/happy daemon start-sync";
             Environment = [
               "PATH=${
-                lib.makeBinPath [
-                  happy
-                  pkgs.llm-agents.claude-code
-                  pkgs.git
-                  pkgs.bash
-                  pkgs.coreutils
-                ]
+                lib.makeBinPath (
+                  [
+                    happy
+                    pkgs.llm-agents.claude-code
+                    pkgs.git
+                    pkgs.bash
+                    pkgs.coreutils
+                  ]
+                  ++ lib.optional antigravityEnabled pkgs.google-antigravity-cli
+                )
               }:/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
               # happy-coder's own `claude` discovery (scripts/claude_version_utils.cjs)
               # resolves `which claude` via fs.realpathSync, lands on
@@ -80,6 +140,9 @@ in
               # installed". HAPPY_CLAUDE_PATH is checked first, unconditionally,
               # bypassing that broken shim heuristic entirely.
               "HAPPY_CLAUDE_PATH=${claudePath}"
+              # agy has no equivalent detection bug (findAgyBin's `command -v
+              # agy` probe works fine), so it just needs to be on PATH above --
+              # no HAPPY_AGY_PATH override required.
             ];
             Restart = "always";
             RestartSec = 10;

@@ -250,7 +250,7 @@
             inputs.hyprflake.nixosModules.default
             inputs.claudio.nixosModules.default
             (
-              { config, ... }:
+              { config, pkgs, ... }:
               {
                 services.claudio = {
                   enable = true;
@@ -282,10 +282,45 @@
                     "network-online.target"
                   ];
                   wantedBy = [ "multi-user.target" ];
+                  # `after = tailscaled.service` orders unit start only, and
+                  # tailscaled is "active" well before its ipn backend leaves
+                  # NoState. `tailscale serve` against a NoState backend exits
+                  # 1 ("unexpected state: NoState"), so any rebuild that
+                  # restarts tailscaled -- most nixpkgs/systemd bumps -- loses
+                  # this race. Restart= does not save activation: it schedules
+                  # a retry 10s later, while switch-to-configuration has
+                  # already seen the first start fail and exits status 4, so
+                  # `just qr` fails even though the serve lands seconds later.
+                  # The retry therefore happens inside ExecStart, where the
+                  # first start blocks until the serve command itself succeeds
+                  # (30 tries, 2s apart, 60s ceiling). Restart= stays as the
+                  # boot-time backstop: `on-failure` is the only Restart=
+                  # systemd permits for Type=oneshot, the unit is never
+                  # restarted on a clean exit, and StartLimitBurst bounds a
+                  # genuinely broken serve config rather than looping forever.
+                  startLimitBurst = 5;
+                  startLimitIntervalSec = 300;
                   serviceConfig = {
                     Type = "oneshot";
                     RemainAfterExit = true;
-                    ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --yes --https=443 --set-path=/claudio 127.0.0.1:8787";
+                    Restart = "on-failure";
+                    RestartSec = 10;
+                    ExecStart = pkgs.writeShellScript "claudio-serve-start" ''
+                      set -u
+                      tries=30
+                      i=1
+                      while [ "$i" -le "$tries" ]; do
+                        if ${config.services.tailscale.package}/bin/tailscale serve \
+                          --bg --yes --https=443 --set-path=/claudio 127.0.0.1:8787; then
+                          exit 0
+                        fi
+                        echo "tailscale serve attempt $i/$tries failed (backend likely still NoState); retrying in 2s" >&2
+                        sleep 2
+                        i=$((i + 1))
+                      done
+                      echo "tailscale serve did not succeed within 60s" >&2
+                      exit 1
+                    '';
                     # `-` prefix: don't fail the stop if the toggle syntax is
                     # rejected. Targets only this path, so any unrelated
                     # serve config on qbert is left untouched.

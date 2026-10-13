@@ -23,11 +23,18 @@
 # read a name's continued presence here as proof it still lives under
 # config/skills/; check the directory.
 #
+# 2026-10-08: 23 more skills that were byte-identical to dk / kong-cs copies
+# were deleted from config/skills/. The last two, revealjs and wave-invoicing,
+# followed (dk's copies are newer: CSRF fix, no hardcoded insync path), so
+# config/skills/ now holds no skill directories at all. None of them is in
+# allNames any more, so none gets an "off" override; they follow the plugin's
+# absent-key-means-on default.
+#
 # alwaysOn: skills that stay enabled everywhere, no per-project opt-in
 # needed. Two reasons a skill earns a spot here, not a hunch:
 #   - named directly in ~/.claude/CLAUDE.md's trigger-scoped rules (removing
 #     it would leave that rule pointing at nothing): bug-fix-workflow,
-#     code-style, merge-conflicts, git-cleanup, rtk-output-compression,
+#     code-style, merge-conflicts, git-cleanup,
 #     send-to-dustin, kong-docs-lookup, curated-knowledge
 #   - heavy, cross-project usage confirmed by claude-code doctor (2026-07-30):
 #     text-polish, humanizer, commit, github-issue, review-dev,
@@ -50,7 +57,6 @@ let
     "code-style"
     "merge-conflicts"
     "git-cleanup"
-    "rtk-output-compression"
     "send-to-dustin"
     "kong-docs-lookup"
     "curated-knowledge"

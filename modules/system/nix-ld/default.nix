@@ -18,8 +18,8 @@ in
       dlopen libstdc++ and friends. With nix-ld enabled and uv's managed
       interpreter, those wheels resolve their libraries process-wide via
       NIX_LD_LIBRARY_PATH instead of failing with "libstdc++.so.6: cannot open
-      shared object file". Drives the kongdex (kong-docs) MCP server, which is a
-      local uv-run RAG stack over the Kong docs
+      shared object file". Serves the headroom `uv tool install` ML extras
+      (cfg/headroom.nix) and any ad hoc uv/pip environment
     '';
   };
 
@@ -27,7 +27,7 @@ in
     programs.nix-ld = {
       enable = true;
       # Libraries the loader exposes to foreign binaries. The first two are
-      # verified sufficient for the kongdex ML stack (numpy / onnxruntime /
+      # verified sufficient for the former kongdex ML stack (numpy / onnxruntime /
       # chromadb / sentence-transformers all import with just these); openssl
       # and zstd cover the wider data-science wheel set (grpc, pyarrow) so new
       # projects do not each need a fresh round of missing-lib debugging.

@@ -45,7 +45,7 @@ Named directly in `~/.claude/CLAUDE.md`'s trigger-scoped rules -- removing
 one would leave that rule pointing at nothing:
 
 `bug-fix-workflow`, `code-style`, `merge-conflicts`, `git-cleanup`,
-`rtk-output-compression`, `send-to-dustin`, `kong-docs-lookup`,
+`send-to-dustin`, `kong-docs-lookup`,
 `curated-knowledge`
 
 Confirmed heavy, cross-project usage by a claude-code doctor scan
@@ -54,6 +54,16 @@ Confirmed heavy, cross-project usage by a claude-code doctor scan
 `text-polish`, `humanizer`, `commit`, `github-issue`, `review-dev`,
 `review-security`, `writing-style`, `auto`, `log-github-issue`, `sfdc`,
 `kong-technical-csm`, `todoist-cli`, `gws-cli`, `slack-post`
+
+Since 2026-10-08 the skills that used to live under `config/skills/` ship
+from `dk@claude-skills` / `kong-cs@claude-skills` only. `revealjs` and
+`wave-invoicing` were the last two and were deleted in the follow-up (dk's
+copies are newer; `wave-invoicing`'s Camino Insync path moved to the
+`WAVE_INSYNC_ROOT` env var in `default.nix`'s `claudeEnv`). `config/skills/`
+now holds only `.capture-ignore`; keep the directory, `builtins.readDir`
+on it fails at eval time if it disappears. They no longer reach the
+default-off overlay (so they are on by default), and `skill-pick` does not see
+them because it only lists `~/.claude/skills`.
 
 `slack-edit` (added 2026-09-25) is the exception to the usage-data bar: it is
 `slack-post`'s sibling from the same `dk` plugin, so it rides along with no

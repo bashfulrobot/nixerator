@@ -67,7 +67,7 @@
   # emits (pkgs/build-support/fetchurl/builder.sh, around the curl array
   # at line ~29). This breaks every `cargoLock.lockFile`-based Rust
   # package whose vendored crates aren't already cached, including
-  # voxtype (the failing build on donkeykong). See
+  # voxtype (the failing build on the former laptop host). See
   # rust-lang/crates.io#13482 and NixOS/nixpkgs#524979.
   #
   # nixpkgs commit f830e61 ("rustPlatform.importCargoLock: download

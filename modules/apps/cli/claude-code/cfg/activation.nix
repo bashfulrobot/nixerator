@@ -3,7 +3,6 @@
   lib,
   configDir,
   statusLineScript,
-  autoGateScript,
   precompactScript,
   reinjectScript,
   remindersFile,
@@ -16,11 +15,9 @@
   guardEnterWorktreeCollisionScript,
   guardSecretCommandsScript,
   scrubSecretOutputScript,
-  tokenOptimizerActivation,
   globals,
   homeDir,
   serverProfile,
-  rtk,
   humanizerSkillSrc,
   intentLayerSkillSrc,
   walkrAuthorSkillSrc,
@@ -29,6 +26,7 @@
   vibecurbSkillNames,
   textPolishRulesFile,
   pluginOverlay,
+  stackPermissions,
   skillOverlay,
   userScopeMcpTemplate,
   secretServerFiles,
@@ -110,6 +108,24 @@
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 
+      # permissions.allow from the claude-stack snapshot: ADD-ONLY ordered union.
+      # Unlike the plugin keys above, permissions are runtime-owned (rules the
+      # user approves in a session are captured into the repo settings.json),
+      # so this never replaces or removes anything: existing rules keep their
+      # order, and declared rules not already present are appended in manifest
+      # order. "Already present" compares the `X(a:*)` and `X(a *)` spellings
+      # as equal (the manifest normalises to `X(a *)`), so a legacy-syntax rule
+      # is not duplicated. Idempotent: a second run appends nothing. Capture
+      # (cfg/fish.nix) keeps permissions.allow, so appended rules round-trip
+      # into the repo copy and stay a fixpoint.
+      ${pkgs.jq}/bin/jq --slurpfile decl ${stackPermissions} \
+        'def norm: sub(":\\*\\)$"; " *)");
+         (.permissions.allow // []) as $cur
+         | ($cur | map(norm)) as $have
+         | .permissions.allow = ($cur + [$decl[0][] | select(norm as $n | $have | any(. == $n) | not)])' \
+        "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+      mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+
       # Default-off skill surface (cfg/skill-defaults.nix) is Nix-owned the
       # same way: force-set at user scope so a captured runtime edit can't
       # drift it. skill-pick's per-project "on" entries live in a different
@@ -121,22 +137,19 @@
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 
-      # The /auto permission gate is Nix-owned (stripped from capture in
-      # cfg/fish.nix), mirroring the plugin overlay above. Pin the ask list and
-      # inject the sentinel-gated auto-gate PreToolUse hook with its store path
-      # so a captured or runtime-rewritten settings.json can't drift them. This
-      # injection (not a source placeholder) is required because pre-rebuild
-      # capture would wipe a brand-new source key before it is ever built.
+      # The /auto permission gate now ships in the dk plugin (hooks/hooks.json,
+      # PreToolUse Bash). Pin the ask list, and drop any auto-gate hook entry
+      # an earlier generation injected with a nix store path, so the gate does
+      # not run twice (the dk plugin owns it).
       ${pkgs.jq}/bin/jq \
         '.permissions.ask = ["Bash(sudo *)"]
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${autoGateScript}/bin/claude-auto-gate"}]}])' \
+         | .hooks.PreToolUse = ((.hooks.PreToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 
       # Context-rot, reminder, and hardened-guard hooks are Nix-owned, same as
-      # the auto-gate above: injected here with their store paths and stripped on
+      # the hooks above: injected here with their store paths and stripped on
       # capture (cfg/fish.nix strips any hook whose command lives under /nix/store,
       # so a new injected hook needs NO capture-side change). Each clause is
       # idempotent -- it first drops any existing entry carrying its command
@@ -167,8 +180,7 @@
              | map(select((.hooks[0].command // "") | test("claude-guard-secret-commands") | not)))
              + [{matcher: "Bash", hooks: [{type: "command", command: "${guardSecretCommandsScript}/bin/claude-guard-secret-commands"}]}])
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("bin/rtk hook claude") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${rtk}/bin/rtk hook claude"}]}])
+             | map(select((.hooks[0].command // "") | test("bin/rtk hook claude") | not))))
          | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-generated-paths|claude-guard-raw-nix") | not)))
              + [{matcher: "Edit|Write|MultiEdit", hooks: [{type: "command", command: "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths"}]},
@@ -197,7 +209,12 @@
     # If a previous activation left a stale symlink (e.g. directly into the
     # Nix store), remove it first -- rsync would otherwise try to write through
     # the symlink and fail with EROFS on the read-only store target.
+    #
+    # config/skills/ can be empty of skill directories (everything ships from a
+    # plugin now); with no match the glob stays literal, so skip a non-directory
+    # instead of mkdir-ing a skill named "*".
     for skill_dir in "${configDir}"/skills/*/; do
+      [ -d "$skill_dir" ] || continue
       skill_name="$(basename "$skill_dir")"
       if [ -L "$claude_home/skills/$skill_name" ]; then
         $DRY_RUN_CMD rm -f "$claude_home/skills/$skill_name"
@@ -360,7 +377,7 @@
       fi
     fi
 
-    # Secret-bearing MCP servers (context7, kong-konnect, tableau): their
+    # Secret-bearing MCP servers (kong-konnect, tableau): their
     # .mcp.json is written here at 0600 from the off-store secrets file, so the
     # real token never lands in the world-readable store (issue #265). The
     # placeholdered template lives in the store; each @TOKEN@ is replaced with
@@ -427,10 +444,5 @@
         $DRY_RUN_CMD cp --no-preserve=mode "$plugins_src/blocklist.json" "$claude_home/plugins/blocklist.json"
       fi
     fi
-
-    # token-optimizer -- pin the three flags that keep the plugin out of
-    # Nix-owned state (statusLine, systemd user units) and grant its consent
-    # gate. Empty string on hosts that do not enable the plugin.
-    ${tokenOptimizerActivation}
   '';
 }

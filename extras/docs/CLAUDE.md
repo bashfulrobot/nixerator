@@ -89,7 +89,7 @@ magick "$OUT" -bordercolor '#0d1117' -border 1 -fuzz 2% -trim +repage "$OUT"
 
 ## When to update
 
-- **New host.** Add it to "Three hosts, one repo" with its archetype and
+- **New host.** Add it to "Two hosts, one repo" with its archetype and
   Tailscale IP (already published, not a secret -- see the comment in
   `settings/globals.nix`).
 - **New/changed suite or archetype.** If the archetype→suite cascade changes,

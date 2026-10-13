@@ -84,9 +84,8 @@ in
         settings = {
           devices = {
             # Mac (../donkeykong). Shares upsight-data, upsight-config and dev
-            # below — not the rest (Desktop, .ssh, .gnupg, .kube, .talos), which
-            # are either NixOS-shaped or hold keys a laptop should not carry.
-            # This is the Mac's only Syncthing peer.
+            # below -- not the rest, which are either NixOS-shaped or hold keys a
+            # laptop should not carry. qbert is the Mac's only Syncthing peer.
             "MH36P2YMHX" = {
               addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
               id = globals.hosts.MH36P2YMHX.syncthing_id;
@@ -138,12 +137,23 @@ in
         pkgs.curl
         pkgs.coreutils
       ];
+      # Belt-and-braces behind the readiness wait in the script: if the PATCH
+      # still fails transiently, retry in the background instead of leaving the
+      # unit failed and failing the activation. `on-failure` (not `always`) is
+      # the only Restart= systemd permits for Type=oneshot, and a oneshot is
+      # never restarted on a clean exit, so the skip-and-exit-0 paths above stay
+      # one-shot. StartLimitBurst bounds a genuinely broken config to 5 tries
+      # rather than looping forever.
+      startLimitBurst = 5;
+      startLimitIntervalSec = 300;
       serviceConfig = {
         Type = "oneshot";
         User = globals.user.name;
         Group = "users";
         RuntimeDirectory = "syncthing-gui-auth";
         RuntimeDirectoryMode = "0700";
+        Restart = "on-failure";
+        RestartSec = 10;
       };
       script = ''
         set -euo pipefail
@@ -173,6 +183,21 @@ in
             addr="127.0.0.1:''${port:-8384}"
             ;;
         esac
+
+        # Wait for the REST listener, not just the config file. On a restart
+        # (e.g. a nixpkgs bump that restarts syncthing.service in the same
+        # activation) config.xml already exists, so the apikey loop above
+        # returns instantly -- but syncthing has not bound its GUI port yet.
+        # curl then fails with exit 7 ("Failed to connect to 127.0.0.1:8384
+        # after 0 ms"), set -e kills this unit, and switch-to-configuration
+        # reports the whole activation as failed with status 4. `after =
+        # syncthing.service` cannot cover this: that orders unit start, not
+        # listener readiness. No -f here on purpose -- an unauthenticated 401
+        # still proves the listener is up, which is all we are waiting for.
+        for _ in $(seq 1 60); do
+          curl -sS -o /dev/null --max-time 2 "http://$addr/" && break
+          sleep 1
+        done
 
         # bcrypt-hash the password; syncthing stores the hash. mkpasswd reads
         # the plaintext from a file (never argv).
@@ -257,6 +282,7 @@ in
             ''
               install -Dm644 ${pkgs.writeText "dev-stignore" ''
                 .git
+                .mcp.json
               ''} "$HOME/dev/.stignore"
               install -Dm644 ${pkgs.writeText "upsight-data-stignore" upsightIgnores} "$HOME/.local/share/upsight/.stignore"
               install -Dm644 ${pkgs.writeText "upsight-config-stignore" upsightIgnores} "$HOME/.config/upsight/.stignore"
