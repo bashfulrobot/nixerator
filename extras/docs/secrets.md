@@ -10,6 +10,7 @@ two flavours of consumer:
 | gmailctl OAuth client | Login item `gmailctl` (`Client ID` + `Client Secret` fields) in the `nixerator` vault, rendered via `op inject` by `just fetch-gmailctl-creds` | `~/.gmailctl/credentials.json` (0600) |
 | homelab git-crypt key | Document item `homelab git-crypt key` in the `nixerator` vault, materialized by `render-secrets` when `~/git/iac` is present (skipped if already on disk) | `~/.config/git-crypt/homelab.key` (0600) |
 | SSH + per-repo git-crypt keys | Document items in the `nixerator` vault, materialized by `render-secrets` on workstation hosts (skipped if already on disk) | `~/.ssh/*` (0600 private / 0644 public) |
+| srv `server.nanoclaw` only (**agenix exception**) | `secrets/nanoclaw-*.age` (age ciphertext in git, encrypted to srv's host key). See `extras/docs/nanoclaw/README.md` | `/run/agenix/<name>` (tmpfs, root 0400) |
 
 Neither cached file is in the repo, in the Nix store, or available to AI
 tooling scoped to the repo working directory (both paths are on Claude

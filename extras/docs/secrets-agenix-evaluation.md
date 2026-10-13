@@ -24,6 +24,11 @@ Evaluated agenix and sops-nix; **decided not to migrate.** Rationale:
 (decrypt everything from just its host key). Until that's a real requirement,
 no change. The analysis below is retained as the reasoning record.
 
+**Scoped exception (2026-09-26):** srv's `server.nanoclaw` uses agenix, for
+that service only (a hard requirement of its deployment: runtime-only secret
+files, nothing in `/nix/store`). Everything else stays on 1Password. See
+`extras/docs/nanoclaw/README.md`.
+
 ## TL;DR
 
 - **The one thing a move buys you:** plaintext secrets out of `/nix/store`.
