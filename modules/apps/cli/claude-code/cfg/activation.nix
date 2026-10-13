@@ -23,7 +23,6 @@
   pluginOverlay,
   stackPermissions,
   skillOverlay,
-  userScopeMcpTemplate,
   secretServerFiles,
   secretsFile,
 }:
@@ -333,32 +332,20 @@
       fi
     fi
 
-    # kong-konnect at user scope -- see the userScopeTemplate comment in
-    # cfg/mcp-servers.nix for why this server (and only this one) needs a
-    # user-scope registration on top of the mcp-pick library above.
-    #
-    # ~/.claude.json is runtime-owned by Claude Code and holds unrelated state,
-    # so this merges a single key rather than rewriting the file. The PAT goes
-    # secrets file -> jq -> ~/.claude.json without passing through argv (visible
-    # in ps), the environment, or a shell variable, and never touches the
-    # world-readable Nix store.
+    # kong-konnect comes from the kong-konnect@claude-skills plugin on every
+    # host, so a user-scope `kong-konnect` entry in ~/.claude.json (registered
+    # by earlier generations of this module) would shadow the plugin's server.
+    # Delete it. ~/.claude.json is runtime-owned and holds unrelated state, so
+    # only that one key is touched, and only when present; a failed jq leaves
+    # the file as it was.
     claude_json="${homeDir}/.claude.json"
-    if [ -z "$DRY_RUN_CMD" ] && [ -f "${secretsFile}" ]; then
-      if ${pkgs.jq}/bin/jq -e '.kong.kongKonnectPAT // empty' "${secretsFile}" >/dev/null 2>&1; then
-        [ -f "$claude_json" ] || echo '{}' > "$claude_json"
-        if ${pkgs.jq}/bin/jq -n \
-          --slurpfile cur "$claude_json" \
-          --slurpfile sec "${secretsFile}" \
-          --slurpfile tpl "${userScopeMcpTemplate}" \
-          '$cur[0] + { mcpServers: (($cur[0].mcpServers // {}) + ($tpl[0].mcpServers
-             | map_values(.headers.Authorization = "Bearer " + $sec[0].kong.kongKonnectPAT))) }' \
-          > "$claude_json.tmp"; then
+    if [ -z "$DRY_RUN_CMD" ] && [ -f "$claude_json" ]; then
+      if ${pkgs.jq}/bin/jq -e '.mcpServers["kong-konnect"] // empty' "$claude_json" >/dev/null 2>&1; then
+        if ${pkgs.jq}/bin/jq 'del(.mcpServers["kong-konnect"])' "$claude_json" > "$claude_json.tmp"; then
           chmod 600 "$claude_json.tmp"
           mv "$claude_json.tmp" "$claude_json"
         else
-          # Never leave a truncated ~/.claude.json behind: it carries project
-          # history and onboarding state that Claude Code cannot regenerate.
-          echo "claude-code: failed to merge kong-konnect into $claude_json, leaving it unchanged" >&2
+          echo "claude-code: failed to remove kong-konnect from $claude_json, leaving it unchanged" >&2
           rm -f "$claude_json.tmp"
         fi
       fi

@@ -57,7 +57,7 @@ if [[ ${#hidden[@]} -gt 0 ]]; then
   echo "  These already carry a live, resolved credential in their $mcp_dir/<name>/.mcp.json (0600)." >&2
   echo "  Merging one into a project ./.mcp.json would copy that credential out of its 0600 home" >&2
   echo "  into a file with no permission or sync guarantee. kong-konnect never needs picking --" >&2
-  echo "  it's already registered at user scope (see mcp-servers.nix's userScopeTemplate)." >&2
+  echo "  the kong-konnect@claude-skills plugin provides it." >&2
   echo "  For the others, reference the server manually with a \${VAR}-style placeholder instead" >&2
   echo "  of picking it here, or ask for a per-project registration approach that doesn't require" >&2
   echo "  plaintext secret duplication." >&2

@@ -181,8 +181,9 @@ let
       url = "https://us.mcp.konghq.com/";
       headers = {
         # Placeholder only; the real PAT is substituted at activation from the
-        # off-store secrets file (issue #265). This matches userScopeTemplate
-        # below, which already carried the placeholder for the user-scope copy.
+        # off-store secrets file (issue #265). Library entry only: the
+        # kong-konnect@claude-skills plugin provides the live server, and
+        # activation removes any user-scope kong-konnect from ~/.claude.json.
         Authorization = "Bearer @KONG_KONNECT_PAT@";
       };
     };
@@ -236,33 +237,6 @@ let
         "${name}" = cfg;
       };
     };
-
-  # kong-konnect is the one server that must ALSO be registered at *user* scope
-  # rather than only in the mcp-pick library below.
-  #
-  # Why: the kong-konnect@ai-marketplace plugin (modules/suites/ai) bundles its
-  # own server, also called `kong-konnect`, whose `${KONNECT_TOKEN}` is never
-  # set here. A plugin-provided server is active in every project, and Claude
-  # Code offers no way to keep a plugin's skills while dropping its MCP servers.
-  # Registering ours at user scope shadows the dead one everywhere, because
-  # user scope outranks plugin scope; relying on mcp-pick alone would only
-  # shadow it in projects that happen to have a .mcp.json.
-  #
-  # Only ~/.claude.json is read for user-scope `mcpServers`. The same key in
-  # settings.json is silently ignored, so activation cannot take the usual
-  # settings.json route. Verified against a throwaway `claude mcp add --scope
-  # user`, which wrote to ~/.claude.json and left settings.json untouched.
-  #
-  # The PAT is deliberately NOT interpolated into this template: it is rendered
-  # to the Nix store, which is world-readable. cfg/activation.nix substitutes
-  # the real value at runtime straight out of the secrets file.
-  userScopeTemplate = builtins.toJSON {
-    mcpServers = lib.optionalAttrs (mcpServers ? kong-konnect) {
-      kong-konnect = lib.recursiveUpdate mcpServers.kong-konnect {
-        headers.Authorization = "Bearer @KONG_KONNECT_PAT@";
-      };
-    };
-  };
 
   # Servers whose config carries a secret. Their .mcp.json is NOT written via
   # home.file (that lands in the world-readable store). Instead cfg/activation.nix
@@ -320,7 +294,6 @@ in
   inherit
     mcpServers
     files
-    userScopeTemplate
     secretServerFiles
     ;
 }
