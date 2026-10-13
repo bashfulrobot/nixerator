@@ -158,11 +158,6 @@ let
       gitSyncScript
       guardGeneratedPathsScript
       guardRawNixScript
-      guardGitStashScript
-      guardPrimaryTreeWriteScript
-      guardEnterWorktreeCollisionScript
-      guardSecretCommandsScript
-      scrubSecretOutputScript
       globals
       homeDir
       ;
@@ -252,7 +247,7 @@ let
   # live session's view of the tree). Reports ahead/behind status everywhere;
   # only auto-`git reset`s a linked worktree, and only when it's clean. Never
   # resets the shared primary checkout (epic #252 invariant 1, same
-  # git-dir/git-common-dir check as guardPrimaryTreeWriteScript below).
+  # git-dir/git-common-dir check the dk plugin's guard-primary-tree-write uses).
   gitSyncScript = pkgs.writeShellApplication {
     name = "claude-git-sync";
     runtimeInputs = [
@@ -280,86 +275,6 @@ let
       pkgs.coreutils
     ];
     text = builtins.readFile ./cfg/scripts/guard-raw-nix.sh;
-  };
-
-  # Hard PreToolUse deny for manual `git stash` (issue #250). Unlike the
-  # warn-level guards above, this blocks the command before it runs, because a
-  # stash pushed onto the shared refs/stash stack is already a hazard the
-  # moment a second agent is active in the repo. PreToolUse deny composes with
-  # the dk plugin's auto-gate (an allow can never override a deny).
-  guardGitStashScript = pkgs.writeShellApplication {
-    name = "claude-guard-git-stash";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.gnugrep
-      pkgs.coreutils
-    ];
-    text = builtins.readFile ./cfg/scripts/guard-git-stash.sh;
-  };
-
-  # Hard PreToolUse deny for agent git writes in the PRIMARY checkout (issue
-  # #264, epic #252 invariant 1). Agents work in linked worktrees; the shared
-  # primary tree is read-only for them, so a second live session never trips
-  # over a dirty tree or a moved HEAD. Denies before the write lands, unlike the
-  # warn-level bash-guard in settings.json. The sanctioned /commit and
-  # git-cleanup flows opt a single command in with CLAUDE_SANCTIONED_GIT=1.
-  # Fails open on ambiguity; a deny can't be overridden by an allow.
-  guardPrimaryTreeWriteScript = pkgs.writeShellApplication {
-    name = "claude-guard-primary-tree-write";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.gnugrep
-      pkgs.git
-      pkgs.coreutils
-    ];
-    text = builtins.readFile ./cfg/scripts/guard-primary-tree-write.sh;
-  };
-
-  # Hard PreToolUse deny for an EnterWorktree(name=...) call that would
-  # collide with an existing worktree directory or the branch EnterWorktree
-  # itself creates (worktree-<name>). EnterWorktree silently RESUMES on a
-  # collision rather than erroring, which breaks the 1:1 worktree:agent
-  # guarantee the fish `__claude_worktree_name` launch-time helper
-  # (cfg/fish.nix) provides for new spawns; this is the backstop for
-  # EnterWorktree called mid-session, which no wrapper script can reach. A
-  # path-based EnterWorktree call (deliberate resume) is never denied. Fails
-  # open on ambiguity; a deny can't be overridden by an allow.
-  guardEnterWorktreeCollisionScript = pkgs.writeShellApplication {
-    name = "claude-guard-enter-worktree-collision";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.git
-      pkgs.coreutils
-    ];
-    text = builtins.readFile ./cfg/scripts/guard-enter-worktree-collision.sh;
-  };
-
-  # Hard PreToolUse deny for commands that would print a secret into the
-  # transcript (env/printenv dumps, cat of a secrets file, op read, echo of a
-  # *_TOKEN var, sf org display --json, curl -v, set -x). Closes the leak class
-  # documented in the secret-leak RCA. A deny can't be overridden by an allow,
-  # so it holds even though `env`/`cat` remain allow-listed in settings.json.
-  guardSecretCommandsScript = pkgs.writeShellApplication {
-    name = "claude-guard-secret-commands";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.gnugrep
-      pkgs.coreutils
-    ];
-    text = builtins.readFile ./cfg/scripts/guard-secret-commands.sh;
-  };
-
-  # PostToolUse output scrubber: redacts secret values (literal values from
-  # secrets.json + known token-shaped prefixes) from a Bash tool's stdout/stderr
-  # before the model sees it, via the `updatedToolOutput` rewrite mechanism. The
-  # last-line-of-defense net behind guard-secret-commands.sh.
-  scrubSecretOutputScript = pkgs.writeShellApplication {
-    name = "claude-scrub-secret-output";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.coreutils
-    ];
-    text = builtins.readFile ./cfg/scripts/scrub-secret-output.sh;
   };
 
   # Shell scripts -- read from files, substitute placeholders

@@ -10,11 +10,6 @@
   gitSyncScript,
   guardGeneratedPathsScript,
   guardRawNixScript,
-  guardGitStashScript,
-  guardPrimaryTreeWriteScript,
-  guardEnterWorktreeCollisionScript,
-  guardSecretCommandsScript,
-  scrubSecretOutputScript,
   globals,
   homeDir,
   serverProfile,
@@ -168,26 +163,18 @@
              | map(select((.hooks[0].command // "") | test("claude-git-sync|\\[git-sync\\]") | not)))
              + [{matcher: "startup", hooks: [{type: "command", command: "${gitSyncScript}/bin/claude-git-sync"}]}])
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-git-stash") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${guardGitStashScript}/bin/claude-guard-git-stash"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-primary-tree-write") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${guardPrimaryTreeWriteScript}/bin/claude-guard-primary-tree-write"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-enter-worktree-collision") | not)))
-             + [{matcher: "EnterWorktree", hooks: [{type: "command", command: "${guardEnterWorktreeCollisionScript}/bin/claude-guard-enter-worktree-collision"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-secret-commands") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${guardSecretCommandsScript}/bin/claude-guard-secret-commands"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("bin/rtk hook claude") | not))))
+             | map(select((.hooks[0].command // "") | test("bin/rtk hook claude") | not))
+             # These guards now ship in the dk plugin (hooks/hooks.json); drop
+             # the copies an earlier generation injected with nix store paths
+             # so each guard does not run twice. The PostToolUse scrub entry
+             # is dropped below for the same reason.
+             | map(select((.hooks[0].command // "") | test("claude-guard-(git-stash|primary-tree-write|enter-worktree-collision|secret-commands)") | not))))
          | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-generated-paths|claude-guard-raw-nix") | not)))
              + [{matcher: "Edit|Write|MultiEdit", hooks: [{type: "command", command: "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths"}]},
                 {matcher: "Bash", hooks: [{type: "command", command: "${guardRawNixScript}/bin/claude-guard-raw-nix"}]}])
-         | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-scrub-secret-output") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${scrubSecretOutputScript}/bin/claude-scrub-secret-output"}]}])' \
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-scrub-secret-output") | not)))' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
       chmod 644 "$claude_home/settings.json"

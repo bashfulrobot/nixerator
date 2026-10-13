@@ -177,6 +177,18 @@ Nixerator no longer carries its own copies of what the dk plugin ships:
   `auto-permissions` is no longer a bare command on PATH, it is invoked as
   `${CLAUDE_PLUGIN_ROOT}/scripts/auto-permissions.sh` by the dk `auto-permissions`
   skill. The bats suites for the removed scripts went with them.
+- **Guard hooks (dk >= 2.30.1).** `guard-secret-commands`, `scrub-secret-output`,
+  `guard-git-stash`, `guard-primary-tree-write` and
+  `guard-enter-worktree-collision` ship in the dk plugin (claude-skills PR #68).
+  Nixerator's copies (scripts, bats tests, `default.nix` derivations and the
+  `cfg/activation.nix` injection) are removed. Activation deletes any leftover
+  entry with a `claude-guard-{git-stash,primary-tree-write,
+  enter-worktree-collision,secret-commands}` or `claude-scrub-secret-output`
+  command from the live `settings.json`, so no guard runs twice. Kept here
+  (NixOS-only): `guard-generated-paths`, `guard-raw-nix`, `git-sync` and the
+  precompact and reinject hooks. The hook scripts were never in
+  `config/.capture-state.json` (it tracks only files under `config/`), so that
+  file needed no change.
 - **reviewer-dev / reviewer-security** agents come from the dk plugin. Their
   `config/.capture-state.json` snapshot entries are kept on purpose so capture
   treats the files as deleted-at-home, not as new live files to re-import.
