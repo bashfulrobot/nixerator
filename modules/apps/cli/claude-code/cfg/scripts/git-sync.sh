@@ -3,7 +3,7 @@
 #
 # Runs on every session start, in whatever directory that session's cwd
 # happens to be -- including the shared PRIMARY checkout of any repo (epic
-# #252 invariant 1, same as guard-primary-tree-write.sh). The original
+# #252 invariant 1, same as the dk plugin's guard-primary-tree-write). The original
 # version of this hook ran `git reset "origin/$branch"` (mixed, not --hard)
 # unconditionally whenever local was purely behind, with no regard for which
 # checkout it was in and no dirty-tree check.

@@ -10,11 +10,6 @@
   gitSyncScript,
   guardGeneratedPathsScript,
   guardRawNixScript,
-  guardGitStashScript,
-  guardPrimaryTreeWriteScript,
-  guardEnterWorktreeCollisionScript,
-  guardSecretCommandsScript,
-  scrubSecretOutputScript,
   globals,
   homeDir,
   serverProfile,
@@ -28,7 +23,6 @@
   pluginOverlay,
   stackPermissions,
   skillOverlay,
-  userScopeMcpTemplate,
   secretServerFiles,
   secretsFile,
 }:
@@ -168,26 +162,18 @@
              | map(select((.hooks[0].command // "") | test("claude-git-sync|\\[git-sync\\]") | not)))
              + [{matcher: "startup", hooks: [{type: "command", command: "${gitSyncScript}/bin/claude-git-sync"}]}])
          | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-git-stash") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${guardGitStashScript}/bin/claude-guard-git-stash"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-primary-tree-write") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${guardPrimaryTreeWriteScript}/bin/claude-guard-primary-tree-write"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-enter-worktree-collision") | not)))
-             + [{matcher: "EnterWorktree", hooks: [{type: "command", command: "${guardEnterWorktreeCollisionScript}/bin/claude-guard-enter-worktree-collision"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-secret-commands") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${guardSecretCommandsScript}/bin/claude-guard-secret-commands"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("bin/rtk hook claude") | not))))
+             | map(select((.hooks[0].command // "") | test("bin/rtk hook claude") | not))
+             # These guards now ship in the dk plugin (hooks/hooks.json); drop
+             # the copies an earlier generation injected with nix store paths
+             # so each guard does not run twice. The PostToolUse scrub entry
+             # is dropped below for the same reason.
+             | map(select((.hooks[0].command // "") | test("claude-guard-(git-stash|primary-tree-write|enter-worktree-collision|secret-commands)") | not))))
          | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-guard-generated-paths|claude-guard-raw-nix") | not)))
              + [{matcher: "Edit|Write|MultiEdit", hooks: [{type: "command", command: "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths"}]},
                 {matcher: "Bash", hooks: [{type: "command", command: "${guardRawNixScript}/bin/claude-guard-raw-nix"}]}])
-         | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-scrub-secret-output") | not)))
-             + [{matcher: "Bash", hooks: [{type: "command", command: "${scrubSecretOutputScript}/bin/claude-scrub-secret-output"}]}])' \
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // [])
+             | map(select((.hooks[0].command // "") | test("claude-scrub-secret-output") | not)))' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
       chmod 644 "$claude_home/settings.json"
@@ -346,32 +332,20 @@
       fi
     fi
 
-    # kong-konnect at user scope -- see the userScopeTemplate comment in
-    # cfg/mcp-servers.nix for why this server (and only this one) needs a
-    # user-scope registration on top of the mcp-pick library above.
-    #
-    # ~/.claude.json is runtime-owned by Claude Code and holds unrelated state,
-    # so this merges a single key rather than rewriting the file. The PAT goes
-    # secrets file -> jq -> ~/.claude.json without passing through argv (visible
-    # in ps), the environment, or a shell variable, and never touches the
-    # world-readable Nix store.
+    # kong-konnect comes from the kong-konnect@claude-skills plugin on every
+    # host, so a user-scope `kong-konnect` entry in ~/.claude.json (registered
+    # by earlier generations of this module) would shadow the plugin's server.
+    # Delete it. ~/.claude.json is runtime-owned and holds unrelated state, so
+    # only that one key is touched, and only when present; a failed jq leaves
+    # the file as it was.
     claude_json="${homeDir}/.claude.json"
-    if [ -z "$DRY_RUN_CMD" ] && [ -f "${secretsFile}" ]; then
-      if ${pkgs.jq}/bin/jq -e '.kong.kongKonnectPAT // empty' "${secretsFile}" >/dev/null 2>&1; then
-        [ -f "$claude_json" ] || echo '{}' > "$claude_json"
-        if ${pkgs.jq}/bin/jq -n \
-          --slurpfile cur "$claude_json" \
-          --slurpfile sec "${secretsFile}" \
-          --slurpfile tpl "${userScopeMcpTemplate}" \
-          '$cur[0] + { mcpServers: (($cur[0].mcpServers // {}) + ($tpl[0].mcpServers
-             | map_values(.headers.Authorization = "Bearer " + $sec[0].kong.kongKonnectPAT))) }' \
-          > "$claude_json.tmp"; then
+    if [ -z "$DRY_RUN_CMD" ] && [ -f "$claude_json" ]; then
+      if ${pkgs.jq}/bin/jq -e '.mcpServers["kong-konnect"] // empty' "$claude_json" >/dev/null 2>&1; then
+        if ${pkgs.jq}/bin/jq 'del(.mcpServers["kong-konnect"])' "$claude_json" > "$claude_json.tmp"; then
           chmod 600 "$claude_json.tmp"
           mv "$claude_json.tmp" "$claude_json"
         else
-          # Never leave a truncated ~/.claude.json behind: it carries project
-          # history and onboarding state that Claude Code cannot regenerate.
-          echo "claude-code: failed to merge kong-konnect into $claude_json, leaving it unchanged" >&2
+          echo "claude-code: failed to remove kong-konnect from $claude_json, leaving it unchanged" >&2
           rm -f "$claude_json.tmp"
         fi
       fi
