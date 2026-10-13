@@ -8,13 +8,16 @@ pkgs.stdenv.mkDerivation {
   pname = "kotlin-lsp";
   inherit (versions.cli.kotlin-lsp) version;
 
+  # Upstream's "Standalone Kotlin LSP Archive". The old
+  # download-cdn.jetbrains.com/kotlin-lsp/<v>/kotlin-lsp-<v>-linux-x64.zip
+  # path was retired and now 404s for every version, including the one this
+  # repo used to pin. See the note in settings/versions.nix.
   src = pkgs.fetchurl {
-    url = "https://download-cdn.jetbrains.com/kotlin-lsp/${versions.cli.kotlin-lsp.version}/kotlin-lsp-${versions.cli.kotlin-lsp.version}-linux-x64.zip";
+    url = "https://download.jetbrains.com/language-server/kotlin-server/${versions.cli.kotlin-lsp.version}/kotlin-server-${versions.cli.kotlin-lsp.version}.tar.gz";
     inherit (versions.cli.kotlin-lsp) hash;
   };
 
   nativeBuildInputs = [
-    pkgs.unzip
     pkgs.autoPatchelfHook
     pkgs.makeWrapper
   ];
@@ -24,10 +27,9 @@ pkgs.stdenv.mkDerivation {
     pkgs.zlib
   ];
 
-  # The bundled JRE includes GUI/audio libs (libawt_xawt, libwlsplashscreen,
-  # libjsound) that need X11/Wayland/ALSA. Since we run headless
-  # (-Djava.awt.headless=true), skip these optional deps rather than pulling
-  # in the entire X11/audio stack.
+  # The bundled JBR includes GUI/audio libs (libawt_xawt, libwlsplashscreen,
+  # libjsound) that need X11/Wayland/ALSA. Since we run headless, skip these
+  # optional deps rather than pulling in the entire X11/audio stack.
   autoPatchelfIgnoreMissingDeps = [
     "libX11.so.6"
     "libXext.so.6"
@@ -37,62 +39,40 @@ pkgs.stdenv.mkDerivation {
     "libfreetype.so.6"
     "libwayland-client.so.0"
     "libwayland-cursor.so.0"
+    "libxkbcommon.so.0"
     "libasound.so.2"
   ];
 
   dontBuild = true;
 
-  sourceRoot = ".";
-
   installPhase = ''
-    mkdir -p $out/{lib/kotlin-lsp,bin}
-    cp -r lib $out/lib/kotlin-lsp/
-    cp -r jre $out/lib/kotlin-lsp/
-    cp -r native $out/lib/kotlin-lsp/
+    runHook preInstall
 
-    chmod +x $out/lib/kotlin-lsp/jre/bin/java
+    mkdir -p $out/lib/kotlin-lsp $out/bin
+    cp -r . $out/lib/kotlin-lsp/
 
-    makeWrapper "$out/lib/kotlin-lsp/jre/bin/java" "$out/bin/kotlin-lsp" \
-      --add-flags "--add-opens java.base/java.io=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.lang=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.lang.ref=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.lang.reflect=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.net=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.nio=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.nio.charset=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.text=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.time=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.util=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.util.concurrent=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/jdk.internal.ref=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/jdk.internal.vm=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/sun.net.dns=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/sun.nio.ch=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/sun.nio.fs=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/sun.security.ssl=ALL-UNNAMED" \
-      --add-flags "--add-opens java.base/sun.security.util=ALL-UNNAMED" \
-      --add-flags "--add-opens java.desktop/java.awt=ALL-UNNAMED" \
-      --add-flags "--add-opens java.desktop/java.awt.event=ALL-UNNAMED" \
-      --add-flags "--add-opens java.desktop/java.awt.font=ALL-UNNAMED" \
-      --add-flags "--add-opens java.desktop/java.awt.image=ALL-UNNAMED" \
-      --add-flags "--add-opens java.desktop/javax.swing=ALL-UNNAMED" \
-      --add-flags "--add-opens java.desktop/javax.swing.plaf.basic=ALL-UNNAMED" \
-      --add-flags "--add-opens java.desktop/javax.swing.text=ALL-UNNAMED" \
-      --add-flags "--add-opens java.desktop/sun.font=ALL-UNNAMED" \
-      --add-flags "--add-opens java.management/sun.management=ALL-UNNAMED" \
-      --add-flags "--add-opens jdk.attach/sun.tools.attach=ALL-UNNAMED" \
-      --add-flags "--add-opens jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED" \
-      --add-flags "--add-opens jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED" \
-      --add-flags "--add-opens jdk.jdi/com.sun.tools.jdi=ALL-UNNAMED" \
-      --add-flags "--enable-native-access=ALL-UNNAMED" \
-      --add-flags "-Djdk.lang.Process.launchMechanism=FORK" \
-      --add-flags "-Djava.awt.headless=true" \
-      --add-flags "-Djava.system.class.loader=com.intellij.util.lang.PathClassLoader" \
-      --add-flags "-Xlog:cds=off" \
-      --add-flags "-cp '$out/lib/kotlin-lsp/lib/*'" \
-      --add-flags "com.jetbrains.ls.kotlinLsp.KotlinLspServerKt"
+    chmod +x $out/lib/kotlin-lsp/bin/intellij-server
+    chmod +x $out/lib/kotlin-lsp/jbr/bin/*
+
+    # bin/intellij-server is the native launcher upstream now ships; it reads
+    # product-info.json for the bundled JBR, the boot classpath and the main
+    # class, so the long hand-written `java --add-opens ... -cp` command line
+    # the old zip needed is gone. The deprecated kotlin-lsp.sh wrapper just
+    # execs this binary.
+    #
+    # --stdio is mandatory: without it the launcher defaults to TCP server
+    # mode on 127.0.0.1:9999, and helix/opencode/zed all speak LSP over the
+    # process's stdin/stdout. The old entrypoint was stdio-only, so this flag
+    # is what keeps the editor configs working unchanged.
+    #
+    # --system-path pins the caches/indexes directory. Unset, the launcher
+    # picks a fresh /tmp/idea-system<random> per run and re-indexes the
+    # project on every editor start.
+    makeWrapper "$out/lib/kotlin-lsp/bin/intellij-server" "$out/bin/kotlin-lsp" \
+      --add-flags "--stdio" \
+      --add-flags "--system-path=\"\''${XDG_CACHE_HOME:-\$HOME/.cache}/kotlin-lsp\""
+
+    runHook postInstall
   '';
 
   meta = with lib; {
@@ -100,5 +80,6 @@ pkgs.stdenv.mkDerivation {
     license = licenses.asl20;
     maintainers = [ ];
     platforms = [ "x86_64-linux" ];
+    mainProgram = "kotlin-lsp";
   };
 }
