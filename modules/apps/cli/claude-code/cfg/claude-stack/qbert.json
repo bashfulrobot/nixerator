@@ -148,7 +148,8 @@
       "Bash(flock *)",
       "Bash(ffmpeg *)",
       "Bash(ollama *)",
-      "Bash(todoist *)"
+      "Bash(todoist *)",
+      "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack-post/scripts/slack-post.sh *)"
     ],
     "deny": []
   },
@@ -218,7 +219,7 @@
       "state": "disabled"
     },
     "mattpocock-skills@claude-skills": {
-      "state": "enabled"
+      "state": "absent"
     },
     "plugin-dev@claude-plugins-official": {
       "state": "enabled"
