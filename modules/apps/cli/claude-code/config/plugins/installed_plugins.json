@@ -120,6 +120,99 @@
         "lastUpdated": "2026-09-27T01:21:11.681Z",
         "gitCommitSha": "4faa4afcd1041c3a9c784af34e1e37547d08a148"
       }
+    ],
+    "frontend-design@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/frontend-design/f713a7c59b72-65ba16f3",
+        "version": "f713a7c59b72-65ba16f3",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z"
+      }
+    ],
+    "gitops@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/gitops/0d1fa6c46e55",
+        "version": "0d1fa6c46e55",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z"
+      }
+    ],
+    "humanizer@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/humanizer/9862685f575c",
+        "version": "9862685f575c",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z"
+      }
+    ],
+    "kode@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kode/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z",
+        "gitCommitSha": "f6fa280f8b78f31780dc1f7da23c92734a0fadea"
+      }
+    ],
+    "kong-demo-config-generator@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-demo-config-generator/8d49b4587038-650ffab4",
+        "version": "8d49b4587038-650ffab4",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z"
+      }
+    ],
+    "kong-docs-rag@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-docs-rag/1.0.1",
+        "version": "1.0.1",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z",
+        "gitCommitSha": "f6fa280f8b78f31780dc1f7da23c92734a0fadea"
+      }
+    ],
+    "mattpocock-skills@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/mattpocock-skills/1.2.3",
+        "version": "1.2.3",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z"
+      }
+    ],
+    "plugin-dev@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/plugin-dev/ac996c0dde7f",
+        "version": "ac996c0dde7f",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z",
+        "gitCommitSha": "ac996c0dde7fb2a9f805cd5277ffc95ecd44a321"
+      }
+    ],
+    "se-harness@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/se-harness/0.11.151",
+        "version": "0.11.151",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z"
+      }
+    ],
+    "terse@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/terse/1.2.2",
+        "version": "1.2.2",
+        "installedAt": "2026-10-13T00:16:16.270Z",
+        "lastUpdated": "2026-10-13T00:16:16.270Z"
+      }
     ]
   }
 }
