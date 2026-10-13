@@ -1294,11 +1294,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791660250,
-        "narHash": "sha256-CQCjaNpgkmaMWbgcDR3y6baTvyGJ/TiTjD9q5SQ5AvA=",
+        "lastModified": 1791838582,
+        "narHash": "sha256-YnTlAN8ZpjYCBHD6oRGISuqLAhLrrIZ3ZRuTu94bhQc=",
         "owner": "bashfulrobot",
         "repo": "snowstorm",
-        "rev": "8350881d92f5d3fdd23c108366c75769b172ae84",
+        "rev": "9ccbef5e992e444f27a06a0bc8a5a4f94feaf16d",
         "type": "github"
       },
       "original": {
@@ -1618,11 +1618,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1791593398,
-        "narHash": "sha256-kE3vhzB45dkFZclS9nna0ch4jt/+aDShTSDAxE3mnC8=",
+        "lastModified": 1791845156,
+        "narHash": "sha256-vlbISQleeRqJ8rIfPMeUrKVwKm0fkBIU+V8Z1/8DHOw=",
         "ref": "main",
-        "rev": "31928922b1d64861024dc7b695da29e8dea60d69",
-        "revCount": 519,
+        "rev": "9773400b9de9ac694046a31f43a1ecebd23a488e",
+        "revCount": 520,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
       },
