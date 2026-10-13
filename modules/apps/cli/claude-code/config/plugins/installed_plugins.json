@@ -94,11 +94,11 @@
     "dk@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/2.19.0",
-        "version": "2.19.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/2.30.1",
+        "version": "2.30.1",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-09-27T01:21:11.681Z",
-        "gitCommitSha": "4faa4afcd1041c3a9c784af34e1e37547d08a148"
+        "lastUpdated": "2026-10-13T17:48:51.539Z",
+        "gitCommitSha": "d8681fe231a84f2e0eed64fc8bf5bbc1a27d89de"
       }
     ],
     "kong-cs@claude-skills": [
@@ -167,15 +167,6 @@
         "gitCommitSha": "f6fa280f8b78f31780dc1f7da23c92734a0fadea"
       }
     ],
-    "mattpocock-skills@claude-skills": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/mattpocock-skills/1.2.3",
-        "version": "1.2.3",
-        "installedAt": "2026-10-13T00:16:16.270Z",
-        "lastUpdated": "2026-10-13T00:16:16.270Z"
-      }
-    ],
     "plugin-dev@claude-plugins-official": [
       {
         "scope": "user",
@@ -202,6 +193,26 @@
         "version": "1.2.2",
         "installedAt": "2026-10-13T00:16:16.270Z",
         "lastUpdated": "2026-10-13T00:16:16.270Z"
+      }
+    ],
+    "kong-konnect@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-konnect/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-13T17:48:53.805Z",
+        "lastUpdated": "2026-10-13T17:48:53.805Z",
+        "gitCommitSha": "d8681fe231a84f2e0eed64fc8bf5bbc1a27d89de"
+      }
+    ],
+    "kong-tableau@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-tableau/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-13T17:48:54.297Z",
+        "lastUpdated": "2026-10-13T17:48:54.297Z",
+        "gitCommitSha": "d8681fe231a84f2e0eed64fc8bf5bbc1a27d89de"
       }
     ]
   }

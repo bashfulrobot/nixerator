@@ -1,6 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 15,
+  "env": {
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5",
+    "PATH": "/run/wrappers/bin:/etc/profiles/per-user/@USER_NAME@/bin:/run/current-system/sw/bin"
+  },
   "attribution": {
     "commit": "",
     "pr": ""
@@ -181,10 +185,6 @@
     ]
   },
   "model": "opusplan",
-  "env": {
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5",
-    "PATH": "/run/wrappers/bin:/etc/profiles/per-user/@USER_NAME@/bin:/run/current-system/sw/bin"
-  },
   "hooks": {
     "PostToolUse": [
       {
@@ -306,9 +306,29 @@
     "type": "command",
     "command": "@STATUSLINE_COMMAND@"
   },
+  "outputStyle": "dustin",
   "feedbackSurveyRate": 0,
   "feedbackDrafts": "off",
   "awaySummaryEnabled": false,
+  "pluginConfigs": {
+    "kong-docs-rag@claude-skills": {
+      "options": {
+        "repo_path": "/home/dustin/git/kong-docs-rag"
+      }
+    },
+    "kong-konnect@claude-skills": {
+      "options": {
+        "konnect_url": "https://us.mcp.konghq.com/"
+      }
+    },
+    "kong-tableau@claude-skills": {
+      "options": {
+        "tableau_server": "https://prod-useast-a.online.tableau.com",
+        "tableau_site_name": "kong",
+        "tableau_pat_name": "Mcp"
+      }
+    }
+  },
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
@@ -332,6 +352,5 @@
   },
   "smallModelOverride": "haiku",
   "coAuthor": "",
-  "remoteControlEnabled": true,
-  "outputStyle": "dustin"
+  "remoteControlEnabled": true
 }
