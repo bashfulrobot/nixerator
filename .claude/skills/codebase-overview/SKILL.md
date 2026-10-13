@@ -113,7 +113,7 @@ What actually differs:
 | Archetypes enabled | `workstation` + `claudeWorkHost` | `claudeWorkHost` only |
 | `extraModules` | disko, hyprflake | none |
 | `homeManagerModules` | spicetify | none |
-| User/packages | via modules | via modules | declared inline in `configuration.nix` |
+| User/packages | via modules | declared inline in `configuration.nix` |
 
 More: `hosts/CLAUDE.md`, `extras/docs/hosts.md`, `extras/docs/adding-hosts.md`.
 
