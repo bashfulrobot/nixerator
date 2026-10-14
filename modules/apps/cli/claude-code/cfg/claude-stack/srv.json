@@ -117,6 +117,7 @@
       "Bash(ollama *)",
       "Bash(todoist *)",
       "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack-post/scripts/slack-post.sh *)",
+      "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack/scripts/slack-read.sh *)",
       "Bash(wl-copy *)"
     ],
     "deny": []
