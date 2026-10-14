@@ -44,10 +44,15 @@ in
       headlamp # OSS K8s GUI
       kubectx # kubectx + kubens, for switching between mesh zones
       k3d # Local k3s clusters in docker, for dry-running the mesh demo
-      # checkov (IaC policy scan for Terraform/OpenTofu) is left out on
-      # purpose: it depends on python3.14-ecdsa, which nixpkgs marks insecure
-      # (CVE-2024-23342), so evaluation aborts. The Mac gets it from brew.
-      # Re-add once nixpkgs drops or patches ecdsa.
+      # checkov (IaC policy scan for Terraform/OpenTofu) is not packaged from
+      # nixpkgs: it depends on python3.14-ecdsa, which nixpkgs marks insecure
+      # (CVE-2024-23342), so evaluation aborts. This wrapper runs the PyPI
+      # release through uvx instead, so the insecure package never enters the
+      # system closure. First run downloads it into uv's cache; the Mac gets it
+      # from brew. Swap back to pkgs.checkov once nixpkgs drops or patches ecdsa.
+      (writeShellScriptBin "checkov" ''
+        exec ${uv}/bin/uvx checkov "$@"
+      '')
     ];
 
     # Home Manager configuration
