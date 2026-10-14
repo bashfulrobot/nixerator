@@ -49,7 +49,7 @@ let
     claude-skills.source = {
       source = "github";
       repo = "bashfulrobot/claude-skills";
-      sha = "712fdf63c05193e213f7c530972b19e75190c48b";
+      sha = "635b1b835863fee8f0100606cd63cf3599b318a9";
     };
   };
 
