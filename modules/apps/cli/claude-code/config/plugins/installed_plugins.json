@@ -94,48 +94,51 @@
     "dk@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/2.30.1",
-        "version": "2.30.1",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/2.31.13",
+        "version": "2.31.13",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-10-13T17:48:51.539Z",
-        "gitCommitSha": "d8681fe231a84f2e0eed64fc8bf5bbc1a27d89de"
+        "lastUpdated": "2026-10-14T17:13:58.901Z",
+        "gitCommitSha": "712fdf63c05193e213f7c530972b19e75190c48b"
       }
     ],
     "kong-cs@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-cs/1.18.0",
-        "version": "1.18.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-cs/1.28.0",
+        "version": "1.28.0",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-09-27T01:21:11.681Z",
-        "gitCommitSha": "4faa4afcd1041c3a9c784af34e1e37547d08a148"
+        "lastUpdated": "2026-10-14T17:14:06.505Z",
+        "gitCommitSha": "712fdf63c05193e213f7c530972b19e75190c48b"
       }
     ],
     "frontend-design@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/frontend-design/f713a7c59b72-65ba16f3",
-        "version": "f713a7c59b72-65ba16f3",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/frontend-design/641d925db5a6-65ba16f3",
+        "version": "641d925db5a6-65ba16f3",
         "installedAt": "2026-10-13T00:16:16.270Z",
-        "lastUpdated": "2026-10-13T00:16:16.270Z"
+        "lastUpdated": "2026-10-14T17:14:01.834Z",
+        "gitCommitSha": "641d925db5a662e72f8650cb1b7670a59dab1abc"
       }
     ],
     "gitops@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/gitops/0d1fa6c46e55",
-        "version": "0d1fa6c46e55",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/gitops/be4f83b39ac8",
+        "version": "be4f83b39ac8",
         "installedAt": "2026-10-13T00:16:16.270Z",
-        "lastUpdated": "2026-10-13T00:16:16.270Z"
+        "lastUpdated": "2026-10-14T17:14:04.358Z",
+        "gitCommitSha": "be4f83b39ac8281b731cd62c9c6a06176bcc212c"
       }
     ],
     "humanizer@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/humanizer/9862685f575c",
-        "version": "9862685f575c",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/humanizer/3.1.0",
+        "version": "3.1.0",
         "installedAt": "2026-10-13T00:16:16.270Z",
-        "lastUpdated": "2026-10-13T00:16:16.270Z"
+        "lastUpdated": "2026-10-14T17:14:05.639Z",
+        "gitCommitSha": "225a6f39ac85f76ee48dbad772ea4abe4ed6c9d8"
       }
     ],
     "kode@claude-skills": [

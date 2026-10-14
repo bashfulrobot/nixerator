@@ -168,7 +168,8 @@
       "Bash(ollama *)",
       "Bash(todoist *)",
       "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack-post/scripts/slack-post.sh *)",
-      "Bash(wl-copy *)"
+      "Bash(wl-copy *)",
+      "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack/scripts/slack-read.sh *)"
     ],
     "deny": [
       "Bash(nixos-rebuild switch *)",
