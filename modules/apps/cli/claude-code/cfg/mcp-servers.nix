@@ -175,19 +175,6 @@ let
     # kong-docs-rag plugin (kong-docs-rag@claude-skills) exactly like the Mac.
     # Provisioning of its checkout/binary is cfg/kong-docs-rag.nix.
   }
-  // lib.optionalAttrs (secrets.kong.kongKonnectPAT or null != null) {
-    kong-konnect = {
-      type = "http";
-      url = "https://us.mcp.konghq.com/";
-      headers = {
-        # Placeholder only; the real PAT is substituted at activation from the
-        # off-store secrets file (issue #265). Library entry only: the
-        # kong-konnect@claude-skills plugin provides the live server, and
-        # activation removes any user-scope kong-konnect from ~/.claude.json.
-        Authorization = "Bearer @KONG_KONNECT_PAT@";
-      };
-    };
-  }
   // lib.optionalAttrs (serverProfile == "full" && (secrets.tableau.patValue or null) != null) {
     # Tableau MCP -- query/explore Tableau Cloud content (workbooks, views,
     # datasources) via natural language: https://github.com/tableau/tableau-mcp
@@ -243,17 +230,10 @@ let
   # writes the real file from the off-store secrets file at 0600 (issue #265).
   # Each entry maps its placeholders to jq paths in the rendered secrets JSON.
   secretServerNames = [
-    "kong-konnect"
     "tableau"
   ];
 
   secretServerSubs = {
-    kong-konnect = [
-      {
-        placeholder = "@KONG_KONNECT_PAT@";
-        path = ".kong.kongKonnectPAT";
-      }
-    ];
     tableau = [
       {
         placeholder = "@TABLEAU_SERVER@";

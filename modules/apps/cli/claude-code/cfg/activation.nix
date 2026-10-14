@@ -351,7 +351,7 @@
       fi
     fi
 
-    # Secret-bearing MCP servers (kong-konnect, tableau): their
+    # Secret-bearing MCP servers (tableau): their
     # .mcp.json is written here at 0600 from the off-store secrets file, so the
     # real token never lands in the world-readable store (issue #265). The
     # placeholdered template lives in the store; each @TOKEN@ is replaced with
