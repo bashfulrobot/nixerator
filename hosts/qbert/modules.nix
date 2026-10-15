@@ -53,6 +53,22 @@
       };
     };
 
+    # The `workday-sweep` command is installed; the timer stays off until the
+    # brief has been run by hand for a week. That ordering is the rollout in
+    # docs/superpowers/specs/2026-10-13-workday-operating-system-design.md
+    # §11, and it exists because an unattended sweep that writes a bad brief
+    # every morning is worse than no brief. Flip schedule.enable once a week
+    # of manual runs has produced briefs worth reading.
+    #
+    # It belongs on qbert rather than srv for the same reason aha-fr-report
+    # does, and one more: the sweep runs `claude -p` against the desktop's own
+    # MCP servers (Google Calendar, Slack, Aha, Jira) and the local `td`
+    # login. None of those exist on a headless peer.
+    workday-sweep = {
+      enable = true;
+      schedule.enable = false;
+    };
+
     # Apps
     restic.backup = {
       enable = true;
