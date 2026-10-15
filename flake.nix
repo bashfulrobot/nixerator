@@ -150,6 +150,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Janus, the secrets broker (github.com/bashfulrobot/janus, private).
+    # Pinned to an explicit rev: the host must never run a working tree an
+    # agent can edit, so `nix flake update` does not move this input. Bump it
+    # by changing `rev` after reviewing the new commits. Exposes
+    # nixosModules.default (services.janus), wired into qbert below.
+    janus = {
+      url = "git+ssh://git@github.com/bashfulrobot/janus?ref=main&rev=f91db1c203b99dd9522177ea44a8181a6820585a";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Pinned upstream for the `humanizer` skill (claude-code + antigravity).
     # Tracks blader/humanizer; bump via `nix flake update humanizer-skill`
     # or `just upgrade`. `flake = false` because the repo ships a SKILL.md,
@@ -263,6 +273,27 @@
             # Hyprland desktop environment
             inputs.hyprflake.nixosModules.default
             inputs.claudio.nixosModules.default
+            inputs.janus.nixosModules.default
+            (
+              { pkgs, ... }:
+              {
+                # Janus starts locked after every boot: run `janus unlock` and
+                # type the passphrase. It runs as its own `janus` user, so the
+                # admin uid must be explicit (checked on every socket connection).
+                users.users.${globals.user.name}.uid = 1000;
+                services.janus = {
+                  enable = true;
+                  adminUser = globals.user.name;
+                  projectRoots = [ "/home/${globals.user.name}/git" ];
+                  actionPackages = [ pkgs.kubectl ];
+                  # Agents run as the separate `agent` user (janus-agent), never as you.
+                  agent = {
+                    enable = true;
+                    command = "/etc/profiles/per-user/${globals.user.name}/bin/claude";
+                  };
+                };
+              }
+            )
             (
               { config, pkgs, ... }:
               {

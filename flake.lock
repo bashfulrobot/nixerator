@@ -939,6 +939,28 @@
         "type": "github"
       }
     },
+    "janus": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792032351,
+        "narHash": "sha256-fsnPqp18YHrB1fSVf4G1I6FyEyAojkN2yw2rNO4gafo=",
+        "ref": "main",
+        "rev": "f91db1c203b99dd9522177ea44a8181a6820585a",
+        "revCount": 38,
+        "type": "git",
+        "url": "ssh://git@github.com/bashfulrobot/janus"
+      },
+      "original": {
+        "ref": "main",
+        "rev": "f91db1c203b99dd9522177ea44a8181a6820585a",
+        "type": "git",
+        "url": "ssh://git@github.com/bashfulrobot/janus"
+      }
+    },
     "llm-agents": {
       "inputs": {
         "bun2nix": "bun2nix",
@@ -1089,6 +1111,7 @@
         "humanizer-skill": "humanizer-skill",
         "hyprflake": "hyprflake",
         "import-tree": "import-tree",
+        "janus": "janus",
         "llm-agents": "llm-agents",
         "nix-flatpak": "nix-flatpak",
         "nixpkgs": "nixpkgs",
