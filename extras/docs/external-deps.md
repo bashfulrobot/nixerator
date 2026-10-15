@@ -10,7 +10,6 @@ These are the primary upstreams referenced in the flake inputs. Use them in spec
 - `waybar-auto-hide` - Auto-hiding waybar module.
 - `llm-agents` - LLM agent tools (numtide/llm-agents.nix).
 - `nix-flatpak` - Declarative Flatpak integration.
-- `nixos-hardware` - Hardware-specific NixOS modules.
 - `spicetify-nix` - Spotify theming via Spicetify.
 - `affinity-nix` - Affinity suite (Photo/Designer/Publisher) on Linux.
 - `apple-fonts` - Apple font packages (SF Pro, SF Mono, NY).
