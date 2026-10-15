@@ -98,7 +98,7 @@ You need two agenix payloads. Do this on a workstation.
    `agenix` CLI knows the recipients.
 
 2. **Generate the Claude setup-token.** It needs a browser, so run it on
-   qbert or donkeykong:
+   qbert:
 
    ```bash
    claude setup-token
