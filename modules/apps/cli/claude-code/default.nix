@@ -449,7 +449,12 @@ in
       (with pkgs; [
         (writeScriptBin "mcp-pick" mcpPick)
         (writeScriptBin "skill-pick" skillPick)
-        llm-agents.claude-plugins # Plugin & skills manager
+        # `llm-agents.claude-plugins` used to sit here as a plugin and skills
+        # manager. numtide removed the package on 2026-10-14 (commit 9541341,
+        # PR #10768) because upstream Kamalnrf/claude-plugins had no commit
+        # since 2026-06-27 and eight unanswered issues. There is no
+        # replacement package and none is needed: Claude Code's own `/plugin`
+        # command plus the claude-skills marketplace cover this.
         fzf
         jq
         rsync # used by claude-capture + activation to mirror skills
