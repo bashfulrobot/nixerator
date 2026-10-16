@@ -56,12 +56,13 @@ let
   imageRef = "${image}:latest";
   sourceLabel = "org.nixos.nanoclaw.source";
 
-  # Hardening over upstream's topology. OneCLI 1.41 serves its admin API
+  # Hardening over upstream's topology. OneCLI 1.4x serves its admin API
   # (secrets CRUD, unauthenticated in local mode) from the same container as
   # the proxy. Upstream publishes both on docker0 and, under egress lockdown,
   # attaches that whole container to the agents' network -- so an agent can
   # PATCH the Anthropic secret's hostPattern and have the gateway inject the
-  # real token into requests to a host it controls (verified against 1.41.0).
+  # real token into requests to a host it controls (verified against 1.41.0
+  # and again against 1.42.0, the pin that closes upstream's own bypass).
   # Here the API is loopback-only (the host process is the only client) and
   # agents reach a relay container that forwards the proxy port and nothing
   # else. Without lockdown, the proxy port alone is also published on docker0.
@@ -604,10 +605,13 @@ in
     onecli = {
       image = lib.mkOption {
         type = lib.types.str;
-        # 1.41.0 is the gateway version NanoClaw's add-onecli skill sanctions
-        # (.claude/skills/add-onecli/versions.json). Digest-pinned. Pre-2.0, so
-        # it is the all-in-one image from upstream's docker-compose.legacy.yml.
-        default = "ghcr.io/onecli/onecli:1.41.0@sha256:66dc84042310cab762ed3b1f71a98349a72aa132ad44651b7ae76c371aaafe6b";
+        # EXACTLY the gateway version NanoClaw's add-onecli skill sanctions
+        # (.claude/skills/add-onecli/versions.json): 1.42.0 since NanoClaw
+        # 2026.10.0, which closes a credential-injection bypass. Never go past
+        # the pin: 1.43+ removes the agent secret-assignment API the
+        # integration uses. Digest-pinned. Pre-2.0, so it is the all-in-one
+        # image from upstream's docker-compose.legacy.yml.
+        default = "ghcr.io/onecli/onecli:1.42.0@sha256:8d4a3300e915259a2fcff13614ecd7394bfd35c75d6a64d69f28a28dd23f30fe";
         description = "OneCLI vault/gateway image.";
       };
 

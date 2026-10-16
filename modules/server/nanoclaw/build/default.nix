@@ -61,7 +61,8 @@ stdenv.mkDerivation (finalAttrs: {
   src = fetchFromGitHub {
     owner = "nanocoai";
     repo = "nanoclaw";
-    inherit (pin) rev hash;
+    tag = "${pin.tagPrefix}${pin.version}";
+    inherit (pin) hash;
   };
 
   patches = [ ./skills.patch ];

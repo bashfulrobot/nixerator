@@ -19,7 +19,7 @@ only ever see `CLAUDE_CODE_OAUTH_TOKEN=placeholder`.
   srv builds normally and evaluation prints a warning.
 - **This is not upstream's topology.** Upstream publishes OneCLI's admin API
   and proxy on docker0. Under egress lockdown it attaches the whole OneCLI
-  container to the agents' network. On OneCLI 1.41.0 that API is
+  container to the agents' network. On OneCLI 1.41.0 and 1.42.0 that API is
   unauthenticated in local mode. From inside an agent container we could list
   secrets and `PATCH` the `Anthropic` secret, including its `hostPattern`. A
   prompt-injected agent could therefore point the gateway at a host it
@@ -62,7 +62,7 @@ only ever see `CLAUDE_CODE_OAUTH_TOKEN=placeholder`.
 | `docker-network-onecli` | Creates the private `onecli` bridge network |
 | `nanoclaw-onecli-env` | Renders `onecli.env.tpl` and `postgres.env.tpl` into `/run/nanoclaw-onecli/*.env` (0600, root) from the agenix DB password, using `envsubst` at runtime |
 | `docker-onecli-postgres` | The vault's PostgreSQL (no host port) |
-| `docker-onecli` | OneCLI 1.41.0 (digest-pinned; the version NanoClaw's `add-onecli` skill sanctions). API on `127.0.0.1:10254`, proxy on `127.0.0.1:10255` |
+| `docker-onecli` | OneCLI 1.42.0, digest-pinned. It's exactly the version NanoClaw's `add-onecli` skill sanctions: 1.42.0 closes a credential-injection bypass, and 1.43+ is unsupported. API on `127.0.0.1:10254`, proxy on `127.0.0.1:10255` |
 | `docker-onecli-gateway` | socat relay: the only thing on the agents' `--internal` network (`host.docker.internal:10255`) |
 | `nanoclaw-vault-sync` | Pushes the agenix setup-token into the vault as secret `Anthropic` (creates it, or PATCHes the value on later runs) |
 | `nanoclaw-agent-image` | Builds `nanoclaw-agent-v2-nanoclaw:latest`. Skips the build when the image's `org.nixos.nanoclaw.source` label already matches the package |
@@ -357,7 +357,7 @@ sudo systemctl restart nanoclaw-onecli-env docker-onecli
 
 ## Upgrading
 
-- **NanoClaw:** bump `rev` in `settings/versions.nix` (`updatePolicy = "manual"`).
+- **NanoClaw:** bump `version` (a release tag, `v<version>`) in `settings/versions.nix` (`updatePolicy = "manual"`). Releases are upstream's `stable` channel; read the release's `[BREAKING]` lines first. 2026.10.0, for example, required the OneCLI 1.42.0 move.
   Then rebuild `build/skills.patch`: in a checkout at the new rev, append the
   two registration imports and run
   `pnpm add @onecli-sh/sdk@<pin> @chat-adapter/slack@<pin> --ignore-scripts`,
@@ -369,7 +369,8 @@ sudo systemctl restart nanoclaw-onecli-env docker-onecli
   versions are breaking rewrites. Migrations run automatically on host start.
   The preStart stamps upstream's upgrade marker, because a NixOS rebuild is
   this install's sanctioned upgrade path.
-- **OneCLI:** follow the `onecli-gateway` pin in upstream's
+- **OneCLI:** match the `onecli-gateway` pin exactly, never newer (1.43+
+  breaks credential assignment as of NanoClaw 2026.10.0). Follow the pin in upstream's
   `.claude/skills/add-onecli/versions.json` and upstream's
   `docs/onecli-upgrades.md` (it is in the package). A 2.x gateway uses
   a different (split) compose layout, so it is not a one-line image bump.
