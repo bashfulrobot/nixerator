@@ -363,8 +363,8 @@
 
   server = {
     # NanoClaw host (modules/server/nanoclaw/build), consumed by server.nanoclaw
-    # on srv. updatePolicy=manual: build/onecli-gateway.patch edits package.json
-    # and pnpm-lock.yaml (the /add-onecli skill's @onecli-sh/sdk dependency), so
+    # on srv. updatePolicy=manual: build/skills.patch edits package.json and
+    # pnpm-lock.yaml (the /add-onecli and /add-slack skills' dependencies), so
     # a rev bump must rebase that patch and refresh BOTH hashes; update-pkg can
     # do neither. Upstream's in-repo CLAUDE.md also warns that major versions
     # are breaking rewrites -- read CHANGELOG.md before bumping.
@@ -375,7 +375,20 @@
       version = "2.4.0-unstable-2026-09-25";
       rev = "d4ff64f49f1defea8c46a3d884d932a1d967e6d9";
       hash = "sha256-LrHbf/i31N32SMg5m4OJZ6z2Bd/7BkdIGfAje6q/IHg=";
-      pnpmDepsHash = "sha256-4D2EC9q6FABZ16IWIgIc/G5dpBXY5Cpkhpa5+2pDnnU=";
+      pnpmDepsHash = "sha256-VAsjjzYeDZNgqNgTf5IpWEWzCxY6zbOQB4RnMhkUF5s=";
+    };
+
+    # Upstream's long-lived `channels` branch, source of the Slack adapter
+    # files the /add-slack skill copies (see nanoclaw/build/default.nix).
+    # Manual for the same reason: a bump must be re-checked against the
+    # pinned core rev above (the adapter compiles against core APIs).
+    nanoclaw-channels = {
+      source = "github-commit";
+      repo = "nanocoai/nanoclaw";
+      updatePolicy = "manual";
+      version = "unstable-2026-10-11";
+      rev = "d2407fe3b4e30db69779567d945e72ee1b078028";
+      hash = "sha256-jYrCUrw0kY1P/VvXlHvC7Ydp+opLgWpcCQJYO1euNFg=";
     };
   };
 

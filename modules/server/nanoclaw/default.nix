@@ -35,8 +35,11 @@
 # reads them through systemd LoadCredential= at runtime. The Claude token goes
 # file -> jq --rawfile -> curl stdin -> OneCLI vault; it never lands on argv,
 # in an env var, or in the host's .env. The DB password is rendered into
-# /run (tmpfs). The host .env (hostEnvFile below) is a store file on purpose:
-# it holds no secret, which is the whole point of a credential gateway.
+# /run (tmpfs). The host .env is assembled at service start in /run/nanoclaw:
+# non-secret settings (hostEnvFile, a store file on purpose) plus, when
+# server.nanoclaw.slack is on, the Slack tokens rendered from
+# host-secrets.env.tpl. The Claude token never goes there; that is the whole
+# point of the credential gateway.
 let
   cfg = config.server.nanoclaw;
   inherit (cfg) onecli;
@@ -113,8 +116,8 @@ let
     CONTAINER_IMAGE = imageRef;
     CONTAINER_IMAGE_BASE = image;
     NANOCLAW_EGRESS_LOCKDOWN = lib.boolToString cfg.egressLockdown;
-    TZ = cfg.timeZone;
   }
+  // lib.optionalAttrs (cfg.timeZone != null) { TZ = cfg.timeZone; }
   // lib.optionalAttrs (cfg.assistantName != null) { ASSISTANT_NAME = cfg.assistantName; }
   // cfg.extraSettings;
   hostEnvFile = pkgs.writeText "nanoclaw.env" (
@@ -140,6 +143,68 @@ let
   chatCmd = mkTsxCommand "nanoclaw-chat" "scripts/chat.ts";
   nclCmd = mkTsxCommand "nanoclaw-ncl" "src/cli/client.ts";
   initAgentCmd = mkTsxCommand "nanoclaw-init-cli-agent" "scripts/init-cli-agent.ts";
+
+  # Slack owner wiring, the scripted form of the /add-slack skill's "Resolve
+  # your DM channel" + /init-first-agent steps: validate the bot token
+  # (auth.test), open the bot<->owner DM (conversations.open), then create the
+  # owner user + first agent wired to that DM. The bot token is read from the
+  # rendered .env and handed to curl as a config file on stdin, so it never
+  # appears on argv.
+  slackWireCmd = pkgs.writeShellScriptBin "nanoclaw-slack-wire" ''
+    set -euo pipefail
+    if [ "$(${pkgs.coreutils}/bin/id -un)" != ${lib.escapeShellArg cfg.user} ]; then
+      exec /run/wrappers/bin/sudo -u ${lib.escapeShellArg cfg.user} -- "$0" "$@"
+    fi
+    export PATH=${
+      lib.makeBinPath [
+        pkgs.curl
+        pkgs.jq
+        pkgs.coreutils
+        pkgs.gnugrep
+      ]
+    }
+    usage() {
+      echo "usage: nanoclaw-slack-wire --member-id U... [--display-name NAME] [--agent-name NAME]" >&2
+      exit 2
+    }
+    member="" display="Owner" agent="Andy"
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --member-id) member="''${2:-}"; shift 2 ;;
+        --display-name) display="''${2:-}"; shift 2 ;;
+        --agent-name) agent="''${2:-}"; shift 2 ;;
+        *) usage ;;
+      esac
+    done
+    printf '%s' "$member" | grep -qE '^U[A-Z0-9]{8,}$' || usage
+
+    env=${lib.escapeShellArg cfg.dataDir}/.env
+    token=$(grep -m1 '^SLACK_BOT_TOKEN=' "$env" 2>/dev/null | cut -d= -f2- || true)
+    if [ -z "$token" ]; then
+      echo "No SLACK_BOT_TOKEN in $env: is server.nanoclaw.slack enabled and nanoclaw running?" >&2
+      exit 1
+    fi
+    slack() {
+      printf 'header = "Authorization: Bearer %s"\n' "$token" \
+        | curl -sS -K - -X POST "https://slack.com/api/$1" "''${@:2}"
+    }
+
+    who=$(slack auth.test | jq -er 'select(.ok) | "@" + .user + " in " + .team') \
+      || { echo "auth.test failed: bot token rejected, or the app is not installed" >&2; exit 1; }
+    echo "Bot token OK: $who"
+    dm=$(slack conversations.open -H 'Content-Type: application/json' \
+      -d "{\"users\":\"$member\"}" | jq -er 'select(.ok) | .channel.id') \
+      || { echo "conversations.open failed: is the im:write scope added (and the app reinstalled)?" >&2; exit 1; }
+    unset token
+    echo "Owner DM: slack:$dm"
+
+    cd ${lib.escapeShellArg cfg.dataDir}
+    ${lib.toShellVars hostEnv}
+    export ${lib.concatStringsSep " " (lib.attrNames hostEnv)}
+    exec ${nodejs}/bin/node ${root}/node_modules/tsx/dist/cli.mjs ${root}/scripts/init-first-agent.ts \
+      --channel slack --user-id "$member" --platform-id "slack:$dm" \
+      --display-name "$display" --agent-name "$agent"
+  '';
 
   # Verification helper: proves from inside each running agent container that
   # no raw Anthropic credential exists in its environment or filesystem. It
@@ -284,9 +349,47 @@ let
       ${root}/container
   '';
 
+  # Consistent point-in-time copies of the state a file-level backup can't
+  # capture safely while it runs: the vault's Postgres (pg_dump), the vault's
+  # app-data volume (holds the secret-encryption-key; without it the dump is
+  # unreadable), and the central SQLite DB (online .backup, WAL-safe). The
+  # dumps decrypt to the real Claude token, so the directory is root-only and
+  # belongs only in an encrypted backup (restic).
+  backupScript = pkgs.writeShellScript "nanoclaw-backup" ''
+    set -euo pipefail
+    export PATH=${
+      lib.makeBinPath [
+        docker
+        pkgs.coreutils
+        pkgs.gzip
+        pkgs.sqlite
+      ]
+    }
+    umask 077
+    out=${lib.escapeShellArg cfg.backup.dir}
+    mkdir -p "$out"
+    chmod 700 "$out"
+    docker exec onecli-postgres pg_dump -U onecli -d onecli --clean --if-exists \
+      | gzip > "$out/onecli-postgres.sql.gz.tmp"
+    docker cp onecli:/app/data - > "$out/onecli-app-data.tar.tmp"
+    if [ -f ${lib.escapeShellArg cfg.dataDir}/data/v2.db ]; then
+      sqlite3 ${lib.escapeShellArg cfg.dataDir}/data/v2.db ".backup '$out/nanoclaw-v2.db.tmp'"
+      mv "$out/nanoclaw-v2.db.tmp" "$out/nanoclaw-v2.db"
+    fi
+    mv "$out/onecli-postgres.sql.gz.tmp" "$out/onecli-postgres.sql.gz"
+    mv "$out/onecli-app-data.tar.tmp" "$out/onecli-app-data.tar"
+    ls -l "$out"
+  '';
+
   preStart = pkgs.writeShellScript "nanoclaw-prestart" ''
     set -euo pipefail
-    export PATH=${lib.makeBinPath [ pkgs.coreutils ]}
+    export PATH=${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.gnugrep
+        pkgs.gettext
+      ]
+    }
     cd ${lib.escapeShellArg cfg.dataDir}
     mkdir -p data groups store logs
     ${lib.concatMapStrings (e: ''
@@ -296,7 +399,29 @@ let
       fi
       ln -sfn ${root}/${e} ${e}
     '') codeEntries}
-    ln -sfn ${hostEnvFile} .env
+    # .env = non-secret settings + (if enabled) the rendered Slack tokens, in
+    # tmpfs. Rendered fresh on every start; never at eval or build time.
+    umask 077
+    rendered=/run/nanoclaw/nanoclaw.env
+    trap 'rm -f "$rendered.tmp"' EXIT
+    cat ${hostEnvFile} > "$rendered.tmp"
+    ${lib.optionalString cfg.slack.enable ''
+      SLACK_BOT_TOKEN=$(tr -d '[:space:]' < "$CREDENTIALS_DIRECTORY/slack-bot-token")
+      SLACK_APP_TOKEN=$(tr -d '[:space:]' < "$CREDENTIALS_DIRECTORY/slack-app-token")
+      # Shape checks (upstream's own validators); nothing derived from the
+      # values is printed.
+      printf '%s' "$SLACK_BOT_TOKEN" | grep -qE '^xoxb-[A-Za-z0-9-]+$' \
+        || { echo "slack bot token file is not an xoxb- Bot User OAuth Token" >&2; exit 1; }
+      printf '%s' "$SLACK_APP_TOKEN" | grep -qE '^xapp-[A-Za-z0-9-]+$' \
+        || { echo "slack app token file is not an xapp- App-Level Token" >&2; exit 1; }
+      export SLACK_BOT_TOKEN SLACK_APP_TOKEN
+      envsubst '$SLACK_BOT_TOKEN $SLACK_APP_TOKEN' < ${./host-secrets.env.tpl} >> "$rendered.tmp"
+      unset SLACK_BOT_TOKEN SLACK_APP_TOKEN
+    ''}
+    chmod 600 "$rendered.tmp"
+    mv "$rendered.tmp" "$rendered"
+    ln -sfn "$rendered" .env
+    umask 027
     # The upgrade tripwire refuses to boot code that no sanctioned upgrade
     # recorded. A NixOS rebuild IS this install's upgrade path (migrations run
     # on host start), so stamp the running version. The empty version arg
@@ -357,10 +482,10 @@ in
     };
 
     timeZone = lib.mkOption {
-      type = lib.types.str;
+      type = lib.types.nullOr lib.types.str;
       default = config.time.timeZone;
       defaultText = lib.literalExpression "config.time.timeZone";
-      description = "TZ passed to the host (scheduled tasks, timestamps).";
+      description = "TZ passed to the host (scheduled tasks, timestamps); null leaves it unset.";
     };
 
     egressLockdown = lib.mkOption {
@@ -412,6 +537,62 @@ in
         whenever the payload is re-encrypted) so a re-auth lands on `just qr`
         without a manual restart. Never pass anything holding a plaintext value.
       '';
+    };
+
+    slack = {
+      enable = lib.mkEnableOption "the Slack channel (Socket Mode: outbound WebSocket, no public URL)";
+
+      botTokenFile = lib.mkOption {
+        type = lib.types.path;
+        example = lib.literalExpression "config.age.secrets.nanoclaw-slack-bot-token.path";
+        description = ''
+          Runtime path (agenix) of the Slack Bot User OAuth Token (xoxb-...).
+          Rendered into the host's .env in /run/nanoclaw at service start.
+        '';
+      };
+
+      appTokenFile = lib.mkOption {
+        type = lib.types.path;
+        example = lib.literalExpression "config.age.secrets.nanoclaw-slack-app-token.path";
+        description = ''
+          Runtime path (agenix) of the Slack App-Level Token (xapp-..., scope
+          connections:write). Its presence switches the adapter to Socket Mode.
+        '';
+      };
+
+      restartTriggers = lib.mkOption {
+        type = lib.types.listOf lib.types.unspecified;
+        default = [ ];
+        example = lib.literalExpression "[ config.age.secrets.nanoclaw-slack-bot-token.file ]";
+        description = ''
+          Values whose change restarts the host (re-rendering .env). Pass the
+          agenix `.file` ciphertext paths so a rotated token lands on rebuild.
+        '';
+      };
+    };
+
+    backup = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Daily consistent dumps of the vault and central DB into backup.dir
+          (nanoclaw-backup.timer), for a file-level backup such as restic to
+          pick up. Add both backup.dir and dataDir to that backup's paths.
+        '';
+      };
+
+      dir = lib.mkOption {
+        type = lib.types.path;
+        default = "/var/backup/nanoclaw";
+        description = "Root-only directory the dumps are written to.";
+      };
+
+      schedule = lib.mkOption {
+        type = lib.types.str;
+        default = "*-*-* 02:45:00";
+        description = "OnCalendar for the dumps; keep it ahead of the backup that copies them.";
+      };
     };
 
     vaultSecretName = lib.mkOption {
@@ -479,6 +660,15 @@ in
       {
         assertion = !(lib.hasPrefix "/nix/store" (toString onecli.dbPasswordFile));
         message = "server.nanoclaw.onecli.dbPasswordFile points into /nix/store; it must be an agenix runtime path.";
+      }
+      {
+        assertion =
+          !cfg.slack.enable
+          || lib.all (f: !(lib.hasPrefix "/nix/store" (toString f))) [
+            cfg.slack.botTokenFile
+            cfg.slack.appTokenFile
+          ];
+        message = "server.nanoclaw.slack token files point into /nix/store; they must be agenix runtime paths.";
       }
       {
         assertion = config.virtualisation.oci-containers.backend == "docker";
@@ -559,160 +749,195 @@ in
     };
     users.groups.${cfg.group} = { };
 
-    systemd.tmpfiles.settings."10-nanoclaw".${cfg.dataDir}.d = {
-      inherit (cfg) user group;
-      mode = "0750";
-    };
-
     environment.systemPackages = [
       chatCmd
       nclCmd
       initAgentCmd
       checkCredsCmd
+    ]
+    ++ lib.optionals cfg.slack.enable [
+      slackWireCmd
     ];
 
-    systemd.services = {
-      docker-network-onecli = {
-        description = "Docker network for the OneCLI vault";
-        after = [ "docker.service" ];
-        requires = [ "docker.service" ];
-        path = [ docker ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-        };
-        script = ''
-          docker network inspect onecli >/dev/null 2>&1 || docker network create onecli
-        '';
+    systemd = {
+      tmpfiles.settings."10-nanoclaw".${cfg.dataDir}.d = {
+        inherit (cfg) user group;
+        mode = "0750";
       };
 
-      nanoclaw-onecli-env = {
-        description = "Render OneCLI container env files from templates (runtime only)";
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          RuntimeDirectory = "nanoclaw-onecli";
-          RuntimeDirectoryMode = "0700";
-          LoadCredential = [ "db-password:${onecli.dbPasswordFile}" ];
-          ExecStart = renderOnecliEnv;
-          UMask = "0077";
+      timers.nanoclaw-backup = lib.mkIf cfg.backup.enable {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = cfg.backup.schedule;
+          Persistent = true;
         };
       };
 
-      docker-onecli-postgres = {
-        after = [
-          "docker-network-onecli.service"
-          "nanoclaw-onecli-env.service"
-        ];
-        requires = [
-          "docker-network-onecli.service"
-          "nanoclaw-onecli-env.service"
-        ];
-      };
-
-      docker-onecli = {
-        after = [
-          "docker-network-onecli.service"
-          "nanoclaw-onecli-env.service"
-        ];
-        requires = [
-          "docker-network-onecli.service"
-          "nanoclaw-onecli-env.service"
-        ];
-      };
-
-      nanoclaw-vault-sync = {
-        description = "Load the Claude setup-token into the OneCLI vault";
-        after = [ "docker-onecli.service" ];
-        requires = [ "docker-onecli.service" ];
-        # Re-run on every rebuild that changes the secret path or script.
-        restartTriggers = [
-          cfg.claudeTokenFile
-          vaultSync
-        ]
-        ++ cfg.secretsRestartTriggers;
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          DynamicUser = true;
-          LoadCredential = [ "claude-token:${cfg.claudeTokenFile}" ];
-          ExecStart = vaultSync;
-          PrivateTmp = true;
-          ProtectHome = true;
-          ProtectSystem = "strict";
-          NoNewPrivileges = true;
+      services = {
+        docker-network-onecli = {
+          description = "Docker network for the OneCLI vault";
+          after = [ "docker.service" ];
+          requires = [ "docker.service" ];
+          path = [ docker ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
+          script = ''
+            docker network inspect onecli >/dev/null 2>&1 || docker network create onecli
+          '';
         };
-      };
 
-      nanoclaw-agent-image = {
-        description = "Build the NanoClaw agent container image";
-        after = [
-          "docker.service"
-          "network-online.target"
-        ];
-        requires = [ "docker.service" ];
-        wants = [ "network-online.target" ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          User = cfg.user;
-          Group = cfg.group;
-          ExecStart = buildImage;
-          TimeoutStartSec = "45min";
-          Restart = "on-failure";
-          RestartSec = "2min";
+        nanoclaw-onecli-env = {
+          description = "Render OneCLI container env files from templates (runtime only)";
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            RuntimeDirectory = "nanoclaw-onecli";
+            RuntimeDirectoryMode = "0700";
+            LoadCredential = [ "db-password:${onecli.dbPasswordFile}" ];
+            ExecStart = renderOnecliEnv;
+            UMask = "0077";
+          };
         };
-      };
 
-      nanoclaw = {
-        description = "NanoClaw host";
-        wantedBy = [ "multi-user.target" ];
-        after = [
-          "docker.service"
-          "network-online.target"
-          "nanoclaw-vault-sync.service"
-          "nanoclaw-agent-image.service"
-        ]
-        ++ lib.optional cfg.egressLockdown "docker-onecli-gateway.service";
-        requires = [
-          "docker.service"
-          "nanoclaw-vault-sync.service"
-        ];
-        # wants, not requires: a registry hiccup during the image build should
-        # not keep the host (and its CLI socket) down; the build unit retries.
-        # Lockdown fails closed (no spawn) if the relay is missing, so it is
-        # wanted too.
-        wants = [
-          "network-online.target"
-          "nanoclaw-agent-image.service"
-        ]
-        ++ lib.optional cfg.egressLockdown "docker-onecli-gateway.service";
-        path = [
-          docker
-          pkgs.procps
-          pkgs.coreutils
-        ];
-        environment = hostEnv // {
-          HOME = cfg.dataDir;
-          NODE_ENV = "production";
+        docker-onecli-postgres = {
+          after = [
+            "docker-network-onecli.service"
+            "nanoclaw-onecli-env.service"
+          ];
+          requires = [
+            "docker-network-onecli.service"
+            "nanoclaw-onecli-env.service"
+          ];
         };
-        restartTriggers = [ hostEnvFile ];
-        serviceConfig = {
-          User = cfg.user;
-          Group = cfg.group;
-          WorkingDirectory = cfg.dataDir;
-          ExecStartPre = preStart;
-          ExecStart = "${nodejs}/bin/node ${root}/dist/index.js";
-          Restart = "on-failure";
-          RestartSec = "10s";
-          UMask = "0027";
-          # Cosmetic next to docker-group membership, but it keeps the host
-          # process itself from writing outside its state directory.
-          NoNewPrivileges = true;
-          PrivateTmp = true;
-          ProtectSystem = "strict";
-          ProtectHome = true;
-          ReadWritePaths = [ cfg.dataDir ];
+
+        docker-onecli = {
+          after = [
+            "docker-network-onecli.service"
+            "nanoclaw-onecli-env.service"
+          ];
+          requires = [
+            "docker-network-onecli.service"
+            "nanoclaw-onecli-env.service"
+          ];
+        };
+
+        nanoclaw-vault-sync = {
+          description = "Load the Claude setup-token into the OneCLI vault";
+          after = [ "docker-onecli.service" ];
+          requires = [ "docker-onecli.service" ];
+          # Re-run on every rebuild that changes the secret path or script.
+          restartTriggers = [
+            cfg.claudeTokenFile
+            vaultSync
+          ]
+          ++ cfg.secretsRestartTriggers;
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            DynamicUser = true;
+            LoadCredential = [ "claude-token:${cfg.claudeTokenFile}" ];
+            ExecStart = vaultSync;
+            PrivateTmp = true;
+            ProtectHome = true;
+            ProtectSystem = "strict";
+            NoNewPrivileges = true;
+          };
+        };
+
+        nanoclaw-backup = lib.mkIf cfg.backup.enable {
+          description = "Dump NanoClaw's vault and central DB for backup";
+          after = [
+            "docker-onecli.service"
+            "docker-onecli-postgres.service"
+          ];
+          requires = [ "docker-onecli-postgres.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = backupScript;
+          };
+        };
+
+        nanoclaw-agent-image = {
+          description = "Build the NanoClaw agent container image";
+          after = [
+            "docker.service"
+            "network-online.target"
+          ];
+          requires = [ "docker.service" ];
+          wants = [ "network-online.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            User = cfg.user;
+            Group = cfg.group;
+            ExecStart = buildImage;
+            TimeoutStartSec = "45min";
+            Restart = "on-failure";
+            RestartSec = "2min";
+          };
+        };
+
+        nanoclaw = {
+          description = "NanoClaw host";
+          wantedBy = [ "multi-user.target" ];
+          after = [
+            "docker.service"
+            "network-online.target"
+            "nanoclaw-vault-sync.service"
+            "nanoclaw-agent-image.service"
+          ]
+          ++ lib.optional cfg.egressLockdown "docker-onecli-gateway.service";
+          requires = [
+            "docker.service"
+            "nanoclaw-vault-sync.service"
+          ];
+          # wants, not requires: a registry hiccup during the image build should
+          # not keep the host (and its CLI socket) down; the build unit retries.
+          # Lockdown fails closed (no spawn) if the relay is missing, so it is
+          # wanted too.
+          wants = [
+            "network-online.target"
+            "nanoclaw-agent-image.service"
+          ]
+          ++ lib.optional cfg.egressLockdown "docker-onecli-gateway.service";
+          path = [
+            docker
+            pkgs.procps
+            pkgs.coreutils
+          ];
+          environment = hostEnv // {
+            HOME = cfg.dataDir;
+            NODE_ENV = "production";
+          };
+          restartTriggers = [ hostEnvFile ] ++ cfg.slack.restartTriggers;
+          serviceConfig = {
+            User = cfg.user;
+            Group = cfg.group;
+            WorkingDirectory = cfg.dataDir;
+            ExecStartPre = preStart;
+            RuntimeDirectory = "nanoclaw";
+            RuntimeDirectoryMode = "0700";
+            # Keep the rendered .env across `systemctl restart` so the operator
+            # commands keep working; it is rebuilt on every start anyway.
+            RuntimeDirectoryPreserve = "restart";
+            LoadCredential = lib.optionals cfg.slack.enable [
+              "slack-bot-token:${cfg.slack.botTokenFile}"
+              "slack-app-token:${cfg.slack.appTokenFile}"
+            ];
+            ExecStart = "${nodejs}/bin/node ${root}/dist/index.js";
+            Restart = "on-failure";
+            RestartSec = "10s";
+            UMask = "0027";
+            # Cosmetic next to docker-group membership, but it keeps the host
+            # process itself from writing outside its state directory.
+            NoNewPrivileges = true;
+            PrivateTmp = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            ReadWritePaths = [ cfg.dataDir ];
+          };
         };
       };
     };
