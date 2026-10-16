@@ -28,4 +28,14 @@ in
     srv
     dustin
   ];
+  # Slack Bot User OAuth Token: xoxb-...
+  "nanoclaw-slack-bot-token.age".publicKeys = [
+    srv
+    dustin
+  ];
+  # Slack App-Level Token (connections:write, Socket Mode): xapp-...
+  "nanoclaw-slack-app-token.age".publicKeys = [
+    srv
+    dustin
+  ];
 }
