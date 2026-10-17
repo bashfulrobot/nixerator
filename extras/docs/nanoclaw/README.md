@@ -10,13 +10,16 @@ only ever see `CLAUDE_CODE_OAUTH_TOKEN=placeholder`.
 
 ## Read first: caveats and deviations
 
-- **agenix is new to this repo, scoped to this one service.** The rest of
-  nixerator stays on 1Password (`extras/docs/secrets.md`,
-  `extras/docs/secrets-agenix-evaluation.md`). The agenix module is loaded on
-  srv only (`flake.nix`, `extraModules`), and only `secrets/nanoclaw-*.age`
-  use it.
-- **The service stays off until you create both `.age` files.** Until then,
-  srv builds normally and evaluation prints a warning.
+- **Secrets use the repo's one pattern.** The four values live in the
+  `nixerator` 1Password vault, render to `secrets.json` with
+  `just render-secrets`, and land at `/run/nanoclaw-secrets/<name>` (root,
+  0400) through `secretsLib.installValue` at activation. See
+  `extras/docs/secrets.md`. agenix was used in the first version of this
+  module and removed: on single-user hosts keeping values out of `/nix/store`
+  is already covered by `installValue`, and a second mechanism cost more than
+  it bought.
+- **The service stays off until the core keys exist in `secrets.json`.**
+  Until then, srv builds normally and evaluation prints a warning.
 - **This is not upstream's topology.** Upstream publishes OneCLI's admin API
   and proxy on docker0. Under egress lockdown it attaches the whole OneCLI
   container to the agents' network. On OneCLI 1.41.0 and 1.42.0 that API is
@@ -60,11 +63,11 @@ only ever see `CLAUDE_CODE_OAUTH_TOKEN=placeholder`.
 | Unit | What it does |
 |------|--------------|
 | `docker-network-onecli` | Creates the private `onecli` bridge network |
-| `nanoclaw-onecli-env` | Renders `onecli.env.tpl` and `postgres.env.tpl` into `/run/nanoclaw-onecli/*.env` (0600, root) from the agenix DB password, using `envsubst` at runtime |
+| `nanoclaw-onecli-env` | Renders `onecli.env.tpl` and `postgres.env.tpl` into `/run/nanoclaw-onecli/*.env` (0600, root) from the DB password, using `envsubst` at runtime |
 | `docker-onecli-postgres` | The vault's PostgreSQL (no host port) |
 | `docker-onecli` | OneCLI 1.42.0, digest-pinned. It's exactly the version NanoClaw's `add-onecli` skill sanctions: 1.42.0 closes a credential-injection bypass, and 1.43+ is unsupported. API on `127.0.0.1:10254`, proxy on `127.0.0.1:10255` |
 | `docker-onecli-gateway` | socat relay: the only thing on the agents' `--internal` network (`host.docker.internal:10255`) |
-| `nanoclaw-vault-sync` | Pushes the agenix setup-token into the vault as secret `Anthropic` (creates it, or PATCHes the value on later runs) |
+| `nanoclaw-vault-sync` | Pushes the setup-token into the vault as secret `Anthropic` (creates it, or PATCHes the value on later runs) |
 | `nanoclaw-agent-image` | Builds `nanoclaw-agent-v2-nanoclaw:latest`. Skips the build when the image's `org.nixos.nanoclaw.source` label already matches the package |
 | `nanoclaw` | The host: `node dist/index.js` as user `nanoclaw`, working dir `/var/lib/nanoclaw`. Its start step assembles `.env` in `/run/nanoclaw` (non-secret settings, plus the Slack tokens when enabled) |
 | `nanoclaw-backup` (timer, 02:45) | Consistent dumps of the vault and central DB into `/var/backup/nanoclaw`, ahead of srv's 03:00 restic run |
@@ -96,18 +99,20 @@ exist.
 
 ## Provision the secrets
 
-You need two agenix payloads. Do this on a workstation.
+Two 1Password items are needed for the core service, and two more for Slack.
+Each lives in the `nixerator` vault with a `credential` field. The core
+`op://` references are already in `secrets.json.tpl` under `nanoclaw`, so
+`just render-secrets` fails until those two items exist. Do this on a
+workstation. Never paste a value into the chat or onto a command line.
 
-1. **Get srv's host key.** agenix decrypts at activation with this key:
+| Item | JSON key | Needed for |
+|------|----------|------------|
+| `nanoclaw-claude-token` | `nanoclaw.claudeToken` | core |
+| `nanoclaw-onecli-db-password` | `nanoclaw.onecliDbPassword` | core |
+| `nanoclaw-slack-bot-token` | `nanoclaw.slackBotToken` | Slack |
+| `nanoclaw-slack-app-token` | `nanoclaw.slackAppToken` | Slack |
 
-   ```bash
-   SRV_KEY=$(ssh srv cat /etc/ssh/ssh_host_ed25519_key.pub)
-   ```
-
-   Paste it (and optionally your own key) into `secrets/secrets.nix` so the
-   `agenix` CLI knows the recipients.
-
-2. **Generate the Claude setup-token.** It needs a browser, so run it on
+1. **Generate the Claude setup-token.** It needs a browser, so run it on
    qbert:
 
    ```bash
@@ -118,34 +123,30 @@ You need two agenix payloads. Do this on a workstation.
    Leave the terminal open. (Running it over SSH on srv also works
    `[Likely]`: it prints a URL you can open on any device.)
 
-3. **Encrypt the token without it touching disk or shell history.** `age`
-   reads the plaintext from stdin:
+2. **Store the token in 1Password.** Create the item in the 1Password app and
+   paste the token into its `credential` field, so it never touches the shell
+   or the chat.
+
+3. **Create the OneCLI database password.** Create the
+   `nanoclaw-onecli-db-password` item in the 1Password app and use its
+   password generator for the `credential` field (64 hex-safe characters
+   work). The value never needs to be seen.
+
+   The two Slack items are not in `secrets.json.tpl` yet, so
+   `just render-secrets` does not need them. Add them when you have the tokens
+   (Slack section).
+
+4. **Render, push and rebuild:**
 
    ```bash
-   cd ~/git/nixerator
-   nix shell nixpkgs#age -c age -r "$SRV_KEY" -o secrets/nanoclaw-claude-token.age
-   # paste the sk-ant-oat01-… token, press Enter, then Ctrl-D
-   ```
-
-   With your key in `secrets/secrets.nix` you can use agenix instead:
-   `cd secrets && nix run github:ryantm/agenix -- -e nanoclaw-claude-token.age`.
-
-4. **Create the OneCLI database password.** It is never displayed:
-
-   ```bash
-   openssl rand -hex 32 | nix shell nixpkgs#age -c age -r "$SRV_KEY" -o secrets/nanoclaw-onecli-db-password.age
-   ```
-
-5. **Track the files, then rebuild srv.** Flakes only see tracked files:
-
-   ```bash
-   git add secrets/nanoclaw-claude-token.age secrets/nanoclaw-onecli-db-password.age secrets/secrets.nix
-   # commit + push, then on srv:
+   just render-secrets            # on the workstation
+   render-secrets --push srv      # copy secrets.json to srv
+   # then on srv:
    just qr
    ```
 
-The `.age` files are ciphertext, so they are safe in git and in the store.
-The plaintext only ever exists at `/run/agenix/<name>` (tmpfs, root 0400).
+The plaintext exists only in `secrets.json` (0600, outside the repo and the
+store) and at `/run/nanoclaw-secrets/<name>` (tmpfs, root 0400).
 
 ## Keep spend capped: leave extra usage off
 
@@ -201,22 +202,22 @@ Sept 2026). The symptom is agents erroring with 401s in `journalctl -u nanoclaw`
 and `docker logs onecli`. To recover:
 
 1. `claude setup-token` on a workstation (step 2 above).
-2. Replace the payload. Overwriting with `age -r "$SRV_KEY" -o secrets/nanoclaw-claude-token.age`
-   works; the old ciphertext just gets replaced.
-3. Commit, push, then on srv `just qr`. The re-encrypted `.age` has a new
-   store path, which is wired into `nanoclaw-vault-sync`'s restart triggers.
-   The switch re-runs the sync, which PATCHes the existing `Anthropic` secret
-   in place (same id, so per-agent grants survive). Restarting the sync also
-   restarts `nanoclaw`.
-4. If you only re-deployed without changing the file, force it:
-   `sudo systemctl restart nanoclaw-vault-sync`.
+2. Update the `credential` field of the `nanoclaw-claude-token` item.
+3. `just render-secrets`, push to srv, then on srv `just qr` (the activation
+   script rewrites `/run/nanoclaw-secrets/claude-token`).
+4. Restart the sync: `sudo systemctl restart nanoclaw-vault-sync`. It PATCHes
+   the existing `Anthropic` secret in place (same id, so per-agent grants
+   survive). Restarting the sync also restarts `nanoclaw`.
+
+A rotated value changes no store path, so a rebuild alone never restarts the
+units. The restart in step 4 is required.
 
 ## Slack
 
 A personal workspace (not a work one) in Socket Mode: srv opens an outbound
-WebSocket to Slack, so nothing on srv is public. The two tokens are agenix
-secrets with their own gate. NanoClaw runs terminal-only until both exist, and
-evaluation warns until then.
+WebSocket to Slack, so nothing on srv is public. The two tokens are
+1Password items with their own gate. NanoClaw runs terminal-only until both
+keys are in `secrets.json`, and evaluation warns until then.
 
 **1. Create the app** at api.slack.com/apps → Create New App → From scratch,
 in your personal workspace:
@@ -237,14 +238,13 @@ in your personal workspace:
 
 These steps are the upstream skill's own, from `.claude/skills/add-slack/SKILL.md`.
 
-**2. Encrypt the tokens** (paste each, Enter, then Ctrl-D; never on the
-command line):
+**2. Store the tokens** in the `nanoclaw-slack-bot-token` (xoxb-…) and
+`nanoclaw-slack-app-token` (xapp-…) items' `credential` fields, add these two
+lines to the `nanoclaw` block of `secrets.json.tpl`, then `just render-secrets`, push to srv and `just qr` there:
 
-```bash
-nix shell nixpkgs#age -c age -r "$SRV_KEY" -o secrets/nanoclaw-slack-bot-token.age   # xoxb-…
-nix shell nixpkgs#age -c age -r "$SRV_KEY" -o secrets/nanoclaw-slack-app-token.age   # xapp-…
-git add secrets/nanoclaw-slack-*.age
-# commit, push, then on srv: just qr
+```json
+"slackBotToken": "{{ op://nixerator/nanoclaw-slack-bot-token/credential }}",
+"slackAppToken": "{{ op://nixerator/nanoclaw-slack-app-token/credential }}"
 ```
 
 **3. Check it connected, then wire yourself:**
@@ -269,8 +269,9 @@ every service start. NanoClaw reads them from `.env` only, never from the
 process environment, so agent containers never see them. The start step
 refuses anything that isn't `xoxb-` / `xapp-` shaped.
 
-**Rotating them.** Re-encrypt the `.age` file, then `just qr`. The new
-ciphertext path restarts the host, which re-renders `.env`.
+**Rotating them.** Update the 1Password item, `just render-secrets`, push to
+srv, `just qr`, then `sudo systemctl restart nanoclaw`. The restart re-renders
+`.env`.
 
 **Channels other than your DM.** Anything in a channel the bot is in becomes
 input to the agent, including text posted by other integrations. Invite the
@@ -316,16 +317,16 @@ sudo systemctl start docker-onecli nanoclaw
 NEW=$(openssl rand -hex 32)
 # via stdin, so the password never shows up in `ps`
 printf "ALTER USER onecli PASSWORD '%s';\n" "$NEW" | docker exec -i onecli-postgres psql -U onecli -d onecli
-printf '%s\n' "$NEW" | age -r "$SRV_KEY" -o secrets/nanoclaw-onecli-db-password.age
+# put $NEW in the nanoclaw-onecli-db-password item (op item edit, blind), then
 unset NEW
-# commit, push, just qr on srv, then:
+# just render-secrets, push to srv, just qr on srv, then:
 sudo systemctl restart nanoclaw-onecli-env docker-onecli
 ```
 
 ## Why no secret reaches /nix/store
 
 - **Nix handles paths, never values.** `claudeTokenFile` and
-  `onecli.dbPasswordFile` are `/run/agenix/…` strings. Nothing calls
+  `onecli.dbPasswordFile` are `/run/nanoclaw-secrets/…` strings. Nothing calls
   `readFile` on them or interpolates their contents, and assertions reject a
   `/nix/store` path.
 - **Units read the secrets through `LoadCredential=` at runtime.** The vault
@@ -341,15 +342,15 @@ sudo systemctl restart nanoclaw-onecli-env docker-onecli
   names, TZ). The Slack tokens are appended from `host-secrets.env.tpl` by
   the unit's start step, reading them via `LoadCredential`. The Claude token
   is never in it: that is the point of the gateway.
-- **The `.age` files do enter the store, as ciphertext.** That is agenix's
-  normal model.
+- **Eval sees key names, never values.** `hosts/srv/modules.nix` only asks
+  whether a `nanoclaw.*` key exists in `secrets.json`, to gate the service.
 - **Checked:** test systems built from this module were grepped across their
   whole closures, with zero hits. They used a fake Claude token, a random DB
   password and fake Slack tokens, with a full live run in a sandbox. Repeat on
   srv with the real values:
 
   ```bash
-  for s in /run/agenix/nanoclaw-*; do
+  for s in /run/nanoclaw-secrets/*; do
     nix-store -qR /run/current-system | xargs sudo grep -rlF -f "$s" 2>/dev/null
   done
   # no output = no secret is in the store

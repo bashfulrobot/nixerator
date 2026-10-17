@@ -2,7 +2,7 @@
 #
 # TEMPLATE, checked into git with placeholders only. The nanoclaw unit's
 # ExecStartPre renders it at runtime with envsubst, restricted to the two
-# Slack placeholders, reading the values from the agenix-decrypted files via
+# Slack placeholders, reading the values from the runtime files via
 # LoadCredential. The result is appended to the non-secret settings and
 # written to /run/nanoclaw/nanoclaw.env (tmpfs, 0600, nanoclaw); dataDir/.env
 # is a symlink to it. Never rendered at eval or build time.

@@ -16,13 +16,13 @@
 #   docker-network-onecli     oneshot: the private `onecli` bridge network
 #   nanoclaw-onecli-env       oneshot, root: renders onecli.env.tpl and
 #                             postgres.env.tpl into /run/nanoclaw-onecli/ from
-#                             the agenix DB-password file (runtime only)
+#                             the DB-password file (runtime only)
 #   docker-onecli-postgres    OneCLI's database (no host port)
 #   docker-onecli             OneCLI vault + gateway; API and proxy published
 #                             on 127.0.0.1 only
 #   docker-onecli-gateway     (egressLockdown) socat relay exposing ONLY the
 #                             proxy port to agent containers (see below)
-#   nanoclaw-vault-sync       oneshot, DynamicUser: pushes the agenix
+#   nanoclaw-vault-sync       oneshot, DynamicUser: pushes the
 #                             setup-token into the vault as the `Anthropic`
 #                             secret over OneCLI's local API
 #   nanoclaw-agent-image      oneshot: `docker build` of upstream's
@@ -30,7 +30,7 @@
 #   nanoclaw                  the host process
 #
 # Secret flow (why nothing reaches /nix/store): the only secret values are the
-# two agenix files. Nix handles their PATHS (strings), never their contents:
+# secret files. Nix handles their PATHS (strings), never their contents:
 # no readFile, no interpolation of a value, no builtins.* on them. Each unit
 # reads them through systemd LoadCredential= at runtime. The Claude token goes
 # file -> jq --rawfile -> curl stdin -> OneCLI vault; it never lands on argv,
@@ -289,13 +289,13 @@ let
       jq -n --rawfile v "$token" '{value: ($v | gsub("\\s"; ""))}' \
         | curl -fsS --noproxy '*' -X PATCH -H 'Content-Type: application/json' \
             --data-binary @- "$api/v1/secrets/$id" >/dev/null
-      echo "Updated vault secret '$name' ($id) from the agenix setup-token."
+      echo "Updated vault secret '$name' ($id) from the setup-token."
     else
       jq -n --rawfile v "$token" --arg n "$name" \
         '{name: $n, type: "anthropic", value: ($v | gsub("\\s"; "")), hostPattern: "api.anthropic.com"}' \
         | curl -fsS --noproxy '*' -X POST -H 'Content-Type: application/json' \
             --data-binary @- "$api/v1/secrets" >/dev/null
-      echo "Created vault secret '$name' from the agenix setup-token."
+      echo "Created vault secret '$name' from the setup-token."
     fi
   '';
 
@@ -520,23 +520,11 @@ in
 
     claudeTokenFile = lib.mkOption {
       type = lib.types.path;
-      example = lib.literalExpression "config.age.secrets.nanoclaw-claude-token.path";
+      example = "/run/nanoclaw-secrets/claude-token";
       description = ''
-        Runtime path (agenix) of the `claude setup-token` OAuth token
+        Runtime path (outside /nix/store, root-readable) of the `claude setup-token` OAuth token
         (sk-ant-oat...). Read only by nanoclaw-vault-sync via LoadCredential;
         the host process and agent containers never see it.
-      '';
-    };
-
-    secretsRestartTriggers = lib.mkOption {
-      type = lib.types.listOf lib.types.unspecified;
-      default = [ ];
-      example = lib.literalExpression "[ config.age.secrets.nanoclaw-claude-token.file ]";
-      description = ''
-        Values whose change re-runs nanoclaw-vault-sync on the next rebuild.
-        Pass the agenix `.file` (the ENCRYPTED .age store path, which changes
-        whenever the payload is re-encrypted) so a re-auth lands on `just qr`
-        without a manual restart. Never pass anything holding a plaintext value.
       '';
     };
 
@@ -545,29 +533,19 @@ in
 
       botTokenFile = lib.mkOption {
         type = lib.types.path;
-        example = lib.literalExpression "config.age.secrets.nanoclaw-slack-bot-token.path";
+        example = "/run/nanoclaw-secrets/slack-bot-token";
         description = ''
-          Runtime path (agenix) of the Slack Bot User OAuth Token (xoxb-...).
+          Runtime path (outside /nix/store, root-readable) of the Slack Bot User OAuth Token (xoxb-...).
           Rendered into the host's .env in /run/nanoclaw at service start.
         '';
       };
 
       appTokenFile = lib.mkOption {
         type = lib.types.path;
-        example = lib.literalExpression "config.age.secrets.nanoclaw-slack-app-token.path";
+        example = "/run/nanoclaw-secrets/slack-app-token";
         description = ''
-          Runtime path (agenix) of the Slack App-Level Token (xapp-..., scope
+          Runtime path (outside /nix/store, root-readable) of the Slack App-Level Token (xapp-..., scope
           connections:write). Its presence switches the adapter to Socket Mode.
-        '';
-      };
-
-      restartTriggers = lib.mkOption {
-        type = lib.types.listOf lib.types.unspecified;
-        default = [ ];
-        example = lib.literalExpression "[ config.age.secrets.nanoclaw-slack-bot-token.file ]";
-        description = ''
-          Values whose change restarts the host (re-rendering .env). Pass the
-          agenix `.file` ciphertext paths so a rotated token lands on rebuild.
         '';
       };
     };
@@ -646,9 +624,9 @@ in
 
       dbPasswordFile = lib.mkOption {
         type = lib.types.path;
-        example = lib.literalExpression "config.age.secrets.nanoclaw-onecli-db-password.path";
+        example = "/run/nanoclaw-secrets/onecli-db-password";
         description = ''
-          Runtime path (agenix) of the OneCLI PostgreSQL password. Rendered
+          Runtime path (outside /nix/store, root-readable) of the OneCLI PostgreSQL password. Rendered
           into /run/nanoclaw-onecli/*.env from the checked-in templates.
         '';
       };
@@ -659,11 +637,11 @@ in
     assertions = [
       {
         assertion = !(lib.hasPrefix "/nix/store" (toString cfg.claudeTokenFile));
-        message = "server.nanoclaw.claudeTokenFile points into /nix/store; it must be an agenix runtime path.";
+        message = "server.nanoclaw.claudeTokenFile points into /nix/store; it must be a runtime path.";
       }
       {
         assertion = !(lib.hasPrefix "/nix/store" (toString onecli.dbPasswordFile));
-        message = "server.nanoclaw.onecli.dbPasswordFile points into /nix/store; it must be an agenix runtime path.";
+        message = "server.nanoclaw.onecli.dbPasswordFile points into /nix/store; it must be a runtime path.";
       }
       {
         assertion =
@@ -672,7 +650,7 @@ in
             cfg.slack.botTokenFile
             cfg.slack.appTokenFile
           ];
-        message = "server.nanoclaw.slack token files point into /nix/store; they must be agenix runtime paths.";
+        message = "server.nanoclaw.slack token files point into /nix/store; they must be runtime paths.";
       }
       {
         assertion = config.virtualisation.oci-containers.backend == "docker";
@@ -835,8 +813,7 @@ in
           restartTriggers = [
             cfg.claudeTokenFile
             vaultSync
-          ]
-          ++ cfg.secretsRestartTriggers;
+          ];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
@@ -915,7 +892,7 @@ in
             HOME = cfg.dataDir;
             NODE_ENV = "production";
           };
-          restartTriggers = [ hostEnvFile ] ++ cfg.slack.restartTriggers;
+          restartTriggers = [ hostEnvFile ];
           serviceConfig = {
             User = cfg.user;
             Group = cfg.group;
