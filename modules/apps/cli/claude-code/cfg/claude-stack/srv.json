@@ -179,10 +179,13 @@
       "state": "enabled"
     },
     "superpowers@claude-plugins-official": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "terse@claude-skills": {
       "state": "enabled"
+    },
+    "vibecurb@claude-skills": {
+      "state": "disabled"
     }
   },
   "profiles": [
