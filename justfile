@@ -346,6 +346,18 @@ fmt:
     @echo "Formatting nix files..."
     @nix fmt
 
+# Auto-fix lint, dead code, and shell/fish formatting (replaces the old CI autofix job)
+[group('dev')]
+fix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix fmt
+    statix fix --ignore secrets .
+    deadnix --edit --exclude '**/secrets/**' .
+    find . -name '*.sh' -not -path './.git/*' -not -path './secrets/*' -print0 | xargs -0 -r shfmt -w -i 2 -ci
+    find . -name '*.fish' -not -path './.git/*' -not -path './secrets/*' -print0 \
+      | xargs -0 -r fish -c 'for f in $argv; fish_indent -w "$f"; end'
+
 # Install repo git hooks (sets core.hooksPath to .githooks for this clone)
 #
 # The pre-commit hook auto-formats staged .nix files via `nix fmt` so no
