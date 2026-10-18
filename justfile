@@ -351,7 +351,7 @@ fmt:
 fix:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix fmt
+    find . -name '*.nix' -not -path './.git/*' -not -path './secrets/*' -print0 | xargs -0 -r nix fmt --
     statix fix --ignore secrets .
     deadnix --edit --exclude '**/secrets/**' .
     find . -name '*.sh' -not -path './.git/*' -not -path './secrets/*' -print0 | xargs -0 -r shfmt -w -i 2 -ci
