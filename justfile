@@ -352,10 +352,11 @@ fix:
     #!/usr/bin/env bash
     set -euo pipefail
     # Tracked files only: `find .` would walk .claude/worktrees and ignored paths.
+    # `--` and the ./ prefix stop a filename starting with `-` being read as a flag.
     git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r nix fmt --
-    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r -n1 statix fix
-    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r deadnix --edit
-    git ls-files -z -- '*.sh' ':!:secrets' | xargs -0 -r shfmt -w -i 2 -ci
+    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r -I{} statix fix ./{}
+    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r deadnix --edit --
+    git ls-files -z -- '*.sh' ':!:secrets' | xargs -0 -r shfmt -w -i 2 -ci --
     git ls-files -z -- '*.fish' ':!:secrets' \
       | xargs -0 -r fish -c 'for f in $argv; fish_indent -w "$f"; end'
 
