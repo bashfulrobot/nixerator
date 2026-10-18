@@ -20,6 +20,9 @@ in
     # JWT tools
     apps.cli.jwtx.enable = true;
 
+    # DNS propagation checker TUI
+    apps.cli.dnsglobe.enable = true;
+
     # Infrastructure and cloud tools
     environment.systemPackages = with pkgs; [
       # Cloud utilities

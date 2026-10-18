@@ -159,6 +159,15 @@
       vendorHash = "sha256-WWtAt0+W/ewLNuNgrqrgho5emntw3rZL9JTTbNo4GsI=";
     };
 
+    dnsglobe = {
+      source = "github-release";
+      repo = "514-labs/dnsglobe";
+      version = "0.5.0";
+      tagPrefix = "v";
+      hash = "sha256-c5H7i7ElWj4lbzDe4+l2av87HndvCHzr8QpQgcKDLGg=";
+      cargoHash = "sha256-1h8zBS81hNbnYyLiqyqTQRnAaiB5t0SFnqxasAPV6DQ=";
+    };
+
     jwtx = {
       source = "github-release";
       repo = "gurleensethi/jwtx";
