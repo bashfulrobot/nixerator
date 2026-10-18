@@ -351,11 +351,12 @@ fmt:
 fix:
     #!/usr/bin/env bash
     set -euo pipefail
-    find . -name '*.nix' -not -path './.git/*' -not -path './secrets/*' -print0 | xargs -0 -r nix fmt --
-    statix fix --ignore secrets .
-    deadnix --edit --exclude '**/secrets/**' .
-    find . -name '*.sh' -not -path './.git/*' -not -path './secrets/*' -print0 | xargs -0 -r shfmt -w -i 2 -ci
-    find . -name '*.fish' -not -path './.git/*' -not -path './secrets/*' -print0 \
+    # Tracked files only: `find .` would walk .claude/worktrees and ignored paths.
+    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r nix fmt --
+    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r -n1 statix fix
+    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r deadnix --edit
+    git ls-files -z -- '*.sh' ':!:secrets' | xargs -0 -r shfmt -w -i 2 -ci
+    git ls-files -z -- '*.fish' ':!:secrets' \
       | xargs -0 -r fish -c 'for f in $argv; fish_indent -w "$f"; end'
 
 # Install repo git hooks (sets core.hooksPath to .githooks for this clone)
