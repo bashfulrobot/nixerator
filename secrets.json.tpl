@@ -64,6 +64,10 @@
   "cloudflareDdns": {
     "apiToken": "{{ op://nixerator/cloudflare-ddns/credential }}"
   },
+  "nanoclaw": {
+    "claudeToken": "{{ op://nixerator/nanoclaw-claude-token/credential }}",
+    "onecliDbPassword": "{{ op://nixerator/nanoclaw-onecli-db-password/3fqxhcsfzyenwg3rdblflsclgi }}"
+  },
   "noclaw": {
     "opToken": "{{ op://nixerator/noclaw-op-token/credential }}"
   },

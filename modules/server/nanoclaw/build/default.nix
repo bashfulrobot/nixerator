@@ -13,21 +13,28 @@
 }:
 
 # NanoClaw host process, built from source with the repo's own steps
-# (`pnpm install --frozen-lockfile` + `pnpm run build`), plus the one change
-# upstream's setup wizard makes to a fresh checkout: the /add-onecli skill.
+# (`pnpm install --frozen-lockfile` + `pnpm run build`), plus the changes
+# upstream's setup wizard makes to a fresh checkout for the two skills srv
+# uses: /add-onecli (credential gateway) and /add-slack (channel).
 #
-# That skill (.claude/skills/add-onecli/SKILL.md) is three nc: directives, all
-# reproduced here so the build stays pure:
-#   1. nc:copy   -- payload files into src/, container/skills/, docs/ (postPatch)
-#   2. nc:append -- `import './onecli.js';` to src/gateway-providers/installed.ts
-#   3. nc:dep    -- @onecli-sh/sdk@2.2.1 into package.json + pnpm-lock.yaml
-# (2) and (3) live in onecli-gateway.patch, generated with pnpm 10.34.5 against
-# the pinned rev (`pnpm add @onecli-sh/sdk@2.2.1 --ignore-scripts`). Because
+# Each skill is a few nc: directives, reproduced here so the build stays pure:
+#   nc:copy   -- files into src/, container/skills/, docs/ (postPatch below).
+#                OneCLI's come from its in-tree payload; Slack's from
+#                upstream's `channels` branch at a pinned rev (channelsSrc).
+#   nc:append -- `import './onecli.js';` to src/gateway-providers/installed.ts
+#                and `import './slack.js';` + `import './slack-a2a-guard.js';`
+#                to src/channels/index.ts
+#   nc:dep    -- @onecli-sh/sdk@2.2.1 and @chat-adapter/slack@4.29.0 into
+#                package.json + pnpm-lock.yaml
+# The appends and deps live in skills.patch, generated with pnpm 10.34.5
+# against the pinned rev (`pnpm add <pkg>@<pin> --ignore-scripts`). Because
 # that patch touches the lockfile, a rev bump is never just a rev bump: rebase
 # the patch, then refresh `hash` and `pnpmDepsHash`. That is why the entry is
-# updatePolicy = "manual" in settings/versions.nix. Skill 4 (nc:run setup.ts)
-# is the curl-pipe OneCLI installer, which server.nanoclaw replaces with
-# declarative containers, so it is intentionally not reproduced.
+# updatePolicy = "manual" in settings/versions.nix. OneCLI's nc:run setup.ts
+# is the curl-pipe installer, which server.nanoclaw replaces with declarative
+# containers, so it is intentionally not reproduced. The Slack adapter is
+# inert until SLACK_BOT_TOKEN is in .env, so carrying it costs nothing when
+# server.nanoclaw.slack is off.
 #
 # The output is a read-only project tree. The module symlinks its code dirs
 # into the writable WorkingDirectory, because NanoClaw derives every path
@@ -35,6 +42,14 @@
 # process.cwd().
 let
   pin = versions.server.nanoclaw;
+  channelsPin = versions.server.nanoclaw-channels;
+  # Upstream keeps channel adapters on a long-lived `channels` branch; the
+  # /add-<channel> skills copy single files from it.
+  channelsSrc = fetchFromGitHub {
+    owner = "nanocoai";
+    repo = "nanoclaw";
+    inherit (channelsPin) rev hash;
+  };
   nodejs = nodejs_22;
   pnpm = pnpm_10;
   nodeSources = srcOnly nodejs;
@@ -46,10 +61,11 @@ stdenv.mkDerivation (finalAttrs: {
   src = fetchFromGitHub {
     owner = "nanocoai";
     repo = "nanoclaw";
-    inherit (pin) rev hash;
+    tag = "${pin.tagPrefix}${pin.version}";
+    inherit (pin) hash;
   };
 
-  patches = [ ./onecli-gateway.patch ];
+  patches = [ ./skills.patch ];
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs)
@@ -71,8 +87,8 @@ stdenv.mkDerivation (finalAttrs: {
     python3
   ];
 
-  # nc:copy from the add-onecli skill. Test files included, as the skill does,
-  # so `tsc` compiles the same set of sources a setup-wizard install would.
+  # nc:copy from both skills. Test files included, as the skills do, so `tsc`
+  # compiles the same set of sources a setup-wizard install would.
   postPatch = ''
     payload=.claude/skills/add-onecli/payload
     for f in \
@@ -85,6 +101,23 @@ stdenv.mkDerivation (finalAttrs: {
       container/skills/onecli-gateway/instructions.md \
       docs/onecli-upgrades.md; do
       install -Dm644 "$payload/$f" "$f"
+    done
+
+    # .claude/skills/add-slack/SKILL.md, "Copy the channel payload".
+    for f in \
+      src/channels/slack.ts \
+      src/channels/slack-lib.ts \
+      src/channels/slack-lib.test.ts \
+      src/channels/slack-a2a-guard.ts \
+      src/channels/slack-a2a-guard.test.ts \
+      src/channels/slack-raw-text.ts \
+      src/channels/slack-raw-text.test.ts \
+      src/channels/slack-registration.test.ts \
+      src/channels/slack-instances-registration.test.ts \
+      src/provisioning/slack-app.ts \
+      src/provisioning/slack-app.test.ts \
+      container/skills/slack-formatting/SKILL.md; do
+      install -Dm644 "${channelsSrc}/$f" "$f"
     done
   '';
 
@@ -143,7 +176,7 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   meta = {
-    description = "NanoClaw personal AI assistant host (with the OneCLI gateway skill applied)";
+    description = "NanoClaw personal AI assistant host (OneCLI gateway + Slack channel skills applied)";
     homepage = "https://github.com/nanocoai/nanoclaw";
     license = lib.licenses.mit;
     platforms = lib.platforms.linux;

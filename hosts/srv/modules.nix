@@ -2,20 +2,46 @@
   lib,
   pkgs,
   config,
+  secrets,
   secretsLib,
   globals,
   ...
 }:
 
 let
-  # server.nanoclaw's two agenix payloads. You create these (see
-  # extras/docs/nanoclaw/README.md); until BOTH exist the service stays off and
+  # server.nanoclaw's secrets come from the nixerator 1Password vault like the
+  # rest of the repo: `just render-secrets` writes them to secrets.json, and an
+  # activation script per secret (secretsLib.installValue) copies each to a
+  # root-only file under /run/nanoclaw-secrets. Eval only checks that a key
+  # exists, never its value. Until the core keys exist the service stays off and
   # eval warns, so srv keeps building in the meantime.
+  nanoclawSecretsDir = "/run/nanoclaw-secrets";
   nanoclawSecrets = {
-    nanoclaw-claude-token = ../../secrets/nanoclaw-claude-token.age;
-    nanoclaw-onecli-db-password = ../../secrets/nanoclaw-onecli-db-password.age;
+    claude-token = "claudeToken";
+    onecli-db-password = "onecliDbPassword";
   };
-  nanoclawReady = lib.all builtins.pathExists (lib.attrValues nanoclawSecrets);
+
+  # The Slack channel's two tokens, gated the same way but separately: the
+  # assistant can run terminal-only before these exist.
+  nanoclawSlackSecrets = {
+    slack-bot-token = "slackBotToken";
+    slack-app-token = "slackAppToken";
+  };
+  hasNanoclawKeys =
+    set: lib.all (key: lib.hasAttrByPath [ "nanoclaw" key ] secrets) (lib.attrValues set);
+  nanoclawReady = hasNanoclawKeys nanoclawSecrets;
+  nanoclawSlackReady = nanoclawReady && hasNanoclawKeys nanoclawSlackSecrets;
+
+  nanoclawSecretPath = name: "${nanoclawSecretsDir}/${name}";
+  installNanoclawSecret =
+    name: key:
+    secretsLib.installValue {
+      jq = "${pkgs.jq}/bin/jq";
+      secretsFile = secretsLib.file globals;
+      path = ".nanoclaw.${key}";
+      dest = nanoclawSecretPath name;
+      mode = "0400";
+    };
 in
 {
   # Import only modules that srv used in nixcfg, plus the cherry-picked
@@ -305,14 +331,18 @@ in
       publish.enable = true;
     };
 
-    # server.nanoclaw: see the NanoClaw note below, above age.secrets.
+    # server.nanoclaw: see the NanoClaw note below, above warnings.
     nanoclaw = lib.mkIf nanoclawReady {
       enable = true;
-      claudeTokenFile = config.age.secrets.nanoclaw-claude-token.path;
-      onecli.dbPasswordFile = config.age.secrets.nanoclaw-onecli-db-password.path;
-      # A re-encrypted token changes this store path, which re-runs the vault
-      # sync on `just qr`. Encrypted bytes only; never a plaintext value.
-      secretsRestartTriggers = [ config.age.secrets.nanoclaw-claude-token.file ];
+      claudeTokenFile = nanoclawSecretPath "claude-token";
+      onecli.dbPasswordFile = nanoclawSecretPath "onecli-db-password";
+
+      # Personal Slack workspace, Socket Mode (no public URL on srv).
+      slack = lib.mkIf nanoclawSlackReady {
+        enable = true;
+        botTokenFile = nanoclawSecretPath "slack-bot-token";
+        appTokenFile = nanoclawSecretPath "slack-app-token";
+      };
     };
   };
 
@@ -322,16 +352,33 @@ in
   # the Claude subscription (setup-token), never an API key. Operator guide:
   # extras/docs/nanoclaw/README.md.
   #
-  # agenix is scoped to this service alone. Its secrets decrypt to
-  # /run/agenix/<name> (root, 0400) at activation; the module reads them only
-  # through systemd LoadCredential, so no value is ever evaluated by Nix.
-  age.secrets = lib.mkIf nanoclawReady (lib.mapAttrs (_: file: { inherit file; }) nanoclawSecrets);
+  # Secrets use the repo's one pattern (1Password -> render-secrets ->
+  # installValue). Each lands at /run/nanoclaw-secrets/<name> (root, 0400) at
+  # activation; the module reads them only through systemd LoadCredential, so
+  # no value is ever evaluated by Nix. A rotated value changes no store path,
+  # so after `just render-secrets` restart the units by hand (README, "Rotate
+  # a secret").
+  system.activationScripts.nanoclawSecrets = lib.stringAfter [ "etc" ] (
+    lib.concatStrings (
+      lib.mapAttrsToList installNanoclawSecret (
+        lib.optionalAttrs nanoclawReady nanoclawSecrets
+        // lib.optionalAttrs nanoclawSlackReady nanoclawSlackSecrets
+      )
+    )
+  );
 
-  warnings = lib.optional (!nanoclawReady) ''
-    server.nanoclaw is configured on srv but DISABLED: create
-    secrets/nanoclaw-claude-token.age and secrets/nanoclaw-onecli-db-password.age
-    (extras/docs/nanoclaw/README.md, "Provision the secrets").
-  '';
+  warnings =
+    lib.optional (!nanoclawReady) ''
+      server.nanoclaw is configured on srv but DISABLED: add the nanoclaw keys
+      (claudeToken, onecliDbPassword) to secrets.json.tpl, create the 1Password
+      items, and run `just render-secrets` (extras/docs/nanoclaw/README.md,
+      "Provision the secrets").
+    ''
+    ++ lib.optional (nanoclawReady && !nanoclawSlackReady) ''
+      server.nanoclaw is running terminal-only: add the slackBotToken and
+      slackAppToken keys to secrets.json to turn on Slack
+      (extras/docs/nanoclaw/README.md, "Slack").
+    '';
 
   apps.cli.restic = {
     enable = true;
@@ -343,6 +390,14 @@ in
       # so /srv/nfs is the only remaining backup target on srv.
       backupPaths = [
         "/srv/nfs"
+      ]
+      # NanoClaw state (agent groups and memory, session DBs, Slack wiring)
+      # plus nanoclaw-backup's consistent vault/central-DB dumps (02:45, ahead
+      # of this 03:00 run). The dumps can decrypt the Claude token; restic
+      # encrypts the repo, so they stay protected at rest.
+      ++ lib.optionals nanoclawReady [
+        config.server.nanoclaw.dataDir
+        config.server.nanoclaw.backup.dir
       ];
       restorePath = "/srv/nfs/restores";
     };
