@@ -449,7 +449,6 @@ in
       (with pkgs; [
         (writeScriptBin "mcp-pick" mcpPick)
         (writeScriptBin "skill-pick" skillPick)
-        llm-agents.claude-plugins # Plugin & skills manager
         fzf
         jq
         rsync # used by claude-capture + activation to mirror skills

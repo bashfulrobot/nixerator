@@ -1,14 +1,17 @@
 # Claude Plugins
 
-Plugin and skills manager for Claude Code.
-Installed via `pkgs.llm-agents.claude-plugins` in `modules/apps/cli/claude-code/`.
+The `claude-plugins` CLI is no longer installed: numtide/llm-agents.nix removed
+the package on 2026-10-14 (upstream unmaintained since June 2026), which broke
+every host's build at the next `flake.lock` bump. Plugins now come from the
+declarative marketplace surface in `cfg/plugin-config.nix`; see
+`.claude/docs/claude-plugins.md`. The commands below are historical.
 
 - Registry: https://claude-plugins.dev
 - Source: https://github.com/Kamalnrf/claude-plugins
 
 ## Commands
 
-### Plugins (`claude-plugins`)
+### Plugins (`claude-plugins`, removed)
 
 Plugins install to `~/.claude/plugins/marketplaces/`.
 
