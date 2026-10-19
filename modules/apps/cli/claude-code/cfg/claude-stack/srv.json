@@ -161,7 +161,7 @@
       "state": "enabled"
     },
     "mattpocock-skills@claude-skills": {
-      "state": "absent"
+      "state": "enabled"
     },
     "plugin-dev@claude-plugins-official": {
       "state": "enabled"
@@ -182,7 +182,7 @@
       "state": "enabled"
     },
     "superpowers@claude-plugins-official": {
-      "state": "disabled"
+      "state": "absent"
     },
     "terse@claude-skills": {
       "state": "enabled"
