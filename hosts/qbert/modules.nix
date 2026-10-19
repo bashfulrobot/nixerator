@@ -126,6 +126,8 @@
       # cache, small quality tradeoff) rather than raising contextLength alone.
       contextLength = 32768;
       flashAttention = true;
+      # srv and the Mac use this server as their opencode model over Tailscale.
+      serveOnTailscale = true;
     };
   };
 

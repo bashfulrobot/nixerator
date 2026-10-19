@@ -94,6 +94,20 @@ in
         '';
       };
 
+      serveOnTailscale = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Serve this Ollama to other tailnet hosts (srv, the Mac). The daemon
+          listens on all addresses and the firewall opens the port on tailscale0
+          only, so the LAN and WiFi interfaces stay closed. Ollama has no
+          authentication: every device on the tailnet can then run inference and
+          pull models, so pair this with a Tailscale ACL if the tailnet holds
+          devices you do not trust. The local OLLAMA_HOST export keeps pointing
+          at `host`, which stays loopback.
+        '';
+      };
+
       defaultOpencodeModel = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
@@ -183,6 +197,10 @@ in
     # kvCacheType without flashAttention would silently do nothing.
     assertions = [
       {
+        assertion = !cfg.serveOnTailscale || config.networking.firewall.enable;
+        message = "apps.cli.ollama.serveOnTailscale binds 0.0.0.0, so it needs networking.firewall.enable = true to keep the LAN closed.";
+      }
+      {
         assertion = cfg.kvCacheType == null || cfg.flashAttention;
         message = "apps.cli.ollama.kvCacheType requires flashAttention = true (ollama only quantizes the KV cache with flash attention enabled).";
       }
@@ -190,10 +208,17 @@ in
 
     environment.systemPackages = [ selectedPackage ];
 
+    networking.firewall.interfaces.tailscale0.allowedTCPPorts = lib.mkIf cfg.serveOnTailscale [
+      cfg.port
+    ];
+
     services.ollama = {
       enable = true;
       package = selectedPackage;
-      inherit (cfg) host port loadModels;
+      inherit (cfg) port loadModels;
+      host = if cfg.serveOnTailscale then "0.0.0.0" else cfg.host;
+      # 0.0.0.0 is reachable on tailscale0 only because the firewall drops
+      # everything else; the assertion below keeps that true.
       # Server-side model runtime knobs. Empty unless the host opts in, so this
       # does not disturb ollama's defaults when the options are left null/false.
       environmentVariables =
