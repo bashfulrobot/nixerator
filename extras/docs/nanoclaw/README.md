@@ -109,8 +109,8 @@ workstation. Never paste a value into the chat or onto a command line.
 |------|----------|------------|
 | `nanoclaw-claude-token` | `nanoclaw.claudeToken` | core |
 | `nanoclaw-onecli-db-password` | `nanoclaw.onecliDbPassword` | core |
-| `nanoclaw-slack-bot-token` | `nanoclaw.slackBotToken` | Slack |
-| `nanoclaw-slack-app-token` | `nanoclaw.slackAppToken` | Slack |
+| `clanky-slack-app`, field `Bot-User-Oauth-Token` | `nanoclaw.slackBotToken` | Slack |
+| `clanky-slack-app`, field `Default-clanky-App-Token` | `nanoclaw.slackAppToken` | Slack |
 
 1. **Generate the Claude setup-token.** It needs a browser, so run it on
    qbert:
@@ -238,20 +238,17 @@ in your personal workspace:
 
 These steps are the upstream skill's own, from `.claude/skills/add-slack/SKILL.md`.
 
-**2. Store the tokens** in the `nanoclaw-slack-bot-token` (xoxb-…) and
-`nanoclaw-slack-app-token` (xapp-…) items' `credential` fields, add these two
-lines to the `nanoclaw` block of `secrets.json.tpl`, then `just render-secrets`, push to srv and `just qr` there:
-
-```json
-"slackBotToken": "{{ op://nixerator/nanoclaw-slack-bot-token/credential }}",
-"slackAppToken": "{{ op://nixerator/nanoclaw-slack-app-token/credential }}"
-```
+**2. Store the tokens** in the `nixerator` vault. The `clanky-slack-app` item
+holds the bot token (xoxb-…) in `Bot-User-Oauth-Token` and the app-level token
+(xapp-…, scope `connections:write`) in `Default-clanky-App-Token`. The template
+already references both. Run `render-secrets --push srv` from a checkout that
+has this template, then `just qr` on srv.
 
 **3. Check it connected, then wire yourself:**
 
 ```bash
 journalctl -u nanoclaw -b | grep -i slack     # no "invalid_auth", no "credentials missing"
-nanoclaw-slack-wire --member-id U0123456789 --display-name Dustin --agent-name Andy
+nanoclaw-slack-wire --member-id U0123456789 --display-name Dustin --agent-name clanky
 ```
 
 `nanoclaw-slack-wire` does three things:
