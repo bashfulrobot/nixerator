@@ -181,6 +181,9 @@
     "humanizer@claude-skills": {
       "state": "enabled"
     },
+    "impeccable@claude-skills": {
+      "state": "enabled"
+    },
     "kode@claude-skills": {
       "secrets": {
         "kode_apikey": "op://automation/Kode Internal MCP API Key/password"
@@ -221,7 +224,7 @@
       "state": "disabled"
     },
     "mattpocock-skills@claude-skills": {
-      "state": "absent"
+      "state": "enabled"
     },
     "plugin-dev@claude-plugins-official": {
       "state": "enabled"
@@ -245,9 +248,12 @@
       "state": "enabled"
     },
     "superpowers@claude-plugins-official": {
-      "state": "enabled"
+      "state": "absent"
     },
     "terse@claude-skills": {
+      "state": "enabled"
+    },
+    "vibecurb@claude-skills": {
       "state": "enabled"
     }
   },
