@@ -66,7 +66,7 @@
   },
   "nanoclaw": {
     "claudeToken": "{{ op://nixerator/nanoclaw-claude-token/credential }}",
-    "onecliDbPassword": "{{ op://nixerator/nanoclaw-onecli-db-password/credential }}"
+    "onecliDbPassword": "{{ op://nixerator/nanoclaw-onecli-db-password/3fqxhcsfzyenwg3rdblflsclgi }}"
   },
   "noclaw": {
     "opToken": "{{ op://nixerator/noclaw-op-token/credential }}"
