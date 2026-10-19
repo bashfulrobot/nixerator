@@ -94,11 +94,11 @@
     "dk@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/2.35.0",
-        "version": "2.35.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/2.36.0",
+        "version": "2.36.0",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-10-19T01:47:02.729Z",
-        "gitCommitSha": "a3114f86ba7987f24569b26c4de0816601eb66e5"
+        "lastUpdated": "2026-10-19T06:32:05.000Z",
+        "gitCommitSha": "d79e18253ed58a1fab761e3ad50ef6961e877497"
       }
     ],
     "kong-cs@claude-skills": [
@@ -226,6 +226,15 @@
         "installedAt": "2026-10-19T01:47:02.203Z",
         "lastUpdated": "2026-10-19T01:47:02.203Z",
         "gitCommitSha": "0665bd812ae0908fcab17b96fd4f840defb882d9"
+      }
+    ],
+    "vibecurb@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/vibecurb/c324ba7695a3",
+        "version": "c324ba7695a3",
+        "installedAt": "2026-10-19T06:39:08.234Z",
+        "lastUpdated": "2026-10-19T06:39:08.234Z"
       }
     ]
   }
