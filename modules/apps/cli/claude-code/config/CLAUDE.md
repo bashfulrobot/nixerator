@@ -65,6 +65,7 @@ named doc before acting — don't work from the one-liner alone.
 - When I say "git cleanup", "clean up the git stuff", or "wrap this branch up", that is standing authorization to commit, push, PR, squash-merge to `main`, and remove the worktree — invoke `git-cleanup`.
 - When I ask you to copy something to my clipboard or send a file to my phone, never hardcode `wayland-1` and never guess the transfer command — invoke `send-to-dustin`.
 - Before fetching anything from `developer.konghq.com`, append `.md` to the URL path — invoke `kong-docs-lookup`.
+- When I ask to add a repo to Sandcastle, run agents AFK in Docker sandboxes, or fix a `.sandcastle/` setup, invoke `sandcastle`. Its `SETUP.md` is the per-repo checklist, and its `.env` holds secrets you never read.
 - When writing a project `CLAUDE.md`, a `.claude/docs/` topic file, or deciding where durable knowledge belongs, follow the thin-CLAUDE.md protocol — invoke `curated-knowledge`.
 - When a skill resolves names to IDs or repeatedly queries an external API, read `/home/dustin/git/nixerator/.claude/docs/skill-cache.md` for the `skill-cache` convention.
 
