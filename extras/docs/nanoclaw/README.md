@@ -224,15 +224,20 @@ in your personal workspace:
 
 - **OAuth & Permissions → Bot Token Scopes:** `chat:write`, `im:write`,
   `channels:history`, `groups:history`, `im:history`, `channels:read`,
-  `groups:read`, `mpim:read`, `users:read`, `reactions:write`, `files:read`,
-  `files:write`.
+  `groups:read`, `mpim:read`, `mpim:write`, `mpim:history`, `users:read`,
+  `reactions:write`, `files:read`, `files:write`. Slack adds `app_mentions:read`
+  itself when you subscribe to `app_mention`. The canvas scopes
+  (`canvases:read`, `canvases:write`) are in upstream's full list but optional;
+  Slack may hide them on a free workspace.
 - **App Home:** enable the Messages Tab, and tick "Allow users to send Slash
   commands and messages from the messages tab".
 - **Basic Information → App-Level Tokens:** generate one with
   `connections:write`. This is the `xapp-…` token.
 - **Socket Mode:** on.
-- **Event Subscriptions:** on. Add bot events `message.channels`,
-  `message.groups`, `message.im` and `app_mention`. No Request URL is needed.
+- **Event Subscriptions:** on. Add bot events `message.im` (required for DMs),
+  `message.channels`, `message.groups`, `message.mpim`, `app_mention`,
+  `member_joined_channel` and `member_left_channel`. Click **Save Changes**,
+  then reinstall the app when Slack asks. No Request URL is needed.
 - **Install to Workspace**, then copy the Bot User OAuth Token (`xoxb-…`).
 - **Your member ID:** Profile → ⋮ → Copy member ID (`U…`).
 
@@ -259,6 +264,13 @@ nanoclaw-slack-wire --member-id U0123456789 --display-name Dustin --agent-name c
 - creates you as owner, plus a first agent wired to that DM.
 
 Then DM the bot in Slack.
+
+**The bot sends but never answers.** The welcome DM arrives, but your replies
+get no response and the host log shows no inbound Slack message. Slack is not
+delivering events. Check, in this order: `message.im` is in the bot events and
+saved, the app was reinstalled after the change, the Messages Tab is on in App
+Home, and Socket Mode is on. The bot token stays the same across a reinstall,
+so no secret needs re-rendering.
 
 **Where the tokens live.** They are only in `/run/nanoclaw/nanoclaw.env`
 (tmpfs, 0600, the `nanoclaw` user), rendered from `host-secrets.env.tpl` at
