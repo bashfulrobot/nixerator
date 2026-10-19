@@ -254,7 +254,7 @@
       "state": "enabled"
     },
     "vibecurb@claude-skills": {
-      "state": "disabled"
+      "state": "enabled"
     }
   },
   "profiles": [
