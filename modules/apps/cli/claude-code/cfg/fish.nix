@@ -216,6 +216,8 @@
           #   - extraKnownMarketplaces / enabledPlugins: owned by cfg/plugin-config.nix
           #     (derived from the claude-stack snapshot, merged at activation) -> dropped
           #   - permissions.ask:           Nix-owned (activation pins it) -> dropped
+          #   - autoMode:                  Nix-owned (activation sets it from the
+          #     claude-stack snapshot, declared in claude-skills) -> dropped
           #   - permissions.allow:         deliberately KEPT. It is runtime-owned;
           #     activation only appends the claude-stack snapshot's rules to it
           #     (add-only union, cfg/activation.nix), so captured rules include
@@ -245,7 +247,7 @@
             sed -e "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" \
                 -e "s|/etc/profiles/per-user/${globals.user.name}/bin|/etc/profiles/per-user/@USER_NAME@/bin|g" \
                 "$claude_dir/settings.json" \
-              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .skillOverrides, .env.SSH_AUTH_SOCK)
+              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .autoMode, .skillOverrides, .env.SSH_AUTH_SOCK)
                     | .hooks = ((.hooks // {})
                         | map_values(map(select((.hooks[0].command // "")
                             | test("/nix/store/|herdr-agent-state") | not)))

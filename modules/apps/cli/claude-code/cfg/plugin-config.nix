@@ -49,7 +49,7 @@ let
     claude-skills.source = {
       source = "github";
       repo = "bashfulrobot/claude-skills";
-      sha = "f7583e1b3eb646744438023dd89de09b78423676";
+      sha = "05ebccb34082b0d336a9c8a9e2524a42ce1ec6f3";
     };
   };
 
@@ -113,5 +113,11 @@ in
   # overlay: activation unions them into settings.json add-only
   # (cfg/activation.nix), it never overwrites the key.
   permissionsAllow = stack.permissions.allow or [ ];
+  # Auto-mode classifier rules ({ allow, soft_deny, environment }) the manifest
+  # declares for this host. Unlike permissionsAllow this REPLACES the key at
+  # activation (cfg/activation.nix) and is stripped from capture, so the
+  # manifest in claude-skills is the only place to edit them. Empty on a host
+  # whose profiles declare none, in which case activation leaves the key alone.
+  autoMode = stack.autoMode or { };
   enabled = enabledIds stack;
 }
