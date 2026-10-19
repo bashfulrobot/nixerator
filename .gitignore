@@ -23,7 +23,10 @@ result-*
 .mcp.json
 
 # Sandcastle: track the scaffolded config, never the OAuth token in .env
+# or the run output (logs, throwaway-branch worktrees)
 .sandcastle/.env
+.sandcastle/logs/
+.sandcastle/worktrees/
 
 # GrayMatter (curated knowledge migrated to .claude/docs/)
 .graymatter/
