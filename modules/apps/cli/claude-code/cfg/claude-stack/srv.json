@@ -145,6 +145,9 @@
     "humanizer@claude-skills": {
       "state": "enabled"
     },
+    "impeccable@claude-skills": {
+      "state": "enabled"
+    },
     "kode@claude-skills": {
       "secrets": {
         "kode_apikey": "op://automation/Kode Internal MCP API Key/password"
@@ -185,7 +188,7 @@
       "state": "enabled"
     },
     "vibecurb@claude-skills": {
-      "state": "disabled"
+      "state": "enabled"
     }
   },
   "profiles": [
