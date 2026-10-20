@@ -28,8 +28,28 @@ in
       # management protocol) on Hyprland/wlroots, enabling filter_class /
       # filter_title per-app matches. Without it: "wlrctl missing or not
       # available for the current wayland DE" and no app-specific matching.
-      extraPackages = [ pkgs.wlrctl ];
+      #
+      # The last four replace the PATH that nixpkgs bakes into the package's
+      # bin/espanso shell wrapper (libnotify, setxkbmap, kdotool, wl-clipboard);
+      # the security wrapper below runs the unwrapped binary, so it loses them.
+      extraPackages = with pkgs; [
+        wlrctl
+        libnotify
+        setxkbmap
+        kdotool
+        wl-clipboard
+      ];
     };
+
+    # nixpkgs builds security.wrappers.espanso from bin/espanso, which
+    # wrapProgram turns into a bash script. NixOS's ensure-wrapper-integrity
+    # check rejects a non-ELF wrapper source ("not an ELF! This is a security
+    # risk"), which fails every qbert build. Point the wrapper at the real ELF
+    # that wrapProgram renames to .espanso-wrapped. Same override arguments as
+    # the upstream module, so it is the same derivation.
+    security.wrappers.espanso.source = lib.mkForce "${
+      pkgs.espanso-wayland.override { securityWrapperPath = config.security.wrapperDir; }
+    }/bin/.espanso-wrapped";
 
     # Config/match YAML via xdg.configFile (last resort per modules/CLAUDE.md)
     # rather than Home Manager's services.espanso.configs/matches: enabling
