@@ -287,6 +287,43 @@ input to the agent, including text posted by other integrations. Invite the
 bot only where you want it, and wire each channel deliberately
 (`nanoclaw-ncl wirings create …`, see upstream's `/manage-channels`).
 
+## Adding integrations
+
+Order of preference, cheapest first. Sources: upstream's
+[extend overview](https://docs.nanoclaw.dev/extend/overview) and
+[tools](https://docs.nanoclaw.dev/extend/tools) pages, checked 2026-10-21.
+
+1. **MCP server per agent group (runtime, no rebuild).** On srv:
+
+   ```bash
+   nanoclaw-ncl groups list                       # find the group id
+   nanoclaw-ncl groups config add-mcp-server --id <group-id> --name <name> \
+     --command npx --args '["-y", "<package>"]' --env '{}'
+   nanoclaw-ncl groups restart --id <group-id>
+   ```
+
+   A remote Streamable HTTP server uses `--url https://…` instead of
+   `--command`. Never put a key in `--env` or `--headers`: connect the service
+   in the OneCLI vault (web UI on `127.0.0.1:10254`) and let the gateway inject
+   the credential. Agents have no access to a vault secret until it is granted.
+2. **Per-group skills and instructions.** Files under the group's folder in
+   `/var/lib/nanoclaw/groups/<folder>/`. Not yet managed from Nix.
+3. **CLIs in the agent image.** Either the per-group `packages_apt` /
+   `packages_npm` settings (packages only), or a layered Dockerfile `FROM` the
+   image `nanoclaw-agent-v2-nanoclaw:latest`, built by a new unit beside
+   `nanoclaw-agent-image`. Not built yet.
+4. **New channels or providers (code-carrying).** Extend `build/` the way the
+   Slack skill is wired: new `nc:copy` files in `build/default.nix`, a
+   regenerated `skills.patch`, then refresh `hash` and `pnpmDepsHash`. Never
+   install by merging an upstream branch, and skip `/update-skills`: the version
+   pin in `settings/versions.nix` is the upgrade path.
+
+Known gaps as of 2026-10-21: Gmail and Google Calendar are not on upstream's
+trunk (`/add-gmail-tool` and `/add-gcal-tool` were removed), so email reading
+means a third-party Gmail MCP server. `/add-resend` is an email channel through
+Resend. Port 3000 (the Slack webhook route) listens on all interfaces but is
+blocked by the firewall; it is unused in Socket Mode.
+
 ## Backups
 
 `nanoclaw-backup.timer` (02:45) writes three files to `/var/backup/nanoclaw`
