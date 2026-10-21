@@ -164,7 +164,10 @@ in
       # programs.opencode.settings, which is merged with the lsp block below.
       programs.opencode = {
         enable = true;
-        package = pkgs.llm-agents.opencode;
+        # nixpkgs, not llm-agents: llm-agents.nix packages GitHub release
+        # assets and upstream stopped publishing releases at 1.19.3, while
+        # nixpkgs builds the 2.x tags from source (2.0.32 at the locked rev).
+        package = pkgs.opencode;
         settings = {
           lsp = lspServers;
         }
