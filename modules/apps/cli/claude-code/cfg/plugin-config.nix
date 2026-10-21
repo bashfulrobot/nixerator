@@ -49,7 +49,7 @@ let
     claude-skills.source = {
       source = "github";
       repo = "bashfulrobot/claude-skills";
-      sha = "635b1b835863fee8f0100606cd63cf3599b318a9";
+      sha = "ca95231ab2e767833d394d47a9bc967ab7b9078a";
     };
   };
 
@@ -113,5 +113,20 @@ in
   # overlay: activation unions them into settings.json add-only
   # (cfg/activation.nix), it never overwrites the key.
   permissionsAllow = stack.permissions.allow or [ ];
+  # Auto-mode classifier rules ({ allow, soft_deny, environment }) the manifest
+  # declares for this host. Unlike permissionsAllow this REPLACES the key at
+  # activation (cfg/activation.nix) and is stripped from capture, so the
+  # manifest in claude-skills is the only place to edit them. Empty on a host
+  # whose profiles declare none, in which case activation leaves the key alone.
+  #
+  # Evaluation fails when the snapshot declares no soft_deny rules. The repo
+  # copy of settings.json no longer carries autoMode, so a snapshot that lost
+  # the block would silently drop the gates on the dangerous recipes. Both
+  # NixOS hosts declare them (claude-skills `linux` profile); a host that
+  # should really have none must change this on purpose.
+  autoMode =
+    lib.throwIf ((stack.autoMode.soft_deny or [ ]) == [ ])
+      "claude-code plugin-config: claude-stack snapshot for host '${stackHost}' declares no autoMode.soft_deny rules; declare them in the claude-skills manifest (linux profile) and re-bump the snapshot"
+      (stack.autoMode or { });
   enabled = enabledIds stack;
 }

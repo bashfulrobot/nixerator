@@ -54,6 +54,11 @@ let
   stackPermissionsFile = pkgs.writeText "claude-stack-permissions.json" (
     builtins.toJSON pluginConfig.permissionsAllow
   );
+  # Manifest autoMode rules for this host, force-set into settings.json at
+  # activation (the whole key is Nix-owned and stripped from capture).
+  stackAutoModeFile = pkgs.writeText "claude-stack-automode.json" (
+    builtins.toJSON pluginConfig.autoMode
+  );
   # Default-off skill surface (see cfg/skill-defaults.nix for the always-on
   # baseline and why each entry earned its spot). Same overlay pattern as
   # pluginOverlayFile above: force-merged into settings.json at activation,
@@ -185,6 +190,7 @@ let
     textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
     stackPermissions = stackPermissionsFile;
+    stackAutoMode = stackAutoModeFile;
     skillOverlay = skillOverlayFile;
     inherit (mcpConfig) secretServerFiles;
     inherit secretsFile;

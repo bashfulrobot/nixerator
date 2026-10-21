@@ -29,24 +29,23 @@ in
       # filter_title per-app matches. Without it: "wlrctl missing or not
       # available for the current wayland DE" and no app-specific matching.
       #
-      # The last four replace the PATH that nixpkgs bakes into the package's
-      # bin/espanso shell wrapper (libnotify, setxkbmap, kdotool, wl-clipboard);
-      # the security wrapper below runs the unwrapped binary, so it loses them.
-      extraPackages = with pkgs; [
-        wlrctl
-        libnotify
-        setxkbmap
-        kdotool
-        wl-clipboard
+      # kdotool, wl-clipboard and libnotify are the tools nixpkgs's
+      # wrapProgram prefixes onto PATH; the capability wrapper below bypasses
+      # that script, so they have to come from the unit's PATH instead.
+      extraPackages = [
+        pkgs.wlrctl
+        pkgs.kdotool
+        pkgs.wl-clipboard
+        pkgs.libnotify
       ];
     };
 
-    # nixpkgs builds security.wrappers.espanso from bin/espanso, which
-    # wrapProgram turns into a bash script. NixOS's ensure-wrapper-integrity
-    # check rejects a non-ELF wrapper source ("not an ELF! This is a security
-    # risk"), which fails every qbert build. Point the wrapper at the real ELF
-    # that wrapProgram renames to .espanso-wrapped. Same override arguments as
-    # the upstream module, so it is the same derivation.
+    # nixpkgs's services.espanso points security.wrappers.espanso at
+    # lib.getExe, which since espanso 2.4.1 is a makeWrapper bash script.
+    # NixOS's ensure-wrapper-integrity check refuses non-ELF wrapper targets
+    # ("is not an ELF! This is a security risk"), failing the whole system
+    # build. makeWrapper keeps the real binary at bin/.espanso-wrapped, so
+    # point the capability wrapper there.
     security.wrappers.espanso.source = lib.mkForce "${
       pkgs.espanso-wayland.override { securityWrapperPath = config.security.wrapperDir; }
     }/bin/.espanso-wrapped";

@@ -22,6 +22,7 @@
   textPolishRulesFile,
   pluginOverlay,
   stackPermissions,
+  stackAutoMode,
   skillOverlay,
   secretServerFiles,
   secretsFile,
@@ -117,6 +118,20 @@
          (.permissions.allow // []) as $cur
          | ($cur | map(norm)) as $have
          | .permissions.allow = ($cur + [$decl[0][] | select(norm as $n | $have | any(. == $n) | not)])' \
+        "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+      mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+
+      # autoMode (auto-mode classifier rules) from the claude-stack snapshot:
+      # Nix-owned, so REPLACED here, unlike the add-only permissions above.
+      # Each list the manifest declares for this host is set wholesale, which
+      # is what lets a narrowed rule in claude-skills actually remove the old
+      # broad one. A key the manifest leaves empty keeps whatever the base
+      # settings.json carries, and a host that declares nothing is untouched.
+      # Capture (cfg/fish.nix) strips the key, so edits made through
+      # /auto-mode-setup only persist once they are in the claude-skills
+      # manifest. Idempotent: the same file produces the same result.
+      ${pkgs.jq}/bin/jq --slurpfile am ${stackAutoMode} \
+        '.autoMode = ((.autoMode // {}) + ($am[0] | with_entries(select(.value | length > 0))))' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 

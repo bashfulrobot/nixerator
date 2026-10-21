@@ -1,4 +1,50 @@
 {
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "`just qr` (quiet-rebuild) and `just qu` (quiet-upgrade) in ~/git/nixerator are the user's explicitly sanctioned wrappers for applying and upgrading the NixOS configuration on this personal workstation. ALLOW them, as one single command, optionally prefixed by `cd ~/git/nixerator &&` and nothing else (anything chained, piped, redirected or substituted around it is NOT covered). This does NOT permit raw `nixos-rebuild switch/boot/test`, which remains denied — the user's own bash-guard hook routes all rebuilds through these recipes.",
+      "Beyond `just qr`/`just qu` above: any other `just <recipe>` invocation in exactly these repos under ~/git/: nixerator, hyprflake, homelab, upsight, donkeykong is a sanctioned local dev-workflow command -- builds, tests, lint, docs, health checks, non-destructive bumps, etc. -- and should be ALLOWed without further review, as one single command, optionally prefixed by `cd ~/git/<repo> &&` and nothing else. A command chained with `;`, `&&` or `||` beyond that one `cd` prefix, piped, redirected, or using command substitution is NOT covered and must be reviewed. Any other repo under ~/git/ is NOT covered: its justfile can run arbitrary shell, so review it. The one exception within the named repos: a recipe listed in the soft_deny section below. If a recipe matches both this rule and a soft_deny entry, soft_deny wins and it should still be reviewed/asked, not auto-run.",
+      "Bash(just qr) and Bash(just qu) in ~/git/nixerator — sanctioned rebuild/upgrade wrappers that route through capture/backup/revert-on-failure safety, as one single command, optionally prefixed by `cd ~/git/nixerator &&` and nothing else (anything chained, piped, redirected or substituted around it is NOT covered)",
+      "Non-destructive `just <recipe>` invocations (build, test, lint, fmt, health, docs, capture, non-destructive bumps) in ~/git/nixerator, ~/git/hyprflake, ~/git/homelab, ~/git/upsight and ~/git/donkeykong only"
+    ],
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: PUBLIC — github.com/bashfulrobot/nixerator (origin). Any push or committed secret here is published.",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: 1Password (`op inject` / `op read` for references only — rendered secret values must never be read, printed, or echoed, including partial values); git-crypt retired. Secrets template is `secrets.json.tpl`; rendered output goes to `~/.config/nixos-secrets/secrets.json`, outside the repo and the Nix store.",
+      "**Default / protected branches**: `main` (default branch, per gh). gh reports no rulesets and no classic branch protection listed — repo is public with no server-side protection on `main`; treat direct pushes/merges to `main` as high-impact regardless.",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume an ordinary developer machine with open internet",
+      "**Source control**: The trusted repo (bashfulrobot/nixerator, public, origin github.com:bashfulrobot/nixerator.git) and its remote only",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: `~/.config/nixos-secrets/secrets.json`, `~/.config/op/`, `secrets.json.tpl` (references/placeholders only, no values), `extras/docs/secrets.md`, `extras/docs/secrets-agenix-evaluation.md`, `extras/helpers/bootstrap-install-secrets.sh`, `extras/helpers/fetch-gmailctl-credentials.sh`, `extras/helpers/render-secrets-bootstrap.sh`, `lib/secrets.nix`, `secrets/secrets.nix` — never read rendered values into the transcript; audience is the user only",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (default heuristic — none specifically configured)",
+      "**Protected deployment namespaces / environments**: live Kubernetes/Talos homelab cluster operations in ~/git/homelab (apply/destroy/upgrade/reconfigure recipes) are treated as sensitive-remote-target-equivalent even without a `prod` name segment, per this repo's own soft_deny history",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: personal NixOS/home-manager flake management and related dev-workflow automation (software development, hobby/personal posture)",
+      "**Trusted repo**: ~/git/nixerator — github.com/bashfulrobot/nixerator, public; only this repo's own work should be pushed here, confidential/secret material never",
+      "**Org-specific CLIs**: None configured — `just` is the sanctioned local build/rebuild/lint/format/secrets interface in ~/git/nixerator, ~/git/hyprflake, ~/git/homelab, ~/git/upsight and ~/git/donkeykong (raw `nixos-rebuild`, raw `nix` commands are disfavored in favor of justfile recipes). Other repos under ~/git/ are not pre-trusted.",
+      "**Routine under ~/git/ prefix**: non-destructive `just <recipe>` invocations in the named repos (nixerator, hyprflake, homelab, upsight, donkeykong) are routine dev workflow; `just qr`/`just qu` in nixerator specifically are sanctioned rebuild/upgrade wrappers"
+    ],
+    "soft_deny": [
+      "$defaults",
+      "In ~/git/nixerator, these `just` recipes remain gated (require explicit review) because each runs `sudo` and/or a raw system mutation directly, bypassing the `just qr`/`just qu` safety wrappers (capture/backup/revert-on-failure): `rebuild`, `upgrade`, `hyprflake-test`, `bump-upsight`, `bump-hyprflake` (raw `sudo nixos-rebuild switch`); `clean`/`gc` (`sudo nix-collect-garbage`); `gc-nuclear` (multiple `sudo` mutations plus `rm -rf ~/.cache/nix` -- the most destructive recipe in the repo); `generations`/`gen` (`sudo`, read-only); `rollback`/`rb` (`sudo nixos-rebuild --rollback switch`); `remote-rebuild`/`rr` and `remote-upgrade`/`ru` (ssh into another host and trigger a rebuild there).",
+      "In ~/git/hyprflake, these `just` recipes remain gated: `pull-conflict` (runs `sudo tailscale down`/`up` around a git pull); `reset-hard` (`git reset --hard` + `git clean -fd`, discards local changes); `clean-all` (runs `nix-collect-garbage -d`).",
+      "In ~/git/homelab, these `just` recipes remain gated because they apply, destroy, or otherwise mutate the live Kubernetes/Talos homelab cluster with no confirmation of their own: `provision::apply`, `provision::apply-now`, `provision::destroy` (Terraform/OpenTofu apply or destroy against the live cluster); `grafana::apply`, `grafana::apply-now` (Terraform apply against live Grafana Cloud monitoring); `fleet::apply-all` (applies every cluster in the fleet unattended); `lifecycle::upgrade-node`, `upgrade-talos`, `upgrade-k8s`, `upgrade-cilium`, `apply-config` (upgrades/reconfigures live cluster nodes); `lifecycle::reset-node` (wipes a live node back to maintenance mode); `workloads::apply-manifests`, `setup-cert-manager`, `cert-manager-secret`, `setup-nfs-csi`, `bootstrap-eso-token`, `setup-observability` (applies manifests or rotates secrets on the live cluster); `flux::reconcile`, `suspend-kustomization`, `resume-kustomization`, `suspend-helmrelease`, `resume-helmrelease`, `bootstrap-flux-deploy-key` (controls live GitOps reconciliation or rewrites Flux's deploy-key secret); `image::fetch-iso` (uses `sudo` to install a downloaded ISO onto the host filesystem).",
+      "In ~/git/upsight, `release` and `quiet-release` remain gated -- they push commits/tags and publish a real public GitHub release.",
+      "In ~/git/nixerator: `just rebuild`, `just upgrade`, `just hyprflake-test`, `just bump-upsight`, `just bump-hyprflake` (raw `sudo nixos-rebuild switch`, bypassing the qr/qu wrappers)",
+      "In ~/git/nixerator: `just clean`/`gc`, `just gc-nuclear` (sudo nix-collect-garbage, including `rm -rf ~/.cache/nix`), `just rollback`/`rb`, `just remote-rebuild`/`rr`, `just remote-upgrade`/`ru` (remote host mutation via ssh)",
+      "In ~/git/donkeykong, these `just` recipes remain gated: `bootstrap` and `all` (full machine setup, installs packages and edits system settings); `update` (brew upgrade plus every package group); `macos` (rewrites macOS defaults); `touchid` (runs `sudo` to edit /etc/pam.d); `dotfiles::apply` (chezmoi overwrites files in $HOME); `containers::docker-down`, `containers::k3d-down` and `containers::k3d-recreate` (stop the Docker daemon or destroy local clusters). Read-only recipes (`doctor`, `dotfiles::diff`, `dev::check`, `dev::fmt`, `dev::test-scripts`, `containers::k3d-status`) are not gated."
+    ]
+  },
   "host": "qbert",
   "marketplaces": {
     "claude-skills": {
@@ -181,6 +227,9 @@
     "humanizer@claude-skills": {
       "state": "enabled"
     },
+    "impeccable@claude-skills": {
+      "state": "enabled"
+    },
     "kode@claude-skills": {
       "secrets": {
         "kode_apikey": "op://automation/Kode Internal MCP API Key/password"
@@ -221,7 +270,7 @@
       "state": "disabled"
     },
     "mattpocock-skills@claude-skills": {
-      "state": "absent"
+      "state": "enabled"
     },
     "plugin-dev@claude-plugins-official": {
       "state": "enabled"
@@ -245,9 +294,12 @@
       "state": "enabled"
     },
     "superpowers@claude-plugins-official": {
-      "state": "enabled"
+      "state": "absent"
     },
     "terse@claude-skills": {
+      "state": "enabled"
+    },
+    "vibecurb@claude-skills": {
       "state": "enabled"
     }
   },
