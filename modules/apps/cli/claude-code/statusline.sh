@@ -135,6 +135,25 @@ else
   line1+="${dim}Off${reset}"
 fi
 
+# Right-aligned host:cwd. Width comes from the controlling tty (stdout is a
+# pipe here); without one the segment follows line 1 after a separator.
+host_name=$(uname -n)
+cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+[ -z "$cwd" ] && cwd=$PWD
+case "$cwd" in
+  "$HOME"*) cwd="~${cwd#"$HOME"}" ;;
+esac
+where_plain="${host_name}:${cwd}"
+where="${cyan}${host_name}${reset}${dim}:${reset}${white}${cwd}${reset}"
+term_cols=$({ stty size </dev/tty | awk '{print $2}'; } 2>/dev/null || true)
+line1_plain=$(printf '%b' "$line1" | sed 's/\x1b\[[0-9;]*m//g')
+gap=$((${term_cols:-0} - ${#line1_plain} - ${#where_plain} - 2))
+if [ "$gap" -ge 2 ]; then
+  line1+="$(printf '%*s' "$gap" '')${where}"
+else
+  line1+=" ${dim}|${reset} ${where}"
+fi
+
 # ===== Cross-platform OAuth token resolution (from statusline.sh) =====
 # Tries credential sources in order: env var > macOS Keychain > Linux creds file > GNOME Keyring
 get_oauth_token() {
