@@ -14,6 +14,7 @@ in
       cli = {
         # kong-docs-offline: removed
         deck.enable = true;
+        kongctl.enable = true;
         salesforce-cli.enable = true;
         snowstorm.enable = true;
       };

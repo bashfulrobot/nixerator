@@ -86,6 +86,16 @@
       hash = "sha256-3njs29LxqEzKAGOn7LxEAkD8FLbrzLsX9GRreSqMXB8=";
     };
 
+    # Kong's declarative Konnect CLI. Release asset is kongctl_linux_amd64.zip
+    # (a static Go binary, so no autoPatchelf). Not in nixpkgs.
+    kongctl = {
+      source = "github-release";
+      repo = "Kong/kongctl";
+      version = "1.20.2";
+      tagPrefix = "v";
+      hash = "sha256-9cZnGUgTLurzq4SQB8lhp1dMe5NRwF7DbdG8SOoazRA=";
+    };
+
     # Context-compression CLI (headroomlabs-ai/headroom), consumed by the
     # claude-code module's cfg/headroom.nix. Ships only as a PyPI package
     # (`headroom-ai`) with heavy optional ML extras -- there is no nixpkgs
