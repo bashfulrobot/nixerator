@@ -19,7 +19,6 @@ in
       # Communication applications
       gui = {
         cauldron.enable = true;
-        insync.enable = true;
         obsidian.enable = true;
         signal.enable = true;
         typora.enable = true;
