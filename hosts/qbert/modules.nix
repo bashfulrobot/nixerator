@@ -30,11 +30,6 @@
     # coexist -- docker's published-port DNAT survives the nftables flip Incus
     # forces on -- so the earlier `docker.enable = lib.mkForce false` is dropped.
 
-    # Sandcastle: agents in Docker sandboxes on throwaway branches. qbert only,
-    # srv is headless and has no repos to fan agents across. Per-repo setup
-    # (`sandcastle init`, CLAUDE_CODE_OAUTH_TOKEN in .sandcastle/.env) is manual.
-    sandcastle.enable = true;
-
     # Render Nix-eval secrets locally from 1Password (and push to headless
     # peers via `render-secrets --push`). Gated on 1Password being available.
     render-secrets.enable = true;
