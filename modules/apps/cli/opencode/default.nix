@@ -133,6 +133,28 @@ in
 {
   options = {
     apps.cli.opencode.enable = lib.mkEnableOption "the opencode CLI agent with LSP language servers";
+
+    apps.cli.opencode.remoteOllama = {
+      enable = lib.mkEnableOption "a remote Ollama server (qbert over Tailscale) as the default opencode provider";
+
+      host = lib.mkOption {
+        type = lib.types.str;
+        example = "100.74.137.95";
+        description = "Tailscale address of the host running apps.cli.ollama with serveOnTailscale.";
+      };
+
+      port = lib.mkOption {
+        type = lib.types.port;
+        default = 11434;
+        description = "Port the remote Ollama listens on.";
+      };
+
+      model = lib.mkOption {
+        type = lib.types.str;
+        example = "qwen3.6:35b-a3b";
+        description = "Model the remote server has pulled; becomes the opencode default.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -143,7 +165,18 @@ in
       programs.opencode = {
         enable = true;
         package = pkgs.llm-agents.opencode;
-        settings.lsp = lspServers;
+        settings = {
+          lsp = lspServers;
+        }
+        // lib.optionalAttrs cfg.remoteOllama.enable {
+          model = "ollama-remote/${cfg.remoteOllama.model}";
+          provider.ollama-remote = {
+            npm = "@ai-sdk/openai-compatible";
+            name = "Ollama (remote, Tailscale)";
+            options.baseURL = "http://${cfg.remoteOllama.host}:${toString cfg.remoteOllama.port}/v1";
+            models.${cfg.remoteOllama.model} = { };
+          };
+        };
       };
 
       home.packages = lspPackages;

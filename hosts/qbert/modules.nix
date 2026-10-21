@@ -119,13 +119,16 @@
       loadModels = [ globals.ai.localCodeModel ];
       defaultOpencodeModel = globals.ai.localCodeModel;
       # Ollama defaults the context window to a few thousand tokens, which
-      # truncates long opencode sessions well before Qwen3's 32k native limit.
-      # 32k is about what a 16 GB card holds with a full-precision KV cache, and
-      # flash attention shrinks that cache for free (no quality cost), so it is
-      # on by default. To push to 64k+, add kvCacheType = "q8_0" (smaller KV
-      # cache, small quality tradeoff) rather than raising contextLength alone.
+      # truncates long opencode sessions. 32k is the working size for the
+      # 22 GB Qwen3.6 35B-A3B (65% on the GPU, 35% on the CPU).
+      # Flash attention stays off: measured on this 6800 XT (2026-10-20,
+      # 10-task tool-call test), 32k context decoded at 55 tokens/s without it
+      # and 25 with it, and 16k at 58 without it. kvCacheType needs flash
+      # attention, so it stays unset too.
       contextLength = 32768;
-      flashAttention = true;
+      flashAttention = false;
+      # srv and the Mac use this server as their opencode model over Tailscale.
+      serveOnTailscale = true;
     };
   };
 

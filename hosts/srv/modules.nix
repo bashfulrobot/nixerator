@@ -108,7 +108,16 @@ in
     # opencode CLI agent + its LSP language servers (kotlin-lsp/yaml-schema-router
     # are already built for helix above, so no extra closure). Points at cloud
     # models by default; srv has no local Ollama provider wiring (qbert-only).
-    opencode.enable = true;
+    opencode = {
+      enable = true;
+      # Model served by qbert's Ollama over Tailscale. srv has no GPU, so the
+      # provider only works while qbert is up.
+      remoteOllama = {
+        enable = true;
+        host = globals.hosts.qbert.tailscale_ip;
+        model = globals.ai.localCodeModel;
+      };
+    };
     # srv renders its own document-backed secrets (feral-arr download-sync key,
     # incus cert, filebot license) via its 1Password CLI, rather than only
     # receiving them by `just push-secrets srv`. Needs a valid SA token on the
