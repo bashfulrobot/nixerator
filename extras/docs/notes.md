@@ -13,8 +13,8 @@ tablet through Weave over Tailscale. Module: `modules/apps/cli/notes`.
   `YYYYMMDD-HHMMSS-` prefix. Weave needs this (see "Phone and tablet").
 - The root `~/Notes/media` is the one exception. It is a derived symlink farm
   for Weave, ignored by Syncthing, and holds no real files.
-- Note filenames start with a date (`20261022-1430-title.md`), so two notes
-  never share a stem.
+- Filenames are unique per note, so two notes never share a stem: date-prefixed
+  (`20261022-1430-title.md`), daily notes by date, weekly notes by ISO week.
 
 ## Folder hierarchy
 

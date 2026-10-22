@@ -107,6 +107,7 @@
     # qbert's Tailscale address, so only tailnet peers reach it.
     notes = {
       enable = true;
+      keybind = true; # SUPER+CTRL+N opens the fuzzel note launcher
       weave = {
         enable = true;
         listenAddress = globals.hosts.qbert.tailscale_ip;

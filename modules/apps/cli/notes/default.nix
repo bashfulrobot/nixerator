@@ -131,14 +131,16 @@ in
         home.activation.notesInit = inputs.home-manager.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
           ${notesInit}/bin/notes-init >/dev/null
         '';
-
-        hyprflake.hyprland.extraLua = lib.mkIf cfg.keybind {
-          "notes" = ''
-            hl.bind("SUPER + CTRL + N",
-              hl.dsp.exec_cmd("${notes}/bin/notes -l"))
-          '';
-        };
       };
+    })
+
+    # Separate element: a leaf-level mkIf would still define the hyprflake
+    # attribute and break evaluation on a host without the hyprflake module.
+    (lib.mkIf (cfg.enable && cfg.keybind) {
+      home-manager.users.${globals.user.name}.hyprflake.hyprland.extraLua."notes" = ''
+        hl.bind("SUPER + CTRL + N",
+          hl.dsp.exec_cmd("${notes}/bin/notes -l"))
+      '';
     })
 
     (lib.mkIf (cfg.enable && cfg.weave.enable) {
@@ -189,6 +191,7 @@ in
               # rendered secrets file) is hidden behind an empty tmpfs.
               ProtectHome = "tmpfs";
               BindPaths = [ cfg.root ];
+              ReadWritePaths = [ cfg.root ];
               ProtectSystem = "strict";
               PrivateTmp = true;
               PrivateDevices = true;
