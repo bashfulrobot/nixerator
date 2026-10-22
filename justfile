@@ -234,7 +234,7 @@ test-skill-cache:
 # Run render-secrets unit tests (Forgejo tea-config generation)
 [group('test')]
 test-render-secrets:
-    nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/render-secrets/tests/
+    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gawk nixpkgs#gnugrep nixpkgs#coreutils --command bats modules/apps/cli/render-secrets/tests/
 
 # Run the claude-code PreToolUse guard-hook regression tests (secret-leak +
 # primary-tree-write) plus the capture-sync settings suite in the same dir. git
@@ -1055,6 +1055,29 @@ remote-upgrade host repo_path="~/git/nixerator":
 render-secrets:
     @render-secrets
 
+# Render the same file from the secauto gopass store instead of 1Password. No
+# `op`, no service-account token, no desktop prompt: safe to run headless (srv,
+# a timer, an SSH session). A key whose entry is missing or empty is left out of
+# the file and named on stderr. Document-backed files still need `render-secrets`.
+[doc('Render secrets.json from the secauto gopass store (no 1Password)')]
+[group('secrets')]
+render-secrets-gopass:
+    @render-secrets --from gopass
+
+# Drift check against the gopass store: reports which keys differ, never values.
+[doc('Check the cached secrets.json against the gopass store (read-only)')]
+[group('secrets')]
+check-secrets-gopass:
+    @render-secrets --from gopass --check
+
+# One-time copy of every mapped value from 1Password into the secauto gopass
+# store (run on qbert, the writer). Values pipe op -> gopass and never print.
+# Safe to rerun: present, non-empty entries are skipped.
+[doc('Import 1Password values into the secauto gopass store (one-time; flags: --mirror --dry-run --desktop)')]
+[group('secrets')]
+import-secrets-to-gopass *args:
+    @bash extras/helpers/import-op-to-gopass.sh {{args}}
+
 # Render locally AND scp the rendered file to one or more peer hosts. Use
 # after rotating a 1Password value, before running `just remote-rebuild <host>`
 # against any peer that should see the new value.
@@ -1268,8 +1291,10 @@ alias ub := bump-upsight
 alias rr := remote-rebuild
 alias ru := remote-upgrade
 alias rs := render-secrets
+alias rsg := render-secrets-gopass
 alias ps := push-secrets
 alias cs := check-secrets
+alias csg := check-secrets-gopass
 alias fs := fetch-signatures
 alias rot := rotate-op-token
 alias fgc := fetch-gmailctl-creds

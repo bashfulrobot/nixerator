@@ -25,7 +25,8 @@ let
         install -Dm755 $src $out/bin/render-secrets
         substituteInPlace $out/bin/render-secrets \
           --replace-fail "@DEST@" "${destPath}" \
-          --replace-fail "@TPL@" "${tplPath}"
+          --replace-fail "@TPL@" "${tplPath}" \
+          --replace-fail "@MAP@" "${./gopass-map.tsv}"
         wrapProgram $out/bin/render-secrets \
           --prefix PATH : ${
             lib.makeBinPath [
@@ -34,7 +35,11 @@ let
               pkgs.diffutils
               pkgs.coreutils
               pkgs.git
-              pkgs.jq # forgejo tea-config generation reads .forgejo.apiToken
+              pkgs.jq # forgejo tea-config generation reads .forgejo.apiToken; --from gopass builds the file with it
+              pkgs.gopass # --from gopass reads the secauto store
+              pkgs.gnupg # gopass shells out to gpg to decrypt
+              pkgs.gawk # --from gopass looks references up in the shared map
+              pkgs.gnugrep
             ]
           }
       '';
@@ -51,7 +56,9 @@ in
 
         Enable on hosts that have the 1Password CLI available (i.e. the
         hosts that will originate `op inject` runs and `--push` to
-        headless peers).
+        headless peers). `render-secrets --from gopass` fills the same
+        template from the secauto gopass store with no 1Password at all,
+        so a headless host can enable this module and render by itself.
       '';
     };
   };

@@ -319,6 +319,21 @@ Add or rotate a secret on qbert. Type the value yourself at the prompt (`gopass 
 
 Rules for AI assistants: never run `gopass show`, `gopass cat` or `pass show`, and never print the GPG private key. `gopass ls` (names only) is fine.
 
+### Rendering `secrets.json` from gopass
+
+`render-secrets --from gopass` (`just render-secrets-gopass`, alias `rsg`) fills the same `secrets.json.tpl` from the store, so the Nix modules, fish exports and flake guards keep reading the file they already read. No `op`, no service-account token, no desktop prompt, so it runs on srv, in a timer or over SSH.
+
+- `modules/apps/cli/render-secrets/gopass-map.tsv` maps each gopass entry to the `op://` reference the template uses (`aha/credential` ↔ `op://nixerator/aha/credential`). Names and references only. Add a row there when you add a template key.
+- A key is left out of the file, never written empty, when its reference is not in the map or its entry is missing or empty. Modules already guard on presence. The stderr list names entries, not values. The 1Password service-account token (`onepassword.serviceAccountToken`) is deliberately unmapped.
+- Document-backed files (SSH keys, certificates, `connections.toml`) still restore through `render-secrets` in `op` mode. `--from gopass` skips them.
+- `just check-secrets-gopass` (`csg`) compares the live file with a gopass render and names the keys that differ.
+
+One-time import from 1Password, run on qbert: `just import-secrets-to-gopass` (`extras/helpers/import-op-to-gopass.sh`). It authenticates with the service-account token file if present, else the desktop session (`--desktop` forces it). It pipes each value from `op read` into `gopass insert`, never prints one, skips entries that are present and non-empty, and refuses to store an empty read. Rerun it after a failure.
+
+`--mirror` also copies every other credential field of every item in the `automation` and `nixerator` vaults to `<vault>/<item>/<field>` (slugged: lowercase, `-` for other characters), so new 1Password items need no map edit. It skips what must not be shared by the one GPG key: Documents and SSH keys (SSH identity keys, git-crypt keys, certificates stay in `MATERIALIZE`), service-account tokens, notes fields, and fields the map already covers. Two items with the same title get a short id suffix. `--dry-run` prints `would <entry>` lines and writes nothing. Only the `automation` and `nixerator` vaults are mirrored.
+
+Cut-over order: import (`just import-secrets-to-gopass --mirror --dry-run`, then without `--dry-run`), `just check-secrets-gopass` until no key differs, then switch hosts from `render-secrets` to `render-secrets --from gopass`.
+
 ## Accessing in modules
 
 `secrets` still arrives via `specialArgs`, but for existence guards only, never
