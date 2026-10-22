@@ -174,7 +174,7 @@
       "state": "absent"
     },
     "commit-commands@claude-plugins-official": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "dk@claude-skills": {
       "state": "enabled"
