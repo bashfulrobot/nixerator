@@ -301,7 +301,7 @@ How it fits together:
 Setting up a reader host (once):
 
 1. Install `gopass` and `gnupg` (the dev suite on NixOS, `Brewfile.core` on the Mac).
-2. Import the key without a passphrase prompt. Without the loopback flags, gpg can open a pinentry to set a passphrase, which would bring the prompt back:
+2. Import the key. On qbert, `just push-gpg-key <host>` (alias `pgk`) does this for NixOS peers: it streams the key over SSH, sets trust, and skips a host that already has it (allow-list qbert, srv, clanker). For the Mac, run the commands below. Without the loopback flags, gpg can open a pinentry to set a passphrase, which would bring the prompt back:
    ```bash
    ssh qbert 'gpg --export-secret-keys --armor <fingerprint>' \
      | gpg --batch --pinentry-mode loopback --passphrase '' --import

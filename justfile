@@ -1105,6 +1105,57 @@ push-secrets +hosts:
     done
     render-secrets --push {{hosts}}
 
+# Copy the secauto GPG key (the one that decrypts the gopass store) to peer hosts.
+# The key is streamed over SSH from this machine's keyring into the peer's, so it
+# is never written to a file or printed. Idempotent: a host that already has the
+# key is skipped. Run it on qbert, the host that holds the key.
+#
+#   just push-gpg-key srv
+#
+# Same host allow-list as render-secrets (qbert, srv, clanker). The Mac is not
+# reachable this way; pull the key there with the command in extras/docs/secrets.md.
+[doc('Copy the secauto GPG key to peer hosts over SSH (streamed, never on disk)')]
+[group('secrets')]
+push-gpg-key +hosts:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for host in {{hosts}}; do
+        case "$host" in
+            qbert|srv|clanker) ;;
+            *)
+                echo "Refusing to push the GPG key to unrecognized host: $host"
+                echo "Allowed: qbert, srv, clanker"
+                exit 1
+                ;;
+        esac
+    done
+    fpr="$(gpg --list-keys --with-colons 'secauto automation' 2>/dev/null | awk -F: '/^fpr/ {print $10; exit}')"
+    if [[ -z "$fpr" ]]; then
+        echo "No 'secauto automation' key in this machine's keyring. Run this on qbert."
+        exit 1
+    fi
+    for host in {{hosts}}; do
+        if [[ "$host" == "$(hostname)" ]]; then
+            echo "$host: this machine, skipped"
+            continue
+        fi
+        if ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" "bash -c 'gpg --list-secret-keys --with-colons 2>/dev/null | grep -q $fpr'"; then
+            echo "$host: key already present"
+            continue
+        fi
+        gpg --export-secret-keys --armor "$fpr" \
+            | ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
+                "bash -c 'gpg --batch --pinentry-mode loopback --passphrase \"\" --import'" >/dev/null 2>&1
+        ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
+            "bash -c 'echo $fpr:6: | gpg --import-ownertrust'" >/dev/null 2>&1
+        if ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" "bash -c 'gpg --list-secret-keys --with-colons 2>/dev/null | grep -q $fpr'"; then
+            echo "$host: key imported"
+        else
+            echo "$host: FAILED to import the key"
+            exit 1
+        fi
+    done
+
 # Copy this machine's ~/.config/gws/ (gws OAuth credentials + encryption key)
 # to one or more peer hosts that have no browser of their own to run
 # `gws auth login` -- do the OAuth flow here first, then push the result.
@@ -1293,6 +1344,7 @@ alias ru := remote-upgrade
 alias rs := render-secrets
 alias rsg := render-secrets-gopass
 alias ps := push-secrets
+alias pgk := push-gpg-key
 alias cs := check-secrets
 alias csg := check-secrets-gopass
 alias fs := fetch-signatures
