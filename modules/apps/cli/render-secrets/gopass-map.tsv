@@ -1,0 +1,39 @@
+# Shared map: gopass entry <TAB> 1Password reference used in secrets.json.tpl.
+# Read by render-secrets --from gopass (fills the template) and by
+# extras/helpers/import-op-to-gopass.sh (one-time copy from 1Password).
+# Names and references only. No values. A template reference that is not listed
+# here is left out of the rendered file on purpose (for example the 1Password
+# service-account token itself, onepassword.serviceAccountToken).
+kong/konnect-pat	op://automation/kong-konnect-pat/lab-pat-2026-06
+aha/credential	op://nixerator/aha/credential
+wave/credential	op://nixerator/wave/credential
+forgejo-api/token	op://nixerator/forgejo-api/token
+syncthing-gui/username	op://nixerator/syncthing-gui/username
+syncthing-gui/password	op://nixerator/syncthing-gui/password
+restic-srv/repository	op://nixerator/restic-srv/repository
+restic-srv/region	op://nixerator/restic-srv/region
+restic-workstation/repository	op://nixerator/restic-workstation/repository
+restic-workstation/region	op://nixerator/restic-workstation/region
+restic-password/password	op://nixerator/restic-password/password
+b2-credentials/keyID	op://nixerator/b2-credentials/keyID
+b2-credentials/applicationKey	op://nixerator/b2-credentials/applicationKey
+plakar-qbert/repository	op://nixerator/plakar-qbert/repository
+plakar-qbert/passphrase	op://nixerator/plakar-qbert/passphrase
+zai/credential	op://nixerator/zai/credential
+github-pat/credential	op://nixerator/github-pat/credential
+gemini/credential	op://nixerator/gemini/credential
+tailscale-caddy-authkey/credential	op://nixerator/tailscale-caddy-authkey/credential
+harmonia-signing-key/credential	op://nixerator/harmonia-signing-key/credential
+snyk/credential	op://nixerator/snyk/credential
+todoist/credential	op://nixerator/todoist/credential
+cloudflare-ddns/credential	op://nixerator/cloudflare-ddns/credential
+nanoclaw-claude-token/credential	op://nixerator/nanoclaw-claude-token/credential
+nanoclaw-onecli-db-password/password	op://nixerator/nanoclaw-onecli-db-password/3fqxhcsfzyenwg3rdblflsclgi
+clanky-slack-app/bot-user-oauth-token	op://nixerator/clanky-slack-app/Bot-User-Oauth-Token
+clanky-slack-app/app-token	op://nixerator/clanky-slack-app/Default-clanky-App-Token
+noclaw-op-token/credential	op://nixerator/noclaw-op-token/credential
+grafana-cloud-dashboards/token	op://automation/grafana-cloud-dashboards/token
+tableau-pat/hostname	op://automation/Tableau-PAT/hostname
+tableau-pat/site-name	op://automation/Tableau-PAT/Site-Name
+tableau-pat/username	op://automation/Tableau-PAT/username
+tableau-pat/credential	op://automation/Tableau-PAT/credential
