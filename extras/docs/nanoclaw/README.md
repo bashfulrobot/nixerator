@@ -192,8 +192,12 @@ nanoclaw-check-agent-creds
 
 The first `nanoclaw-agent-image` run takes a few minutes. The host starts
 without waiting for it (`Wants=`, not `Requires=`), and the unit retries on
-failure. The OneCLI dashboard is loopback-only: `ssh -L 10254:127.0.0.1:10254 srv`,
-then open <http://localhost:10254>.
+failure. The OneCLI dashboard is loopback-only. From your desktop run
+`ssh -N -L 127.0.0.1:10254:127.0.0.1:10254 srv`, then open
+<http://127.0.0.1:10254>. Use that exact origin and local port: the module sets
+OneCLI's `APP_URL` to `http://127.0.0.1:10254`, and OAuth redirects and the
+connect links agents hand out are built from it. Keep the tunnel on loopback and
+close it when done, because the API has no auth in local mode.
 
 ## Re-auth (token revoked or expired)
 
