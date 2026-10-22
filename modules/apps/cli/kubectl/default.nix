@@ -21,7 +21,7 @@ in
       kubelogin # Azure/OIDC login
       kubelogin-oidc # OIDC authentication for kubectl
       krew # kubectl plugin manager
-      ktop # K8s top command
+      kubectl-ktop # K8s top command (kubectl plugin)
     ];
 
     # Home Manager configuration for kubectl aliases

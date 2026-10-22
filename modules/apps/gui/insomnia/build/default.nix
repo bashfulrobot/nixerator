@@ -44,7 +44,7 @@ let
           hash = v.platformHashes.x86_64-linux;
         };
       }
-      .${stdenv.system} or (throw "Unsupported system: ${stdenv.system}");
+      .${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
 
   meta = {
     homepage = "https://insomnia.rest";
