@@ -14,7 +14,7 @@ tablet through Weave over Tailscale. Module: `modules/apps/cli/notes`.
 - The root `~/Notes/media` is the one exception. It is a derived symlink farm
   for Weave, ignored by Syncthing, and holds no real files.
 - Filenames are unique per note, so two notes never share a stem: date-prefixed
-  (`20261022-1430-title.md`), daily notes by date, weekly notes by ISO week.
+  (`20261022-1430-title.md`).
 
 ## Folder hierarchy
 
@@ -39,10 +39,8 @@ Defined in `cfg/hierarchy.txt`. `notes-init` creates it, each folder with a
 | `20-technical/ai` | LLMs, agents, prompts. |
 | `20-technical/tooling` | CLI tools and editors. |
 | `30-personal/health` `finance` `home` `travel` `family` `learning` | One topic each. |
-| `40-journal/daily` | One file per day (`YYYY-MM-DD`, daily template). |
-| `40-journal/weekly` | One file per ISO week (`week-YYYY-wWW`). |
-| `50-reference/cheatsheets` | Lookup tables. |
-| `50-reference/how-to` | Step-by-step procedures (how-to template). |
+| `40-reference/cheatsheets` | Lookup tables. |
+| `40-reference/how-to` | Step-by-step procedures (how-to template). |
 | `90-archive` | Finished work moved out of the live folders. |
 
 If a note fits two folders, put it in one and link it from the other.
@@ -57,7 +55,6 @@ If a note fits two folders, put it in one and link it from the other.
 | `notes -t tag` | Pick among notes with a tag. |
 | `notes -l` | Fuzzel menu, opens the GUI viewer. Bound to `SUPER+CTRL+N` on Hyprland when `apps.cli.notes.keybind = true` (qbert). |
 | `notes-new [title]` | Pick a folder, create the note from its template, open `$EDITOR`. |
-| `notes-new -j` | Today's journal entry. |
 | `notes-media NOTE [FILE]` | Copy a file (or the clipboard image) into the note's `media/` and print the link. `--append` first adds it to the note. |
 | `notes-open [--gui\|--edit] FILE` | Open in markless (default), the GUI viewer, or `$EDITOR`. |
 | `notes-init [--update]` | Create folders, `.stignore`, `.zk/config.toml`, templates. `--update` overwrites config and templates. |
