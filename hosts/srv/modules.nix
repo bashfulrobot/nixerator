@@ -127,7 +127,12 @@ in
     # Reader for the secauto encrypted gopass store: pulls over a read-only
     # deploy key every 15 min. Needs the one-time clone, GPG key import and
     # deploy key described on the option.
-    secauto-pull.enable = true;
+    secauto-pull = {
+      enable = true;
+      # srv renders its secrets file from gopass after every pull, so it needs
+      # no 1Password CLI, service-account token or human for routine refreshes.
+      renderAfterPull = true;
+    };
     # Extracts Slack xoxc/xoxd session cookies via a persistent Chromium
     # profile (Playwright) so the slack-post skill can send from srv.
     # Separate credential path from claudoist's Slack MCP (Task 1/3-4 of

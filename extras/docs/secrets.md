@@ -334,6 +334,12 @@ One-time import from 1Password, run on qbert: `just import-secrets-to-gopass` (`
 
 Cut-over order: import (`just import-secrets-to-gopass --mirror --dry-run`, then without `--dry-run`), `just check-secrets-gopass` until no key differs, then switch hosts from `render-secrets` to `render-secrets --from gopass`.
 
+Cut-over state:
+
+- srv renders after every pull: `apps.cli.secauto-pull.renderAfterPull = true` runs `render-secrets --from gopass` as `ExecStartPost`. The rendered file no longer carries `onepassword.serviceAccountToken`, so srv has no 1Password in its refresh path.
+- fish no longer exports `OP_SERVICE_ACCOUNT_TOKEN` in any shell. `op` at the desk uses the desktop app. `op-toggle` opts one shell into the service account, using `~/.config/op/service-account-token` (install it with `just setup-op-token`). `render-secrets --from op` still reads that file by itself.
+- qbert still renders with `render-secrets` (op mode) until you run `just render-secrets-gopass` there. `just check-secrets-gopass` should name only `onepassword.serviceAccountToken` as different.
+
 ## Accessing in modules
 
 `secrets` still arrives via `specialArgs`, but for existence guards only, never

@@ -81,9 +81,28 @@ in
       default = "15min";
       description = "Time between pulls, counted from the previous run.";
     };
+
+    renderAfterPull = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        After each pull, run `render-secrets --from gopass` so the host's
+        rendered secrets file follows the store with no 1Password and no human.
+        Needs apps.cli.render-secrets.enable on the same host. The rendered file
+        leaves out the 1Password service-account token, which is deliberately not
+        in gopass.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !cfg.renderAfterPull || config.apps.cli.render-secrets.enable;
+        message = "apps.cli.secauto-pull.renderAfterPull needs apps.cli.render-secrets.enable = true on this host.";
+      }
+    ];
+
     environment.systemPackages = [ pull ];
 
     # A user timer, so the pull runs as the user whose gopass store it updates.
@@ -116,6 +135,11 @@ in
           RestartPreventExitStatus = 2;
           RestartSec = "1min";
           ExecStart = "${pull}/bin/secauto-pull";
+        }
+        // lib.optionalAttrs cfg.renderAfterPull {
+          # A render failure fails the unit and shows up in the journal. The pull
+          # above has already succeeded, so the store itself stays current.
+          ExecStartPost = "/run/current-system/sw/bin/render-secrets --from gopass";
         };
       };
     };
