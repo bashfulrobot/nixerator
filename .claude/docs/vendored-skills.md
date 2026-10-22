@@ -57,12 +57,12 @@ what `just upgrade` needs to keep current for this list's sake.
 
 `vibecurb-skills` is different: its `url` in `flake.nix` embeds an explicit
 rev (`github:Yu-369/VibeCurb/<rev>`), not a bare branch-tracking URL, because
-this repo's `update-flake-lock` GitHub Action runs `nix flake update` on a
-daily cron and pushes straight to `main` with no review -- see the comment on
-the input in `flake.nix` for the full reasoning. A bare `nix flake update
-vibecurb-skills` is therefore a no-op. Bump it by editing the rev in the URL
-by hand, then `nix flake lock`, the same way `import-tree`'s tag pin is
-bumped by editing the tag.
+`just qu` sweeps every branch-tracking input with `nix flake update` and
+commits the lock without anyone reading the change input by input -- see the
+comment on the input in `flake.nix` for the full reasoning. A bare `nix flake
+update vibecurb-skills` is therefore a no-op. Bump it by editing the rev in
+the URL by hand, then `nix flake lock`, the same way `import-tree`'s tag pin
+is bumped by editing the tag.
 
 Bump them **before** a rebuild, never after. Activation resolves each store
 path from `flake.lock`, so a lock bump that lands post-activation cannot reach
@@ -85,14 +85,13 @@ construction. That is why `just update-skills` no longer runs
    user or agent created at runtime doesn't vanish silently.
 4. If the input's `url` has no explicit rev (a bare `github:org/repo`),
    decide whether it should be pinned the way `vibecurb-skills` is. The
-   deciding question is whether this repo's `update-flake-lock` Action sweeps
-   this input on its daily unattended cron: if so, and the vendored content
-   is agent instruction text rather than compiled code, an unpinned URL lets
-   a hostile upstream push reach `main` with no review inside 24 hours. Pin
-   to an explicit rev in the URL if so, and add an eval-time `assertions`
-   entry in `default.nix` confirming every consumed path still exists at
-   that rev (`builtins.pathExists`) — see `vibecurbSkillNames`'s assertions
-   for the pattern.
+   deciding question is whether the vendored content is agent instruction
+   text rather than compiled code: `just qu` sweeps every branch-tracking
+   input, so an unpinned URL lets a hostile upstream push reach the next
+   rebuild with nobody reading it. Pin to an explicit rev in the URL if so,
+   and add an eval-time `assertions` entry in `default.nix` confirming every
+   consumed path still exists at that rev (`builtins.pathExists`) — see
+   `vibecurbSkillNames`'s assertions for the pattern.
 5. If the skill's scripts call a binary NixOS does not ship by default, add it
    to `environment.systemPackages` in `default.nix` — see `bc` below.
 

@@ -32,7 +32,7 @@ file contents. Detail lives in the topic files it points at.
 | `hosts/<host>/` | Per-host config. See "Host wiring". |
 | `justfile` | The only sanctioned build/rebuild/lint/format/secrets interface. |
 | `.githooks/pre-commit` | Auto-formats staged `.nix` via `nix fmt` and re-stages. Install once per clone with `just setup-hooks`. |
-| `.github/workflows/` | `ci.yml` (autofix: nix fmt, statix, deadnix, shfmt, fish fmt, then signed-API commit) and `update-flake-lock.yml`. |
+| `.github/` | `dependabot.yml` only. No workflows: formatting runs in `.githooks/pre-commit` and the lock is bumped by `just qu` / `just update <input>`. |
 | `extras/docs/` | Deep-dive reference, one `.md` per topic, plus `index.html` (`just docs`). |
 | `extras/helpers/`, `extras/scripts/` | Bootstrap/secret-fetch shell helpers; package-update and security-alert checkers invoked by `just rebuild`. |
 | `dank-profiles/` | Captured DankMaterialShell settings, shared across workstations. |
