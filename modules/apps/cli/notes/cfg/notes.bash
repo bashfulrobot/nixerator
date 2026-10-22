@@ -13,8 +13,9 @@ usage:
   notes [QUERY]         fuzzy-pick a note by title or path (fzf)
   notes -s [QUERY]      full-text search while typing (zk --match)
   notes -t TAG          pick among notes with a tag
-  notes -l              launcher: fuzzel (Linux) or choose (macOS) menu, then
-                        open the note in the GUI viewer. For keybinds.
+  notes -l [QUERY]      launcher: fuzzel (Linux) or choose (macOS) menu, then
+                        open the note in the GUI viewer. QUERY limits the menu
+                        to notes whose text matches. For keybinds and Raycast.
 
 keys in fzf:  enter view (markless)   ctrl-o GUI viewer   ctrl-e $EDITOR
 env:          NOTES_DIR (default ~/Notes), NOTES_OPEN (path to notes-open)
@@ -61,7 +62,10 @@ __list)
 -t)
   tag="${2:?usage: notes -t TAG}"
   ;;
--l) mode=launcher ;;
+-l)
+  mode=launcher
+  query="${2:-}"
+  ;;
 -*)
   usage >&2
   exit 2
@@ -78,7 +82,12 @@ if [ "$mode" = launcher ]; then
   else
     menu=(fzf)
   fi
-  pick=$(list_notes | awk -F'\t' '{ printf "%s  (%s)\n", $1, $2 }' | "${menu[@]}") || exit 0
+  menu_lines=$(list_notes "$query" | awk -F'\t' '{ printf "%s  (%s)\n", $1, $2 }')
+  [ -n "$menu_lines" ] || {
+    echo "No notes match"
+    exit 0
+  }
+  pick=$(printf '%s\n' "$menu_lines" | "${menu[@]}") || exit 0
   [ -n "$pick" ] || exit 0
   rel=$(printf '%s' "$pick" | sed -e 's/.*(\(.*\))$/\1/')
   exec "$NOTES_OPEN" --gui "$NOTES_DIR/$rel"
