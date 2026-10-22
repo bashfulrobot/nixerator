@@ -36,6 +36,7 @@ which governs prose sent elsewhere (Slack, email, docs):
 - When touching `systemd.user` timers, `users.users.<name>.linger`, or a unit that assumes a graphical session, read `.claude/docs/user-lingering.md` — `Linger=yes` on a running host is not evidence the declaration exists.
 - When adding, bumping, or debugging a skill vendored from a flake input (`humanizer`, `intent-layer`, `walkr-author`, `walkr-tutorial-author`, or the seven VibeCurb design skills), read `.claude/docs/vendored-skills.md`.
 - When touching `server.nanoclaw` on srv (NanoClaw + OneCLI vault, its Slack channel, its 1Password-backed secrets, the setup-token re-auth flow, its backups), read `extras/docs/nanoclaw/README.md`.
+- When touching the notes system (`apps.cli.notes`, `~/Notes`, zk, markless, Weave, the `notes*` commands, the Syncthing `notes` folder), read `extras/docs/notes.md`.
 - When adding a skill, changing the always-on baseline, or debugging why a skill is missing/present in a project, read `.claude/docs/skill-defaults.md` for the default-off model and `skill-pick`.
 
 ## Reference docs

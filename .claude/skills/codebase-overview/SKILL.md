@@ -213,7 +213,7 @@ Deep dives, `extras/docs/`: `architecture.md`, `module-development.md`,
 `local-packages.md`, `software.md`, `helpers.md`, `commands.md`, `ssh.md`,
 `gpu-reference.md`, `hyprland-windowrules.md`, `vm-development.md`,
 `declarative-claude.md`, `claude-plugins.md`, `bootstrap.txt`,
-`external-deps.md`, `gcmt.md`, `google-chrome.md`, `termly-remote.md`,
+`external-deps.md`, `gcmt.md`, `google-chrome.md`, `notes.md`, `termly-remote.md`,
 `todoist-cli.md`, `todoist-report.md`, and `CLAUDE.md` for editing
 `index.html`.
 

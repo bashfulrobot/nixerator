@@ -102,6 +102,18 @@
       host.qbert = true;
     };
 
+    # Plain-markdown notes under ~/Notes, synced by Syncthing (folder "notes")
+    # and read from the phone through Weave on the tailnet. Weave binds to
+    # qbert's Tailscale address, so only tailnet peers reach it.
+    notes = {
+      enable = true;
+      keybind = true; # SUPER+CTRL+N opens the fuzzel note launcher
+      weave = {
+        enable = true;
+        listenAddress = globals.hosts.qbert.tailscale_ip;
+      };
+    };
+
     # Local LLM server. qbert has the AMD 6800 XT (gfx1030, 16 GB VRAM), which
     # ROCm supports directly with no HSA_OVERRIDE_GFX_VERSION, so the rocm
     # variant is the accelerator (vulkan is the fallback if a ROCm regression

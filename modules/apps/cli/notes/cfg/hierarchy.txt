@@ -1,0 +1,37 @@
+# One folder per line, relative to the notes root. Blank lines and # comments
+# are ignored. notes-init creates each folder with its own media/ subfolder.
+# Rule: a folder holds one kind of note. If a note fits two folders, link it
+# from the second instead of copying. 00-inbox is the only transient bucket
+# and is emptied by a weekly triage.
+00-inbox
+
+10-work/kong/accounts
+10-work/kong/meetings
+10-work/kong/one-on-ones
+10-work/kong/initiatives
+10-work/kong/playbooks
+10-work/kong/enablement
+
+20-technical/nixos
+20-technical/kubernetes
+20-technical/api-gateway
+20-technical/networking
+20-technical/homelab
+20-technical/programming
+20-technical/ai
+20-technical/tooling
+
+30-personal/health
+30-personal/finance
+30-personal/home
+30-personal/travel
+30-personal/family
+30-personal/learning
+
+40-journal/daily
+40-journal/weekly
+
+50-reference/cheatsheets
+50-reference/how-to
+
+90-archive

@@ -71,6 +71,7 @@ Enable modules via options:
 - **[Bootstrap](extras/docs/bootstrap.txt)** - NixOS installation guide
 - **[VM Development](extras/docs/vm-development.md)** - Development VM setup
 - **[Web Apps](extras/docs/webapps.md)** - Progressive web application modules
+- **[Notes](extras/docs/notes.md)** - Plain-markdown notes under `~/Notes`: zk, markless, Weave, Syncthing, macOS port checklist
 
 ## Module Categories
 

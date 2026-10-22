@@ -22,6 +22,7 @@ rec {
   # Common repository and development paths
   paths = {
     devRoot = "${user.homeDirectory}/dev";
+    notes = "${user.homeDirectory}/Notes";
     nixerator = "${user.homeDirectory}/git/nixerator";
     hyprflake = "${user.homeDirectory}/git/hyprflake";
   };

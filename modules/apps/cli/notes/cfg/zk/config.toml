@@ -1,0 +1,59 @@
+# zk notebook config. notes-init copies this to <notes root>/.zk/config.toml
+# when it is missing, so Syncthing carries it to every device afterwards.
+# Reference: https://zk-org.github.io/zk/config/config.html
+
+[note]
+language = "en"
+default-title = "Untitled"
+# Date prefix keeps filenames unique across folders. Weave addresses notes by
+# filename stem, so two notes must never share one.
+filename = "{{format-date now '%Y%m%d-%H%M'}}-{{slug title}}"
+extension = "md"
+template = "default.md"
+
+[format.markdown]
+hashtags = true
+colon-tags = false
+link-format = "markdown"
+
+[tool]
+pager = "less -FIRX"
+fzf-preview = "bat -p --color always --line-range :80 {-1}"
+
+# Per-folder note kinds.
+[group.meetings]
+paths = ["10-work/kong/meetings"]
+[group.meetings.note]
+template = "meeting.md"
+
+[group.one-on-ones]
+paths = ["10-work/kong/one-on-ones"]
+[group.one-on-ones.note]
+template = "meeting.md"
+
+[group.daily]
+paths = ["40-journal/daily"]
+[group.daily.note]
+filename = "{{format-date now '%Y-%m-%d'}}"
+template = "daily.md"
+
+[group.weekly]
+paths = ["40-journal/weekly"]
+[group.weekly.note]
+# notes-new passes the title "Week <ISO year>-W<ISO week>"; zk's strftime has
+# no %G, and %Y is wrong for the last days of December.
+filename = "{{slug title}}"
+template = "weekly.md"
+
+[group.how-to]
+paths = ["50-reference/how-to", "50-reference/cheatsheets"]
+[group.how-to.note]
+template = "how-to.md"
+
+[alias]
+# Notes changed in the last week.
+recent = "zk list --sort modified- --modified-after 'last week' --quiet $@"
+# Notes with no incoming links.
+orphans = "zk list --orphan --quiet $@"
+# Everything tagged, e.g. `zk tagged kong`.
+tagged = "zk list --tag $@ --quiet"
