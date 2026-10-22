@@ -287,6 +287,38 @@ The SA token itself lives in your **Personal** 1Password vault.
 installs it at the canonical path. Read-only access to the `nixerator`
 vault is all the SA needs.
 
+## Automation secrets (secauto)
+
+Unattended jobs read their secrets from gopass, not from 1Password. Service-account tokens expire, and `op` falls back to the desktop prompt in any process that lacks the token, so a headless job cannot rely on it. A gopass read needs only the local GPG key: no expiry, no network login.
+
+How it fits together:
+
+- The store is the private repo `bashfulrobot/secauto`. It holds one GPG-encrypted file per secret, plus `.gpg-id`. The decrypting key is never in the repo.
+- qbert is the only writer. It commits and pushes from its clone at `~/git/secauto`.
+- Reader hosts (srv, the Mac) keep a clone at `~/.local/share/gopass/stores/root`. On NixOS, `apps.cli.secauto-pull` runs `git pull --ff-only` every 15 minutes over a read-only deploy key.
+- One passphrase-less GPG key (uid `secauto automation`) decrypts the store on every host. The recovery copy is the 1Password Document `secauto-gpg-key` in the Personal vault, which service accounts cannot read. Open it only to rebuild a host or after losing every other copy.
+
+Setting up a reader host (once):
+
+1. Install `gopass` and `gnupg` (the dev suite on NixOS, `Brewfile.core` on the Mac).
+2. Import the key without a passphrase prompt. Without the loopback flags, gpg can open a pinentry to set a passphrase, which would bring the prompt back:
+   ```bash
+   ssh qbert 'gpg --export-secret-keys --armor <fingerprint>' \
+     | gpg --batch --pinentry-mode loopback --passphrase '' --import
+   echo '<fingerprint>:6:' | gpg --import-ownertrust
+   ```
+3. Create a read-only deploy key on the host, then register it from qbert:
+   ```bash
+   ssh-keygen -t ed25519 -N "" -f ~/.ssh/secauto_deploy
+   gh repo deploy-key add <pub file> -R bashfulrobot/secauto -t <host>
+   ```
+4. Clone the store with `gopass clone git@github.com:bashfulrobot/secauto.git`, setting `GIT_SSH_COMMAND` so it uses the deploy key.
+5. Set `apps.cli.secauto-pull.enable = true` for the host and rebuild.
+
+Add or rotate a secret on qbert. Type the value yourself at the prompt (`gopass insert <name>`) so it never enters an AI transcript, then push. Readers pick it up on their next pull. A job that reads at run time (`gopass show -o <name>`) gets the new value on its next run. A service that read the value at startup, or a file an activation script wrote once, keeps the old value until it restarts or the host rebuilds.
+
+Rules for AI assistants: never run `gopass show`, `gopass cat` or `pass show`, and never print the GPG private key. `gopass ls` (names only) is fine.
+
 ## Accessing in modules
 
 `secrets` still arrives via `specialArgs`, but for existence guards only, never

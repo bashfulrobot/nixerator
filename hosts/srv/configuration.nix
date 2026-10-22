@@ -147,6 +147,7 @@
     git-crypt
     gnumake
     gnupg
+    gopass
     gum
     just
     keychain
