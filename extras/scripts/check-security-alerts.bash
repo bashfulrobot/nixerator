@@ -51,10 +51,20 @@ fi
 info "Checking Dependabot alerts on $repo_slug..."
 
 # --- Fetch current open alerts ---
-current=$(gh api "repos/$repo_slug/dependabot/alerts?state=open&per_page=100" --paginate 2>/dev/null) || {
+alerts_err=$(mktemp)
+current=$(gh api "repos/$repo_slug/dependabot/alerts?state=open&per_page=100" --paginate 2>"$alerts_err") || {
+    # A repo with Dependabot alerts switched off answers 403 "disabled for this
+    # repository". That is a configuration choice, not a failure.
+    if grep -q 'Dependabot alerts are disabled' "$alerts_err"; then
+        rm -f "$alerts_err"
+        info "Dependabot alerts are disabled on $repo_slug -- skipping security check"
+        exit 0
+    fi
+    rm -f "$alerts_err"
     err "failed to query Dependabot API -- security check FAILED (is the repo private? does the token have security_events scope?)"
     exit 1
 }
+rm -f "$alerts_err"
 
 # Compact representation: {number, severity, package, manifest_path, created_at, ghsa}
 current_compact=$(echo "$current" | jq '[.[] | {

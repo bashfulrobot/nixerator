@@ -18,11 +18,12 @@ let
       aarch64-darwin = "macos-arm64";
       x86_64-darwin = "macos-x86_64";
     }
-    .${stdenv.system} or (throw "agent-scan: unsupported system ${stdenv.system}");
+    .${stdenv.hostPlatform.system}
+      or (throw "agent-scan: unsupported system ${stdenv.hostPlatform.system}");
 
   src = fetchurl {
     url = "https://github.com/snyk/agent-scan/releases/download/v${version}/agent-scan-${version}-${arch}";
-    hash = v.platformHashes.${stdenv.system};
+    hash = v.platformHashes.${stdenv.hostPlatform.system};
   };
 in
 stdenv.mkDerivation {
@@ -30,9 +31,9 @@ stdenv.mkDerivation {
 
   dontUnpack = true;
 
-  nativeBuildInputs = lib.optionals stdenv.isLinux [ autoPatchelfHook ];
+  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [ autoPatchelfHook ];
 
-  buildInputs = lib.optionals stdenv.isLinux [
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
     stdenv.cc.cc.lib
     zlib
   ];
