@@ -45,13 +45,15 @@ fi
 # zk notebook config and templates. Copied once, then owned by the notebook
 # (Syncthing carries edits between devices).
 mkdir -p "$NOTES_DIR/.zk/templates"
+# install -m 644, not cp: the source can live in the read-only Nix store and cp
+# would carry mode 0444 over, leaving the notebook copy uneditable.
 if [ "$update" = 1 ] || [ ! -f "$NOTES_DIR/.zk/config.toml" ]; then
-  cp "$NOTES_SHARE/zk/config.toml" "$NOTES_DIR/.zk/config.toml"
+  install -m 644 "$NOTES_SHARE/zk/config.toml" "$NOTES_DIR/.zk/config.toml"
 fi
 for t in "$NOTES_SHARE"/zk/templates/*.md; do
   dest="$NOTES_DIR/.zk/templates/$(basename "$t")"
   if [ "$update" = 1 ] || [ ! -f "$dest" ]; then
-    cp "$t" "$dest"
+    install -m 644 "$t" "$dest"
   fi
 done
 

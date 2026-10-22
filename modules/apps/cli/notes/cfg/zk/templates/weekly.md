@@ -1,4 +1,4 @@
-# Week {{format-date now '%G-W%V'}}
+# {{title}}
 
 ## Wins
 

@@ -37,16 +37,24 @@ if [ -z "$dir" ]; then
     echo "notes-new: fzf not found, use -d DIR" >&2
     exit 1
   }
-  # Leaf folders only: skip media/, hidden dirs and the derived root media.
+  # Every folder except media/ folders, hidden dirs and the notes root.
   dir=$(find . -type d ! -name media ! -path './.*' ! -path './media' ! -path . |
     sed 's|^\./||' | sort | fzf --prompt 'folder> ') || exit 0
 fi
 
 mkdir -p "$dir/media"
 
-if [ -z "$title" ] && [ "$dir" != "40-journal/daily" ] && [ "$dir" != "40-journal/weekly" ]; then
-  printf 'title: '
-  read -r title
+if [ -z "$title" ]; then
+  case "$dir" in
+  # The weekly filename is the slugged title, so build the ISO week here.
+  40-journal/weekly) title="Week $(date +%G-W%V)" ;;
+  # The daily filename is the date; zk's template supplies the heading.
+  40-journal/daily) ;;
+  *)
+    printf 'title: '
+    read -r title
+    ;;
+  esac
 fi
 
 if [ -n "$title" ]; then

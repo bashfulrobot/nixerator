@@ -41,9 +41,15 @@ let
     pkgs.fzf
     notesOpen
   ];
-  notesInit = script "notes-init" [ ];
-  notesMedia = script "notes-media" [ pkgs.wl-clipboard ];
-  notesWeaveMedia = script "notes-weave-media" [ ];
+  notesInit = script "notes-init" [ pkgs.coreutils ];
+  notesMedia = script "notes-media" [
+    pkgs.coreutils
+    pkgs.wl-clipboard
+  ];
+  notesWeaveMedia = script "notes-weave-media" [
+    pkgs.coreutils
+    pkgs.findutils
+  ];
 in
 {
   options.apps.cli.notes = {
@@ -88,8 +94,12 @@ in
 
     keybind = lib.mkOption {
       type = lib.types.bool;
-      default = true;
-      description = "Bind SUPER+SHIFT+N to the fuzzel note launcher in Hyprland.";
+      default = false;
+      description = ''
+        Bind SUPER+CTRL+N to the fuzzel note launcher in Hyprland. Needs the
+        hyprflake module, so it is off by default. (SUPER+N and SUPER+SHIFT+N
+        are taken by hyprflake for notifications and the DMS notepad.)
+      '';
     };
   };
 
@@ -124,7 +134,7 @@ in
 
         hyprflake.hyprland.extraLua = lib.mkIf cfg.keybind {
           "notes" = ''
-            hl.bind("SUPER + SHIFT + N",
+            hl.bind("SUPER + CTRL + N",
               hl.dsp.exec_cmd("${notes}/bin/notes -l"))
           '';
         };
@@ -132,6 +142,13 @@ in
     })
 
     (lib.mkIf (cfg.enable && cfg.weave.enable) {
+      warnings =
+        lib.optional (cfg.weave.passwordFile == null && cfg.weave.listenAddress != "127.0.0.1")
+          ''
+            apps.cli.notes.weave has no passwordFile and listens on ${cfg.weave.listenAddress}:
+            every device that can reach that address can read and edit all notes.
+          '';
+
       # Weave serves <root> as a zk notebook. Its images are flattened into
       # <root>/media by notes-weave-media (before each start and every 2 minutes).
       systemd = {
@@ -167,8 +184,27 @@ in
               # The Tailscale address does not exist until tailscaled is up.
               Restart = "on-failure";
               RestartSec = 10;
-              NoNewPrivileges = true;
+              # Weave is a network-facing web app that runs as the login user.
+              # Confine it to the notebook: the rest of $HOME (~/.ssh, the
+              # rendered secrets file) is hidden behind an empty tmpfs.
+              ProtectHome = "tmpfs";
+              BindPaths = [ cfg.root ];
+              ProtectSystem = "strict";
               PrivateTmp = true;
+              PrivateDevices = true;
+              NoNewPrivileges = true;
+              ProtectKernelTunables = true;
+              ProtectKernelModules = true;
+              ProtectControlGroups = true;
+              RestrictAddressFamilies = [
+                "AF_INET"
+                "AF_INET6"
+                "AF_UNIX"
+              ];
+              RestrictNamespaces = true;
+              LockPersonality = true;
+              SystemCallFilter = [ "@system-service" ];
+              CapabilityBoundingSet = "";
             }
             // lib.optionalAttrs (cfg.weave.passwordFile != null) {
               EnvironmentFile = cfg.weave.passwordFile;

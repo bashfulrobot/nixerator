@@ -40,7 +40,9 @@ template = "daily.md"
 [group.weekly]
 paths = ["40-journal/weekly"]
 [group.weekly.note]
-filename = "{{format-date now '%G-W%V'}}"
+# notes-new passes the title "Week <ISO year>-W<ISO week>"; zk's strftime has
+# no %G, and %Y is wrong for the last days of December.
+filename = "{{slug title}}"
 template = "weekly.md"
 
 [group.how-to]

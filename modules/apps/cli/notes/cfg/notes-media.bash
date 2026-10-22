@@ -22,12 +22,23 @@ media="$(cd "$(dirname "$note")" && pwd)/media"
 mkdir -p "$media"
 stamp=$(date +%Y%m%d-%H%M%S)
 
+# Prefix with the timestamp, and add -2, -3, ... when that name is taken, so a
+# second paste in the same second never overwrites the first.
+unique_name() {
+  local base="$1" n=1 candidate
+  candidate="$stamp-$base"
+  while [ -e "$media/$candidate" ]; do
+    n=$((n + 1))
+    candidate="$stamp-$n-$base"
+  done
+  printf '%s' "$candidate"
+}
+
 if [ -n "$src" ]; then
-  base=$(basename "$src" | tr ' ' '-')
-  name="$stamp-$base"
+  name=$(unique_name "$(basename "$src" | tr ' ' '-')")
   cp "$src" "$media/$name"
 else
-  name="$stamp-clip.png"
+  name=$(unique_name clip.png)
   if command -v wl-paste >/dev/null 2>&1 && [ -n "${WAYLAND_DISPLAY:-}" ]; then
     wl-paste --type image/png >"$media/$name"
   elif command -v pngpaste >/dev/null 2>&1; then

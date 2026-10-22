@@ -113,7 +113,8 @@ in
 
             # Plain-markdown notes (apps.cli.notes). No peers yet: add the Mac
             # (or another host) to `devices` when it joins. Phones and tablets
-            # read through Weave, not Syncthing.
+            # read through Weave, not Syncthing. The .stignore is written by
+            # notes-init (apps.cli.notes), which owns the ignore list.
             "notes" = {
               path = globals.paths.notes;
               devices = [ ];
@@ -289,13 +290,6 @@ in
               '';
             in
             ''
-              install -Dm644 ${pkgs.writeText "notes-stignore" ''
-                .zk/notebook.db
-                .zk/notebook.db-*
-                /media
-                (?d).DS_Store
-                *.sync-conflict-*
-              ''} "$HOME/Notes/.stignore"
               install -Dm644 ${pkgs.writeText "dev-stignore" ''
                 .git
                 .mcp.json

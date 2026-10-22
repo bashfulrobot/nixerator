@@ -40,7 +40,7 @@ Defined in `cfg/hierarchy.txt`. `notes-init` creates it, each folder with a
 | `20-technical/tooling` | CLI tools and editors. |
 | `30-personal/health` `finance` `home` `travel` `family` `learning` | One topic each. |
 | `40-journal/daily` | One file per day (`YYYY-MM-DD`, daily template). |
-| `40-journal/weekly` | One file per ISO week (`YYYY-Www`). |
+| `40-journal/weekly` | One file per ISO week (`week-YYYY-wWW`). |
 | `50-reference/cheatsheets` | Lookup tables. |
 | `50-reference/how-to` | Step-by-step procedures (how-to template). |
 | `90-archive` | Finished work moved out of the live folders. |
@@ -52,9 +52,10 @@ If a note fits two folders, put it in one and link it from the other.
 | Command | Does |
 |---|---|
 | `notes` | Fuzzy-pick a note (fzf). Enter views in markless, `ctrl-o` opens the GUI, `ctrl-e` edits. |
+| `notes [query]` | Same picker with the query prefilled. |
 | `notes -s [query]` | Full-text search as you type (`zk --match`). |
 | `notes -t tag` | Pick among notes with a tag. |
-| `notes -l` | Fuzzel menu, opens the GUI viewer. Bound to `SUPER+SHIFT+N` on Hyprland. |
+| `notes -l` | Fuzzel menu, opens the GUI viewer. Bound to `SUPER+CTRL+N` on Hyprland when `apps.cli.notes.keybind = true` (qbert). |
 | `notes-new [title]` | Pick a folder, create the note from its template, open `$EDITOR`. |
 | `notes-new -j` | Today's journal entry. |
 | `notes-media NOTE [FILE]` | Copy a file (or the clipboard image) into the note's `media/` and print the link. `--append` first adds it to the note. |
@@ -83,12 +84,14 @@ NixOS runs `notes-init` on every rebuild activation. It never overwrites.
 Syncthing folder `notes` (path `~/Notes`, staggered versioning) is declared in
 `modules/apps/cli/syncthing`. It has no peers yet. To add one:
 
-1. Put the device in `globals.hosts.<name>.syncthing_id` and the host's
-   `devices` block in the syncthing module.
+1. Make sure the device has a `syncthing_id` in `globals.hosts` (the Mac,
+   `MH36P2YMHX`, already does) and is listed in the host's `devices` block in
+   the syncthing module.
 2. Add the device name to `folders."notes".devices`.
 3. Rebuild, then accept the folder on the other device.
 
-`.stignore` keeps `.zk/notebook.db*` (rebuilt per device), the root `media/`
+`notes-init` writes `~/Notes/.stignore` once and never rewrites it, so edit
+that file to change the list. It keeps `.zk/notebook.db*` (rebuilt per device), the root `media/`
 farm, `.DS_Store` and sync-conflict files out of the sync. The zk config and
 templates in `.zk/` do sync, so one edit reaches every device.
 
@@ -117,7 +120,13 @@ Limits:
 - Weave only serves the host it runs on. When qbert is off, the phone cannot
   read notes. Running Weave on an always-on host that also syncs the notebook
   fixes that.
-- Without a password anything on the tailnet can edit notes through Weave.
+- Without a password anything on the tailnet can edit notes through Weave. The
+  build prints a warning in that case.
+- `weave.service` runs sandboxed: `ProtectHome=tmpfs` hides everything in
+  `$HOME` except `~/Notes`, so a Weave bug cannot reach `~/.ssh` or the rendered
+  secrets.
+- Weave follows the `~/Notes/media` symlinks: checked against weave 0.4.0, the
+  route returns 200 for a linked image.
 
 ## macOS port checklist
 
@@ -126,7 +135,8 @@ The scripts in `cfg/` are plain bash 3.2, no GNU-only flags, and read
 `hierarchy.txt` and `zk/`, default: next to the script).
 
 1. Install: `brew install zk fzf bat ripgrep pngpaste choose-gui` and Typora
-   (cask). markless: `cargo install markless` (v0.9.29 pinned here).
+   (cask). markless: `cargo install markless` (the upstream README's install
+   command; nixerator pins v0.9.29).
 2. Copy `modules/apps/cli/notes/cfg/` to a stable path, for example
    `~/.local/share/notes`, and put the scripts on `PATH` without the `.bash`
    suffix. Set `NOTES_SHARE` to that directory.
