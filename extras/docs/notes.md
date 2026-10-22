@@ -45,6 +45,12 @@ Defined in `cfg/hierarchy.txt`. `notes-init` creates it, each folder with a
 
 If a note fits two folders, put it in one and link it from the other.
 
+Free subfolders are allowed one level below the topic folders above, for
+example `10-work/kong/accounts/<customer>` or `30-personal/travel/<trip>`.
+Create them with `notes-new` (`+ new folder`) or `mkdir`. They are your data,
+so they stay out of `hierarchy.txt`, and each gets its `media/` on the first
+note or paste. A new top-level folder is a deliberate edit to `hierarchy.txt`.
+
 ## Commands
 
 | Command | Does |
@@ -54,7 +60,7 @@ If a note fits two folders, put it in one and link it from the other.
 | `notes -s [query]` | Full-text search as you type (`zk --match`). |
 | `notes -t tag` | Pick among notes with a tag. |
 | `notes -l` | Fuzzel menu, opens the GUI viewer. Bound to `SUPER+CTRL+N` on Hyprland when `apps.cli.notes.keybind = true` (qbert). |
-| `notes-new [title]` | Pick a folder, create the note from its template, open `$EDITOR`. |
+| `notes-new [title]` | Pick a folder (or `+ new folder`), create the note from its template, open `$EDITOR`. |
 | `notes-media NOTE [FILE]` | Copy a file (or the clipboard image) into the note's `media/` and print the link. `--append` first adds it to the note. |
 | `notes-open [--gui\|--edit] FILE` | Open in markless (default), the GUI viewer, or `$EDITOR`. |
 | `notes-init [--update]` | Create folders, `.stignore`, `.zk/config.toml`, templates. `--update` overwrites config and templates. |

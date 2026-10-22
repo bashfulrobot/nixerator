@@ -2,7 +2,8 @@
 # notes-new: create a note in a chosen folder using zk templates.
 # Portable: Linux and macOS, bash 3.2+.
 #
-#   notes-new [TITLE...]      pick a folder with fzf, create the note, open it
+#   notes-new [TITLE...]      pick a folder with fzf (or "+ new folder"), create
+#                             the note, open it
 #   notes-new -d DIR TITLE    skip the picker (DIR relative to the notes root)
 #
 # Env: NOTES_DIR (default ~/Notes), NOTES_OPEN (path to notes-open).
@@ -33,8 +34,22 @@ if [ -z "$dir" ]; then
     exit 1
   }
   # Every folder except media/ folders, hidden dirs and the notes root.
-  dir=$(find . -type d ! -name media ! -path './.*' ! -path './media' ! -path . |
-    sed 's|^\./||' | sort | fzf --prompt 'folder> ') || exit 0
+  new_entry="+ new folder"
+  dir=$({
+    echo "$new_entry"
+    find . -type d ! -name media ! -path './.*' ! -path './media' ! -path . |
+      sed 's|^\./||' | sort
+  } | fzf --prompt 'folder> ') || exit 0
+  if [ "$dir" = "$new_entry" ]; then
+    printf 'new folder (relative to %s, e.g. 30-personal/travel/japan): ' "$NOTES_DIR"
+    read -r dir
+    case "$dir" in
+    "" | /* | .. | ../* | */.. | */../* | .*)
+      echo "notes-new: folder must be a plain relative path" >&2
+      exit 1
+      ;;
+    esac
+  fi
 fi
 
 mkdir -p "$dir/media"
