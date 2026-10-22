@@ -125,6 +125,30 @@
       hash = "sha256-5CJX6rmCMatYIDavUdpupEdQiXEaoH//tfPHuRwmAm0=";
     };
 
+    # Notes system (modules/apps/cli/notes). Both are Rust source builds absent
+    # from nixpkgs. After a version bump, set cargoHash to lib.fakeHash, build,
+    # and paste the hash from the mismatch error. updatePolicy=manual because
+    # update-pkg does not refresh cargoHash.
+    markless = {
+      source = "github-release";
+      repo = "jvanderberg/markless";
+      updatePolicy = "manual";
+      version = "0.9.29";
+      tagPrefix = "v";
+      hash = "sha256-orjJ++948WEJ031c5Dcvmfyqw2JMRJRjoBsGU+A+B4w=";
+      cargoHash = "sha256-kMMglmIsc3HkCx24Zir3NtZitwrxYwa7FgLgAZ2/ffo=";
+    };
+
+    weave = {
+      source = "github-release";
+      repo = "matze/weave";
+      updatePolicy = "manual";
+      version = "0.4.0";
+      tagPrefix = "v";
+      hash = "sha256-8Ecsc+GBQx/M9ytSpOYNleGfNVVVCjrCcBibhGgSNcY=";
+      cargoHash = "sha256-g5QM4EJUc79f2nXrKbNk7yeffRoEpOym2asqX5et1yQ=";
+    };
+
     cpx = {
       source = "github-release";
       repo = "11happy/cpx";

@@ -111,6 +111,15 @@ in
               versioning = simpleVersioning;
             };
 
+            # Plain-markdown notes (apps.cli.notes). No peers yet: add the Mac
+            # (or another host) to `devices` when it joins. Phones and tablets
+            # read through Weave, not Syncthing.
+            "notes" = {
+              path = globals.paths.notes;
+              devices = [ ];
+              versioning = staggeredVersioning;
+            };
+
           };
         };
       })
@@ -280,6 +289,13 @@ in
               '';
             in
             ''
+              install -Dm644 ${pkgs.writeText "notes-stignore" ''
+                .zk/notebook.db
+                .zk/notebook.db-*
+                /media
+                (?d).DS_Store
+                *.sync-conflict-*
+              ''} "$HOME/Notes/.stignore"
               install -Dm644 ${pkgs.writeText "dev-stignore" ''
                 .git
                 .mcp.json
