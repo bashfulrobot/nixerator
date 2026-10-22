@@ -295,7 +295,7 @@ How it fits together:
 
 - The store is the private repo `bashfulrobot/secauto`. It holds one GPG-encrypted file per secret, plus `.gpg-id`. The decrypting key is never in the repo.
 - qbert is the only writer. It commits and pushes from its clone at `~/git/secauto`.
-- Reader hosts (srv, the Mac) keep a clone at `~/.local/share/gopass/stores/root`. On NixOS, `apps.cli.secauto-pull` runs `git pull --ff-only` every 15 minutes over a read-only deploy key.
+- Reader hosts (srv, the Mac) keep a clone at `~/.local/share/gopass/stores/root`. On NixOS, `apps.cli.secauto-pull` runs `git pull --ff-only` every 15 minutes over a read-only deploy key. It checks the server against GitHub's published host keys pinned in the module (`github-known-hosts`, never trust-on-first-use) and ignores the user's ssh config, so a ControlMaster or ProxyCommand there cannot bypass the check.
 - One passphrase-less GPG key (uid `secauto automation`) decrypts the store on every host. The recovery copy is the 1Password Document `secauto-gpg-key` in the Personal vault, which service accounts cannot read. Open it only to rebuild a host or after losing every other copy.
 
 Setting up a reader host (once):

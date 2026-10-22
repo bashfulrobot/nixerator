@@ -8,6 +8,11 @@
 let
   cfg = config.apps.cli.secauto-pull;
 
+  # GitHub's published SSH host keys (ed25519, ecdsa, rsa), each verified against
+  # the fingerprints api.github.com/meta publishes. Public data, safe in the store.
+  # Refresh with: gh api meta --jq '.ssh_keys[] | "github.com " + .'
+  knownHosts = ./github-known-hosts;
+
   # Fast-forward pull of the secauto repo (encrypted gopass store) over a
   # read-only deploy key. The decrypting GPG key is never in git; it is placed
   # on the host separately, see extras/docs/secrets.md.
@@ -18,8 +23,11 @@ let
       pkgs.openssh
     ];
     text = ''
-      store="${cfg.storePath}"
-      key="${cfg.deployKey}"
+      # lib.escapeShellArg: the option values are spliced into shell source, so a
+      # path with a space, quote or $ must stay one inert word.
+      store=${lib.escapeShellArg cfg.storePath}
+      key=${lib.escapeShellArg cfg.deployKey}
+      known_hosts=${knownHosts}
 
       # Exit 2 is a configuration error. The unit does not retry it, since
       # retrying a missing clone or key changes nothing.
@@ -32,10 +40,19 @@ let
         exit 2
       fi
 
-      # IdentitiesOnly keeps ssh from offering other keys, so the read-only
-      # deploy key is the only identity this unit can use. BatchMode forbids
-      # any prompt. accept-new records github.com's host key on first contact.
-      export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+      # The server is checked against GitHub's published host keys, pinned in the
+      # Nix store. Trusting the first key that answers (accept-new) would let
+      # anyone on the network path impersonate GitHub on the first run and serve a
+      # store this host would then decrypt. The global known_hosts is ignored so
+      # the pin cannot be widened. -F /dev/null and no connection sharing keep the
+      # user's ssh config out of it: a ControlMaster there reuses an open
+      # connection and skips host-key verification entirely, and a ProxyCommand or
+      # IdentityAgent would change who is contacted and with which key.
+      # IdentitiesOnly makes the read-only deploy key the only identity offered.
+      # BatchMode forbids any prompt. printf %q quotes the key path because git
+      # runs GIT_SSH_COMMAND through a shell.
+      q_key="$(printf '%q' "$key")"
+      export GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -F /dev/null -i $q_key -o IdentitiesOnly=yes -o BatchMode=yes -o ControlMaster=no -o ControlPath=none -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$known_hosts -o GlobalKnownHostsFile=/dev/null"
       git -C "$store" pull --ff-only --quiet
     '';
   };
