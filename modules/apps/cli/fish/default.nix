@@ -29,13 +29,15 @@ in
           # Disable greeting
           set fish_greeting
 
-          # Load 1Password service account token from the rendered secrets blob
-          # so it never enters the Nix store. Allows headless `op read` over SSH
-          # without session prompts. Runs for all shells (not just interactive)
-          # so `fish -c` invocations and scripts also authenticate.
+          # No 1Password service-account token is exported here any more.
+          # Automation reads secrets from gopass (the secauto store) or from the
+          # secrets file rendered with `render-secrets --from gopass`, so it never
+          # calls `op`. A shell that exports the token also hands it to every
+          # child process, including a Claude Bash tool, which could then read any
+          # vault the service account can see. `op` at the desk uses the desktop
+          # app; `op-toggle` opts one shell into the service account on demand.
           set -l _secrets ~/.config/nixos-secrets/secrets.json
           if test -f $_secrets && command -q jq
-            set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
             set -gx GRAFANA_TOKEN (jq -r '.grafana.dashboardsToken' $_secrets)
             # Forgejo (git.srvrs.co) REST API token for Claude Code skills that
             # talk to the self-hosted Forgejo instance. Same runtime-render
@@ -98,21 +100,19 @@ in
         # Custom functions
         functions = {
           op-toggle = {
-            description = "Toggle `op` between the service-account token (default on every new shell, via shellInit above) and interactive desktop-client auth. Shell-local -- open a new shell to get back to the service-account default.";
+            description = "Toggle `op` between the desktop app (default) and the service-account token for this shell only. The token comes from ~/.config/op/service-account-token.";
             body = ''
               if set -q OP_SERVICE_ACCOUNT_TOKEN
                 set -e OP_SERVICE_ACCOUNT_TOKEN
-                echo "→ op: switching to desktop-client (interactive) auth..."
-                op signin | source
-                echo "✓ op: now on desktop-client auth for this shell -- run op-toggle again to switch back"
+                echo "✓ op: service-account token cleared; op uses the desktop app again"
               else
-                set -l _secrets ~/.config/nixos-secrets/secrets.json
-                if not test -f $_secrets
-                  echo "op-toggle: $_secrets not found -- run 'just render-secrets' first" >&2
+                set -l _tok ~/.config/op/service-account-token
+                if not test -r $_tok
+                  echo "op-toggle: $_tok not found -- run 'just setup-op-token' first" >&2
                   return 1
                 end
-                set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
-                echo "✓ op: back to service-account auth"
+                set -gx OP_SERVICE_ACCOUNT_TOKEN (cat $_tok)
+                echo "✓ op: this shell now uses the service account -- run op-toggle again to clear it"
               end
             '';
           };
