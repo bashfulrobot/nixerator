@@ -2,9 +2,9 @@
 # notes-new: create a note in a chosen folder using zk templates.
 # Portable: Linux and macOS, bash 3.2+.
 #
-#   notes-new [TITLE...]      pick a folder with fzf, create the note, open it
+#   notes-new [TITLE...]      pick a folder with fzf (or "+ new folder"), create
+#                             the note, open it
 #   notes-new -d DIR TITLE    skip the picker (DIR relative to the notes root)
-#   notes-new -j              quick capture: today's journal entry
 #
 # Env: NOTES_DIR (default ~/Notes), NOTES_OPEN (path to notes-open).
 set -euo pipefail
@@ -25,10 +25,6 @@ case "${1:-}" in
   dir="${2:?usage: notes-new -d DIR TITLE}"
   shift 2
   ;;
--j)
-  dir="40-journal/daily"
-  shift
-  ;;
 esac
 title="$*"
 
@@ -38,29 +34,31 @@ if [ -z "$dir" ]; then
     exit 1
   }
   # Every folder except media/ folders, hidden dirs and the notes root.
-  dir=$(find . -type d ! -name media ! -path './.*' ! -path './media' ! -path . |
-    sed 's|^\./||' | sort | fzf --prompt 'folder> ') || exit 0
+  new_entry="+ new folder"
+  dir=$({
+    echo "$new_entry"
+    find . -type d ! -name media ! -path './.*' ! -path './media' ! -path . |
+      sed 's|^\./||' | sort
+  } | fzf --prompt 'folder> ') || exit 0
+  if [ "$dir" = "$new_entry" ]; then
+    printf 'new folder (relative to %s, e.g. 30-personal/travel/japan): ' "$NOTES_DIR"
+    read -r dir
+    case "$dir" in
+    "" | /* | .. | ../* | */.. | */../* | .*)
+      echo "notes-new: folder must be a plain relative path" >&2
+      exit 1
+      ;;
+    esac
+  fi
 fi
 
 mkdir -p "$dir/media"
 
 if [ -z "$title" ]; then
-  case "$dir" in
-  # The weekly filename is the slugged title, so build the ISO week here.
-  40-journal/weekly) title="Week $(date +%G-W%V)" ;;
-  # The daily filename is the date; zk's template supplies the heading.
-  40-journal/daily) ;;
-  *)
-    printf 'title: '
-    read -r title
-    ;;
-  esac
+  printf 'title: '
+  read -r title
 fi
 
-if [ -n "$title" ]; then
-  file=$(zk new --no-input --print-path --title "$title" "$dir")
-else
-  file=$(zk new --no-input --print-path "$dir")
-fi
+file=$(zk new --no-input --print-path --title "$title" "$dir")
 
 exec "$NOTES_OPEN" --edit "$file"

@@ -28,10 +28,7 @@
 30-personal/family
 30-personal/learning
 
-40-journal/daily
-40-journal/weekly
-
-50-reference/cheatsheets
-50-reference/how-to
+40-reference/cheatsheets
+40-reference/how-to
 
 90-archive
