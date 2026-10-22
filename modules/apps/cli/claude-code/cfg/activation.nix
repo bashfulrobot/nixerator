@@ -64,6 +64,13 @@
       # user-environment import, hence don't get home.sessionVariables
       # either) fell back to the raw passphrase-protected SSH key.
       #
+      # XDG_RUNTIME_DIR is set alongside it on purpose. The Bash tool's shell
+      # sources /etc/set-environment, which runs
+      # `export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/gcr/ssh"`. With
+      # XDG_RUNTIME_DIR empty (background sessions) that rewrites the correct
+      # value above to the literal `/gcr/ssh`. Giving every tool process the
+      # real runtime dir makes that export resolve to the same socket.
+      #
       # Resolved with a real `id -u` here, at real activation time on the
       # real host -- not at Nix eval time, which can run cross-host (see
       # `just build-host`) and would bake in the wrong UID.
@@ -81,14 +88,15 @@
       ${
         if serverProfile == "minimal" then
           ''
-            ${pkgs.jq}/bin/jq 'del(.env.SSH_AUTH_SOCK)' \
+            ${pkgs.jq}/bin/jq --arg rt "/run/user/$(id -u)" \
+              'del(.env.SSH_AUTH_SOCK) | .env.XDG_RUNTIME_DIR = $rt' \
               "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
             mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
           ''
         else
           ''
-            ${pkgs.jq}/bin/jq --arg sock "/run/user/$(id -u)/gcr/ssh" \
-              '.env.SSH_AUTH_SOCK = $sock' \
+            ${pkgs.jq}/bin/jq --arg rt "/run/user/$(id -u)" \
+              '.env.XDG_RUNTIME_DIR = $rt | .env.SSH_AUTH_SOCK = ($rt + "/gcr/ssh")' \
               "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
             mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
           ''

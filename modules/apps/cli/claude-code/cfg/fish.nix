@@ -210,9 +210,9 @@
           #     also mangle unrelated, intentionally-literal "dustin" strings
           #     elsewhere in the file, e.g. additionalDirectories or a hook body's
           #     own hardcoded-username grep pattern)
-          #   - env.SSH_AUTH_SOCK:         Nix-owned (activation injects a
-          #     host-resolved value, or deletes the key on serverProfile ==
-          #     "minimal" -- see cfg/activation.nix) -> dropped
+          #   - env.SSH_AUTH_SOCK, env.XDG_RUNTIME_DIR: Nix-owned (activation
+          #     injects host-resolved values; SSH_AUTH_SOCK is deleted on
+          #     serverProfile == "minimal" -- see cfg/activation.nix) -> dropped
           #   - extraKnownMarketplaces / enabledPlugins: owned by cfg/plugin-config.nix
           #     (derived from the claude-stack snapshot, merged at activation) -> dropped
           #   - permissions.ask:           Nix-owned (activation pins it) -> dropped
@@ -247,7 +247,7 @@
             sed -e "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" \
                 -e "s|/etc/profiles/per-user/${globals.user.name}/bin|/etc/profiles/per-user/@USER_NAME@/bin|g" \
                 "$claude_dir/settings.json" \
-              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .autoMode, .skillOverrides, .env.SSH_AUTH_SOCK)
+              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .autoMode, .skillOverrides, .env.SSH_AUTH_SOCK, .env.XDG_RUNTIME_DIR)
                     | .hooks = ((.hooks // {})
                         | map_values(map(select((.hooks[0].command // "")
                             | test("/nix/store/|herdr-agent-state") | not)))
