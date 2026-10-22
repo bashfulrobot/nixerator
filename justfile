@@ -1073,10 +1073,10 @@ check-secrets-gopass:
 # One-time copy of every mapped value from 1Password into the secauto gopass
 # store (run on qbert, the writer). Values pipe op -> gopass and never print.
 # Safe to rerun: present, non-empty entries are skipped.
-[doc('Import mapped 1Password values into the secauto gopass store (one-time)')]
+[doc('Import 1Password values into the secauto gopass store (one-time; flags: --mirror --dry-run --desktop)')]
 [group('secrets')]
-import-secrets-to-gopass:
-    @bash extras/helpers/import-op-to-gopass.sh
+import-secrets-to-gopass *args:
+    @bash extras/helpers/import-op-to-gopass.sh {{args}}
 
 # Render locally AND scp the rendered file to one or more peer hosts. Use
 # after rotating a 1Password value, before running `just remote-rebuild <host>`

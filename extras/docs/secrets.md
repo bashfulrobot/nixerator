@@ -330,7 +330,9 @@ Rules for AI assistants: never run `gopass show`, `gopass cat` or `pass show`, a
 
 One-time import from 1Password, run on qbert: `just import-secrets-to-gopass` (`extras/helpers/import-op-to-gopass.sh`). It authenticates with the service-account token file if present, else the desktop session (`--desktop` forces it). It pipes each value from `op read` into `gopass insert`, never prints one, skips entries that are present and non-empty, and refuses to store an empty read. Rerun it after a failure.
 
-Cut-over order: import, `just check-secrets-gopass` until no key differs, then switch hosts from `render-secrets` to `render-secrets --from gopass`.
+`--mirror` also copies every other credential field of every item in the `automation` and `nixerator` vaults to `<vault>/<item>/<field>` (slugged: lowercase, `-` for other characters), so new 1Password items need no map edit. It skips what must not be shared by the one GPG key: Documents and SSH keys (SSH identity keys, git-crypt keys, certificates stay in `MATERIALIZE`), service-account tokens, notes fields, and fields the map already covers. Two items with the same title get a short id suffix. `--dry-run` prints `would <entry>` lines and writes nothing. Only the `automation` and `nixerator` vaults are mirrored.
+
+Cut-over order: import (`just import-secrets-to-gopass --mirror --dry-run`, then without `--dry-run`), `just check-secrets-gopass` until no key differs, then switch hosts from `render-secrets` to `render-secrets --from gopass`.
 
 ## Accessing in modules
 
