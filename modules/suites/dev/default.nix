@@ -67,6 +67,7 @@ in
         pre-commit # Runs the gitleaks hook in service-mesh-webinar
         pass # GPG-backed password store for project secrets
         gnupg # Decryption backend for pass
+        gopass # Automation secret store (secauto repo); GPG backend with a passphrase-less key, reads need no prompt
         shfmt # Shell parser the dk auto-gate hook needs (3.14.1 or newer, else it defers every command)
         statix # Nix linter and code quality checker
         fq # jq for binary formats (media, networking, serialization)

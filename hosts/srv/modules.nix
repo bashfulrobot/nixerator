@@ -59,6 +59,7 @@ in
     ../../modules/apps/cli/opencode
     ../../modules/apps/cli/render-secrets
     ../../modules/apps/cli/restic
+    ../../modules/apps/cli/secauto-pull
     ../../modules/apps/cli/skillfish
     ../../modules/apps/cli/slack-token-refresh
     ../../modules/apps/cli/starship
@@ -123,6 +124,10 @@ in
     # receiving them by `just push-secrets srv`. Needs a valid SA token on the
     # host; see extras/docs/secrets.md.
     render-secrets.enable = true;
+    # Reader for the secauto encrypted gopass store: pulls over a read-only
+    # deploy key every 15 min. Needs the one-time clone, GPG key import and
+    # deploy key described on the option.
+    secauto-pull.enable = true;
     # Extracts Slack xoxc/xoxd session cookies via a persistent Chromium
     # profile (Playwright) so the slack-post skill can send from srv.
     # Separate credential path from claudoist's Slack MCP (Task 1/3-4 of
