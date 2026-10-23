@@ -226,6 +226,64 @@ update input:
 bump-claude-skills:
     bash modules/apps/cli/claude-code/cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills main
 
+# Ship a merged claude-skills change to the NixOS hosts in one command: bump the
+# pin and claude-stack snapshot on a branch, open a signed PR, ask once, then
+# squash-merge it and rebuild qbert and srv. `what` goes in the commit title,
+# e.g. `just ship-claude-skills "dk 3.3.6, git-cleanup fixes"`. `sha` defaults to
+# claude-skills `main` HEAD; pass a 40-hex sha to pin an older merge.
+#
+# Run it from the primary checkout on a clean, current `main`: the PR merge
+# needs `main` checked out, which a linked worktree cannot do. The merge and the
+# rebuilds only run after you answer yes at the prompt. Like `bump-hyprflake`
+# this commits and pushes by design. The Mac is not reached from here: the last
+# lines print its two commands.
+[doc('Bump the claude-skills pin via PR, merge, then rebuild qbert and srv')]
+[group('bump')]
+ship-claude-skills what sha="main":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    die() { echo "ship-claude-skills: $*" >&2; exit 1; }
+    [[ "$(git rev-parse --git-dir)" == "$(git rev-parse --git-common-dir)" ]] \
+        || die "run from the primary checkout, not a linked worktree"
+    [[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] || die "switch to main first"
+    git diff --quiet && git diff --cached --quiet || die "working tree is not clean"
+    git pull --ff-only
+    if [[ "{{sha}}" =~ ^[0-9a-f]{40}$ ]]; then
+        full="{{sha}}"
+    else
+        full="$(git ls-remote https://github.com/bashfulrobot/claude-skills.git "refs/heads/{{sha}}" | awk '{print $1}')"
+    fi
+    [[ -n "$full" ]] || die "could not resolve claude-skills@{{sha}}"
+    short="${full:0:7}"
+    branch="chore/bump-claude-skills-${short}"
+    msg="chore(claude-code): bump claude-skills pin to ${short} ({{what}})"
+    cfg="modules/apps/cli/claude-code/cfg"
+    git switch -c "$branch"
+    bash "$cfg/scripts/bump-plugin-marketplace-sha.sh" claude-skills bashfulrobot/claude-skills "$full"
+    if git diff --quiet -- "$cfg/plugin-config.nix" "$cfg/claude-stack"; then
+        git switch main
+        git branch -D "$branch"
+        die "pin is already at ${short}, nothing to ship"
+    fi
+    git add -- "$cfg/plugin-config.nix" "$cfg/claude-stack"
+    git commit -qS -m "$msg"
+    git push -u origin HEAD
+    pr="$(gh pr create --base main --title "$msg" --body "Pin bump from just ship-claude-skills.")"
+    echo "PR: $pr"
+    if ! gum confirm "Merge the PR, then rebuild qbert and srv?"; then
+        echo "Stopped before the merge. Branch $branch stays checked out."
+        exit 0
+    fi
+    gh pr merge "$pr" --squash --delete-branch
+    git switch main
+    git pull --ff-only
+    just quiet-rebuild
+    just build-host srv
+    just remote-rebuild srv
+    echo "qbert and srv are on ${short}. Mac, run:"
+    echo "  git -C ~/git/donkeykong pull --ff-only"
+    echo "  cd ~/git/donkeykong && ./claude-plugins.sh --upgrade"
+
 # Remove linked worktrees under .claude/worktrees whose PR is merged, and delete
 # their local branch. Dry run by default; `just prune-worktrees --yes` removes.
 # Run it from the primary checkout: a session cannot remove its own worktree.
