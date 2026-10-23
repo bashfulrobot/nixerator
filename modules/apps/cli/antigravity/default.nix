@@ -4,10 +4,21 @@
   pkgs,
   config,
   globals,
+  secretsLib,
   ...
 }:
 let
   cfg = config.apps.cli.antigravity;
+
+  # `agy` gets GEMINI_API_KEY from the secauto gopass store at each launch (the
+  # wrapper exports it for that process only), so no shell has to export it.
+  agy = secretsLib.withGopassEnv {
+    inherit pkgs;
+    pkg = pkgs.google-antigravity-cli;
+    bin = "agy";
+    envVar = "GEMINI_API_KEY";
+    entry = "gemini/credential";
+  };
 
   # Antigravity's settings schema is flat -- none of the nested gemini-cli keys
   # (general.previewFeatures / ide.enabled / security.auth.selectedType) exist
@@ -106,7 +117,7 @@ in
         # From jacopone/antigravity-nix rather than llm-agents:
         # Ships the CLI (agy), Antigravity 2.0 app, and IDE packages.
         packages = [
-          pkgs.google-antigravity-cli
+          agy
           pkgs.google-antigravity
           pkgs.google-antigravity-ide
         ];

@@ -65,9 +65,16 @@ if [[ -z "$PROJECT_NAME" && "$KONG_MODE" == "false" ]]; then
   exit 1
 fi
 
+# Run-time fallback: with no TODOIST_API_TOKEN exported, read the secauto gopass
+# entry `todoist/credential`. The value stays in this script's own variable and is
+# never exported. An exported value still wins. GOPASS_FALLBACK=off disables it.
+if [[ -z "${TODOIST_API_TOKEN:-}" && "${GOPASS_FALLBACK:-on}" != off ]] && command -v gopass >/dev/null 2>&1; then
+  TODOIST_API_TOKEN="$(gopass show -o todoist/credential 2>/dev/null || true)"
+fi
+
 if [[ -z "${TODOIST_API_TOKEN:-}" ]]; then
-  printf 'Error: TODOIST_API_TOKEN is not set.\n' >&2
-  printf 'Set it via shadowenv or: export TODOIST_API_TOKEN=your-token\n' >&2
+  printf 'Error: TODOIST_API_TOKEN is not set and gopass entry todoist/credential could not be read.\n' >&2
+  printf 'Is the secauto store pulled (gopass ls)? Or export TODOIST_API_TOKEN=your-token\n' >&2
   exit 1
 fi
 

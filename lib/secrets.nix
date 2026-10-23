@@ -18,6 +18,44 @@
   # Canonical off-store secrets path for a host.
   file = globals: "${globals.user.homeDirectory}/.config/nixos-secrets/secrets.json";
 
+  # Wraps `pkg`'s binary `bin` so that, when `envVar` is unset at launch, the
+  # wrapper reads it from the secauto gopass store (`entry`) and exports it for
+  # THAT process only. This replaces exporting the token in every shell: a shell
+  # export reaches every child process, including a Claude Bash tool, while the
+  # wrapper's export dies with the wrapped command. An already-set variable wins,
+  # and GOPASS_FALLBACK=off disables the lookup. Only the entry name is in the
+  # Nix store, never a value, so the helper stays value-free.
+  #
+  # pkgs   : nixpkgs (for symlinkJoin and makeWrapper)
+  # pkg    : the package to wrap
+  # bin    : the executable under $out/bin to wrap (e.g. "td")
+  # envVar : the variable that program reads (e.g. "TODOIST_API_TOKEN")
+  # entry  : the gopass entry holding the value (e.g. "todoist/credential")
+  withGopassEnv =
+    {
+      pkgs,
+      pkg,
+      bin,
+      envVar,
+      entry,
+    }:
+    let
+      # "$" + name, built here because `$${name}` is an escaped literal in Nix
+      # and would leave the shell test comparing the process id, never empty.
+      varRef = "$" + envVar;
+    in
+    pkgs.symlinkJoin {
+      name = "${pkg.pname or pkg.name}-gopass-env";
+      paths = [ pkg ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        wrapProgram $out/bin/${bin} --run 'if [ -z "${varRef}" ] && [ "''${GOPASS_FALLBACK:-on}" != off ] && command -v gopass >/dev/null 2>&1; then export ${envVar}="$(gopass show -o ${entry} 2>/dev/null)"; fi'
+      '';
+      meta = (pkg.meta or { }) // {
+        mainProgram = bin;
+      };
+    };
+
   # Writes the value at `path` to `dest` with `mode`, wrapped so the plaintext
   # never hits argv (jq reads the file, output is redirected). No-op when the
   # key is absent or the secrets file is missing, so hosts without the secret

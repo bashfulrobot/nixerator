@@ -322,9 +322,10 @@ let
   #
   # Secret-bearing tokens (GEMINI_API_KEY, AHA_API_TOKEN, WAVE_FULL_ACCESS_TOKEN)
   # are NOT set here: exporting them via environment.variables/sessionVariables
-  # bakes the plaintext into the world-readable Nix store. They are exported at
-  # shell runtime by the fish module, read from the off-store secrets file
-  # (issue #265). Only non-secret env vars remain below.
+  # bakes the plaintext into the world-readable Nix store, and no shell exports
+  # them either. Each consumer reads its value from the secauto gopass store at
+  # run time (see "No exported API tokens" in extras/docs/secrets.md). Only
+  # non-secret env vars remain below.
   claudeEnv =
     lib.optionalAttrs hasHyperframes {
       PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;

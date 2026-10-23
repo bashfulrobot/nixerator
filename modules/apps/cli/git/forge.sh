@@ -91,11 +91,22 @@ _fj_auth_config() {
   printf 'header = "Authorization: token %s"\n' "$FORGEJO_TOKEN"
 }
 
+# _forgejo_token_load — run-time fallback: with no FORGEJO_TOKEN exported, read the
+# secauto gopass entry `forgejo-api/token`. The value stays in this script's own
+# variable and is never exported. Only Forgejo calls reach it. An exported token
+# still wins. GOPASS_FALLBACK=off disables it. (Same helper as dk's forge.sh.)
+_forgejo_token_load() {
+  if [[ -z "${FORGEJO_TOKEN:-}" && "${GOPASS_FALLBACK:-on}" != off ]] && command -v gopass >/dev/null 2>&1; then
+    FORGEJO_TOKEN="$(gopass show -o forgejo-api/token 2>/dev/null || true)"
+  fi
+}
+
 # _fj METHOD PATH [JSON_BODY] — JSON request against the Gitea-compatible API.
 _fj() {
   local method="$1" path="$2" body="${3:-}"
   : "${FORGEJO_URL:?FORGEJO_URL not set}"
-  : "${FORGEJO_TOKEN:?FORGEJO_TOKEN not set — run: just render-secrets, then start a new shell}"
+  _forgejo_token_load
+  : "${FORGEJO_TOKEN:?FORGEJO_TOKEN not set and gopass entry forgejo-api/token could not be read (is the secauto store pulled? try: gopass ls)}"
   local url="${FORGEJO_URL%/}/api/v1/${path}"
   if [ -n "$body" ]; then
     curl -fsS -X "$method" \
@@ -114,7 +125,8 @@ _fj() {
 # _fj_raw PATH — non-JSON GET (e.g. a .diff), returns the body verbatim.
 _fj_raw() {
   : "${FORGEJO_URL:?FORGEJO_URL not set}"
-  : "${FORGEJO_TOKEN:?FORGEJO_TOKEN not set — run: just render-secrets}"
+  _forgejo_token_load
+  : "${FORGEJO_TOKEN:?FORGEJO_TOKEN not set and gopass entry forgejo-api/token could not be read (is the secauto store pulled? try: gopass ls)}"
   curl -fsS \
     -K <(_fj_auth_config) \
     "${FORGEJO_URL%/}/api/v1/${1}"
