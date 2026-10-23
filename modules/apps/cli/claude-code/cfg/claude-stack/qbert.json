@@ -206,6 +206,9 @@
     "atlassian@claude-plugins-official": {
       "state": "absent"
     },
+    "cloudflare@claude-skills": {
+      "state": "disabled"
+    },
     "commit-commands@claude-plugins-official": {
       "state": "disabled"
     },
