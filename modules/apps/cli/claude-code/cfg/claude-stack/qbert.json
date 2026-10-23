@@ -235,7 +235,7 @@
     },
     "kode@claude-skills": {
       "secrets": {
-        "kode_apikey": "op://automation/Kode Internal MCP API Key/password"
+        "kode_apikey": "gopass://automation/kode-internal-mcp-api-key/password"
       },
       "state": "enabled"
     },
@@ -259,16 +259,16 @@
         "konnect_url": "https://us.mcp.konghq.com/"
       },
       "secrets": {
-        "konnect_pat": "op://automation/kong-konnect-pat/lab-pat-2026-06"
+        "konnect_pat": "gopass://kong/konnect-pat"
       },
       "state": "disabled"
     },
     "kong-tableau@claude-skills": {
       "secrets": {
-        "tableau_pat_name": "op://automation/Tableau-PAT/username",
-        "tableau_pat_value": "op://automation/Tableau-PAT/credential",
-        "tableau_server": "op://automation/Tableau-PAT/hostname",
-        "tableau_site_name": "op://automation/Tableau-PAT/Site-Name"
+        "tableau_pat_name": "gopass://tableau-pat/username",
+        "tableau_pat_value": "gopass://tableau-pat/credential",
+        "tableau_server": "gopass://tableau-pat/hostname",
+        "tableau_site_name": "gopass://tableau-pat/site-name"
       },
       "state": "disabled"
     },
