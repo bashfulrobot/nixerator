@@ -88,10 +88,13 @@ let
           prompt=$(printf "%s\n\nRecent commits (match this style):\n%s\n\nDiff:\n%s\n" "$base_prompt" "$recent" "$diff")
         fi
 
+        # No --dangerously-skip-permissions: the diff is untrusted text, and
+        # auto-approved tools would let a planted instruction run commands. Plan
+        # mode is enough to write a message.
         # The whole prompt goes in the --print argument: agy ignores stdin
         # entirely when a prompt arrives via flag (antigravity-cli#76, fixed in
         # 1.1.1). `< /dev/null` guards the historical inherited-pipe hang.
-        msg=$(agy --dangerously-skip-permissions --print-timeout 120s --print "$prompt" < /dev/null)
+        msg=$(agy --mode plan --print-timeout 120s --print "$prompt" < /dev/null)
 
         if [[ -z "$msg" ]]; then
           echo "Failed to generate commit message." >&2

@@ -17,7 +17,7 @@ setup() {
   cat >"${STUBS}/gopass" <<'EOF'
 #!/usr/bin/env bash
 # show -f ENTRY | show -o ENTRY | insert -f ENTRY | sync
-f="${GOPASS_STUB_STORE}/${3//\//__}"
+e="${*: -1}"; f="${GOPASS_STUB_STORE}/${e//\//__}"
 case "$1 $2" in
   "show -f") [[ -s "$f" ]] && cat "$f" || exit 11 ;;
   "show -o") [[ -s "$f" ]] && head -n1 "$f" || exit 11 ;;
@@ -206,4 +206,23 @@ run_import() { HOME="${THOME}" run bash "${HELPER}" --documents "$@"; }
 
 @test "the shipped table leaves out the identity-class files" {
   ! grep -v '^#' "${SHIPPED}" | grep -E 'id_ed25519|id_rsa|git-crypt|\.pfx|okular'
+}
+
+@test "a symlink at the destination is refused and its target keeps its mode" {
+  mkdir -p "${THOME}/d"
+  printf 'TARGET' >"${THOME}/victim"
+  chmod 644 "${THOME}/victim"
+  ln -s "${THOME}/victim" "${THOME}/d/key"
+  put documents/key "$(printf 'NEW' | base64)"
+  run restore documents/key "${THOME}/d/key" b64 600 700 ""
+  [ "$status" -eq 1 ]
+  [ "$(stat -c %a "${THOME}/victim")" = "644" ]
+  [ "$(cat "${THOME}/victim")" = "TARGET" ]
+}
+
+@test "the import helper never yields a dot component for a slug" {
+  run bash -c 'source <(sed -n "/^slug()/,/^}/p" "'"${HELPER}"'"); slug ..; slug .; slug "My Item"'
+  [ "${lines[0]}" = "x" ]
+  [ "${lines[1]}" = "x" ]
+  [ "${lines[2]}" = "my-item" ]
 }

@@ -20,9 +20,11 @@
 
   # Wraps `pkg`'s binary `bin` so that, when `envVar` is unset at launch, the
   # wrapper reads it from the secauto gopass store (`entry`) and exports it for
-  # THAT process only. This replaces exporting the token in every shell: a shell
-  # export reaches every child process, including a Claude Bash tool, while the
-  # wrapper's export dies with the wrapped command. An already-set variable wins,
+  # the wrapped command. This replaces exporting the token in every shell: a
+  # shell export reaches every process started from that shell, including a
+  # Claude Bash tool, while the wrapper's export reaches only the wrapped command
+  # and the children it starts (so a tool that runs sub-agents passes it on).
+  # An already-set variable wins,
   # and GOPASS_FALLBACK=off disables the lookup. Only the entry name is in the
   # Nix store, never a value, so the helper stays value-free.
   #
@@ -43,13 +45,18 @@
       # "$" + name, built here because `$${name}` is an escaped literal in Nix
       # and would leave the shell test comparing the process id, never empty.
       varRef = "$" + envVar;
+      # The absolute gopass path keeps a PATH entry ahead of the system profile
+      # from feeding an attacker-chosen value into the variable. `--` stops an
+      # entry from being read as a flag, and escapeShellArg keeps it one word.
+      gp = "${pkgs.gopass}/bin/gopass";
+      snippet = ''if [ -z "${varRef}" ] && [ "''${GOPASS_FALLBACK:-on}" != off ] && [ -x ${gp} ]; then export ${envVar}="$(${gp} show -o -- ${pkgs.lib.escapeShellArg entry} 2>/dev/null)"; fi'';
     in
     pkgs.symlinkJoin {
       name = "${pkg.pname or pkg.name}-gopass-env";
       paths = [ pkg ];
       nativeBuildInputs = [ pkgs.makeWrapper ];
       postBuild = ''
-        wrapProgram $out/bin/${bin} --run 'if [ -z "${varRef}" ] && [ "''${GOPASS_FALLBACK:-on}" != off ] && command -v gopass >/dev/null 2>&1; then export ${envVar}="$(gopass show -o ${entry} 2>/dev/null)"; fi'
+        wrapProgram $out/bin/${bin} --run ${pkgs.lib.escapeShellArg snippet}
       '';
       meta = (pkg.meta or { }) // {
         mainProgram = bin;

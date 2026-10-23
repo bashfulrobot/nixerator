@@ -78,7 +78,7 @@ import_documents() {
   }
   while IFS='|' read -r title entry enc _; do
     [[ -z "${title}" || "${title}" == \#* ]] && continue
-    if [[ -n "$(gopass show -f "${entry}" 2>/dev/null)" ]]; then
+    if [[ -n "$(gopass show -f -- "${entry}" 2>/dev/null)" ]]; then
       echo "skip  ${entry} (present, non-empty)"
       skip=$((skip + 1))
       continue
@@ -95,7 +95,7 @@ import_documents() {
     esac
     if [[ -n "${val}" ]] &&
       printf '%s' "${val}" | gopass insert -f "${entry}" >/dev/null 2>&1 &&
-      [[ -n "$(gopass show -f "${entry}" 2>/dev/null)" ]]; then
+      [[ -n "$(gopass show -f -- "${entry}" 2>/dev/null)" ]]; then
       echo "ok    ${entry}"
       ok=$((ok + 1))
     else
@@ -108,7 +108,7 @@ import_documents() {
 
 # slug TEXT — lowercase, anything outside [a-z0-9._-] becomes '-', trimmed.
 slug() {
-  tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//'
+  tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/^\.+$/x/'
 }
 
 # mirror_vault VAULT — copy every non-empty credential field of every item in
@@ -159,7 +159,7 @@ mirror_vault() {
         continue
       fi
       entry="${vault}/${name_title}/$(slug "${label}")"
-      if [[ -n "$(gopass show -o "${entry}" 2>/dev/null)" ]]; then
+      if [[ -n "$(gopass show -o -- "${entry}" 2>/dev/null)" ]]; then
         echo "skip  ${entry} (present, non-empty)"
         skip=$((skip + 1))
         continue
@@ -170,7 +170,7 @@ mirror_vault() {
         continue
       fi
       if jq -j --argjson i "${idx}" '.fields[$i].value' <<<"${item_json}" | gopass insert -f "${entry}" >/dev/null 2>&1 &&
-        [[ -n "$(gopass show -o "${entry}" 2>/dev/null)" ]]; then
+        [[ -n "$(gopass show -o -- "${entry}" 2>/dev/null)" ]]; then
         echo "ok    ${entry}"
         ok=$((ok + 1))
       else
@@ -187,7 +187,7 @@ run_map=1
 [[ "${documents}" -eq 1 && "${mirror}" -eq 0 ]] && run_map=0
 while IFS=$'\t' read -r entry ref; do
   [[ -z "${entry}" || "${entry}" == \#* ]] && continue
-  if [[ -n "$(gopass show -o "${entry}" 2>/dev/null)" ]]; then
+  if [[ -n "$(gopass show -o -- "${entry}" 2>/dev/null)" ]]; then
     echo "skip  ${entry} (present, non-empty)"
     skip=$((skip + 1))
     continue
@@ -200,7 +200,7 @@ while IFS=$'\t' read -r entry ref; do
   val="$(op read "${ref}" 2>/dev/null)"
   if [[ -n "${val}" ]] &&
     printf '%s' "${val}" | gopass insert -f "${entry}" >/dev/null 2>&1 &&
-    [[ -n "$(gopass show -o "${entry}" 2>/dev/null)" ]]; then
+    [[ -n "$(gopass show -o -- "${entry}" 2>/dev/null)" ]]; then
     echo "ok    ${entry}"
     ok=$((ok + 1))
   else
