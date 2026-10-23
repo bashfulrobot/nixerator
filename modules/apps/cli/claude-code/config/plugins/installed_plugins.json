@@ -4,31 +4,31 @@
     "commit-commands@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/commit-commands/unknown",
-        "version": "unknown",
-        "installedAt": "2026-02-03T16:56:02.020Z",
-        "lastUpdated": "2026-04-21T18:14:52.328Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/commit-commands/58267944f921",
+        "version": "58267944f921",
+        "installedAt": "2026-10-23T22:38:01.545Z",
+        "lastUpdated": "2026-10-23T22:38:01.545Z",
+        "gitCommitSha": "58267944f92187b7d6a1c822165c96c81c864806"
       }
     ],
     "security-guidance@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/2.0.11",
-        "version": "2.0.11",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/security-guidance/2.0.16",
+        "version": "2.0.16",
         "installedAt": "2026-02-03T16:56:26.138Z",
-        "lastUpdated": "2026-10-09T01:38:51.961Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
+        "lastUpdated": "2026-10-23T22:44:40.968Z",
+        "gitCommitSha": "58267944f92187b7d6a1c822165c96c81c864806"
       }
     ],
     "slack@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/slack/1.3.0",
-        "version": "1.3.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/slack/1.4.1",
+        "version": "1.4.1",
         "installedAt": "2026-02-03T16:58:07.503Z",
-        "lastUpdated": "2026-09-27T01:29:58.812Z",
-        "gitCommitSha": "19a119f97e361ebdec475cd2bf5667cc4e48e64b"
+        "lastUpdated": "2026-10-23T22:44:45.845Z",
+        "gitCommitSha": "ad6be88096678812c448b0279390b4d25bce0164"
       }
     ],
     "gopls-lsp@claude-plugins-official": [
@@ -44,11 +44,11 @@
     "skill-creator@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/skill-creator/unknown",
-        "version": "unknown",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/skill-creator/58267944f921",
+        "version": "58267944f921",
         "installedAt": "2026-03-14T19:42:41.629Z",
-        "lastUpdated": "2026-04-21T18:14:52.330Z",
-        "gitCommitSha": "d5c15b861cd23e3102215c26020368ad5134dc47"
+        "lastUpdated": "2026-10-23T22:44:43.535Z",
+        "gitCommitSha": "58267944f92187b7d6a1c822165c96c81c864806"
       }
     ],
     "superpowers@claude-plugins-official": [
@@ -73,12 +73,11 @@
     "kong-doc-build@kong-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-skills/kong-doc-build/fe5c4d1b8f1f",
-        "version": "fe5c4d1b8f1f",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-skills/kong-doc-build/99e8b93b20b9",
+        "version": "99e8b93b20b9",
         "installedAt": "2026-06-12T16:42:57.703Z",
-        "lastUpdated": "2026-06-12T16:42:57.703Z",
-        "gitCommitSha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22",
-        "auto": true
+        "lastUpdated": "2026-10-23T22:39:23.617Z",
+        "gitCommitSha": "99e8b93b20b90dd17c28852b657802cbca33b87e"
       }
     ],
     "semagraph@semagraph": [
@@ -94,11 +93,11 @@
     "dk@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/3.3.2",
-        "version": "3.3.2",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/3.3.4",
+        "version": "3.3.4",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-10-23T22:08:02.313Z",
-        "gitCommitSha": "16aa9478bb4b50b40a10646ca582de464f0e678e"
+        "lastUpdated": "2026-10-23T22:38:03.307Z",
+        "gitCommitSha": "cbb6f18013c72e901f9bbb6381562551317af0aa"
       }
     ],
     "kong-cs@claude-skills": [
@@ -173,11 +172,11 @@
     "plugin-dev@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/plugin-dev/ac996c0dde7f",
-        "version": "ac996c0dde7f",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/plugin-dev/58267944f921",
+        "version": "58267944f921",
         "installedAt": "2026-10-13T00:16:16.270Z",
-        "lastUpdated": "2026-10-13T00:16:16.270Z",
-        "gitCommitSha": "ac996c0dde7fb2a9f805cd5277ffc95ecd44a321"
+        "lastUpdated": "2026-10-23T22:44:31.772Z",
+        "gitCommitSha": "58267944f92187b7d6a1c822165c96c81c864806"
       }
     ],
     "se-harness@claude-skills": [
@@ -203,9 +202,9 @@
         "scope": "user",
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-konnect/1.0.0",
         "version": "1.0.0",
-        "installedAt": "2026-10-13T17:48:53.805Z",
-        "lastUpdated": "2026-10-13T17:48:53.805Z",
-        "gitCommitSha": "d8681fe231a84f2e0eed64fc8bf5bbc1a27d89de"
+        "installedAt": "2026-10-23T22:40:04.224Z",
+        "lastUpdated": "2026-10-23T22:40:04.224Z",
+        "gitCommitSha": "cbb6f18013c72e901f9bbb6381562551317af0aa"
       }
     ],
     "kong-tableau@claude-skills": [
@@ -213,9 +212,9 @@
         "scope": "user",
         "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-tableau/1.0.0",
         "version": "1.0.0",
-        "installedAt": "2026-10-13T17:48:54.297Z",
-        "lastUpdated": "2026-10-13T17:48:54.297Z",
-        "gitCommitSha": "d8681fe231a84f2e0eed64fc8bf5bbc1a27d89de"
+        "installedAt": "2026-10-23T22:41:05.928Z",
+        "lastUpdated": "2026-10-23T22:41:05.928Z",
+        "gitCommitSha": "cbb6f18013c72e901f9bbb6381562551317af0aa"
       }
     ],
     "impeccable@claude-skills": [
@@ -240,10 +239,21 @@
     "mattpocock-skills@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/mattpocock-skills/1.2.3",
-        "version": "1.2.3",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/mattpocock-skills/1.3.1",
+        "version": "1.3.1",
         "installedAt": "2026-10-21T03:42:54.766Z",
-        "lastUpdated": "2026-10-21T03:42:54.766Z"
+        "lastUpdated": "2026-10-23T22:44:30.551Z",
+        "gitCommitSha": "49dd158d1076134a641b33efb035946536778336"
+      }
+    ],
+    "cloudflare@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/cloudflare/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-23T22:38:44.695Z",
+        "lastUpdated": "2026-10-23T22:38:44.695Z",
+        "gitCommitSha": "cbb6f18013c72e901f9bbb6381562551317af0aa"
       }
     ]
   }
