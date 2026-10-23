@@ -25,6 +25,11 @@ Workflow rules: how to build, lint, format, manage upgrades, and handle secrets 
 - After making changes, suggest a conventional commit scope and title (e.g. `feat(fish): add zoxide integration`).
 - **Do not run `git stash` (push/save).** A PreToolUse hook (`guard-git-stash`, shipped by the dk plugin) denies it before it runs, so the stash never reaches the shared stack. This is a hard deny, unlike the warn-level `bash-guard` that only nudges on `--no-verify`/`--force`. The stash stack lives at `refs/stash` in the repo's common git directory, which every worktree shares, so two agents stashing in two worktrees push onto the same stack and pop each other's entries. `git stash pop`, `apply`, `list`, `show`, `drop`, and `branch` stay allowed so a human can recover an existing entry. `git stash clear` is denied like a push, since it discards the whole stack.
 
+### Worktree lifecycle
+
+- A session cannot remove the worktree it stands in, and a guard hook blocks `git -C` into another checkout. After a merge, keep working in the same worktree: `git fetch origin main && git switch -c <next-branch> origin/main`. Branches that are not checked out can be deleted from inside (`git branch -D <name>`).
+- When the line of work is finished, run `just prune-worktrees` from the **primary checkout** (dry run), then `just prune-worktrees --yes`. It removes only worktrees under `.claude/worktrees` that are clean, whose branch has a merged PR, and whose tip is the commit that PR merged. Anything else is listed as kept with the reason.
+
 ### Interrupt and shutdown pattern
 
 - To park in-progress work (agent interrupt, shutdown, or handoff), commit it on the task branch instead of stashing: `git add -A && git commit -m "wip: <summary>"`. The commit lives under the worktree's own HEAD, isolated per worktree, survives a reboot, and (once pushed) is visible on another device, which a stash never is.
