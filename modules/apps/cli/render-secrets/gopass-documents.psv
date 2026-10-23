@@ -1,0 +1,25 @@
+# 1Password Documents that live in the secauto gopass store as well.
+# Read by extras/helpers/import-op-to-gopass.sh --documents (one-time copy from the
+# nixerator vault) and by render-secrets --from gopass (restore to the host).
+# Names, paths and modes only. No contents.
+#
+# title | gopass entry | encoding | destination | file mode | dir mode | guard
+#
+#   encoding: b64  = base64 of the exact bytes (private keys, which need their trailing
+#                    newline, and the binary-safe filebot license)
+#             text = plain text (public keys, certificates, config)
+#   destination: ~/ is the home directory. Empty means import only, never restored by
+#                render-secrets (the Mac's chezmoi template reads that entry itself).
+#   guard: same rules as MATERIALIZE in render-secrets.sh: empty = every host, a path =
+#          only if it exists, host:a,b = only those hostnames.
+#
+# Left out on purpose: SSH identity keys (id_ed25519*, id_rsa*), the git-crypt keys,
+# incus-ui.pfx and okular-*. The one shared GPG key would expose those on every host,
+# so they stay in MATERIALIZE (op mode, workstations only).
+feral-arr|documents/feral-arr|b64|~/.ssh/feral-arr|600|700|host:nixerator,qbert,srv
+feral-arr.pub|documents/feral-arr.pub|text|~/.ssh/feral-arr.pub|644|700|host:nixerator,qbert,srv
+incus-ui.crt|documents/incus-ui.crt|text|~/.config/incus/client.crt|644|700|
+filebot-license|documents/filebot-license|b64|~/.local/share/filebot/data/.license|600|700|
+homelab-flux-deploy-key|documents/homelab-flux-deploy-key|b64|~/.ssh/homelab-flux-deploy-key|600|700|host:nixerator,qbert
+homelab-flux-deploy-key.pub|documents/homelab-flux-deploy-key.pub|text|~/.ssh/homelab-flux-deploy-key.pub|644|700|host:nixerator,qbert
+snowflake-connections-toml|documents/snowflake-connections-toml|text||||

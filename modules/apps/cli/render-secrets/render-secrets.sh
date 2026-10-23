@@ -19,6 +19,8 @@ TPL="@TPL@"
 # Shared gopass-entry <-> op:// reference map, baked as a store path. Tests and
 # --tpl worktree edits can override it with GOPASS_MAP.
 GOPASS_MAP="${GOPASS_MAP:-@MAP@}"
+# Documents that also live in gopass (title|entry|encoding|dest|modes|guard).
+GOPASS_DOCS="${GOPASS_DOCS:-@DOCS@}"
 
 # Hosts render-secrets is willing to scp to. Hardcoded — matches the same
 # allow-list `justfile`'s remote-rebuild recipes use. Defends against a
@@ -141,8 +143,11 @@ Usage: render-secrets [--from op|gopass] [--check] [--tpl PATH] [--push HOST [HO
                    token. gopass fills the same template from the secauto gopass
                    store using the map ${GOPASS_MAP}: no 1Password, no prompt,
                    works headless. A key whose entry is missing or empty is left
-                   out of the file. Document-backed files (SSH keys, ...) are
-                   restored only in op mode. Also settable with
+                   out of the file. The Documents listed in gopass-documents.psv
+                   (feral-arr key, Incus cert, filebot license, flux deploy key)
+                   are restored from gopass too. Identity-class files (SSH
+                   identity keys, git-crypt keys) are restored only in op mode.
+                   Also settable with
                    RENDER_SECRETS_FROM.
 
   --check          Render to a temp file and diff against the live file. No write.
@@ -303,6 +308,67 @@ gopass_inject() {
   fi
 }
 
+# guard_ok GUARD — true if GUARD is empty, a path that exists, or a
+# "host:h1,h2,..." list that contains this hostname.
+guard_ok() {
+  local guard="$1"
+  [[ -z "${guard}" ]] && return 0
+  case "${guard}" in
+    host:*)
+      local cur hn _guard_hosts
+      cur="${RENDER_SECRETS_HOSTNAME:-$(hostname)}"
+      IFS=',' read -ra _guard_hosts <<<"${guard#host:}"
+      for hn in "${_guard_hosts[@]}"; do
+        [[ "${hn}" == "${cur}" ]] && return 0
+      done
+      return 1
+      ;;
+    *)
+      [[ -e "${guard}" ]] && return 0
+      return 1
+      ;;
+  esac
+}
+
+# gopass_materialize_one ENTRY DEST ENC FMODE DMODE [GUARD] — restore a Document that
+# lives in the secauto gopass store to DEST, with no 1Password. Same behaviour as
+# materialize_one: skipped when GUARD fails, fixes dir and file modes, never clobbers an
+# existing DEST. ENC is `b64` (the entry holds base64 of the exact bytes) or `text`.
+# Returns 3 when the entry is missing or empty (not imported yet), which the caller only
+# warns about, and 1 on any other failure. Nothing is written for an empty result, and
+# the value goes gopass to a 0600 temp file in the destination directory, never to
+# stdout or argv.
+gopass_materialize_one() {
+  local entry="$1" dest="$2" enc="$3" fmode="$4" dmode="$5" guard="${6:-}"
+  local dir tmp ok=0
+  dest="${dest/#\~\//${HOME}/}"
+  guard_ok "${guard}" || return 0
+  dir="$(dirname "${dest}")"
+  mkdir -p "${dir}"
+  chmod "${dmode}" "${dir}"
+  if [[ -e "${dest}" ]]; then
+    chmod "${fmode}" "${dest}"
+    echo "render-secrets: ${dest} present (perms ${fmode}, skip fetch)"
+    return 0
+  fi
+  tmp="$(mktemp -p "${dir}" .materialize.XXXXXX)" || return 1
+  case "${enc}" in
+    b64) gopass show -f "${entry}" 2>/dev/null | base64 -d >"${tmp}" 2>/dev/null && ok=1 ;;
+    text) gopass show -f "${entry}" >"${tmp}" 2>/dev/null && ok=1 ;;
+    *)
+      rm -f "${tmp}"
+      return 1
+      ;;
+  esac
+  if [[ "${ok}" -ne 1 || ! -s "${tmp}" ]]; then
+    rm -f "${tmp}"
+    return 3
+  fi
+  chmod "${fmode}" "${tmp}"
+  mv -f "${tmp}" "${dest}"
+  echo "render-secrets: materialized ${dest} (from gopass)"
+}
+
 # Tests set RENDER_SECRETS_SOURCE_ONLY and `source` this file to exercise the
 # helper functions above in isolation; `return` is valid because it is sourced
 # in that case. Normal execution leaves the flag unset and falls through to the
@@ -393,6 +459,10 @@ if [[ "${FROM}" == "gopass" ]]; then
     echo "render-secrets: gopass map not found at ${GOPASS_MAP}" >&2
     exit 1
   fi
+  if [[ ! -f "${GOPASS_DOCS}" ]]; then
+    echo "render-secrets: gopass documents table not found at ${GOPASS_DOCS}" >&2
+    exit 1
+  fi
 elif ! command -v op >/dev/null 2>&1; then
   echo "render-secrets: 'op' (1Password CLI) not in PATH" >&2
   exit 1
@@ -443,28 +513,6 @@ inject_to() {
     # under service-account auth (no TTY interaction).
     op inject --force -i "${TPL}" -o "$1"
   fi
-}
-
-# guard_ok GUARD — true if GUARD is empty, a path that exists, or a
-# "host:h1,h2,..." list that contains this hostname.
-guard_ok() {
-  local guard="$1"
-  [[ -z "${guard}" ]] && return 0
-  case "${guard}" in
-    host:*)
-      local cur hn _guard_hosts
-      cur="$(hostname)"
-      IFS=',' read -ra _guard_hosts <<<"${guard#host:}"
-      for hn in "${_guard_hosts[@]}"; do
-        [[ "${hn}" == "${cur}" ]] && return 0
-      done
-      return 1
-      ;;
-    *)
-      [[ -e "${guard}" ]] && return 0
-      return 1
-      ;;
-  esac
 }
 
 # materialize_one TITLE DEST FMODE DMODE [GUARD] — restore a 1Password Document
@@ -550,7 +598,20 @@ if [[ "${FROM}" == "op" ]]; then
       materialize_failed+=("${_d}")
   done
 else
-  echo "render-secrets: --from gopass skips document-backed files (SSH keys, ...); run render-secrets --from op on a desktop host to restore them"
+  # Documents that live in gopass too (gopass-documents.psv). The identity-class
+  # files (SSH identity keys, git-crypt keys, ...) are not in the store, so they
+  # still need render-secrets --from op on a desktop host.
+  while IFS='|' read -r _t _e _enc _d _fm _dm _g; do
+    [[ -z "${_t}" || "${_t}" == \#* || -z "${_d}" ]] && continue
+    _rc=0
+    gopass_materialize_one "${_e}" "${_d}" "${_enc}" "${_fm}" "${_dm}" "${_g}" || _rc=$?
+    case "${_rc}" in
+      0) : ;;
+      3) echo "render-secrets: ${_e} is not in the gopass store yet (run just import-secrets-to-gopass --documents on qbert); skipped ${_d}" >&2 ;;
+      *) materialize_failed+=("${_d}") ;;
+    esac
+  done <"${GOPASS_DOCS}"
+  echo "render-secrets: identity-class files (SSH identity keys, git-crypt keys) are not in gopass; run render-secrets --from op on a desktop host to restore them"
 fi
 if [[ ${#materialize_failed[@]} -gt 0 ]]; then
   echo "render-secrets: FAILED to materialize: ${materialize_failed[*]}" >&2
