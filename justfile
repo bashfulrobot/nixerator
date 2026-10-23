@@ -226,6 +226,14 @@ update input:
 bump-claude-skills:
     bash modules/apps/cli/claude-code/cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills main
 
+# Remove linked worktrees under .claude/worktrees whose PR is merged, and delete
+# their local branch. Dry run by default; `just prune-worktrees --yes` removes.
+# Run it from the primary checkout: a session cannot remove its own worktree.
+[doc('Remove worktrees whose PR is merged (dry run; pass --yes to remove)')]
+[group('dev')]
+prune-worktrees *args:
+    bash extras/scripts/prune-worktrees.bash {{args}}
+
 # Run skill-cache unit tests
 [group('test')]
 test-skill-cache:
