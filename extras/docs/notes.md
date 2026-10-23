@@ -59,7 +59,7 @@ note or paste. A new top-level folder is a deliberate edit to `hierarchy.txt`.
 | `notes [query]` | Same picker with the query prefilled. |
 | `notes -s [query]` | Full-text search as you type (`zk --match`). |
 | `notes -t tag` | Pick among notes with a tag. |
-| `notes -l` | Fuzzel menu, opens the GUI viewer. Bound to `SUPER+CTRL+N` on Hyprland when `apps.cli.notes.keybind = true` (qbert). |
+| `notes -l [text]` | Fuzzel (Linux) or `choose` (macOS) menu, opens the GUI viewer. Text limits the menu to notes containing it. Bound to `SUPER+CTRL+N` on Hyprland when `apps.cli.notes.keybind = true` (qbert). |
 | `notes-new [title]` | Pick a folder (or `+ new folder`), create the note from its template, open `$EDITOR`. |
 | `notes-media NOTE [FILE]` | Copy a file (or the clipboard image) into the note's `media/` and print the link. `--append` first adds it to the note. |
 | `notes-open [--gui\|--edit] FILE` | Open in markless (default), the GUI viewer, or `$EDITOR`. |
@@ -146,8 +146,15 @@ The scripts in `cfg/` are plain bash 3.2, no GNU-only flags, and read
 3. `export NOTES_DIR=~/Notes ZK_NOTEBOOK_DIR=~/Notes`, then run `notes-init`.
 4. Syncthing: add this Mac as a device on qbert's `notes` folder (see Sync).
    Mac paths: `~/Notes`.
-5. Launcher: `notes -l` uses `choose` on macOS. Bind it with Raycast or a
-   Shortcuts quick action, since there is no fuzzel.
+5. Launcher (Raycast): in Raycast, Settings, Extensions, Script Commands, Add
+   Directory, and pick `cfg/raycast/`. That gives two commands. "Find Note"
+   takes optional search text, shows a `choose` menu of matching titles
+   (text search through `zk --match`, empty text lists everything, newest first)
+   and opens the pick in Typora. "New Note" takes a title and an optional
+   folder (default `00-inbox`) and opens the new note in Typora. Both need
+   `notes`, `notes-open` and `zk` on one of `~/.local/bin`, `~/.cargo/bin` or
+   Homebrew's bin, because Raycast starts scripts with a minimal `PATH`.
+   Assign a hotkey to each command in Raycast.
 6. Image paste: `notes-media` uses `pngpaste` on macOS.
 7. Do not run Weave on the Mac unless it is the always-on host. Weave's
    `notes-weave-media` step is Linux and macOS safe.
