@@ -70,6 +70,12 @@ the pin and the snapshot files in one go, so pin and snapshot always come from
 the same sha. `just commit-plugin-config` commits the pin and the snapshot
 together. Pass a 40-hex sha instead of a branch to pin an exact commit.
 
+To bump and roll out in one command, run `just ship-claude-skills "<what
+changed>"` from the primary checkout on a clean `main`. It branches, bumps,
+makes a signed commit, opens the PR, asks once, then squash-merges and rebuilds
+qbert and srv. It prints the two Mac commands at the end. It stops before the
+merge if you answer no.
+
 Snapshot seeded from the unmerged claude-skills PR #54 (branch
 `feat/claude-stack-phase1`). Once #54 merges, re-run
 `just bump-claude-skills` so the pin and snapshot come from a main sha.
