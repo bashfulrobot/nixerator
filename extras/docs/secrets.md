@@ -240,7 +240,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `Tableau-PAT` (now in the `automation` vault) | API Credential | `hostname` (full `https://` origin, not a bare host), `Site-Name`, `username`, `credential` | `secrets.tableau.{server,siteName,patName,patValue}` (self-hosted/local Tableau MCP against Kong's Tableau Cloud site; injected as `SERVER`/`SITE_NAME`/`PAT_NAME`/`PAT_VALUE` by the claude-code module; workstation-only, see `serverProfile` gate in `mcp-servers.nix`) |
 | `aha` | API Credential | `credential` | `secrets.aha.apiToken` (injected as `AHA_API_TOKEN` by the claude-code module for the `aha` skill) |
 | `wave` | API Credential | `credential` | `secrets.wave.fullAccessToken` (injected as `WAVE_FULL_ACCESS_TOKEN` by the claude-code module for the `wave-invoicing` skill; Wave Full Access Token — personal-use bearer, no OAuth) |
-| `forgejo-api` | API Credential | `token` | `.forgejo.apiToken` in the rendered blob, read at **runtime** (never through the Nix store): the fish module exports it as `FORGEJO_TOKEN` for skills that curl the Forgejo (`git.srvrs.co`) REST API, and the git module renders `~/.config/tea/config.yml` for the `tea` CLI. High-privilege token — skills using it default read-only and gate writes. |
+| `forgejo-api` | API Credential | `token` | `.forgejo.apiToken` in the rendered blob, read at **runtime** (never through the Nix store): skills and `forge` read it at run time from the gopass entry `forgejo-api/token` for the Forgejo (`git.srvrs.co`) REST API (no shell exports `FORGEJO_TOKEN` any more), and the git module renders `~/.config/tea/config.yml` for the `tea` CLI. High-privilege token — skills using it default read-only and gate writes. |
 | `zai` | API Credential | `credential` | `secrets.zai.apiKey` |
 | `gemini` | API Credential | `credential` | `secrets.gemini.apiKey` |
 | `snyk` | API Credential | `credential` | `secrets.snyk.token` |
@@ -318,6 +318,16 @@ Setting up a reader host (once):
 Add or rotate a secret on qbert. Type the value yourself at the prompt (`gopass insert <name>`) so it never enters an AI transcript, then push. Readers pick it up on their next pull. A job that reads at run time (`gopass show -o <name>`) gets the new value on its next run. A service that read the value at startup, or a file an activation script wrote once, keeps the old value until it restarts or the host rebuilds.
 
 Rules for AI assistants: never run `gopass show`, `gopass cat` or `pass show`, and never print the GPG private key. `gopass ls` (names only) is fine.
+
+### No exported API tokens
+
+No shell exports an API token. A shell export reaches every child process, including a Claude Bash tool, while a value read at run time lives only in the process that needs it. Each consumer gets its value from the store:
+
+- Scripts read the gopass entry when the variable is unset (an exported value still wins; `GOPASS_FALLBACK=off` disables the lookup): `aha.sh` (`aha/credential`), `grafana.sh` and `grafana-query.sh` (`grafana-cloud-dashboards/token`), the wave-invoicing `lib.sh` (`wave/credential`), `forge.sh` and `release-create.sh` (`forgejo-api/token`) in claude-skills, and nixerator's `forge` and `todoist-report`.
+- CLIs that read the variable themselves are wrapped by `secretsLib.withGopassEnv` (`lib/secrets.nix`), which exports it for that one process: `td` (`TODOIST_API_TOKEN` from `todoist/credential`), `snyk-agent-scan` (`SNYK_TOKEN` from `snyk/credential`) and `agy` (`GEMINI_API_KEY` from `gemini/credential`).
+- To wrap another CLI, call `withGopassEnv { inherit pkgs; pkg = ...; bin = "..."; envVar = "..."; entry = "..."; }` in its module.
+
+Check that nothing exports one (fish, any host): `for v in AHA_API_TOKEN WAVE_FULL_ACCESS_TOKEN FORGEJO_TOKEN TODOIST_API_TOKEN GEMINI_API_KEY SNYK_TOKEN GRAFANA_TOKEN; set -q $v; and echo "$v: set"; or echo "$v: unset"; end`.
 
 ### Rendering `secrets.json` from gopass
 

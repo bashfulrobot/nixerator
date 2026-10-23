@@ -4,12 +4,21 @@
   config,
   globals,
   versions,
+  secretsLib,
   ...
 }:
 
 let
   cfg = config.apps.cli.agent-scan;
-  agent-scan = pkgs.callPackage ./build { inherit versions; };
+  # snyk-agent-scan reads SNYK_TOKEN itself, so the wrapper loads it from the
+  # secauto gopass store for each run. No shell exports it.
+  agent-scan = secretsLib.withGopassEnv {
+    inherit pkgs;
+    pkg = pkgs.callPackage ./build { inherit versions; };
+    bin = "snyk-agent-scan";
+    envVar = "SNYK_TOKEN";
+    entry = "snyk/credential";
+  };
 in
 {
   options.apps.cli.agent-scan = {
@@ -20,8 +29,8 @@ in
     home-manager.users.${globals.user.name} = {
       home.packages = [ agent-scan ];
 
-      # SNYK_TOKEN is exported at shell runtime by the fish module from the
-      # off-store secrets file (issue #265), so it never enters the Nix store.
+      # SNYK_TOKEN comes from the secauto gopass store via the wrapper above, so it
+      # never enters the Nix store and is not exported by any shell.
     };
   };
 }
