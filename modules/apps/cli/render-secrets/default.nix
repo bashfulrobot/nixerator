@@ -26,7 +26,8 @@ let
         substituteInPlace $out/bin/render-secrets \
           --replace-fail "@DEST@" "${destPath}" \
           --replace-fail "@TPL@" "${tplPath}" \
-          --replace-fail "@MAP@" "${./gopass-map.tsv}"
+          --replace-fail "@MAP@" "${./gopass-map.tsv}" \
+          --replace-fail "@DOCS@" "${./gopass-documents.psv}"
         wrapProgram $out/bin/render-secrets \
           --prefix PATH : ${
             lib.makeBinPath [

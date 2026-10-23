@@ -15,8 +15,12 @@
 # straight into `gopass insert -f` would store an empty entry and hide the
 # failure from every later run.
 #
-# Not covered: Document items (SSH keys, certificates). Those stay on
-# render-secrets' MATERIALIZE path until they get their own pass.
+# --documents copies the automation-class Documents listed in
+# modules/apps/cli/render-secrets/gopass-documents.psv (feral-arr key, Incus cert,
+# filebot license, flux deploy key, the Snowflake connections file). The mirror
+# skips Documents. Identity-class files (SSH identity keys, git-crypt keys) stay on
+# render-secrets' MATERIALIZE path on purpose: the one shared GPG key would expose
+# them on every host.
 set -uo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,14 +36,15 @@ for tool in op gopass; do
   }
 done
 
-desktop=0 mirror=0 dry=0
+desktop=0 mirror=0 dry=0 documents=0
 for arg in "$@"; do
   case "${arg}" in
     --desktop) desktop=1 ;;
     --mirror) mirror=1 ;;
+    --documents) documents=1 ;;
     --dry-run) dry=1 ;;
     *)
-      echo "usage: import-op-to-gopass.sh [--desktop] [--mirror] [--dry-run]" >&2
+      echo "usage: import-op-to-gopass.sh [--desktop] [--mirror] [--documents] [--dry-run]" >&2
       exit 2
       ;;
   esac
@@ -54,6 +59,52 @@ else
 fi
 
 ok=0 skip=0 fail=0
+
+# import_documents — copy the Documents listed in gopass-documents.psv from the
+# nixerator vault into gopass. Each is read once with `op document get`, captured
+# first, and stored only when the read returned something: an empty read is never
+# inserted, because `gopass insert -f` of nothing would store an empty entry and
+# hide the failure from every later run. `b64` entries are stored as base64 of the
+# exact bytes (private keys need their trailing newline); `text` entries as text.
+# Present, non-empty entries are skipped. Nothing is printed except names and a
+# status word.
+docs="${GOPASS_DOCS:-${here}/../../modules/apps/cli/render-secrets/gopass-documents.psv}"
+import_documents() {
+  local title entry enc val
+  [[ -r "${docs}" ]] || {
+    echo "FAIL  documents table not readable: ${docs}"
+    fail=$((fail + 1))
+    return 0
+  }
+  while IFS='|' read -r title entry enc _; do
+    [[ -z "${title}" || "${title}" == \#* ]] && continue
+    if [[ -n "$(gopass show -f "${entry}" 2>/dev/null)" ]]; then
+      echo "skip  ${entry} (present, non-empty)"
+      skip=$((skip + 1))
+      continue
+    fi
+    if [[ "${dry}" -eq 1 ]]; then
+      echo "would ${entry}"
+      ok=$((ok + 1))
+      continue
+    fi
+    case "${enc}" in
+      b64) val="$(op document get "${title}" --vault nixerator 2>/dev/null | base64 | tr -d '\n')" ;;
+      text) val="$(op document get "${title}" --vault nixerator 2>/dev/null)" ;;
+      *) val="" ;;
+    esac
+    if [[ -n "${val}" ]] &&
+      printf '%s' "${val}" | gopass insert -f "${entry}" >/dev/null 2>&1 &&
+      [[ -n "$(gopass show -f "${entry}" 2>/dev/null)" ]]; then
+      echo "ok    ${entry}"
+      ok=$((ok + 1))
+    else
+      echo "FAIL  ${entry}  <- op document ${title}"
+      fail=$((fail + 1))
+    fi
+    val=""
+  done <"${docs}"
+}
 
 # slug TEXT — lowercase, anything outside [a-z0-9._-] becomes '-', trimmed.
 slug() {
@@ -130,6 +181,10 @@ mirror_vault() {
   done < <(op item list --vault "${vault}" --format=json 2>/dev/null | jq -c '.[] | {id, title, category}')
   unset item_json
 }
+# The template map runs by default and with --mirror. `--documents` on its own
+# imports only the Documents.
+run_map=1
+[[ "${documents}" -eq 1 && "${mirror}" -eq 0 ]] && run_map=0
 while IFS=$'\t' read -r entry ref; do
   [[ -z "${entry}" || "${entry}" == \#* ]] && continue
   if [[ -n "$(gopass show -o "${entry}" 2>/dev/null)" ]]; then
@@ -153,7 +208,12 @@ while IFS=$'\t' read -r entry ref; do
     fail=$((fail + 1))
   fi
   unset val
-done <"${map}"
+done < <([[ "${run_map}" -eq 1 ]] && cat "${map}" || true)
+
+if [[ "${documents}" -eq 1 ]]; then
+  echo "=== documents"
+  import_documents
+fi
 
 if [[ "${mirror}" -eq 1 ]]; then
   for vault in automation nixerator; do
