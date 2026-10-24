@@ -1376,12 +1376,12 @@ bootstrap-secrets:
 fetch-signatures:
     @./extras/helpers/fetch-okular-signatures.sh
 
-# Fetch the gmailctl OAuth client credentials from the nixerator 1Password
-# vault (Login item `gmailctl`, Client ID + Client Secret fields) and render
-# them into ~/.gmailctl/credentials.json (0600). One-time per host after
-# `just setup-op-token`; re-run only if you rotate the OAuth client.
+# Write the gmailctl OAuth client credentials from the secauto gopass store
+# (entries nixerator/gmailctl/client-id and client-secret) and render
+# them into ~/.gmailctl/credentials.json (0600). One-time per host;
+# re-run only if you rotate the OAuth client.
 # Afterwards run `gmailctl init` to create token.json.
-[doc('Fetch the gmailctl OAuth client credentials from 1Password (one-time)')]
+[doc('Write the gmailctl OAuth client credentials from gopass (one-time)')]
 [group('secrets')]
 fetch-gmailctl-creds:
     @./extras/helpers/fetch-gmailctl-credentials.sh
