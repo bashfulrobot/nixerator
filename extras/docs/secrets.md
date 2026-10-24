@@ -70,7 +70,10 @@ agent's context leaks into the model and can be sent off-site.
 
 **Who edits a secret.** A human types every secret edit in 1Password, and every
 `gopass insert` or import run is a human action. The only exception is the
-`opencode` CLI with a local model, and only when a human approves that run. A
+`opencode` CLI with a local model, and only when a human approves that run.
+That `opencode` session may use the 1Password CLI (`op`), because a local model
+sends nothing off the machine. The `Bash(op read*)` and `op item get --reveal`
+deny rules in Claude's `settings.json` stay in force for Claude itself. A
 secret value never goes back to Claude: not as command output, not as a diff,
 not as a file Claude reads. Claude may write the scripts, templates and docs
 around the flow, and may run a command only when its output carries no value
