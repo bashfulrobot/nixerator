@@ -3,8 +3,8 @@
 # shellcheck shell=bash
 #
 # Live-USB secrets bootstrap that needs no 1Password service account. It replaces
-# bootstrap-install-secrets.sh + render-secrets-bootstrap.sh once those are retired
-# (see extras/docs/secrets-roadmap.md). NOT yet run on a real install: test it in a
+# the old service-account bootstrap scripts, which are removed (see
+# extras/docs/secrets-roadmap.md). NOT yet run on a real install: test it in a
 # VM before relying on it.
 #
 # What it stages, from an existing host you can reach over SSH (SOURCE_SSH):

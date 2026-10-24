@@ -1134,7 +1134,7 @@ render-secrets:
 
 # Render from 1Password (`op inject`) and restore the identity-class keys (SSH keys,
 # git-crypt keys, incus-ui.pfx). Needed only on a new workstation install, because
-# those files are never copied into gopass. Needs a desktop session or an SA token.
+# those files are never copied into gopass. Needs a 1Password desktop session.
 [doc('Render from 1Password and restore SSH/git-crypt keys (new workstation install)')]
 [group('secrets')]
 render-secrets-op:
@@ -1345,67 +1345,16 @@ check-secrets:
 
 # Detect a stale gopass snapshot: render from 1Password and diff against the live
 # file. Non-zero means 1Password has changed since the last import. Needs a desktop
-# session or an SA token. Read-only.
+# session. Read-only.
 [doc('Check the cached secrets.json against 1Password, to detect a stale gopass snapshot')]
 [group('secrets')]
 check-secrets-op:
     @render-secrets --from op --check
 
-# Install the 1Password service-account token at ~/.config/op/service-account-token
-# (0600), so render-secrets / push-secrets / check-secrets run with zero
-# biometric prompts thereafter. One-time per host.
-#
-# Default behaviour: `op read` fetches the token from the same 1Password item
-# secrets.json.tpl's onepassword.serviceAccountToken points at (one biometric
-# on the desktop). Pass-through args support the helper's alternate inputs:
-#
-#   just setup-op-token                            # op read (default, preferred)
-#   just setup-op-token --manual                   # interactive paste
-#   just setup-op-token --force                    # overwrite an existing different token
-#   OP_TOKEN=ops_... just setup-op-token           # from env var (no prompts)
-#
-# Rotating the token, not just re-installing it on a new host? Use
-# `just rotate-op-token` instead -- see below.
-#
-# See extras/docs/helpers.md for the full helper docs.
-[doc('Install the 1Password service-account token on this host (one-time)')]
-[group('secrets')]
-setup-op-token *args:
-    @./extras/helpers/setup-op-service-account.sh {{args}}
-
-# Walks through rotating the nixerator 1Password service-account token,
-# end to end, on this host: prints the manual 1Password steps and waits,
-# installs the new token locally, renders secrets.json with an EXPLICIT
-# token override (bypassing op-toggle's chicken-and-egg fallback to a
-# stale render), then verifies auth and reports which vaults are visible.
-# Does NOT push to the fleet automatically -- it prints that command for
-# you to run once you're happy with the verification output.
-#
-#   just rotate-op-token             # op read (default, preferred)
-#   just rotate-op-token --manual    # interactive paste
-#
-# See extras/docs/helpers.md for the full helper docs.
-[doc('Walk through rotating the 1Password service-account token end to end')]
-[group('secrets')]
-rotate-op-token *args:
-    @./extras/helpers/rotate-op-service-account.sh {{args}}
-
-# Pre-rebuild bootstrap render: writes ~/.config/nixos-secrets/secrets.json
-# WITHOUT needing render-secrets on PATH yet. Use ONLY on a fresh machine
-# before the first rebuild lands the Nix-packaged render-secrets. After that
-# first rebuild, prefer `just render-secrets`.
-#
-# Auth is the same as render-secrets -- if you ran `just setup-op-token`
-# first, this runs with no prompts.
-[doc('Bootstrap render of secrets.json on a fresh machine, before the 1st rebuild')]
-[group('secrets')]
-bootstrap-secrets:
-    @./extras/helpers/render-secrets-bootstrap.sh
-
 # Fetch the Okular signature + initials PNGs from the nixerator 1Password
 # vault (Document items okular-signature + okular-initials) to
-# ~/.kde/share/icons/{signature,initials}.png. One-time per host after
-# `just setup-op-token`; re-run only if you rotate the documents in 1P.
+# ~/.kde/share/icons/{signature,initials}.png. One-time per host;
+# re-run only if you rotate the documents in 1P.
 [doc('Fetch the Okular signature + initials PNGs from 1Password (one-time)')]
 [group('secrets')]
 fetch-signatures:
@@ -1449,7 +1398,6 @@ alias pgk := push-gpg-key
 alias cs := check-secrets
 alias csg := check-secrets-gopass
 alias fs := fetch-signatures
-alias rot := rotate-op-token
 alias fgc := fetch-gmailctl-creds
 alias gen := generations
 alias rb := rollback

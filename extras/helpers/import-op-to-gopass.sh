@@ -6,9 +6,8 @@
 # never reaches stdout, argv or a log; the output is entry names plus
 # ok / skip / FAIL.
 #
-# Run it where `gopass` can write to the secauto store (qbert, the writer). Auth:
-# the service-account token file when it exists (no desktop prompt), otherwise
-# the 1Password desktop session. Pass --desktop to force the desktop session.
+# Run it where `gopass` can write to the secauto store (qbert, the writer). It uses
+# the 1Password desktop session (the app prompts for approval).
 #
 # Safe to rerun. An entry that is present and non-empty is skipped, and a value
 # is inserted only when `op read` returned something: piping an empty read
@@ -42,29 +41,22 @@ for tool in op gopass; do
   }
 done
 
-desktop=0 mirror=0 dry=0 documents=0 update=0 check=0
+mirror=0 dry=0 documents=0 update=0 check=0
 for arg in "$@"; do
   case "${arg}" in
-    --desktop) desktop=1 ;;
     --mirror) mirror=1 ;;
     --documents) documents=1 ;;
     --dry-run) dry=1 ;;
     --update) update=1 ;;
     --check) check=1 ;;
     *)
-      echo "usage: import-op-to-gopass.sh [--desktop] [--mirror] [--documents] [--dry-run] [--update] [--check]" >&2
+      echo "usage: import-op-to-gopass.sh [--mirror] [--documents] [--dry-run] [--update] [--check]" >&2
       exit 2
       ;;
   esac
 done
 
-sa_file="${HOME}/.config/op/service-account-token"
-if [[ "${desktop}" -eq 1 || ! -r "${sa_file}" ]]; then
-  unset OP_SERVICE_ACCOUNT_TOKEN
-else
-  OP_SERVICE_ACCOUNT_TOKEN="$(<"${sa_file}")"
-  export OP_SERVICE_ACCOUNT_TOKEN
-fi
+unset OP_SERVICE_ACCOUNT_TOKEN
 
 ok=0 skip=0 fail=0 drift=0
 

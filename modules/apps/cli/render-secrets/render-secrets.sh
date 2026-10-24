@@ -148,10 +148,10 @@ Usage: render-secrets [--from op|gopass] [--check] [--tpl PATH] [--push HOST [HO
   --from SOURCE    Where values come from. gopass (default) fills the template
                    from the secauto gopass store using the map ${GOPASS_MAP}:
                    no 1Password, no prompt, works headless. op runs 'op inject'
-                   against 1Password and needs a desktop session or a
-                   service-account token; use it to restore the identity-class
-                   keys on a new workstation install. A key whose entry is missing or empty is left
-                   out of the file. The Documents listed in gopass-documents.psv
+                   against 1Password and needs a 1Password desktop session; use it
+                   to restore the identity-class keys on a new workstation
+                   install. A key whose entry is missing or empty is left out of
+                   the file. The Documents listed in gopass-documents.psv
                    (feral-arr key, Incus cert, filebot license, flux deploy key)
                    are restored from gopass too. Identity-class files (SSH
                    identity keys, git-crypt keys) are restored only in op mode.
@@ -510,24 +510,6 @@ elif ! command -v op >/dev/null 2>&1; then
   exit 1
 fi
 
-# Service account auto-source. If OP_SERVICE_ACCOUNT_TOKEN is unset and a
-# token file exists at the canonical path, use it — `op inject` then runs
-# under the service account with zero biometric prompts. The token grants
-# whatever the service account's vault scope allows (we deliberately scope
-# the nixerator SA to read-only on the `nixerator` vault), so loose perms
-# on the token file = full vault read. Refuse anything looser than 0600.
-SA_TOKEN_FILE="${HOME}/.config/op/service-account-token"
-if [[ "${FROM}" == "op" && -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" && -f "${SA_TOKEN_FILE}" ]]; then
-  sa_perms="$(stat -c '%a' "${SA_TOKEN_FILE}")"
-  if [[ "${sa_perms}" != "600" ]]; then
-    echo "render-secrets: ${SA_TOKEN_FILE} perms are ${sa_perms}, must be 600" >&2
-    echo "  Fix:  chmod 600 ${SA_TOKEN_FILE}" >&2
-    exit 1
-  fi
-  OP_SERVICE_ACCOUNT_TOKEN="$(<"${SA_TOKEN_FILE}")"
-  export OP_SERVICE_ACCOUNT_TOKEN
-fi
-
 DEST_DIR="$(dirname "${DEST}")"
 
 # Render to a tmp file inside DEST_DIR (so the mv is atomic and on the same
@@ -551,8 +533,8 @@ inject_to() {
     gopass_inject "${TPL}" "$1"
   else
     # --force: we created the tmp via mktemp so it already exists; without
-    # --force op inject would prompt to confirm overwrite, which is impossible
-    # under service-account auth (no TTY interaction).
+    # --force op inject would prompt to confirm overwrite, which cannot be
+    # answered here (no TTY interaction).
     op inject --force -i "${TPL}" -o "$1"
   fi
 }

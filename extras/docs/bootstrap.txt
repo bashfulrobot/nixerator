@@ -2,25 +2,16 @@
 # Disko declarative partitioning (set TARGET_HOST to the host being installed)
 
 ## Prerequisites
-# Note: 1Password is used here only to deliver the keys and the first render on a
-# new install. After the first rebuild, routine rendering reads the gopass
-# snapshot (`just render-secrets`); see extras/docs/secrets.md.
-#
-# Alternative to Step 4 that needs no 1Password service account (UNTESTED on a real
-# install, try it in a VM first; plan in extras/docs/secrets-roadmap.md):
-#   sudo SOURCE_SSH="$SOURCE_SSH" INSTALL_USER="$INSTALL_USER" \
-#     ./extras/helpers/bootstrap-install-gopass.sh stage
-# ... and after nixos-install, instead of bootstrap-install-secrets.sh promote:
-#   sudo INSTALL_USER="$INSTALL_USER" ./extras/helpers/bootstrap-install-gopass.sh promote
-# After first boot, restore the SSH and git-crypt keys: just render-secrets-op
+# Note: secrets come from the secauto gopass snapshot, streamed from an existing
+# host. 1Password is needed only after first boot, to restore the SSH and git-crypt
+# keys (`just render-secrets-op`, desktop app). After the first rebuild, routine
+# rendering reads gopass (`just render-secrets`); see extras/docs/secrets.md.
 - Boot from NixOS live USB
 - Open terminal, run as root/sudo
-- 1Password account credentials handy (email, secret key, password) --
-  needed for `op signin` on the live USB. There's no other path; git-crypt
-  was retired in #86.
-- An existing nixerator host (the source machine) reachable for scp of
-  SSH/GPG keys. The 1Password SA token is fetched directly from your
-  Personal vault via `op read` -- not scp'd.
+- An existing nixerator host (the source machine) reachable over SSH. It supplies
+  the SSH keys (Step 2), the secauto GPG key and the encrypted store (Step 4).
+- The 1Password desktop app on the new machine, for the after-first-boot key
+  restore.
 
 ## Variables (set once)
 
@@ -47,18 +38,20 @@ chmod 644 ~/.ssh/id_*.pub 2>/dev/null || true
 
 ## Step 3: Clone Repository
 mkdir -p /tmp/install && cd /tmp/install
-nix-shell -p git _1password-cli --run "git clone $REPO_SSH_URL"
+nix-shell -p git --run "git clone $REPO_SSH_URL"
 cd nixerator
 
-## Step 4: Stage secrets (1Password) for nixos-install
+## Step 4: Stage secrets (gopass) for nixos-install
 # The flake reads ~/.config/nixos-secrets/secrets.json at eval time. On a
 # fresh live USB we need to render that file BEFORE nixos-install runs.
-# The bootstrap-install-secrets.sh helper walks you through it interactively:
-#   - Verifies op CLI signed in (prompts for `op signin` if not)
-#   - Fetches the SA token from your Personal vault via `op read` (one biometric)
-#   - Installs token at  /home/$INSTALL_USER/.config/op/service-account-token (0600)
-#   - Renders secrets at /home/$INSTALL_USER/.config/nixos-secrets/secrets.json (0600)
-sudo INSTALL_USER="$INSTALL_USER" ./extras/helpers/bootstrap-install-secrets.sh stage
+# UNTESTED on a real install: try this in a VM first (extras/docs/secrets-roadmap.md).
+# bootstrap-install-gopass.sh stage, as root, with the source host reachable over SSH:
+#   - streams the secauto GPG key from $SOURCE_SSH into /home/$INSTALL_USER/.gnupg
+#   - copies the encrypted secauto store (ciphertext only)
+#   - renders /home/$INSTALL_USER/.config/nixos-secrets/secrets.json (0600) from gopass
+# SSH and git-crypt keys are NOT restored here; they come back after first boot with
+# `just render-secrets-op` (1Password desktop app).
+sudo SOURCE_SSH="$SOURCE_SSH" INSTALL_USER="$INSTALL_USER" ./extras/helpers/bootstrap-install-gopass.sh stage
 
 ## Step 5: Verify Disk
 ls -l /dev/disk/by-id/ | grep nvme
@@ -103,7 +96,7 @@ sudo cp -r /tmp/install/nixerator "$TARGET_REPO_DIR/"
 # The files we staged in Step 4 live at /home/$INSTALL_USER/.config/... on
 # the LIVE USB, not on /mnt. Copy them into the installed filesystem so
 # first-boot rebuilds find them:
-sudo INSTALL_USER="$INSTALL_USER" ./extras/helpers/bootstrap-install-secrets.sh promote
+sudo INSTALL_USER="$INSTALL_USER" ./extras/helpers/bootstrap-install-gopass.sh promote
 
 ## Step 11: Set Passwords
 sudo nixos-enter --root /mnt -c 'passwd root'
@@ -154,9 +147,8 @@ just fetch-signatures            # alias: just fs
 # nixos-install / rebuild errors on "builtins.readFile: No such file or directory":
 #   the rendered secrets file at /home/$INSTALL_USER/.config/nixos-secrets/secrets.json
 #   doesn't exist. Did Step 4 (stage) run successfully? Re-run it.
-# `op signin` fails: verify network, email, secret key (from your 1Password emergency kit),
-#   and account password.
-# bootstrap-install-secrets.sh promote: "User doesn't exist on target": the
+# stage fails to reach the source host: check $SOURCE_SSH and that the live USB has an SSH key the source accepts.
+# bootstrap-install-gopass.sh promote: "User doesn't exist on target": the
 #   install user from globals.nix doesn't match $INSTALL_USER. Set them to match.
 
 ## Important Files

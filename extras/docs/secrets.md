@@ -28,9 +28,10 @@
   install the 1Password CLI. `modules/apps/cli/render-secrets/tests/no-op-in-automation.bats`
   fails when server modules, `secauto-pull` or `hosts/srv/modules.nix` call `op`,
   install it, or read the service-account token.
-- Only the service-account tooling is being retired (token file,
-  `setup-op-token`, `rotate-op-token`, `op-toggle`, the bootstrap script). See
-  the TODO in `CLAUDE.md`. 1Password itself stays.
+- The 1Password service-account tooling is retired: no token file, no
+  `setup-op-token`, `rotate-op-token` or `op-toggle`, no `onepassword` key in the
+  template, and the old bootstrap scripts are gone. 1Password itself stays, used
+  through the desktop app only.
 
 The sections below cover the 1Password flow first, then the gopass snapshot
 (see "Automation secrets").
@@ -97,20 +98,11 @@ points here for the mechanics above.
 
 ## One-time per-host setup
 
-This is the service-account flow, kept until the accounts are deleted and the
-bootstrap is redesigned. A host that only needs the gopass snapshot skips it and
-uses `just render-secrets-gopass` (see "Automation secrets").
+A host needs the secauto GPG key and a clone of the store first (see "Automation
+secrets"). A brand-new machine gets both from `bootstrap-install-gopass.sh`
+(see `bootstrap.txt`).
 
-1. **Install the SA token** (one biometric):
-   ```bash
-   op signin                # if not already signed in (desktop biometric)
-   just setup-op-token      # op read fetches the SA token, installs at
-                            # ~/.config/op/service-account-token (0600)
-   ```
-   After this, every other secrets command on this host is biometric-free.
-
-2. **Render the Nix-eval secrets file** (from the gopass snapshot, which needs
-   the secauto GPG key on the host, see "Automation secrets"):
+1. **Render the Nix-eval secrets file** (from the gopass snapshot):
    ```bash
    just render-secrets      # writes ~/.config/nixos-secrets/secrets.json
    ```
@@ -119,42 +111,13 @@ uses `just render-secrets-gopass` (see "Automation secrets").
    just render-secrets-op   # render-secrets --from op: SSH keys, git-crypt keys, incus-ui.pfx
    ```
 
-3. **Fetch the Okular signature PNGs** (only on hosts where you use Okular):
+2. **Fetch the Okular signature PNGs** (only on hosts where you use Okular;
+   needs the 1Password desktop app):
    ```bash
    just fetch-signatures    # writes ~/.kde/share/icons/{signature,initials}.png
    ```
 
-All three are idempotent — safe to re-run any time.
-
-## Rotating the service account
-
-Don't rotate the SA token by hand — use `just rotate-op-token` (alias
-`rot`). Rotating it manually is failure-prone: the token has to agree
-across the SA's own vault grants, the 1Password item the template reads
-from, and the local file on each host, and `op-toggle` reads its
-service-account fallback from the *rendered* `secrets.json` rather than
-that local file — so a stale render makes a successful rotation look like
-it silently didn't take (you'll see `(403) Forbidden (Service Account
-Deleted)` even though the new token is fine).
-
-```bash
-just rotate-op-token             # walks the full sequence, one host
-just rotate-op-token --manual    # paste the token instead of op read
-```
-
-The script writes the new token to **both** the local file and the
-1Password item (step 3, via your desktop session — one biometric prompt),
-so the two can't drift. That drift is the classic silent failure: the file
-gets the new token but the item keeps the old one, and every op-toggle /
-`push-secrets` call then reads the dead token with nothing to warn you. To
-catch it regardless, step 5 runs a bare `render-secrets --check` (the
-op-toggle path) and **fails the rotation** if the embedded token doesn't
-authenticate, printing the exact `op item edit` one-liner to fix it.
-
-See `extras/docs/helpers.md`'s `rotate-op-service-account.sh` section for
-the full step-by-step. It prints — but does not run — the `push-secrets`
-command for the rest of the fleet; run that yourself once you're happy with
-the verification output.
+All steps are idempotent — safe to re-run any time.
 
 ## Materialized host files
 
@@ -337,21 +300,13 @@ those values live in `settings/globals.nix` under
 `hosts.{qbert,srv}` because they're already published in
 plaintext docs in this repo and don't grant access on their own.
 
-### Authentication: service account vs. desktop biometric
+### Authentication
 
-Plain `render-secrets` reads gopass and uses no 1Password auth. The `op` auth
-modes below apply only to `render-secrets --from op`, `fetch-okular-signatures.sh`
-and `render-secrets-bootstrap.sh`. They pick automatically:
-
-| Mode | Trigger | Biometric prompts |
-|------|---------|--------------------|
-| Service account (being retired) | `OP_SERVICE_ACCOUNT_TOKEN` env var, OR `~/.config/op/service-account-token` (0600) | **Zero**, ever |
-| Desktop biometric | Neither of the above; falls through to interactive `op` | Per the 1Password app's CLI integration settings |
-
-The SA token itself lives in your **Personal** 1Password vault.
-`just setup-op-token` uses `op read` to fetch it (one biometric) and
-installs it at the canonical path. Read-only access to the `nixerator`
-vault is all the SA needs.
+Plain `render-secrets` reads gopass and uses no 1Password auth. The commands that
+do call `op` (`render-secrets --from op`, `import-secrets-to-gopass`,
+`fetch-signatures`) use the 1Password desktop app: the CLI integration prompts for
+approval per the app's settings. There is no service-account token anywhere in this
+repo.
 
 ## Automation secrets (secauto)
 
@@ -410,12 +365,12 @@ Check that nothing exports one (fish, any host): `for v in AHA_API_TOKEN WAVE_FU
 `render-secrets --from gopass` (`just render-secrets-gopass`, alias `rsg`) fills the same `secrets.json.tpl` from the store, so the Nix modules, fish exports and flake guards keep reading the file they already read. No `op`, no service-account token, no desktop prompt, so it runs on srv, in a timer or over SSH.
 
 - `modules/apps/cli/render-secrets/gopass-map.tsv` maps each gopass entry to the `op://` reference the template uses (`aha/credential` ↔ `op://nixerator/aha/credential`). Names and references only. Add a row there when you add a template key.
-- A key is left out of the file, never written empty, when its reference is not in the map or its entry is missing or empty. Modules already guard on presence. The stderr list names entries, not values. The 1Password service-account token (`onepassword.serviceAccountToken`) is deliberately unmapped.
+- A key is left out of the file, never written empty, when its reference is not in the map or its entry is missing or empty. Modules already guard on presence. The stderr list names entries, not values.
 - Automation Documents (listed in `gopass-documents.psv`) restore from gopass. SSH identity keys and git-crypt keys still restore through `render-secrets` in `op` mode, and `--from gopass` skips them.
 - The map and the Documents table are baked into the script. `GOPASS_MAP`, `GOPASS_DOCS` and `RENDER_SECRETS_HOSTNAME` are honoured only under test (`RENDER_SECRETS_SOURCE_ONLY` or `RENDER_SECRETS_TEST`), because the table decides which paths get written and chmod'ed. A symlink at a destination is refused.
 - `just check-secrets-gopass` (`csg`) compares the live file with a gopass render and names the keys that differ.
 
-One-time import from 1Password, run on qbert: `just import-secrets-to-gopass` (`extras/helpers/import-op-to-gopass.sh`). It authenticates with the service-account token file if present, else the desktop session (`--desktop` forces it). It pipes each value from `op read` into `gopass insert`, never prints one, skips entries that are present and non-empty, and refuses to store an empty read. Rerun it after a failure.
+One-time import from 1Password, run on qbert: `just import-secrets-to-gopass` (`extras/helpers/import-op-to-gopass.sh`). It uses the 1Password desktop app. It pipes each value from `op read` into `gopass insert`, never prints one, skips entries that are present and non-empty, and refuses to store an empty read. Rerun it after a failure.
 
 `--mirror` also copies every other credential field of every item in the `automation` and `nixerator` vaults to `<vault>/<item>/<field>` (slugged: lowercase, `-` for other characters), so new 1Password items need no map edit. It skips what must not be shared by the one GPG key: Documents and SSH keys (SSH identity keys, git-crypt keys, certificates stay in `MATERIALIZE`), service-account tokens, notes fields, and fields the map already covers. Two items with the same title get a short id suffix. `--dry-run` prints `would <entry>` lines and writes nothing. Only the `automation` and `nixerator` vaults are mirrored.
 
@@ -425,11 +380,11 @@ Cut-over order: import (`just import-secrets-to-gopass --mirror --dry-run`, then
 
 Cut-over state:
 
-- srv renders after every pull: `apps.cli.secauto-pull.renderAfterPull = true` runs `render-secrets --from gopass` as `ExecStartPost`. The rendered file no longer carries `onepassword.serviceAccountToken`, so srv has no 1Password in its refresh path.
-- fish no longer exports `OP_SERVICE_ACCOUNT_TOKEN` in any shell. `op` at the desk uses the desktop app. `op-toggle` opts one shell into the service account, using `~/.config/op/service-account-token` (install it with `just setup-op-token`). `render-secrets --from op` still reads that file by itself.
+- srv renders after every pull: `apps.cli.secauto-pull.renderAfterPull = true` runs `render-secrets --from gopass` as `ExecStartPost`. srv has no 1Password in its refresh path.
+- fish exports no 1Password token. `op` at the desk uses the desktop app.
 - `claudoist` and `incident-investigator` (and their cloudflared tunnels) on srv no longer use `op run` or the service-account token. `secretsLib.gopassRun` (`lib/secrets.nix`) replaces every `op://vault/item/field` value in the service environment with the first line of the gopass entry `vault/item/field` (slugged like `--mirror`), then execs the command. A missing or empty entry stops the service and names the variable and entry, never a value. Restarting them needs only the local GPG key.
-- What still uses the service account: the fresh-machine bootstrap (`bootstrap-install-secrets.sh`, `setup-op-token`, `rotate-op-token`), `op-toggle`, and `render-secrets --from op` auto-sourcing the token file. They go together when the accounts are deleted and the bootstrap is redesigned.
-- `render-secrets` now defaults to `--from gopass` on every host (`RENDER_SECRETS_FROM` overrides it). `--from op` (`just render-secrets-op`) remains for restoring the identity-class keys on a new workstation. Run `just check-secrets-gopass` once on qbert before relying on the new default: it should name only `onepassword.serviceAccountToken` as different.
+- Nothing uses the service account any more. The tooling was removed after the gopass cut-over (see `secrets-roadmap.md`).
+- `render-secrets` defaults to `--from gopass` on every host (`RENDER_SECRETS_FROM` overrides it). `--from op` (`just render-secrets-op`) remains for restoring the identity-class keys on a new workstation.
 
 ## Accessing in modules
 
@@ -507,24 +462,29 @@ Per-host network identity comes via `globals`:
 See `extras/docs/bootstrap.txt` for the full install guide. The
 secrets-related steps:
 
-- **Pre-install** (on the live USB, after `git clone`):
+- **Pre-install** (on the live USB, after `git clone`, as root):
   ```bash
-  sudo ./extras/helpers/bootstrap-install-secrets.sh stage
+  SOURCE_SSH=user@host INSTALL_USER=dustin ./extras/helpers/bootstrap-install-gopass.sh stage
   ```
-  Walks you through `op signin`, fetches the SA token, renders secrets into
-  `/home/dustin/.config/...` so `nixos-install` can read them.
+  Streams the secauto GPG key and the encrypted store from an existing host over
+  SSH and renders secrets into `/home/dustin/.config/...` so `nixos-install` can
+  read them.
 
 - **Post-install, before reboot**:
   ```bash
-  sudo ./extras/helpers/bootstrap-install-secrets.sh promote
+  INSTALL_USER=dustin ./extras/helpers/bootstrap-install-gopass.sh promote
   ```
-  Copies staged files into `/mnt/home/dustin/...` and chowns to the install
-  user via `nixos-enter`.
+  Copies the staged files into `/mnt/home/dustin/...` and chowns them to the
+  install user via `nixos-enter`.
 
-- **After first boot**:
+- **After first boot** (needs the 1Password desktop app):
   ```bash
+  just render-secrets-op       # SSH keys, git-crypt keys, incus-ui.pfx
   just fetch-signatures        # only if you use Okular on this host
   ```
+
+`bootstrap-install-gopass.sh` has not run on a real install yet; try it in a VM
+first.
 
 ## Troubleshooting
 
@@ -540,17 +500,9 @@ secrets-related steps:
 - **`render-secrets: 'op' (1Password CLI) not in PATH`** (only with `--from op`)
   → host doesn't have 1Password installed. Enable `apps.gui.one-password` +
   `apps.cli.render-secrets` on this host.
-- **`render-secrets: ~/.config/op/service-account-token perms are NNN, must be 600`**
-  (only with `--from op`)
-  → `chmod 600 ~/.config/op/service-account-token`. The token grants vault
-  read access; loose perms = any local process can read your nixerator vault.
-- **`(403) ... Service Account Deleted` on a bare `render-secrets` right after
-  rotating the token** → `render-secrets` (through op-toggle) reads its token from
-  the *rendered* `secrets.json`, which still holds the old, dead token until you
-  re-render once with an explicit override. Run
-  `OP_SERVICE_ACCOUNT_TOKEN="$(<~/.config/op/service-account-token)" render-secrets`
-  (what `just rotate-op-token` step 3 does for you). A bare `render-secrets` works
-  again afterward, since `secrets.json` now carries the fresh token.
+- **`op` asks to sign in, or `account is not signed in`** (only with `--from op`
+  and the other `op` commands) → unlock the 1Password desktop app and make sure
+  its CLI integration is on.
 - **A new `MATERIALIZE` key never appears** → check that the row reached the
   deployed binary: the commit has to be merged to `main` and the host rebuilt
   (see "Materialized host files" above). Verify by grepping the source or the

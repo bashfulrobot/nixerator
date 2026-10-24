@@ -101,10 +101,10 @@ EOF
   [ -z "$(find "${THOME}" -maxdepth 1 -name '.gopass-vals.*')" ]
 }
 
-@test "the shipped map covers every reference in the repo template except the service-account token" {
+@test "the shipped map covers every reference in the repo template" {
   repo="$(cd "${TESTS_DIR}/../../../../.." && pwd)"
   tpl="$(ls "${repo}"/secrets.*.tpl | head -1)"
   shipped="${repo}/modules/apps/cli/render-secrets/gopass-map.tsv"
   missing="$(comm -23 <(grep -o 'op://[^ }"]*' "${tpl}" | sort -u) <(awk -F'\t' '!/^#/ && NF>=2 {print $2}' "${shipped}" | sort -u))"
-  [ "${missing}" = "op://nixerator/zm7ky22lk75tfi4absvvfewd3q/credential" ]
+  [ -z "${missing}" ]
 }

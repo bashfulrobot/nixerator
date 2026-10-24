@@ -35,7 +35,7 @@ in
           # calls `op`. A shell that exports the token also hands it to every
           # child process, including a Claude Bash tool, which could then read any
           # vault the service account can see. `op` at the desk uses the desktop
-          # app; `op-toggle` opts one shell into the service account on demand.
+          # app.
           # No API token is exported here either (GRAFANA_TOKEN, FORGEJO_TOKEN,
           # GEMINI_API_KEY, AHA_API_TOKEN, WAVE_FULL_ACCESS_TOKEN,
           # TODOIST_API_TOKEN, SNYK_TOKEN). Each consumer reads its own value
@@ -75,24 +75,6 @@ in
 
         # Custom functions
         functions = {
-          op-toggle = {
-            description = "Toggle `op` between the desktop app (default) and the service-account token for this shell only. The token comes from ~/.config/op/service-account-token.";
-            body = ''
-              if set -q OP_SERVICE_ACCOUNT_TOKEN
-                set -e OP_SERVICE_ACCOUNT_TOKEN
-                echo "✓ op: service-account token cleared; op uses the desktop app again"
-              else
-                set -l _tok ~/.config/op/service-account-token
-                if not test -r $_tok
-                  echo "op-toggle: $_tok not found -- run 'just setup-op-token' first" >&2
-                  return 1
-                end
-                set -gx OP_SERVICE_ACCOUNT_TOKEN (cat $_tok)
-                echo "✓ op: this shell now uses the service account -- run op-toggle again to clear it"
-              end
-            '';
-          };
-
           kcfg = ''
             set -l clusters_dir "$HOME/.kube/clusters"
             set -l active_config "$HOME/.kube/config"
