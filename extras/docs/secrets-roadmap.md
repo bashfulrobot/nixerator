@@ -1,70 +1,46 @@
 # Secrets roadmap
 
-Two changes to the 1Password-source, gopass-snapshot model that need a human step
-or a test install, so they are written down here instead of built. Everything else
-in the hardening round is in the code (see `secrets.md`).
+## Decision: one GPG key for the secauto store
 
-## 1. Per-host GPG recipients
+One passphrase-less GPG key (uid `secauto automation`) decrypts the whole store on
+every reader host. That is intentional (Dustin, 2026-10-24), so there is no per-host
+key split. What follows from it:
 
-Today one passphrase-less GPG key (uid `secauto automation`) decrypts the whole
-secauto store on every host. A compromised reader (srv, the Mac) exposes every
-entry, including ones it never uses.
+- A compromised reader exposes every entry in the store. The accepted mitigations are
+  the single-user hosts, the private repo, 2FA on the GitHub account and signed pulls
+  (see "What the pull trusts" in `secrets.md`).
+- Anything that must not reach every host stays out of gopass: SSH identity keys,
+  git-crypt keys, `incus-ui.pfx` and `okular-*` live in 1Password only.
+- The recovery copy of the key is the 1Password Document `secauto-gpg-key`
+  (Personal vault). `just push-gpg-key <host>` stays the way a NixOS host gets it.
 
-Goal: each reader host holds its own key, and an entry is encrypted only to the
-hosts that use it. srv would decrypt its automation entries and nothing else.
+(Per-host recipients do work in gopass 1.17.4: a `.gpg-id` in a subdirectory of one
+store sets who can decrypt it, with entry names unchanged. It was tested on a
+throwaway store and then removed from the repo. Reintroduce it only if the decision
+changes.)
 
-Plan:
+## Retire the service-account tooling (bootstrap redesign)
 
-1. Generate one passphrase-less key per reader host, on that host.
-2. Split the store by consumer. Entries srv needs (the ones read by `claudoist`,
-   `incident-investigator`, `secauto-pull` renders and the restic/syncthing/tailscale
-   modules on srv) go to a recipient set of {qbert, srv}. Workstation-only entries
-   stay at {qbert, mac}.
-3. Re-encrypt with gopass: `gopass recipients add <key>` on the relevant store or
-   mount, then `gopass fsck` or the re-encrypt that `recipients add` runs.
-4. Update `push-gpg-key` to push each host its own key, not the shared one.
-5. Retire the shared key once every host decrypts with its own.
+**Built:** `extras/helpers/bootstrap-install-gopass.sh` (`stage` and `promote`). It
+streams the secauto key and the encrypted store from an existing host over SSH,
+renders `secrets.json` with `render-secrets --from gopass` (with
+`RENDER_SECRETS_ALLOW_MISSING=1`), and copies the result onto the target. It does
+not touch the SSH or git-crypt keys: after first boot, `just render-secrets-op`
+restores them from the 1Password desktop session. `bootstrap.txt` points to it as an
+alternative to Step 4. shellcheck is clean; the render step it relies on is covered
+by `tests/render-hardening.bats`.
 
-UNVERIFIED before starting: whether one repo can carry two recipient sets (a
-second gopass mount with its own `.gpg-id` is the likely shape, which means two
-repos or a sub-store). Check `gopass recipients` and `gopass mounts` docs, and try
-it on a throwaway store first. A mistake here can lock qbert out of its own store,
-so keep the recovery copy (1Password Document `secauto-gpg-key`) until a clean
-re-render from the new layout works on every host.
+**Not verified:** the script has never run on a live USB. The SSH, key-stream and
+`promote` steps need a VM or a spare machine. Do that run before the removal below.
 
-Human steps: key generation, the re-encrypt, and the cut-over. Claude can write
-the `push-gpg-key` change and the map split once the layout is chosen.
-
-## 2. Retire the service-account tooling (bootstrap redesign)
-
-The accounts are being deleted. What still uses the service-account token:
-`bootstrap-install-secrets.sh`, `render-secrets-bootstrap.sh`, `setup-op-token`,
-`rotate-op-token`, `op-toggle`, the `onepassword.serviceAccountToken` template key
-and the token auto-source in `render-secrets --from op`.
-
-New-install flow without the token:
-
-1. Boot the installer, reach an existing host (qbert) over SSH. `bootstrap.txt`
-   already assumes this to copy SSH and GPG keys.
-2. Copy the secauto GPG key from that host (the same stream `push-gpg-key` uses)
-   and clone the secauto store with a deploy key.
-3. Render `secrets.json` from gopass: `RENDER_SECRETS_ALLOW_MISSING=1 render-secrets
-   --from gopass` (the override exists for this case).
-4. Restore the identity-class keys from 1Password with the desktop session, not a
-   service account: `just render-secrets-op` on the new workstation, which prompts
-   once through the 1Password app.
-5. First rebuild; from then on `just render-secrets` reads gopass.
-
-Removal checklist, done together once a test install passes:
+Removal checklist, done together after a clean test install and once the service
+accounts are deleted:
 
 - delete `bootstrap-install-secrets.sh`, `render-secrets-bootstrap.sh`,
   `setup-op-service-account.sh`, `rotate-op-service-account.sh`, `lib/op-sa-token.sh`
 - delete the `setup-op-token`, `rotate-op-token`, `bootstrap-secrets` recipes and
   the `rot` alias
 - delete `op-toggle` from the fish module
-- drop `onepassword.serviceAccountToken` from `secrets.json.tpl` and the SA token
+- drop `onepassword.serviceAccountToken` from `secrets.json.tpl` and the token
   auto-source from `render-secrets.sh`
-- update `bootstrap.txt`, `helpers.md` and `secrets.md`
-
-Not done here because the replacement flow has never run on a real install, and a
-broken bootstrap is only found on a new machine. Test it in a VM first.
+- point `bootstrap.txt` Step 4, `helpers.md` and `secrets.md` at the new script
