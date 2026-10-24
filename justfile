@@ -1325,6 +1325,14 @@ push-slack-token-creds +hosts:
 check-secrets:
     @render-secrets --check
 
+# Detect a stale gopass snapshot: render from 1Password and diff against the live
+# file. Non-zero means 1Password has changed since the last import. Needs a desktop
+# session or an SA token. Read-only.
+[doc('Check the cached secrets.json against 1Password, to detect a stale gopass snapshot')]
+[group('secrets')]
+check-secrets-op:
+    @render-secrets --from op --check
+
 # Install the 1Password service-account token at ~/.config/op/service-account-token
 # (0600), so render-secrets / push-secrets / check-secrets run with zero
 # biometric prompts thereafter. One-time per host.

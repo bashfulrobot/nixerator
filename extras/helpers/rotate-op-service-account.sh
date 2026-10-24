@@ -156,7 +156,7 @@ if ! command -v render-secrets >/dev/null 2>&1; then
   echo "  On a fresh host before the first rebuild, use render-secrets-bootstrap.sh instead." >&2
   exit 1
 fi
-OP_SERVICE_ACCOUNT_TOKEN="$(<"${CANONICAL}")" render-secrets
+OP_SERVICE_ACCOUNT_TOKEN="$(<"${CANONICAL}")" render-secrets --from op
 
 echo
 echo "=== Step 5 of 5: verify ==="
@@ -183,7 +183,7 @@ fi
 # the wrong token and push-secrets / op-toggle are silently broken fleet-wide.
 echo
 echo "Checking the op-toggle path (token embedded in secrets.json)..."
-if render-secrets --check >/dev/null 2>&1; then
+if render-secrets --from op --check >/dev/null 2>&1; then
   echo "  OK: the embedded token authenticates. op-toggle and push-secrets will work."
   toggle_ok=1
 else
