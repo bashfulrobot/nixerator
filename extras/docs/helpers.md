@@ -33,6 +33,10 @@ fresh NixOS install. Wraps `setup-op-service-account.sh` + `render-secrets-boots
 with prereq checks, prompts, and copy-into-/mnt semantics so the user can
 follow `bootstrap.txt` without inlining six error-prone commands.
 
+**Scope**: this helper is the new-workstation key and bootstrap path. Routine
+rendering reads the gopass snapshot (`render-secrets`), not 1Password. It goes
+when the bootstrap is redesigned (see the TODO in `CLAUDE.md`).
+
 **Prerequisites**: Nix with flakes; 1Password account credentials handy
 (email, secret key, password) — `op signin` is interactive and runs from
 the live USB. SA token already exists in your Personal vault for

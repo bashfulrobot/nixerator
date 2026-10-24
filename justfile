@@ -1113,13 +1113,22 @@ remote-upgrade host repo_path="~/git/nixerator":
         exit "$rc"
     fi
 
-# Render Nix-eval secrets locally from 1Password into
-# ~/.config/nixos-secrets/secrets.json. Triggers one biometric prompt per
-# rotation; rebuilds in between read the cached file.
-[doc('Render Nix-eval secrets from 1Password into ~/.config/nixos-secrets/')]
+# Render Nix-eval secrets from the secauto gopass snapshot into
+# ~/.config/nixos-secrets/secrets.json. No 1Password, no prompt; rebuilds in
+# between read the cached file. To pick up a changed 1Password value, refresh the
+# snapshot first (`just import-secrets-to-gopass` on qbert, then pull).
+[doc('Render Nix-eval secrets from the gopass snapshot into ~/.config/nixos-secrets/')]
 [group('secrets')]
 render-secrets:
     @render-secrets
+
+# Render from 1Password (`op inject`) and restore the identity-class keys (SSH keys,
+# git-crypt keys, incus-ui.pfx). Needed only on a new workstation install, because
+# those files are never copied into gopass. Needs a desktop session or an SA token.
+[doc('Render from 1Password and restore SSH/git-crypt keys (new workstation install)')]
+[group('secrets')]
+render-secrets-op:
+    @render-secrets --from op
 
 # Render the same file from the secauto gopass store instead of 1Password. No
 # `op`, no service-account token, no desktop prompt: safe to run headless (srv,
@@ -1310,11 +1319,19 @@ push-slack-token-creds +hosts:
     done
 
 # Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
-# Exits non-zero if 1Password values differ from the cached file. Read-only.
-[doc('Check the cached secrets.json against 1Password (read-only)')]
+# Exits non-zero if the gopass snapshot differs from the cached file. Read-only.
+[doc('Check the cached secrets.json against the gopass snapshot (read-only)')]
 [group('secrets')]
 check-secrets:
     @render-secrets --check
+
+# Detect a stale gopass snapshot: render from 1Password and diff against the live
+# file. Non-zero means 1Password has changed since the last import. Needs a desktop
+# session or an SA token. Read-only.
+[doc('Check the cached secrets.json against 1Password, to detect a stale gopass snapshot')]
+[group('secrets')]
+check-secrets-op:
+    @render-secrets --from op --check
 
 # Install the 1Password service-account token at ~/.config/op/service-account-token
 # (0600), so render-secrets / push-secrets / check-secrets run with zero
@@ -1376,12 +1393,12 @@ bootstrap-secrets:
 fetch-signatures:
     @./extras/helpers/fetch-okular-signatures.sh
 
-# Fetch the gmailctl OAuth client credentials from the nixerator 1Password
-# vault (Login item `gmailctl`, Client ID + Client Secret fields) and render
-# them into ~/.gmailctl/credentials.json (0600). One-time per host after
-# `just setup-op-token`; re-run only if you rotate the OAuth client.
+# Write the gmailctl OAuth client credentials from the secauto gopass store
+# (entries nixerator/gmailctl/client-id and client-secret) and render
+# them into ~/.gmailctl/credentials.json (0600). One-time per host;
+# re-run only if you rotate the OAuth client.
 # Afterwards run `gmailctl init` to create token.json.
-[doc('Fetch the gmailctl OAuth client credentials from 1Password (one-time)')]
+[doc('Write the gmailctl OAuth client credentials from gopass (one-time)')]
 [group('secrets')]
 fetch-gmailctl-creds:
     @./extras/helpers/fetch-gmailctl-credentials.sh

@@ -52,8 +52,9 @@ in
       default = false;
       description = ''
         Install the render-secrets helper, which renders
-        ${globals.paths.nixerator}/secrets.json.tpl through `op inject`
-        to ${destPath}.
+        ${globals.paths.nixerator}/secrets.json.tpl to ${destPath}, from
+        1Password (`op inject`, the source) or from the secauto gopass
+        snapshot (`--from gopass`).
 
         Enable on hosts that have the 1Password CLI available (i.e. the
         hosts that will originate `op inject` runs and `--push` to

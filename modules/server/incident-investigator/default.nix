@@ -38,7 +38,7 @@
 # investigate.sh pages "Claude login expired". To rotate: run `claude setup-token`
 # on any machine logged in to the subscription, put the new value in the
 # 1Password item behind claudeOauthTokenRef (do not paste it anywhere else), then
-# `systemctl restart incident-investigator` so `op run` re-resolves it. Set a
+# `systemctl restart incident-investigator` so the gopass runner re-resolves it. Set a
 # calendar reminder for about 2027-09-10.
 #
 # The token is inference-only, but it rides in claude's own environment, so a
@@ -109,7 +109,7 @@ let
       exec ${secretsLib.gopassRun { inherit pkgs; }} ${command}
     '';
 
-  # op run resolves every op:// value in the child env, so receiver.py and the
+  # the gopass runner resolves every op:// value in the child env, so receiver.py and the
   # investigate.sh children it spawns all see the real secret. Refs that are
   # empty (e.g. an unset model) are simply omitted.
   runtimeEnv = [
@@ -127,7 +127,7 @@ let
     "PUSHOVER_USER=${cfg.pushoverUserRef}"
     "CLAUDE_CODE_OAUTH_TOKEN=${cfg.claudeOauthTokenRef}"
     # gcq (read-only Grafana Cloud queries) reads these. The token and instance
-    # ids stay op:// refs resolved by `op run`; the URLs are public. gcq queries
+    # ids stay op:// refs resolved by the gopass runner; the URLs are public. gcq queries
     # Mimir/Loki directly with a least-privilege metrics:read+logs:read token,
     # not the Admin operator token. investigate.sh puts its own dir on PATH so the
     # children see `gcq`, and strips the other secrets from claude's env.
@@ -223,7 +223,7 @@ in
       default = "op://automation/incident-investigator/shared-secret";
       description = ''
         1Password `op://` reference for the bearer token receiver.py checks on
-        every webhook POST. Resolved at runtime via `op run`; the same value
+        every webhook POST. Resolved at runtime via the gopass runner (gopassRun); the same value
         goes in the Grafana webhook contact point's Authorization header.
         Create the `automation/incident-investigator` item with a
         `shared-secret` field before enabling.
@@ -248,7 +248,7 @@ in
       description = ''
         1Password `op://` reference for the long-lived Claude subscription OAuth
         token (`claude setup-token`) the investigator's `claude -p` runs
-        authenticate with. Resolved at runtime via `op run` and passed as
+        authenticate with. Resolved at runtime via the gopass runner (gopassRun) and passed as
         `CLAUDE_CODE_OAUTH_TOKEN`; never on argv or disk. It expires 2027-09-24
         (minted 2026-09-24, one year): rotate it before then, see the header
         comment for the steps.
@@ -264,7 +264,7 @@ in
         least-privilege read token, deliberately NOT the Admin
         `grafana-cloud-operator` token: if the investigator is ever compromised,
         this token can read metrics and logs and nothing else. Resolved at
-        runtime via `op run` and passed as `GRAFANA_READ_TOKEN`; never on argv or
+        runtime via the gopass runner (gopassRun) and passed as `GRAFANA_READ_TOKEN`; never on argv or
         disk. Mint the access policy + token in Grafana Cloud and store it at this
         path before enabling the read path.
       '';
@@ -348,7 +348,7 @@ in
         description = ''
           1Password `op://` reference for the cloudflared tunnel token (the
           "Get tunnel token" value from a remotely-managed / Config type
-          Remote tunnel). Resolved at runtime via `op run` and passed to
+          Remote tunnel). Resolved at runtime via the gopass runner (gopassRun) and passed to
           cloudflared as `TUNNEL_TOKEN`; the ingress rules live in the
           Cloudflare dashboard, not here. Distinct from `sharedSecretRef`.
         '';
@@ -476,7 +476,7 @@ in
         # and pulls its ingress (remediator.srvrs.co -> http://localhost:8099) from
         # the dashboard. The native services.cloudflared module is credentials-file
         # only and can't drive a token tunnel, hence this small service. Runs as the
-        # user so `op run` finds the host SA token to resolve TUNNEL_TOKEN.
+        # user so the gopass runner finds the host GPG key to resolve TUNNEL_TOKEN.
         cloudflared-remediator = lib.mkIf cfg.tunnel.enable {
           description = "cloudflared tunnel (remediator.srvrs.co) for the incident-investigator receiver";
           after = [ "network-online.target" ];

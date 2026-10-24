@@ -1,13 +1,40 @@
 # Secrets Management
 
-All sensitive content lives in the **`nixerator` 1Password vault**. There are
-two flavours of consumer:
+## Model: 1Password is the source, gopass is the snapshot
+
+- 1Password is the only place a secret is edited. Add, change and rotate values
+  there, in the `nixerator` or `automation` vault.
+- gopass (the `secauto` store) is the automation snapshot. `just
+  import-secrets-to-gopass`, run by hand on qbert, copies values from 1Password
+  into it. Automations, services and headless hosts read gopass, not 1Password.
+  A value that exists only in gopass is not covered by the next import.
+- The `secauto` git repo moves the snapshot between hosts. qbert pushes, srv and
+  the Mac pull every 15 minutes.
+- 1Password also delivers the keys. SSH identity keys and git-crypt keys come
+  from 1Password Documents through `render-secrets` (op mode) on workstations.
+  The recovery copy of the GPG key that decrypts gopass is the 1Password
+  Document `secauto-gpg-key` (Personal vault). Day to day, `just push-gpg-key
+  <host>` streams it from qbert.
+- Keys stay in 1Password. The identity-class files (SSH keys, git-crypt keys,
+  `incus-ui.pfx`, `okular-*`) are never copied into gopass, because the one
+  shared GPG key would expose them on every host. They are needed only on a new
+  workstation install, so `render-secrets` op mode is a bootstrap path, not
+  part of routine refreshes. Routine refreshes use `--from gopass`.
+- Only the service-account tooling is being retired (token file,
+  `setup-op-token`, `rotate-op-token`, `op-toggle`, the bootstrap script). See
+  the TODO in `CLAUDE.md`. 1Password itself stays.
+
+The sections below cover the 1Password flow first, then the gopass snapshot
+(see "Automation secrets").
+
+All sensitive content lives in the **`nixerator` 1Password vault** (automation
+items in the `automation` vault). There are two flavours of consumer:
 
 | Consumer | Source | Cached on disk |
 |----------|--------|----------------|
-| Nix flake eval (modules, hosts) | Items in the `nixerator` vault rendered via `secrets.json.tpl` + `op inject` | `~/.config/nixos-secrets/secrets.json` (0600) |
+| Nix flake eval (modules, hosts) | Items in the `nixerator` vault, snapshotted into gopass and rendered via `secrets.json.tpl` + `render-secrets` (`--from op` uses `op inject` instead) | `~/.config/nixos-secrets/secrets.json` (0600) |
 | Okular signature stamping | Document items `okular-signature` + `okular-initials` in the `nixerator` vault | `~/.kde/share/icons/{signature,initials}.png` (0644) |
-| gmailctl OAuth client | Login item `gmailctl` (`Client ID` + `Client Secret` fields) in the `nixerator` vault, rendered via `op inject` by `just fetch-gmailctl-creds` | `~/.gmailctl/credentials.json` (0600) |
+| gmailctl OAuth client | Login item `gmailctl` (`Client ID` + `Client Secret` fields) in the `nixerator` vault, mirrored to gopass (`nixerator/gmailctl/client-id`, `client-secret`) and written by `just fetch-gmailctl-creds` | `~/.gmailctl/credentials.json` (0600) |
 | homelab git-crypt key | Document item `homelab git-crypt key` in the `nixerator` vault, materialized by `render-secrets` when `~/git/iac` is present (skipped if already on disk) | `~/.config/git-crypt/homelab.key` (0600) |
 | SSH + per-repo git-crypt keys | Document items in the `nixerator` vault, materialized by `render-secrets` on workstation hosts (skipped if already on disk) | `~/.ssh/*` (0600 private / 0644 public) |
 | srv `server.nanoclaw` | `nanoclaw-*` items in the `nixerator` vault, via `secrets.json` and `installValue`. See `extras/docs/nanoclaw/README.md` | `/run/nanoclaw-secrets/<name>` (tmpfs, root 0400) |
@@ -46,10 +73,25 @@ agent's context leaks into the model and can be sent off-site.
   status, or check existence/non-emptiness by means that never print the value
   (e.g. transform the value to a present/absent boolean in `jq` before printing).
 
+**Who edits a secret.** A human types every secret edit in 1Password, and every
+`gopass insert` or import run is a human action. The only exception is the
+`opencode` CLI with a local model, and only when a human approves that run.
+That `opencode` session may use the 1Password CLI (`op`), because a local model
+sends nothing off the machine. The `Bash(op read*)` and `op item get --reveal`
+deny rules in Claude's `settings.json` stay in force for Claude itself. A
+secret value never goes back to Claude: not as command output, not as a diff,
+not as a file Claude reads. Claude may write the scripts, templates and docs
+around the flow, and may run a command only when its output carries no value
+(exit status, entry names, present/absent).
+
 The global rule in `~/.claude/CLAUDE.md` states this prohibition inline and
 points here for the mechanics above.
 
 ## One-time per-host setup
+
+This is the service-account flow, kept until the accounts are deleted and the
+bootstrap is redesigned. A host that only needs the gopass snapshot skips it and
+uses `just render-secrets-gopass` (see "Automation secrets").
 
 1. **Install the SA token** (one biometric):
    ```bash
@@ -59,9 +101,14 @@ points here for the mechanics above.
    ```
    After this, every other secrets command on this host is biometric-free.
 
-2. **Render the Nix-eval secrets file**:
+2. **Render the Nix-eval secrets file** (from the gopass snapshot, which needs
+   the secauto GPG key on the host, see "Automation secrets"):
    ```bash
    just render-secrets      # writes ~/.config/nixos-secrets/secrets.json
+   ```
+   On a new workstation, also restore the identity-class keys from 1Password:
+   ```bash
+   just render-secrets-op   # render-secrets --from op: SSH keys, git-crypt keys, incus-ui.pfx
    ```
 
 3. **Fetch the Okular signature PNGs** (only on hosts where you use Okular):
@@ -145,7 +192,7 @@ Current PUSH_ALONGSIDE entries (also pushed to remotes by `--push`):
 | Local path | Remote mode | Why |
 |------------|-------------|-----|
 | `~/.config/incus/client.crt` | 0644 | Needed at Nix eval time on every Incus host so `builtins.readFile` in the incus module can populate the preseed trust store |
-| `~/.local/share/filebot/data/.license` | 0600 | srv is headless (no 1Password CLI); the license only reaches it via `--push` from a workstation that materialized it locally |
+| `~/.local/share/filebot/data/.license` | 0600 | srv has no desktop 1Password session; the license only reaches it via `--push` from a workstation that materialized it locally |
 
 "Workstation hosts" are those with `archetypes.workstation.enable = true`
 (nixerator, qbert), matched by the `host:` guard. The pure server
@@ -188,22 +235,26 @@ files directly off disk:
 ## Rotation (when a 1Password value changes)
 
 ```bash
-# 1. Update the value in the matching nixerator/<item>. See the item table
-#    below for which 1P item holds which secret.
+# 1. Update the value in 1Password (you, by hand), in the matching
+#    nixerator/<item>. See the item table below for which item holds which secret.
 
-# 2. Re-render locally:
+# 2. Refresh the gopass snapshot on qbert and push the store (you, by hand):
+just import-secrets-to-gopass   # skips present entries: gopass rm the old one first
+#    other hosts pick it up on their next secauto pull
+
+# 3. Re-render locally from gopass:
 just render-secrets          # alias: rs
 
-# 3. Push the new file to any peer that needs it:
+# 4. Push the new file to any peer that needs it:
 just push-secrets srv        # one host           (alias: ps)
 just push-secrets srv qbert  # several hosts
 
-# 4. Rebuild as usual:
+# 5. Rebuild as usual:
 just qr                      # local
 just remote-rebuild srv      # remote
 ```
 
-Zero biometric prompts for any of this once the SA token is installed.
+Rendering reads gopass, so it needs no 1Password session and no biometric prompt.
 
 ## Drift check
 
@@ -211,8 +262,11 @@ Zero biometric prompts for any of this once the SA token is installed.
 just check-secrets           # alias: cs
 ```
 
-Renders to a tempfile (inside `~/.config/nixos-secrets/`, never `/tmp`) and
-diffs against the live cached file. Exits non-zero on drift. Read-only.
+Renders from the gopass snapshot to a tempfile (inside `~/.config/nixos-secrets/`,
+never `/tmp`) and diffs against the live cached file. Exits non-zero on drift.
+Read-only. `just check-secrets-gopass` (`csg`) is the same check spelled out.
+Drift between 1Password and the gopass snapshot is not detected here: re-run
+`just import-secrets-to-gopass` after a 1Password change.
 
 ## Direct CLI
 
@@ -232,7 +286,11 @@ render-secrets --tpl ./secrets.json.tpl   # use a different template (must be
 
 ## `nixerator` vault items
 
-Names are pinned — they must match `secrets.json.tpl` exactly.
+Names are pinned — they must match `secrets.json.tpl` exactly. Each item is
+snapshotted into gopass under the entry named in
+`modules/apps/cli/render-secrets/gopass-map.tsv` (for example `aha/credential`
+for `op://nixerator/aha/credential`); `--mirror` adds the rest as
+`<vault>/<item>/<field>`.
 
 | Item | Type | Fields | Consumed as |
 |------|------|--------|-------------|
@@ -260,7 +318,7 @@ Names are pinned — they must match `secrets.json.tpl` exactly.
 | `id_ed25519{,_np,.pub}`, `id_rsa{,.pub}`, `id_rsa_np.pub` | Document | `file` | `~/.ssh/<name>` on workstation hosts (via `render-secrets`) |
 | `mixerator-`, `nixcfg-`, `nixerator-`, `talos-vms-git-crypt-key` | Document | `file` | `~/.ssh/<name>` on workstation hosts (via `render-secrets`) |
 | `feral-arr`, `feral-arr.pub` | Document | `file` | `~/.ssh/feral-arr{,.pub}` on srv + workstation hosts (via `render-secrets`). Single-purpose key for darkstar's arr download-sync CronJob rsync from the feralhosting seedbox; also consumed in-cluster by homelab's `just workloads::create-arr-ssh-secret`, which reads the same 1Password document. |
-| `gmailctl` | Login | `Client ID` + `Client Secret` | `~/.gmailctl/credentials.json` (via `just fetch-gmailctl-creds`, which `op inject`s the two fields into a Desktop-app credentials.json template). Rendered straight to disk, **not** in `secrets.json` — keeps the client secret out of the Nix store. `gmailctl init` then writes `~/.gmailctl/token.json` locally. |
+| `gmailctl` | Login | `Client ID` + `Client Secret` | `~/.gmailctl/credentials.json` (via `just fetch-gmailctl-creds`, which reads the two gopass entries `nixerator/gmailctl/client-id` and `client-secret` (from `import-secrets-to-gopass --mirror`) into a Desktop-app credentials.json template). Rendered straight to disk, **not** in `secrets.json` — keeps the client secret out of the Nix store. `gmailctl init` then writes `~/.gmailctl/token.json` locally. |
 | `incus-ui.crt` | Document | `file` | `~/.config/incus/client.crt` on all hosts (via `render-secrets` MATERIALIZE, 0644). Public certificate read by the Incus module via `builtins.readFile` at Nix eval time and injected into the preseed trust store. All Incus hosts; safe to be world-readable. |
 | `incus-ui.pfx` | Document | `file` | `~/.config/incus/client.pfx` on workstations (via `render-secrets` MATERIALIZE, 0600). PKCS12 bundle with private key; import into a browser to authenticate against any Incus web UI. Workstations only — srv is headless. |
 | `filebot-license` | Document | `file` | `~/.local/share/filebot/data/.license` on srv (via `render-secrets` MATERIALIZE + PUSH_ALONGSIDE, 0600). FileBot lifetime license (`.psm`) used by `dlm`/`dltv` (`modules/apps/cli/media-rename`) to rename/organize media. Materializes on any host running `render-secrets` but is only meaningful on srv, which gets it via `just push-secrets srv`. |
@@ -273,13 +331,13 @@ plaintext docs in this repo and don't grant access on their own.
 
 ### Authentication: service account vs. desktop biometric
 
-`render-secrets`, `fetch-okular-signatures.sh`, and
-`render-secrets-bootstrap.sh` accept two auth modes. They pick
-automatically:
+Plain `render-secrets` reads gopass and uses no 1Password auth. The `op` auth
+modes below apply only to `render-secrets --from op`, `fetch-okular-signatures.sh`
+and `render-secrets-bootstrap.sh`. They pick automatically:
 
 | Mode | Trigger | Biometric prompts |
 |------|---------|--------------------|
-| Service account (preferred) | `OP_SERVICE_ACCOUNT_TOKEN` env var, OR `~/.config/op/service-account-token` (0600) | **Zero**, ever |
+| Service account (being retired) | `OP_SERVICE_ACCOUNT_TOKEN` env var, OR `~/.config/op/service-account-token` (0600) | **Zero**, ever |
 | Desktop biometric | Neither of the above; falls through to interactive `op` | Per the 1Password app's CLI integration settings |
 
 The SA token itself lives in your **Personal** 1Password vault.
@@ -315,7 +373,7 @@ Setting up a reader host (once):
 4. Clone the store with `gopass clone git@github.com:bashfulrobot/secauto.git`, setting `GIT_SSH_COMMAND` so it uses the deploy key.
 5. Set `apps.cli.secauto-pull.enable = true` for the host and rebuild.
 
-Add or rotate a secret on qbert. Type the value yourself at the prompt (`gopass insert <name>`) so it never enters an AI transcript, then push. Readers pick it up on their next pull. A job that reads at run time (`gopass show -o <name>`) gets the new value on its next run. A service that read the value at startup, or a file an activation script wrote once, keeps the old value until it restarts or the host rebuilds.
+Add or rotate a secret in 1Password first, then refresh the snapshot on qbert with `just import-secrets-to-gopass` (it skips entries that are already present and non-empty, so remove the old entry with `gopass rm <name>` before re-importing a changed value), then push the store. Never paste a value into an AI transcript. Readers pick it up on their next pull. A job that reads at run time (`gopass show -o <name>`) gets the new value on its next run. A service that read the value at startup, or a file an activation script wrote once, keeps the old value until it restarts or the host rebuilds.
 
 Rules for AI assistants: never run `gopass show`, `gopass cat` or `pass show`, and never print the GPG private key. `gopass ls` (names only) is fine.
 
@@ -359,7 +417,7 @@ Cut-over state:
 - fish no longer exports `OP_SERVICE_ACCOUNT_TOKEN` in any shell. `op` at the desk uses the desktop app. `op-toggle` opts one shell into the service account, using `~/.config/op/service-account-token` (install it with `just setup-op-token`). `render-secrets --from op` still reads that file by itself.
 - `claudoist` and `incident-investigator` (and their cloudflared tunnels) on srv no longer use `op run` or the service-account token. `secretsLib.gopassRun` (`lib/secrets.nix`) replaces every `op://vault/item/field` value in the service environment with the first line of the gopass entry `vault/item/field` (slugged like `--mirror`), then execs the command. A missing or empty entry stops the service and names the variable and entry, never a value. Restarting them needs only the local GPG key.
 - What still uses the service account: the fresh-machine bootstrap (`bootstrap-install-secrets.sh`, `setup-op-token`, `rotate-op-token`), `op-toggle`, and `render-secrets --from op` auto-sourcing the token file. They go together when the accounts are deleted and the bootstrap is redesigned.
-- qbert still renders with `render-secrets` (op mode) until you run `just render-secrets-gopass` there. `just check-secrets-gopass` should name only `onepassword.serviceAccountToken` as different.
+- `render-secrets` now defaults to `--from gopass` on every host (`RENDER_SECRETS_FROM` overrides it). `--from op` (`just render-secrets-op`) remains for restoring the identity-class keys on a new workstation. Run `just check-secrets-gopass` once on qbert before relying on the new default: it should name only `onepassword.serviceAccountToken` as different.
 
 ## Accessing in modules
 
@@ -461,11 +519,17 @@ secrets-related steps:
 - **`builtins.readFile: No such file or directory`** during rebuild → the
   rendered file is missing. Run `just render-secrets` (or
   `just push-secrets <thishost>` from a peer).
-- **`render-secrets: 'op' (1Password CLI) not in PATH`** → host doesn't have
-  1Password installed. Enable `apps.gui.one-password` +
-  `apps.cli.render-secrets` on this host, or render on a peer and `--push`
-  here.
+- **`render-secrets: left out N key(s) not available from gopass`** → the
+  snapshot lacks those entries. Add them in 1Password, run
+  `just import-secrets-to-gopass` on qbert, wait for the secauto pull, then
+  re-render.
+- **`render-secrets: 'gopass' not in PATH`** or a GPG decrypt failure → the host
+  lacks `gopass`/`gnupg` or the secauto key. See "Setting up a reader host".
+- **`render-secrets: 'op' (1Password CLI) not in PATH`** (only with `--from op`)
+  → host doesn't have 1Password installed. Enable `apps.gui.one-password` +
+  `apps.cli.render-secrets` on this host.
 - **`render-secrets: ~/.config/op/service-account-token perms are NNN, must be 600`**
+  (only with `--from op`)
   → `chmod 600 ~/.config/op/service-account-token`. The token grants vault
   read access; loose perms = any local process can read your nixerator vault.
 - **`(403) ... Service Account Deleted` on a bare `render-secrets` right after

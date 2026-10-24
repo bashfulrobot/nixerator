@@ -217,7 +217,7 @@ in
     # the module + flake wiring can be reviewed and merged as one unit.
     # Until Task 14 is done, items 2/4/5 below are NOT yet satisfied and
     # both claudoist.service and cloudflared-claudoist.service will
-    # crash-loop (loud `op run` failures on missing 1Password fields, no
+    # crash-loop (loud gopass-runner failures on missing 1Password fields, no
     # secret ever half-resolves) rather than silently running broken:
     #   1. `claude` already logged in on srv (~/.claude/.credentials.json).
     #      -- satisfied: shared with incidentInvestigator, already enabled.

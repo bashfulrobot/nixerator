@@ -161,14 +161,14 @@ Never read, print, or quote a rendered secret value — not a prefix, not a
 length. `~/.config/nixos-secrets/` and `~/.config/op/` are on Claude Code's
 Read deny list, and a PreToolUse guard denies shell reads of them too.
 
-Mechanism: 1Password (`op inject`); git-crypt is retired.
+Mechanism: 1Password is the source and edit point. The secauto gopass store is the automation snapshot (`render-secrets --from gopass`). `op inject` is the workstation path. git-crypt is retired.
 
 - Template: `secrets.json.tpl` at the repo root — `op://` references and
   placeholders, no values.
 - Render step: `just render-secrets` (`rs`) writes
   `~/.config/nixos-secrets/secrets.json`, outside the repo and outside the Nix
   store. `just push-secrets <hosts>` (`ps`) scp's it to allow-listed peers;
-  `just check-secrets` (`cs`) diffs live 1Password against the cache.
+  `just check-secrets` (`cs`) diffs live 1Password against the cache and `just check-secrets-gopass` (`csg`) diffs the gopass snapshot.
 - Eval side: `flake.nix` reads that path as a *string* (not a Nix path
   literal), so it is never copied into the store as a flake input, and passes
   the parsed attrset to every module as `secrets`.

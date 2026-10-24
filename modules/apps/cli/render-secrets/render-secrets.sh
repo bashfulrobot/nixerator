@@ -145,11 +145,12 @@ Usage: render-secrets [--from op|gopass] [--check] [--tpl PATH] [--push HOST [HO
   Renders templated secrets to: ${DEST}
   Default template (baked at build time): ${TPL}
 
-  --from SOURCE    Where values come from. op (default) runs 'op inject' against
-                   1Password and needs a desktop session or a service-account
-                   token. gopass fills the same template from the secauto gopass
-                   store using the map ${GOPASS_MAP}: no 1Password, no prompt,
-                   works headless. A key whose entry is missing or empty is left
+  --from SOURCE    Where values come from. gopass (default) fills the template
+                   from the secauto gopass store using the map ${GOPASS_MAP}:
+                   no 1Password, no prompt, works headless. op runs 'op inject'
+                   against 1Password and needs a desktop session or a
+                   service-account token; use it to restore the identity-class
+                   keys on a new workstation install. A key whose entry is missing or empty is left
                    out of the file. The Documents listed in gopass-documents.psv
                    (feral-arr key, Incus cert, filebot license, flux deploy key)
                    are restored from gopass too. Identity-class files (SSH
@@ -407,7 +408,7 @@ if [[ -n "${RENDER_SECRETS_SOURCE_ONLY:-}" ]]; then
 fi
 
 CHECK=0
-FROM="${RENDER_SECRETS_FROM:-op}"
+FROM="${RENDER_SECRETS_FROM:-gopass}"
 PUSH=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -642,6 +643,21 @@ else
       *) materialize_failed+=("${_d}") ;;
     esac
   done <"${GOPASS_DOCS}"
+  # Identity-class files are not fetched in this mode, but their modes are still
+  # re-asserted when they already exist (a symlink is refused), so the routine
+  # path keeps private keys at 0600.
+  for _m in "${MATERIALIZE[@]}"; do
+    IFS='|' read -r _t _d _fm _dm _g <<<"${_m}"
+    guard_ok "${_g}" || continue
+    [[ -e "${_d}" || -L "${_d}" ]] || continue
+    if [[ -L "${_d}" ]]; then
+      echo "render-secrets: ${_d} is a symlink, refusing to chmod it" >&2
+      materialize_failed+=("${_d}")
+      continue
+    fi
+    chmod "${_fm}" "${_d}"
+    chmod "${_dm}" "$(dirname "${_d}")"
+  done
   echo "render-secrets: identity-class files (SSH identity keys, git-crypt keys) are not in gopass; run render-secrets --from op on a desktop host to restore them"
 fi
 if [[ ${#materialize_failed[@]} -gt 0 ]]; then

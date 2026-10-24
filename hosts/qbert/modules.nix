@@ -30,8 +30,8 @@
     # coexist -- docker's published-port DNAT survives the nftables flip Incus
     # forces on -- so the earlier `docker.enable = lib.mkForce false` is dropped.
 
-    # Render Nix-eval secrets locally from 1Password (and push to headless
-    # peers via `render-secrets --push`). Gated on 1Password being available.
+    # Render Nix-eval secrets locally from the gopass snapshot (and push to headless
+    # peers via `render-secrets --push`).
     render-secrets.enable = true;
 
     # aha-fr-report-one / aha-fr-report on demand, plus the daily scheduled

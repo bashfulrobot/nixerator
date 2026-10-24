@@ -2,6 +2,9 @@
 # Disko declarative partitioning (set TARGET_HOST to the host being installed)
 
 ## Prerequisites
+# Note: 1Password is used here only to deliver the keys and the first render on a
+# new install. After the first rebuild, routine rendering reads the gopass
+# snapshot (`just render-secrets`); see extras/docs/secrets.md.
 - Boot from NixOS live USB
 - Open terminal, run as root/sudo
 - 1Password account credentials handy (email, secret key, password) --
