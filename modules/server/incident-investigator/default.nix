@@ -3,6 +3,7 @@
   pkgs,
   config,
   globals,
+  secretsLib,
   ...
 }:
 # incident-investigator -- the srv side of the homelab alert-investigation
@@ -19,12 +20,11 @@
 #     -> investigate.sh (read-only `claude -p`, per runbook.md)
 #     -> ~/incidents/<ts>-<fp>/rca.md + Pushover "RCA ready".
 #
-# Secrets: resolved at RUNTIME by `op run`, never rendered into the Nix store.
-# `op run` needs OP_SERVICE_ACCOUNT_TOKEN in its environment (it does NOT read
-# the on-disk token file on its own), and a systemd service doesn't inherit the
-# login shell's export -- so the opRunExec wrapper loads the host SA token from
-# ~/.config/op/service-account-token (installed by `just setup-op-token`) before
-# exec'ing `op run`. No API key or nixos-secrets entry is needed by this module.
+# Secrets: resolved at RUNTIME from the secauto gopass store, never rendered into
+# the Nix store. The opRunExec wrapper (lib/secrets.nix gopassRun) swaps every
+# op://vault/item/field value in the service environment for the matching gopass
+# entry and then execs the command. It needs only the local GPG key: no 1Password,
+# no service-account token. No API key or nixos-secrets entry is needed by this module.
 #
 # Claude auth: a long-lived subscription OAuth token from `claude setup-token`,
 # stored at claudeOauthTokenRef in 1Password and passed to `claude` as
@@ -63,7 +63,6 @@ let
     pkgs.cmark-gfm # renders rca.md -> rca.html for the phone-readable RCA link; safe by default (raw HTML omitted, unsafe links stripped) since investigate.sh never passes --unsafe
 
     pkgs.yq-go # read-only YAML query (binary is `yq`)
-    pkgs._1password-cli
     pkgs.jq
     pkgs.curl
     pkgs.git
@@ -101,26 +100,13 @@ let
   incidentTailnetUrl = "https://${cfg.publish.tailnetHost}${cfg.publish.path}";
   incidentLanUrl = "http://${cfg.publish.lan.address}:${toString cfg.publish.lan.port}";
 
-  # `op run` authenticates as a service account only when OP_SERVICE_ACCOUNT_TOKEN
-  # is in its environment -- it does NOT auto-detect the on-disk token file. A
-  # systemd service doesn't inherit the login shell's export (that lives in the
-  # fish config), so without this it dies with "No accounts configured for use
-  # with 1Password CLI". This wrapper loads the host SA token from the file
-  # `just setup-op-token` installs, exports it, then execs `op run`. The token
-  # stays in the process environment only -- never the Nix store, never argv.
-  tokenFile = "${homeDir}/.config/op/service-account-token";
+  # Resolves every op:// value in the child env from the secauto gopass store, then
+  # execs the command (lib/secrets.nix gopassRun). Replaces `op run` and the
+  # 1Password service-account token: a read needs only the local GPG key.
   opRunExec =
     command:
-    pkgs.writeShellScript "incident-investigator-op-run" ''
-      set -eu
-      if [ ! -r "${tokenFile}" ]; then
-        echo "1Password service-account token not found at ${tokenFile}." >&2
-        echo "Run 'just setup-op-token' on this host before enabling the service." >&2
-        exit 1
-      fi
-      OP_SERVICE_ACCOUNT_TOKEN="$(${pkgs.coreutils}/bin/cat ${tokenFile})"
-      export OP_SERVICE_ACCOUNT_TOKEN
-      exec ${pkgs._1password-cli}/bin/op run -- ${command}
+    pkgs.writeShellScript "incident-investigator-gopass-run" ''
+      exec ${secretsLib.gopassRun { inherit pkgs; }} ${command}
     '';
 
   # op run resolves every op:// value in the child env, so receiver.py and the
@@ -464,9 +450,8 @@ in
             Type = "simple";
             User = globals.user.name;
             Group = "users";
-            # opRunExec loads the host SA token from ~/.config/op/service-account-token
-            # into OP_SERVICE_ACCOUNT_TOKEN, then `op run` resolves the op:// refs in
-            # the env and execs receiver.py with the real values in its environment;
+            # opRunExec resolves the op:// refs in the env from the secauto gopass
+            # store and execs receiver.py with the real values in its environment;
             # the investigate.sh children it spawns inherit them. Nothing secret is
             # written to disk or the Nix store.
             ExecStart = opRunExec "${pkgs.python3}/bin/python3 ${scriptsDir}/receiver.py";
@@ -506,7 +491,6 @@ in
               "PATH=${
                 lib.makeBinPath [
                   pkgs.cloudflared
-                  pkgs._1password-cli
                 ]
               }"
               "TUNNEL_TOKEN=${cfg.tunnel.tokenRef}"

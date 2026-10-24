@@ -357,6 +357,8 @@ Cut-over state:
 
 - srv renders after every pull: `apps.cli.secauto-pull.renderAfterPull = true` runs `render-secrets --from gopass` as `ExecStartPost`. The rendered file no longer carries `onepassword.serviceAccountToken`, so srv has no 1Password in its refresh path.
 - fish no longer exports `OP_SERVICE_ACCOUNT_TOKEN` in any shell. `op` at the desk uses the desktop app. `op-toggle` opts one shell into the service account, using `~/.config/op/service-account-token` (install it with `just setup-op-token`). `render-secrets --from op` still reads that file by itself.
+- `claudoist` and `incident-investigator` (and their cloudflared tunnels) on srv no longer use `op run` or the service-account token. `secretsLib.gopassRun` (`lib/secrets.nix`) replaces every `op://vault/item/field` value in the service environment with the first line of the gopass entry `vault/item/field` (slugged like `--mirror`), then execs the command. A missing or empty entry stops the service and names the variable and entry, never a value. Restarting them needs only the local GPG key.
+- What still uses the service account: the fresh-machine bootstrap (`bootstrap-install-secrets.sh`, `setup-op-token`, `rotate-op-token`), `op-toggle`, and `render-secrets --from op` auto-sourcing the token file. They go together when the accounts are deleted and the bootstrap is redesigned.
 - qbert still renders with `render-secrets` (op mode) until you run `just render-secrets-gopass` there. `just check-secrets-gopass` should name only `onepassword.serviceAccountToken` as different.
 
 ## Accessing in modules
