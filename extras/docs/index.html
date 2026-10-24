@@ -229,6 +229,12 @@
       <span class="b mono">~/.config/nixos-secrets/secrets.json</span><span style="color:var(--mut)">→</span>
       <span class="b">read at eval, --impure</span>
     </div>
+    <div class="sflow" style="margin-top:12px">
+      <span class="b mono">1Password (edit here)</span><span style="color:var(--mut)">→</span>
+      <span class="b mono">import-secrets-to-gopass</span><span style="color:var(--mut)">→</span>
+      <span class="b mono">secauto gopass repo</span><span style="color:var(--mut)">→</span>
+      <span class="b">pulled by srv, automations read it</span>
+    </div>
     <p class="note" style="margin-top:16px">This repo <b style="color:var(--tx)">used to</b> use git-crypt for secrets in the tree; that was retired in favour of the 1Password + <span class="mono">render-secrets</span> flow because it produces secret <b>values</b> (usable in files, env vars, or inline config) rather than just file paths. <span class="mono">just render-secrets</span> renders locally; <span class="mono">just push-secrets &lt;hosts&gt;</span> pushes the rendered file to headless peers over SSH.</p>
     <p class="note" style="margin-top:12px"><b style="color:var(--tx)">Root-only runtime files:</b> srv's <span class="mono" style="color:var(--purple)">server.nanoclaw</span> secrets follow the same path. <span class="mono">installValue</span> writes each to <span class="mono">/run/nanoclaw-secrets/</span> at activation. See <span class="mono" style="color:var(--blue)">extras/docs/nanoclaw/</span>.</p>
   </div>

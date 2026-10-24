@@ -1,7 +1,29 @@
 # Secrets Management
 
-All sensitive content lives in the **`nixerator` 1Password vault**. There are
-two flavours of consumer:
+## Model: 1Password is the source, gopass is the snapshot
+
+- 1Password is the only place a secret is edited. Add, change and rotate values
+  there, in the `nixerator` or `automation` vault.
+- gopass (the `secauto` store) is the automation snapshot. `just
+  import-secrets-to-gopass`, run by hand on qbert, copies values from 1Password
+  into it. Automations, services and headless hosts read gopass, not 1Password.
+  A value that exists only in gopass is not covered by the next import.
+- The `secauto` git repo moves the snapshot between hosts. qbert pushes, srv and
+  the Mac pull every 15 minutes.
+- 1Password also delivers the keys. SSH identity keys and git-crypt keys come
+  from 1Password Documents through `render-secrets` (op mode) on workstations.
+  The recovery copy of the GPG key that decrypts gopass is the 1Password
+  Document `secauto-gpg-key` (Personal vault). Day to day, `just push-gpg-key
+  <host>` streams it from qbert.
+- Only the service-account tooling is being retired (token file,
+  `setup-op-token`, `rotate-op-token`, `op-toggle`, the bootstrap script). See
+  the TODO in `CLAUDE.md`. 1Password itself stays.
+
+The sections below cover the 1Password flow first, then the gopass snapshot
+(see "Automation secrets").
+
+All sensitive content lives in the **`nixerator` 1Password vault** (automation
+items in the `automation` vault). There are two flavours of consumer:
 
 | Consumer | Source | Cached on disk |
 |----------|--------|----------------|
@@ -50,6 +72,10 @@ The global rule in `~/.claude/CLAUDE.md` states this prohibition inline and
 points here for the mechanics above.
 
 ## One-time per-host setup
+
+This is the service-account flow, kept until the accounts are deleted and the
+bootstrap is redesigned. A host that only needs the gopass snapshot skips it and
+uses `just render-secrets-gopass` (see "Automation secrets").
 
 1. **Install the SA token** (one biometric):
    ```bash
@@ -145,7 +171,7 @@ Current PUSH_ALONGSIDE entries (also pushed to remotes by `--push`):
 | Local path | Remote mode | Why |
 |------------|-------------|-----|
 | `~/.config/incus/client.crt` | 0644 | Needed at Nix eval time on every Incus host so `builtins.readFile` in the incus module can populate the preseed trust store |
-| `~/.local/share/filebot/data/.license` | 0600 | srv is headless (no 1Password CLI); the license only reaches it via `--push` from a workstation that materialized it locally |
+| `~/.local/share/filebot/data/.license` | 0600 | srv has no desktop 1Password session; the license only reaches it via `--push` from a workstation that materialized it locally |
 
 "Workstation hosts" are those with `archetypes.workstation.enable = true`
 (nixerator, qbert), matched by the `host:` guard. The pure server
@@ -315,7 +341,7 @@ Setting up a reader host (once):
 4. Clone the store with `gopass clone git@github.com:bashfulrobot/secauto.git`, setting `GIT_SSH_COMMAND` so it uses the deploy key.
 5. Set `apps.cli.secauto-pull.enable = true` for the host and rebuild.
 
-Add or rotate a secret on qbert. Type the value yourself at the prompt (`gopass insert <name>`) so it never enters an AI transcript, then push. Readers pick it up on their next pull. A job that reads at run time (`gopass show -o <name>`) gets the new value on its next run. A service that read the value at startup, or a file an activation script wrote once, keeps the old value until it restarts or the host rebuilds.
+Add or rotate a secret in 1Password first, then refresh the snapshot on qbert with `just import-secrets-to-gopass` (it skips entries that are already present and non-empty, so remove the old entry with `gopass rm <name>` before re-importing a changed value), then push the store. Never paste a value into an AI transcript. Readers pick it up on their next pull. A job that reads at run time (`gopass show -o <name>`) gets the new value on its next run. A service that read the value at startup, or a file an activation script wrote once, keeps the old value until it restarts or the host rebuilds.
 
 Rules for AI assistants: never run `gopass show`, `gopass cat` or `pass show`, and never print the GPG private key. `gopass ls` (names only) is fine.
 
