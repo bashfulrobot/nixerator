@@ -9,22 +9,15 @@
 #   - okular-signature (Document) → ~/.kde/share/icons/signature.png
 #   - okular-initials  (Document) → ~/.kde/share/icons/initials.png
 #
-# Uses the SA token at ~/.config/op/service-account-token if present
-# (zero biometric prompts). Falls back to whatever the desktop CLI is
-# signed in as if not.
+# Uses the 1Password desktop session (the app prompts for approval).
 #
-# Run once per host (after `just setup-op-token`). Re-run only if you ever
-# rotate the document in 1Password.
+# Run once per host. Re-run only if you ever rotate the document in 1Password.
 #
 # Usage:
 #   ./extras/helpers/fetch-okular-signatures.sh
 #   just fetch-signatures               (alias: just fs)
 
 set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
-# shellcheck source=lib/op-sa-token.sh
-source "${SCRIPT_DIR}/lib/op-sa-token.sh"
 
 ICONS_DIR="${HOME}/.kde/share/icons"
 SIG_PATH="${ICONS_DIR}/signature.png"
@@ -37,13 +30,9 @@ if ! command -v op >/dev/null 2>&1; then
   exit 1
 fi
 
-# Service account auto-source — same pattern as render-secrets. Skips
-# biometric entirely once `just setup-op-token` has been run.
-op_source_sa_token "fetch-okular-signatures"
-
 if ! op whoami >/dev/null 2>&1; then
   echo "fetch-okular-signatures: 'op' not authenticated." >&2
-  echo "  Either install the SA token (just setup-op-token), OR run: op signin" >&2
+  echo "  Unlock the 1Password desktop app, or run: op signin" >&2
   exit 1
 fi
 

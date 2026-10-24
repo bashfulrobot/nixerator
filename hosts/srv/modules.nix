@@ -132,6 +132,14 @@ in
       # srv renders its secrets file from gopass after every pull, so it needs
       # no 1Password CLI, service-account token or human for routine refreshes.
       renderAfterPull = true;
+      # Merge only commits signed with Dustin's SSH signing key. qbert's gopass
+      # commits are signed by that identity (git module: commit.gpgsign), so the
+      # file holds the same public key the git module publishes.
+      allowedSignersFile = toString (
+        pkgs.writeText "secauto-allowed-signers" ''
+          ${globals.user.email} ${globals.git.gitPubSigningKey}
+        ''
+      );
     };
     # Extracts Slack xoxc/xoxd session cookies via a persistent Chromium
     # profile (Playwright) so the slack-post skill can send from srv.
