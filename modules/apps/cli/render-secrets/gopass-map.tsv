@@ -4,12 +4,15 @@
 # Names and references only. No values. A template reference that is not listed
 # here is left out of the rendered file on purpose (for example the 1Password
 # service-account token itself, onepassword.serviceAccountToken).
+# An optional third column "required" marks a row whose absence must fail the
+# render (it guards something that fails open without it, such as the Syncthing
+# GUI login). RENDER_SECRETS_ALLOW_MISSING=1 overrides that for a bootstrap.
 kong/konnect-pat	op://automation/kong-konnect-pat/lab-pat-2026-06
 aha/credential	op://nixerator/aha/credential
 wave/credential	op://nixerator/wave/credential
 forgejo-api/token	op://nixerator/forgejo-api/token
-syncthing-gui/username	op://nixerator/syncthing-gui/username
-syncthing-gui/password	op://nixerator/syncthing-gui/password
+syncthing-gui/username	op://nixerator/syncthing-gui/username	required
+syncthing-gui/password	op://nixerator/syncthing-gui/password	required
 restic-srv/repository	op://nixerator/restic-srv/repository
 restic-srv/region	op://nixerator/restic-srv/region
 restic-workstation/repository	op://nixerator/restic-workstation/repository

@@ -672,6 +672,16 @@ secrets-nudge:
         echo "  Continuing rebuild in 1s -- Ctrl-C to abort."
         sleep 1
     fi
+    # Snapshot staleness: only on a host that can reach 1Password (qbert). A clean
+    # `just check-snapshot` writes the stamp below; no stamp, or one older than 7
+    # days, means nobody has confirmed gopass still matches 1Password.
+    stamp="${XDG_STATE_HOME:-$HOME/.local/state}/nixerator/snapshot-verified"
+    if command -v op >/dev/null 2>&1; then
+        if [[ ! -f "$stamp" ]] || [[ -n "$(find "$stamp" -mtime +7 2>/dev/null)" ]]; then
+            echo "⚠ The gopass snapshot has not been checked against 1Password in over 7 days."
+            echo "  Run: just check-snapshot   (refresh with: just import-secrets-to-gopass --update)"
+        fi
+    fi
 
 # Pre-rebuild: capture runtime ~/.claude/* edits back into the source tree
 # before activation overwrites them with the previously-captured version.
@@ -1148,10 +1158,18 @@ check-secrets-gopass:
 # One-time copy of every mapped value from 1Password into the secauto gopass
 # store (run on qbert, the writer). Values pipe op -> gopass and never print.
 # Safe to rerun: present, non-empty entries are skipped.
-[doc('Import 1Password values into the secauto gopass store (one-time; flags: --mirror --documents --dry-run --desktop)')]
+[doc('Import 1Password values into the secauto gopass store (flags: --update --check --mirror --documents --dry-run --desktop)')]
 [group('secrets')]
 import-secrets-to-gopass *args:
     @bash extras/helpers/import-op-to-gopass.sh {{args}}
+
+# Compare every mapped 1Password value with the gopass snapshot by digest. Prints
+# entry names only; exits non-zero on drift and records a stamp on a clean pass,
+# which silences the staleness warning in the rebuild recipes. Run on qbert.
+[doc('Check the gopass snapshot against 1Password (names only; run on qbert)')]
+[group('secrets')]
+check-snapshot:
+    @bash extras/helpers/import-op-to-gopass.sh --check
 
 # Render locally AND scp the rendered file to one or more peer hosts. Use
 # after rotating a 1Password value, before running `just remote-rebuild <host>`

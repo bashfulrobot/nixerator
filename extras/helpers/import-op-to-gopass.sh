@@ -15,6 +15,12 @@
 # straight into `gopass insert -f` would store an empty entry and hide the
 # failure from every later run.
 #
+# --update re-reads each mapped value from 1Password and overwrites the store entry
+# when the two differ (compared by sha256, nothing printed): use it after rotating a
+# value in 1Password. --check does the same comparison and writes nothing; it exits
+# non-zero when any mapped entry is missing or differs, so a stale snapshot shows up.
+# Both apply to the template map only, not --mirror or --documents.
+#
 # --documents copies the automation-class Documents listed in
 # modules/apps/cli/render-secrets/gopass-documents.psv (feral-arr key, Incus cert,
 # filebot license, flux deploy key, the Snowflake connections file). The mirror
@@ -36,15 +42,17 @@ for tool in op gopass; do
   }
 done
 
-desktop=0 mirror=0 dry=0 documents=0
+desktop=0 mirror=0 dry=0 documents=0 update=0 check=0
 for arg in "$@"; do
   case "${arg}" in
     --desktop) desktop=1 ;;
     --mirror) mirror=1 ;;
     --documents) documents=1 ;;
     --dry-run) dry=1 ;;
+    --update) update=1 ;;
+    --check) check=1 ;;
     *)
-      echo "usage: import-op-to-gopass.sh [--desktop] [--mirror] [--documents] [--dry-run]" >&2
+      echo "usage: import-op-to-gopass.sh [--desktop] [--mirror] [--documents] [--dry-run] [--update] [--check]" >&2
       exit 2
       ;;
   esac
@@ -58,7 +66,11 @@ else
   export OP_SERVICE_ACCOUNT_TOKEN
 fi
 
-ok=0 skip=0 fail=0
+ok=0 skip=0 fail=0 drift=0
+
+# digest — sha256 of stdin, hex only. --update and --check compare the 1Password
+# value with the stored one by digest, so neither value is printed or kept in a file.
+digest() { sha256sum | cut -d' ' -f1; }
 
 # import_documents — copy the Documents listed in gopass-documents.psv from the
 # nixerator vault into gopass. Each is read once with `op document get`, captured
@@ -185,8 +197,39 @@ mirror_vault() {
 # imports only the Documents.
 run_map=1
 [[ "${documents}" -eq 1 && "${mirror}" -eq 0 ]] && run_map=0
-while IFS=$'\t' read -r entry ref; do
+while IFS=$'\t' read -r entry ref _; do
   [[ -z "${entry}" || "${entry}" == \#* ]] && continue
+  if [[ "${update}" -eq 1 || "${check}" -eq 1 ]]; then
+    # Compare 1Password with the store by digest. --check only reports drift;
+    # --update (without --dry-run) overwrites an entry whose digest differs.
+    new="$(op read "${ref}" 2>/dev/null)"
+    if [[ -z "${new}" ]]; then
+      echo "FAIL  ${entry}  <- ${ref} (1Password read empty)"
+      fail=$((fail + 1))
+      continue
+    fi
+    old_d="$(gopass show -o -- "${entry}" 2>/dev/null | tr -d '\n' | digest)"
+    # `gopass show -o` returns the first line only, so compare that line.
+    new_d="$(printf '%s\n' "${new}" | head -n1 | tr -d '\n' | digest)"
+    if [[ -n "$(gopass show -o -- "${entry}" 2>/dev/null)" && "${old_d}" == "${new_d}" ]]; then
+      echo "same  ${entry}"
+      skip=$((skip + 1))
+    elif [[ "${check}" -eq 1 ]]; then
+      echo "drift ${entry} (1Password differs from the store, or the entry is missing)"
+      drift=$((drift + 1))
+    elif [[ "${dry}" -eq 1 ]]; then
+      echo "would update ${entry}"
+      ok=$((ok + 1))
+    elif printf '%s' "${new}" | gopass insert -f "${entry}" >/dev/null 2>&1; then
+      echo "updated ${entry}"
+      ok=$((ok + 1))
+    else
+      echo "FAIL  ${entry}"
+      fail=$((fail + 1))
+    fi
+    new="" old_d="" new_d=""
+    continue
+  fi
   if [[ -n "$(gopass show -o -- "${entry}" 2>/dev/null)" ]]; then
     echo "skip  ${entry} (present, non-empty)"
     skip=$((skip + 1))
@@ -223,6 +266,17 @@ if [[ "${mirror}" -eq 1 ]]; then
 fi
 
 echo "---"
+if [[ "${check}" -eq 1 ]]; then
+  echo "check: drift=${drift} same=${skip} failed=${fail}"
+  if [[ "${drift}" -eq 0 && "${fail}" -eq 0 ]]; then
+    # A clean pass records when the snapshot was last confirmed (read by the
+    # staleness warning in the justfile's secrets-nudge).
+    stamp_dir="${XDG_STATE_HOME:-${HOME}/.local/state}/nixerator"
+    mkdir -p "${stamp_dir}" && touch "${stamp_dir}/snapshot-verified"
+    exit 0
+  fi
+  exit 1
+fi
 if [[ "${dry}" -eq 1 ]]; then
   echo "dry run: would_write=${ok} skipped=${skip} failed=${fail}"
   exit 0
