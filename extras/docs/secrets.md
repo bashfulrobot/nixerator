@@ -20,6 +20,14 @@
   shared GPG key would expose them on every host. They are needed only on a new
   workstation install, so `render-secrets` op mode is a bootstrap path, not
   part of routine refreshes. Routine refreshes use `--from gopass`.
+- **Automation never depends on 1Password (hard rule).** Anything that runs
+  unattended reads gopass only: systemd units and timers, server modules,
+  `secauto-pull`, and the `render-secrets` runs that follow a rebuild or a pull.
+  Three things enforce it. `apps.cli.render-secrets.opSupport` is off by default,
+  so `op` is not on `render-secrets`' PATH (only qbert turns it on). srv does not
+  install the 1Password CLI. `modules/apps/cli/render-secrets/tests/no-op-in-automation.bats`
+  fails when server modules, `secauto-pull` or `hosts/srv/modules.nix` call `op`,
+  install it, or read the service-account token.
 - Only the service-account tooling is being retired (token file,
   `setup-op-token`, `rotate-op-token`, `op-toggle`, the bootstrap script). See
   the TODO in `CLAUDE.md`. 1Password itself stays.

@@ -119,10 +119,10 @@ in
         model = globals.ai.localCodeModel;
       };
     };
-    # srv renders its own document-backed secrets (feral-arr download-sync key,
-    # incus cert, filebot license) via its 1Password CLI, rather than only
-    # receiving them by `just push-secrets srv`. Needs a valid SA token on the
-    # host; see extras/docs/secrets.md.
+    # srv renders its own secrets and document-backed files (feral-arr
+    # download-sync key, incus cert, filebot license) from the secauto gopass
+    # snapshot. Automation never depends on 1Password, so opSupport stays off and
+    # `op` is not on the PATH here; see extras/docs/secrets.md.
     render-secrets.enable = true;
     # Reader for the secauto encrypted gopass store: pulls over a read-only
     # deploy key every 15 min. Needs the one-time clone, GPG key import and
@@ -440,12 +440,4 @@ in
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
-
-  # 1Password CLI. programs._1password also creates ~/.config/op with
-  # mode 700 via tmpfiles, which op requires. The SA token is loaded by
-  # the fish module from secrets.json. No GUI or polkit needed on headless srv.
-  programs._1password = {
-    enable = true;
-    package = pkgs._1password-cli;
-  };
 }

@@ -16,6 +16,7 @@ let
   tplPath = "${globals.paths.nixerator}/secrets.json.tpl";
 
   render-secrets =
+    withOp:
     pkgs.runCommand "render-secrets"
       {
         nativeBuildInputs = [ pkgs.makeWrapper ];
@@ -30,18 +31,21 @@ let
           --replace-fail "@DOCS@" "${./gopass-documents.psv}"
         wrapProgram $out/bin/render-secrets \
           --prefix PATH : ${
-            lib.makeBinPath [
-              pkgs._1password-cli
-              pkgs.openssh
-              pkgs.diffutils
-              pkgs.coreutils
-              pkgs.git
-              pkgs.jq # forgejo tea-config generation reads .forgejo.apiToken; --from gopass builds the file with it
-              pkgs.gopass # --from gopass reads the secauto store
-              pkgs.gnupg # gopass shells out to gpg to decrypt
-              pkgs.gawk # --from gopass looks references up in the shared map
-              pkgs.gnugrep
-            ]
+            lib.makeBinPath (
+              # --from op only; automation hosts leave it out so a unit that reaches for 1Password fails loudly
+              lib.optional withOp pkgs._1password-cli
+              ++ [
+                pkgs.openssh
+                pkgs.diffutils
+                pkgs.coreutils
+                pkgs.git
+                pkgs.jq # forgejo tea-config generation reads .forgejo.apiToken; --from gopass builds the file with it
+                pkgs.gopass # --from gopass reads the secauto store
+                pkgs.gnupg # gopass shells out to gpg to decrypt
+                pkgs.gawk # --from gopass looks references up in the shared map
+                pkgs.gnugrep
+              ]
+            )
           }
       '';
 in
@@ -63,9 +67,20 @@ in
         so a headless host can enable this module and render by itself.
       '';
     };
+
+    opSupport = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Put the 1Password CLI on render-secrets' PATH so `--from op` works
+        (restoring SSH and git-crypt keys on a new workstation install). Leave
+        it off on any host that runs automation: with `op` absent, a unit that
+        reaches for 1Password fails loudly instead of depending on it.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ render-secrets ];
+    environment.systemPackages = [ (render-secrets cfg.opSupport) ];
   };
 }

@@ -32,7 +32,11 @@
 
     # Render Nix-eval secrets locally from the gopass snapshot (and push to headless
     # peers via `render-secrets --push`).
-    render-secrets.enable = true;
+    render-secrets = {
+      enable = true;
+      # qbert is a workstation: `render-secrets --from op` restores keys on a new install.
+      opSupport = true;
+    };
 
     # aha-fr-report-one / aha-fr-report on demand, plus the daily scheduled
     # run. The timer does not need anyone logged in. The primary user lingers,
