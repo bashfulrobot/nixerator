@@ -1,0 +1,13 @@
+# Each reader host's own GPG key fingerprint (public information).
+# host <TAB> fingerprint
+# Generate the key on the host:
+#   gpg --batch --pinentry-mode loopback --passphrase '' \
+#     --quick-gen-key "secauto-<host> <host@secauto.invalid>" ed25519 sign,cert never
+#   (then add an encryption subkey: gpg --quick-add-key <fpr> cv25519 encr never)
+# Export the PUBLIC key to qbert (gpg --export <fpr> | ssh qbert gpg --import) and
+# record the fingerprint below. Never put a private key anywhere in this repo.
+#
+# Fill these in once the keys exist; secauto-recipients.sh refuses a row whose
+# host has no fingerprint here.
+#qbert	<fingerprint>
+#srv	<fingerprint>
