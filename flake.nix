@@ -221,7 +221,7 @@
       globals = import ./settings/globals.nix;
       versions = import ./settings/versions.nix;
 
-      # Nix-eval secrets, rendered from 1Password via `just render-secrets`
+      # Nix-eval secrets, rendered from the gopass snapshot via `just render-secrets`
       # to a path outside the repo. String path (not Nix path literal) so the
       # file is read at eval time without being copied into the Nix store as
       # a flake input. See extras/docs/secrets.md.

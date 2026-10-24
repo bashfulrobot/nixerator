@@ -101,9 +101,14 @@ uses `just render-secrets-gopass` (see "Automation secrets").
    ```
    After this, every other secrets command on this host is biometric-free.
 
-2. **Render the Nix-eval secrets file**:
+2. **Render the Nix-eval secrets file** (from the gopass snapshot, which needs
+   the secauto GPG key on the host, see "Automation secrets"):
    ```bash
    just render-secrets      # writes ~/.config/nixos-secrets/secrets.json
+   ```
+   On a new workstation, also restore the identity-class keys from 1Password:
+   ```bash
+   just render-secrets-op   # render-secrets --from op: SSH keys, git-crypt keys, incus-ui.pfx
    ```
 
 3. **Fetch the Okular signature PNGs** (only on hosts where you use Okular):
@@ -230,22 +235,26 @@ files directly off disk:
 ## Rotation (when a 1Password value changes)
 
 ```bash
-# 1. Update the value in the matching nixerator/<item>. See the item table
-#    below for which 1P item holds which secret.
+# 1. Update the value in 1Password (you, by hand), in the matching
+#    nixerator/<item>. See the item table below for which item holds which secret.
 
-# 2. Re-render locally:
+# 2. Refresh the gopass snapshot on qbert and push the store (you, by hand):
+just import-secrets-to-gopass   # skips present entries: gopass rm the old one first
+#    other hosts pick it up on their next secauto pull
+
+# 3. Re-render locally from gopass:
 just render-secrets          # alias: rs
 
-# 3. Push the new file to any peer that needs it:
+# 4. Push the new file to any peer that needs it:
 just push-secrets srv        # one host           (alias: ps)
 just push-secrets srv qbert  # several hosts
 
-# 4. Rebuild as usual:
+# 5. Rebuild as usual:
 just qr                      # local
 just remote-rebuild srv      # remote
 ```
 
-Zero biometric prompts for any of this once the SA token is installed.
+Rendering reads gopass, so it needs no 1Password session and no biometric prompt.
 
 ## Drift check
 
@@ -401,7 +410,7 @@ Cut-over state:
 - fish no longer exports `OP_SERVICE_ACCOUNT_TOKEN` in any shell. `op` at the desk uses the desktop app. `op-toggle` opts one shell into the service account, using `~/.config/op/service-account-token` (install it with `just setup-op-token`). `render-secrets --from op` still reads that file by itself.
 - `claudoist` and `incident-investigator` (and their cloudflared tunnels) on srv no longer use `op run` or the service-account token. `secretsLib.gopassRun` (`lib/secrets.nix`) replaces every `op://vault/item/field` value in the service environment with the first line of the gopass entry `vault/item/field` (slugged like `--mirror`), then execs the command. A missing or empty entry stops the service and names the variable and entry, never a value. Restarting them needs only the local GPG key.
 - What still uses the service account: the fresh-machine bootstrap (`bootstrap-install-secrets.sh`, `setup-op-token`, `rotate-op-token`), `op-toggle`, and `render-secrets --from op` auto-sourcing the token file. They go together when the accounts are deleted and the bootstrap is redesigned.
-- qbert still renders with `render-secrets` (op mode) until you run `just render-secrets-gopass` there. `just check-secrets-gopass` should name only `onepassword.serviceAccountToken` as different.
+- `render-secrets` now defaults to `--from gopass` on every host (`RENDER_SECRETS_FROM` overrides it). `--from op` (`just render-secrets-op`) remains for restoring the identity-class keys on a new workstation. Run `just check-secrets-gopass` once on qbert before relying on the new default: it should name only `onepassword.serviceAccountToken` as different.
 
 ## Accessing in modules
 

@@ -1113,13 +1113,22 @@ remote-upgrade host repo_path="~/git/nixerator":
         exit "$rc"
     fi
 
-# Render Nix-eval secrets locally from 1Password into
-# ~/.config/nixos-secrets/secrets.json. Triggers one biometric prompt per
-# rotation; rebuilds in between read the cached file.
-[doc('Render Nix-eval secrets from 1Password into ~/.config/nixos-secrets/')]
+# Render Nix-eval secrets from the secauto gopass snapshot into
+# ~/.config/nixos-secrets/secrets.json. No 1Password, no prompt; rebuilds in
+# between read the cached file. To pick up a changed 1Password value, refresh the
+# snapshot first (`just import-secrets-to-gopass` on qbert, then pull).
+[doc('Render Nix-eval secrets from the gopass snapshot into ~/.config/nixos-secrets/')]
 [group('secrets')]
 render-secrets:
     @render-secrets
+
+# Render from 1Password (`op inject`) and restore the identity-class keys (SSH keys,
+# git-crypt keys, incus-ui.pfx). Needed only on a new workstation install, because
+# those files are never copied into gopass. Needs a desktop session or an SA token.
+[doc('Render from 1Password and restore SSH/git-crypt keys (new workstation install)')]
+[group('secrets')]
+render-secrets-op:
+    @render-secrets --from op
 
 # Render the same file from the secauto gopass store instead of 1Password. No
 # `op`, no service-account token, no desktop prompt: safe to run headless (srv,
@@ -1310,8 +1319,8 @@ push-slack-token-creds +hosts:
     done
 
 # Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
-# Exits non-zero if 1Password values differ from the cached file. Read-only.
-[doc('Check the cached secrets.json against 1Password (read-only)')]
+# Exits non-zero if the gopass snapshot differs from the cached file. Read-only.
+[doc('Check the cached secrets.json against the gopass snapshot (read-only)')]
 [group('secrets')]
 check-secrets:
     @render-secrets --check
