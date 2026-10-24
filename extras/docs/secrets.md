@@ -32,7 +32,7 @@ items in the `automation` vault). There are two flavours of consumer:
 
 | Consumer | Source | Cached on disk |
 |----------|--------|----------------|
-| Nix flake eval (modules, hosts) | Items in the `nixerator` vault rendered via `secrets.json.tpl` + `op inject` | `~/.config/nixos-secrets/secrets.json` (0600) |
+| Nix flake eval (modules, hosts) | Items in the `nixerator` vault, snapshotted into gopass and rendered via `secrets.json.tpl` + `render-secrets` (`--from op` uses `op inject` instead) | `~/.config/nixos-secrets/secrets.json` (0600) |
 | Okular signature stamping | Document items `okular-signature` + `okular-initials` in the `nixerator` vault | `~/.kde/share/icons/{signature,initials}.png` (0644) |
 | gmailctl OAuth client | Login item `gmailctl` (`Client ID` + `Client Secret` fields) in the `nixerator` vault, mirrored to gopass (`nixerator/gmailctl/client-id`, `client-secret`) and written by `just fetch-gmailctl-creds` | `~/.gmailctl/credentials.json` (0600) |
 | homelab git-crypt key | Document item `homelab git-crypt key` in the `nixerator` vault, materialized by `render-secrets` when `~/git/iac` is present (skipped if already on disk) | `~/.config/git-crypt/homelab.key` (0600) |
@@ -262,8 +262,11 @@ Rendering reads gopass, so it needs no 1Password session and no biometric prompt
 just check-secrets           # alias: cs
 ```
 
-Renders to a tempfile (inside `~/.config/nixos-secrets/`, never `/tmp`) and
-diffs against the live cached file. Exits non-zero on drift. Read-only.
+Renders from the gopass snapshot to a tempfile (inside `~/.config/nixos-secrets/`,
+never `/tmp`) and diffs against the live cached file. Exits non-zero on drift.
+Read-only. `just check-secrets-gopass` (`csg`) is the same check spelled out.
+Drift between 1Password and the gopass snapshot is not detected here: re-run
+`just import-secrets-to-gopass` after a 1Password change.
 
 ## Direct CLI
 
@@ -283,7 +286,11 @@ render-secrets --tpl ./secrets.json.tpl   # use a different template (must be
 
 ## `nixerator` vault items
 
-Names are pinned — they must match `secrets.json.tpl` exactly.
+Names are pinned — they must match `secrets.json.tpl` exactly. Each item is
+snapshotted into gopass under the entry named in
+`modules/apps/cli/render-secrets/gopass-map.tsv` (for example `aha/credential`
+for `op://nixerator/aha/credential`); `--mirror` adds the rest as
+`<vault>/<item>/<field>`.
 
 | Item | Type | Fields | Consumed as |
 |------|------|--------|-------------|
@@ -324,13 +331,13 @@ plaintext docs in this repo and don't grant access on their own.
 
 ### Authentication: service account vs. desktop biometric
 
-`render-secrets`, `fetch-okular-signatures.sh`, and
-`render-secrets-bootstrap.sh` accept two auth modes. They pick
-automatically:
+Plain `render-secrets` reads gopass and uses no 1Password auth. The `op` auth
+modes below apply only to `render-secrets --from op`, `fetch-okular-signatures.sh`
+and `render-secrets-bootstrap.sh`. They pick automatically:
 
 | Mode | Trigger | Biometric prompts |
 |------|---------|--------------------|
-| Service account (preferred) | `OP_SERVICE_ACCOUNT_TOKEN` env var, OR `~/.config/op/service-account-token` (0600) | **Zero**, ever |
+| Service account (being retired) | `OP_SERVICE_ACCOUNT_TOKEN` env var, OR `~/.config/op/service-account-token` (0600) | **Zero**, ever |
 | Desktop biometric | Neither of the above; falls through to interactive `op` | Per the 1Password app's CLI integration settings |
 
 The SA token itself lives in your **Personal** 1Password vault.
@@ -512,11 +519,17 @@ secrets-related steps:
 - **`builtins.readFile: No such file or directory`** during rebuild → the
   rendered file is missing. Run `just render-secrets` (or
   `just push-secrets <thishost>` from a peer).
-- **`render-secrets: 'op' (1Password CLI) not in PATH`** → host doesn't have
-  1Password installed. Enable `apps.gui.one-password` +
-  `apps.cli.render-secrets` on this host, or render on a peer and `--push`
-  here.
+- **`render-secrets: left out N key(s) not available from gopass`** → the
+  snapshot lacks those entries. Add them in 1Password, run
+  `just import-secrets-to-gopass` on qbert, wait for the secauto pull, then
+  re-render.
+- **`render-secrets: 'gopass' not in PATH`** or a GPG decrypt failure → the host
+  lacks `gopass`/`gnupg` or the secauto key. See "Setting up a reader host".
+- **`render-secrets: 'op' (1Password CLI) not in PATH`** (only with `--from op`)
+  → host doesn't have 1Password installed. Enable `apps.gui.one-password` +
+  `apps.cli.render-secrets` on this host.
 - **`render-secrets: ~/.config/op/service-account-token perms are NNN, must be 600`**
+  (only with `--from op`)
   → `chmod 600 ~/.config/op/service-account-token`. The token grants vault
   read access; loose perms = any local process can read your nixerator vault.
 - **`(403) ... Service Account Deleted` on a bare `render-secrets` right after
