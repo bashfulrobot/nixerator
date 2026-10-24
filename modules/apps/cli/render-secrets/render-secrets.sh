@@ -16,11 +16,18 @@ set -euo pipefail
 
 DEST="@DEST@"
 TPL="@TPL@"
-# Shared gopass-entry <-> op:// reference map, baked as a store path. Tests and
-# --tpl worktree edits can override it with GOPASS_MAP.
-GOPASS_MAP="${GOPASS_MAP:-@MAP@}"
-# Documents that also live in gopass (title|entry|encoding|dest|modes|guard).
-GOPASS_DOCS="${GOPASS_DOCS:-@DOCS@}"
+# Shared gopass-entry <-> op:// reference map and the Documents table
+# (title|entry|encoding|dest|modes|guard), both baked as store paths. The
+# environment can override them only under test (RENDER_SECRETS_SOURCE_ONLY or
+# RENDER_SECRETS_TEST): the Documents table decides which paths get written and
+# chmod'ed, so a service environment must not be able to repoint it.
+if [[ -n "${RENDER_SECRETS_SOURCE_ONLY:-}${RENDER_SECRETS_TEST:-}" ]]; then
+  GOPASS_MAP="${GOPASS_MAP:-@MAP@}"
+  GOPASS_DOCS="${GOPASS_DOCS:-@DOCS@}"
+else
+  GOPASS_MAP="@MAP@"
+  GOPASS_DOCS="@DOCS@"
+fi
 
 # Hosts render-secrets is willing to scp to. Hardcoded — matches the same
 # allow-list `justfile`'s remote-rebuild recipes use. Defends against a
@@ -202,6 +209,10 @@ validate_tpl_path() {
     echo "render-secrets: --tpl path is not inside a git working tree: $p" >&2
     exit 1
   fi
+  if [[ ! -f "$toplevel/modules/apps/cli/render-secrets/render-secrets.sh" ]]; then
+    echo "render-secrets: --tpl path is not inside a nixerator checkout: $p" >&2
+    exit 1
+  fi
   case "$abs" in
     "$toplevel"/*) : ;;
     *)
@@ -266,13 +277,20 @@ render_forgejo_tea_config() {
 # Values travel gopass -> stdin of jq -> a 0600 temp file next to OUT. They never
 # appear in argv (visible in /proc) or on a terminal. `show -f` returns the whole
 # entry, so multi-line values (keys) survive; `show -o` would keep only line 1.
-gopass_inject() {
-  local tpl="$1" out="$2" dir vals ref entry val omitted=()
+# The body runs in a subshell (gopass_inject below) so its EXIT trap cleans the two
+# plaintext temp files on errexit and signals without touching the caller's traps.
+_gopass_inject_body() {
+  local tpl="$1" out="$2" dir ref entry val omitted=()
   dir="$(dirname "${out}")"
   vals="$(mktemp -p "${dir}" .gopass-vals.XXXXXX)" || return 1
-  chmod 600 "${vals}"
-  : >"${vals}.lines"
-  chmod 600 "${vals}.lines"
+  lines="$(mktemp -p "${dir}" .gopass-lines.XXXXXX)" || {
+    rm -f "${vals}"
+    return 1
+  }
+  # mktemp creates both 0600. Both hold plaintext secrets, so they are removed on
+  # an errexit or a signal too, not only on the success and jq-failure paths.
+  trap 'rm -f "${vals}" "${lines}"' EXIT
+  trap 'exit 1' INT TERM
   while IFS= read -r ref; do
     [[ -n "${ref}" ]] || continue
     entry="$(awk -F'\t' -v r="${ref}" '$0 !~ /^#/ && $2 == r { print $1; exit }' "${GOPASS_MAP}")"
@@ -280,14 +298,14 @@ gopass_inject() {
       omitted+=("${ref} (not in map)")
       continue
     fi
-    if ! val="$(gopass show -f "${entry}" 2>/dev/null)" || [[ -z "${val}" ]]; then
+    if ! val="$(gopass show -f -- "${entry}" 2>/dev/null)" || [[ -z "${val}" ]]; then
       omitted+=("${entry} (missing or empty)")
       continue
     fi
-    printf '%s' "${val}" | jq -Rs --arg ref "${ref}" '{($ref): .}' >>"${vals}.lines"
+    printf '%s' "${val}" | jq -Rs --arg ref "${ref}" '{($ref): .}' >>"${lines}"
   done < <(grep -o 'op://[^ }"]*' "${tpl}" | sort -u)
   val=""
-  jq -s 'add // {}' "${vals}.lines" >"${vals}"
+  jq -s 'add // {}' "${lines}" >"${vals}"
   if jq --slurpfile v "${vals}" '
       ($v[0]) as $V
       | walk(
@@ -297,9 +315,9 @@ gopass_inject() {
           else . end)
       | walk(if type == "object" then with_entries(select(.value != null and .value != {})) else . end)
     ' "${tpl}" >"${out}"; then
-    rm -f "${vals}" "${vals}.lines"
+    rm -f "${vals}" "${lines}"
   else
-    rm -f "${vals}" "${vals}.lines" "${out}"
+    rm -f "${vals}" "${lines}" "${out}"
     return 1
   fi
   if [[ ${#omitted[@]} -gt 0 ]]; then
@@ -307,6 +325,8 @@ gopass_inject() {
     printf '  %s\n' "${omitted[@]}" >&2
   fi
 }
+
+gopass_inject() { ( _gopass_inject_body "$@" ); }
 
 # guard_ok GUARD — true if GUARD is empty, a path that exists, or a
 # "host:h1,h2,..." list that contains this hostname.
@@ -316,7 +336,10 @@ guard_ok() {
   case "${guard}" in
     host:*)
       local cur hn _guard_hosts
-      cur="${RENDER_SECRETS_HOSTNAME:-$(hostname)}"
+      cur="$(hostname)"
+      if [[ -n "${RENDER_SECRETS_SOURCE_ONLY:-}${RENDER_SECRETS_TEST:-}" ]]; then
+        cur="${RENDER_SECRETS_HOSTNAME:-${cur}}"
+      fi
       IFS=',' read -ra _guard_hosts <<<"${guard#host:}"
       for hn in "${_guard_hosts[@]}"; do
         [[ "${hn}" == "${cur}" ]] && return 0
@@ -346,6 +369,10 @@ gopass_materialize_one() {
   dir="$(dirname "${dest}")"
   mkdir -p "${dir}"
   chmod "${dmode}" "${dir}"
+  if [[ -L "${dest}" ]]; then
+    echo "render-secrets: ${dest} is a symlink, refusing to chmod or replace it" >&2
+    return 1
+  fi
   if [[ -e "${dest}" ]]; then
     chmod "${fmode}" "${dest}"
     echo "render-secrets: ${dest} present (perms ${fmode}, skip fetch)"
@@ -353,8 +380,8 @@ gopass_materialize_one() {
   fi
   tmp="$(mktemp -p "${dir}" .materialize.XXXXXX)" || return 1
   case "${enc}" in
-    b64) gopass show -f "${entry}" 2>/dev/null | base64 -d >"${tmp}" 2>/dev/null && ok=1 ;;
-    text) gopass show -f "${entry}" >"${tmp}" 2>/dev/null && ok=1 ;;
+    b64) gopass show -f -- "${entry}" 2>/dev/null | base64 -d >"${tmp}" 2>/dev/null && ok=1 ;;
+    text) gopass show -f -- "${entry}" >"${tmp}" 2>/dev/null && ok=1 ;;
     *)
       rm -f "${tmp}"
       return 1
@@ -527,6 +554,10 @@ materialize_one() {
   dir="$(dirname "${dest}")"
   mkdir -p "${dir}"
   chmod "${dmode}" "${dir}"
+  if [[ -L "${dest}" ]]; then
+    echo "render-secrets: ${dest} is a symlink, refusing to chmod or replace it" >&2
+    return 1
+  fi
   if [[ -e "${dest}" ]]; then
     chmod "${fmode}" "${dest}"
     echo "render-secrets: ${dest} present (perms ${fmode}, skip fetch)"

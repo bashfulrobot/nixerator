@@ -27,12 +27,13 @@ let
       # path with a space, quote or $ must stay one inert word.
       store=${lib.escapeShellArg cfg.storePath}
       key=${lib.escapeShellArg cfg.deployKey}
+      repo=${lib.escapeShellArg cfg.repo}
       known_hosts=${knownHosts}
 
       # Exit 2 is a configuration error. The unit does not retry it, since
       # retrying a missing clone or key changes nothing.
       if [[ ! -d "$store/.git" ]]; then
-        echo "secauto-pull: $store is not a git clone. Run: gopass clone ${cfg.repo}" >&2
+        echo "secauto-pull: $store is not a git clone. Run: gopass clone $repo" >&2
         exit 2
       fi
       if [[ ! -r "$key" ]]; then
@@ -53,6 +54,16 @@ let
       # runs GIT_SSH_COMMAND through a shell.
       q_key="$(printf '%q' "$key")"
       export GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -F /dev/null -i $q_key -o IdentitiesOnly=yes -o BatchMode=yes -o ControlMaster=no -o ControlPath=none -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$known_hosts -o GlobalKnownHostsFile=/dev/null"
+      # The user's gitconfig stays out of it as well: an url.<x>.insteadOf there
+      # would send the fetch to another host without touching the ssh pin above.
+      export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+      # The store must still point at the configured repo. insteadOf is ignored
+      # now, so a changed origin URL means someone edited the clone's own config.
+      origin="$(git -C "$store" remote get-url origin)"
+      if [[ "$origin" != "$repo" ]]; then
+        echo "secauto-pull: origin is $origin, expected $repo. Refusing to pull." >&2
+        exit 2
+      fi
       git -C "$store" pull --ff-only --quiet
     '';
   };
@@ -78,7 +89,7 @@ in
     repo = lib.mkOption {
       type = lib.types.str;
       default = "git@github.com:bashfulrobot/secauto.git";
-      description = "Remote of the encrypted store. Used only in the setup hint.";
+      description = "Remote of the encrypted store. secauto-pull refuses to pull when the clone's origin differs.";
     };
 
     storePath = lib.mkOption {

@@ -28,8 +28,8 @@ EOF
   cat >"${STUBS}/gopass" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
-  show) f="${GOPASS_STUB_STORE}/${3//\//__}"; [[ -s "$f" ]] && head -n1 "$f" || exit 11 ;;
-  insert) cat >"${GOPASS_STUB_STORE}/${3//\//__}" ;;
+  show) e="${*: -1}"; f="${GOPASS_STUB_STORE}/${e//\//__}"; [[ -s "$f" ]] && head -n1 "$f" || exit 11 ;;
+  insert) e="${*: -1}"; cat >"${GOPASS_STUB_STORE}/${e//\//__}" ;;
   sync) exit 0 ;;
   *) exit 2 ;;
 esac

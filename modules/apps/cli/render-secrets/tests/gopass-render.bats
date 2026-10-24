@@ -15,7 +15,7 @@ setup() {
   cat >"${STUBS}/gopass" <<'EOF'
 #!/usr/bin/env bash
 [[ "$1" == "show" && "$2" == "-f" ]] || exit 2
-f="${GOPASS_STUB_DIR}/${3//\//__}"
+e="${*: -1}"; f="${GOPASS_STUB_DIR}/${e//\//__}"
 [[ -f "$f" ]] || exit 11
 cat "$f"
 EOF

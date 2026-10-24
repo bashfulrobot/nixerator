@@ -319,12 +319,18 @@ Add or rotate a secret on qbert. Type the value yourself at the prompt (`gopass 
 
 Rules for AI assistants: never run `gopass show`, `gopass cat` or `pass show`, and never print the GPG private key. `gopass ls` (names only) is fine.
 
+### What the pull trusts
+
+`secauto-pull` ignores the user's gitconfig and ssh config, pins GitHub's host keys, and refuses to pull when the clone's `origin` differs from `apps.cli.secauto-pull.repo`. It does not verify commit signatures. The gopass commits on qbert are unsigned, so `--verify-signatures` would reject every pull. Anyone with push access to `bashfulrobot/secauto` can add entries encrypted to this host's key, and those values become env vars and files on srv. Write access is the same GitHub account that holds the deploy keys. Keep the repo private, keep 2FA on that account, and review `git log` on the store after a surprise change. Signed commits are the next step if the repo ever gets a second writer.
+
+`gcommit` (`agy`) runs in plan mode without `--dangerously-skip-permissions`, because the diff it reads is untrusted text.
+
 ### No exported API tokens
 
 No shell exports an API token. A shell export reaches every child process, including a Claude Bash tool, while a value read at run time lives only in the process that needs it. Each consumer gets its value from the store:
 
 - Scripts read the gopass entry when the variable is unset (an exported value still wins; `GOPASS_FALLBACK=off` disables the lookup): `aha.sh` (`aha/credential`), `grafana.sh` and `grafana-query.sh` (`grafana-cloud-dashboards/token`), the wave-invoicing `lib.sh` (`wave/credential`), `forge.sh` and `release-create.sh` (`forgejo-api/token`) in claude-skills, and nixerator's `forge` and `todoist-report`.
-- CLIs that read the variable themselves are wrapped by `secretsLib.withGopassEnv` (`lib/secrets.nix`), which exports it for that one process: `td` (`TODOIST_API_TOKEN` from `todoist/credential`), `snyk-agent-scan` (`SNYK_TOKEN` from `snyk/credential`) and `agy` (`GEMINI_API_KEY` from `gemini/credential`).
+- CLIs that read the variable themselves are wrapped by `secretsLib.withGopassEnv` (`lib/secrets.nix`), which exports it for the wrapped command and the children it starts (a tool that spawns sub-agents passes it on; it calls the store-pinned `gopass`, not one from `PATH`): `td` (`TODOIST_API_TOKEN` from `todoist/credential`), `snyk-agent-scan` (`SNYK_TOKEN` from `snyk/credential`) and `agy` (`GEMINI_API_KEY` from `gemini/credential`).
 - To wrap another CLI, call `withGopassEnv { inherit pkgs; pkg = ...; bin = "..."; envVar = "..."; entry = "..."; }` in its module.
 
 Check that nothing exports one (fish, any host): `for v in AHA_API_TOKEN WAVE_FULL_ACCESS_TOKEN FORGEJO_TOKEN TODOIST_API_TOKEN GEMINI_API_KEY SNYK_TOKEN GRAFANA_TOKEN; set -q $v; and echo "$v: set"; or echo "$v: unset"; end`.
@@ -335,7 +341,8 @@ Check that nothing exports one (fish, any host): `for v in AHA_API_TOKEN WAVE_FU
 
 - `modules/apps/cli/render-secrets/gopass-map.tsv` maps each gopass entry to the `op://` reference the template uses (`aha/credential` ↔ `op://nixerator/aha/credential`). Names and references only. Add a row there when you add a template key.
 - A key is left out of the file, never written empty, when its reference is not in the map or its entry is missing or empty. Modules already guard on presence. The stderr list names entries, not values. The 1Password service-account token (`onepassword.serviceAccountToken`) is deliberately unmapped.
-- Document-backed files (SSH keys, certificates, `connections.toml`) still restore through `render-secrets` in `op` mode. `--from gopass` skips them.
+- Automation Documents (listed in `gopass-documents.psv`) restore from gopass. SSH identity keys and git-crypt keys still restore through `render-secrets` in `op` mode, and `--from gopass` skips them.
+- The map and the Documents table are baked into the script. `GOPASS_MAP`, `GOPASS_DOCS` and `RENDER_SECRETS_HOSTNAME` are honoured only under test (`RENDER_SECRETS_SOURCE_ONLY` or `RENDER_SECRETS_TEST`), because the table decides which paths get written and chmod'ed. A symlink at a destination is refused.
 - `just check-secrets-gopass` (`csg`) compares the live file with a gopass render and names the keys that differ.
 
 One-time import from 1Password, run on qbert: `just import-secrets-to-gopass` (`extras/helpers/import-op-to-gopass.sh`). It authenticates with the service-account token file if present, else the desktop session (`--desktop` forces it). It pipes each value from `op read` into `gopass insert`, never prints one, skips entries that are present and non-empty, and refuses to store an empty read. Rerun it after a failure.
