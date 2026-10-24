@@ -18,6 +18,51 @@
   # Canonical off-store secrets path for a host.
   file = globals: "${globals.user.homeDirectory}/.config/nixos-secrets/secrets.json";
 
+  # Replacement for `op run -- CMD` in a systemd service. Every environment
+  # variable whose value is exactly `op://vault/item/field` is replaced by the
+  # first line of the gopass entry `vault/item/field` (each part slugged the way
+  # extras/helpers/import-op-to-gopass.sh --mirror slugs it: lowercase, `-` for
+  # characters outside [a-z0-9._-]), then CMD is exec'd. Other variables pass
+  # through. A ref whose entry is missing or empty stops the service with the
+  # variable name and entry name, never a value. No 1Password, no service-account
+  # token and no desktop prompt: a read needs only the local GPG key.
+  #
+  # pkgs: nixpkgs. Returns a script path; call it as `${gopassRun { inherit pkgs; }} CMD ARGS`.
+  gopassRun =
+    { pkgs }:
+    pkgs.writeShellScript "gopass-run" ''
+      set -eu
+      export PATH=${
+        pkgs.lib.makeBinPath [
+          pkgs.gnupg
+          pkgs.coreutils
+          pkgs.gnused
+        ]
+      }:"$PATH"
+      slug() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/^\.+$/x/'; }
+      while IFS= read -r -d "" pair; do
+        name="''${pair%%=*}"
+        value="''${pair#*=}"
+        case "$value" in
+          op://*) ;;
+          *) continue ;;
+        esac
+        IFS=/ read -r vault item field extra <<<"''${value#op://}"
+        if [ -z "$vault" ] || [ -z "$item" ] || [ -z "$field" ] || [ -n "''${extra:-}" ]; then
+          echo "gopass-run: $name is not an op://vault/item/field reference" >&2
+          exit 1
+        fi
+        entry="$(slug "$vault")/$(slug "$item")/$(slug "$field")"
+        secret="$(${pkgs.gopass}/bin/gopass show -o -- "$entry" 2>/dev/null </dev/null || true)"
+        if [ -z "$secret" ]; then
+          echo "gopass-run: $name: entry $entry is missing or empty in the secauto store" >&2
+          exit 1
+        fi
+        export "$name=$secret"
+      done < <(env -0)
+      exec "$@"
+    '';
+
   # Wraps `pkg`'s binary `bin` so that, when `envVar` is unset at launch, the
   # wrapper reads it from the secauto gopass store (`entry`) and exports it for
   # the wrapped command. This replaces exporting the token in every shell: a
