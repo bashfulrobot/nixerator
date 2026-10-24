@@ -273,7 +273,9 @@ render_forgejo_tea_config() {
 # is LEFT OUT of the output, never filled with an empty string, when its reference
 # is not in the map or its entry is missing or empty. Modules already guard on
 # presence (`secrets ? foo`), so an absent key is the safe state. Names of left-out
-# entries go to stderr; values never do.
+# entries go to stderr; values never do. The exception is a map row marked
+# "required" (third column): its absence fails the render instead, because the
+# thing it guards (a GUI login, backup credentials) fails open without it.
 #
 # Values travel gopass -> stdin of jq -> a 0600 temp file next to OUT. They never
 # appear in argv (visible in /proc) or on a terminal. `show -f` returns the whole
@@ -281,7 +283,7 @@ render_forgejo_tea_config() {
 # The body runs in a subshell (gopass_inject below) so its EXIT trap cleans the two
 # plaintext temp files on errexit and signals without touching the caller's traps.
 _gopass_inject_body() {
-  local tpl="$1" out="$2" dir ref entry val omitted=()
+  local tpl="$1" out="$2" dir ref entry val omitted=() missing_required=()
   dir="$(dirname "${out}")"
   vals="$(mktemp -p "${dir}" .gopass-vals.XXXXXX)" || return 1
   lines="$(mktemp -p "${dir}" .gopass-lines.XXXXXX)" || {
@@ -301,11 +303,23 @@ _gopass_inject_body() {
     fi
     if ! val="$(gopass show -f -- "${entry}" 2>/dev/null)" || [[ -z "${val}" ]]; then
       omitted+=("${entry} (missing or empty)")
+      if [[ -n "$(awk -F'\t' -v r="${ref}" '$0 !~ /^#/ && $2 == r && $3 == "required" { print 1; exit }' "${GOPASS_MAP}")" ]]; then
+        missing_required+=("${entry}")
+      fi
       continue
     fi
     printf '%s' "${val}" | jq -Rs --arg ref "${ref}" '{($ref): .}' >>"${lines}"
   done < <(grep -o 'op://[^ }"]*' "${tpl}" | sort -u)
   val=""
+  # A required entry (third column "required" in the map) guards something that
+  # fails open when absent, such as a GUI login. Rendering stops and the live file
+  # stays as it was. RENDER_SECRETS_ALLOW_MISSING=1 overrides this for a bootstrap.
+  if [[ ${#missing_required[@]} -gt 0 && "${RENDER_SECRETS_ALLOW_MISSING:-}" != "1" ]]; then
+    echo "render-secrets: required gopass entries are missing or empty; the live file is unchanged:" >&2
+    printf '  %s\n' "${missing_required[@]}" >&2
+    echo "  Add them in 1Password, run 'just import-secrets-to-gopass' on qbert, then re-render." >&2
+    return 1
+  fi
   jq -s 'add // {}' "${lines}" >"${vals}"
   if jq --slurpfile v "${vals}" '
       ($v[0]) as $V

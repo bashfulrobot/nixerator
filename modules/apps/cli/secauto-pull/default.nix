@@ -64,7 +64,18 @@ let
         echo "secauto-pull: origin is $origin, expected $repo. Refusing to pull." >&2
         exit 2
       fi
-      git -C "$store" pull --ff-only --quiet
+      ${
+        if cfg.allowedSignersFile == null then
+          ''git -C "$store" pull --ff-only --quiet''
+        else
+          ''
+            # Only commits signed by a key listed in the allowed-signers file are
+            # merged. An unsigned or foreign-signed commit fails the pull, so a
+            # planted entry never reaches the working copy.
+            git -C "$store" -c gpg.format=ssh \
+              -c gpg.ssh.allowedSignersFile=${lib.escapeShellArg cfg.allowedSignersFile} \
+              pull --ff-only --verify-signatures --quiet''
+      }
     '';
   };
 in
@@ -108,6 +119,19 @@ in
       type = lib.types.str;
       default = "15min";
       description = "Time between pulls, counted from the previous run.";
+    };
+
+    allowedSignersFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Path to an SSH allowed-signers file. When set, secauto-pull merges only
+        commits signed by one of its keys (`git pull --verify-signatures`), so a
+        write to the secauto repo by anyone but the signer is refused. Null keeps
+        the unsigned behaviour. Turning it on needs the writer (qbert) to sign its
+        commits first, or the next pull fails. See "What the pull trusts" in
+        extras/docs/secrets.md.
+      '';
     };
 
     renderAfterPull = lib.mkOption {
