@@ -1,50 +1,25 @@
 # Secrets roadmap
 
-Two changes to the 1Password-source, gopass-snapshot model. The tooling for both is
-built and tested as far as it can be without your machines. What is left needs you
-to generate keys, run commands on real hosts, or do a test install.
+## Decision: one GPG key for the secauto store
 
-## 1. Per-host GPG recipients
+One passphrase-less GPG key (uid `secauto automation`) decrypts the whole store on
+every reader host. That is intentional (Dustin, 2026-10-24), so there is no per-host
+key split. What follows from it:
 
-Today one passphrase-less GPG key (uid `secauto automation`) decrypts the whole
-secauto store on every host. A compromised reader (srv, the Mac) exposes every
-entry, including ones it never uses.
+- A compromised reader exposes every entry in the store. The accepted mitigations are
+  the single-user hosts, the private repo, 2FA on the GitHub account and signed pulls
+  (see "What the pull trusts" in `secrets.md`).
+- Anything that must not reach every host stays out of gopass: SSH identity keys,
+  git-crypt keys, `incus-ui.pfx` and `okular-*` live in 1Password only.
+- The recovery copy of the key is the 1Password Document `secauto-gpg-key`
+  (Personal vault). `just push-gpg-key <host>` stays the way a NixOS host gets it.
 
-Goal: each reader host holds its own key, and a directory of entries is encrypted
-only to the hosts that use it.
+(Per-host recipients do work in gopass 1.17.4: a `.gpg-id` in a subdirectory of one
+store sets who can decrypt it, with entry names unchanged. It was tested on a
+throwaway store and then removed from the repo. Reintroduce it only if the decision
+changes.)
 
-**Verified** (throwaway store, throwaway keys, gopass 1.17.4, covered by
-`tests/secauto-recipients.bats`): one store can carry different recipients per
-directory through a `.gpg-id` file in that directory. Entry names do not change, so
-`gopass-map.tsv` and `gopassRun` keep working. A host outside the list cannot
-decrypt the entry.
-
-**Built:** `extras/helpers/secauto-recipients.sh` (`just secauto-recipients plan`
-and `apply --yes`), driven by two files of names and public fingerprints:
-`extras/helpers/secauto-hosts.tsv` and `extras/helpers/secauto-recipients.tsv`. It
-re-encrypts through a pipe and prints no value.
-
-Steps, in order (all on real hosts, by you):
-
-1. On each reader host (srv, the Mac), generate its own passphrase-less key. The
-   command is in the header of `secauto-hosts.tsv`. Export the public key to qbert
-   (`gpg --export <fpr> | ssh qbert gpg --import`).
-2. Record each fingerprint in `secauto-hosts.tsv`, including qbert's own key. Make
-   qbert's own key a recipient too, so the writer does not depend on the shared key.
-3. Fill `secauto-recipients.tsv` one directory at a time. The file lists what srv
-   reads today; verify each before adding it.
-4. `just secauto-recipients plan`, then `just secauto-recipients apply --yes` on
-   qbert, then `gopass sync`.
-5. On srv, after the next `secauto-pull`: `gopass show -o <entry>` for one entry in
-   each directory you opened to it, and check `secauto-pull`'s next render passes.
-6. Repeat for the next directory. When every host works with its own key, remove the
-   shared key from the root `.gpg-id` (`gopass recipients remove`) and retire
-   `push-gpg-key`. Keep the 1Password recovery copy (`secauto-gpg-key`) until then.
-
-Risk: a wrong row locks a host out of an entry it needs, and a mistake at the root
-recipient step could lock qbert out of its own store. Do directories one at a time.
-
-## 2. Retire the service-account tooling (bootstrap redesign)
+## Retire the service-account tooling (bootstrap redesign)
 
 **Built:** `extras/helpers/bootstrap-install-gopass.sh` (`stage` and `promote`). It
 streams the secauto key and the encrypted store from an existing host over SSH,

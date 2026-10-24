@@ -300,15 +300,7 @@ test-skill-cache:
 # Run render-secrets unit tests (Forgejo tea-config generation)
 [group('test')]
 test-render-secrets:
-    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gawk nixpkgs#gnugrep nixpkgs#coreutils nixpkgs#gopass nixpkgs#gnupg nixpkgs#git nixpkgs#findutils --command bats modules/apps/cli/render-secrets/tests/
-
-# Split the secauto store by recipient (per-host GPG keys). `plan` shows what would
-# change and writes nothing; `apply --yes` writes .gpg-id files and re-encrypts. Run
-# on qbert after each reader host has its own key. See extras/docs/secrets-roadmap.md.
-[doc('Plan or apply the per-host recipient split of the secauto store (plan | apply --yes)')]
-[group('secrets')]
-secauto-recipients +args:
-    @bash extras/helpers/secauto-recipients.sh {{args}}
+    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gawk nixpkgs#gnugrep nixpkgs#coreutils --command bats modules/apps/cli/render-secrets/tests/
 
 # Run the claude-code PreToolUse guard-hook regression tests (secret-leak +
 # primary-tree-write) plus the capture-sync settings suite in the same dir. git
