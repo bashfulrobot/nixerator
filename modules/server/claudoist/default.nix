@@ -70,7 +70,7 @@ let
   ];
 
   # Resolves every op:// value in the child env from the secauto gopass store, then
-  # execs the command. Replaces the gopass runner (lib/secrets.nix gopassRun) and the 1Password service-account token.
+  # execs the command. Replaces `op run` and the 1Password service-account token.
   opRunExec =
     command:
     pkgs.writeShellScript "claudoist-gopass-run" ''
@@ -84,7 +84,7 @@ let
   # uses opRunExec directly, since it needs only the op:// TUNNEL_TOKEN).
   # Resolves TODOIST_API_TOKEN from the rendered secrets file, then execs
   # the gopass runner (lib/secrets.nix gopassRun) (which resolves VERIFICATION_TOKEN/PUSHOVER_* from Environment=
-  # below) around the receiver binary. op run passes through any env value
+  # below) around the receiver binary. the gopass runner passes through any env value
   # that isn't an op:// ref unchanged, so TODOIST_API_TOKEN reaches the
   # receiver's actions/*.sh children as a literal value, not re-resolved.
   startScript = pkgs.writeShellScript "claudoist-start" ''

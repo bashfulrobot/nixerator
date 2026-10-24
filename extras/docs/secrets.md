@@ -15,6 +15,11 @@
   The recovery copy of the GPG key that decrypts gopass is the 1Password
   Document `secauto-gpg-key` (Personal vault). Day to day, `just push-gpg-key
   <host>` streams it from qbert.
+- Keys stay in 1Password. The identity-class files (SSH keys, git-crypt keys,
+  `incus-ui.pfx`, `okular-*`) are never copied into gopass, because the one
+  shared GPG key would expose them on every host. They are needed only on a new
+  workstation install, so `render-secrets` op mode is a bootstrap path, not
+  part of routine refreshes. Routine refreshes use `--from gopass`.
 - Only the service-account tooling is being retired (token file,
   `setup-op-token`, `rotate-op-token`, `op-toggle`, the bootstrap script). See
   the TODO in `CLAUDE.md`. 1Password itself stays.
