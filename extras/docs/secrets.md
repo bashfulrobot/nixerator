@@ -68,6 +68,14 @@ agent's context leaks into the model and can be sent off-site.
   status, or check existence/non-emptiness by means that never print the value
   (e.g. transform the value to a present/absent boolean in `jq` before printing).
 
+**Who edits a secret.** A human types every secret edit in 1Password, and every
+`gopass insert` or import run is a human action. The only exception is the
+`opencode` CLI with a local model, and only when a human approves that run. A
+secret value never goes back to Claude: not as command output, not as a diff,
+not as a file Claude reads. Claude may write the scripts, templates and docs
+around the flow, and may run a command only when its output carries no value
+(exit status, entry names, present/absent).
+
 The global rule in `~/.claude/CLAUDE.md` states this prohibition inline and
 points here for the mechanics above.
 
