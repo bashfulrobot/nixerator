@@ -174,7 +174,18 @@ let
     "~/.ssh/id_*"
   ];
 
-  permission = {
+  # permissions = "permissive" (the default): everything runs unprompted, with
+  # only the two safety rules that hold in both modes. The "*" key sorts first,
+  # so the narrower keys below it still win.
+  permissivePermission = {
+    "*" = "allow";
+    read = readRules;
+    skill."*" = "deny";
+  };
+
+  # permissions = "guarded": ask by default, read-only inspection and trusted
+  # directories run unprompted.
+  guardedPermission = {
     bash = {
       "*" = "ask";
     }
@@ -290,12 +301,29 @@ in
   options = {
     apps.cli.opencode.enable = lib.mkEnableOption "the opencode CLI agent with LSP language servers";
 
+    apps.cli.opencode.permissions = lib.mkOption {
+      type = lib.types.enum [
+        "permissive"
+        "guarded"
+      ];
+      default = "permissive";
+      description = ''
+        "permissive" lets every agent run any tool without asking, matching
+        opencode's own defaults, and keeps two rules: private keys under
+        ~/.gnupg and ~/.ssh stay unreadable, and the skill tool is denied so
+        Claude-compatible skills never load. "guarded" asks before bash and
+        file edits, runs read-only system inspection unprompted, and honours
+        trustedDirs. The secrets agent has its own rules in both modes.
+      '';
+    };
+
     apps.cli.opencode.trustedDirs = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
       example = [ "~/git" ];
       description = ''
-        Directories where opencode edits files without asking. Each entry
+        Only used when permissions = "guarded". Directories where opencode
+        edits files without asking. Each entry
         becomes an `edit` and `external_directory` allow rule for `<dir>/**`;
         edits anywhere else ask. Leading `~` is expanded by opencode. This
         scopes file edits only: bash rules match command text, so allowing every
@@ -354,7 +382,7 @@ in
         package = pkgs.opencode;
         settings = {
           lsp = lspServers;
-          inherit permission;
+          permission = if cfg.permissions == "guarded" then guardedPermission else permissivePermission;
         }
         // lib.optionalAttrs cfg.secretsAgent.enable {
           # Primary agent, reached with Tab or `opencode-secrets run ...`. "*"
