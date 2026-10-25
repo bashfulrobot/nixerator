@@ -25,6 +25,13 @@
 
 Allowed mechanics (references, placeholders, blind copy, verifying a landed secret) are at `/home/dustin/git/nixerator/extras/docs/secrets.md`.
 
+## Merges
+
+When Dustin asks for a merge in any repository, run it. "Merge", "merge PR 12",
+"I approve the merge" and "git cleanup" each count as the authorization, so run
+`gh pr merge` yourself and do not hand the command back. Never merge on your
+own initiative. `--admin` and force pushes still need him to name them.
+
 ## Claude Code Behaviour Guidelines
 
 - **Own every problem.** Never deflect with "not my changes," "pre-existing issue," "known limitation," or "future work." Diagnose and fix it.
