@@ -371,11 +371,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792609211,
-        "narHash": "sha256-ZHbhVOg0p2PpxrynYaEFafGgnuR43e4DXEIEusw3b/Q=",
+        "lastModified": 1792916684,
+        "narHash": "sha256-0Hfww32ATWlBNUrKtiq1T81HZOp7ttRJsmSjKnQym94=",
         "owner": "AvengeMedia",
         "repo": "dank-greeter",
-        "rev": "d85f83edd799bcf58841bbd2b536e04058918319",
+        "rev": "f7f14eb752a3a5a84b7bb1f71526ee763667f13e",
         "type": "github"
       },
       "original": {
@@ -411,11 +411,11 @@
     "dank-qml-common": {
       "flake": false,
       "locked": {
-        "lastModified": 1792513666,
-        "narHash": "sha256-RDqPdPrM5lnwRrfFGLz3IwgTjCV2Ie+nrTD3ldj1t/s=",
+        "lastModified": 1792829559,
+        "narHash": "sha256-8J9RuGpmYCFRcpLlRQunqL0FqjsNSzlsK/QFZV2hm1A=",
         "owner": "duxlabs-dev",
         "repo": "dux-qml-common",
-        "rev": "ebf5e6c002da1bdaa4aaa2f319fea7b8507abc42",
+        "rev": "bb917ea0718892c875ca0955939f63b31dc64e1e",
         "type": "github"
       },
       "original": {
@@ -486,17 +486,17 @@
     "dms-calculator": {
       "flake": false,
       "locked": {
-        "lastModified": 1790849622,
-        "narHash": "sha256-dqFTvNogWsqK82EhgMIbJB70R5TgcRiA3Elx1LkSia8=",
+        "lastModified": 1792067692,
+        "narHash": "sha256-fw5ySERKzK4iSzZhneIp06zFCP1FnxscbI/COzmPAGQ=",
         "owner": "rochacbruno",
         "repo": "DankCalculator",
-        "rev": "c9fbbe921e9afeb92f4e92390e9fc05f006f0373",
+        "rev": "a27b80ad8c3dd42da11af83461674fb362817515",
         "type": "github"
       },
       "original": {
         "owner": "rochacbruno",
         "repo": "DankCalculator",
-        "rev": "c9fbbe921e9afeb92f4e92390e9fc05f006f0373",
+        "rev": "a27b80ad8c3dd42da11af83461674fb362817515",
         "type": "github"
       }
     },
@@ -520,17 +520,17 @@
     "dms-emoji-launcher": {
       "flake": false,
       "locked": {
-        "lastModified": 1783139331,
-        "narHash": "sha256-fmIddCvACwO8wbAtLBMtDnEXXQJjb7+o2s4jW3f8VIU=",
+        "lastModified": 1792904959,
+        "narHash": "sha256-bIXdsoT3vKkrFI13G7tvRmhzJfjVmC3b3iuyRfafm9k=",
         "owner": "devnullvoid",
         "repo": "dms-emoji-launcher",
-        "rev": "8ff394e3ddfcb2fd755ed2e7b4c6f01f3e26e596",
+        "rev": "fc385900e6df292f0a7e5bdda4e3e37169897d7c",
         "type": "github"
       },
       "original": {
         "owner": "devnullvoid",
         "repo": "dms-emoji-launcher",
-        "rev": "8ff394e3ddfcb2fd755ed2e7b4c6f01f3e26e596",
+        "rev": "fc385900e6df292f0a7e5bdda4e3e37169897d7c",
         "type": "github"
       }
     },
@@ -886,11 +886,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792690968,
-        "narHash": "sha256-cs/Lr9OamJy++o3zKuX/GS+mluHO9uIsGU/VDFs9ETo=",
+        "lastModified": 1792945753,
+        "narHash": "sha256-cSq8N1ulVCuummXjfzv5NR0mj807kkI/WArwVmduUSs=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "34d0d8a1a9d3c26362c7eac12126c4e7a5665585",
+        "rev": "6584797e8afbe346be92770793049eccc59b1f57",
         "type": "github"
       },
       "original": {
