@@ -285,6 +285,9 @@
     "se-harness@claude-skills": {
       "state": "enabled"
     },
+    "security-audit@claude-skills": {
+      "state": "enabled"
+    },
     "security-guidance@claude-plugins-official": {
       "state": "enabled"
     },
