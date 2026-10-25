@@ -129,6 +129,17 @@
     # OLLAMA_HOST so the ollama CLI reaches this server without endpoint flags,
     # and defaultOpencodeModel wires opencode (from suites.ai) to it as a local
     # OpenAI-compatible provider with no manual setup.
+    # opencode is enabled by suites.ai and runs permissive for now. Switch to
+    # permissions = "guarded" (with trustedDirs) to bring back the prompts. The
+    # secrets agent (gopass and op on the local model) runs through
+    # `opencode-secrets`, which keeps its session store on tmpfs.
+    opencode = {
+      secretsAgent = {
+        enable = true;
+        model = "ollama/${globals.ai.localCodeModel}";
+      };
+    };
+
     ollama = {
       enable = true;
       acceleration = "rocm";
