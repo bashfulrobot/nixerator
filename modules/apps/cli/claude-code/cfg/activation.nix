@@ -196,21 +196,29 @@ in
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 
-      # permissions.allow from the claude-stack snapshot: ADD-ONLY ordered union.
-      # Unlike the plugin keys above, permissions are runtime-owned (rules the
-      # user approves in a session are captured into the repo settings.json),
-      # so this never replaces or removes anything: existing rules keep their
-      # order, and declared rules not already present are appended in manifest
-      # order. "Already present" compares the `X(a:*)` and `X(a *)` spellings
-      # as equal (the manifest normalises to `X(a *)`), so a legacy-syntax rule
-      # is not duplicated. Idempotent: a second run appends nothing. Capture
-      # (cfg/fish.nix) keeps permissions.allow, so appended rules round-trip
-      # into the repo copy and stay a fixpoint.
-      ${pkgs.jq}/bin/jq --slurpfile decl ${stackPermissions} \
-        'def norm: sub(":\\*\\)$"; " *)");
-         (.permissions.allow // []) as $cur
-         | ($cur | map(norm)) as $have
-         | .permissions.allow = ($cur + [$decl[0][] | select(norm as $n | $have | any(. == $n) | not)])' \
+      # permissions.allow, both modes, in scripts/activation-allow.jq (covered
+      # by cfg/scripts/tests/activation-allow.bats, which holds the per-mode
+      # reasoning):
+      #
+      #   stackApply off -- add-only ordered union of the claude-stack
+      #     snapshot's rules into the runtime-owned live list. Capture
+      #     (cfg/fish.nix) keeps the key, so appended rules round-trip into the
+      #     repo copy and stay a fixpoint.
+      #   stackApply on  -- the block the sed above copied out of
+      #     config/settings.json is dropped, and apply (further down, the last
+      #     writer) puts the manifest's resolved list there instead. Nothing
+      #     re-adds a repo-side block on top of it.
+      #
+      # config/settings.json keeps its 158-rule block, which phase 8 deletes and
+      # nothing before that, and capture leaves it alone. So on a stackApply
+      # host the 99 rules the manifest does not declare stop reaching
+      # ~/.claude at the next rebuild, and `claude_stack.py promote` in
+      # claude-skills is how one of them is kept. An empty manifest list is an
+      # eval-time assertion failure (default.nix), not an empty allow list.
+      # See .claude/docs/claude-stack-apply.md.
+      ${pkgs.jq}/bin/jq -f ${./scripts/activation-allow.jq} \
+        --argjson stack_apply ${lib.boolToString stackApply} \
+        --slurpfile decl ${stackPermissions} \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 
@@ -269,13 +277,13 @@ in
         # claude-skills owns the declared settings keys from here on: one
         # `claude_stack.py apply --write` call in place of the jq force-merge
         # this module used to carry for model, outputStyle, statusLine, env,
-        # permissions.{deny,ask,defaultMode,additionalDirectories},
-        # hooks.PostToolUse and the UI and telemetry flags, plus the add-only
-        # permissions.allow union and the two shared files (CLAUDE.md,
-        # statusline.sh). Nix contributes only @VAR@ values: the statusline
-        # wrapper's store path, the four Nix-built hook store paths, the ten
-        # hook bodies read out of config/settings.json, env.PATH, and the
-        # runtime dir the wrapper resolves from a real `id -u`.
+        # permissions.{allow,deny,ask,defaultMode,additionalDirectories},
+        # hooks.PostToolUse and the UI and telemetry flags, plus the two shared
+        # files (CLAUDE.md, statusline.sh). Nix contributes only @VAR@ values:
+        # the statusline wrapper's store path, the four Nix-built hook store
+        # paths, the ten hook bodies read out of config/settings.json,
+        # env.PATH, and the runtime dir the wrapper resolves from a real
+        # `id -u`.
         #
         # It runs AFTER the clauses above, which is also why nothing is
         # re-appended here any more. The manifest now declares all four hook

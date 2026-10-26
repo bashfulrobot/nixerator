@@ -5,45 +5,18 @@
   statusLineScript,
   hasHeadroom ? false,
   # apps.cli.claude-code.stackApply.enable. On, claude-skills force-owns the
-  # settings keys listed in stackOwnedKeys below, so capture must stop carrying
-  # them back into the repo copy: a captured value would look like a repo-side
-  # change that the next apply silently reverts. permissions.allow is NOT in
-  # that list -- it stays add-only and round-trips, exactly as today.
+  # settings keys scripts/canonicalize-settings.jq lists, plus
+  # permissions.allow, so capture must stop carrying them back into the repo
+  # copy: a captured value would look like a repo-side change that the next
+  # apply silently reverts.
   stackApply ? false,
 }:
 
 let
-  # Keys claude-skills' `settings.force` declares (docs/ai/claude-stack.md,
-  # "What is declared, per profile"), as jq paths for the capture `del(...)`.
-  # permissions.allow, $schema, skipAutoPermissionPrompt and pluginConfigs are
-  # absent on purpose: the first is union-owned, the rest are harness- or
-  # nixerator-owned and apply never writes them.
-  stackOwnedKeys = [
-    ".model"
-    ".smallModelOverride"
-    ".outputStyle"
-    ".statusLine"
-    ".attribution"
-    ".coAuthor"
-    ".includeCoAuthoredBy"
-    ".cleanupPeriodDays"
-    ".tui"
-    ".env.PATH"
-    ".env.ANTHROPIC_DEFAULT_OPUS_MODEL"
-    ".permissions.deny"
-    ".permissions.defaultMode"
-    ".permissions.additionalDirectories"
-    ".agentPushNotifEnabled"
-    ".awaySummaryEnabled"
-    ".feedbackDrafts"
-    ".feedbackSurveyRate"
-    ".remoteControlEnabled"
-    ".skipDangerousModePermissionPrompt"
-    ".skipWorkflowUsageWarning"
-    ".terminalProgressBarEnabled"
-    ".todoFeatureEnabled"
-  ];
-  stackOwnedDel = lib.optionalString stackApply (", " + lib.concatStringsSep ", " stackOwnedKeys);
+  # The capture canonicalization filter (which keys are dropped, and how
+  # permissions.allow is handled in each mode) lives in its own file so bats can
+  # run the real thing: cfg/scripts/tests/canonicalize-settings.bats.
+  canonicalizeSettings = ./scripts/canonicalize-settings.jq;
 in
 
 {
@@ -250,53 +223,34 @@ in
           #     also mangle unrelated, intentionally-literal "dustin" strings
           #     elsewhere in the file, e.g. additionalDirectories or a hook body's
           #     own hardcoded-username grep pattern)
-          #   - env.SSH_AUTH_SOCK, env.XDG_RUNTIME_DIR: Nix-owned (activation
-          #     injects host-resolved values; SSH_AUTH_SOCK is deleted on
-          #     serverProfile == "minimal" -- see cfg/activation.nix) -> dropped
-          #   - extraKnownMarketplaces / enabledPlugins: owned by cfg/plugin-config.nix
-          #     (derived from the claude-stack snapshot, merged at activation) -> dropped
-          #   - permissions.ask:           Nix-owned (activation pins it) -> dropped
-          #   - autoMode:                  Nix-owned (activation sets it from the
-          #     claude-stack snapshot, declared in claude-skills) -> dropped
-          #   - the claude-skills force-owned keys (stackOwnedKeys, `let` block
-          #     above): dropped only when stackApply is on. The manifest replaces
-          #     each of them at every apply, so a captured value is not a repo
-          #     change, it is a value that the next rebuild reverts. With
-          #     stackApply off they are repo-owned and stay captured.
-          #   - permissions.allow:         deliberately KEPT. It is runtime-owned;
-          #     activation only appends the claude-stack snapshot's rules to it
-          #     (add-only union, cfg/activation.nix), so captured rules include
-          #     the appended ones and the next activation appends nothing.
-          #   - hooks with a /nix/store command: EVERY Nix-owned hook is injected at
-          #     activation (cfg/activation.nix) with its store path, so its volatile
-          #     hash must never be committed. Stripping any hook whose command lives
-          #     under /nix/store is drift-proof: it covers every current and future
-          #     injected hook automatically, and leaves the repo-authored inline
-          #     `bash -c '...'` hooks (which carry no store path) untouched. This
-          #     replaces a hand-maintained name alternation that silently rotted
-          #     whenever a new injected hook was added (guard-secret-commands and
-          #     scrub-secret-output leaked their store paths into the repo exactly
-          #     that way).
-          #   - herdr-agent-state hooks: LEGACY. The herdr module is removed, but
-          #     hosts that ran it still have hook entries in ~/.claude/settings.json
-          #     pointing at ~/.claude/hooks/herdr-agent-state.sh (a home path, not a
-          #     store path, so the rule above misses it). Activation rewrites
-          #     settings.json from the repo copy, which drops them on the next
-          #     rebuild, but a capture that runs BEFORE that rebuild would commit
-          #     them. Keep this exemption until every host has rebuilt once, then
-          #     delete the `|herdr-agent-state` alternation.
-          # After stripping, any event array left empty is dropped entirely.
+          #
+          # Everything the placeholders do not cover is a jq pass in
+          # scripts/canonicalize-settings.jq: which keys are Nix-owned or
+          # claude-skills-owned and therefore dropped, how permissions.allow is
+          # handled in each stackApply mode, and the /nix/store hook strip. That
+          # file carries the per-key reasoning and is covered by
+          # cfg/scripts/tests/canonicalize-settings.bats, whose last test pins
+          # the byte-for-byte fixpoint this canonicalization has to hold.
+          #
+          # It needs the repo copy as $repo, because with stackApply on it takes
+          # permissions.allow from there instead of from the live file: the
+          # manifest owns that list, so a live rule must never be captured, and
+          # the repo copy's 158-rule block must not change either (phase 8
+          # deletes it, nothing before that). /dev/null when the repo copy is
+          # missing, which leaves $repo empty rather than failing the capture.
           set -l settings_tmp ""
           if test -f "$claude_dir/settings.json"
             set settings_tmp (mktemp)
+            set -l repo_settings "$config_dir/settings.json"
+            if not test -f "$repo_settings"
+              set repo_settings /dev/null
+            end
             sed -e "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" \
                 -e "s|/etc/profiles/per-user/${globals.user.name}/bin|/etc/profiles/per-user/@USER_NAME@/bin|g" \
                 "$claude_dir/settings.json" \
-              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .autoMode, .skillOverrides, .env.SSH_AUTH_SOCK, .env.XDG_RUNTIME_DIR${stackOwnedDel})
-                    | .hooks = ((.hooks // {})
-                        | map_values(map(select((.hooks[0].command // "")
-                            | test("/nix/store/|herdr-agent-state") | not)))
-                        | with_entries(select(.value | length > 0)))' > "$settings_tmp"
+              | jq -f ${canonicalizeSettings} \
+                  --argjson stack_apply ${lib.boolToString stackApply} \
+                  --slurpfile repo "$repo_settings" > "$settings_tmp"
           end
 
           # 3-way sync of skills, agents, output-styles, top-level CLAUDE.md, and
