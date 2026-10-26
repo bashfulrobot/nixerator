@@ -110,6 +110,12 @@
       "type": "http",
       "url": "https://mcp.grafana.com/mcp"
     },
+    "granola": {
+      "managedBy": "nix",
+      "scope": "library",
+      "type": "http",
+      "url": "https://mcp.granola.ai/mcp"
+    },
     "iso-topology": {
       "managedBy": "nix",
       "scope": "library",
@@ -320,10 +326,10 @@
       "state": "enabled"
     },
     "slack@claude-plugins-official": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "slack@claude-skills": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "superpowers@claude-plugins-official": {
       "state": "absent"
@@ -360,6 +366,7 @@
       "coAuthor": "",
       "env": {
         "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5",
+        "ENABLE_STOP_REVIEW": "0",
         "PATH": "@LINUX_PATH@",
         "XDG_RUNTIME_DIR": "@XDG_RUNTIME_DIR@"
       },
@@ -372,6 +379,52 @@
               {
                 "async": true,
                 "command": "@NIX_FMT_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "Edit|Write|MultiEdit"
+          },
+          {
+            "hooks": [
+              {
+                "command": "@NIX_SECRET_SCAN_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "Edit|Write|MultiEdit"
+          },
+          {
+            "hooks": [
+              {
+                "async": true,
+                "command": "@NIX_LINT_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "Edit|Write|MultiEdit"
+          },
+          {
+            "hooks": [
+              {
+                "command": "@GUARD_NIXOS_REBUILD_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "Bash"
+          },
+          {
+            "hooks": [
+              {
+                "command": "@NIX_CONTENT_CHECK_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "Edit|Write|MultiEdit"
+          },
+          {
+            "hooks": [
+              {
+                "command": "@NIX_MODULE_STRUCTURE_HOOK@",
                 "type": "command"
               }
             ],
@@ -394,6 +447,62 @@
               }
             ],
             "matcher": "Bash"
+          }
+        ],
+        "SessionStart": [
+          {
+            "hooks": [
+              {
+                "command": "@INTENT_LOG_PRUNE_HOOK@",
+                "type": "command"
+              }
+            ]
+          },
+          {
+            "hooks": [
+              {
+                "command": "@BRANCH_REPORT_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "startup"
+          },
+          {
+            "hooks": [
+              {
+                "command": "@SESSION_REMINDERS_HOOK@",
+                "type": "command"
+              }
+            ]
+          },
+          {
+            "hooks": [
+              {
+                "command": "@GIT_SYNC_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "startup"
+          }
+        ],
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "command": "@STOP_NOTIFY_HOOK@",
+                "type": "command"
+              }
+            ]
+          }
+        ],
+        "UserPromptSubmit": [
+          {
+            "hooks": [
+              {
+                "command": "@INTENT_LOG_APPEND_HOOK@",
+                "type": "command"
+              }
+            ]
           }
         ]
       },
@@ -427,6 +536,18 @@
         ]
       },
       "remoteControlEnabled": true,
+      "skillOverrides": {
+        "awwwards-hero": "off",
+        "awwwards-motion": "off",
+        "awwwards-sections": "off",
+        "brandkit-gen": "off",
+        "imagegen-frontend": "off",
+        "intent-layer": "off",
+        "pixel-perfect": "off",
+        "visual-redesign": "off",
+        "walkr-author": "off",
+        "walkr-tutorial-author": "off"
+      },
       "skipDangerousModePermissionPrompt": true,
       "skipWorkflowUsageWarning": true,
       "smallModelOverride": "haiku",
@@ -493,7 +614,52 @@
         "Bash(ping *)",
         "Bash(dig *)",
         "Bash(nslookup *)",
-        "Bash(ss *)"
+        "Bash(ss *)",
+        "Edit",
+        "Write",
+        "Agent",
+        "Skill",
+        "WebFetch",
+        "Bash(mkdir *)",
+        "Bash(cp *)",
+        "Bash(mv *)",
+        "Bash(touch *)",
+        "Bash(chmod *)",
+        "Bash(find *)",
+        "Bash(awk *)",
+        "Bash(sed *)",
+        "Bash(xargs *)",
+        "Bash(command *)",
+        "Bash(forge *)",
+        "Bash(github-issue *)",
+        "Bash(hack *)",
+        "Bash(dependabot *)",
+        "Bash(sf *)",
+        "Bash(cargo *)",
+        "Bash(rustc *)",
+        "Bash(pip *)",
+        "Bash(amber *)",
+        "Bash(just)",
+        "Bash(fish *)",
+        "Bash(bash *)",
+        "Bash(ghostty *)",
+        "Bash(tmux *)",
+        "Bash(sudo tailscale file cp *)",
+        "Bash(curl *)",
+        "Bash(wget *)",
+        "Bash(tar *)",
+        "Bash(unzip *)",
+        "Bash(gzip *)",
+        "Bash(nix *)",
+        "Bash(nix-*)",
+        "Bash(nixos-option *)",
+        "Bash(nixos-rebuild dry-build *)",
+        "Bash(nixos-rebuild dry-activate *)",
+        "Bash(xdg-open *)",
+        "Bash(hyprctl *)",
+        "Bash(systemctl *)",
+        "Bash(sudo dmidecode *)",
+        "Bash(ip *)"
       ]
     }
   },
@@ -507,7 +673,18 @@
     "XDG_RUNTIME_DIR",
     "STATUSLINE_COMMAND",
     "NIX_FMT_HOOK",
+    "NIX_SECRET_SCAN_HOOK",
+    "NIX_LINT_HOOK",
+    "GUARD_NIXOS_REBUILD_HOOK",
+    "NIX_CONTENT_CHECK_HOOK",
+    "NIX_MODULE_STRUCTURE_HOOK",
     "GUARD_GENERATED_PATHS_HOOK",
-    "GUARD_RAW_NIX_HOOK"
+    "GUARD_RAW_NIX_HOOK",
+    "INTENT_LOG_PRUNE_HOOK",
+    "BRANCH_REPORT_HOOK",
+    "SESSION_REMINDERS_HOOK",
+    "GIT_SYNC_HOOK",
+    "INTENT_LOG_APPEND_HOOK",
+    "STOP_NOTIFY_HOOK"
   ]
 }
