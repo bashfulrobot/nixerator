@@ -142,6 +142,17 @@ in
             ForwardAgent = true;
           };
 
+          # Work Mac. IT blocks macOS's sshd, so this reaches the Homebrew
+          # sshd that donkeykong runs on the Tailscale address, port 2222
+          # (key-only, GitHub-published keys). The Mac user is not the NixOS
+          # user, and agent forwarding stays off for a managed work machine.
+          "mac" = {
+            HostName = "100.65.120.127";
+            Port = 2222;
+            User = "dustin.krysak";
+            IdentityFile = "~/.ssh/id_ed25519";
+          };
+
           # TF/KVM Config
           "192.168.168.1" = {
             HostName = "192.168.168.1";
