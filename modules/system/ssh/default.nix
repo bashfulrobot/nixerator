@@ -128,8 +128,18 @@ in
             ForwardAgent = true;
           };
 
+          # qbert over Tailscale, for when the LAN address is out of reach.
+          "nix" = {
+            HostName = "100.74.137.95";
+            User = globals.user.name;
+            IdentityFile = "~/.ssh/id_ed25519";
+            ForwardAgent = true;
+          };
+
+          # srv over Tailscale. The LAN address 192.168.168.1 still has its
+          # own entry in the TF/KVM block below.
           "srv" = {
-            HostName = "192.168.168.1";
+            HostName = "100.64.187.14";
             User = globals.user.name;
             IdentityFile = "~/.ssh/id_ed25519";
             ForwardAgent = true;
@@ -140,6 +150,17 @@ in
             User = globals.user.name;
             IdentityFile = "~/.ssh/id_ed25519";
             ForwardAgent = true;
+          };
+
+          # Work Mac. IT blocks macOS's sshd, so this reaches the Homebrew
+          # sshd that donkeykong runs on the Tailscale address, port 2222
+          # (key-only, GitHub-published keys). The Mac user is not the NixOS
+          # user, and agent forwarding stays off for a managed work machine.
+          "mac" = {
+            HostName = "100.65.120.127";
+            Port = 2222;
+            User = "dustin.krysak";
+            IdentityFile = "~/.ssh/id_ed25519";
           };
 
           # TF/KVM Config
