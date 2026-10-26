@@ -47,15 +47,6 @@ let
       type = "http";
       url = "https://mcp.tactiq.io";
     };
-    # Granola Remote MCP -- query past meeting notes and transcripts. Hosted by
-    # Granola, so the Mac app need not be running; data comes from their cloud.
-    # Auth is OAuth 2.1 with dynamic client registration (no clientId to
-    # pre-register) -- run `/mcp` in Claude Code to complete the browser
-    # authorization flow once per host. Same URL as the Mac's claude-stack entry.
-    granola = {
-      type = "http";
-      url = "https://mcp.granola.ai/mcp";
-    };
     # On-device search engine for notes, transcripts, docs (BM25 + vector + LLM re-ranking)
     qmd = {
       command = "${pkgs.nodejs}/bin/npx";
@@ -103,6 +94,19 @@ let
     };
   }
   // lib.optionalAttrs (serverProfile == "full") {
+    # Granola Remote MCP -- query past meeting notes and transcripts. Hosted by
+    # Granola, so the Mac app need not be running; data comes from their cloud.
+    # Auth is OAuth 2.1 with dynamic client registration (no clientId to
+    # pre-register) -- run `/mcp` in Claude Code to complete the browser
+    # authorization flow once per host. No secret, so nothing lands in
+    # secrets.json. Same URL as the Mac's claude-stack entry, which declares
+    # granola in the workstation profile; this gate is the matching
+    # workstation-only rule, so srv (serverProfile == "minimal") never gets a
+    # meeting-notes server it cannot authorize.
+    granola = {
+      type = "http";
+      url = "https://mcp.granola.ai/mcp";
+    };
     # iso-topology MCP server -- generate isometric 2.5D architecture diagrams
     # from a text DSL. Exposes capabilities, validate, evaluate, render, and
     # preview tools so agents can discover the DSL and produce design-grade SVGs
