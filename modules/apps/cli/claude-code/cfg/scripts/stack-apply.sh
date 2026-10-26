@@ -3,11 +3,13 @@
 # merge cfg/activation.nix used to carry (the force/union half of it).
 #
 # claude-skills owns every settings key its manifest declares -- model,
-# outputStyle, statusLine, env, permissions.{deny,ask,defaultMode,
-# additionalDirectories}, hooks.PostToolUse, the UI and telemetry flags -- and
-# unions permissions.allow add-only. Nix owns only the machine mechanics, which
-# reach the manifest as @VAR@ values. See .claude/docs/claude-stack-apply.md
-# for the ownership table and the switch-on steps.
+# outputStyle, statusLine, env, permissions.{allow,deny,ask,defaultMode,
+# additionalDirectories}, hooks.PostToolUse, the UI and telemetry flags. Nix
+# owns only the machine mechanics, which reach the manifest as @VAR@ values.
+# cfg/activation.nix drops the repo copy's permissions.allow block before this
+# runs, so apply is the only writer of that list. See
+# .claude/docs/claude-stack-apply.md for the ownership table and the switch-on
+# steps.
 #
 # Usage: claude-stack-apply <claude-skills-root> <host> <base-vars-json> [claude-dir]
 #

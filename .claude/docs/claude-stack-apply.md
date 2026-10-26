@@ -22,11 +22,11 @@ Schema and ownership rules: `docs/ai/claude-stack.md` there.
 | `~/.claude/statusline.sh` | not deployed | written by apply (the Mac runs it directly; NixOS uses the wrapper) |
 | PreCompact, UserPromptSubmit hooks | injected as Nix store paths | stripped; dk >= 3.6.0 ships both |
 | `hooks.{PostToolUse,SessionStart,UserPromptSubmit,Stop}` | the repo `config/settings.json` list plus the jq injects | each list forced whole from the manifest, 14 rows, bodies supplied as `@VAR@` |
-| Capture | carries every settings key back to the repo | drops the force-owned keys and the `claude-md` section |
+| `permissions.allow` | the repo block plus an add-only union of the manifest's rules, captured back | the repo block dropped before apply, apply writes the manifest's 59 rules, capture ignores the live list |
+| Capture | carries every settings key back to the repo | drops the force-owned keys, `permissions.allow` and the `claude-md` section |
 
 Unchanged either way: `extraKnownMarketplaces`, `enabledPlugins`, `autoMode`,
-`skillOverrides` (Nix-owned, not in `settings.force`), the add-only union of
-the manifest's profile-level `permissions.allow`, `env.SSH_AUTH_SOCK` (the
+`skillOverrides` (Nix-owned, not in `settings.force`), `env.SSH_AUTH_SOCK` (the
 manifest declares no value, because it is set or deleted per `serverProfile`),
 and `hooks.PreToolUse` and `hooks.PreCompact`, which the manifest does not
 declare.
@@ -45,8 +45,31 @@ hooks reach it as their store paths.
   `permissions.{deny,ask,defaultMode,additionalDirectories}`,
   `hooks.{PostToolUse,SessionStart,UserPromptSubmit,Stop}`, and nine UI and
   telemetry flags. A `/model` change is overwritten at the next rebuild.
-- **Manifest, add-only.** `permissions.allow`. Declared rules are appended,
-  live rules are never removed, and capture still round-trips them.
+- **Manifest, replaced every apply, `permissions.allow` with it.** It was
+  add-only until 2026-10-26. Three things moved together: `cfg/activation.nix`
+  deletes the block the sed copied out of `config/settings.json` instead of
+  unioning the manifest's rules into it, apply writes the manifest's resolved
+  list as the only writer, and the capture canonicalization
+  (`cfg/scripts/canonicalize-settings.jq`) takes the allow block from the repo
+  copy rather than from the live file.
+  - The result is the same under either apply. The claude-skills branch
+    `feat/allow-manifest-owned` replaces the live list and reports how many
+    live rules it drops; the pinned add-only revision unions the declared rules
+    into an empty list. Both land on the manifest's 59 rules, so this change is
+    safe before or after that branch merges, and the drop count reads 0 on
+    NixOS because activation already cleared the list.
+  - A rule approved in a session no longer survives the next rebuild. It never
+    really did on its own: activation rewrites `~/.claude/settings.json` from
+    `config/settings.json` on every switch, and only the capture round-trip
+    kept it. To keep one, run `claude_stack.py promote` in claude-skills, which
+    writes the rule into the manifest, then `just update claude-skills` here.
+  - The first rebuild on a `stackApply` host narrows the live list from 158
+    rules to 59. The 99 the manifest does not declare are the ones the
+    permissions audit (claude-skills `1ca5011`) left out. `config/settings.json`
+    keeps all 158 until phase 8; the `stackApply`-on path just ignores them.
+  - An empty manifest list would now deploy an empty allow list, so an
+    assertion in `default.nix` fails the build when the resolved host file
+    declares no `permissions.allow` and `stackApply` is on.
 - **Nix.** The 17 `@VAR@` values, and the keys apply does not declare.
 - **Never written.** `$schema`, `skipAutoPermissionPrompt`, `theme`, `voice`,
   `settings.local.json`, and all of `~/.claude.json`.
@@ -94,7 +117,10 @@ pin bump that touches `settings`, `files` or `vars`.
 4. `just qr`. The first run prints
    `kept the pre-apply settings.json as settings.json.nix-backup`.
 5. Verify: `claude_stack.py drift --host <host>`, then re-run `just qr` and
-   confirm the second run makes no capture change.
+   confirm the second run makes no capture change. The live
+   `permissions.allow` should hold 59 rules, the manifest's count, not 158;
+   count them with `jq` over `~/.claude/settings.json`. The repo copy keeps its
+   158, so `git diff` on `config/settings.json` must stay empty.
 
 Step 5 should report no FAIL. The `SETTINGS_MISMATCH` on `hooks.PostToolUse`
 that earlier revisions expected is gone: the manifest now declares all eight
@@ -125,7 +151,7 @@ a host that has rebuilt with `stackApply` on.
 | Path | Replaced by | Also delete |
 | --- | --- | --- |
 | `config/CLAUDE.md` | `claude-stack/files/CLAUDE.md` | the 8000-char assertion in `default.nix`, the `claude-md` capture section, `--section all-but-claude-md` |
-| `config/settings.json` `permissions.allow` (158 rules) | manifest `permissions.allow` plus `settings.union` | needs `claude_stack.py promote` run first: 99 live rules are declared nowhere |
+| `config/settings.json` `permissions.allow` (158 rules) | manifest `permissions.allow` | already inert with `stackApply` on (activation drops it, capture reads it only to hold the capture hash steady), so deleting it is now a `stackApply`-off-only change. Promote any of the 99 undeclared rules that is still wanted first, and drop the `$repo` argument and `repo_owned_allow` from `cfg/scripts/canonicalize-settings.jq` with it |
 | `config/settings.json` force-owned keys (`env`, `model`, `statusLine`, `outputStyle`, `permissions.{deny,defaultMode,additionalDirectories}`, 9 flags) | `settings.force` | the `@STATUSLINE_COMMAND@` and `@USER_NAME@` sed in `cfg/activation.nix`, the matching capture canonicalization |
 | `config/settings.json` `PostToolUse` rows 1 and 2 | dk `warn-default-branch.sh` and `guard-git-bypass.sh` | `rehomedRowMarkers` and `isRehomedRow` in `default.nix` |
 | `config/settings.json` the other 6 `PostToolUse` rows, both `SessionStart` rows, the `Stop` row, the `UserPromptSubmit` row | the manifest rows that declare them | NOT deletable while `hookVarMarkers` reads their bodies out of this file. Move each body into dk or into the manifest first, then drop its `hookVarMarkers` entry and its `vars` entry together |

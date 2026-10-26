@@ -534,7 +534,10 @@ in
         cfg/claude-stack/ snapshot, the manifest's `files` section writes
         ~/.claude/CLAUDE.md and ~/.claude/statusline.sh, and the capture pass
         (cfg/fish.nix) stops carrying the manifest-owned keys back into the
-        repo.
+        repo. permissions.allow is one of those keys: activation drops the
+        config/settings.json block and apply writes the manifest's list, so a
+        rule approved in a session no longer round-trips and
+        `claude_stack.py promote` in claude-skills is how one is kept.
 
         Off (the default): every one of those keeps its pre-stackApply
         behaviour, byte for byte, so merging the change that introduced this
@@ -616,6 +619,15 @@ in
         # that nothing declares is simply gone after a rebuild.
         assertion = stackUndeclaredPostToolUse == [ ];
         message = "claude-code: stackApply is on and ${toString (lib.length stackUndeclaredPostToolUse)} PostToolUse row(s) in config/settings.json are neither a declared manifest @VAR@ nor shipped by dk, so apply would drop them. Declare each one in the claude-skills `linux` profile and add it to default.nix's hookVarMarkers, or move it to dk and add its marker to rehomedRowMarkers.";
+      }
+      {
+        # cfg/activation.nix drops config/settings.json's permissions.allow
+        # block with stackApply on, so the manifest's list is the only one that
+        # reaches ~/.claude. A manifest declaring none would leave the host with
+        # an empty allow list and prompt on every tool call. Same reasoning as
+        # the autoMode.soft_deny throw in cfg/plugin-config.nix.
+        assertion = pluginConfig.permissionsAllow != [ ];
+        message = "claude-code: stackApply is on but the claude-stack manifest declares no permissions.allow rules for host ${cfg.stackHost}; activation drops the config/settings.json block, so the host would deploy an empty allow list. Declare the rules in the claude-skills `linux` profile and re-lock the input.";
       }
       {
         # The pinned rev must be one whose manifest carries the `files`
