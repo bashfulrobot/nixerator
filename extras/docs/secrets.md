@@ -384,6 +384,16 @@ Cut-over state:
 - Nothing uses the service account any more. The tooling was removed after the gopass cut-over (see `secrets-roadmap.md`).
 - `render-secrets` defaults to `--from gopass` on every host (`RENDER_SECRETS_FROM` overrides it). `--from op` (`just render-secrets-op`) remains for restoring the identity-class keys on a new workstation.
 
+### Cluster sync (homelab)
+
+qbert copies the secauto entries into the darkstar cluster once a day, so a secret changed here reaches External Secrets Operator without a manual step. The module is `apps.cli.homelab-secret-sync` (`modules/apps/cli/homelab-secret-sync/`), enabled in `hosts/qbert/modules.nix`. Only qbert enables it, because only qbert edits secrets.
+
+A user timer fires at 06:30 (persistent, with up to 10 minutes of random delay) and runs `homelab-secret-sync`. That wrapper runs the homelab repo's `scripts/sync-secauto.sh`, which reads the entries listed in `manifests/base/external-secrets/gopass-map.tsv` and applies them as the Secrets `secauto-automation` and `secauto-nixerator` in the `eso-source` namespace. Values pass through pipes, and the script checks that every entry exists before it writes anything.
+
+The unit refuses to run, and fails, unless `~/git/homelab` is on `main` with no local edits to the script or the map. If the GPG key needs a passphrase that gpg-agent no longer has cached, the run fails until the key is unlocked once. A failed run leaves the cluster's previous Secrets in place.
+
+Run it by hand with `systemctl --user start homelab-secret-sync`, and read the result with `journalctl --user -u homelab-secret-sync`.
+
 ## Accessing in modules
 
 `secrets` still arrives via `specialArgs`, but for existence guards only, never

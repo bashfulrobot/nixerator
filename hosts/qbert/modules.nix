@@ -39,6 +39,12 @@
     # coexist -- docker's published-port DNAT survives the nftables flip Incus
     # forces on -- so the earlier `docker.enable = lib.mkForce false` is dropped.
 
+    # Daily copy of the secauto gopass entries into the darkstar cluster (the
+    # homelab repo's scripts/sync-secauto.sh), so a secret edited here reaches
+    # External Secrets Operator without a manual `just workloads::sync-secauto`.
+    # qbert is the only host that edits secrets, so it is the one that runs it.
+    homelab-secret-sync.enable = true;
+
     # Render Nix-eval secrets locally from the gopass snapshot (and push to headless
     # peers via `render-secrets --push`).
     render-secrets = {
