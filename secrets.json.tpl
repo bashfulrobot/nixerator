@@ -5,9 +5,6 @@
   "aha": {
     "apiToken": "{{ op://nixerator/aha/credential }}"
   },
-  "wave": {
-    "fullAccessToken": "{{ op://nixerator/wave/credential }}"
-  },
   "forgejo": {
     "apiToken": "{{ op://nixerator/forgejo-api/token }}"
   },
@@ -33,45 +30,18 @@
       "region": "{{ op://nixerator/restic-workstation/region }}"
     }
   },
-  "plakar": {
-    "qbert": {
-      "repository": "{{ op://nixerator/plakar-qbert/repository }}",
-      "passphrase": "{{ op://nixerator/plakar-qbert/passphrase }}",
-      "b2_account_id": "{{ op://nixerator/b2-credentials/keyID }}",
-      "b2_account_key": "{{ op://nixerator/b2-credentials/applicationKey }}"
-    }
-  },
-  "zai": {
-    "apiKey": "{{ op://nixerator/zai/credential }}"
-  },
   "github": {
     "accessToken": "{{ op://nixerator/github-pat/credential }}"
-  },
-  "gemini": {
-    "apiKey": "{{ op://nixerator/gemini/credential }}"
   },
   "tailscale": {
     "caddyAuthKey": "{{ op://nixerator/tailscale-caddy-authkey/credential }}"
   },
-  "harmonia": {
-    "privateKey": "{{ op://nixerator/harmonia-signing-key/credential }}"
-  },
-  "snyk": {
-    "token": "{{ op://nixerator/snyk/credential }}"
-  },
-  "aha_token": "{{ op://nixerator/aha/credential }}",
   "todoist_token": "{{ op://nixerator/todoist/credential }}",
-  "cloudflareDdns": {
-    "apiToken": "{{ op://nixerator/cloudflare-ddns/credential }}"
-  },
   "nanoclaw": {
     "claudeToken": "{{ op://nixerator/nanoclaw-claude-token/credential }}",
     "onecliDbPassword": "{{ op://nixerator/nanoclaw-onecli-db-password/3fqxhcsfzyenwg3rdblflsclgi }}",
     "slackBotToken": "{{ op://nixerator/clanky-slack-app/Bot-User-Oauth-Token }}",
     "slackAppToken": "{{ op://nixerator/clanky-slack-app/Default-clanky-App-Token }}"
-  },
-  "noclaw": {
-    "opToken": "{{ op://nixerator/noclaw-op-token/credential }}"
   },
   "grafana": {
     "dashboardsToken": "{{ op://automation/grafana-cloud-dashboards/token }}"
