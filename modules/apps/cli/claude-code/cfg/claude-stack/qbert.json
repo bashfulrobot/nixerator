@@ -46,6 +46,16 @@
       "In ~/git/donkeykong, these `just` recipes remain gated: `bootstrap` and `all` (full machine setup, installs packages and edits system settings); `update` (brew upgrade plus every package group); `macos` (rewrites macOS defaults); `touchid` (runs `sudo` to edit /etc/pam.d); `dotfiles::apply` (chezmoi overwrites files in $HOME); `containers::docker-down`, `containers::k3d-down` and `containers::k3d-recreate` (stop the Docker daemon or destroy local clusters). Read-only recipes (`doctor`, `dotfiles::diff`, `dev::check`, `dev::fmt`, `dev::test-scripts`, `containers::k3d-status`) are not gated."
     ]
   },
+  "files": {
+    "${HOME}/.claude/CLAUDE.md": {
+      "mode": "0644",
+      "source": "claude-stack/files/CLAUDE.md"
+    },
+    "${HOME}/.claude/statusline.sh": {
+      "mode": "0755",
+      "source": "claude-stack/files/statusline.sh"
+    }
+  },
   "host": "qbert",
   "marketplaces": {
     "claude-skills": {
@@ -207,6 +217,9 @@
     "atlassian@claude-plugins-official": {
       "state": "absent"
     },
+    "atlassian@claude-skills": {
+      "state": "enabled"
+    },
     "cloudflare@claude-skills": {
       "state": "disabled"
     },
@@ -222,10 +235,19 @@
     "github@claude-plugins-official": {
       "state": "absent"
     },
+    "gitmcp@claude-skills": {
+      "state": "enabled"
+    },
     "gitops@claude-skills": {
       "state": "enabled"
     },
     "gopls-lsp@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "grafana@claude-skills": {
+      "config": {
+        "grafana_url": "https://bashfulrobot.grafana.net"
+      },
       "state": "enabled"
     },
     "humanizer@claude-skills": {
@@ -300,10 +322,19 @@
     "slack@claude-plugins-official": {
       "state": "enabled"
     },
+    "slack@claude-skills": {
+      "state": "enabled"
+    },
     "superpowers@claude-plugins-official": {
       "state": "absent"
     },
+    "tactiq@claude-skills": {
+      "state": "enabled"
+    },
     "terse@claude-skills": {
+      "state": "enabled"
+    },
+    "todoist@claude-skills": {
       "state": "enabled"
     },
     "vibecurb@claude-skills": {
@@ -317,9 +348,166 @@
     "linux-workstation"
   ],
   "schemaVersion": 1,
+  "settings": {
+    "force": {
+      "agentPushNotifEnabled": true,
+      "attribution": {
+        "commit": "",
+        "pr": ""
+      },
+      "awaySummaryEnabled": false,
+      "cleanupPeriodDays": 15,
+      "coAuthor": "",
+      "env": {
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5",
+        "PATH": "@LINUX_PATH@",
+        "XDG_RUNTIME_DIR": "@XDG_RUNTIME_DIR@"
+      },
+      "feedbackDrafts": "off",
+      "feedbackSurveyRate": 0,
+      "hooks": {
+        "PostToolUse": [
+          {
+            "hooks": [
+              {
+                "async": true,
+                "command": "@NIX_FMT_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "Edit|Write|MultiEdit"
+          },
+          {
+            "hooks": [
+              {
+                "command": "@GUARD_GENERATED_PATHS_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "Edit|Write|MultiEdit"
+          },
+          {
+            "hooks": [
+              {
+                "command": "@GUARD_RAW_NIX_HOOK@",
+                "type": "command"
+              }
+            ],
+            "matcher": "Bash"
+          }
+        ]
+      },
+      "includeCoAuthoredBy": false,
+      "model": "opusplan",
+      "outputStyle": "dustin",
+      "permissions": {
+        "additionalDirectories": [
+          "${HOME}/git"
+        ],
+        "ask": [
+          "Bash(sudo *)"
+        ],
+        "defaultMode": "auto",
+        "deny": [
+          "Bash(printenv*)",
+          "Bash(op read*)",
+          "Bash(op item get*--reveal*)",
+          "Bash(gopass show*)",
+          "Bash(gopass cat*)",
+          "Bash(pass show*)",
+          "Bash(sf org display*--verbose*)",
+          "Bash(nixos-rebuild switch *)",
+          "Bash(nixos-rebuild boot *)",
+          "Bash(nixos-rebuild test *)",
+          "Bash(nix-collect-garbage *)",
+          "Read(${HOME}/.config/nixos-secrets/**)",
+          "Read(${HOME}/.config/op/**)",
+          "Bash(*nixos-secrets*)",
+          "Bash(*/.config/op/*)"
+        ]
+      },
+      "remoteControlEnabled": true,
+      "skipDangerousModePermissionPrompt": true,
+      "skipWorkflowUsageWarning": true,
+      "smallModelOverride": "haiku",
+      "statusLine": {
+        "command": "@STATUSLINE_COMMAND@",
+        "type": "command"
+      },
+      "terminalProgressBarEnabled": true,
+      "todoFeatureEnabled": false,
+      "tui": "fullscreen"
+    },
+    "union": {
+      "permissions.allow": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebSearch",
+        "Bash(statix check *)",
+        "Bash(statix fix *)",
+        "Bash(deadnix *)",
+        "Bash(nixfmt *)",
+        "Bash(echo *)",
+        "Bash(printf *)",
+        "Bash(cat *)",
+        "Bash(head *)",
+        "Bash(tail *)",
+        "Bash(less *)",
+        "Bash(wc *)",
+        "Bash(ls)",
+        "Bash(ls *)",
+        "Bash(tree *)",
+        "Bash(file *)",
+        "Bash(stat *)",
+        "Bash(realpath *)",
+        "Bash(readlink *)",
+        "Bash(du *)",
+        "Bash(df *)",
+        "Bash(grep *)",
+        "Bash(ag *)",
+        "Bash(sort *)",
+        "Bash(uniq *)",
+        "Bash(tr *)",
+        "Bash(cut *)",
+        "Bash(diff *)",
+        "Bash(which *)",
+        "Bash(type *)",
+        "Bash(uname *)",
+        "Bash(whoami)",
+        "Bash(pwd)",
+        "Bash(date *)",
+        "Bash(id)",
+        "Bash(id *)",
+        "Bash(hostname)",
+        "Bash(test *)",
+        "Bash([ *)",
+        "Bash(notify-send *)",
+        "Bash(journalctl *)",
+        "Bash(pgrep *)",
+        "Bash(lsblk *)",
+        "Bash(lspci)",
+        "Bash(lscpu)",
+        "Bash(dmesg *)",
+        "Bash(zramctl *)",
+        "Bash(ping *)",
+        "Bash(dig *)",
+        "Bash(nslookup *)",
+        "Bash(ss *)"
+      ]
+    }
+  },
   "unmanaged": {
     "pluginScopes": [
       "synced"
     ]
-  }
+  },
+  "vars": [
+    "LINUX_PATH",
+    "XDG_RUNTIME_DIR",
+    "STATUSLINE_COMMAND",
+    "NIX_FMT_HOOK",
+    "GUARD_GENERATED_PATHS_HOOK",
+    "GUARD_RAW_NIX_HOOK"
+  ]
 }
