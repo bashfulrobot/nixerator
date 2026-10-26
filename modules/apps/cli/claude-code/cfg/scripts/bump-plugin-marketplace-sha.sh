@@ -114,12 +114,17 @@ fi
 tmp="$(mktemp)"
 awk -v key="${key}\\.source" -v old="$current_sha" -v new="$new_sha" '
   $0 ~ key { in_block = 1 }
-  in_block && index($0, "sha = \"" old "\"") {
+  in_block && index($0, "\"" old "\"") {
     sub(old, new)
     in_block = 0
   }
   { print }
 ' "$plugin_config" >"$tmp"
+
+if cmp -s "$tmp" "$plugin_config"; then
+  rm -f "$tmp"
+  die "sha ${current_sha:0:12} found for ${key} but the rewrite changed nothing in $plugin_config"
+fi
 
 mv "$tmp" "$plugin_config"
 install_snapshot
