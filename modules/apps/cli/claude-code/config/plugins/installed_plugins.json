@@ -51,16 +51,6 @@
         "gitCommitSha": "58267944f92187b7d6a1c822165c96c81c864806"
       }
     ],
-    "superpowers@claude-plugins-official": [
-      {
-        "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-plugins-official/superpowers/6.4.1",
-        "version": "6.4.1",
-        "installedAt": "2026-03-20T07:25:46.359Z",
-        "lastUpdated": "2026-09-27T01:29:58.814Z",
-        "gitCommitSha": "8ea39819eed74fe2a0338e71789f06b30e953041"
-      }
-    ],
     "pyright-lsp@claude-plugins-official": [
       {
         "scope": "user",
@@ -263,6 +253,66 @@
         "version": "c1c8a8c14710-32c1cf49",
         "installedAt": "2026-10-25T21:55:35.677Z",
         "lastUpdated": "2026-10-25T21:55:35.677Z"
+      }
+    ],
+    "todoist@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/todoist/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-26T20:07:15.215Z",
+        "lastUpdated": "2026-10-26T20:07:15.215Z",
+        "gitCommitSha": "5e9340314394282ecd22b3c692d6729644611464"
+      }
+    ],
+    "tactiq@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/tactiq/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-26T20:07:16.370Z",
+        "lastUpdated": "2026-10-26T20:07:16.370Z",
+        "gitCommitSha": "5e9340314394282ecd22b3c692d6729644611464"
+      }
+    ],
+    "grafana@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/grafana/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-26T20:07:17.227Z",
+        "lastUpdated": "2026-10-26T20:07:17.227Z",
+        "gitCommitSha": "5e9340314394282ecd22b3c692d6729644611464"
+      }
+    ],
+    "atlassian@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/atlassian/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-26T20:07:17.940Z",
+        "lastUpdated": "2026-10-26T20:07:17.940Z",
+        "gitCommitSha": "5e9340314394282ecd22b3c692d6729644611464"
+      }
+    ],
+    "slack@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/slack/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-26T20:07:18.625Z",
+        "lastUpdated": "2026-10-26T20:07:18.625Z",
+        "gitCommitSha": "5e9340314394282ecd22b3c692d6729644611464"
+      }
+    ],
+    "gitmcp@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/gitmcp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-26T20:07:33.265Z",
+        "lastUpdated": "2026-10-26T20:07:33.265Z",
+        "gitCommitSha": "5e9340314394282ecd22b3c692d6729644611464"
       }
     ]
   }

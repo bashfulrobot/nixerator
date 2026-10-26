@@ -281,6 +281,11 @@
         "tableau_site_name": "kong",
         "tableau_pat_name": "Mcp"
       }
+    },
+    "grafana@claude-skills": {
+      "options": {
+        "grafana_url": "https://bashfulrobot.grafana.net"
+      }
     }
   },
   "skipAutoPermissionPrompt": true
