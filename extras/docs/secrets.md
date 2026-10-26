@@ -267,22 +267,20 @@ for `op://nixerator/aha/credential`); `--mirror` adds the rest as
 |------|------|--------|-------------|
 | `kong-konnect-pat` (now in the `automation` vault) | API Credential | `lab-pat-2026-06` | `secrets.kong.kongKonnectPAT` |
 | `Tableau-PAT` (now in the `automation` vault) | API Credential | `hostname` (full `https://` origin, not a bare host), `Site-Name`, `username`, `credential` | `secrets.tableau.{server,siteName,patName,patValue}` (self-hosted/local Tableau MCP against Kong's Tableau Cloud site; injected as `SERVER`/`SITE_NAME`/`PAT_NAME`/`PAT_VALUE` by the claude-code module; workstation-only, see `serverProfile` gate in `mcp-servers.nix`) |
-| `aha` | API Credential | `credential` | `secrets.aha.apiToken` (injected as `AHA_API_TOKEN` by the claude-code module for the `aha` skill) |
-| `wave` | API Credential | `credential` | `secrets.wave.fullAccessToken` (injected as `WAVE_FULL_ACCESS_TOKEN` by the claude-code module for the `wave-invoicing` skill; Wave Full Access Token — personal-use bearer, no OAuth) |
+| `aha` | API Credential | `credential` | `.aha.apiToken` in the rendered blob (read by `aha-fr-report`) and the gopass entry `aha/credential` (the `aha` skill reads it at run time) |
+| `wave` | API Credential | `credential` | gopass entry `wave/credential`, read at run time by the `wave-invoicing` skill (not in the rendered blob; Wave Full Access Token — personal-use bearer, no OAuth) |
 | `forgejo-api` | API Credential | `token` | `.forgejo.apiToken` in the rendered blob, read at **runtime** (never through the Nix store): skills and `forge` read it at run time from the gopass entry `forgejo-api/token` for the Forgejo (`git.srvrs.co`) REST API (no shell exports `FORGEJO_TOKEN` any more), and the git module renders `~/.config/tea/config.yml` for the `tea` CLI. High-privilege token — skills using it default read-only and gate writes. |
-| `zai` | API Credential | `credential` | `secrets.zai.apiKey` |
-| `gemini` | API Credential | `credential` | `secrets.gemini.apiKey` |
-| `snyk` | API Credential | `credential` | `secrets.snyk.token` |
+| `zai` | API Credential | `credential` | gopass entry `zai/credential` only (not in the rendered blob, no Nix reader) |
+| `gemini` | API Credential | `credential` | gopass entry `gemini/credential`, read at run time by the `agy` wrapper (not in the rendered blob) |
+| `snyk` | API Credential | `credential` | gopass entry `snyk/credential`, read at run time by the `snyk-agent-scan` wrapper (not in the rendered blob) |
 | `tailscale-caddy-authkey` | API Credential | `credential` | `secrets.tailscale.caddyAuthKey` |
 | `github-pat` | API Credential | `credential` | `secrets.github.accessToken` |
 | `todoist` | API Credential | `credential` | `secrets.todoist_token` |
-| `cloudflare-ddns` | API Credential | `credential` | `secrets.cloudflareDdns.apiToken` (scope: `Zone / DNS / Edit` on the target zones only) |
 | `syncthing-gui` | Login | `username` + `password` | `secrets.syncthing.gui.*` |
-| `b2-credentials` | Secure Note | `keyID` + `applicationKey` | `secrets.{restic,plakar}.*.b2_account_*` (shared) |
+| `b2-credentials` | Secure Note | `keyID` + `applicationKey` | `secrets.restic.*.b2_account_*` (shared) |
 | `restic-password` | Password | `password` | `secrets.restic.{srv,workstation}.restic_password` (shared) |
 | `restic-srv` | Secure Note | `repository` + `region` | `secrets.restic.srv.{restic_repository,region}` |
 | `restic-workstation` | Secure Note | `repository` + `region` | `secrets.restic.workstation.{restic_repository,region}` |
-| `plakar-qbert` | Secure Note | `repository` + `passphrase` | `secrets.plakar.qbert.{repository,passphrase}` |
 | `okular-signature` | Document | `file` | `~/.kde/share/icons/signature.png` (via `just fetch-signatures`) |
 | `okular-initials` | Document | `file` | `~/.kde/share/icons/initials.png` (via `just fetch-signatures`) |
 | `homelab git-crypt key` | Document | `file` | `~/.config/git-crypt/homelab.key` (via `render-secrets`) |

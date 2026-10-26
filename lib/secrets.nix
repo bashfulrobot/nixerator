@@ -119,7 +119,7 @@
   #
   # jq         : absolute path to a jq binary (e.g. "${pkgs.jq}/bin/jq")
   # secretsFile: path to the rendered secrets JSON
-  # path       : a jq filter selecting the value, e.g. ".gemini.apiKey"
+  # path       : a jq filter selecting the value, e.g. ".aha.apiToken"
   installValue =
     {
       jq,
