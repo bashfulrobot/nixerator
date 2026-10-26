@@ -276,7 +276,18 @@ let
 
   secretsFile = "${homeDir}/.config/nixos-secrets/secrets.json";
 
-  # Status line script -- jq, curl, gawk in PATH via runtimeInputs
+  # Status line script -- jq, curl, gawk in PATH via runtimeInputs.
+  #
+  # With stackApply on the body comes from claude-skills, which holds the
+  # merged copy (the two forks differed in 19 lines, all in the right-aligned
+  # host:cwd block, and the merge also replaced a `\x1b` sed escape that BSD
+  # sed does not read). Keeping ./statusline.sh as the source here would leave
+  # the fork alive: apply writes the claude-skills copy to
+  # ~/.claude/statusline.sh for the Mac, and NixOS would carry on wrapping a
+  # different file. The wrapper itself stays, because statusLine points at it
+  # through @STATUSLINE_COMMAND@ and it is what carries jq, curl and gawk.
+  statusLineSource =
+    if stackApply then claudeSkillsSrc + "/claude-stack/files/statusline.sh" else ./statusline.sh;
   statusLineScript = pkgs.writeShellApplication {
     name = "claude-statusline";
     runtimeInputs = [
@@ -284,7 +295,13 @@ let
       pkgs.curl
       pkgs.gawk
     ];
-    text = builtins.readFile ./statusline.sh;
+    # The claude-skills copy trips SC1003 at its control-character strip
+    # (`tr '\\' '/'`, which really does mean one backslash), and
+    # writeShellApplication treats every shellcheck finding as a build
+    # failure, info level included. Excluded only when that copy is the
+    # source, so the wrapper's store path is unchanged with stackApply off.
+    excludeShellChecks = lib.optionals stackApply [ "SC1003" ];
+    text = builtins.readFile statusLineSource;
   };
 
   # Context-rot survival. PreCompact writes a recovery snapshot + a per-session
@@ -568,8 +585,8 @@ in
         # The pinned rev must be one whose manifest carries the `files`
         # section. Checked as a path, not read, so a stale pin reports this
         # instead of a bare "file does not exist" from the size check below.
-        assertion = builtins.pathExists stackSharedClaudeMd;
-        message = "claude-code: stackApply is on but the pinned claude-skills rev has no claude-stack/files/CLAUDE.md, so its manifest predates the settings/files/vars sections apply needs. Run `just update claude-skills`.";
+        assertion = builtins.pathExists stackSharedClaudeMd && builtins.pathExists statusLineSource;
+        message = "claude-code: stackApply is on but the pinned claude-skills rev is missing claude-stack/files/CLAUDE.md or claude-stack/files/statusline.sh, so its manifest predates the settings/files/vars sections apply needs. Run `just update claude-skills`.";
       }
       {
         # The same ceiling as the repo copy above, applied to the file apply
