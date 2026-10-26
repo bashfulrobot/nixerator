@@ -304,6 +304,22 @@
         "type": "github"
       }
     },
+    "claude-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1793026161,
+        "narHash": "sha256-8hkflXEXndm9TMEbH6hRSgAmzlpCnc17hh65bmWjFak=",
+        "ref": "refs/heads/main",
+        "rev": "2d890f88f464efacc891d6568c2987a09c2dc7dd",
+        "revCount": 219,
+        "type": "git",
+        "url": "ssh://git@github.com/bashfulrobot/claude-skills"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/bashfulrobot/claude-skills"
+      }
+    },
     "claudio": {
       "inputs": {
         "nixpkgs": [
@@ -1078,6 +1094,7 @@
         "antigravity-nix": "antigravity-nix",
         "apple-fonts": "apple-fonts",
         "browser-previews": "browser-previews",
+        "claude-skills": "claude-skills",
         "claudio": "claudio",
         "claudoist": "claudoist",
         "crafter-station-skills": "crafter-station-skills",

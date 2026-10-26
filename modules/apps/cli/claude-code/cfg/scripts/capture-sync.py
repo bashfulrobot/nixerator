@@ -39,7 +39,7 @@ Usage:
         --state-file PATH \\
         --home-root  PATH \\
         --repo-root  PATH \\
-        [--section skills|agents|output-styles|claude-md|all] \\
+        [--section skills|agents|output-styles|claude-md|all|all-but-claude-md] \\
         [--ignore-file PATH] \\
         [--dry-run] \\
         [--bootstrap]
@@ -570,7 +570,15 @@ def main() -> int:
     ap.add_argument(
         "--section",
         default="all",
-        choices=["skills", "agents", "output-styles", "claude-md", "all", "none"],
+        choices=[
+            "skills",
+            "agents",
+            "output-styles",
+            "claude-md",
+            "all",
+            "all-but-claude-md",
+            "none",
+        ],
     )
     ap.add_argument("--ignore-file", type=Path, default=None)
     ap.add_argument(
@@ -604,6 +612,14 @@ def main() -> int:
 
     if args.section == "all":
         sections = ["skills", "agents", "output-styles", "claude-md"]
+    elif args.section == "all-but-claude-md":
+        # What `just qr` passes once apps.cli.claude-code.stackApply.enable is
+        # on. ~/.claude/CLAUDE.md is then written by claude_stack.py apply from
+        # claude-skills, so reconciling it against config/CLAUDE.md would read
+        # the shared file as a home-side edit of the repo copy and raise a
+        # conflict on every rebuild. config/CLAUDE.md stays in the repo, no
+        # longer deployed, until phase 8 of the central-config plan deletes it.
+        sections = ["skills", "agents", "output-styles"]
     elif args.section == "none":
         sections = []
     else:

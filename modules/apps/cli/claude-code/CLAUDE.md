@@ -3,6 +3,7 @@
 When working on this module, also load:
 
 - When evaluating this module's setup against external Claude Code best-practices, read [`README.md`](./README.md).
+- Before changing anything this module deploys into `~/.claude`, read [`.claude/docs/claude-stack-apply.md`](../../../../.claude/docs/claude-stack-apply.md). `apps.cli.claude-code.stackApply.enable` moves most of the settings surface to claude-skills, so the answer to "should this live here" depends on which keys the manifest owns.
 
 ## Reassessment
 

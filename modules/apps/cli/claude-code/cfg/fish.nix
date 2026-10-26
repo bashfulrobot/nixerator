@@ -4,7 +4,47 @@
   pkgs,
   statusLineScript,
   hasHeadroom ? false,
+  # apps.cli.claude-code.stackApply.enable. On, claude-skills force-owns the
+  # settings keys listed in stackOwnedKeys below, so capture must stop carrying
+  # them back into the repo copy: a captured value would look like a repo-side
+  # change that the next apply silently reverts. permissions.allow is NOT in
+  # that list -- it stays add-only and round-trips, exactly as today.
+  stackApply ? false,
 }:
+
+let
+  # Keys claude-skills' `settings.force` declares (docs/ai/claude-stack.md,
+  # "What is declared, per profile"), as jq paths for the capture `del(...)`.
+  # permissions.allow, $schema, skipAutoPermissionPrompt and pluginConfigs are
+  # absent on purpose: the first is union-owned, the rest are harness- or
+  # nixerator-owned and apply never writes them.
+  stackOwnedKeys = [
+    ".model"
+    ".smallModelOverride"
+    ".outputStyle"
+    ".statusLine"
+    ".attribution"
+    ".coAuthor"
+    ".includeCoAuthoredBy"
+    ".cleanupPeriodDays"
+    ".tui"
+    ".env.PATH"
+    ".env.ANTHROPIC_DEFAULT_OPUS_MODEL"
+    ".permissions.deny"
+    ".permissions.defaultMode"
+    ".permissions.additionalDirectories"
+    ".agentPushNotifEnabled"
+    ".awaySummaryEnabled"
+    ".feedbackDrafts"
+    ".feedbackSurveyRate"
+    ".remoteControlEnabled"
+    ".skipDangerousModePermissionPrompt"
+    ".skipWorkflowUsageWarning"
+    ".terminalProgressBarEnabled"
+    ".todoFeatureEnabled"
+  ];
+  stackOwnedDel = lib.optionalString stackApply (", " + lib.concatStringsSep ", " stackOwnedKeys);
+in
 
 {
   functions =
@@ -218,6 +258,11 @@
           #   - permissions.ask:           Nix-owned (activation pins it) -> dropped
           #   - autoMode:                  Nix-owned (activation sets it from the
           #     claude-stack snapshot, declared in claude-skills) -> dropped
+          #   - the claude-skills force-owned keys (stackOwnedKeys, `let` block
+          #     above): dropped only when stackApply is on. The manifest replaces
+          #     each of them at every apply, so a captured value is not a repo
+          #     change, it is a value that the next rebuild reverts. With
+          #     stackApply off they are repo-owned and stay captured.
           #   - permissions.allow:         deliberately KEPT. It is runtime-owned;
           #     activation only appends the claude-stack snapshot's rules to it
           #     (add-only union, cfg/activation.nix), so captured rules include
@@ -247,7 +292,7 @@
             sed -e "s|$statusline_pattern|@STATUSLINE_COMMAND@|g" \
                 -e "s|/etc/profiles/per-user/${globals.user.name}/bin|/etc/profiles/per-user/@USER_NAME@/bin|g" \
                 "$claude_dir/settings.json" \
-              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .autoMode, .skillOverrides, .env.SSH_AUTH_SOCK, .env.XDG_RUNTIME_DIR)
+              | jq 'del(.extraKnownMarketplaces, .enabledPlugins, .permissions.ask, .autoMode, .skillOverrides, .env.SSH_AUTH_SOCK, .env.XDG_RUNTIME_DIR${stackOwnedDel})
                     | .hooks = ((.hooks // {})
                         | map_values(map(select((.hooks[0].command // "")
                             | test("/nix/store/|herdr-agent-state") | not)))
@@ -259,11 +304,15 @@
           # capture-only reconcile that never writes the derived home side).
           # capture-sync.py reads / writes $state_file (committed JSON) and
           # respects the same .capture-ignore files the old loop did.
+          # all-but-claude-md once stackApply is on: apply writes
+          # ~/.claude/CLAUDE.md from claude-skills, so reconciling it against
+          # config/CLAUDE.md would read the shared file as a home-side edit and
+          # raise a conflict on every rebuild.
           set -l sync_args \
             --state-file "$state_file" \
             --home-root "$claude_dir" \
             --repo-root "$config_dir" \
-            --section all
+            --section ${if stackApply then "all-but-claude-md" else "all"}
           if test -n "$settings_tmp"
             set -a sync_args --settings-home "$settings_tmp" --settings-repo "$config_dir/settings.json"
           end

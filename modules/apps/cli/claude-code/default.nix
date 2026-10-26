@@ -42,9 +42,19 @@ let
   # at activation (and stripped from capture so Nix owns these keys).
   # pluginConfig.enabled is the list of plugin ids this host enables, used by
   # the plugin-gated extras below.
+  # True once Dustin flips the switch per host: claude-skills owns the declared
+  # settings keys, the resolved host file comes from the flake input instead of
+  # the hand-copied snapshot, and activation makes one `claude_stack.py apply`
+  # call. False is the pre-existing behaviour, byte for byte. Switch-on and
+  # rollback steps: .claude/docs/claude-stack-apply.md.
+  stackApply = cfg.stackApply.enable;
+  claudeSkillsSrc = inputs.claude-skills;
+
   pluginConfig = import ./cfg/plugin-config.nix {
     inherit lib;
     inherit (cfg) stackHost;
+    claudeSkillsSrc = if stackApply then claudeSkillsSrc else null;
+    claudeSkillsRev = if stackApply then (claudeSkillsSrc.rev or null) else null;
   };
   pluginOverlayFile = pkgs.writeText "claude-plugin-overlay.json" (
     builtins.toJSON pluginConfig.overlay
@@ -148,6 +158,7 @@ let
       statusLineScript
       lib
       hasHeadroom
+      stackApply
       ;
   };
   activationConfig = import ./cfg/activation.nix {
@@ -194,11 +205,89 @@ let
     skillOverlay = skillOverlayFile;
     inherit (mcpConfig) secretServerFiles;
     inherit secretsFile;
+    inherit stackApply claudeSkillsSrc;
+    inherit (cfg) stackHost;
+    stackApplyScript = stackApplyScriptPkg;
+    stackVarsFile = stackVarsFilePkg;
+    stackNixOnlyPostToolUse = stackNixOnlyPostToolUseFile;
   };
+
+  # --- claude-skills apply (apps.cli.claude-code.stackApply.enable) ---------
+  #
+  # The one wrapper activation calls. python3 runs claude_stack.py (standard
+  # library only), jq builds the @VAR@ values file, coreutils supplies mktemp
+  # and id.
+  stackApplyScriptPkg = pkgs.writeShellApplication {
+    name = "claude-stack-apply";
+    runtimeInputs = [
+      pkgs.python3
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ./cfg/scripts/stack-apply.sh;
+  };
+
+  # The repo settings.json, read at eval time. Two things come out of it: the
+  # `nix fmt` hook body the manifest declares as @NIX_FMT_HOOK@, and the
+  # PostToolUse rows the manifest does not declare at all.
+  repoSettings = builtins.fromJSON (builtins.readFile (configDir + "/settings.json"));
+  repoPostToolUse = repoSettings.hooks.PostToolUse or [ ];
+  rowCommand = row: (builtins.head row.hooks).command or "";
+  # The one row claude-skills' `linux` profile declares as @NIX_FMT_HOOK@, with
+  # the same matcher and the same async flag. Passing the existing command
+  # through as a var keeps the deployed hook byte-identical to today's, so
+  # turning stackApply on changes nothing about it.
+  nixFmtRows = lib.filter (r: lib.hasInfix ''nix fmt "$file"'' (rowCommand r)) repoPostToolUse;
+  # Rows that have a home elsewhere: the nix-fmt row above, and the
+  # default-branch warning that dk >= 3.6.0 ships as warn-default-branch.sh.
+  # The `Bash` row that also mentions origin/HEAD warns on git commit/push and
+  # has no plugin equivalent, hence the matcher test.
+  isRehomedRow =
+    r:
+    lib.hasInfix ''nix fmt "$file"'' (rowCommand r)
+    || (
+      r.matcher or "" == "Edit|Write|MultiEdit" && lib.hasInfix "refs/remotes/origin/HEAD" (rowCommand r)
+    );
+  # Everything else is a NixOS-only check with no manifest row yet. apply
+  # replaces hooks.PostToolUse as one list, so activation re-appends these
+  # after it (cfg/activation.nix). Deletable in phase 8, once each one is
+  # either a dk hook or a declared manifest row.
+  stackNixOnlyPostToolUse = lib.filter (r: !isRehomedRow r) repoPostToolUse;
+  stackNixOnlyPostToolUseFile = pkgs.writeText "claude-stack-nix-only-posttooluse.json" (
+    builtins.toJSON stackNixOnlyPostToolUse
+  );
+
+  # @VAR@ values for the `vars` the claude-skills `linux` profile declares
+  # (claude-stack/resolved/<host>.json). XDG_RUNTIME_DIR is deliberately absent:
+  # cfg/scripts/stack-apply.sh adds it from a real `id -u` at activation time,
+  # because Nix eval can run cross-host.
+  stackVars = {
+    LINUX_PATH = "/run/wrappers/bin:/etc/profiles/per-user/${globals.user.name}/bin:/run/current-system/sw/bin";
+    STATUSLINE_COMMAND = "${statusLineScript}/bin/claude-statusline";
+    NIX_FMT_HOOK = rowCommand (lib.head nixFmtRows);
+    GUARD_GENERATED_PATHS_HOOK = "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths";
+    GUARD_RAW_NIX_HOOK = "${guardRawNixScript}/bin/claude-guard-raw-nix";
+  };
+  stackVarsFilePkg = pkgs.writeText "claude-stack-vars.json" (builtins.toJSON stackVars);
+
+  # The CLAUDE.md the manifest's `files` section deploys. Only read when
+  # stackApply is on, and only after pathExists says it is there.
+  stackSharedClaudeMd = claudeSkillsSrc + "/claude-stack/files/CLAUDE.md";
 
   secretsFile = "${homeDir}/.config/nixos-secrets/secrets.json";
 
-  # Status line script -- jq, curl, gawk in PATH via runtimeInputs
+  # Status line script -- jq, curl, gawk in PATH via runtimeInputs.
+  #
+  # With stackApply on the body comes from claude-skills, which holds the
+  # merged copy (the two forks differed in 19 lines, all in the right-aligned
+  # host:cwd block, and the merge also replaced a `\x1b` sed escape that BSD
+  # sed does not read). Keeping ./statusline.sh as the source here would leave
+  # the fork alive: apply writes the claude-skills copy to
+  # ~/.claude/statusline.sh for the Mac, and NixOS would carry on wrapping a
+  # different file. The wrapper itself stays, because statusLine points at it
+  # through @STATUSLINE_COMMAND@ and it is what carries jq, curl and gawk.
+  statusLineSource =
+    if stackApply then claudeSkillsSrc + "/claude-stack/files/statusline.sh" else ./statusline.sh;
   statusLineScript = pkgs.writeShellApplication {
     name = "claude-statusline";
     runtimeInputs = [
@@ -206,7 +295,13 @@ let
       pkgs.curl
       pkgs.gawk
     ];
-    text = builtins.readFile ./statusline.sh;
+    # The claude-skills copy trips SC1003 at its control-character strip
+    # (`tr '\\' '/'`, which really does mean one backslash), and
+    # writeShellApplication treats every shellcheck finding as a build
+    # failure, info level included. Excluded only when that copy is the
+    # source, so the wrapper's store path is unchanged with stackApply off.
+    excludeShellChecks = lib.optionals stackApply [ "SC1003" ];
+    text = builtins.readFile statusLineSource;
   };
 
   # Context-rot survival. PreCompact writes a recovery snapshot + a per-session
@@ -381,6 +476,27 @@ in
                          and any other entries that require host-local files.
         '';
       };
+      stackApply.enable = lib.mkEnableOption ''
+        claude-skills as the source of truth for the Claude Code settings.
+
+        On: activation makes one `claude_stack.py apply --write` call (via
+        cfg/scripts/stack-apply.sh) in place of the jq force-merge in
+        cfg/activation.nix, cfg/plugin-config.nix reads the resolved host file
+        out of the `claude-skills` flake input instead of the hand-copied
+        cfg/claude-stack/ snapshot, the manifest's `files` section writes
+        ~/.claude/CLAUDE.md and ~/.claude/statusline.sh, and the capture pass
+        (cfg/fish.nix) stops carrying the manifest-owned keys back into the
+        repo.
+
+        Off (the default): every one of those keeps its pre-stackApply
+        behaviour, byte for byte, so merging the change that introduced this
+        option deploys nothing new. Turn it on per host, and re-lock the
+        claude-skills input first -- the pinned rev must be one whose manifest
+        declares the `settings`, `files` and `vars` sections.
+
+        Switch-on checklist and the settings.json.nix-backup rollback:
+        .claude/docs/claude-stack-apply.md
+      '';
       kongDocsRag.enable = lib.mkEnableOption ''
         Provision the checkout and binary behind the kong-docs-rag plugin
         (kong-docs-rag@claude-skills): clone bashfulrobot/kong-docs-rag to
@@ -448,6 +564,38 @@ in
         # shadowed on every rebuild with no warning.
         assertion = lib.intersectLists allVendoredSkillNames configSkillNames == [ ];
         message = "A vendored skill name (default.nix's allVendoredSkillNames) collides with a repo-owned skill under config/skills/ -- activation.nix's rm -rf/ln -snf pass would silently delete and replace the repo copy on every rebuild. Rename one side.";
+      }
+      {
+        # @NIX_FMT_HOOK@ is one declared manifest row, so exactly one repo row
+        # may claim it. Zero means a rename made `lib.head` throw with no
+        # explanation; two means the var would silently take the first.
+        assertion = lib.length nixFmtRows == 1;
+        message = "claude-code: config/settings.json must hold exactly one PostToolUse hook whose command runs `nix fmt \"$file\"` (it becomes the @NIX_FMT_HOOK@ value the claude-skills manifest declares); found ${toString (lib.length nixFmtRows)}.";
+      }
+    ]
+    ++ lib.optionals stackApply [
+      {
+        # A row that is neither re-homed nor re-appended would be dropped
+        # silently by apply's forced hooks.PostToolUse. Pin the count so a
+        # change to config/settings.json has to be looked at.
+        assertion = lib.length stackNixOnlyPostToolUse == 6;
+        message = "claude-code: stackApply re-appends the PostToolUse hooks the claude-skills manifest does not declare, and expects 6 of them in config/settings.json; found ${toString (lib.length stackNixOnlyPostToolUse)}. Either a hook moved to the dk plugin or the manifest (add it to default.nix's isRehomedRow), or a new NixOS-only hook was added (bump this count).";
+      }
+      {
+        # The pinned rev must be one whose manifest carries the `files`
+        # section. Checked as a path, not read, so a stale pin reports this
+        # instead of a bare "file does not exist" from the size check below.
+        assertion = builtins.pathExists stackSharedClaudeMd && builtins.pathExists statusLineSource;
+        message = "claude-code: stackApply is on but the pinned claude-skills rev is missing claude-stack/files/CLAUDE.md or claude-stack/files/statusline.sh, so its manifest predates the settings/files/vars sections apply needs. Run `just update claude-skills`.";
+      }
+      {
+        # The same ceiling as the repo copy above, applied to the file apply
+        # actually deploys. Without it the thin-CLAUDE.md budget stops being
+        # enforced the moment claude-skills owns the file.
+        assertion =
+          !(builtins.pathExists stackSharedClaudeMd)
+          || builtins.stringLength (builtins.readFile stackSharedClaudeMd) < 8000;
+        message = "claude-skills' claude-stack/files/CLAUDE.md must stay under 8000 characters (see #294); the pinned rev has ${toString (builtins.stringLength (builtins.readFile stackSharedClaudeMd))}.";
       }
     ];
 

@@ -1,4 +1,16 @@
-{ lib, stackHost }:
+{
+  lib,
+  stackHost,
+  # Non-null when apps.cli.claude-code.stackApply.enable is set: the
+  # claude-skills flake input's store path. The resolved host file and the
+  # marketplace self-pin then come from the locked input instead of the
+  # hand-copied ./claude-stack snapshot, which is what let the snapshot trail
+  # the pinned sha. Null keeps the pre-stackApply behaviour byte for byte.
+  claudeSkillsSrc ? null,
+  # The locked input's rev, used as the claude-skills marketplace self-pin so
+  # the manifest, the snapshot and the marketplace sha can no longer disagree.
+  claudeSkillsRev ? null,
+}:
 
 # Declarative, version-pinned Claude Code plugin surface, derived from the
 # claude-stack manifest snapshot.
@@ -45,19 +57,29 @@ let
   # which rewrites the sha line below AND refreshes the ./claude-stack snapshot
   # at that same sha. It's this user's own repo, so it doesn't need the
   # re-read-before-bump treatment the manifest's `review` entries ask for.
+  #
+  # With stackApply on, claudeSkillsRev (the locked flake input's rev) replaces
+  # the literal below: the input, the resolved host file and the marketplace
+  # sha then all come from one pin, so `just bump-claude-skills` becomes
+  # `just update claude-skills`.
   selfPins = {
     claude-skills.source = {
       source = "github";
       repo = "bashfulrobot/claude-skills";
-      sha = "dbdb0a5020228616e07daf332e3ee1019c08f810";
+      sha =
+        if claudeSkillsRev != null then claudeSkillsRev else "dbdb0a5020228616e07daf332e3ee1019c08f810";
     };
   };
 
-  snapshotFile = ./claude-stack + "/${stackHost}.json";
+  snapshotFile =
+    if claudeSkillsSrc != null then
+      claudeSkillsSrc + "/claude-stack/resolved/${stackHost}.json"
+    else
+      ./claude-stack + "/${stackHost}.json";
 
   stack =
     lib.throwIfNot (builtins.pathExists snapshotFile)
-      "claude-code plugin-config: no claude-stack snapshot for host '${stackHost}' (${toString snapshotFile}); set apps.cli.claude-code.stackHost to qbert or srv, or run cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills"
+      "claude-code plugin-config: no claude-stack snapshot for host '${stackHost}' (${toString snapshotFile}); set apps.cli.claude-code.stackHost to qbert or srv, then either run cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills (stackApply off, hand-copied snapshot) or `just update claude-skills` (stackApply on, resolved file read from the flake input)"
       (builtins.fromJSON (builtins.readFile snapshotFile));
 
   marketplaceOf = pluginId: lib.last (lib.splitString "@" pluginId);

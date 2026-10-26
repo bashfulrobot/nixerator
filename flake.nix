@@ -212,6 +212,37 @@
       flake = false;
     };
 
+    # bashfulrobot/claude-skills: the source of truth for the Claude Code
+    # config. It carries the claude-stack manifest, the resolved per-host files
+    # (claude-stack/resolved/<host>.json), the one shared CLAUDE.md and
+    # statusline.sh, and `scripts/claude_stack.py apply`, which merges the
+    # declared settings keys into ~/.claude/settings.json.
+    #
+    # Consumed only when `apps.cli.claude-code.stackApply.enable` is true
+    # (default false). With it false the module keeps reading the hand-copied
+    # snapshot under modules/apps/cli/claude-code/cfg/claude-stack/ and the jq
+    # merge in cfg/activation.nix, so declaring this input changes no deployed
+    # byte. See .claude/docs/claude-stack-apply.md for the switch-on steps.
+    #
+    # `flake = false` because the repo is a plugin marketplace, not a flake.
+    #
+    # `git+ssh`, not `github:`. The repo is PRIVATE, and the `github:` fetcher
+    # authenticates with the nix `access-tokens` setting, which comes from
+    # /run/nixos-secrets/nix-access-tokens.conf -- mode 0600 root, so only a
+    # root nix can read it. Rebuilds run as root and would work; every
+    # user-level nix would not, and that includes `nix fmt` (the .githooks
+    # pre-commit formatter), `just build-host` and `nix flake check`, all of
+    # which lock the flake. The git+ssh fetcher shells out to git instead and
+    # uses the SSH agent, which the user has and which `sudo
+    # --preserve-env=SSH_AUTH_SOCK nixos-rebuild` (every rebuild recipe in the
+    # justfile) hands to root. One URL that works for both.
+    #
+    # Bump with `just update claude-skills`.
+    claude-skills = {
+      url = "git+ssh://git@github.com/bashfulrobot/claude-skills";
+      flake = false;
+    };
+
     # Recursive Nix module importer. Replaces the hand-rolled
     # `lib/autoimport.nix`; consumed by `modules/default.nix` and
     # `modules/apps/webapps/default.nix` via `inputs.import-tree`.
