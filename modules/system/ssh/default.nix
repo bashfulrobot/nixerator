@@ -152,14 +152,19 @@ in
             ForwardAgent = true;
           };
 
-          # Work Mac. IT blocks macOS's sshd, so this reaches the Homebrew
-          # sshd that donkeykong runs on the Tailscale address, port 2222
-          # (key-only, GitHub-published keys). The Mac user is not the NixOS
+          # Work Mac. Its firewall blocks all incoming connections, so the Mac
+          # dials out to qbert (donkeykong's ssh-reverse-tunnel agent) and
+          # qbert's localhost:2222 reaches the Mac's Homebrew sshd (key-only,
+          # GitHub-published keys). Jump through qbert to get there. The
+          # HostKeyAlias keeps the Mac's host key apart from qbert's own
+          # localhost:2222 entry in known_hosts. The Mac user is not the NixOS
           # user, and agent forwarding stays off for a managed work machine.
           "mac" = {
-            HostName = "100.65.120.127";
+            HostName = "localhost";
             Port = 2222;
             User = "dustin.krysak";
+            ProxyJump = "nix";
+            HostKeyAlias = "mac";
             IdentityFile = "~/.ssh/id_ed25519";
           };
 
