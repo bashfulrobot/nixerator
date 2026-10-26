@@ -47,6 +47,15 @@ let
       type = "http";
       url = "https://mcp.tactiq.io";
     };
+    # Granola Remote MCP -- query past meeting notes and transcripts. Hosted by
+    # Granola, so the Mac app need not be running; data comes from their cloud.
+    # Auth is OAuth 2.1 with dynamic client registration (no clientId to
+    # pre-register) -- run `/mcp` in Claude Code to complete the browser
+    # authorization flow once per host. Same URL as the Mac's claude-stack entry.
+    granola = {
+      type = "http";
+      url = "https://mcp.granola.ai/mcp";
+    };
     # On-device search engine for notes, transcripts, docs (BM25 + vector + LLM re-ranking)
     qmd = {
       command = "${pkgs.nodejs}/bin/npx";
