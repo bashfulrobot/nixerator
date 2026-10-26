@@ -26,7 +26,83 @@
   skillOverlay,
   secretServerFiles,
   secretsFile,
+  # claude-skills owns the declared settings keys and the two shared files when
+  # this is true (apps.cli.claude-code.stackApply.enable). False keeps the jq
+  # merge below, byte for byte. See .claude/docs/claude-stack-apply.md.
+  stackApply,
+  stackApplyScript,
+  stackVarsFile,
+  stackNixOnlyPostToolUse,
+  claudeSkillsSrc,
+  stackHost,
 }:
+
+let
+  # Nix-owned hook clauses, as jq assignments over ~/.claude/settings.json.
+  # Each one is idempotent: it drops any existing entry carrying its command
+  # marker, then appends the current store path.
+  #
+  # Split out of the shell body because which clauses apply depends on
+  # stackApply, and a jq program assembled from lib.optionalString inline in a
+  # heredoc is unreadable.
+  #
+  # dk >= 3.6.0 ships the PreCompact checkpoint and the UserPromptSubmit
+  # re-inject as plugin hooks, so with stackApply on they are stripped here and
+  # never re-appended: two copies would write the recovery file twice and print
+  # the hard rules twice. The nixerator scripts stay in cfg/scripts/ until
+  # phase 8. SessionStart (reminders, git-sync) has no plugin equivalent and is
+  # injected in both modes.
+  stripCompactionHooks = ''
+    .hooks.PreCompact = ((.hooks.PreCompact // [])
+        | map(select((.hooks[0].command // "") | test("claude-precompact-checkpoint") | not)))
+    | .hooks.UserPromptSubmit = ((.hooks.UserPromptSubmit // [])
+        | map(select((.hooks[0].command // "") | test("claude-post-compact-reinject") | not)))
+  '';
+  injectCompactionHooks = ''
+    .hooks.PreCompact = (((.hooks.PreCompact // [])
+        | map(select((.hooks[0].command // "") | test("claude-precompact-checkpoint") | not)))
+        + [{hooks: [{type: "command", command: "${precompactScript}/bin/claude-precompact-checkpoint"}]}])
+    | .hooks.UserPromptSubmit = (((.hooks.UserPromptSubmit // [])
+        | map(select((.hooks[0].command // "") | test("claude-post-compact-reinject") | not)))
+        + [{hooks: [{type: "command", command: "${reinjectScript}/bin/claude-post-compact-reinject"}]}])
+  '';
+  injectSessionStartHooks = ''
+    .hooks.SessionStart = (((.hooks.SessionStart // [])
+        | map(select((.hooks[0].command // "") | test("claude-session-reminders") | not)))
+        + [{hooks: [{type: "command", command: "${remindersScript}/bin/claude-session-reminders"}]}])
+    | .hooks.SessionStart = (((.hooks.SessionStart // [])
+        | map(select((.hooks[0].command // "") | test("claude-git-sync|\\[git-sync\\]") | not)))
+        + [{matcher: "startup", hooks: [{type: "command", command: "${gitSyncScript}/bin/claude-git-sync"}]}])
+  '';
+  # These guards ship in the dk plugin (hooks/hooks.json); drop the copies an
+  # earlier generation injected with nix store paths so each guard does not run
+  # twice. `bin/rtk hook claude` is an older retired tool's entry.
+  stripPreToolUseHooks = ''
+    .hooks.PreToolUse = (((.hooks.PreToolUse // [])
+        | map(select((.hooks[0].command // "") | test("bin/rtk hook claude") | not))
+        | map(select((.hooks[0].command // "") | test("claude-guard-(git-stash|primary-tree-write|enter-worktree-collision|secret-commands)") | not))))
+  '';
+  # Only without stackApply. With it on, the manifest's `linux` profile
+  # declares both as @GUARD_GENERATED_PATHS_HOOK@ and @GUARD_RAW_NIX_HOOK@ and
+  # apply replaces hooks.PostToolUse whole, so appending them here would
+  # duplicate them; the scrub strip is redundant for the same reason.
+  injectPostToolUseHooks = ''
+    .hooks.PostToolUse = (((.hooks.PostToolUse // [])
+        | map(select((.hooks[0].command // "") | test("claude-guard-generated-paths|claude-guard-raw-nix") | not)))
+        + [{matcher: "Edit|Write|MultiEdit", hooks: [{type: "command", command: "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths"}]},
+           {matcher: "Bash", hooks: [{type: "command", command: "${guardRawNixScript}/bin/claude-guard-raw-nix"}]}])
+    | .hooks.PostToolUse = ((.hooks.PostToolUse // [])
+        | map(select((.hooks[0].command // "") | test("claude-scrub-secret-output") | not)))
+  '';
+  hooksFilter = lib.concatStringsSep "| " (
+    (if stackApply then [ stripCompactionHooks ] else [ injectCompactionHooks ])
+    ++ [
+      injectSessionStartHooks
+      stripPreToolUseHooks
+    ]
+    ++ lib.optional (!stackApply) injectPostToolUseHooks
+  );
+in
 
 {
   text = ''
@@ -37,9 +113,17 @@
     $DRY_RUN_CMD mkdir -p "$claude_home/skills"
     $DRY_RUN_CMD mkdir -p "$claude_home/output-styles"
 
-    # CLAUDE.md -- global instructions
-    $DRY_RUN_CMD rm -f "$claude_home/CLAUDE.md"
-    $DRY_RUN_CMD cp --no-preserve=mode "${configDir}/CLAUDE.md" "$claude_home/CLAUDE.md"
+    # CLAUDE.md -- global instructions.
+    #
+    # With stackApply on, the manifest's `files` section owns this path and
+    # apply writes it from claude-skills (one copy for NixOS and the Mac), so
+    # this copy is skipped rather than written and immediately overwritten.
+    # config/CLAUDE.md stays in the repo until phase 8 of the central-config
+    # plan deletes it; see .claude/docs/claude-stack-apply.md.
+    ${lib.optionalString (!stackApply) ''
+      $DRY_RUN_CMD rm -f "$claude_home/CLAUDE.md"
+      $DRY_RUN_CMD cp --no-preserve=mode "${configDir}/CLAUDE.md" "$claude_home/CLAUDE.md"
+    ''}
 
     # reminders.json -- Nix-rendered maintenance-reminder registry (cfg/reminders.nix),
     # read at SessionStart by claude-session-reminders.
@@ -74,6 +158,11 @@
       # Resolved with a real `id -u` here, at real activation time on the
       # real host -- not at Nix eval time, which can run cross-host (see
       # `just build-host`) and would bake in the wrong UID.
+      #
+      # With stackApply on, apply re-forces env.XDG_RUNTIME_DIR from the same
+      # `id -u` (cfg/scripts/stack-apply.sh computes the @XDG_RUNTIME_DIR@
+      # value), so the two agree and this clause is left as the only writer of
+      # SSH_AUTH_SOCK, which the manifest declares nowhere.
       #
       # serverProfile == "minimal" (srv) has no gcr-ssh-agent: its agent
       # socket comes from `keychain` (hosts/srv/home.nix) and gets a fresh
@@ -158,9 +247,13 @@
       # PreToolUse Bash). Pin the ask list, and drop any auto-gate hook entry
       # an earlier generation injected with a nix store path, so the gate does
       # not run twice (the dk plugin owns it).
+      #
+      # With stackApply on the manifest forces permissions.ask, so only the
+      # stale-entry strip is left here.
       ${pkgs.jq}/bin/jq \
-        '.permissions.ask = ["Bash(sudo *)"]
-         | .hooks.PreToolUse = ((.hooks.PreToolUse // [])
+        '${
+          lib.optionalString (!stackApply) ".permissions.ask = [\"Bash(sudo *)\"] | "
+        }.hooks.PreToolUse = ((.hooks.PreToolUse // [])
              | map(select((.hooks[0].command // "") | test("claude-auto-gate") | not)))' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
@@ -168,37 +261,49 @@
       # Context-rot, reminder, and hardened-guard hooks are Nix-owned, same as
       # the hooks above: injected here with their store paths and stripped on
       # capture (cfg/fish.nix strips any hook whose command lives under /nix/store,
-      # so a new injected hook needs NO capture-side change). Each clause is
-      # idempotent -- it first drops any existing entry carrying its command
-      # marker, then appends the current one.
+      # so a new injected hook needs NO capture-side change). The clauses are
+      # assembled in the `let` block at the top of this file, because stackApply
+      # changes which of them run.
       ${pkgs.jq}/bin/jq \
-        '.hooks.PreCompact = (((.hooks.PreCompact // [])
-             | map(select((.hooks[0].command // "") | test("claude-precompact-checkpoint") | not)))
-             + [{hooks: [{type: "command", command: "${precompactScript}/bin/claude-precompact-checkpoint"}]}])
-         | .hooks.UserPromptSubmit = (((.hooks.UserPromptSubmit // [])
-             | map(select((.hooks[0].command // "") | test("claude-post-compact-reinject") | not)))
-             + [{hooks: [{type: "command", command: "${reinjectScript}/bin/claude-post-compact-reinject"}]}])
-         | .hooks.SessionStart = (((.hooks.SessionStart // [])
-             | map(select((.hooks[0].command // "") | test("claude-session-reminders") | not)))
-             + [{hooks: [{type: "command", command: "${remindersScript}/bin/claude-session-reminders"}]}])
-         | .hooks.SessionStart = (((.hooks.SessionStart // [])
-             | map(select((.hooks[0].command // "") | test("claude-git-sync|\\[git-sync\\]") | not)))
-             + [{matcher: "startup", hooks: [{type: "command", command: "${gitSyncScript}/bin/claude-git-sync"}]}])
-         | .hooks.PreToolUse = (((.hooks.PreToolUse // [])
-             | map(select((.hooks[0].command // "") | test("bin/rtk hook claude") | not))
-             # These guards now ship in the dk plugin (hooks/hooks.json); drop
-             # the copies an earlier generation injected with nix store paths
-             # so each guard does not run twice. The PostToolUse scrub entry
-             # is dropped below for the same reason.
-             | map(select((.hooks[0].command // "") | test("claude-guard-(git-stash|primary-tree-write|enter-worktree-collision|secret-commands)") | not))))
-         | .hooks.PostToolUse = (((.hooks.PostToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-guard-generated-paths|claude-guard-raw-nix") | not)))
-             + [{matcher: "Edit|Write|MultiEdit", hooks: [{type: "command", command: "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths"}]},
-                {matcher: "Bash", hooks: [{type: "command", command: "${guardRawNixScript}/bin/claude-guard-raw-nix"}]}])
-         | .hooks.PostToolUse = ((.hooks.PostToolUse // [])
-             | map(select((.hooks[0].command // "") | test("claude-scrub-secret-output") | not)))' \
+        '${hooksFilter}' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+      ${lib.optionalString stackApply ''
+
+        # claude-skills owns the declared settings keys from here on: one
+        # `claude_stack.py apply --write` call in place of the jq force-merge
+        # this module used to carry for model, outputStyle, statusLine, env,
+        # permissions.{deny,ask,defaultMode,additionalDirectories},
+        # hooks.PostToolUse and the UI and telemetry flags, plus the add-only
+        # permissions.allow union and the two shared files (CLAUDE.md,
+        # statusline.sh). Nix contributes only @VAR@ values: the statusline
+        # wrapper's store path, the two guard-hook store paths, the nix-fmt
+        # hook body, env.PATH, and the runtime dir the wrapper resolves from a
+        # real `id -u`.
+        #
+        # It runs AFTER the clauses above so the SessionStart entries it does
+        # not declare survive, and before the re-append below, which puts the
+        # NixOS-only PostToolUse rows back on top of the three the manifest
+        # declares.
+        #
+        # SSH_AUTH_SOCK stays host-owned (set or deleted above by
+        # serverProfile); the manifest deliberately declares no value for it.
+        ${stackApplyScript}/bin/claude-stack-apply \
+          ${claudeSkillsSrc} ${stackHost} ${stackVarsFile} "$claude_home"
+
+        # apply replaces hooks.PostToolUse as one list, so the NixOS-only
+        # checks the manifest does not declare (statix/deadnix, the plaintext
+        # secret grep, the hardcoded-username and module-structure checks, the
+        # git and nixos-rebuild bash guards) have to go back on. They stay
+        # nixerator's until phase 8 of the central-config plan moves or drops
+        # them; the list is computed from config/settings.json at eval time
+        # (default.nix), so it cannot silently fall out of step with the repo
+        # copy.
+        ${pkgs.jq}/bin/jq --slurpfile nixonly ${stackNixOnlyPostToolUse} \
+          '.hooks.PostToolUse = ((.hooks.PostToolUse // []) + $nixonly[0])' \
+          "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+        mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+      ''}
       chmod 644 "$claude_home/settings.json"
     else
       $DRY_RUN_CMD "would substitute @STATUSLINE_COMMAND@ in settings.json"
