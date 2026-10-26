@@ -128,8 +128,18 @@ in
             ForwardAgent = true;
           };
 
+          # qbert over Tailscale, for when the LAN address is out of reach.
+          "nix" = {
+            HostName = "100.74.137.95";
+            User = globals.user.name;
+            IdentityFile = "~/.ssh/id_ed25519";
+            ForwardAgent = true;
+          };
+
+          # srv over Tailscale. The LAN address 192.168.168.1 still has its
+          # own entry in the TF/KVM block below.
           "srv" = {
-            HostName = "192.168.168.1";
+            HostName = "100.64.187.14";
             User = globals.user.name;
             IdentityFile = "~/.ssh/id_ed25519";
             ForwardAgent = true;
