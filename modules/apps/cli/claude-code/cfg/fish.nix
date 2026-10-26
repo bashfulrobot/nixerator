@@ -304,11 +304,15 @@ in
           # capture-only reconcile that never writes the derived home side).
           # capture-sync.py reads / writes $state_file (committed JSON) and
           # respects the same .capture-ignore files the old loop did.
+          # all-but-claude-md once stackApply is on: apply writes
+          # ~/.claude/CLAUDE.md from claude-skills, so reconciling it against
+          # config/CLAUDE.md would read the shared file as a home-side edit and
+          # raise a conflict on every rebuild.
           set -l sync_args \
             --state-file "$state_file" \
             --home-root "$claude_dir" \
             --repo-root "$config_dir" \
-            --section all
+            --section ${if stackApply then "all-but-claude-md" else "all"}
           if test -n "$settings_tmp"
             set -a sync_args --settings-home "$settings_tmp" --settings-repo "$config_dir/settings.json"
           end

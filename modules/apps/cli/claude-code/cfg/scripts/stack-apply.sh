@@ -48,6 +48,20 @@ if [ ! -f "$root/claude-stack/resolved/$host.json" ]; then
   exit 1
 fi
 
+# One-shot rollback copy, taken before the first apply this host ever runs and
+# never overwritten after. It is the pre-stackApply settings.json, which is the
+# only thing a rollback actually wants: restoring yesterday's apply output
+# would just hand back the same manifest-owned values.
+#
+# `-e`, not `-f`: a leftover symlink here must not be silently written through.
+# Phase 6 of the central-config plan names this file as the rollback artifact
+# and home-manager does not produce it (backupFileExtension is unset), so it is
+# made here.
+if [ ! -e "$claude_dir/settings.json.nix-backup" ] && [ -f "$claude_dir/settings.json" ]; then
+  cp -p "$claude_dir/settings.json" "$claude_dir/settings.json.nix-backup"
+  echo "claude-stack-apply: kept the pre-apply settings.json as settings.json.nix-backup"
+fi
+
 # 0600 because the file carries host identity (PATH, runtime dir, store
 # paths), not because any of it is secret. mktemp honours TMPDIR, which
 # home-manager activation sets; the file is removed on every exit path.

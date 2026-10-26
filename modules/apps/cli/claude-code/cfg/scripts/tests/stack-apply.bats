@@ -165,6 +165,29 @@ fast_sleep() {
   [[ "$output" == *"apply failed twice"* ]]
 }
 
+@test "keeps the pre-apply settings.json as settings.json.nix-backup, once" {
+  printf '{"model":"before"}\n' > "$CLAUDE_DIR/settings.json"
+  run_wrapper "$ROOT" testhost "$VARS" "$CLAUDE_DIR"
+  [ "$status" -eq 0 ]
+  run jq -r '.model' "$CLAUDE_DIR/settings.json.nix-backup"
+  [ "$output" = "before" ]
+
+  # A second run must not overwrite it: the backup is the PRE-stackApply file,
+  # not the last apply's output.
+  printf '{"model":"after"}\n' > "$CLAUDE_DIR/settings.json"
+  run_wrapper "$ROOT" testhost "$VARS" "$CLAUDE_DIR"
+  [ "$status" -eq 0 ]
+  run jq -r '.model' "$CLAUDE_DIR/settings.json.nix-backup"
+  [ "$output" = "before" ]
+}
+
+@test "makes no backup when there is no settings.json yet" {
+  rm -f "$CLAUDE_DIR/settings.json"
+  run_wrapper "$ROOT" testhost "$VARS" "$CLAUDE_DIR"
+  [ "$status" -eq 0 ]
+  [ ! -e "$CLAUDE_DIR/settings.json.nix-backup" ]
+}
+
 @test "a root without claude_stack.py names the fix" {
   rm -f "$ROOT/scripts/claude_stack.py"
   run_wrapper "$ROOT" testhost "$VARS" "$CLAUDE_DIR"
