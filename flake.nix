@@ -109,12 +109,8 @@
     # and then silently falls back to the stale cached commit (so every bump
     # rebuilt an ancient version). SSH uses the existing key and always resolves
     # real HEAD. Hosts that rebuild upsight need SSH read access to the repo.
-    # CI's nightly lock bump (.github/workflows/update-flake-lock.yml)
-    # authenticates the same way via a dedicated read-only deploy key
-    # per repo -- upsight's is the NIXERATOR_DEPLOY_KEY_UPSIGHT repo secret,
-    # claudoist's below is NIXERATOR_DEPLOY_KEY_CLAUDOIST -- not Dustin's
-    # personal key. They can't share one secret: GitHub refuses to attach
-    # the same deploy key to two repos.
+    # Nothing in CI bumps this lock: `just qu` (or `just update upsight`) does
+    # it by hand on a host that already holds that SSH access.
     upsight = {
       url = "git+ssh://git@github.com/bashfulrobot/upsight?ref=main";
     };
@@ -191,18 +187,17 @@
     # ships no `.claude-plugin/marketplace.json` so the plugin-marketplace
     # path doesn't apply.
     #
-    # Pinned to an explicit rev, not a bare branch tracking URL, same
-    # rationale and same pattern as import-tree's tag pin below: this repo's
-    # own `update-flake-lock` GitHub Action runs `nix flake update` on a
-    # daily cron and pushes the result straight to `main` with no PR and no
-    # review. A bare `github:Yu-369/VibeCurb` would let that job silently
-    # advance to whatever the single-maintainer upstream's default branch
-    # has moved to -- and the payload here is instruction text a Claude Code
-    # agent reads and follows, not compiled code, so none of the usual
-    # build-time sandboxing applies to a hostile change. With the rev
-    # embedded in the URL, the daily job's `nix flake update` is a no-op for
-    # this input; bumping is a deliberate, reviewable commit that shows the
-    # rev change, the same as bumping import-tree's tag.
+    # Pinned to an explicit rev rather than a bare branch-tracking URL, same
+    # rationale and same pattern as import-tree's tag pin below. `just qu`
+    # runs `nix flake update` over every input and rebuilds, so a bare
+    # `github:Yu-369/VibeCurb` would advance this input to whatever the
+    # single-maintainer upstream's default branch has moved to, with nobody
+    # reading the change input by input. The payload here is instruction text
+    # a Claude Code agent reads and follows, not compiled code, so none of
+    # the usual build-time sandboxing applies to a hostile change. With the
+    # rev embedded in the URL, `nix flake update` is a no-op for this input;
+    # bumping is a deliberate, reviewable commit that shows the rev change,
+    # the same as bumping import-tree's tag.
     #
     # rev 1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0 reviewed 2026-08-05: all
     # seven skill directories contain only a SKILL.md (no scripts, verified
@@ -227,20 +222,6 @@
     # next `nix flake update`. Bump this tag explicitly when re-auditing
     # upstream.
     import-tree.url = "github:denful/import-tree/v0.2.0";
-
-    # agenix: runtime-decrypted secrets (/run/agenix/<name>) for srv's
-    # server.nanoclaw only. The rest of the repo stays on 1Password; see
-    # extras/docs/nanoclaw/README.md for why this one service is different.
-    # darwin is a macOS-only input we never evaluate, so it is emptied rather
-    # than fetched.
-    agenix = {
-      url = "github:ryantm/agenix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        home-manager.follows = "home-manager";
-        darwin.follows = "";
-      };
-    };
   };
 
   outputs =
@@ -250,7 +231,7 @@
       globals = import ./settings/globals.nix;
       versions = import ./settings/versions.nix;
 
-      # Nix-eval secrets, rendered from 1Password via `just render-secrets`
+      # Nix-eval secrets, rendered from the gopass snapshot via `just render-secrets`
       # to a path outside the repo. String path (not Nix path literal) so the
       # file is read at eval time without being copied into the Nix store as
       # a flake input. See extras/docs/secrets.md.
@@ -403,7 +384,6 @@
           inherit globals versions;
           hostname = "srv";
           system = "x86_64-linux";
-          extraModules = [ inputs.agenix.nixosModules.default ];
           homeManagerModules = [ ];
         };
       };

@@ -18,6 +18,96 @@
   # Canonical off-store secrets path for a host.
   file = globals: "${globals.user.homeDirectory}/.config/nixos-secrets/secrets.json";
 
+  # Replacement for `op run -- CMD` in a systemd service. Every environment
+  # variable whose value is exactly `op://vault/item/field` is replaced by the
+  # first line of the gopass entry `vault/item/field` (each part slugged the way
+  # extras/helpers/import-op-to-gopass.sh --mirror slugs it: lowercase, `-` for
+  # characters outside [a-z0-9._-]), then CMD is exec'd. Other variables pass
+  # through. A ref whose entry is missing or empty stops the service with the
+  # variable name and entry name, never a value. No 1Password, no service-account
+  # token and no desktop prompt: a read needs only the local GPG key.
+  #
+  # pkgs: nixpkgs. Returns a script path; call it as `${gopassRun { inherit pkgs; }} CMD ARGS`.
+  gopassRun =
+    { pkgs }:
+    pkgs.writeShellScript "gopass-run" ''
+      set -eu
+      export PATH=${
+        pkgs.lib.makeBinPath [
+          pkgs.gnupg
+          pkgs.coreutils
+          pkgs.gnused
+        ]
+      }:"$PATH"
+      slug() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/^\.+$/x/'; }
+      while IFS= read -r -d "" pair; do
+        name="''${pair%%=*}"
+        value="''${pair#*=}"
+        case "$value" in
+          op://*) ;;
+          *) continue ;;
+        esac
+        IFS=/ read -r vault item field extra <<<"''${value#op://}"
+        if [ -z "$vault" ] || [ -z "$item" ] || [ -z "$field" ] || [ -n "''${extra:-}" ]; then
+          echo "gopass-run: $name is not an op://vault/item/field reference" >&2
+          exit 1
+        fi
+        entry="$(slug "$vault")/$(slug "$item")/$(slug "$field")"
+        secret="$(${pkgs.gopass}/bin/gopass show -o -- "$entry" 2>/dev/null </dev/null || true)"
+        if [ -z "$secret" ]; then
+          echo "gopass-run: $name: entry $entry is missing or empty in the secauto store" >&2
+          exit 1
+        fi
+        export "$name=$secret"
+      done < <(env -0)
+      exec "$@"
+    '';
+
+  # Wraps `pkg`'s binary `bin` so that, when `envVar` is unset at launch, the
+  # wrapper reads it from the secauto gopass store (`entry`) and exports it for
+  # the wrapped command. This replaces exporting the token in every shell: a
+  # shell export reaches every process started from that shell, including a
+  # Claude Bash tool, while the wrapper's export reaches only the wrapped command
+  # and the children it starts (so a tool that runs sub-agents passes it on).
+  # An already-set variable wins,
+  # and GOPASS_FALLBACK=off disables the lookup. Only the entry name is in the
+  # Nix store, never a value, so the helper stays value-free.
+  #
+  # pkgs   : nixpkgs (for symlinkJoin and makeWrapper)
+  # pkg    : the package to wrap
+  # bin    : the executable under $out/bin to wrap (e.g. "td")
+  # envVar : the variable that program reads (e.g. "TODOIST_API_TOKEN")
+  # entry  : the gopass entry holding the value (e.g. "todoist/credential")
+  withGopassEnv =
+    {
+      pkgs,
+      pkg,
+      bin,
+      envVar,
+      entry,
+    }:
+    let
+      # "$" + name, built here because `$${name}` is an escaped literal in Nix
+      # and would leave the shell test comparing the process id, never empty.
+      varRef = "$" + envVar;
+      # The absolute gopass path keeps a PATH entry ahead of the system profile
+      # from feeding an attacker-chosen value into the variable. `--` stops an
+      # entry from being read as a flag, and escapeShellArg keeps it one word.
+      gp = "${pkgs.gopass}/bin/gopass";
+      snippet = ''if [ -z "${varRef}" ] && [ "''${GOPASS_FALLBACK:-on}" != off ] && [ -x ${gp} ]; then export ${envVar}="$(${gp} show -o -- ${pkgs.lib.escapeShellArg entry} 2>/dev/null)"; fi'';
+    in
+    pkgs.symlinkJoin {
+      name = "${pkg.pname or pkg.name}-gopass-env";
+      paths = [ pkg ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        wrapProgram $out/bin/${bin} --run ${pkgs.lib.escapeShellArg snippet}
+      '';
+      meta = (pkg.meta or { }) // {
+        mainProgram = bin;
+      };
+    };
+
   # Writes the value at `path` to `dest` with `mode`, wrapped so the plaintext
   # never hits argv (jq reads the file, output is redirected). No-op when the
   # key is absent or the secrets file is missing, so hosts without the secret

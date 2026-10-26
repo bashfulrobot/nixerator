@@ -32,7 +32,7 @@ file contents. Detail lives in the topic files it points at.
 | `hosts/<host>/` | Per-host config. See "Host wiring". |
 | `justfile` | The only sanctioned build/rebuild/lint/format/secrets interface. |
 | `.githooks/pre-commit` | Auto-formats staged `.nix` via `nix fmt` and re-stages. Install once per clone with `just setup-hooks`. |
-| `.github/workflows/` | `ci.yml` (autofix: nix fmt, statix, deadnix, shfmt, fish fmt, then signed-API commit) and `update-flake-lock.yml`. |
+| `.github/` | `dependabot.yml` only. No workflows: formatting runs in `.githooks/pre-commit` and the lock is bumped by `just qu` / `just update <input>`. |
 | `extras/docs/` | Deep-dive reference, one `.md` per topic, plus `index.html` (`just docs`). |
 | `extras/helpers/`, `extras/scripts/` | Bootstrap/secret-fetch shell helpers; package-update and security-alert checkers invoked by `just rebuild`. |
 | `dank-profiles/` | Captured DankMaterialShell settings, shared across workstations. |
@@ -161,14 +161,14 @@ Never read, print, or quote a rendered secret value — not a prefix, not a
 length. `~/.config/nixos-secrets/` and `~/.config/op/` are on Claude Code's
 Read deny list, and a PreToolUse guard denies shell reads of them too.
 
-Mechanism: 1Password (`op inject`); git-crypt is retired.
+Mechanism: 1Password is the source and edit point. The secauto gopass store is the automation snapshot (`render-secrets --from gopass`). `op inject` is the workstation path. git-crypt is retired.
 
 - Template: `secrets.json.tpl` at the repo root — `op://` references and
   placeholders, no values.
 - Render step: `just render-secrets` (`rs`) writes
   `~/.config/nixos-secrets/secrets.json`, outside the repo and outside the Nix
   store. `just push-secrets <hosts>` (`ps`) scp's it to allow-listed peers;
-  `just check-secrets` (`cs`) diffs live 1Password against the cache.
+  `just check-secrets` (`cs`) diffs live 1Password against the cache and `just check-secrets-gopass` (`csg`) diffs the gopass snapshot.
 - Eval side: `flake.nix` reads that path as a *string* (not a Nix path
   literal), so it is never copied into the store as a flake input, and passes
   the parsed attrset to every module as `secrets`.
@@ -213,7 +213,7 @@ Deep dives, `extras/docs/`: `architecture.md`, `module-development.md`,
 `local-packages.md`, `software.md`, `helpers.md`, `commands.md`, `ssh.md`,
 `gpu-reference.md`, `hyprland-windowrules.md`, `vm-development.md`,
 `declarative-claude.md`, `claude-plugins.md`, `bootstrap.txt`,
-`external-deps.md`, `gcmt.md`, `google-chrome.md`, `termly-remote.md`,
+`external-deps.md`, `gcmt.md`, `google-chrome.md`, `notes.md`, `termly-remote.md`,
 `todoist-cli.md`, `todoist-report.md`, and `CLAUDE.md` for editing
 `index.html`.
 

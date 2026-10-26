@@ -49,6 +49,14 @@ in
       };
     };
 
+    # GPG agent for `pass`. The agent needs a pinentry to prompt for the key
+    # passphrase; pinentry-qt reuses the Qt libraries the desktop shell already
+    # pulls in. No SSH support: SSH keys come from the 1Password agent.
+    programs.gnupg.agent = {
+      enable = true;
+      pinentryPackage = pkgs.pinentry-qt;
+    };
+
     # Development tools
     environment.systemPackages =
       with pkgs;
@@ -59,6 +67,8 @@ in
         pre-commit # Runs the gitleaks hook in service-mesh-webinar
         pass # GPG-backed password store for project secrets
         gnupg # Decryption backend for pass
+        gopass # Automation secret store (secauto repo); GPG backend with a passphrase-less key, reads need no prompt
+        shfmt # Shell parser the dk auto-gate hook needs (3.14.1 or newer, else it defers every command)
         statix # Nix linter and code quality checker
         fq # jq for binary formats (media, networking, serialization)
         jq # JSON processor

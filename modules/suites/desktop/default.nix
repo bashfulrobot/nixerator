@@ -60,14 +60,12 @@ in
 
       # Desktop configuration - Desktop environment behavior
       desktop = {
-        # Terminal: Rio (GPU/WebGPU, Kitty graphics protocol) as the default
-        # launcher for SUPER+RETURN / SUPER+T, Nautilus "Open in Terminal", and
-        # the terminal opacity window rule. Kitty stays installed as a fallback
-        # (hyprflake's kitty module remains enabled by default), so the `kitty`
-        # command is still available if Rio misbehaves. Requires the hyprflake
-        # input to include the rio module (bumped via `just qu`).
-        rio.enable = true;
-        terminal.package = pkgs.rio;
+        # Terminal: kitty is hyprflake's default (desktop.terminal.package), so
+        # SUPER+RETURN / SUPER+T, Nautilus "Open in Terminal" and the opacity
+        # window rule use it with no override here. Matches the Mac, which also
+        # runs kitty (donkeykong home/dot_config/kitty/kitty.conf). Rio was the
+        # default here until 2026-10; set desktop.rio.enable and
+        # desktop.terminal.package = pkgs.rio to go back.
 
         # Keyboard layout and variant
         keyboard = {

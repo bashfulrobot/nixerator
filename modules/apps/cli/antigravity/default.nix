@@ -4,10 +4,21 @@
   pkgs,
   config,
   globals,
+  secretsLib,
   ...
 }:
 let
   cfg = config.apps.cli.antigravity;
+
+  # `agy` gets GEMINI_API_KEY from the secauto gopass store at each launch (the
+  # wrapper exports it for that process only), so no shell has to export it.
+  agy = secretsLib.withGopassEnv {
+    inherit pkgs;
+    pkg = pkgs.google-antigravity-cli;
+    bin = "agy";
+    envVar = "GEMINI_API_KEY";
+    entry = "gemini/credential";
+  };
 
   # Antigravity's settings schema is flat -- none of the nested gemini-cli keys
   # (general.previewFeatures / ide.enabled / security.auth.selectedType) exist
@@ -77,10 +88,13 @@ let
           prompt=$(printf "%s\n\nRecent commits (match this style):\n%s\n\nDiff:\n%s\n" "$base_prompt" "$recent" "$diff")
         fi
 
+        # No --dangerously-skip-permissions: the diff is untrusted text, and
+        # auto-approved tools would let a planted instruction run commands. Plan
+        # mode is enough to write a message.
         # The whole prompt goes in the --print argument: agy ignores stdin
         # entirely when a prompt arrives via flag (antigravity-cli#76, fixed in
         # 1.1.1). `< /dev/null` guards the historical inherited-pipe hang.
-        msg=$(agy --dangerously-skip-permissions --print-timeout 120s --print "$prompt" < /dev/null)
+        msg=$(agy --mode plan --print-timeout 120s --print "$prompt" < /dev/null)
 
         if [[ -z "$msg" ]]; then
           echo "Failed to generate commit message." >&2
@@ -106,7 +120,7 @@ in
         # From jacopone/antigravity-nix rather than llm-agents:
         # Ships the CLI (agy), Antigravity 2.0 app, and IDE packages.
         packages = [
-          pkgs.google-antigravity-cli
+          agy
           pkgs.google-antigravity
           pkgs.google-antigravity-ide
         ];

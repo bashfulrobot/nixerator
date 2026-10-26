@@ -16,6 +16,18 @@ set -euo pipefail
 
 DEST="@DEST@"
 TPL="@TPL@"
+# Shared gopass-entry <-> op:// reference map and the Documents table
+# (title|entry|encoding|dest|modes|guard), both baked as store paths. The
+# environment can override them only under test (RENDER_SECRETS_SOURCE_ONLY or
+# RENDER_SECRETS_TEST): the Documents table decides which paths get written and
+# chmod'ed, so a service environment must not be able to repoint it.
+if [[ -n "${RENDER_SECRETS_SOURCE_ONLY:-}${RENDER_SECRETS_TEST:-}" ]]; then
+  GOPASS_MAP="${GOPASS_MAP:-@MAP@}"
+  GOPASS_DOCS="${GOPASS_DOCS:-@DOCS@}"
+else
+  GOPASS_MAP="@MAP@"
+  GOPASS_DOCS="@DOCS@"
+fi
 
 # Hosts render-secrets is willing to scp to. Hardcoded — matches the same
 # allow-list `justfile`'s remote-rebuild recipes use. Defends against a
@@ -129,9 +141,22 @@ PUSH_ALONGSIDE=(
 
 usage() {
   cat >&2 <<EOF
-Usage: render-secrets [--check] [--tpl PATH] [--push HOST [HOST...]]
-  Renders 1Password-templated secrets to: ${DEST}
+Usage: render-secrets [--from op|gopass] [--check] [--tpl PATH] [--push HOST [HOST...]]
+  Renders templated secrets to: ${DEST}
   Default template (baked at build time): ${TPL}
+
+  --from SOURCE    Where values come from. gopass (default) fills the template
+                   from the secauto gopass store using the map ${GOPASS_MAP}:
+                   no 1Password, no prompt, works headless. op runs 'op inject'
+                   against 1Password and needs a 1Password desktop session; use it
+                   to restore the identity-class keys on a new workstation
+                   install. A key whose entry is missing or empty is left out of
+                   the file. The Documents listed in gopass-documents.psv
+                   (feral-arr key, Incus cert, filebot license, flux deploy key)
+                   are restored from gopass too. Identity-class files (SSH
+                   identity keys, git-crypt keys) are restored only in op mode.
+                   Also settable with
+                   RENDER_SECRETS_FROM.
 
   --check          Render to a temp file and diff against the live file. No write.
   --tpl PATH       Override the template path. PATH must be inside the current
@@ -185,6 +210,10 @@ validate_tpl_path() {
     echo "render-secrets: --tpl path is not inside a git working tree: $p" >&2
     exit 1
   fi
+  if [[ ! -f "$toplevel/modules/apps/cli/render-secrets/render-secrets.sh" ]]; then
+    echo "render-secrets: --tpl path is not inside a nixerator checkout: $p" >&2
+    exit 1
+  fi
   case "$abs" in
     "$toplevel"/*) : ;;
     *)
@@ -235,6 +264,153 @@ render_forgejo_tea_config() {
   fi
 }
 
+# gopass_inject TPL OUT — fill the template's "{{ op://... }}" placeholders from
+# the gopass store instead of 1Password, writing the result to OUT. This is what
+# lets a headless host render secrets.json with no `op`, no service-account token
+# and no desktop prompt: a gopass read needs only the local GPG key.
+#
+# Each placeholder is looked up in GOPASS_MAP (entry <TAB> op:// reference). A key
+# is LEFT OUT of the output, never filled with an empty string, when its reference
+# is not in the map or its entry is missing or empty. Modules already guard on
+# presence (`secrets ? foo`), so an absent key is the safe state. Names of left-out
+# entries go to stderr; values never do. The exception is a map row marked
+# "required" (third column): its absence fails the render instead, because the
+# thing it guards (a GUI login, backup credentials) fails open without it.
+#
+# Values travel gopass -> stdin of jq -> a 0600 temp file next to OUT. They never
+# appear in argv (visible in /proc) or on a terminal. `show -f` returns the whole
+# entry, so multi-line values (keys) survive; `show -o` would keep only line 1.
+# The body runs in a subshell (gopass_inject below) so its EXIT trap cleans the two
+# plaintext temp files on errexit and signals without touching the caller's traps.
+_gopass_inject_body() {
+  local tpl="$1" out="$2" dir ref entry val omitted=() missing_required=()
+  dir="$(dirname "${out}")"
+  vals="$(mktemp -p "${dir}" .gopass-vals.XXXXXX)" || return 1
+  lines="$(mktemp -p "${dir}" .gopass-lines.XXXXXX)" || {
+    rm -f "${vals}"
+    return 1
+  }
+  # mktemp creates both 0600. Both hold plaintext secrets, so they are removed on
+  # an errexit or a signal too, not only on the success and jq-failure paths.
+  trap 'rm -f "${vals}" "${lines}"' EXIT
+  trap 'exit 1' INT TERM
+  while IFS= read -r ref; do
+    [[ -n "${ref}" ]] || continue
+    entry="$(awk -F'\t' -v r="${ref}" '$0 !~ /^#/ && $2 == r { print $1; exit }' "${GOPASS_MAP}")"
+    if [[ -z "${entry}" ]]; then
+      omitted+=("${ref} (not in map)")
+      continue
+    fi
+    if ! val="$(gopass show -f -- "${entry}" 2>/dev/null)" || [[ -z "${val}" ]]; then
+      omitted+=("${entry} (missing or empty)")
+      if [[ -n "$(awk -F'\t' -v r="${ref}" '$0 !~ /^#/ && $2 == r && $3 == "required" { print 1; exit }' "${GOPASS_MAP}")" ]]; then
+        missing_required+=("${entry}")
+      fi
+      continue
+    fi
+    printf '%s' "${val}" | jq -Rs --arg ref "${ref}" '{($ref): .}' >>"${lines}"
+  done < <(grep -o 'op://[^ }"]*' "${tpl}" | sort -u)
+  val=""
+  # A required entry (third column "required" in the map) guards something that
+  # fails open when absent, such as a GUI login. Rendering stops and the live file
+  # stays as it was. RENDER_SECRETS_ALLOW_MISSING=1 overrides this for a bootstrap.
+  if [[ ${#missing_required[@]} -gt 0 && "${RENDER_SECRETS_ALLOW_MISSING:-}" != "1" ]]; then
+    echo "render-secrets: required gopass entries are missing or empty; the live file is unchanged:" >&2
+    printf '  %s\n' "${missing_required[@]}" >&2
+    echo "  Add them in 1Password, run 'just import-secrets-to-gopass' on qbert, then re-render." >&2
+    return 1
+  fi
+  jq -s 'add // {}' "${lines}" >"${vals}"
+  if jq --slurpfile v "${vals}" '
+      ($v[0]) as $V
+      | walk(
+          if type == "string" then
+            ((capture("^\\{\\{ *(?<r>op://[^ }]+) *\\}\\}$")? ) // null) as $m
+            | if $m then ($V[$m.r] // null) else . end
+          else . end)
+      | walk(if type == "object" then with_entries(select(.value != null and .value != {})) else . end)
+    ' "${tpl}" >"${out}"; then
+    rm -f "${vals}" "${lines}"
+  else
+    rm -f "${vals}" "${lines}" "${out}"
+    return 1
+  fi
+  if [[ ${#omitted[@]} -gt 0 ]]; then
+    echo "render-secrets: left out ${#omitted[@]} key(s) not available from gopass:" >&2
+    printf '  %s\n' "${omitted[@]}" >&2
+  fi
+}
+
+gopass_inject() { ( _gopass_inject_body "$@" ); }
+
+# guard_ok GUARD — true if GUARD is empty, a path that exists, or a
+# "host:h1,h2,..." list that contains this hostname.
+guard_ok() {
+  local guard="$1"
+  [[ -z "${guard}" ]] && return 0
+  case "${guard}" in
+    host:*)
+      local cur hn _guard_hosts
+      cur="$(hostname)"
+      if [[ -n "${RENDER_SECRETS_SOURCE_ONLY:-}${RENDER_SECRETS_TEST:-}" ]]; then
+        cur="${RENDER_SECRETS_HOSTNAME:-${cur}}"
+      fi
+      IFS=',' read -ra _guard_hosts <<<"${guard#host:}"
+      for hn in "${_guard_hosts[@]}"; do
+        [[ "${hn}" == "${cur}" ]] && return 0
+      done
+      return 1
+      ;;
+    *)
+      [[ -e "${guard}" ]] && return 0
+      return 1
+      ;;
+  esac
+}
+
+# gopass_materialize_one ENTRY DEST ENC FMODE DMODE [GUARD] — restore a Document that
+# lives in the secauto gopass store to DEST, with no 1Password. Same behaviour as
+# materialize_one: skipped when GUARD fails, fixes dir and file modes, never clobbers an
+# existing DEST. ENC is `b64` (the entry holds base64 of the exact bytes) or `text`.
+# Returns 3 when the entry is missing or empty (not imported yet), which the caller only
+# warns about, and 1 on any other failure. Nothing is written for an empty result, and
+# the value goes gopass to a 0600 temp file in the destination directory, never to
+# stdout or argv.
+gopass_materialize_one() {
+  local entry="$1" dest="$2" enc="$3" fmode="$4" dmode="$5" guard="${6:-}"
+  local dir tmp ok=0
+  dest="${dest/#\~\//${HOME}/}"
+  guard_ok "${guard}" || return 0
+  dir="$(dirname "${dest}")"
+  mkdir -p "${dir}"
+  chmod "${dmode}" "${dir}"
+  if [[ -L "${dest}" ]]; then
+    echo "render-secrets: ${dest} is a symlink, refusing to chmod or replace it" >&2
+    return 1
+  fi
+  if [[ -e "${dest}" ]]; then
+    chmod "${fmode}" "${dest}"
+    echo "render-secrets: ${dest} present (perms ${fmode}, skip fetch)"
+    return 0
+  fi
+  tmp="$(mktemp -p "${dir}" .materialize.XXXXXX)" || return 1
+  case "${enc}" in
+    b64) gopass show -f -- "${entry}" 2>/dev/null | base64 -d >"${tmp}" 2>/dev/null && ok=1 ;;
+    text) gopass show -f -- "${entry}" >"${tmp}" 2>/dev/null && ok=1 ;;
+    *)
+      rm -f "${tmp}"
+      return 1
+      ;;
+  esac
+  if [[ "${ok}" -ne 1 || ! -s "${tmp}" ]]; then
+    rm -f "${tmp}"
+    return 3
+  fi
+  chmod "${fmode}" "${tmp}"
+  mv -f "${tmp}" "${dest}"
+  echo "render-secrets: materialized ${dest} (from gopass)"
+}
+
 # Tests set RENDER_SECRETS_SOURCE_ONLY and `source` this file to exercise the
 # helper functions above in isolation; `return` is valid because it is sourced
 # in that case. Normal execution leaves the flag unset and falls through to the
@@ -246,11 +422,21 @@ if [[ -n "${RENDER_SECRETS_SOURCE_ONLY:-}" ]]; then
 fi
 
 CHECK=0
+FROM="${RENDER_SECRETS_FROM:-gopass}"
 PUSH=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --check)
       CHECK=1
+      shift
+      ;;
+    --from)
+      shift
+      [[ $# -gt 0 ]] || {
+        echo "--from requires op or gopass" >&2
+        usage
+      }
+      FROM="$1"
       shift
       ;;
     --tpl)
@@ -298,27 +484,30 @@ if [[ ! -f "${TPL}" ]]; then
   exit 1
 fi
 
-if ! command -v op >/dev/null 2>&1; then
-  echo "render-secrets: 'op' (1Password CLI) not in PATH" >&2
-  exit 1
-fi
+case "${FROM}" in
+  op | gopass) : ;;
+  *)
+    echo "render-secrets: --from must be op or gopass (got: ${FROM})" >&2
+    exit 2
+    ;;
+esac
 
-# Service account auto-source. If OP_SERVICE_ACCOUNT_TOKEN is unset and a
-# token file exists at the canonical path, use it — `op inject` then runs
-# under the service account with zero biometric prompts. The token grants
-# whatever the service account's vault scope allows (we deliberately scope
-# the nixerator SA to read-only on the `nixerator` vault), so loose perms
-# on the token file = full vault read. Refuse anything looser than 0600.
-SA_TOKEN_FILE="${HOME}/.config/op/service-account-token"
-if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" && -f "${SA_TOKEN_FILE}" ]]; then
-  sa_perms="$(stat -c '%a' "${SA_TOKEN_FILE}")"
-  if [[ "${sa_perms}" != "600" ]]; then
-    echo "render-secrets: ${SA_TOKEN_FILE} perms are ${sa_perms}, must be 600" >&2
-    echo "  Fix:  chmod 600 ${SA_TOKEN_FILE}" >&2
+if [[ "${FROM}" == "gopass" ]]; then
+  if ! command -v gopass >/dev/null 2>&1; then
+    echo "render-secrets: 'gopass' not in PATH" >&2
     exit 1
   fi
-  OP_SERVICE_ACCOUNT_TOKEN="$(<"${SA_TOKEN_FILE}")"
-  export OP_SERVICE_ACCOUNT_TOKEN
+  if [[ ! -f "${GOPASS_MAP}" ]]; then
+    echo "render-secrets: gopass map not found at ${GOPASS_MAP}" >&2
+    exit 1
+  fi
+  if [[ ! -f "${GOPASS_DOCS}" ]]; then
+    echo "render-secrets: gopass documents table not found at ${GOPASS_DOCS}" >&2
+    exit 1
+  fi
+elif ! command -v op >/dev/null 2>&1; then
+  echo "render-secrets: 'op' (1Password CLI) not in PATH" >&2
+  exit 1
 fi
 
 DEST_DIR="$(dirname "${DEST}")"
@@ -332,35 +521,22 @@ render_to() {
   tmp="$(mktemp -p "$(dirname "${out}")" .render-secrets.XXXXXX)"
   # If op fails or we get interrupted between create and rename, clean up.
   trap 'rm -f "${tmp}"' RETURN
-  # --force: we created the tmp via mktemp so it already exists; without
-  # --force op inject would prompt to confirm overwrite, which is impossible
-  # under service-account auth (no TTY interaction).
-  op inject --force -i "${TPL}" -o "${tmp}"
+  inject_to "${tmp}"
   chmod 600 "${tmp}"
   mv -f "${tmp}" "${out}"
   trap - RETURN
 }
 
-# guard_ok GUARD — true if GUARD is empty, a path that exists, or a
-# "host:h1,h2,..." list that contains this hostname.
-guard_ok() {
-  local guard="$1"
-  [[ -z "${guard}" ]] && return 0
-  case "${guard}" in
-    host:*)
-      local cur hn _guard_hosts
-      cur="$(hostname)"
-      IFS=',' read -ra _guard_hosts <<<"${guard#host:}"
-      for hn in "${_guard_hosts[@]}"; do
-        [[ "${hn}" == "${cur}" ]] && return 0
-      done
-      return 1
-      ;;
-    *)
-      [[ -e "${guard}" ]] && return 0
-      return 1
-      ;;
-  esac
+# inject_to OUT — fill TPL into OUT from the selected source.
+inject_to() {
+  if [[ "${FROM}" == "gopass" ]]; then
+    gopass_inject "${TPL}" "$1"
+  else
+    # --force: we created the tmp via mktemp so it already exists; without
+    # --force op inject would prompt to confirm overwrite, which cannot be
+    # answered here (no TTY interaction).
+    op inject --force -i "${TPL}" -o "$1"
+  fi
 }
 
 # materialize_one TITLE DEST FMODE DMODE [GUARD] — restore a 1Password Document
@@ -375,6 +551,10 @@ materialize_one() {
   dir="$(dirname "${dest}")"
   mkdir -p "${dir}"
   chmod "${dmode}" "${dir}"
+  if [[ -L "${dest}" ]]; then
+    echo "render-secrets: ${dest} is a symlink, refusing to chmod or replace it" >&2
+    return 1
+  fi
   if [[ -e "${dest}" ]]; then
     chmod "${fmode}" "${dest}"
     echo "render-secrets: ${dest} present (perms ${fmode}, skip fetch)"
@@ -400,10 +580,7 @@ if [[ "${CHECK}" -eq 1 ]]; then
   chmod 700 "${DEST_DIR}"
   tmp="$(mktemp -p "${DEST_DIR}" .render-secrets-check.XXXXXX)"
   trap 'rm -f "${tmp}"' EXIT
-  # --force: we created the tmp via mktemp so it already exists; without
-  # --force op inject would prompt to confirm overwrite, which is impossible
-  # under service-account auth (no TTY interaction).
-  op inject --force -i "${TPL}" -o "${tmp}"
+  inject_to "${tmp}"
   chmod 600 "${tmp}"
   if diff -u "${DEST}" "${tmp}" >/dev/null; then
     echo "render-secrets: no drift"
@@ -423,14 +600,14 @@ if [[ "${CHECK}" -eq 1 ]]; then
       | $p | map(tostring) | join(".")
     ' 2>/dev/null || true
   )"
-  echo "render-secrets: DRIFT detected (live vs 1Password):" >&2
+  echo "render-secrets: DRIFT detected (live vs ${FROM}):" >&2
   if [[ -n "${changed}" ]]; then
     echo "  changed keys (values redacted):" >&2
     echo "${changed}" | sed 's/^/    /' >&2
   else
     echo "  values differ but no scalar keys changed (formatting/whitespace drift)" >&2
   fi
-  echo "  Fix: re-run 'just render-secrets' to rewrite ${DEST} from 1Password." >&2
+  echo "  Fix: re-run render-secrets --from ${FROM} to rewrite ${DEST}." >&2
   exit 1
 fi
 
@@ -442,11 +619,43 @@ echo "render-secrets: wrote ${DEST}"
 # Restore document-backed host files (git-crypt keys, SSH keys, ...). Local
 # only; a failure here warns but does not undo the secrets.json just rendered.
 materialize_failed=()
-for _m in "${MATERIALIZE[@]}"; do
-  IFS='|' read -r _t _d _fm _dm _g <<<"${_m}"
-  materialize_one "${_t}" "${_d}" "${_fm}" "${_dm}" "${_g}" ||
-    materialize_failed+=("${_d}")
-done
+if [[ "${FROM}" == "op" ]]; then
+  for _m in "${MATERIALIZE[@]}"; do
+    IFS='|' read -r _t _d _fm _dm _g <<<"${_m}"
+    materialize_one "${_t}" "${_d}" "${_fm}" "${_dm}" "${_g}" ||
+      materialize_failed+=("${_d}")
+  done
+else
+  # Documents that live in gopass too (gopass-documents.psv). The identity-class
+  # files (SSH identity keys, git-crypt keys, ...) are not in the store, so they
+  # still need render-secrets --from op on a desktop host.
+  while IFS='|' read -r _t _e _enc _d _fm _dm _g; do
+    [[ -z "${_t}" || "${_t}" == \#* || -z "${_d}" ]] && continue
+    _rc=0
+    gopass_materialize_one "${_e}" "${_d}" "${_enc}" "${_fm}" "${_dm}" "${_g}" || _rc=$?
+    case "${_rc}" in
+      0) : ;;
+      3) echo "render-secrets: ${_e} is not in the gopass store yet (run just import-secrets-to-gopass --documents on qbert); skipped ${_d}" >&2 ;;
+      *) materialize_failed+=("${_d}") ;;
+    esac
+  done <"${GOPASS_DOCS}"
+  # Identity-class files are not fetched in this mode, but their modes are still
+  # re-asserted when they already exist (a symlink is refused), so the routine
+  # path keeps private keys at 0600.
+  for _m in "${MATERIALIZE[@]}"; do
+    IFS='|' read -r _t _d _fm _dm _g <<<"${_m}"
+    guard_ok "${_g}" || continue
+    [[ -e "${_d}" || -L "${_d}" ]] || continue
+    if [[ -L "${_d}" ]]; then
+      echo "render-secrets: ${_d} is a symlink, refusing to chmod it" >&2
+      materialize_failed+=("${_d}")
+      continue
+    fi
+    chmod "${_fm}" "${_d}"
+    chmod "${_dm}" "$(dirname "${_d}")"
+  done
+  echo "render-secrets: identity-class files (SSH identity keys, git-crypt keys) are not in gopass; run render-secrets --from op on a desktop host to restore them"
+fi
 if [[ ${#materialize_failed[@]} -gt 0 ]]; then
   echo "render-secrets: FAILED to materialize: ${materialize_failed[*]}" >&2
 fi

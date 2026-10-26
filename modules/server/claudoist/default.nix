@@ -5,6 +5,7 @@
   globals,
   inputs,
   versions,
+  secretsLib,
   ...
 }:
 # claudoist -- the srv side of the Todoist task-level UI Extension. See
@@ -26,7 +27,7 @@
 #     -> `td comment add` on the task + Pushover notify.
 #
 # Secrets: VERIFICATION_TOKEN/PUSHOVER_* are op:// refs resolved at runtime by
-# `op run` (see opRunExec below, identical to incident-investigator's).
+# the gopass runner (lib/secrets.nix gopassRun) (see opRunExec below, identical to incident-investigator's).
 # TODOIST_API_TOKEN is not an op:// ref -- it reuses the rendered secrets file
 # render-secrets already produces on srv (the same .todoist_token field
 # fish/`td` already read from at modules/apps/cli/fish/default.nix), read
@@ -58,7 +59,6 @@ let
     pkgs.llm-agents.claude-code
     todoistCliPkg
     gwsPkg
-    pkgs._1password-cli
     pkgs.jq
     pkgs.curl
     pkgs.coreutils
@@ -69,19 +69,12 @@ let
     pkgs.cacert
   ];
 
-  tokenFile = "${homeDir}/.config/op/service-account-token";
+  # Resolves every op:// value in the child env from the secauto gopass store, then
+  # execs the command. Replaces `op run` and the 1Password service-account token.
   opRunExec =
     command:
-    pkgs.writeShellScript "claudoist-op-run" ''
-      set -eu
-      if [ ! -r "${tokenFile}" ]; then
-        echo "1Password service-account token not found at ${tokenFile}." >&2
-        echo "Run 'just setup-op-token' on this host before enabling the service." >&2
-        exit 1
-      fi
-      OP_SERVICE_ACCOUNT_TOKEN="$(${pkgs.coreutils}/bin/cat ${tokenFile})"
-      export OP_SERVICE_ACCOUNT_TOKEN
-      exec ${pkgs._1password-cli}/bin/op run -- ${command}
+    pkgs.writeShellScript "claudoist-gopass-run" ''
+      exec ${secretsLib.gopassRun { inherit pkgs; }} ${command}
     '';
 
   # Same rendered-secrets file fish/`td` already read TODOIST_API_TOKEN from.
@@ -90,20 +83,12 @@ let
   # Combined start wrapper for the receiver only (the cloudflared tunnel below
   # uses opRunExec directly, since it needs only the op:// TUNNEL_TOKEN).
   # Resolves TODOIST_API_TOKEN from the rendered secrets file, then execs
-  # `op run` (which resolves VERIFICATION_TOKEN/PUSHOVER_* from Environment=
-  # below) around the receiver binary. op run passes through any env value
+  # the gopass runner (lib/secrets.nix gopassRun) (which resolves VERIFICATION_TOKEN/PUSHOVER_* from Environment=
+  # below) around the receiver binary. the gopass runner passes through any env value
   # that isn't an op:// ref unchanged, so TODOIST_API_TOKEN reaches the
   # receiver's actions/*.sh children as a literal value, not re-resolved.
   startScript = pkgs.writeShellScript "claudoist-start" ''
     set -eu
-    if [ ! -r "${tokenFile}" ]; then
-      echo "1Password service-account token not found at ${tokenFile}." >&2
-      echo "Run 'just setup-op-token' on this host before enabling the service." >&2
-      exit 1
-    fi
-    OP_SERVICE_ACCOUNT_TOKEN="$(${pkgs.coreutils}/bin/cat ${tokenFile})"
-    export OP_SERVICE_ACCOUNT_TOKEN
-
     if [ ! -r "${secretsFile}" ]; then
       echo "Rendered secrets file not found at ${secretsFile}; run render-secrets first." >&2
       exit 1
@@ -115,7 +100,7 @@ let
     TODOIST_API_TOKEN="$(${pkgs.jq}/bin/jq -r '.todoist_token' ${secretsFile})"
     export TODOIST_API_TOKEN
 
-    exec ${pkgs._1password-cli}/bin/op run -- ${receiverPkg}/bin/claudoist-receiver
+    exec ${secretsLib.gopassRun { inherit pkgs; }} ${receiverPkg}/bin/claudoist-receiver
   '';
 
   runtimeEnv = [
@@ -162,7 +147,7 @@ in
       description = ''
         1Password `op://` reference for the Todoist UI Extension verification
         token (from the App Management Console). Resolved at runtime via
-        `op run`. Create the `automation/claudoist` item with this field
+        the gopass runner (lib/secrets.nix gopassRun). Create the `automation/claudoist` item with this field
         before enabling.
       '';
     };
@@ -202,7 +187,7 @@ in
         description = ''
           1Password `op://` reference for the cloudflared tunnel token (the
           "Get tunnel token" value from a remotely-managed / Config type
-          Remote tunnel). Resolved at runtime via `op run` and passed to
+          Remote tunnel). Resolved at runtime via the gopass runner (lib/secrets.nix gopassRun) and passed to
           cloudflared as `TUNNEL_TOKEN`; the ingress rule
           (claudoist.srvrs.co -> http://localhost:<port>) lives in the
           Cloudflare dashboard, not here.
@@ -261,7 +246,6 @@ in
             "PATH=${
               lib.makeBinPath [
                 pkgs.cloudflared
-                pkgs._1password-cli
               ]
             }"
             "TUNNEL_TOKEN=${cfg.tunnel.tokenRef}"

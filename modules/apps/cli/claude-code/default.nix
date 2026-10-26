@@ -54,6 +54,11 @@ let
   stackPermissionsFile = pkgs.writeText "claude-stack-permissions.json" (
     builtins.toJSON pluginConfig.permissionsAllow
   );
+  # Manifest autoMode rules for this host, force-set into settings.json at
+  # activation (the whole key is Nix-owned and stripped from capture).
+  stackAutoModeFile = pkgs.writeText "claude-stack-automode.json" (
+    builtins.toJSON pluginConfig.autoMode
+  );
   # Default-off skill surface (see cfg/skill-defaults.nix for the always-on
   # baseline and why each entry earned its spot). Same overlay pattern as
   # pluginOverlayFile above: force-merged into settings.json at activation,
@@ -185,6 +190,7 @@ let
     textPolishRulesFile = ../text-polish/prompt/concision-rules.md;
     pluginOverlay = pluginOverlayFile;
     stackPermissions = stackPermissionsFile;
+    stackAutoMode = stackAutoModeFile;
     skillOverlay = skillOverlayFile;
     inherit (mcpConfig) secretServerFiles;
     inherit secretsFile;
@@ -316,9 +322,10 @@ let
   #
   # Secret-bearing tokens (GEMINI_API_KEY, AHA_API_TOKEN, WAVE_FULL_ACCESS_TOKEN)
   # are NOT set here: exporting them via environment.variables/sessionVariables
-  # bakes the plaintext into the world-readable Nix store. They are exported at
-  # shell runtime by the fish module, read from the off-store secrets file
-  # (issue #265). Only non-secret env vars remain below.
+  # bakes the plaintext into the world-readable Nix store, and no shell exports
+  # them either. Each consumer reads its value from the secauto gopass store at
+  # run time (see "No exported API tokens" in extras/docs/secrets.md). Only
+  # non-secret env vars remain below.
   claudeEnv =
     lib.optionalAttrs hasHyperframes {
       PUPPETEER_EXECUTABLE_PATH = hyperframesBrowserPath;
@@ -449,7 +456,6 @@ in
       (with pkgs; [
         (writeScriptBin "mcp-pick" mcpPick)
         (writeScriptBin "skill-pick" skillPick)
-        llm-agents.claude-plugins # Plugin & skills manager
         fzf
         jq
         rsync # used by claude-capture + activation to mirror skills

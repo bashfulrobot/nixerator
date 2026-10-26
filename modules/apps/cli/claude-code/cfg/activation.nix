@@ -22,6 +22,7 @@
   textPolishRulesFile,
   pluginOverlay,
   stackPermissions,
+  stackAutoMode,
   skillOverlay,
   secretServerFiles,
   secretsFile,
@@ -63,6 +64,13 @@
       # user-environment import, hence don't get home.sessionVariables
       # either) fell back to the raw passphrase-protected SSH key.
       #
+      # XDG_RUNTIME_DIR is set alongside it on purpose. The Bash tool's shell
+      # sources /etc/set-environment, which runs
+      # `export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/gcr/ssh"`. With
+      # XDG_RUNTIME_DIR empty (background sessions) that rewrites the correct
+      # value above to the literal `/gcr/ssh`. Giving every tool process the
+      # real runtime dir makes that export resolve to the same socket.
+      #
       # Resolved with a real `id -u` here, at real activation time on the
       # real host -- not at Nix eval time, which can run cross-host (see
       # `just build-host`) and would bake in the wrong UID.
@@ -80,14 +88,15 @@
       ${
         if serverProfile == "minimal" then
           ''
-            ${pkgs.jq}/bin/jq 'del(.env.SSH_AUTH_SOCK)' \
+            ${pkgs.jq}/bin/jq --arg rt "/run/user/$(id -u)" \
+              'del(.env.SSH_AUTH_SOCK) | .env.XDG_RUNTIME_DIR = $rt' \
               "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
             mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
           ''
         else
           ''
-            ${pkgs.jq}/bin/jq --arg sock "/run/user/$(id -u)/gcr/ssh" \
-              '.env.SSH_AUTH_SOCK = $sock' \
+            ${pkgs.jq}/bin/jq --arg rt "/run/user/$(id -u)" \
+              '.env.XDG_RUNTIME_DIR = $rt | .env.SSH_AUTH_SOCK = ($rt + "/gcr/ssh")' \
               "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
             mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
           ''
@@ -117,6 +126,20 @@
          (.permissions.allow // []) as $cur
          | ($cur | map(norm)) as $have
          | .permissions.allow = ($cur + [$decl[0][] | select(norm as $n | $have | any(. == $n) | not)])' \
+        "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
+      mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
+
+      # autoMode (auto-mode classifier rules) from the claude-stack snapshot:
+      # Nix-owned, so REPLACED here, unlike the add-only permissions above.
+      # Each list the manifest declares for this host is set wholesale, which
+      # is what lets a narrowed rule in claude-skills actually remove the old
+      # broad one. A key the manifest leaves empty keeps whatever the base
+      # settings.json carries, and a host that declares nothing is untouched.
+      # Capture (cfg/fish.nix) strips the key, so edits made through
+      # /auto-mode-setup only persist once they are in the claude-skills
+      # manifest. Idempotent: the same file produces the same result.
+      ${pkgs.jq}/bin/jq --slurpfile am ${stackAutoMode} \
+        '.autoMode = ((.autoMode // {}) + ($am[0] | with_entries(select(.value | length > 0))))' \
         "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
       mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
 
@@ -351,7 +374,7 @@
       fi
     fi
 
-    # Secret-bearing MCP servers (kong-konnect, tableau): their
+    # Secret-bearing MCP servers (tableau): their
     # .mcp.json is written here at 0600 from the off-store secrets file, so the
     # real token never lands in the world-readable store (issue #265). The
     # placeholdered template lives in the store; each @TOKEN@ is replaced with

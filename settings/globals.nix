@@ -22,6 +22,7 @@ rec {
   # Common repository and development paths
   paths = {
     devRoot = "${user.homeDirectory}/dev";
+    notes = "${user.homeDirectory}/Notes";
     nixerator = "${user.homeDirectory}/git/nixerator";
     hyprflake = "${user.homeDirectory}/git/hyprflake";
   };
@@ -44,14 +45,16 @@ rec {
   # Local AI (Ollama) defaults. Single source for the model that both the
   # server-side pull (apps.cli.ollama.loadModels) and the opencode client
   # default (apps.cli.ollama.defaultOpencodeModel) reference, so the pulled
-  # model and the requested model cannot drift out of sync. Qwen3-14B: dense
-  # 14B (9.3 GB Q4_K_M) from the Ollama library, with native tool-calling and a
-  # thinking mode. Chosen for opencode, which needs reliable native tool-calling
-  # for every action; being dense it avoids the MoE-under-Ollama tool-calling
-  # flakiness that made Mellum2 unusable here. Fits 16 GB with the full 32k
-  # context configured on qbert.
+  # model and the requested model cannot drift out of sync. Qwen3.6 35B-A3B
+  # (22 GB, MoE with 3B active) runs 65% on the 16 GB GPU and 35% on CPU. On
+  # qbert (2026-10-18) it scored 10/10 on a 10-task tool-call test at 71
+  # tokens/s and fixed a failing pytest through opencode, where dense
+  # qwen3:14b scored 9/10 at 47 tokens/s. That test replaced the earlier
+  # worry that MoE models call tools unreliably under Ollama (Mellum2 did).
+  # Fallbacks pulled by hand: gpt-oss:20b (97 tokens/s, fits VRAM) and
+  # qwen3:14b.
   ai = {
-    localCodeModel = "qwen3:14b";
+    localCodeModel = "qwen3.6:35b-a3b";
   };
 
   # Remote editing (Zed SSH)

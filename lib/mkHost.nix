@@ -153,6 +153,19 @@ in
               # `python3` alias directly -- vdirsyncer/khal may resolve
               # click-threading through the version-numbered set, which a
               # `python3.override` wouldn't reach.
+              # khal 0.14.1 fails to build on this nixpkgs revision: its sphinx
+              # step does not produce the "man" output, so the whole derivation
+              # errors with "failed to produce output path for output 'man'" and
+              # every qbert rebuild stops (khal arrives via hyprflake's
+              # desktop.dank.calendar). Build without the docs outputs. Remove
+              # once nixpkgs builds khal's man page again.
+              (_final: prev: {
+                khal = prev.khal.overridePythonAttrs (_old: {
+                  outputs = [ "out" ];
+                  sphinxBuilders = [ ];
+                });
+              })
+
               (_final: prev: {
                 pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
                   (_pyFinal: pyPrev: {

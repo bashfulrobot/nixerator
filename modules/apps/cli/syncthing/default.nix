@@ -111,6 +111,16 @@ in
               versioning = simpleVersioning;
             };
 
+            # Plain-markdown notes (apps.cli.notes). No peers yet: add the Mac
+            # (or another host) to `devices` when it joins. Phones and tablets
+            # read through Weave, not Syncthing. The .stignore is written by
+            # notes-init (apps.cli.notes), which owns the ignore list.
+            "notes" = {
+              path = globals.paths.notes;
+              devices = [ ];
+              versioning = staggeredVersioning;
+            };
+
           };
         };
       })

@@ -64,11 +64,14 @@
   "cloudflareDdns": {
     "apiToken": "{{ op://nixerator/cloudflare-ddns/credential }}"
   },
+  "nanoclaw": {
+    "claudeToken": "{{ op://nixerator/nanoclaw-claude-token/credential }}",
+    "onecliDbPassword": "{{ op://nixerator/nanoclaw-onecli-db-password/3fqxhcsfzyenwg3rdblflsclgi }}",
+    "slackBotToken": "{{ op://nixerator/clanky-slack-app/Bot-User-Oauth-Token }}",
+    "slackAppToken": "{{ op://nixerator/clanky-slack-app/Default-clanky-App-Token }}"
+  },
   "noclaw": {
     "opToken": "{{ op://nixerator/noclaw-op-token/credential }}"
-  },
-  "onepassword": {
-    "serviceAccountToken": "{{ op://nixerator/zm7ky22lk75tfi4absvvfewd3q/credential }}"
   },
   "grafana": {
     "dashboardsToken": "{{ op://automation/grafana-cloud-dashboards/token }}"

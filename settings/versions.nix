@@ -86,6 +86,16 @@
       hash = "sha256-3njs29LxqEzKAGOn7LxEAkD8FLbrzLsX9GRreSqMXB8=";
     };
 
+    # Kong's declarative Konnect CLI. Release asset is kongctl_linux_amd64.zip
+    # (a static Go binary, so no autoPatchelf). Not in nixpkgs.
+    kongctl = {
+      source = "github-release";
+      repo = "Kong/kongctl";
+      version = "1.20.2";
+      tagPrefix = "v";
+      hash = "sha256-9cZnGUgTLurzq4SQB8lhp1dMe5NRwF7DbdG8SOoazRA=";
+    };
+
     # Context-compression CLI (headroomlabs-ai/headroom), consumed by the
     # claude-code module's cfg/headroom.nix. Ships only as a PyPI package
     # (`headroom-ai`) with heavy optional ML extras -- there is no nixpkgs
@@ -113,6 +123,30 @@
       tagPrefix = "";
       shortRev = "e380bec";
       hash = "sha256-5CJX6rmCMatYIDavUdpupEdQiXEaoH//tfPHuRwmAm0=";
+    };
+
+    # Notes system (modules/apps/cli/notes). Both are Rust source builds absent
+    # from nixpkgs. After a version bump, set cargoHash to lib.fakeHash, build,
+    # and paste the hash from the mismatch error. updatePolicy=manual because
+    # update-pkg does not refresh cargoHash.
+    markless = {
+      source = "github-release";
+      repo = "jvanderberg/markless";
+      updatePolicy = "manual";
+      version = "0.9.29";
+      tagPrefix = "v";
+      hash = "sha256-orjJ++948WEJ031c5Dcvmfyqw2JMRJRjoBsGU+A+B4w=";
+      cargoHash = "sha256-kMMglmIsc3HkCx24Zir3NtZitwrxYwa7FgLgAZ2/ffo=";
+    };
+
+    weave = {
+      source = "github-release";
+      repo = "matze/weave";
+      updatePolicy = "manual";
+      version = "0.4.0";
+      tagPrefix = "v";
+      hash = "sha256-8Ecsc+GBQx/M9ytSpOYNleGfNVVVCjrCcBibhGgSNcY=";
+      cargoHash = "sha256-g5QM4EJUc79f2nXrKbNk7yeffRoEpOym2asqX5et1yQ=";
     };
 
     cpx = {
@@ -363,19 +397,33 @@
 
   server = {
     # NanoClaw host (modules/server/nanoclaw/build), consumed by server.nanoclaw
-    # on srv. updatePolicy=manual: build/onecli-gateway.patch edits package.json
-    # and pnpm-lock.yaml (the /add-onecli skill's @onecli-sh/sdk dependency), so
-    # a rev bump must rebase that patch and refresh BOTH hashes; update-pkg can
+    # on srv. updatePolicy=manual: build/skills.patch edits package.json and
+    # pnpm-lock.yaml (the /add-onecli and /add-slack skills' dependencies), so
+    # a version bump must rebase that patch and refresh BOTH hashes; update-pkg can
     # do neither. Upstream's in-repo CLAUDE.md also warns that major versions
     # are breaking rewrites -- read CHANGELOG.md before bumping.
     nanoclaw = {
+      # Tracks published releases (upstream's `stable` channel), not main.
+      source = "github-release";
+      repo = "nanocoai/nanoclaw";
+      updatePolicy = "manual";
+      version = "2026.10.0";
+      tagPrefix = "v";
+      hash = "sha256-bP4SkT8Gf5ZEa/P49hHeDul2ZC9wdvMowTRJUf6uRe8=";
+      pnpmDepsHash = "sha256-8YlOuHyIZJqX3AzO+zbCyuOPYzMnaSNdp02YH0AnlVk=";
+    };
+
+    # Upstream's long-lived `channels` branch, source of the Slack adapter
+    # files the /add-slack skill copies (see nanoclaw/build/default.nix).
+    # Manual for the same reason: a bump must be re-checked against the
+    # pinned core rev above (the adapter compiles against core APIs).
+    nanoclaw-channels = {
       source = "github-commit";
       repo = "nanocoai/nanoclaw";
       updatePolicy = "manual";
-      version = "2.4.0-unstable-2026-09-25";
-      rev = "d4ff64f49f1defea8c46a3d884d932a1d967e6d9";
-      hash = "sha256-LrHbf/i31N32SMg5m4OJZ6z2Bd/7BkdIGfAje6q/IHg=";
-      pnpmDepsHash = "sha256-4D2EC9q6FABZ16IWIgIc/G5dpBXY5Cpkhpa5+2pDnnU=";
+      version = "unstable-2026-10-11";
+      rev = "d2407fe3b4e30db69779567d945e72ee1b078028";
+      hash = "sha256-jYrCUrw0kY1P/VvXlHvC7Ydp+opLgWpcCQJYO1euNFg=";
     };
   };
 

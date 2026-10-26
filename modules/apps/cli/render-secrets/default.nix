@@ -16,6 +16,7 @@ let
   tplPath = "${globals.paths.nixerator}/secrets.json.tpl";
 
   render-secrets =
+    withOp:
     pkgs.runCommand "render-secrets"
       {
         nativeBuildInputs = [ pkgs.makeWrapper ];
@@ -25,17 +26,26 @@ let
         install -Dm755 $src $out/bin/render-secrets
         substituteInPlace $out/bin/render-secrets \
           --replace-fail "@DEST@" "${destPath}" \
-          --replace-fail "@TPL@" "${tplPath}"
+          --replace-fail "@TPL@" "${tplPath}" \
+          --replace-fail "@MAP@" "${./gopass-map.tsv}" \
+          --replace-fail "@DOCS@" "${./gopass-documents.psv}"
         wrapProgram $out/bin/render-secrets \
           --prefix PATH : ${
-            lib.makeBinPath [
-              pkgs._1password-cli
-              pkgs.openssh
-              pkgs.diffutils
-              pkgs.coreutils
-              pkgs.git
-              pkgs.jq # forgejo tea-config generation reads .forgejo.apiToken
-            ]
+            lib.makeBinPath (
+              # --from op only; automation hosts leave it out so a unit that reaches for 1Password fails loudly
+              lib.optional withOp pkgs._1password-cli
+              ++ [
+                pkgs.openssh
+                pkgs.diffutils
+                pkgs.coreutils
+                pkgs.git
+                pkgs.jq # forgejo tea-config generation reads .forgejo.apiToken; --from gopass builds the file with it
+                pkgs.gopass # --from gopass reads the secauto store
+                pkgs.gnupg # gopass shells out to gpg to decrypt
+                pkgs.gawk # --from gopass looks references up in the shared map
+                pkgs.gnugrep
+              ]
+            )
           }
       '';
 in
@@ -46,17 +56,31 @@ in
       default = false;
       description = ''
         Install the render-secrets helper, which renders
-        ${globals.paths.nixerator}/secrets.json.tpl through `op inject`
-        to ${destPath}.
+        ${globals.paths.nixerator}/secrets.json.tpl to ${destPath}, from
+        1Password (`op inject`, the source) or from the secauto gopass
+        snapshot (`--from gopass`).
 
         Enable on hosts that have the 1Password CLI available (i.e. the
         hosts that will originate `op inject` runs and `--push` to
-        headless peers).
+        headless peers). `render-secrets --from gopass` fills the same
+        template from the secauto gopass store with no 1Password at all,
+        so a headless host can enable this module and render by itself.
+      '';
+    };
+
+    opSupport = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Put the 1Password CLI on render-secrets' PATH so `--from op` works
+        (restoring SSH and git-crypt keys on a new workstation install). Leave
+        it off on any host that runs automation: with `op` absent, a unit that
+        reaches for 1Password fails loudly instead of depending on it.
       '';
     };
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ render-secrets ];
+    environment.systemPackages = [ (render-secrets cfg.opSupport) ];
   };
 }

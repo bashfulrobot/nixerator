@@ -226,6 +226,72 @@ update input:
 bump-claude-skills:
     bash modules/apps/cli/claude-code/cfg/scripts/bump-plugin-marketplace-sha.sh claude-skills bashfulrobot/claude-skills main
 
+# Ship a merged claude-skills change to the NixOS hosts in one command: bump the
+# pin and claude-stack snapshot on a branch, open a signed PR, ask once, then
+# squash-merge it and rebuild qbert and srv. `what` goes in the commit title,
+# e.g. `just ship-claude-skills "dk 3.3.6, git-cleanup fixes"`. `sha` defaults to
+# claude-skills `main` HEAD; pass a 40-hex sha to pin an older merge.
+#
+# Run it from the primary checkout on a clean, current `main`: the PR merge
+# needs `main` checked out, which a linked worktree cannot do. The merge and the
+# rebuilds only run after you answer yes at the prompt. Like `bump-hyprflake`
+# this commits and pushes by design. The Mac is not reached from here: the last
+# lines print its two commands.
+[doc('Bump the claude-skills pin via PR, merge, then rebuild qbert and srv')]
+[group('bump')]
+ship-claude-skills what sha="main":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    die() { echo "ship-claude-skills: $*" >&2; exit 1; }
+    [[ "$(git rev-parse --git-dir)" == "$(git rev-parse --git-common-dir)" ]] \
+        || die "run from the primary checkout, not a linked worktree"
+    [[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] || die "switch to main first"
+    git diff --quiet && git diff --cached --quiet || die "working tree is not clean"
+    git pull --ff-only
+    if [[ "{{sha}}" =~ ^[0-9a-f]{40}$ ]]; then
+        full="{{sha}}"
+    else
+        full="$(git ls-remote https://github.com/bashfulrobot/claude-skills.git "refs/heads/{{sha}}" | awk '{print $1}')"
+    fi
+    [[ -n "$full" ]] || die "could not resolve claude-skills@{{sha}}"
+    short="${full:0:7}"
+    branch="chore/bump-claude-skills-${short}"
+    msg="chore(claude-code): bump claude-skills pin to ${short} ({{what}})"
+    cfg="modules/apps/cli/claude-code/cfg"
+    git switch -c "$branch"
+    bash "$cfg/scripts/bump-plugin-marketplace-sha.sh" claude-skills bashfulrobot/claude-skills "$full"
+    if git diff --quiet -- "$cfg/plugin-config.nix" "$cfg/claude-stack"; then
+        git switch main
+        git branch -D "$branch"
+        die "pin is already at ${short}, nothing to ship"
+    fi
+    git add -- "$cfg/plugin-config.nix" "$cfg/claude-stack"
+    git commit -qS -m "$msg"
+    git push -u origin HEAD
+    pr="$(gh pr create --base main --title "$msg" --body "Pin bump from just ship-claude-skills.")"
+    echo "PR: $pr"
+    if ! gum confirm "Merge the PR, then rebuild qbert and srv?"; then
+        echo "Stopped before the merge. Branch $branch stays checked out."
+        exit 0
+    fi
+    gh pr merge "$pr" --squash --delete-branch
+    git switch main
+    git pull --ff-only
+    just quiet-rebuild
+    just build-host srv
+    just remote-rebuild srv
+    echo "qbert and srv are on ${short}. Mac, run:"
+    echo "  git -C ~/git/donkeykong pull --ff-only"
+    echo "  cd ~/git/donkeykong && ./claude-plugins.sh --upgrade"
+
+# Remove linked worktrees under .claude/worktrees whose PR is merged, and delete
+# their local branch. Dry run by default; `just prune-worktrees --yes` removes.
+# Run it from the primary checkout: a session cannot remove its own worktree.
+[doc('Remove worktrees whose PR is merged (dry run; pass --yes to remove)')]
+[group('dev')]
+prune-worktrees *args:
+    bash extras/scripts/prune-worktrees.bash {{args}}
+
 # Run skill-cache unit tests
 [group('test')]
 test-skill-cache:
@@ -234,7 +300,7 @@ test-skill-cache:
 # Run render-secrets unit tests (Forgejo tea-config generation)
 [group('test')]
 test-render-secrets:
-    nix shell nixpkgs#bats nixpkgs#jq --command bats modules/apps/cli/render-secrets/tests/
+    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gawk nixpkgs#gnugrep nixpkgs#coreutils --command bats modules/apps/cli/render-secrets/tests/
 
 # Run the claude-code PreToolUse guard-hook regression tests (secret-leak +
 # primary-tree-write) plus the capture-sync settings suite in the same dir. git
@@ -345,6 +411,20 @@ health:
 fmt:
     @echo "Formatting nix files..."
     @nix fmt
+
+# Auto-fix lint, dead code, and shell/fish formatting (replaces the old CI autofix job)
+[group('dev')]
+fix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Tracked files only: `find .` would walk .claude/worktrees and ignored paths.
+    # `--` and the ./ prefix stop a filename starting with `-` being read as a flag.
+    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r nix fmt --
+    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r -I{} statix fix ./{}
+    git ls-files -z -- '*.nix' ':!:secrets' | xargs -0 -r deadnix --edit --
+    git ls-files -z -- '*.sh' ':!:secrets' | xargs -0 -r shfmt -w -i 2 -ci --
+    git ls-files -z -- '*.fish' ':!:secrets' \
+      | xargs -0 -r fish -c 'for f in $argv; fish_indent -w "$f"; end'
 
 # Install repo git hooks (sets core.hooksPath to .githooks for this clone)
 #
@@ -591,6 +671,16 @@ secrets-nudge:
         echo "  If a secret was added or rotated, run: just render-secrets"
         echo "  Continuing rebuild in 1s -- Ctrl-C to abort."
         sleep 1
+    fi
+    # Snapshot staleness: only on a host that can reach 1Password (qbert). A clean
+    # `just check-snapshot` writes the stamp below; no stamp, or one older than 7
+    # days, means nobody has confirmed gopass still matches 1Password.
+    stamp="${XDG_STATE_HOME:-$HOME/.local/state}/nixerator/snapshot-verified"
+    if command -v op >/dev/null 2>&1; then
+        if [[ ! -f "$stamp" ]] || [[ -n "$(find "$stamp" -mtime +7 2>/dev/null)" ]]; then
+            echo "⚠ The gopass snapshot has not been checked against 1Password in over 7 days."
+            echo "  Run: just check-snapshot   (refresh with: just import-secrets-to-gopass --update)"
+        fi
     fi
 
 # Pre-rebuild: capture runtime ~/.claude/* edits back into the source tree
@@ -1033,13 +1123,53 @@ remote-upgrade host repo_path="~/git/nixerator":
         exit "$rc"
     fi
 
-# Render Nix-eval secrets locally from 1Password into
-# ~/.config/nixos-secrets/secrets.json. Triggers one biometric prompt per
-# rotation; rebuilds in between read the cached file.
-[doc('Render Nix-eval secrets from 1Password into ~/.config/nixos-secrets/')]
+# Render Nix-eval secrets from the secauto gopass snapshot into
+# ~/.config/nixos-secrets/secrets.json. No 1Password, no prompt; rebuilds in
+# between read the cached file. To pick up a changed 1Password value, refresh the
+# snapshot first (`just import-secrets-to-gopass` on qbert, then pull).
+[doc('Render Nix-eval secrets from the gopass snapshot into ~/.config/nixos-secrets/')]
 [group('secrets')]
 render-secrets:
     @render-secrets
+
+# Render from 1Password (`op inject`) and restore the identity-class keys (SSH keys,
+# git-crypt keys, incus-ui.pfx). Needed only on a new workstation install, because
+# those files are never copied into gopass. Needs a 1Password desktop session.
+[doc('Render from 1Password and restore SSH/git-crypt keys (new workstation install)')]
+[group('secrets')]
+render-secrets-op:
+    @render-secrets --from op
+
+# Render the same file from the secauto gopass store instead of 1Password. No
+# `op`, no service-account token, no desktop prompt: safe to run headless (srv,
+# a timer, an SSH session). A key whose entry is missing or empty is left out of
+# the file and named on stderr. Document-backed files still need `render-secrets`.
+[doc('Render secrets.json from the secauto gopass store (no 1Password)')]
+[group('secrets')]
+render-secrets-gopass:
+    @render-secrets --from gopass
+
+# Drift check against the gopass store: reports which keys differ, never values.
+[doc('Check the cached secrets.json against the gopass store (read-only)')]
+[group('secrets')]
+check-secrets-gopass:
+    @render-secrets --from gopass --check
+
+# One-time copy of every mapped value from 1Password into the secauto gopass
+# store (run on qbert, the writer). Values pipe op -> gopass and never print.
+# Safe to rerun: present, non-empty entries are skipped.
+[doc('Import 1Password values into the secauto gopass store (flags: --update --check --mirror --documents --dry-run --desktop)')]
+[group('secrets')]
+import-secrets-to-gopass *args:
+    @bash extras/helpers/import-op-to-gopass.sh {{args}}
+
+# Compare every mapped 1Password value with the gopass snapshot by digest. Prints
+# entry names only; exits non-zero on drift and records a stamp on a clean pass,
+# which silences the staleness warning in the rebuild recipes. Run on qbert.
+[doc('Check the gopass snapshot against 1Password (names only; run on qbert)')]
+[group('secrets')]
+check-snapshot:
+    @bash extras/helpers/import-op-to-gopass.sh --check
 
 # Render locally AND scp the rendered file to one or more peer hosts. Use
 # after rotating a 1Password value, before running `just remote-rebuild <host>`
@@ -1067,6 +1197,57 @@ push-secrets +hosts:
         esac
     done
     render-secrets --push {{hosts}}
+
+# Copy the secauto GPG key (the one that decrypts the gopass store) to peer hosts.
+# The key is streamed over SSH from this machine's keyring into the peer's, so it
+# is never written to a file or printed. Idempotent: a host that already has the
+# key is skipped. Run it on qbert, the host that holds the key.
+#
+#   just push-gpg-key srv
+#
+# Same host allow-list as render-secrets (qbert, srv, clanker). The Mac is not
+# reachable this way; pull the key there with the command in extras/docs/secrets.md.
+[doc('Copy the secauto GPG key to peer hosts over SSH (streamed, never on disk)')]
+[group('secrets')]
+push-gpg-key +hosts:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for host in {{hosts}}; do
+        case "$host" in
+            qbert|srv|clanker) ;;
+            *)
+                echo "Refusing to push the GPG key to unrecognized host: $host"
+                echo "Allowed: qbert, srv, clanker"
+                exit 1
+                ;;
+        esac
+    done
+    fpr="$(gpg --list-keys --with-colons 'secauto automation' 2>/dev/null | awk -F: '/^fpr/ {print $10; exit}')"
+    if [[ -z "$fpr" ]]; then
+        echo "No 'secauto automation' key in this machine's keyring. Run this on qbert."
+        exit 1
+    fi
+    for host in {{hosts}}; do
+        if [[ "$host" == "$(hostname)" ]]; then
+            echo "$host: this machine, skipped"
+            continue
+        fi
+        if ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" "bash -c 'gpg --list-secret-keys --with-colons 2>/dev/null | grep -q $fpr'"; then
+            echo "$host: key already present"
+            continue
+        fi
+        gpg --export-secret-keys --armor "$fpr" \
+            | ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
+                "bash -c 'gpg --batch --pinentry-mode loopback --passphrase \"\" --import'" >/dev/null 2>&1
+        ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
+            "bash -c 'echo $fpr:6: | gpg --import-ownertrust'" >/dev/null 2>&1
+        if ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" "bash -c 'gpg --list-secret-keys --with-colons 2>/dev/null | grep -q $fpr'"; then
+            echo "$host: key imported"
+        else
+            echo "$host: FAILED to import the key"
+            exit 1
+        fi
+    done
 
 # Copy this machine's ~/.config/gws/ (gws OAuth credentials + encryption key)
 # to one or more peer hosts that have no browser of their own to run
@@ -1156,78 +1337,35 @@ push-slack-token-creds +hosts:
     done
 
 # Render to a tempfile and diff against the live ~/.config/nixos-secrets/secrets.json.
-# Exits non-zero if 1Password values differ from the cached file. Read-only.
-[doc('Check the cached secrets.json against 1Password (read-only)')]
+# Exits non-zero if the gopass snapshot differs from the cached file. Read-only.
+[doc('Check the cached secrets.json against the gopass snapshot (read-only)')]
 [group('secrets')]
 check-secrets:
     @render-secrets --check
 
-# Install the 1Password service-account token at ~/.config/op/service-account-token
-# (0600), so render-secrets / push-secrets / check-secrets run with zero
-# biometric prompts thereafter. One-time per host.
-#
-# Default behaviour: `op read` fetches the token from the same 1Password item
-# secrets.json.tpl's onepassword.serviceAccountToken points at (one biometric
-# on the desktop). Pass-through args support the helper's alternate inputs:
-#
-#   just setup-op-token                            # op read (default, preferred)
-#   just setup-op-token --manual                   # interactive paste
-#   just setup-op-token --force                    # overwrite an existing different token
-#   OP_TOKEN=ops_... just setup-op-token           # from env var (no prompts)
-#
-# Rotating the token, not just re-installing it on a new host? Use
-# `just rotate-op-token` instead -- see below.
-#
-# See extras/docs/helpers.md for the full helper docs.
-[doc('Install the 1Password service-account token on this host (one-time)')]
+# Detect a stale gopass snapshot: render from 1Password and diff against the live
+# file. Non-zero means 1Password has changed since the last import. Needs a desktop
+# session. Read-only.
+[doc('Check the cached secrets.json against 1Password, to detect a stale gopass snapshot')]
 [group('secrets')]
-setup-op-token *args:
-    @./extras/helpers/setup-op-service-account.sh {{args}}
-
-# Walks through rotating the nixerator 1Password service-account token,
-# end to end, on this host: prints the manual 1Password steps and waits,
-# installs the new token locally, renders secrets.json with an EXPLICIT
-# token override (bypassing op-toggle's chicken-and-egg fallback to a
-# stale render), then verifies auth and reports which vaults are visible.
-# Does NOT push to the fleet automatically -- it prints that command for
-# you to run once you're happy with the verification output.
-#
-#   just rotate-op-token             # op read (default, preferred)
-#   just rotate-op-token --manual    # interactive paste
-#
-# See extras/docs/helpers.md for the full helper docs.
-[doc('Walk through rotating the 1Password service-account token end to end')]
-[group('secrets')]
-rotate-op-token *args:
-    @./extras/helpers/rotate-op-service-account.sh {{args}}
-
-# Pre-rebuild bootstrap render: writes ~/.config/nixos-secrets/secrets.json
-# WITHOUT needing render-secrets on PATH yet. Use ONLY on a fresh machine
-# before the first rebuild lands the Nix-packaged render-secrets. After that
-# first rebuild, prefer `just render-secrets`.
-#
-# Auth is the same as render-secrets -- if you ran `just setup-op-token`
-# first, this runs with no prompts.
-[doc('Bootstrap render of secrets.json on a fresh machine, before the 1st rebuild')]
-[group('secrets')]
-bootstrap-secrets:
-    @./extras/helpers/render-secrets-bootstrap.sh
+check-secrets-op:
+    @render-secrets --from op --check
 
 # Fetch the Okular signature + initials PNGs from the nixerator 1Password
 # vault (Document items okular-signature + okular-initials) to
-# ~/.kde/share/icons/{signature,initials}.png. One-time per host after
-# `just setup-op-token`; re-run only if you rotate the documents in 1P.
+# ~/.kde/share/icons/{signature,initials}.png. One-time per host;
+# re-run only if you rotate the documents in 1P.
 [doc('Fetch the Okular signature + initials PNGs from 1Password (one-time)')]
 [group('secrets')]
 fetch-signatures:
     @./extras/helpers/fetch-okular-signatures.sh
 
-# Fetch the gmailctl OAuth client credentials from the nixerator 1Password
-# vault (Login item `gmailctl`, Client ID + Client Secret fields) and render
-# them into ~/.gmailctl/credentials.json (0600). One-time per host after
-# `just setup-op-token`; re-run only if you rotate the OAuth client.
+# Write the gmailctl OAuth client credentials from the secauto gopass store
+# (entries nixerator/gmailctl/client-id and client-secret) and render
+# them into ~/.gmailctl/credentials.json (0600). One-time per host;
+# re-run only if you rotate the OAuth client.
 # Afterwards run `gmailctl init` to create token.json.
-[doc('Fetch the gmailctl OAuth client credentials from 1Password (one-time)')]
+[doc('Write the gmailctl OAuth client credentials from gopass (one-time)')]
 [group('secrets')]
 fetch-gmailctl-creds:
     @./extras/helpers/fetch-gmailctl-credentials.sh
@@ -1254,10 +1392,12 @@ alias ub := bump-upsight
 alias rr := remote-rebuild
 alias ru := remote-upgrade
 alias rs := render-secrets
+alias rsg := render-secrets-gopass
 alias ps := push-secrets
+alias pgk := push-gpg-key
 alias cs := check-secrets
+alias csg := check-secrets-gopass
 alias fs := fetch-signatures
-alias rot := rotate-op-token
 alias fgc := fetch-gmailctl-creds
 alias gen := generations
 alias rb := rollback

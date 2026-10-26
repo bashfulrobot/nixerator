@@ -29,50 +29,28 @@ in
           # Disable greeting
           set fish_greeting
 
-          # Load 1Password service account token from the rendered secrets blob
-          # so it never enters the Nix store. Allows headless `op read` over SSH
-          # without session prompts. Runs for all shells (not just interactive)
-          # so `fish -c` invocations and scripts also authenticate.
-          set -l _secrets ~/.config/nixos-secrets/secrets.json
-          if test -f $_secrets && command -q jq
-            set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
-            set -gx GRAFANA_TOKEN (jq -r '.grafana.dashboardsToken' $_secrets)
-            # Forgejo (git.srvrs.co) REST API token for Claude Code skills that
-            # talk to the self-hosted Forgejo instance. Same runtime-render
-            # pattern as GRAFANA_TOKEN so it never enters the Nix store. Skills
-            # curl the Gitea-compatible API with this; the `tea` CLI reads its
-            # own ~/.config/tea/config.yml (rendered by the git module).
-            set -gx FORGEJO_TOKEN (jq -r '.forgejo.apiToken' $_secrets)
-            # Claude Code / skill tokens. Same runtime-render pattern as
-            # GRAFANA_TOKEN so the values never enter the Nix store (issue #265).
-            # Each is guarded individually: an absent key leaves the variable
-            # unset rather than exporting the literal string "null".
-            #
-            # Scope note: these used to be set via environment.variables +
-            # home.sessionVariables (visible to every process). They now come
-            # from shellInit, so they reach fish shells and their children,
-            # which covers every consumer today (Claude Code and its subprocess
-            # skills, `td`, `agent-scan`, all launched from a terminal). The one
-            # tool that runs headless, aha-fr-report, reads the token from the
-            # secrets file itself and does not depend on this export.
-            if jq -e '.gemini.apiKey // empty' $_secrets >/dev/null 2>&1
-              set -gx GEMINI_API_KEY (jq -r '.gemini.apiKey' $_secrets)
-            end
-            if jq -e '.aha.apiToken // empty' $_secrets >/dev/null 2>&1
-              set -gx AHA_API_TOKEN (jq -r '.aha.apiToken' $_secrets)
-            end
-            if jq -e '.wave.fullAccessToken // empty' $_secrets >/dev/null 2>&1
-              set -gx WAVE_FULL_ACCESS_TOKEN (jq -r '.wave.fullAccessToken' $_secrets)
-            end
-            if jq -e '.todoist_token // empty' $_secrets >/dev/null 2>&1
-              set -gx TODOIST_API_TOKEN (jq -r '.todoist_token' $_secrets)
-            end
-            if jq -e '.snyk.token // empty' $_secrets >/dev/null 2>&1
-              set -gx SNYK_TOKEN (jq -r '.snyk.token' $_secrets)
-            end
-          end
-          # Public base URL for the Forgejo API — not a secret, always set so
-          # skills/tea know where to point even before the token is rendered.
+          # No 1Password service-account token is exported here any more.
+          # Automation reads secrets from gopass (the secauto store) or from the
+          # secrets file rendered with `render-secrets --from gopass`, so it never
+          # calls `op`. A shell that exports the token also hands it to every
+          # child process, including a Claude Bash tool, which could then read any
+          # vault the service account can see. `op` at the desk uses the desktop
+          # app.
+          # No API token is exported here either (GRAFANA_TOKEN, FORGEJO_TOKEN,
+          # GEMINI_API_KEY, AHA_API_TOKEN, WAVE_FULL_ACCESS_TOKEN,
+          # TODOIST_API_TOKEN, SNYK_TOKEN). Each consumer reads its own value
+          # from the secauto gopass store at run time instead:
+          #   - the aha, grafana, wave-invoicing and forge scripts (claude-skills)
+          #     and nixerator's forge and todoist-report fall back to gopass when
+          #     the variable is unset;
+          #   - `td`, `snyk-agent-scan` and `agy` are wrapped by
+          #     secretsLib.withGopassEnv, which exports the value for that one
+          #     process only.
+          # A shell export reaches every child process, including a Claude Bash
+          # tool; a per-process value dies with the command.
+          #
+          # Public base URL for the Forgejo API -- not a secret, always set so
+          # skills/tea know where to point.
           set -gx FORGEJO_URL https://git.srvrs.co
         '';
 
@@ -97,26 +75,6 @@ in
 
         # Custom functions
         functions = {
-          op-toggle = {
-            description = "Toggle `op` between the service-account token (default on every new shell, via shellInit above) and interactive desktop-client auth. Shell-local -- open a new shell to get back to the service-account default.";
-            body = ''
-              if set -q OP_SERVICE_ACCOUNT_TOKEN
-                set -e OP_SERVICE_ACCOUNT_TOKEN
-                echo "→ op: switching to desktop-client (interactive) auth..."
-                op signin | source
-                echo "✓ op: now on desktop-client auth for this shell -- run op-toggle again to switch back"
-              else
-                set -l _secrets ~/.config/nixos-secrets/secrets.json
-                if not test -f $_secrets
-                  echo "op-toggle: $_secrets not found -- run 'just render-secrets' first" >&2
-                  return 1
-                end
-                set -gx OP_SERVICE_ACCOUNT_TOKEN (jq -r '.onepassword.serviceAccountToken' $_secrets)
-                echo "✓ op: back to service-account auth"
-              end
-            '';
-          };
-
           kcfg = ''
             set -l clusters_dir "$HOME/.kube/clusters"
             set -l active_config "$HOME/.kube/config"
