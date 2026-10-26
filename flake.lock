@@ -362,22 +362,6 @@
         "url": "ssh://git@github.com/bashfulrobot/claudoist"
       }
     },
-    "crafter-station-skills": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1788386649,
-        "narHash": "sha256-F6ty+MDcu/rs1E/MXkoKOnO0XKirAvoQ/uT5oNeQtvQ=",
-        "owner": "crafter-station",
-        "repo": "skills",
-        "rev": "f0fe474d76ed3f04113664095ff1b9e9844e8020",
-        "type": "github"
-      },
-      "original": {
-        "owner": "crafter-station",
-        "repo": "skills",
-        "type": "github"
-      }
-    },
     "dank-greeter": {
       "inputs": {
         "dank-qml-common": "dank-qml-common",
@@ -1097,7 +1081,6 @@
         "claude-skills": "claude-skills",
         "claudio": "claudio",
         "claudoist": "claudoist",
-        "crafter-station-skills": "crafter-station-skills",
         "disko": "disko",
         "home-manager": "home-manager",
         "humanizer-skill": "humanizer-skill",
@@ -1111,7 +1094,6 @@
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
         "upsight": "upsight",
-        "vibecurb-skills": "vibecurb-skills",
         "voxtype": "voxtype",
         "walkr": "walkr"
       }
@@ -1650,23 +1632,6 @@
         "ref": "main",
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/upsight"
-      }
-    },
-    "vibecurb-skills": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1785910232,
-        "narHash": "sha256-asO4kBhrNDFV6opQGimaQWM5A70G1Vfd9VCcWjedKKM=",
-        "owner": "Yu-369",
-        "repo": "VibeCurb",
-        "rev": "1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Yu-369",
-        "repo": "VibeCurb",
-        "rev": "1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0",
-        "type": "github"
       }
     },
     "voxtype": {

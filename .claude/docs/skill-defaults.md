@@ -72,10 +72,17 @@ usage data yet. Like `github-issue`, it ships from a plugin rather than
 absent-key-means-on default does the work.
 
 `github-issue` is listed for documentation but has no actual effect in
-`skill-defaults.nix`: it ships from `apps/cli/worktree-flow`, not
-`config/skills`, so it never appears in the file's name list. It stays on by
-Claude Code's own absent-key-means-on default anyway, which is what the
-baseline wants -- harmless, just don't go looking for its override entry.
+`skill-defaults.nix`: it never appears in the file's name list, so it stays on
+by Claude Code's own absent-key-means-on default, which is what the baseline
+wants. Harmless, just don't go looking for its override entry. It shipped from
+`apps/cli/worktree-flow` until 2026-10-26, when that module stopped writing
+`~/.claude/skills/{github-issue,hack,dependabot}` because the `dk` plugin
+ships all three and the copies had drifted behind it. Source is now `dk` alone.
+
+The seven VibeCurb names joined `mkOverlay`'s `extraOff` on the same date,
+when they stopped being vendored from a flake input and became the `vibecurb`
+plugin's copies. `extraOff` is the only thing keeping them default-off now;
+see `.claude/docs/vendored-skills.md`.
 
 Re-adding a plugin/skill removed as unused should come with usage data
 (same bar `modules/suites/ai/default.nix` already applies to plugins);

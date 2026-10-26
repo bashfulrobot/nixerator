@@ -75,9 +75,10 @@ let
   # stripped from capture, so Nix owns the default and a per-project
   # skill-pick "on" is the only way around it.
   skillDefaultsConfig = import ./cfg/skill-defaults.nix { inherit lib; };
-  # The seven VibeCurb design skills all live under skills/<name>/SKILL.md
-  # in the same upstream repo (see cfg/activation.nix for the symlink loop
-  # that consumes this same list).
+  # The seven VibeCurb design skill names. 2026-10-26: no longer symlinked
+  # (the `vibecurb` plugin ships all seven, byte-identical), so this list is
+  # now only the `extraOff` argument that keeps them default-off. Dropping it
+  # would flip all seven to Claude Code's absent-key-means-on default.
   vibecurbSkillNames = [
     "awwwards-hero"
     "awwwards-motion"
@@ -87,10 +88,10 @@ let
     "pixel-perfect"
     "visual-redesign"
   ];
-  # Every symlinked-skill name Nix installs, vibecurb's seven plus the
-  # pre-existing ones. Single source of truth for the skill-overlay call
-  # below and the collision assertion further down -- both need the exact
-  # same list.
+  # Every symlinked-skill name Nix installs. Empty since 2026-10-26, when
+  # intent-layer (the last entry) and the seven VibeCurb skills stopped being
+  # symlinked. Kept, with the overlay call and the collision assertion below,
+  # because it is the one place a new vendored skill is declared.
   #
   # "humanizer" dropped 2026-09-08, "walkr-author" / "walkr-tutorial-author"
   # dropped 2026-09-09: dk@claude-skills (cfg/plugin-config.nix) ships all
@@ -107,10 +108,7 @@ let
   # allVendoredSkillNames, mkOverlay's
   # extraOff below is what keeps them default-off rather than silently
   # flipping to Claude Code's absent-key-means-on default.
-  allVendoredSkillNames = [
-    "intent-layer"
-  ]
-  ++ vibecurbSkillNames;
+  allVendoredSkillNames = [ ];
   # Same directory-listing computation skill-defaults.nix's mkOverlay does
   # internally for configSkillsDir, duplicated here only because mkOverlay
   # doesn't expose its intermediate configNames and the collision assertion
@@ -123,15 +121,19 @@ let
       skillDefaultsConfig.mkOverlay {
         configSkillsDir = configDir + "/skills";
         vendoredNames = allVendoredSkillNames;
-        # Preserves the pre-2026-09-09 default-off behavior for two skills
-        # that used to reach this default through allVendoredSkillNames
-        # membership (see the comment there): once a skill's source is
-        # claude-skills only, mkOverlay has no way to know it exists at all,
-        # so it can no longer land in offNames on its own.
+        # Preserves the default-off behavior for every skill that used to
+        # reach this default through allVendoredSkillNames membership (see the
+        # comment there): once a skill's source is a marketplace plugin only,
+        # mkOverlay has no way to know it exists at all, so it can no longer
+        # land in offNames on its own. walkr-author and walkr-tutorial-author
+        # since 2026-09-09, the seven VibeCurb names since 2026-10-26.
+        # intent-layer is deliberately absent: its skill is gone from every
+        # source, so there is nothing left to turn off.
         extraOff = [
           "walkr-author"
           "walkr-tutorial-author"
-        ];
+        ]
+        ++ vibecurbSkillNames;
       }
     )
   );
@@ -179,20 +181,12 @@ let
       ;
     inherit (cfg) serverProfile;
     humanizerSkillSrc = inputs.humanizer-skill;
-    # One skill out of a six-skill repo, so this points at the subdirectory
-    # rather than the input root.
-    intentLayerSkillSrc = inputs.crafter-station-skills + "/context-engineering/intent-layer";
     # walkr-author and walkr-tutorial-author live under skills/ in walkr's own
     # repo, alongside the flake that builds the walkr binary (apps/cli/walkr).
     # Same input, same pin, so the skills and the binary they author content
     # for never drift apart.
     walkrAuthorSkillSrc = inputs.walkr + "/skills/walkr-author";
     walkrTutorialAuthorSkillSrc = inputs.walkr + "/skills/walkr-tutorial-author";
-    # VibeCurb design skills -- one input, seven skill directories under
-    # skills/. inherit vibecurbSkillNames so activation.nix's symlink loop
-    # and this module's skill-overlay vendoredNames list stay in sync.
-    vibecurbSkillsSrc = inputs.vibecurb-skills + "/skills";
-    inherit vibecurbSkillNames;
     # Reference the rules file by path, not through
     # `config.apps.cli.text-polish.rulesFile`. Reading the option made this
     # module fail to evaluate on any host that imports claude-code without
@@ -589,33 +583,22 @@ in
         }.";
       }
       {
-        # cfg/activation.nix interpolates vibecurbSkillNames, unquoted, into a
-        # shell `for skill in ${...}; do rm -rf "$claude_home/skills/$skill"; ...;
-        # done` loop. A name with a space splits into extra iterations, one
-        # with a glob character expands at the `for` line, and one with `/`
-        # or `..` escapes ~/.claude/skills entirely -- all of that lands in an
-        # `rm -rf` under $HOME. Every current entry is a safe literal; this
-        # guards the next one.
+        # vibecurbSkillNames no longer reaches a shell loop (the symlink loop
+        # went with the `vibecurb-skills` input on 2026-10-26), but it is still
+        # interpolated into the skillOverrides JSON as a key, so a name with a
+        # quote or a brace would still corrupt that file. The path-safe test is
+        # cheap and keeps the next addition honest.
         assertion = lib.all (
           n: builtins.match "[A-Za-z0-9._-]+" n != null && n != "." && n != ".."
         ) vibecurbSkillNames;
-        message = "vibecurbSkillNames (default.nix) must be plain path-safe names (no spaces, globs, or path separators) -- cfg/activation.nix interpolates this list unquoted into a shell loop that feeds `rm -rf`. Got: ${toString vibecurbSkillNames}.";
-      }
-      {
-        # `ln -snf` succeeds even when its target is missing, so a typo here
-        # or an upstream rename at the next `vibecurb-skills` rev bump would
-        # otherwise activate cleanly and just leave a dangling symlink --
-        # the skill silently stops existing with no build-time signal.
-        assertion = lib.all (
-          n: builtins.pathExists (inputs.vibecurb-skills + "/skills/" + n)
-        ) vibecurbSkillNames;
-        message = "vibecurbSkillNames (default.nix) lists a name with no matching skills/<name> directory in the pinned vibecurb-skills rev -- check the name against that rev's skills/ listing before bumping the input.";
+        message = "vibecurbSkillNames (default.nix) must be plain path-safe skill names. Got: ${toString vibecurbSkillNames}.";
       }
       {
         # activation.nix rsyncs config/skills/* first, then the vendored-skill
-        # symlink pairs (including the vibecurb loop) rm -rf whatever is at
-        # that path and replace it. A same-named repo skill would be silently
-        # shadowed on every rebuild with no warning.
+        # symlink pairs rm -rf whatever is at that path and replace it. A
+        # same-named repo skill would be silently shadowed on every rebuild
+        # with no warning. allVendoredSkillNames is empty today, so this is a
+        # guard on the next vendored skill rather than on anything current.
         assertion = lib.intersectLists allVendoredSkillNames configSkillNames == [ ];
         message = "A vendored skill name (default.nix's allVendoredSkillNames) collides with a repo-owned skill under config/skills/ -- activation.nix's rm -rf/ln -snf pass would silently delete and replace the repo copy on every rebuild. Rename one side.";
       }
@@ -661,12 +644,11 @@ in
         jq
         rsync # used by claude-capture + activation to mirror skills
 
-        # The intent-layer skill's estimate_tokens.sh formats its result with
-        # `bc`, under `set -e`, so a missing bc aborts the script on any
-        # directory over 1k estimated tokens -- i.e. every real one. Not in the
-        # default NixOS toolchain, so it has to be named. Unconditional because
-        # intent-layer itself is (see cfg/activation.nix), unlike the
-        # plugin-gated extras below.
+        # Added for the intent-layer skill's estimate_tokens.sh, which formats
+        # its result with `bc` under `set -e`. intent-layer was dropped on
+        # 2026-10-26 (cfg/activation.nix), so nothing in this repo needs bc any
+        # more. Kept because it is one small package and a marketplace skill
+        # may still shell out to it; drop it once that is checked.
         bc
 
         # Language servers for Claude Code LSP integration

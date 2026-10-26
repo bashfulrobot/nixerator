@@ -1,217 +1,187 @@
 # Vendored skills
 
-Skills the claude-code module pulls from upstream repos through flake inputs
-rather than checking into `config/skills/`, how they are pinned and deployed,
-and the per-skill quirks worth knowing before touching one.
+Skills the claude-code module pulled from upstream repos through flake inputs
+rather than checking into `config/skills/`. Since 2026-10-26 there are none
+left. This file is the retirement record, the procedure for adding one back,
+and the by-hand cleanup each retirement leaves behind on qbert.
 
-## The pattern
+## Current state
 
-Eight skills from three flake inputs use it today (a former `humanizer`,
-retired 2026-09-08, and a former `walkr-author` / `walkr-tutorial-author`,
-retired 2026-09-09, are covered below instead):
-
-| Skill | Flake input | Upstream | Path consumed |
+| Skill | Was vendored from | Retired | Source now |
 |---|---|---|---|
-| `intent-layer` | `crafter-station-skills` | `crafter-station/skills` | `context-engineering/intent-layer` |
-| `awwwards-hero`, `awwwards-motion`, `awwwards-sections`, `brandkit-gen`, `imagegen-frontend`, `pixel-perfect`, `visual-redesign` | `vibecurb-skills` | `Yu-369/VibeCurb` | `skills/<name>` (seven directories) |
+| `humanizer` | `humanizer-skill` | 2026-09-08 | `dk@claude-skills` plugin dependency, same upstream (`blader/humanizer`) |
+| `walkr-author`, `walkr-tutorial-author` | `walkr` | 2026-09-09 | `dk@claude-skills` |
+| `intent-layer` | `crafter-station-skills` | 2026-10-26 | nothing. The skill is gone from every source |
+| `awwwards-hero`, `awwwards-motion`, `awwwards-sections`, `brandkit-gen`, `imagegen-frontend`, `pixel-perfect`, `visual-redesign` | `vibecurb-skills` | 2026-10-26 | the `vibecurb` plugin in claude-skills |
 
-The `walkr` flake input still exists and is still consumed -- just not for
-these two skills anymore. It also builds the `walkr` binary
-(`modules/apps/cli/walkr`), which is unrelated to and unaffected by the
-skill retirement below.
+Two of those four inputs are gone from `flake.nix` and `flake.lock`:
+`crafter-station-skills` and `vibecurb-skills` fed nothing else.
+`humanizer-skill` stays, because `modules/apps/cli/antigravity/default.nix`
+still reads its `SKILL.md` into `.gemini/config/skills/`. `walkr` stays,
+because it builds the `walkr` binary (`modules/apps/cli/walkr`).
 
-The seven VibeCurb skills share one input the same way, but unlike the other
-vendored skills (each wired with its own explicit `rm -rf` + `ln -snf`
-pair), `cfg/activation.nix` symlinks them with a `for skill in
-${vibecurbSkillNames}` loop over the shared name list defined once in
-`default.nix` -- past the project's three-occurrence DRY threshold for seven
-near-identical lines. `default.nix`'s `vibecurbSkillNames` list is the single
-source of truth: it feeds both the activation loop and the skill-overlay
-`vendoredNames` (see `cfg/skill-defaults.nix`), so adding or removing a
-VibeCurb skill only means editing that one list. `default.nix` also asserts,
-at eval time, that every name in the list is path-safe and resolves against
-the pinned rev, and that no vendored name collides with a `config/skills/`
-directory -- see the assertions block right after the `CLAUDE.md` length
-check.
+The 2026-10-26 pair came out of the audit in claude-skills
+`docs/plans/personal-vs-upstream-assessment.md`, items A9 and A10. The
+VibeCurb seven were byte-identical to the plugin's copies, with `cmp` silent
+on all seven, and nothing referenced `intent-layer` by name: no CLAUDE.md
+rule, no skill, no plugin, no script.
 
-All eight land as **symlinks** into the Nix store, created in
-`cfg/activation.nix` right after the `config/skills/` rsync loop:
+## Leftovers a rebuild will not remove
+
+Activation only ever created these symlinks. Removing the loop stops them being
+recreated, and leaves whatever is already in `~/.claude/skills` where it is. A
+retired entry sits there as a symlink into a store path that garbage collection
+will eventually take, so it reads as a dangling link.
+
+qbert has every one of them. srv and the Mac have none. Check each path, then
+remove it, one at a time, never with a wildcard:
 
 ```
-ln -snf "${intentLayerSkillSrc}" "$claude_home/skills/intent-layer"
+ls -l ~/.claude/skills/humanizer
+rm ~/.claude/skills/humanizer
+ls -l ~/.claude/skills/walkr-author
+rm ~/.claude/skills/walkr-author
+ls -l ~/.claude/skills/walkr-tutorial-author
+rm ~/.claude/skills/walkr-tutorial-author
+ls -l ~/.claude/skills/intent-layer
+rm ~/.claude/skills/intent-layer
+ls -l ~/.claude/skills/awwwards-hero
+rm ~/.claude/skills/awwwards-hero
+ls -l ~/.claude/skills/awwwards-motion
+rm ~/.claude/skills/awwwards-motion
+ls -l ~/.claude/skills/awwwards-sections
+rm ~/.claude/skills/awwwards-sections
+ls -l ~/.claude/skills/brandkit-gen
+rm ~/.claude/skills/brandkit-gen
+ls -l ~/.claude/skills/imagegen-frontend
+rm ~/.claude/skills/imagegen-frontend
+ls -l ~/.claude/skills/pixel-perfect
+rm ~/.claude/skills/pixel-perfect
+ls -l ~/.claude/skills/visual-redesign
+rm ~/.claude/skills/visual-redesign
 ```
 
-The symlink is the whole point, not an implementation detail. Repo-owned skills
-are rsynced with `--chmod=u+w` because Claude Code edits them at runtime and
-`claude-capture` syncs those edits back. A vendored skill has no business being
-edited locally — upstream owns it — so it stays read-only, and `capture-sync.py`
-refuses to read through a symlink, which means the capture flow skips it for
-free. No exclude list to maintain.
+Each is a symlink, so `rm` without `-r` is right and removes only the link.
+Run `ls -l` first every time. If a path turns out to be a real directory, an
+agent or the user wrote a skill under that name and `rm` would destroy work.
 
-Bump `crafter-station-skills` with `nix flake update <input>` (or let `just
-upgrade` sweep it). `flake.lock` records the rev, so it's pinned the same way
-every other input is. `walkr` is still bumped this way too, but purely for
-the binary now, not for anything in this list. `humanizer-skill` still exists
-as a flake input (nothing consumes it anymore, see below) but is not part of
-what `just upgrade` needs to keep current for this list's sake.
+`worktree-flow` stopped writing three more on the same date. Those were real
+directories holding home-manager-managed files, so the rebuild removes the
+files and leaves the empty directories:
 
-`vibecurb-skills` is different: its `url` in `flake.nix` embeds an explicit
-rev (`github:Yu-369/VibeCurb/<rev>`), not a bare branch-tracking URL, because
-`just qu` sweeps every branch-tracking input with `nix flake update` and
-commits the lock without anyone reading the change input by input -- see the
-comment on the input in `flake.nix` for the full reasoning. A bare `nix flake
-update vibecurb-skills` is therefore a no-op. Bump it by editing the rev in
-the URL by hand, then `nix flake lock`, the same way `import-tree`'s tag pin
-is bumped by editing the tag.
+```
+ls -l ~/.claude/skills/github-issue
+rm -r ~/.claude/skills/github-issue
+ls -l ~/.claude/skills/hack
+rm -r ~/.claude/skills/hack
+ls -l ~/.claude/skills/dependabot
+rm -r ~/.claude/skills/dependabot
+```
 
-Bump them **before** a rebuild, never after. Activation resolves each store
-path from `flake.lock`, so a lock bump that lands post-activation cannot reach
-the generation that just switched — it is one full rebuild late by
-construction. That is why `just update-skills` no longer runs
-`nix flake update`; the recipe carries a comment saying so.
+Run those three only after a rebuild with this change, and only once `ls -l`
+shows nothing in them that home-manager did not put there. The dk plugin ships
+all three skills under the same names, which is why the copies went: they had
+drifted behind dk at 215 against 218, 297 against 300, and 779 against 799
+lines.
+
+## Default-off still holds
+
+Every retired skill was default-off through `allVendoredSkillNames` membership
+in `default.nix`, which feeds `cfg/skill-defaults.nix`'s `mkOverlay` as
+`vendoredNames`. A skill absent from both `config/skills/` and that list never
+reaches `offNames`, so retiring it would flip it to Claude Code's
+absent-key-means-on default. `mkOverlay`'s `extraOff` parameter exists for that
+case, and it now carries `walkr-author`, `walkr-tutorial-author` and the seven
+VibeCurb names. `humanizer` needs no entry because it is in `alwaysOn`.
+`intent-layer` needs none because there is no skill left to turn off.
+
+`allVendoredSkillNames` is now `[ ]`. It stays, with the overlay call and the
+collision assertion beside it, because it is the one place a new vendored skill
+gets declared.
 
 ## Adding another
 
 1. New input in `flake.nix` with `flake = false;`.
-2. Bind it in `default.nix` next to `humanizerSkillSrc` — append the
+2. Bind it in `default.nix` next to `humanizerSkillSrc`, appending the
    subdirectory if the repo ships more than the one skill you want.
-3. Pass it through the `activationConfig` argument set and add the two-line
-   `rm -rf` + `ln -snf` pair in `cfg/activation.nix`. If the input ships three
-   or more skill directories worth taking (VibeCurb's seven, say), pass a Nix
-   list of names instead and loop over it in the shell script — see the
-   VibeCurb section below and `vibecurbSkillNames` in `default.nix`. Either
-   way, guard the delete: check `[ -e "$target" ] && [ ! -L "$target" ]`
-   before the `rm -rf` and warn instead of deleting, so a same-named skill a
-   user or agent created at runtime doesn't vanish silently.
-4. If the input's `url` has no explicit rev (a bare `github:org/repo`),
-   decide whether it should be pinned the way `vibecurb-skills` is. The
-   deciding question is whether the vendored content is agent instruction
-   text rather than compiled code: `just qu` sweeps every branch-tracking
-   input, so an unpinned URL lets a hostile upstream push reach the next
-   rebuild with nobody reading it. Pin to an explicit rev in the URL if so,
-   and add an eval-time `assertions` entry in `default.nix` confirming every
-   consumed path still exists at that rev (`builtins.pathExists`) — see
-   `vibecurbSkillNames`'s assertions for the pattern.
-5. If the skill's scripts call a binary NixOS does not ship by default, add it
-   to `environment.systemPackages` in `default.nix` — see `bc` below.
+3. Pass it through the `activationConfig` argument set and add a `rm -rf` plus
+   `ln -snf` pair in `cfg/activation.nix`. For three or more skill
+   directories, pass a Nix list of names and loop over it in the shell script
+   instead. Guard the delete either way: test `[ -e "$target" ] && [ ! -L
+   "$target" ]` before the `rm -rf` and warn rather than delete, so a
+   same-named skill a user or agent created at runtime does not vanish.
+4. Add the name to `allVendoredSkillNames`, which is what keeps it default-off
+   and what the collision assertion reads.
+5. If the input's `url` has no explicit rev (a bare `github:org/repo`), decide
+   whether to pin it. The deciding question is whether the vendored content is
+   agent instruction text rather than compiled code: `just qu` sweeps every
+   branch-tracking input, so an unpinned URL lets a hostile upstream push
+   reach the next rebuild with nobody reading it. Pin to an explicit rev in
+   the URL if so, and add an eval-time `assertions` entry in `default.nix`
+   confirming every consumed path still exists at that rev
+   (`builtins.pathExists`). The `vibecurb-skills` input carried both, and its
+   history in this repo is the pattern to copy.
+6. If the skill's scripts call a binary NixOS does not ship by default, add it
+   to `environment.systemPackages` in `default.nix`.
 
-Prefer this over a plugin marketplace pin only when upstream ships a bare skill
-directory. If the repo has a real `.claude-plugin/marketplace.json`, use
-`cfg/plugin-config.nix` instead; that pins the marketplace SHA and lets Claude
-Code manage the install.
+Bump an input **before** a rebuild, never after. Activation resolves each store
+path from `flake.lock`, so a lock bump that lands post-activation cannot reach
+the generation that just switched. It is one full rebuild late by construction,
+which is why `just update-skills` no longer runs `nix flake update`.
 
-## intent-layer
+Prefer a plugin marketplace pin over this whole pattern whenever upstream ships
+a real `.claude-plugin/marketplace.json`: `cfg/plugin-config.nix` pins the
+marketplace SHA and lets Claude Code manage the install. Vendoring is for a
+bare skill directory with no marketplace file. Both 2026-10-26 retirements are
+that guidance read the other way round: once the marketplace carries the same
+content, a second Nix-vendored copy only adds something that can drift.
 
-MIT. Sets up hierarchical `AGENTS.md` context files across a codebase. Three
-read-only bash scripts (`detect_state.sh`, `analyze_structure.sh`,
-`estimate_tokens.sh`) plus three reference docs; the scripts write nothing, and
-the skill's only output is `AGENTS.md` files in whatever project it is pointed
-at.
+## Why a symlink
 
-Upstream's `marketplace.json` sits at the repo root instead of under
-`.claude-plugin/`, so `/plugin marketplace add crafter-station/skills` does not
-find it. That is why this is a vendored skill and not a marketplace pin.
+Repo-owned skills are rsynced with `--chmod=u+w` because Claude Code edits them
+at runtime and `claude-capture` syncs those edits back. A vendored skill has no
+business being edited locally, since upstream owns it, so it stays read-only.
+`capture-sync.py` refuses to read through a symlink, which means the capture
+flow skips it with no exclude list to maintain.
 
-Two upstream defects to know about:
+## Notes kept from the retired entries
 
-- **`estimate_tokens.sh` needs `bc`.** It formats results with
-  `echo "scale=1; $TOKENS/1000" | bc` under `set -e`, so on a host without `bc`
-  it prints its header and then exits 127 at line 60 — for any directory over
-  1000 estimated tokens, which is every real one. Verified both ways against
-  `modules/apps/cli/claude-code`: 127 and no total without `bc`, `~382.7k` and
-  a recommendation with it. That is why `bc` is in the module's
-  `environment.systemPackages`. If a future bump drops the `bc` call, that
-  entry can go with it.
-- **`analyze_structure.sh` tells you to run `estimate_tokens.py`.** No such
-  file exists — the shipped script is `estimate_tokens.sh`, which the skill's
-  own Resources section names correctly. Harmless, self-correcting, and not
-  worth patching a store path over.
+**intent-layer.** MIT. Set up hierarchical `AGENTS.md` context files across a
+codebase: three read-only bash scripts plus three reference docs, writing
+nothing but `AGENTS.md` files. Untouched upstream since 2026-02-05. Two
+upstream defects, recorded in case it is ever reconsidered. Its
+`estimate_tokens.sh` formats results with `echo "scale=1; $TOKENS/1000" | bc`
+under `set -e`, so on a host without `bc` it prints its header and exits 127
+for any directory over 1000 estimated tokens, which is every real one. That is
+why `bc` is still in the module's `environment.systemPackages`. And
+`analyze_structure.sh` tells you to run `estimate_tokens.py`, which does not
+exist; the shipped script is `estimate_tokens.sh`.
 
-The skill has been untouched upstream since 2026-02-05, so do not expect a bump
-to fix either.
+**VibeCurb.** MIT. Seven `SKILL.md`-only directories, no scripts and no
+dependencies, that constrain a frontend-design agent to an
+audit-extract-build-verify pipeline: `awwwards-hero` for hero sections,
+`awwwards-motion` for scroll and kinetic animation, `awwwards-sections` for
+pricing cards, bento grids and footers, `brandkit-gen` and `imagegen-frontend`
+for image generation, `pixel-perfect` for screenshot-to-code replication, and
+`visual-redesign` for restyling existing markup without touching logic. The
+`frontend-design` plugin is Anthropic's general-purpose design-quality skill
+and covers different ground; the two can be on together.
 
-## humanizer, walkr-author, walkr-tutorial-author (retired as vendored skills)
+The rev pin bounded the risk, and the `vibecurb` plugin pin in
+`claude-stack.json` now does that job. The default-off overlay never was a
+trust boundary: per the settings-cascade precedence in `skill-defaults.md`, a
+project-scope `skillOverrides` entry beats the user-scope `"off"`, including
+one checked into a cloned repo's own `.claude/settings.json` rather than the
+gitignored `settings.local.json` that `skill-pick` writes. The files were also
+on disk regardless of the override, since the overlay controls only whether the
+model sees a skill.
 
-Three skills `dk@claude-skills` now ships that used to be symlinked from a
-flake input here. Both retirements follow the "if the repo has a real
-`.claude-plugin/marketplace.json`, use `cfg/plugin-config.nix` instead"
-guidance in "Adding another" above, applied in reverse: once the same
-content is available from the marketplace, a second Nix-vendored copy is
-redundant, not extra safety.
-
-**humanizer** (retired 2026-09-08). MIT-equivalent single-`SKILL.md` repo,
-no scripts, no dependencies. Load-bearing for the global writing rule in
-`~/.claude/CLAUDE.md` — every piece of prose drafted for the user runs
-through it. `text-polish` wraps it plus a concision pass, so anything
-already polished must not be humanized again. No longer symlinked from the
-`humanizer-skill` flake input: `dk@claude-skills` declares `humanizer` as an
-installed-plugin dependency, sourced from the same upstream
-(`blader/humanizer`). The `humanizer-skill` input and its
-`humanizerSkillSrc` binding are still present (harmless, unused) rather than
-removed outright.
-
-**walkr-author / walkr-tutorial-author** (retired 2026-09-09, a day after
-humanizer and for a less clear-cut reason worth spelling out). This
-vendored copy was pinned to the exact same rev as the `walkr` binary
-(`modules/apps/cli/walkr`, same `walkr` flake input), so the skill text and
-the renderer's actual content-format contract could never drift apart —
-unlike humanizer, retiring this one gives up a real correctness guarantee,
-not just deduplicates identical content. Retired anyway, on the explicit
-call that every machine should source these skills the same way: donkeykong
-(this user's non-Nix machine) never had a vendored copy to begin with and
-already runs on `dk@claude-skills` alone, with its `Gofile` installing
-`walkr@latest` unpinned and a comment acknowledging the binary and the
-skill copies "want bumping together" with nothing enforcing it. This
-machine now accepts the same risk instead of being the one host that's
-different. `walkrAuthorSkillSrc` / `walkrTutorialAuthorSkillSrc` and the
-`walkr` flake input itself are left in place (the input still builds the
-binary) rather than removed.
-
-Both were **default-off** before retirement (`skill-pick` opt-in, not in
-`skill-defaults.nix`'s `alwaysOn`) via `allVendoredSkillNames` membership.
-Since a skill absent from `config/skills/` and `allVendoredSkillNames`
-can't reach `skill-defaults.nix`'s `offNames` computation at all, it would
-silently flip to Claude Code's absent-key-means-on default on retirement —
-`mkOverlay`'s `extraOff` parameter (added for exactly this) is what keeps
-`walkr-author` / `walkr-tutorial-author` default-off instead. `humanizer`
-needed no such handling: it was already in `alwaysOn`.
-
-## VibeCurb
-
-MIT. Seven `SKILL.md`-only directories (no scripts, no dependencies) that
-constrain a frontend-design agent to a strict audit-extract-build-verify
-pipeline instead of generic AI defaults: `awwwards-hero` (hero sections),
-`awwwards-motion` (scroll/kinetic animation), `awwwards-sections` (pricing
-cards, bento grids, footers), `brandkit-gen` and `imagegen-frontend` (image
-generation), `pixel-perfect` (screenshot-to-code replication), and
-`visual-redesign` (restyle existing markup without touching logic).
-
-Off by default like every other skill covered by `skill-defaults.md`; opt in
-per project with `skill-pick` when working on a frontend/webapp module. Not a
-replacement for the `frontend-design` plugin (`installed_plugins.json`) —
-that one is Anthropic's general-purpose design-quality skill, VibeCurb is a
-narrower, stricter, multi-skill pipeline. The two can be enabled together;
-`skill-pick` treats them as independent entries.
-
-The default-off overlay is a visibility default, not a trust boundary: per
-the settings-cascade precedence in `skill-defaults.md`, a project-scope
-`skillOverrides` entry (including one checked into a cloned repo's own
-`.claude/settings.json`, not just the gitignored `settings.local.json`
-`skill-pick` writes) beats the user-scope `"off"` default. A repo the user
-opens can turn any of these seven back on without `skill-pick` ever running.
-The seven skill files are also present on disk regardless of the override —
-the overlay only controls whether the model sees them, not whether they're
-installed. What actually bounds the risk of a compromised skill is the rev
-pin on `vibecurb-skills` (see `flake.nix`): content can't change under this
-project without a reviewed commit, whether the skill happens to be on or off
-in any given project.
-
-**Review note (rev `1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0`, reviewed
-2026-08-05).** Confirmed via the upstream repo tree: all seven `skills/<name>`
-directories contain only a `SKILL.md`, no scripts, no other file types.
-Confirmed via the GitHub license API: MIT. Read `imagegen-frontend` and
-`brandkit-gen` (the two image-generation skills) in full: neither references
-an API key, a credential, a specific network endpoint, or any outbound call —
-they produce structured text prompts for whatever image-generation capability
-the calling agent already has, they don't reach out themselves. Re-verify
-this note before bumping the pinned rev.
+**Review note, VibeCurb rev `1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0`,
+reviewed 2026-08-05.** All seven `skills/<name>` directories held only a
+`SKILL.md`, confirmed against the upstream repo tree. MIT, confirmed against
+the GitHub license API. `imagegen-frontend` and `brandkit-gen` were read in
+full: neither referenced an API key, a credential, a network endpoint or any
+outbound call. They produced structured text prompts for whatever
+image-generation capability the calling agent already had. If the question ever
+comes up again, re-run this review against the plugin's pinned SHA rather than
+this rev.
