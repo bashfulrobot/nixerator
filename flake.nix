@@ -165,52 +165,14 @@
       flake = false;
     };
 
-    # Pinned upstream for the `intent-layer` skill (claude-code). Tracks
-    # crafter-station/skills; bump via `nix flake update crafter-station-skills`
-    # or `just upgrade`. `flake = false` for the same reason as humanizer above:
-    # the repo is a bare collection of skill directories, not a flake.
-    #
-    # Only `context-engineering/intent-layer` is consumed -- the repo's five
-    # other skills are ignored. Its `marketplace.json` sits at the repo root
-    # rather than under `.claude-plugin/`, so `/plugin marketplace add` would
-    # not find it; this is deliberately the skill path, not the plugin path.
-    crafter-station-skills = {
-      url = "github:crafter-station/skills";
-      flake = false;
-    };
-
-    # Pinned upstream for the seven `awwwards-*` / `visual-redesign` /
-    # `pixel-perfect` / `brandkit-gen` / `imagegen-frontend` VibeCurb design
-    # skills (claude-code). `flake = false` for the same reason as humanizer
-    # above: the repo is a bare collection of skill directories
-    # (skills/<name>/SKILL.md) plus a small CLI wrapper, not a flake, and it
-    # ships no `.claude-plugin/marketplace.json` so the plugin-marketplace
-    # path doesn't apply.
-    #
-    # Pinned to an explicit rev rather than a bare branch-tracking URL, same
-    # rationale and same pattern as import-tree's tag pin below. `just qu`
-    # runs `nix flake update` over every input and rebuilds, so a bare
-    # `github:Yu-369/VibeCurb` would advance this input to whatever the
-    # single-maintainer upstream's default branch has moved to, with nobody
-    # reading the change input by input. The payload here is instruction text
-    # a Claude Code agent reads and follows, not compiled code, so none of
-    # the usual build-time sandboxing applies to a hostile change. With the
-    # rev embedded in the URL, `nix flake update` is a no-op for this input;
-    # bumping is a deliberate, reviewable commit that shows the rev change,
-    # the same as bumping import-tree's tag.
-    #
-    # rev 1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0 reviewed 2026-08-05: all
-    # seven skill directories contain only a SKILL.md (no scripts, verified
-    # via the upstream repo tree), MIT licensed (verified via the GitHub
-    # license API), and neither imagegen-frontend nor brandkit-gen (the two
-    # image-generation skills) reference a credential, an API endpoint, or a
-    # network call anywhere in their prompt text -- see
-    # .claude/docs/vendored-skills.md for the full note. Re-review before
-    # advancing this rev.
-    vibecurb-skills = {
-      url = "github:Yu-369/VibeCurb/1bd3b135d22c110a0d8d2ddf17b1fdd58dee1ff0";
-      flake = false;
-    };
+    # `crafter-station-skills` (the `intent-layer` skill) and
+    # `vibecurb-skills` (the seven VibeCurb design skills) were removed on
+    # 2026-10-26. Both existed only to feed symlink loops in
+    # modules/apps/cli/claude-code/cfg/activation.nix. The VibeCurb seven now
+    # come from the `vibecurb` plugin in claude-skills, and intent-layer is
+    # gone from every source. Re-adding either means re-reading the upstream
+    # at the rev being pinned, not just restoring these lines:
+    # .claude/docs/vendored-skills.md holds the review bar.
 
     # bashfulrobot/claude-skills: the source of truth for the Claude Code
     # config. It carries the claude-stack manifest, the resolved per-host files

@@ -2,7 +2,6 @@
   lib,
   pkgs,
   config,
-  globals,
   ...
 }:
 
@@ -75,18 +74,17 @@ in
       dependabot-cmd
     ];
 
-    home-manager.users.${globals.user.name} = {
-      home.file = {
-        ".claude/skills/github-issue/SKILL.md".text = builtins.readFile ./skills/github-issue/SKILL.md;
-        ".claude/skills/github-issue/references/conventions.md".text =
-          builtins.readFile ./skills/github-issue/references/conventions.md;
-        ".claude/skills/github-issue/references/state-detection.md".text =
-          builtins.readFile ./skills/github-issue/references/state-detection.md;
-        ".claude/skills/github-issue/references/revamp-workflow.md".text =
-          builtins.readFile ./skills/github-issue/references/revamp-workflow.md;
-        ".claude/skills/hack/SKILL.md".text = builtins.readFile ./skills/hack/SKILL.md;
-        ".claude/skills/dependabot/SKILL.md".text = builtins.readFile ./skills/dependabot/SKILL.md;
-      };
-    };
+    # 2026-10-26: this module no longer writes ~/.claude/skills/{github-issue,
+    # hack,dependabot}. The dk plugin in claude-skills ships all three under
+    # the same names, and the copies here had drifted behind it (215 vs 218,
+    # 297 vs 300, 779 vs 799 lines), so a session loaded whichever of the two
+    # it happened to resolve first. The three CLIs above are the part this
+    # module owns and they stay. Decision recorded as A8 in claude-skills
+    # docs/plans/personal-vs-upstream-assessment.md.
+    #
+    # ./skills/ is kept on disk, unreferenced, as the record of what the dk
+    # copies were forked from. The stale ~/.claude/skills directories are
+    # removed by hand on qbert; home-manager drops its own managed files on
+    # the next rebuild, but the directories it created are left behind.
   };
 }
