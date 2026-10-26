@@ -209,7 +209,6 @@ let
     inherit (cfg) stackHost;
     stackApplyScript = stackApplyScriptPkg;
     stackVarsFile = stackVarsFilePkg;
-    stackNixOnlyPostToolUse = stackNixOnlyPostToolUseFile;
   };
 
   # --- claude-skills apply (apps.cli.claude-code.stackApply.enable) ---------
@@ -227,47 +226,102 @@ let
     text = builtins.readFile ./cfg/scripts/stack-apply.sh;
   };
 
-  # The repo settings.json, read at eval time. Two things come out of it: the
-  # `nix fmt` hook body the manifest declares as @NIX_FMT_HOOK@, and the
-  # PostToolUse rows the manifest does not declare at all.
+  # The repo settings.json, read at eval time. It is where ten of the hook
+  # bodies the claude-skills `linux` profile declares as @VAR@ come from, so the
+  # deployed hook stays byte-identical to the pre-stackApply one.
   repoSettings = builtins.fromJSON (builtins.readFile (configDir + "/settings.json"));
-  repoPostToolUse = repoSettings.hooks.PostToolUse or [ ];
+  repoHookRows = event: repoSettings.hooks.${event} or [ ];
+  repoPostToolUse = repoHookRows "PostToolUse";
   rowCommand = row: (builtins.head row.hooks).command or "";
-  # The one row claude-skills' `linux` profile declares as @NIX_FMT_HOOK@, with
-  # the same matcher and the same async flag. Passing the existing command
-  # through as a var keeps the deployed hook byte-identical to today's, so
-  # turning stackApply on changes nothing about it.
-  nixFmtRows = lib.filter (r: lib.hasInfix ''nix fmt "$file"'' (rowCommand r)) repoPostToolUse;
-  # Rows that have a home elsewhere: the nix-fmt row above, and the
-  # default-branch warning that dk >= 3.6.0 ships as warn-default-branch.sh.
-  # The `Bash` row that also mentions origin/HEAD warns on git commit/push and
-  # has no plugin equivalent, hence the matcher test.
-  isRehomedRow =
-    r:
-    lib.hasInfix ''nix fmt "$file"'' (rowCommand r)
-    || (
-      r.matcher or "" == "Edit|Write|MultiEdit" && lib.hasInfix "refs/remotes/origin/HEAD" (rowCommand r)
-    );
-  # Everything else is a NixOS-only check with no manifest row yet. apply
-  # replaces hooks.PostToolUse as one list, so activation re-appends these
-  # after it (cfg/activation.nix). Deletable in phase 8, once each one is
-  # either a dk hook or a declared manifest row.
-  stackNixOnlyPostToolUse = lib.filter (r: !isRehomedRow r) repoPostToolUse;
-  stackNixOnlyPostToolUseFile = pkgs.writeText "claude-stack-nix-only-posttooluse.json" (
-    builtins.toJSON stackNixOnlyPostToolUse
+  # One manifest @VAR@ per repo row, matched on a substring of the row's command
+  # that no other row of the same event carries. The marker is matched rather
+  # than the index because a reordered settings.json would otherwise swap two
+  # hook bodies silently.
+  hookVarMarkers = {
+    NIX_FMT_HOOK = {
+      event = "PostToolUse";
+      marker = ''nix fmt "$file"'';
+    };
+    NIX_SECRET_SCAN_HOOK = {
+      event = "PostToolUse";
+      marker = "Possible plaintext secret";
+    };
+    NIX_LINT_HOOK = {
+      event = "PostToolUse";
+      marker = "[nix-lint] statix warnings";
+    };
+    GUARD_NIXOS_REBUILD_HOOK = {
+      event = "PostToolUse";
+      marker = "Do not run nixos-rebuild directly";
+    };
+    NIX_CONTENT_CHECK_HOOK = {
+      event = "PostToolUse";
+      marker = "Hardcoded username detected";
+    };
+    NIX_MODULE_STRUCTURE_HOOK = {
+      event = "PostToolUse";
+      marker = "[module-structure]";
+    };
+    INTENT_LOG_PRUNE_HOOK = {
+      event = "SessionStart";
+      marker = "-mtime +15 -delete";
+    };
+    BRANCH_REPORT_HOOK = {
+      event = "SessionStart";
+      marker = "Feature branches available";
+    };
+    INTENT_LOG_APPEND_HOOK = {
+      event = "UserPromptSubmit";
+      marker = "intent-logs";
+    };
+    STOP_NOTIFY_HOOK = {
+      event = "Stop";
+      marker = ''notify-send "Claude Code"'';
+    };
+  };
+  hookVarRows = lib.mapAttrs (
+    _: m: lib.filter (r: lib.hasInfix m.marker (rowCommand r)) (repoHookRows m.event)
+  ) hookVarMarkers;
+  # Only the ones that matched exactly once become values. A marker that matches
+  # zero or several rows is left out, so eval reaches the assertion below with
+  # its name instead of throwing inside `lib.head`.
+  hookVarsFromRepo = lib.mapAttrs (_: rows: rowCommand (lib.head rows)) (
+    lib.filterAttrs (_: rows: lib.length rows == 1) hookVarRows
   );
+  hookVarsUnmatched = lib.attrNames (lib.filterAttrs (_: rows: lib.length rows != 1) hookVarRows);
+  # The two PostToolUse rows the manifest leaves alone because dk >= 3.10.0
+  # ships them: warn-default-branch.sh for the default-branch notice, and
+  # guard-git-bypass.sh for the --no-verify and --force block, which it moved
+  # from this file and made a PreToolUse deny.
+  rehomedRowMarkers = [
+    "claude-branch-warned"
+    "git commit/push detected"
+  ];
+  isRehomedRow = r: lib.any (m: lib.hasInfix m (rowCommand r)) rehomedRowMarkers;
+  declaredPostToolUseCommands = lib.attrValues (
+    lib.filterAttrs (n: _: hookVarMarkers.${n}.event == "PostToolUse") hookVarsFromRepo
+  );
+  # apply replaces hooks.PostToolUse as one list, so a repo row that is neither
+  # declared as a @VAR@ nor shipped by dk would be dropped without a word.
+  # Expected empty, and asserted so below.
+  stackUndeclaredPostToolUse = lib.filter (
+    r: !isRehomedRow r && !(lib.elem (rowCommand r) declaredPostToolUseCommands)
+  ) repoPostToolUse;
 
   # @VAR@ values for the `vars` the claude-skills `linux` profile declares
   # (claude-stack/resolved/<host>.json). XDG_RUNTIME_DIR is deliberately absent:
   # cfg/scripts/stack-apply.sh adds it from a real `id -u` at activation time,
-  # because Nix eval can run cross-host.
+  # because Nix eval can run cross-host. That makes 17 in all, which is what
+  # both resolved host files declare.
   stackVars = {
     LINUX_PATH = "/run/wrappers/bin:/etc/profiles/per-user/${globals.user.name}/bin:/run/current-system/sw/bin";
     STATUSLINE_COMMAND = "${statusLineScript}/bin/claude-statusline";
-    NIX_FMT_HOOK = rowCommand (lib.head nixFmtRows);
     GUARD_GENERATED_PATHS_HOOK = "${guardGeneratedPathsScript}/bin/claude-guard-generated-paths";
     GUARD_RAW_NIX_HOOK = "${guardRawNixScript}/bin/claude-guard-raw-nix";
-  };
+    SESSION_REMINDERS_HOOK = "${remindersScript}/bin/claude-session-reminders";
+    GIT_SYNC_HOOK = "${gitSyncScript}/bin/claude-git-sync";
+  }
+  // hookVarsFromRepo;
   stackVarsFilePkg = pkgs.writeText "claude-stack-vars.json" (builtins.toJSON stackVars);
 
   # The CLAUDE.md the manifest's `files` section deploys. Only read when
@@ -566,20 +620,19 @@ in
         message = "A vendored skill name (default.nix's allVendoredSkillNames) collides with a repo-owned skill under config/skills/ -- activation.nix's rm -rf/ln -snf pass would silently delete and replace the repo copy on every rebuild. Rename one side.";
       }
       {
-        # @NIX_FMT_HOOK@ is one declared manifest row, so exactly one repo row
-        # may claim it. Zero means a rename made `lib.head` throw with no
-        # explanation; two means the var would silently take the first.
-        assertion = lib.length nixFmtRows == 1;
-        message = "claude-code: config/settings.json must hold exactly one PostToolUse hook whose command runs `nix fmt \"$file\"` (it becomes the @NIX_FMT_HOOK@ value the claude-skills manifest declares); found ${toString (lib.length nixFmtRows)}.";
+        # Each @VAR@ hook body must come from exactly one repo row. Zero means a
+        # rename broke the marker; two means the var would silently take the
+        # first row and the other would be dropped.
+        assertion = hookVarsUnmatched == [ ];
+        message = "claude-code: each hook @VAR@ the claude-skills manifest declares must match exactly one row in config/settings.json, matched on default.nix's hookVarMarkers. These matched zero or several rows: ${lib.concatStringsSep ", " hookVarsUnmatched}. Fix the marker, or the row it names.";
       }
     ]
     ++ lib.optionals stackApply [
       {
-        # A row that is neither re-homed nor re-appended would be dropped
-        # silently by apply's forced hooks.PostToolUse. Pin the count so a
-        # change to config/settings.json has to be looked at.
-        assertion = lib.length stackNixOnlyPostToolUse == 6;
-        message = "claude-code: stackApply re-appends the PostToolUse hooks the claude-skills manifest does not declare, and expects 6 of them in config/settings.json; found ${toString (lib.length stackNixOnlyPostToolUse)}. Either a hook moved to the dk plugin or the manifest (add it to default.nix's isRehomedRow), or a new NixOS-only hook was added (bump this count).";
+        # apply forces hooks.PostToolUse to the manifest's list, so a repo row
+        # that nothing declares is simply gone after a rebuild.
+        assertion = stackUndeclaredPostToolUse == [ ];
+        message = "claude-code: stackApply is on and ${toString (lib.length stackUndeclaredPostToolUse)} PostToolUse row(s) in config/settings.json are neither a declared manifest @VAR@ nor shipped by dk, so apply would drop them. Declare each one in the claude-skills `linux` profile and add it to default.nix's hookVarMarkers, or move it to dk and add its marker to rehomedRowMarkers.";
       }
       {
         # The pinned rev must be one whose manifest carries the `files`

@@ -23,6 +23,15 @@
   system.resilient-boot.enable = true;
 
   apps.cli = {
+    # claude-skills owns the declared Claude Code settings keys on this host:
+    # one `claude_stack.py apply` call at activation in place of the jq
+    # force-merge, the resolved host file read out of the flake input, and
+    # ~/.claude/CLAUDE.md plus ~/.claude/statusline.sh written from
+    # claude-stack/files/. claude-code itself is enabled by suites.ai; only the
+    # switch lives here, because it is flipped one host at a time. Rollback and
+    # the per-key ownership table: .claude/docs/claude-stack-apply.md.
+    claude-code.stackApply.enable = true;
+
     # Docker is intentionally left enabled on the workstations (via the
     # workstation archetype's infrastructure suite) for ad-hoc container
     # testing, running alongside Incus. The two were previously kept mutually

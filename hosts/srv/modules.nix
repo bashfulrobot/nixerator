@@ -161,6 +161,12 @@ in
     claude-code = {
       enable = true;
       serverProfile = "minimal";
+      # claude-skills owns the declared settings keys here too: one
+      # `claude_stack.py apply` call at activation, the resolved srv file read
+      # out of the flake input, and the two shared files written from
+      # claude-stack/files/. Rollback and the per-key ownership table:
+      # .claude/docs/claude-stack-apply.md.
+      stackApply.enable = true;
       # Headless srv runs a SMALLER plugin set than the workstations (no
       # kong CS tooling, gitops, or hyperframes' browser stack). Which plugins
       # and marketplaces it gets comes from the srv claude-stack snapshot

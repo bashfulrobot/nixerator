@@ -32,7 +32,6 @@
   stackApply,
   stackApplyScript,
   stackVarsFile,
-  stackNixOnlyPostToolUse,
   claudeSkillsSrc,
   stackHost,
 }:
@@ -277,32 +276,22 @@ in
         # hooks.PostToolUse and the UI and telemetry flags, plus the add-only
         # permissions.allow union and the two shared files (CLAUDE.md,
         # statusline.sh). Nix contributes only @VAR@ values: the statusline
-        # wrapper's store path, the two guard-hook store paths, the nix-fmt
-        # hook body, env.PATH, and the runtime dir the wrapper resolves from a
-        # real `id -u`.
+        # wrapper's store path, the four Nix-built hook store paths, the ten
+        # hook bodies read out of config/settings.json, env.PATH, and the
+        # runtime dir the wrapper resolves from a real `id -u`.
         #
-        # It runs AFTER the clauses above so the SessionStart entries it does
-        # not declare survive, and before the re-append below, which puts the
-        # NixOS-only PostToolUse rows back on top of the three the manifest
-        # declares.
+        # It runs AFTER the clauses above, which is also why nothing is
+        # re-appended here any more. The manifest now declares all four hook
+        # events it owns (PostToolUse, SessionStart, UserPromptSubmit, Stop),
+        # and apply forces each of those lists whole, so the inject clauses
+        # above only matter with stackApply off. hooks.PreToolUse and
+        # hooks.PreCompact are not declared, so the strip clauses above still
+        # carry.
         #
         # SSH_AUTH_SOCK stays host-owned (set or deleted above by
         # serverProfile); the manifest deliberately declares no value for it.
         ${stackApplyScript}/bin/claude-stack-apply \
           ${claudeSkillsSrc} ${stackHost} ${stackVarsFile} "$claude_home"
-
-        # apply replaces hooks.PostToolUse as one list, so the NixOS-only
-        # checks the manifest does not declare (statix/deadnix, the plaintext
-        # secret grep, the hardcoded-username and module-structure checks, the
-        # git and nixos-rebuild bash guards) have to go back on. They stay
-        # nixerator's until phase 8 of the central-config plan moves or drops
-        # them; the list is computed from config/settings.json at eval time
-        # (default.nix), so it cannot silently fall out of step with the repo
-        # copy.
-        ${pkgs.jq}/bin/jq --slurpfile nixonly ${stackNixOnlyPostToolUse} \
-          '.hooks.PostToolUse = ((.hooks.PostToolUse // []) + $nixonly[0])' \
-          "$claude_home/settings.json" > "$claude_home/settings.json.tmp"
-        mv "$claude_home/settings.json.tmp" "$claude_home/settings.json"
       ''}
       chmod 644 "$claude_home/settings.json"
     else
