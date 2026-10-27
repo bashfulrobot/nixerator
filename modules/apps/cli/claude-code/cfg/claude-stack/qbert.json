@@ -51,6 +51,30 @@
       "mode": "0644",
       "source": "claude-stack/files/CLAUDE.md"
     },
+    "${HOME}/.claude/docs/clipboard-and-handoffs.md": {
+      "mode": "0644",
+      "source": "claude-stack/files/docs/clipboard-and-handoffs.md"
+    },
+    "${HOME}/.claude/docs/granola.md": {
+      "mode": "0644",
+      "source": "claude-stack/files/docs/granola.md"
+    },
+    "${HOME}/.claude/docs/secrets.md": {
+      "mode": "0644",
+      "source": "claude-stack/files/docs/secrets.md"
+    },
+    "${HOME}/.claude/docs/slack.md": {
+      "mode": "0644",
+      "source": "claude-stack/files/docs/slack.md"
+    },
+    "${HOME}/.claude/docs/trigger-rules.md": {
+      "mode": "0644",
+      "source": "claude-stack/files/docs/trigger-rules.md"
+    },
+    "${HOME}/.claude/docs/writing.md": {
+      "mode": "0644",
+      "source": "claude-stack/files/docs/writing.md"
+    },
     "${HOME}/.claude/statusline.sh": {
       "mode": "0755",
       "source": "claude-stack/files/statusline.sh"
@@ -514,7 +538,19 @@
           "${HOME}/git"
         ],
         "ask": [
-          "Bash(sudo *)"
+          "Bash(sudo *)",
+          "Edit(~/.claude/settings.json)",
+          "Write(~/.claude/settings.json)",
+          "Bash(bash -c *)",
+          "Bash(bash -lc *)",
+          "Bash(fish -c *)",
+          "Bash(brew bundle exec *)",
+          "Bash(brew bundle sh *)",
+          "Bash(brew bundle env *)",
+          "Bash(brew install *http*)",
+          "Bash(brew install *.rb*)",
+          "Bash(brew tap *)",
+          "Bash(brew uninstall *)"
         ],
         "defaultMode": "auto",
         "deny": [
@@ -532,7 +568,9 @@
           "Read(${HOME}/.config/nixos-secrets/**)",
           "Read(${HOME}/.config/op/**)",
           "Bash(*nixos-secrets*)",
-          "Bash(*/.config/op/*)"
+          "Bash(*/.config/op/*)",
+          "Edit(**/.git/hooks/**)",
+          "Write(**/.git/hooks/**)"
         ]
       },
       "remoteControlEnabled": true,
@@ -615,8 +653,16 @@
         "Bash(dig *)",
         "Bash(nslookup *)",
         "Bash(ss *)",
-        "Edit",
-        "Write",
+        "Edit(~/git/**)",
+        "Edit(~/dev/**)",
+        "Edit(~/.claude/jobs/**)",
+        "Edit(~/.claude/autonomous-runs/**)",
+        "Edit(//tmp/**)",
+        "Write(~/git/**)",
+        "Write(~/dev/**)",
+        "Write(~/.claude/jobs/**)",
+        "Write(~/.claude/autonomous-runs/**)",
+        "Write(//tmp/**)",
         "Agent",
         "Skill",
         "WebFetch",
@@ -630,7 +676,6 @@
         "Bash(sed *)",
         "Bash(xargs *)",
         "Bash(command *)",
-        "Bash(forge *)",
         "Bash(github-issue *)",
         "Bash(hack *)",
         "Bash(dependabot *)",
@@ -650,6 +695,16 @@
         "Bash(tar *)",
         "Bash(unzip *)",
         "Bash(gzip *)",
+        "Bash(cd *)",
+        "Bash(sleep *)",
+        "Bash(ps *)",
+        "Bash(gofmt *)",
+        "Bash(GIT_EXTERNAL_DIFF= git *)",
+        "Bash(td task *)",
+        "Bash(td comment *)",
+        "Bash(claude plugin list *)",
+        "Bash(ssh srv *)",
+        "Bash(ssh mac *)",
         "Bash(nix *)",
         "Bash(nix-*)",
         "Bash(nixos-option *)",
