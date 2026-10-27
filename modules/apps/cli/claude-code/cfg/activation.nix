@@ -31,6 +31,10 @@
   stackVarsFile,
   claudeSkillsSrc,
   stackHost,
+  # JSON array of the plugin ids this host's resolved claude-stack manifest
+  # declares with a state other than "absent". Only read with stackApply on,
+  # where it filters the captured installed_plugins.json down to this host.
+  installedPluginsKeepFile,
 }:
 
 let
@@ -504,7 +508,10 @@ in
     #
     #   installed_plugins.json -- seeds the install record so an already-cached
     #     host shows plugins without a re-install round-trip. SHA-stamped, so it
-    #     is captured (cfg/fish.nix) rather than authored.
+    #     is captured (cfg/fish.nix) rather than authored. Captured on qbert, so
+    #     with stackApply on it is filtered per host before it is written: see
+    #     cfg/scripts/filter-installed-plugins.jq for what the unfiltered copy
+    #     did to srv.
     #   blocklist.json         -- managed plugin blocklist.
     #
     # The plugin cache itself is not tracked; Claude Code re-downloads from the
@@ -516,10 +523,33 @@ in
       # installed_plugins.json -- substitute @HOME_DIR@ placeholder
       if [ -f "$plugins_src/installed_plugins.json" ]; then
         if [ -z "$DRY_RUN_CMD" ]; then
-          rm -f "$claude_home/plugins/installed_plugins.json"
-          ${pkgs.gnused}/bin/sed 's|@HOME_DIR@|${homeDir}|g' \
-            "$plugins_src/installed_plugins.json" > "$claude_home/plugins/installed_plugins.json"
-          chmod 644 "$claude_home/plugins/installed_plugins.json"
+          ${
+            if stackApply then
+              ''
+                # Written through a temp so a corrupt repo copy cannot replace a
+                # good deployed record: jq exits nonzero on anything that is not
+                # a JSON object, and the file already there is left alone.
+                ip_dest="$claude_home/plugins/installed_plugins.json"
+                ip_tmp="$ip_dest.tmp"
+                if ${pkgs.gnused}/bin/sed 's|@HOME_DIR@|${homeDir}|g' \
+                     "$plugins_src/installed_plugins.json" \
+                   | ${pkgs.jq}/bin/jq -f ${./scripts/filter-installed-plugins.jq} \
+                       --slurpfile keep ${installedPluginsKeepFile} > "$ip_tmp"; then
+                  chmod 644 "$ip_tmp"
+                  mv "$ip_tmp" "$ip_dest"
+                else
+                  rm -f "$ip_tmp"
+                  echo "warning: ${configDir}/plugins/installed_plugins.json did not parse as a JSON object; left $ip_dest as it was" >&2
+                fi
+              ''
+            else
+              ''
+                rm -f "$claude_home/plugins/installed_plugins.json"
+                ${pkgs.gnused}/bin/sed 's|@HOME_DIR@|${homeDir}|g' \
+                  "$plugins_src/installed_plugins.json" > "$claude_home/plugins/installed_plugins.json"
+                chmod 644 "$claude_home/plugins/installed_plugins.json"
+              ''
+          }
         fi
       fi
 

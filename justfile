@@ -305,7 +305,9 @@ test-render-secrets:
 # Run the claude-code PreToolUse guard-hook regression tests (secret-leak +
 # primary-tree-write) plus the capture-sync settings suite in the same dir. git
 # drives the primary-vs-worktree detection, coreutils provides sort/cut for the
-# cwd-replay resolver, and python3 runs the capture-sync reconcile tests.
+# cwd-replay resolver and comm/stat for the installed-plugins filter, gnused
+# provides the @HOME_DIR@ substitution that filter runs behind, and python3 runs
+# the capture-sync reconcile tests.
 #
 # This sweeps the whole tests/ dir, so it also covers capture-sync-settings.bats
 # (the old `test-capture-sync` recipe ran only that one file and was a strict
@@ -313,7 +315,7 @@ test-render-secrets:
 [doc('Run the claude-code guard-hook + capture-sync test suites')]
 [group('test')]
 test-secret-guard:
-    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gnugrep nixpkgs#git nixpkgs#coreutils nixpkgs#python3 --command bats modules/apps/cli/claude-code/cfg/scripts/tests/
+    nix shell nixpkgs#bats nixpkgs#jq nixpkgs#gnugrep nixpkgs#gnused nixpkgs#git nixpkgs#coreutils nixpkgs#python3 --command bats modules/apps/cli/claude-code/cfg/scripts/tests/
 
 # Run worktree-flow unit tests (github-issue setup branch preflight)
 [group('test')]
