@@ -36,8 +36,22 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 branch="$(git rev-parse --abbrev-ref HEAD)"
 git fetch origin >/dev/null 2>&1 || exit 0
 
-local_only="$(git log "origin/$branch..$branch" --oneline 2>/dev/null)"
-remote_only="$(git log "$branch..origin/$branch" --oneline 2>/dev/null)"
+# A branch with no origin counterpart (new local branch, worktree branch) makes
+# `git log origin/$branch..` exit 128 under errexit, which killed the hook with
+# empty stderr. Report and stop instead.
+if ! git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
+  echo "[git-sync] no origin/$branch, skipping"
+  exit 0
+fi
+
+local_only="$(git log "origin/$branch..$branch" --oneline)" || {
+  echo "[git-sync] git log failed for $branch" >&2
+  exit 1
+}
+remote_only="$(git log "$branch..origin/$branch" --oneline)" || {
+  echo "[git-sync] git log failed for $branch" >&2
+  exit 1
+}
 
 if [ -n "$local_only" ] && [ -n "$remote_only" ]; then
   echo "[git-sync] Diverged -- local and remote both have commits. Resolve manually."
