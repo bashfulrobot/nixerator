@@ -750,6 +750,8 @@ pre-rebuild mode="quiet":
 # fallback) and the freshly started DMS crash-loops on the orphaned lock
 # (wl_display "invalid object") until the lock clears. If the screen idle-locks
 # during a long rebuild, an unguarded restart here is exactly that collision.
+# The lock check runs immediately before the restart, after update-skills, not
+# at recipe start: a sample taken before the slow steps goes stale.
 [private]
 post-rebuild mode="quiet":
     #!/usr/bin/env bash
@@ -763,12 +765,14 @@ post-rebuild mode="quiet":
     esac
     # Detect an active screen lock so the DMS bounce below can skip it (see the
     # recipe header). Any of the user's sessions reporting LockedHint=yes counts.
-    screen_locked=false
-    if loginctl --no-legend list-sessions 2>/dev/null | awk -v u="$USER" '$3==u{print $1}' \
-         | xargs -r -I{} loginctl show-session {} -p LockedHint --value 2>/dev/null \
-         | grep -q '^yes$'; then
-        screen_locked=true
-    fi
+    # A function, not a one-time sample: update-skills below can run for minutes,
+    # long enough for the idle timer to lock the screen after a sample taken here,
+    # so the check runs again right before the restart.
+    screen_locked() {
+        loginctl --no-legend list-sessions 2>/dev/null | awk -v u="$USER" '$3==u{print $1}' \
+            | xargs -r -I{} loginctl show-session {} -p LockedHint --value 2>/dev/null \
+            | grep -q '^yes$'
+    }
     if [[ "{{mode}}" == "interactive" ]]; then
         # Plugins are synced declaratively at activation (settings.json
         # overlay from cfg/plugin-config.nix); no runtime sync step needed.
@@ -779,7 +783,7 @@ post-rebuild mode="quiet":
         echo "Updating skills..."
         just update-skills || gum style --foreground 220 "Skill update failed (non-fatal)"
         if systemctl --user is-active --quiet dms.service; then
-            if $screen_locked; then
+            if screen_locked; then
                 gum style --foreground 220 "Screen locked; skipping DMS restart (would orphan the session lock). Run 'systemctl --user restart dms.service' after unlocking."
             else
                 gum spin --spinner dot --title "Restarting DankMaterialShell..." \
@@ -798,7 +802,7 @@ post-rebuild mode="quiet":
         echo "Updating skills..."
         just update-skills || echo "Skill update failed (non-fatal)"
         if systemctl --user is-active --quiet dms.service; then
-            if $screen_locked; then
+            if screen_locked; then
                 echo "Screen locked; skipping DMS restart (would orphan the session lock). Run 'systemctl --user restart dms.service' after unlocking."
             else
                 echo "Restarting DankMaterialShell..."
