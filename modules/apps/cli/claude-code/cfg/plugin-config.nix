@@ -67,7 +67,7 @@ let
       source = "github";
       repo = "bashfulrobot/claude-skills";
       sha =
-        if claudeSkillsRev != null then claudeSkillsRev else "0c076f3a5646a7c8b1a3e274cc69072a5ab25e11";
+        if claudeSkillsRev != null then claudeSkillsRev else "c95c062746e9bfd8f2cbb1710b8961950c626ed6";
     };
   };
 

@@ -454,7 +454,6 @@
         "ask": [
           "Bash(sudo *)",
           "Edit(~/.claude/settings.json)",
-          "Write(~/.claude/settings.json)",
           "Bash(bash -c *)",
           "Bash(bash -lc *)",
           "Bash(fish -c *)",
@@ -483,8 +482,7 @@
           "Read(${HOME}/.config/op/**)",
           "Bash(*nixos-secrets*)",
           "Bash(*/.config/op/*)",
-          "Edit(**/.git/hooks/**)",
-          "Write(**/.git/hooks/**)"
+          "Edit(**/.git/hooks/**)"
         ]
       },
       "remoteControlEnabled": true,
@@ -572,11 +570,6 @@
         "Edit(~/.claude/jobs/**)",
         "Edit(~/.claude/autonomous-runs/**)",
         "Edit(//tmp/**)",
-        "Write(~/git/**)",
-        "Write(~/dev/**)",
-        "Write(~/.claude/jobs/**)",
-        "Write(~/.claude/autonomous-runs/**)",
-        "Write(//tmp/**)",
         "Agent",
         "Skill",
         "WebFetch",
