@@ -120,15 +120,42 @@ is not installed live gets you nothing useful: it survives in the file but has n
 runtime behind it. That is what happened to the ai-marketplace seed added in
 #257 — it never did anything.
 
+### Per host, with stackApply on
+
+The repo copy is captured on qbert, so it holds qbert's 32 install records.
+Activation used to seed all 32 onto every host, which meant srv got qbert's
+whole plugin set back on every `just remote-rebuild srv`: the six the
+claude-skills `headless` profile declares absent and the eight srv declares not
+at all, showing up as drift's `PLUGIN_SHOULD_BE_ABSENT` x6 and
+`PLUGIN_UNDECLARED` x8.
+
+With `apps.cli.claude-code.stackApply.enable` on, activation now pipes the repo
+copy through `cfg/scripts/filter-installed-plugins.jq` first, keeping only the
+ids that host's resolved manifest declares with a state other than `absent`.
+qbert keeps all 32, srv keeps 18. The `@HOME_DIR@` substitution and mode 0644
+are unchanged, the file is written through a temp so a corrupt repo copy leaves
+the deployed record alone, and with stackApply off the plain `sed` copy stays
+byte for byte what it was. `cfg/scripts/tests/filter-installed-plugins.bats`
+pins all of it.
+
+Because srv's deployed copy is a subset, srv must not capture it back: the
+write-back has no snapshot guard, so it would delete the 14 records srv does not
+declare and leave qbert's next rebuild seeding a record nobody captured.
+`captureInstalledPlugins` in `default.nix` is the gate. It is true only when the
+host declares every id in the repo copy, which today is qbert alone, and true
+whenever stackApply is off. On srv the capture prints a SKIPPED line instead.
+`capture-sync.py` never touches this file, so the `cfg/fish.nix` block is the
+only write-back path there is.
+
 ### The fixpoint: prune both sides or neither
 
 `installed_plugins.json` and `blocklist.json` are the **only** capture surface in
-this module with no three-way snapshot guard. `cfg/activation.nix` copies
-repo → live unconditionally on every rebuild; `cfg/fish.nix` copies live → repo
-unconditionally on every capture. Nothing compares against a snapshot to decide
-who wins, so it is last-writer-wins in both directions, and the two writers run
-back to back on a single `just qr`: activation re-seeds live from the repo
-*before* post-rebuild capture reads live back.
+this module with no three-way snapshot guard. `cfg/activation.nix` seeds
+repo → live on every rebuild, filtered per host as above; `cfg/fish.nix` copies
+live → repo on every capture, on the capture host. Nothing compares against a
+snapshot to decide who wins, so it is last-writer-wins in both directions, and
+the two writers run back to back on a single `just qr`: activation re-seeds live
+from the repo *before* post-rebuild capture reads live back.
 
 The practical consequence: **editing only one side is always silently reverted by
 the other.**
@@ -146,9 +173,10 @@ The repo copy is pruned in the PR that drops the plugin; the live copy and cache
 are pruned by hand on each host, before the rebuild that runs activation:
 
 ```bash
-# Per host, for each dropped <plugin>@<marketplace>. Keep set = every
-# non-absent plugin id in that host's snapshot; the repo copy is a union over
-# qbert and srv, so keep the union on both hosts.
+# Per host, for each dropped <plugin>@<marketplace>. With stackApply on,
+# activation already keeps the live file to that host's non-absent ids, so this
+# is for the repo copy's own ids and for the cache directory, which no filter
+# touches.
 f=~/.claude/plugins/installed_plugins.json
 jq 'del(.plugins["<plugin>@<marketplace>"])' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 rm -rf ~/.claude/plugins/cache/<marketplace>/<plugin>
@@ -169,8 +197,9 @@ the manifest wants `frontend-design@claude-skills`, whose install record was
 already captured (live installs create it, so it is not hand-authored). Run the
 block above on qbert and srv for it too, or activation re-seeds the old key.
 
-After the rebuild, a second `just qr` must show no diff in
-`config/plugins/installed_plugins.json` (the fixpoint check).
+After the rebuild on qbert, a second `just qr` must show no diff in
+`config/plugins/installed_plugins.json` (the fixpoint check). srv no longer
+takes part in that check, since it does not capture the file.
 This is why #328's plugin removals left stale state behind until the follow-up
 audit — see the code comment in `cfg/fish.nix` at the capture block.
 

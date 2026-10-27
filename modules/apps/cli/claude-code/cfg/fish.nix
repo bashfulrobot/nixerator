@@ -10,6 +10,13 @@
   # copy: a captured value would look like a repo-side change that the next
   # apply silently reverts.
   stackApply ? false,
+  # False on a host whose deployed installed_plugins.json is a filtered subset
+  # of the repo copy (cfg/scripts/filter-installed-plugins.jq). The capture
+  # below is last-writer-wins with no snapshot guard, so such a host writing its
+  # live file back would delete every record it does not declare. True on the
+  # host that declares all of them, which today is qbert, and true whenever
+  # stackApply is off. Computed in default.nix as captureInstalledPlugins.
+  captureInstalledPlugins ? true,
 }:
 
 let
@@ -385,15 +392,32 @@ in
           # ~/.claude/plugins/cache/<marketplace>/<plugin>/ directory in the same
           # change. Skipping either half silently reverts. See
           # .claude/docs/claude-plugins.md ("The fixpoint").
+          #
+          # installed_plugins.json is captured on the host that declares every
+          # record in the repo copy, and nowhere else. With stackApply on,
+          # activation filters the repo copy down to each host's resolved
+          # manifest, so srv's live file holds 18 of the 32 records. Capturing
+          # that back, with no snapshot guard to stop it, would delete the other
+          # 14 and leave qbert's next rebuild seeding a record it never captured.
+          # captureInstalledPlugins (default.nix) is the gate.
           set -l plugins_dir "$claude_dir/plugins"
           set -l plugins_config "$config_dir/plugins"
           if test -f "$plugins_dir/installed_plugins.json"
             echo "  plugins:"
             mkdir -p "$plugins_config"
 
-            sed "s|$HOME|@HOME_DIR@|g" "$plugins_dir/installed_plugins.json" \
-              | jq . > "$plugins_config/installed_plugins.json"
-            echo "    installed_plugins.json"
+            ${
+              if captureInstalledPlugins then
+                ''
+                  sed "s|$HOME|@HOME_DIR@|g" "$plugins_dir/installed_plugins.json" \
+                    | jq . > "$plugins_config/installed_plugins.json"
+                  echo "    installed_plugins.json"
+                ''
+              else
+                ''
+                  echo "    installed_plugins.json SKIPPED (this host's copy is filtered to its claude-stack manifest; it is captured on the host that declares every record)"
+                ''
+            }
 
             if test -f "$plugins_dir/blocklist.json"
               cp "$plugins_dir/blocklist.json" "$plugins_config/blocklist.json"

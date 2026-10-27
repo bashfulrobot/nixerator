@@ -161,6 +161,7 @@ let
       lib
       hasHeadroom
       stackApply
+      captureInstalledPlugins
       ;
   };
   activationConfig = import ./cfg/activation.nix {
@@ -203,7 +204,43 @@ let
     inherit (cfg) stackHost;
     stackApplyScript = stackApplyScriptPkg;
     stackVarsFile = stackVarsFilePkg;
+    installedPluginsKeepFile = installedPluginsKeepFilePkg;
   };
+
+  # --- per-host installed_plugins.json -------------------------------------
+  #
+  # config/plugins/installed_plugins.json is captured on qbert, and activation
+  # used to seed it onto every host verbatim. On srv that reinstalled qbert's
+  # whole set, so the six plugins the claude-skills `headless` profile declares
+  # absent and the eight srv declares not at all came back on every
+  # `just remote-rebuild srv`. With stackApply on, activation now runs the
+  # captured copy through cfg/scripts/filter-installed-plugins.jq first.
+  #
+  # The keep list is the overlay's enabledPlugins keys, which is already
+  # "declared with a state other than absent": the overlay keeps enabled as
+  # true and disabled as false, and drops absent entirely. A disabled plugin
+  # stays in the install record on purpose, because disabled means installed
+  # and switched off.
+  installedPluginsKeepIds = lib.attrNames pluginConfig.overlay.enabledPlugins;
+  installedPluginsKeepFilePkg = pkgs.writeText "claude-installed-plugins-keep.json" (
+    builtins.toJSON installedPluginsKeepIds
+  );
+  # Ids in the repo's captured copy, read at eval time.
+  repoInstalledPluginsFile = configDir + "/plugins/installed_plugins.json";
+  repoInstalledPluginIds =
+    if builtins.pathExists repoInstalledPluginsFile then
+      lib.attrNames ((builtins.fromJSON (builtins.readFile repoInstalledPluginsFile)).plugins or { })
+    else
+      [ ];
+  # Whether capture may write this host's live installed_plugins.json back over
+  # the repo copy. The capture block in cfg/fish.nix has no three-way snapshot
+  # guard, so it is last-writer-wins: srv capturing its filtered 18-record file
+  # would delete the other 14 records from the repo copy and starve qbert's next
+  # rebuild. True only when this host declares every captured id, which makes
+  # the filter the identity and the write-back lossless. qbert declares all 32;
+  # srv declares 18 of them.
+  captureInstalledPlugins =
+    !stackApply || lib.subtractLists installedPluginsKeepIds repoInstalledPluginIds == [ ];
 
   # --- claude-skills apply (apps.cli.claude-code.stackApply.enable) ---------
   #
