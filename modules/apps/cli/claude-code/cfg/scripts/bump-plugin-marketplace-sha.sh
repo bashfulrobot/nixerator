@@ -118,6 +118,7 @@ awk -v key="${key}\\.source" -v old="$current_sha" -v new="$new_sha" '
     sub(old, new)
     in_block = 0
   }
+  in_block && /};/ { in_block = 0 }
   { print }
 ' "$plugin_config" >"$tmp"
 
