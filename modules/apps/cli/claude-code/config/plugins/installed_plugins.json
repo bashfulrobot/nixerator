@@ -83,21 +83,21 @@
     "dk@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/4.3.1",
-        "version": "4.3.1",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/4.4.0",
+        "version": "4.4.0",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-10-27T17:16:13.367Z",
-        "gitCommitSha": "6dfdc3e30416290537ad6c556411a734ad517a3e"
+        "lastUpdated": "2026-10-28T17:14:19.783Z",
+        "gitCommitSha": "647afebb0a9447928a2ecb2a733713a0aa9c625e"
       }
     ],
     "kong-cs@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-cs/1.32.6",
-        "version": "1.32.6",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-cs/1.35.0",
+        "version": "1.35.0",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-10-27T05:33:03.755Z",
-        "gitCommitSha": "2949efa23dc7e28b83b63d6da6f8b48e6ac63d2f"
+        "lastUpdated": "2026-10-28T17:14:30.025Z",
+        "gitCommitSha": "647afebb0a9447928a2ecb2a733713a0aa9c625e"
       }
     ],
     "frontend-design@claude-skills": [
