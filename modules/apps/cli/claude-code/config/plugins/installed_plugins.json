@@ -93,11 +93,11 @@
     "kong-cs@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-cs/1.35.0",
-        "version": "1.35.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kong-cs/1.36.0",
+        "version": "1.36.0",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-10-28T17:14:30.025Z",
-        "gitCommitSha": "647afebb0a9447928a2ecb2a733713a0aa9c625e"
+        "lastUpdated": "2026-10-28T18:28:04.078Z",
+        "gitCommitSha": "03143d3a3b51318338330189afeaa773dc50a1cc"
       }
     ],
     "frontend-design@claude-skills": [
