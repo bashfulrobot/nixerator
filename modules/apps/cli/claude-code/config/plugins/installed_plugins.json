@@ -318,11 +318,11 @@
     "journey-pane@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/journey-pane/0.3.0",
-        "version": "0.3.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/journey-pane/0.4.0",
+        "version": "0.4.0",
         "installedAt": "2026-10-28T18:29:11.371Z",
-        "lastUpdated": "2026-10-28T18:29:11.371Z",
-        "gitCommitSha": "03143d3a3b51318338330189afeaa773dc50a1cc"
+        "lastUpdated": "2026-10-28T19:03:39.074Z",
+        "gitCommitSha": "7deeaaed15b1a85ed730f4025498aa18aba8f72c"
       }
     ],
     "final-answer@claude-skills": [
@@ -338,11 +338,11 @@
     "quiet-chat@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/quiet-chat/0.1.0",
-        "version": "0.1.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/quiet-chat/0.2.0",
+        "version": "0.2.0",
         "installedAt": "2026-10-28T18:49:19.399Z",
-        "lastUpdated": "2026-10-28T18:49:19.399Z",
-        "gitCommitSha": "62701566a6ed283c98eb0386d1872f54d39dc699"
+        "lastUpdated": "2026-10-28T19:03:49.371Z",
+        "gitCommitSha": "7deeaaed15b1a85ed730f4025498aa18aba8f72c"
       }
     ]
   }
