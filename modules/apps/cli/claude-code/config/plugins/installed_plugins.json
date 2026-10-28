@@ -334,6 +334,16 @@
         "lastUpdated": "2026-10-28T18:29:11.866Z",
         "gitCommitSha": "03143d3a3b51318338330189afeaa773dc50a1cc"
       }
+    ],
+    "quiet-chat@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/quiet-chat/0.1.0",
+        "version": "0.1.0",
+        "installedAt": "2026-10-28T18:49:19.399Z",
+        "lastUpdated": "2026-10-28T18:49:19.399Z",
+        "gitCommitSha": "62701566a6ed283c98eb0386d1872f54d39dc699"
+      }
     ]
   }
 }
