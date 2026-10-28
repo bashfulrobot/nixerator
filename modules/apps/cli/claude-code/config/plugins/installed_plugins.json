@@ -314,6 +314,26 @@
         "lastUpdated": "2026-10-26T20:07:33.265Z",
         "gitCommitSha": "5e9340314394282ecd22b3c692d6729644611464"
       }
+    ],
+    "journey-pane@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/journey-pane/0.3.0",
+        "version": "0.3.0",
+        "installedAt": "2026-10-28T18:29:11.371Z",
+        "lastUpdated": "2026-10-28T18:29:11.371Z",
+        "gitCommitSha": "03143d3a3b51318338330189afeaa773dc50a1cc"
+      }
+    ],
+    "final-answer@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/final-answer/0.2.1",
+        "version": "0.2.1",
+        "installedAt": "2026-10-28T18:29:11.866Z",
+        "lastUpdated": "2026-10-28T18:29:11.866Z",
+        "gitCommitSha": "03143d3a3b51318338330189afeaa773dc50a1cc"
+      }
     ]
   }
 }
