@@ -109,6 +109,21 @@ in
       claude = {
         wraps = "claude";
         body = ''
+          # text-polish: when its polish-editor is on PATH (apps.cli.text-polish),
+          # run the claude process that owns the prompt box with polish-editor as
+          # its external editor, so Ctrl+G offers to polish what you wrote. Only
+          # that process gets the override. POLISH_EDITOR carries the real
+          # editor through and is left unset (polish-editor then uses the host
+          # default) when the shell's own editor is polish-editor, which would loop.
+          set -l claude_env
+          if set -l pe (command -s polish-editor)
+              set -l real $VISUAL
+              test -n "$real"; or set real $EDITOR
+              string match -q -r 'polish-editor' -- $real; and set real ""
+              set claude_env VISUAL=$pe EDITOR=$pe
+              test -n "$real"; and set -a claude_env POLISH_EDITOR=$real
+          end
+
           if test (count $argv) -eq 0; and isatty stdin
               set -l default_name (basename $PWD)
               if not read -P "New background session -- name [$default_name] (Ctrl-D cancels): " name
@@ -146,7 +161,7 @@ in
               printf '%s\n' $out
               set -l id (string match -rg 'claude attach (\S+)' -- $out)
               if test -n "$id"
-                  command claude attach $id
+                  env $claude_env claude attach $id
               else
                   echo "claude: could not parse session id; open it from 'claude agents'." >&2
                   return 1
@@ -156,7 +171,7 @@ in
 
           # Foreground / subcommand path: run as-is, then offer to clean up a
           # leftover project .mcp.json on exit.
-          command claude $argv
+          env $claude_env claude $argv
           set -l exit_code $status
           if test -f .mcp.json
               read -P "Remove .mcp.json from this project? [y/N] " confirm
