@@ -36,8 +36,6 @@ let
   defaultEditor = lib.getExe pkgs.${globals.preferences.editor};
 
   polishEditorScript = pkgs.replaceVars ./scripts/polish-editor.sh {
-    git = "${pkgs.git}/bin/git";
-    diff = "${pkgs.diffutils}/bin/diff";
     default_editor = defaultEditor;
     core = "${textPolishCore}";
   };
