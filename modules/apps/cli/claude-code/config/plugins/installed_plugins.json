@@ -83,11 +83,11 @@
     "dk@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/4.8.6",
-        "version": "4.8.6",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/4.8.19",
+        "version": "4.8.19",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-10-30T21:28:19.935Z",
-        "gitCommitSha": "646a51225b61e3a3cf47c1678831e18b96f69fe4"
+        "lastUpdated": "2026-10-30T22:59:59.348Z",
+        "gitCommitSha": "9355c0dc44dbeac90926e3eb9d3950710805c3b5"
       }
     ],
     "kong-cs@claude-skills": [
