@@ -51,6 +51,10 @@ in
   options.apps.cli.text-polish = {
     enable = lib.mkEnableOption "Text polish keyboard shortcut — rewrite selected text via Claude";
 
+    editor.enable = lib.mkEnableOption ''
+      the Ctrl+G polish editor for Claude Code without the Hyprland keybind, for a
+      headless host. `enable` already includes it'';
+
     rulesFile = lib.mkOption {
       type = lib.types.path;
       default = ./prompt/concision-rules.md;
@@ -64,22 +68,27 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    home-manager.users.${globals.user.name} = {
-      # Declared through hyprflake.hyprland.extraLua (hyprflake writes the file
-      # and requires it at the end of hyprland.lua).
-      hyprflake.hyprland.extraLua."text-polish" = ''
-        hl.bind("SUPER + SHIFT + R",
-          hl.dsp.exec_cmd("${pkgs.bash}/bin/bash ${textPolishScript}"))
-      '';
+  config = lib.mkMerge [
+    # The keybind needs Hyprland, so it stays behind the full enable.
+    (lib.mkIf cfg.enable {
+      home-manager.users.${globals.user.name} = {
+        # Declared through hyprflake.hyprland.extraLua (hyprflake writes the file
+        # and requires it at the end of hyprland.lua).
+        hyprflake.hyprland.extraLua."text-polish" = ''
+          hl.bind("SUPER + SHIFT + R",
+            hl.dsp.exec_cmd("${pkgs.bash}/bin/bash ${textPolishScript}"))
+        '';
+      };
+    })
 
-      # A terminal editor has no compositor selection for the keybind to grab,
-      # so Claude Code prompts are polished through its Ctrl+G external editor
-      # instead. Installing polish-editor is all this module does: the `claude`
-      # fish function in claude-code/cfg/fish.nix finds it on PATH and runs
-      # claude with it as VISUAL/EDITOR for that one process. Two modules cannot
-      # both define the function, because Nix concatenates the bodies.
-      home.packages = [ polishEditor ];
-    };
-  };
+    # A terminal editor has no compositor selection for the keybind to grab,
+    # so Claude Code prompts are polished through its Ctrl+G external editor
+    # instead. Installing polish-editor is all this does: the `claude` fish
+    # function in claude-code/cfg/fish.nix finds it on PATH and runs claude with
+    # it as VISUAL/EDITOR for that one process. Two modules cannot both define
+    # the function, because Nix concatenates the bodies.
+    (lib.mkIf (cfg.enable || cfg.editor.enable) {
+      home-manager.users.${globals.user.name}.home.packages = [ polishEditor ];
+    })
+  ];
 }
