@@ -318,11 +318,11 @@
     "journey-pane@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/journey-pane/0.4.0",
-        "version": "0.4.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/journey-pane/0.6.0",
+        "version": "0.6.0",
         "installedAt": "2026-10-28T18:29:11.371Z",
-        "lastUpdated": "2026-10-28T19:03:39.074Z",
-        "gitCommitSha": "7deeaaed15b1a85ed730f4025498aa18aba8f72c"
+        "lastUpdated": "2026-10-30T19:23:17.114Z",
+        "gitCommitSha": "5fc953e96461019a347d5db505561f3c7b29f71f"
       }
     ],
     "final-answer@claude-skills": [
