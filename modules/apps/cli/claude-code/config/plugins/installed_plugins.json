@@ -83,11 +83,11 @@
     "dk@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/4.8.19",
-        "version": "4.8.19",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/dk/4.8.20",
+        "version": "4.8.20",
         "installedAt": "2026-09-27T01:21:11.681Z",
-        "lastUpdated": "2026-10-30T22:59:59.348Z",
-        "gitCommitSha": "9355c0dc44dbeac90926e3eb9d3950710805c3b5"
+        "lastUpdated": "2026-10-30T23:04:46.800Z",
+        "gitCommitSha": "a952713c26d1373066b091f34a55904e34c3501e"
       }
     ],
     "kong-cs@claude-skills": [
@@ -318,11 +318,11 @@
     "journey-pane@claude-skills": [
       {
         "scope": "user",
-        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/journey-pane/0.7.0",
-        "version": "0.7.0",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/journey-pane/0.7.1",
+        "version": "0.7.1",
         "installedAt": "2026-10-28T18:29:11.371Z",
-        "lastUpdated": "2026-10-30T21:56:47.778Z",
-        "gitCommitSha": "048df208ae94860560afb003bcccc9952b04573a"
+        "lastUpdated": "2026-10-30T23:04:57.003Z",
+        "gitCommitSha": "a952713c26d1373066b091f34a55904e34c3501e"
       }
     ],
     "final-answer@claude-skills": [
