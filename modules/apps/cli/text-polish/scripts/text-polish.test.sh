@@ -6,8 +6,9 @@ set -uo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source the filter as a library (defines functions, does not run main).
-TEXT_POLISH_LIB=1 source "$here/text-polish.sh"
+# Source the filter as a library (defines functions, does not run main). The
+# unsubstituted script sources the shared core from beside it.
+TEXT_POLISH_CORE="$here/text-polish-core.sh" TEXT_POLISH_LIB=1 source "$here/text-polish.sh"
 set +eo pipefail # the sourced script enables errexit; disable for negative cases
 
 pass=0

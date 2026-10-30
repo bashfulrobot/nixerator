@@ -292,6 +292,11 @@ ship-claude-skills what sha="main":
 prune-worktrees *args:
     bash extras/scripts/prune-worktrees.bash {{args}}
 
+# Run the text-polish suites (safety filters + Ctrl+G editor wrapper)
+[group('test')]
+test-text-polish:
+    nix shell nixpkgs#jq nixpkgs#git nixpkgs#diffutils nixpkgs#coreutils nixpkgs#gnugrep nixpkgs#gnused nixpkgs#gawk --command bash -c 'bash modules/apps/cli/text-polish/scripts/text-polish.test.sh && bash modules/apps/cli/text-polish/scripts/polish-editor.test.sh'
+
 # Run skill-cache unit tests
 [group('test')]
 test-skill-cache:
