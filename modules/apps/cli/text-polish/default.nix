@@ -73,25 +73,13 @@ in
           hl.dsp.exec_cmd("${pkgs.bash}/bin/bash ${textPolishScript}"))
       '';
 
-      home.packages = [ polishEditor ];
-
       # A terminal editor has no compositor selection for the keybind to grab,
       # so Claude Code prompts are polished through its Ctrl+G external editor
-      # instead: this function runs `claude` with polish-editor as VISUAL/EDITOR
-      # for that one process, and every other tool keeps the normal editor.
-      # POLISH_EDITOR carries the real editor through; it is never polish-editor
-      # itself, which would loop.
-      programs.fish.functions.claude = {
-        description = "Claude Code with the text-polish external editor";
-        body = ''
-          set -l real $VISUAL
-          test -n "$real"; or set real $EDITOR
-          test -n "$real"; or set real ${defaultEditor}
-          string match -q -r 'polish-editor' -- $real; and set real ${defaultEditor}
-
-          env VISUAL=${polishEditor}/bin/polish-editor EDITOR=${polishEditor}/bin/polish-editor POLISH_EDITOR=$real claude $argv
-        '';
-      };
+      # instead. Installing polish-editor is all this module does: the `claude`
+      # fish function in claude-code/cfg/fish.nix finds it on PATH and runs
+      # claude with it as VISUAL/EDITOR for that one process. Two modules cannot
+      # both define the function, because Nix concatenates the bodies.
+      home.packages = [ polishEditor ];
     };
   };
 }
