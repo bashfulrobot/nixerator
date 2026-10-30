@@ -65,6 +65,7 @@ in
     ../../modules/apps/cli/starship
     ../../modules/apps/cli/superpowers
     ../../modules/apps/cli/tailscale
+    ../../modules/apps/cli/text-polish
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
@@ -96,6 +97,9 @@ in
     fish.enable = true;
     fresh-editor.enable = true;
     git.enable = true;
+    # Ctrl+G in Claude Code offers to polish the prompt. No keybind: srv has no
+    # compositor, so only the editor wrapper, not `text-polish.enable`.
+    text-polish.editor.enable = true;
     # Mobile/web remote control for Claude Code sessions (happy.engineering).
     # srv is always-on, the natural pairing target alongside qbert.
     happy.enable = true;
