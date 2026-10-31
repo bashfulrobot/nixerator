@@ -28,6 +28,12 @@ let
     };
   };
 
+  # srv's device ID only exists after its first Syncthing start, so it is added
+  # to globals.hosts.srv in a second step. Until then qbert declares the
+  # automations folder with the Mac as its only peer, and srv's entries appear
+  # on the next qbert rebuild after the ID lands.
+  hasSrvId = globals.hosts.srv ? syncthing_id;
+
 in
 {
   options = {
@@ -39,6 +45,16 @@ in
           type = lib.types.bool;
           default = false;
           description = "Enable Syncthing configuration for qbert host.";
+        };
+
+        srv = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Enable Syncthing configuration for srv. srv shares only the
+            automations folder, and only with qbert: the Mac's sole peer is
+            qbert, which relays between the two.
+          '';
         };
       };
     };
@@ -83,12 +99,18 @@ in
 
         settings = {
           devices = {
-            # Mac (../donkeykong). Shares upsight-data, upsight-config and dev
-            # below -- not the rest, which are either NixOS-shaped or hold keys a
+            # Mac (../donkeykong). Shares upsight-data, upsight-config, dev and
+            # automations below -- not the rest, which are either NixOS-shaped or hold keys a
             # laptop should not carry. qbert is the Mac's only Syncthing peer.
             "MH36P2YMHX" = {
               addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
               id = globals.hosts.MH36P2YMHX.syncthing_id;
+            };
+          }
+          // lib.optionalAttrs hasSrvId {
+            "srv" = {
+              addresses = [ "tcp://${globals.hosts.srv.tailscale_ip}:22000" ];
+              id = globals.hosts.srv.syncthing_id;
             };
           };
 
@@ -121,6 +143,39 @@ in
               versioning = staggeredVersioning;
             };
 
+            # Job reports (server.automations): reports/<host>/<job>/. Each host
+            # writes only under its own reports/<host>/ directory, so the three
+            # writers (srv, qbert, the Mac) never touch the same file and
+            # Syncthing never has a conflict to resolve. qbert is the relay: the
+            # Mac and srv both peer with qbert, not with each other.
+            "automations" = {
+              path = globals.paths.automations;
+              devices = [ "MH36P2YMHX" ] ++ lib.optional hasSrvId "srv";
+              versioning = simpleVersioning;
+            };
+
+          };
+        };
+      })
+
+      # srv host configuration
+      (lib.mkIf cfg.host.srv {
+        configDir = "${globals.user.homeDirectory}/.config/syncthing/srv";
+
+        settings = {
+          devices = {
+            "qbert" = {
+              addresses = [ "tcp://${globals.hosts.qbert.tailscale_ip}:22000" ];
+              id = globals.hosts.qbert.syncthing_id;
+            };
+          };
+
+          folders = {
+            "automations" = {
+              path = globals.paths.automations;
+              devices = [ "qbert" ];
+              versioning = simpleVersioning;
+            };
           };
         };
       })
