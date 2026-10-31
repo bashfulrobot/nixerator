@@ -1,0 +1,3 @@
+# P1 tasks in the kong-* projects. The runner drops any task with an update,
+# comment or other activity in the last idleDays days (set in hosts/srv/modules.nix).
+p1 & #kong-*

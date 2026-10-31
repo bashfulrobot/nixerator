@@ -250,9 +250,12 @@ in
       # Todoist filters kept one per file under modules/server/automations/queries/
       # and run on their own schedule. Reports land in reports/srv/td-<name>/.
       tdQueries = {
-        overdue = {
-          file = ../../modules/server/automations/queries/overdue.filter;
-          schedule = "*-*-* 07:00:00";
+        # P1 tasks in kong-* projects with no update, comment or other
+        # activity in 2 days. Weekday mornings.
+        kong-p1-idle = {
+          file = ../../modules/server/automations/queries/kong-p1-idle.filter;
+          schedule = "Mon..Fri *-*-* 08:00:00";
+          idleDays = 2;
         };
       };
     };
