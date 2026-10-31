@@ -67,6 +67,7 @@ in
     ../../modules/apps/cli/syncthing
     ../../modules/apps/cli/tailscale
     ../../modules/apps/cli/text-polish
+    ../../modules/apps/cli/todoist-cli
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
@@ -168,6 +169,9 @@ in
       host.srv = true;
     };
     tailscale.enable = true;
+    # `td` for interactive use on srv. The token comes from the secauto gopass
+    # store (todoist/credential) at each launch, so no `td auth login` is needed.
+    todoist-cli.enable = true;
 
     # Claude Code stack (cherry-picked from suites/ai for headless srv)
     agent-scan.enable = true;
@@ -241,7 +245,17 @@ in
   server = {
     # Daily heartbeat report into the synced ~/automations folder. First job on
     # the shared scheduling pattern; real jobs (Slack follow-ups) come later.
-    automations.enable = true;
+    automations = {
+      enable = true;
+      # Todoist filters kept one per file under modules/server/automations/queries/
+      # and run on their own schedule. Reports land in reports/srv/td-<name>/.
+      tdQueries = {
+        overdue = {
+          file = ../../modules/server/automations/queries/overdue.filter;
+          schedule = "*-*-* 07:00:00";
+        };
+      };
+    };
 
     # Todoist task-level UI Extension receiver (see modules/server/claudoist).
     # Enabled ahead of its prerequisites (Task 14 of the claudoist
