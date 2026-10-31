@@ -254,8 +254,55 @@ in
         # activity in 2 days. Weekday mornings.
         kong-p1-idle = {
           file = ../../modules/server/automations/queries/kong-p1-idle.filter;
-          schedule = "Mon..Fri *-*-* 08:00:00";
+          schedule = "Mon..Fri *-*-* 06:00:00";
           idleDays = 2;
+          # Also write an idle-flag worklog comment on each idle task, at most
+          # once a week per task. These are real writes to Todoist.
+          flagRepeatDays = 7;
+        };
+
+        # P2: idle 5 days, checked Monday and Thursday, comment again after 14
+        # days. Filter fetch limit raised so a long list is not cut off.
+        kong-p2-idle = {
+          file = ../../modules/server/automations/queries/kong-p2-idle.filter;
+          schedule = "Mon,Thu *-*-* 06:00:00";
+          limit = 300;
+          idleDays = 5;
+          flagRepeatDays = 14;
+        };
+
+        # P3: idle 14 days, checked Monday, report only (no comments, since a
+        # first run could comment on dozens of tasks).
+        kong-p3-idle = {
+          file = ../../modules/server/automations/queries/kong-p3-idle.filter;
+          schedule = "Mon *-*-* 06:00:00";
+          limit = 300;
+          idleDays = 14;
+        };
+
+        # Tasks waiting on someone else with no activity for 5 days: time to
+        # chase. Monday, Wednesday and Friday, about half the threshold.
+        waiting-stale = {
+          file = ../../modules/server/automations/queries/waiting-stale.filter;
+          schedule = "Mon,Wed,Fri *-*-* 06:00:00";
+          limit = 300;
+          idleDays = 5;
+          flagRepeatDays = 14;
+        };
+
+        # p1 and p2 tasks overdue for over a week, however often they were
+        # touched. The idle rule misses these (rescheduled or poked, never done).
+        overdue-chronic = {
+          file = ../../modules/server/automations/queries/overdue-chronic.filter;
+          schedule = "Mon *-*-* 06:00:00";
+          limit = 300;
+        };
+
+        # Inbox tasks older than 3 days: untriaged capture.
+        inbox-stale = {
+          file = ../../modules/server/automations/queries/inbox-stale.filter;
+          schedule = "Mon,Thu *-*-* 06:00:00";
+          limit = 300;
         };
       };
     };

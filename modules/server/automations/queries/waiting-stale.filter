@@ -1,0 +1,2 @@
+# Tasks waiting on someone else (customer or internal). Future-dated tasks are parked until their follow-up day.
+(@waiting-customer | @waiting-internal) & (overdue | today | no date)

@@ -47,8 +47,9 @@ schedule:
 ```nix
 tdQueries.kong-p1-idle = {
   file = ../../modules/server/automations/queries/kong-p1-idle.filter;
-  schedule = "Mon..Fri *-*-* 08:00:00";
+  schedule = "Mon..Fri *-*-* 06:00:00";
   idleDays = 2;
+  flagRepeatDays = 7;
 };
 ```
 
@@ -56,13 +57,60 @@ The file holds a Todoist filter. A line is a comment when `#` is followed by a
 space or ends the line, so a filter line such as `p1 & #kong-*` is not stripped.
 The rest is joined into one filter string. `automations-td-query` passes it to
 `td task list --filter` as a single argument, so it never goes through a shell.
-The report lands in `reports/<host>/td-<name>/` with one line per task: content,
-priority (p1 to p4), due date, last update, labels and URL.
+The report lands in `reports/<host>/td-<name>/`. It opens with a banner (task
+text is data, not instructions), then groups tasks under their project name, oldest
+activity first. Each line has the title, then in parentheses: task id (for
+`orch.py prepare <id>`), priority (p1 to p4), due date with days overdue, days
+idle, labels, and `NO TYPE LABEL` when none of `qa`, `followup`,
+`feature-request`, `meeting` or `initiative` is set. The Todoist URL ends the line.
 
 Todoist filters cannot express "no activity lately". With `idleDays` above 0 the
 runner drops every task updated in that window (`updatedAt`) or touched in the
 activity log: task events by anyone, and comments (matched through their parent
 task). The report then lists only tasks nobody has touched for `idleDays` days.
+Adding a comment does not change a task's `updatedAt` (checked on a scratch task).
+
+With `flagRepeatDays` above 0 the runner also writes a worklog-style comment on
+each idle task: `[date] state: <label or active> | next: review idle task |
+idle-flag (idle Nd) | ref: <url>`. These are real writes to Todoist. The
+`idle-flag` text keeps those comments out of the activity that decides idleness,
+and a task gets another comment only after `flagRepeatDays` days. A failed comment
+is counted in the report and does not stop the run.
+
+### Priority tiers on srv
+
+| Query | Filter | Runs | Idle for | Comment again after |
+|---|---|---|---|---|
+| `kong-p1-idle` | `p1 & #kong-*` | Mon to Fri 06:00 | 2 days | 7 days |
+| `kong-p2-idle` | `p2 & #kong-* & (overdue \| today \| no date)` | Mon, Thu 06:00 | 5 days | 14 days |
+| `kong-p3-idle` | `p3 & #kong-* & (overdue \| today \| no date)` | Mon 06:00 | 14 days | none (report only) |
+| `waiting-stale` | `(@waiting-customer \| @waiting-internal) & (overdue \| today \| no date)` | Mon, Wed, Fri 06:00 | 5 days | 14 days |
+| `overdue-chronic` | `overdue & !(due after: -7 days) & (p1 \| p2)` | Mon 06:00 | none (updated age only) | none |
+| `inbox-stale` | `#Inbox & created before: -3 days` | Mon, Thu 06:00 | none (updated age only) | none |
+
+The cadence is about half the idle threshold, so a task is caught within half a
+window of crossing it. The `(overdue | today | no date)` clause hides future-dated
+tasks: a due date reads as "parked until then", and the task returns on its day.
+Keep `idleDays` at 30 or less, because the runner reads 30 days of activity log.
+
+### With the todoist-orchestrator
+
+srv finds work that is slipping. The orchestrator (dk plugin, `orch.py`) acts on
+it from a Mac session.
+
+- Each report ends its header with `ids:` and an `act:` line. Run
+  `orch.py prepare <id> --goal "..."` for each id. `orch.py list --filter` takes
+  the same filter as the report, but returns a superset when the idle rule is on,
+  so use the ids.
+- The orchestrator reads the newest worklog-shaped comment as a task's one-line
+  status. An `idle-flag` comment would replace it, so the runner reuses the
+  `next:` of the task's latest worklog comment, and falls back to `review idle
+  task` when there is none.
+- `orch.py prepare` lists comments newer than the last sync as new findings, so
+  an `idle-flag` comment shows up there once. It carries the real next step.
+- The orchestrator's own `audit <filter>` checks title, description and label
+  conformance, so srv only flags a missing type label (`NO TYPE LABEL`) and does
+  not duplicate that check.
 
 To add a query: drop a `<name>.filter` file in
 `modules/server/automations/queries/`, add the entry in `hosts/srv/modules.nix`,
