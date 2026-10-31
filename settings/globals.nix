@@ -88,6 +88,7 @@ rec {
     };
     srv = {
       tailscale_ip = "100.64.187.14";
+      syncthing_id = "S7CHB5E-MDKYOC2-MULZHWM-QJ5ZQHH-VFZVYER-ZDFLDON-T5R4JES-HEHVGAE";
     };
     # Mac, managed by the separate ../donkeykong repo (Homebrew + chezmoi, no
     # longer nix-darwin/mixerator). Only relevant here as a Syncthing peer for
