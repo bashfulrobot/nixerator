@@ -1,0 +1,2 @@
+# P2 tasks in the kong-* projects. Future-dated tasks are parked and stay out until their day.
+p2 & #kong-* & (overdue | today | no date)

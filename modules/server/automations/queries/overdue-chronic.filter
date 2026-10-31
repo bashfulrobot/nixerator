@@ -1,0 +1,2 @@
+# P1 and p2 tasks overdue for more than 7 days, however often they were touched.
+overdue & !(due after: -7 days) & (p1 | p2)
