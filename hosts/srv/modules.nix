@@ -64,11 +64,13 @@ in
     ../../modules/apps/cli/slack-token-refresh
     ../../modules/apps/cli/starship
     ../../modules/apps/cli/superpowers
+    ../../modules/apps/cli/syncthing
     ../../modules/apps/cli/tailscale
     ../../modules/apps/cli/text-polish
     ../../modules/apps/cli/work-launcher
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
+    ../../modules/server/automations
     ../../modules/server/claudoist
     ../../modules/server/incident-investigator
     ../../modules/server/kvm
@@ -157,6 +159,14 @@ in
     # cherry-picks individual apps.cli entries for headless srv.
     slack-token-refresh.enable = true;
     starship.enable = true;
+    # Shares ~/automations with qbert (which relays to the Mac) so job reports
+    # written here reach every workstation. Two-step rollout: after the first
+    # rebuild, read srv's device ID from the Syncthing UI and add it as
+    # `syncthing_id` under hosts.srv in settings/globals.nix, then rebuild qbert.
+    syncthing = {
+      enable = true;
+      host.srv = true;
+    };
     tailscale.enable = true;
 
     # Claude Code stack (cherry-picked from suites/ai for headless srv)
@@ -229,6 +239,10 @@ in
 
   # Server-specific modules
   server = {
+    # Daily heartbeat report into the synced ~/automations folder. First job on
+    # the shared scheduling pattern; real jobs (Slack follow-ups) come later.
+    automations.enable = true;
+
     # Todoist task-level UI Extension receiver (see modules/server/claudoist).
     # Enabled ahead of its prerequisites (Task 14 of the claudoist
     # implementation plan, owner: Dustin, manual, not automatable here) so

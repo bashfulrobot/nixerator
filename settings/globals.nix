@@ -23,6 +23,7 @@ rec {
   paths = {
     devRoot = "${user.homeDirectory}/dev";
     notes = "${user.homeDirectory}/Notes";
+    automations = "${user.homeDirectory}/automations";
     nixerator = "${user.homeDirectory}/git/nixerator";
     hyprflake = "${user.homeDirectory}/git/hyprflake";
   };
