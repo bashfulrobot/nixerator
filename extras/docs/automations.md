@@ -123,6 +123,14 @@ it from a Mac session.
   conformance, so srv only flags a missing type label (`NO TYPE LABEL`) and does
   not duplicate that check.
 
+Todoist rate limits the account with HTTP 429, and its `retry-after` has run past
+20 minutes after a burst of calls (seen 2026-10-31). Every `td` call in the
+runner goes through `td_retry`: on a 429 it waits 45, 90 and 135 seconds, then
+gives up and the job fails, so `automations-failed@<job>` marks the report
+`failed` and the next run restores it. Any other error fails at once. Do not
+trigger several queries back to back by hand; each run makes 3 to 10 calls, and
+the six timers share a 06:00 start with up to 5 minutes of random delay.
+
 To add a query: drop a `<name>.filter` file in
 `modules/server/automations/queries/`, add the entry in `hosts/srv/modules.nix`,
 rebuild srv. `td` reads its token from the secauto gopass store

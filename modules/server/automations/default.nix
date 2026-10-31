@@ -147,6 +147,32 @@ let
       flag_days=$5
       stale_after=$6
 
+      # Todoist answers a burst of calls with HTTP 429 (RATE_LIMITED), and its
+      # retry-after can run past 20 minutes. Wait 45, 90 and 135 seconds, then
+      # give up so the failure handler marks the report failed. Hammering the API
+      # during the window only extends it. Other errors fail at once. Prints the
+      # command's stdout on success and both streams to stderr on failure.
+      td_retry() {
+        local out errfile attempt=0
+        errfile=$(mktemp)
+        while :; do
+          if out=$(td "$@" 2> "$errfile"); then
+            rm -f "$errfile"
+            printf '%s\n' "$out"
+            return 0
+          fi
+          if [ "$attempt" -ge 3 ] || ! grep -q -e RATE_LIMITED -e 'HTTP 429' <<< "$out$(<"$errfile")"; then
+            printf '%s\n' "$out" >&2
+            cat "$errfile" >&2
+            rm -f "$errfile"
+            return 1
+          fi
+          attempt=$((attempt + 1))
+          echo "automations-td-query: Todoist rate limited, retry $attempt of 3" >&2
+          sleep $((attempt * 45))
+        done
+      }
+
       if [ "$flag_days" -gt 0 ] && [ "$idle_days" -eq 0 ]; then
         echo "automations-td-query: flagging needs idleDays above 0" >&2
         exit 1
@@ -159,8 +185,8 @@ let
       fi
 
       now=$(date -u +%FT%TZ)
-      results=$(td task list --filter "$filter" --limit "$limit" --full --json | jq -c '.results')
-      projects=$(td project list --all --json | jq -c '.results | map({key: .id, value: .name}) | from_entries')
+      results=$(td_retry task list --filter "$filter" --limit "$limit" --full --json | jq -c '.results')
+      projects=$(td_retry project list --all --json | jq -c '.results | map({key: .id, value: .name}) | from_entries')
 
       events=$(mktemp)
       markers=$(mktemp)
@@ -193,9 +219,9 @@ let
         cursor=""
         while :; do
           if [ -n "$cursor" ]; then
-            page=$(td activity --since "$since" --limit 1000 --cursor "$cursor" --json)
+            page=$(td_retry activity --since "$since" --limit 1000 --cursor "$cursor" --json)
           else
-            page=$(td activity --since "$since" --limit 1000 --json)
+            page=$(td_retry activity --since "$since" --limit 1000 --json)
           fi
           jq -c --arg marker "$marker" '.results[] | select(.objectType != "comment" or ((.extraData.content // "") | contains($marker) | not)) | {id: (if .objectType == "comment" then .parentItemId else .objectId end), at: .eventDate} | select(.id != null)' <<< "$page" >> "$events"
           jq -c --arg marker "$marker" '.results[] | select(.objectType == "comment" and ((.extraData.content // "") | contains($marker))) | {id: .parentItemId, at: .eventDate} | select(.id != null)' <<< "$page" >> "$markers"
@@ -241,9 +267,9 @@ let
           # Keep the task's real next step: the newest worklog-shaped comment
           # (the orchestrator's one-line status) already names it, and this
           # comment becomes the newest line.
-          prev_next=$(td comment list "id:$tid" --json | jq -r '[.results[].content | select(test("^\\[[0-9]{4}-[0-9]{2}-[0-9]{2}\\] state:"))] | (last // "") | (capture("\\| next: (?<n>[^(|]*)")? // {n: ""}) | .n | sub("\\s+$"; "")' || true)
+          prev_next=$(td_retry comment list "id:$tid" --json | jq -r '[.results[].content | select(test("^\\[[0-9]{4}-[0-9]{2}-[0-9]{2}\\] state:"))] | (last // "") | (capture("\\| next: (?<n>[^(|]*)")? // {n: ""}) | .n | sub("\\s+$"; "")' || true)
           [ -n "$prev_next" ] || prev_next="review idle task"
-          if td comment add "id:$tid" --content "[$today] state: $tstate | next: $prev_next | $marker (idle ''${tidle}d) | ref: $turl" > /dev/null; then
+          if td_retry comment add "id:$tid" --content "[$today] state: $tstate | next: $prev_next | $marker (idle ''${tidle}d) | ref: $turl" > /dev/null; then
             flagged=$((flagged + 1))
           else
             flag_failed=$((flag_failed + 1))
