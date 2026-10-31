@@ -98,10 +98,21 @@ Keep `idleDays` at 30 or less, because the runner reads 30 days of activity log.
 srv finds work that is slipping. The orchestrator (dk plugin, `orch.py`) acts on
 it from a Mac session.
 
-- Each report ends its header with `ids:` and an `act:` line. Run
-  `orch.py prepare <id> --goal "..."` for each id. `orch.py list --filter` takes
-  the same filter as the report, but returns a superset when the idle rule is on,
-  so use the ids.
+- Each report ends its header with `ids:` and an `act:` line. On a workstation,
+  `orch.py inbox` reads the synced reports, and `orch.py inbox --report <job> --ids`
+  prints the ids to feed `orch.py prepare <id> --goal "..."`. `orch.py list
+  --filter` takes the same filter as the report, but returns a superset when the
+  idle rule is on, so use the ids.
+- Next to `latest.md`, each query writes `latest.json`: the filter, `age_label`,
+  `stale_after_hours` and the tasks (id, title, project, priority, due,
+  `overdue_days`, `age_days`, labels, `no_type_label`, url). `automations-report`
+  stamps `version`, `host`, `job`, `status` and the same `run_at` as `latest.md`.
+  A failed run rewrites only `latest.md`, so a reader that sees different
+  `run_at` values knows the JSON is old.
+- `staleAfterHours` (per query) is how long `orch.py inbox` waits before it calls a
+  report stale. Use the longest gap between runs plus a day: 96 for Monday to
+  Friday and Mon, Wed, Fri queries (the weekend gap), 120 for Mon and Thu, 192
+  for weekly ones.
 - The orchestrator reads the newest worklog-shaped comment as a task's one-line
   status. An `idle-flag` comment would replace it, so the runner reuses the
   `next:` of the task's latest worklog comment, and falls back to `review idle

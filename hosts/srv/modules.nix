@@ -255,6 +255,7 @@ in
         kong-p1-idle = {
           file = ../../modules/server/automations/queries/kong-p1-idle.filter;
           schedule = "Mon..Fri *-*-* 06:00:00";
+          staleAfterHours = 96;
           idleDays = 2;
           # Also write an idle-flag worklog comment on each idle task, at most
           # once a week per task. These are real writes to Todoist.
@@ -266,6 +267,7 @@ in
         kong-p2-idle = {
           file = ../../modules/server/automations/queries/kong-p2-idle.filter;
           schedule = "Mon,Thu *-*-* 06:00:00";
+          staleAfterHours = 120;
           limit = 300;
           idleDays = 5;
           flagRepeatDays = 14;
@@ -285,6 +287,7 @@ in
         waiting-stale = {
           file = ../../modules/server/automations/queries/waiting-stale.filter;
           schedule = "Mon,Wed,Fri *-*-* 06:00:00";
+          staleAfterHours = 96;
           limit = 300;
           idleDays = 5;
           flagRepeatDays = 14;
@@ -302,6 +305,7 @@ in
         inbox-stale = {
           file = ../../modules/server/automations/queries/inbox-stale.filter;
           schedule = "Mon,Thu *-*-* 06:00:00";
+          staleAfterHours = 120;
           limit = 300;
         };
       };
