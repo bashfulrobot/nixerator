@@ -45,17 +45,24 @@ Each entry in `server.automations.tdQueries` pairs a filter file with a
 schedule:
 
 ```nix
-tdQueries.overdue = {
-  file = ../../modules/server/automations/queries/overdue.filter;
-  schedule = "*-*-* 07:00:00";
+tdQueries.kong-p1-idle = {
+  file = ../../modules/server/automations/queries/kong-p1-idle.filter;
+  schedule = "Mon..Fri *-*-* 08:00:00";
+  idleDays = 2;
 };
 ```
 
-The file holds a Todoist filter. Lines starting with `#` are comments, the rest
-is joined into one filter string. `automations-td-query` passes it to
+The file holds a Todoist filter. A line is a comment when `#` is followed by a
+space or ends the line, so a filter line such as `p1 & #kong-*` is not stripped.
+The rest is joined into one filter string. `automations-td-query` passes it to
 `td task list --filter` as a single argument, so it never goes through a shell.
 The report lands in `reports/<host>/td-<name>/` with one line per task: content,
-priority (p1 to p4), due date, labels and URL.
+priority (p1 to p4), due date, last update, labels and URL.
+
+Todoist filters cannot express "no activity lately". With `idleDays` above 0 the
+runner drops every task updated in that window (`updatedAt`) or touched in the
+activity log: task events by anyone, and comments (matched through their parent
+task). The report then lists only tasks nobody has touched for `idleDays` days.
 
 To add a query: drop a `<name>.filter` file in
 `modules/server/automations/queries/`, add the entry in `hosts/srv/modules.nix`,

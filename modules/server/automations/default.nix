@@ -104,9 +104,16 @@ let
   };
 
   # Runs a Todoist filter kept in a file and writes the matching tasks as a
-  # report. Usage: automations-td-query <job> <filter-file> <limit>. Lines
-  # starting with # in the file are comments and the rest is joined into one
-  # filter string, which reaches td as a single argument (never through a shell).
+  # report. Usage: automations-td-query <job> <filter-file> <limit> <idle-days>.
+  # In the file, a line is a comment when # is followed by a space or ends the
+  # line, so a filter line starting with a project such as #kong-* stays a
+  # filter. The remaining lines are joined into one filter string, which reaches
+  # td as a single argument (never through a shell).
+  #
+  # Todoist filters cannot express "no activity lately", so idle-days > 0 drops
+  # every task that was updated, commented on or otherwise touched in the last
+  # N days. updatedAt covers edits and the activity log covers comments (their
+  # parentItemId is the task) and task events by anyone (objectId).
   tdQuery = pkgs.writeShellApplication {
     name = "automations-td-query";
     runtimeInputs = [
@@ -120,21 +127,50 @@ let
       job=$1
       file=$2
       limit=$3
+      idle_days=$4
 
-      filter=$(sed -e '/^[[:space:]]*#/d' "$file" | tr '\n' ' ' | sed -e 's/[[:space:]]*$//')
+      filter=$(sed -E -e '/^[[:space:]]*#([[:space:]]|$)/d' "$file" | tr '\n' ' ' | sed -e 's/[[:space:]]*$//')
       if [ -z "''${filter//[[:space:]]/}" ]; then
         echo "automations-td-query: $file holds no filter" >&2
         exit 1
       fi
 
-      json=$(td task list --filter "$filter" --limit "$limit" --json)
-      count=$(jq '.results | length' <<< "$json")
+      results=$(td task list --filter "$filter" --limit "$limit" --full --json | jq -c '.results')
+      window=""
+
+      if [ "$idle_days" -gt 0 ]; then
+        cutoff=$(date -u -d "$idle_days days ago" +%FT%TZ)
+        since=$(date -u -d "$idle_days days ago" +%F)
+        active=$(mktemp)
+        trap 'rm -f "$active"' EXIT
+
+        cursor=""
+        while :; do
+          if [ -n "$cursor" ]; then
+            page=$(td activity --since "$since" --limit 1000 --cursor "$cursor" --json)
+          else
+            page=$(td activity --since "$since" --limit 1000 --json)
+          fi
+          jq -r --arg cutoff "$cutoff" '.results[] | select(.eventDate >= $cutoff) | if .objectType == "comment" then .parentItemId else .objectId end | select(. != null)' <<< "$page" >> "$active"
+          cursor=$(jq -r '.nextCursor // empty' <<< "$page")
+          [ -n "$cursor" ] || break
+        done
+
+        active_ids=$(jq -R . "$active" | jq -s -c .)
+        results=$(jq -c --arg cutoff "$cutoff" --argjson active "$active_ids" '[.[] | select(.updatedAt < $cutoff and ((.id as $i | $active | index($i)) == null))]' <<< "$results")
+        window="$idle_days days"
+      fi
+
+      count=$(jq 'length' <<< "$results")
 
       {
         printf '# %s\n\n' "$job"
         printf -- '- filter: %s\n' "$filter"
+        if [ -n "$window" ]; then
+          printf -- '- idle for: at least %s (no update, comment or other activity)\n' "$window"
+        fi
         printf -- '- tasks: %s\n\n' "$count"
-        jq -r '.results[] | "- " + .content + " (p" + ((5 - .priority) | tostring) + (if .due then ", due " + .due.date else "" end) + ((.labels // []) | map(" @" + .) | join("")) + ") " + .url' <<< "$json"
+        jq -r '.[] | "- " + .content + " (p" + ((5 - .priority) | tostring) + (if .due then ", due " + .due.date else "" end) + ", updated " + ((.updatedAt // "") | .[0:10]) + ((.labels // []) | map(" @" + .) | join("")) + ") " + .url' <<< "$results"
       } | automations-report "$job" ok
     '';
   };
@@ -238,7 +274,17 @@ in
               limit = lib.mkOption {
                 type = lib.types.ints.positive;
                 default = 100;
-                description = "Most tasks written to the report.";
+                description = "Most tasks the filter fetches. The report can list fewer when idleDays drops some.";
+              };
+
+              idleDays = lib.mkOption {
+                type = lib.types.ints.unsigned;
+                default = 0;
+                description = ''
+                  When above 0, keep only tasks with no update, comment or other
+                  activity in this many days. Todoist filters cannot express
+                  that, so the runner checks updatedAt and the activity log.
+                '';
               };
             };
           }
@@ -290,7 +336,7 @@ in
             wants = [ "network-online.target" ];
             onFailure = [ "automations-failed@${tdQueryJob name}.service" ];
             serviceConfig = jobService // {
-              ExecStart = "${lib.getExe tdQuery} ${tdQueryJob name} ${q.file} ${toString q.limit}";
+              ExecStart = "${lib.getExe tdQuery} ${tdQueryJob name} ${q.file} ${toString q.limit} ${toString q.idleDays}";
             };
           }
         ) cfg.tdQueries;
