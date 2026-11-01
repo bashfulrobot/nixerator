@@ -27,6 +27,27 @@ let
   start = pkgs.writeShellScript "claudoist-helper-start" ''
     exec ${secretsLib.gopassRun { inherit pkgs; }} ${helperPkg}/bin/claudoist-helper
   '';
+  # Publishes the resolved key to a runtime-dir file so the DankBar claudoist
+  # widget (hyprflake) can read it at run time. Runs under gopassRun as
+  # ExecStartPre, so HELPER_TOKEN already holds the resolved value; the script
+  # never prints it. The file is 0600 in $XDG_RUNTIME_DIR (tmpfs, owner-only
+  # dir), written to a temp name and renamed so a reader never sees a partial
+  # key.
+  writeToken = pkgs.writeShellScript "claudoist-token-write" ''
+    set -eu
+    umask 077
+    dest="''${XDG_RUNTIME_DIR:?}/claudoist-token"
+    tmp="$(${pkgs.coreutils}/bin/mktemp "$dest.XXXXXX")"
+    trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
+    printf '%s' "''${HELPER_TOKEN:?}" > "$tmp"
+    ${pkgs.coreutils}/bin/chmod 600 "$tmp"
+    ${pkgs.coreutils}/bin/mv -f "$tmp" "$dest"
+    trap - EXIT
+  '';
+
+  stopClean = pkgs.writeShellScript "claudoist-token-clean" ''
+    ${pkgs.coreutils}/bin/rm -f "''${XDG_RUNTIME_DIR:?}/claudoist-token"
+  '';
 in
 {
   options.apps.cli.claudoist-helper = {
@@ -54,7 +75,9 @@ in
           After = [ "graphical-session.target" ];
         };
         Service = {
+          ExecStartPre = "${secretsLib.gopassRun { inherit pkgs; }} ${writeToken}";
           ExecStart = "${start}";
+          ExecStopPost = "${stopClean}";
           Environment = [
             "HELPER_PORT=${toString cfg.port}"
             "HELPER_TOKEN=${cfg.tokenRef}"
