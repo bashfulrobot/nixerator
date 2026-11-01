@@ -8,8 +8,8 @@
 pkgs.writeText "claude-reminders.json" (
   builtins.toJSON [
     {
-      due = "2026-10-31";
-      message = "claude-code module best-practices audit is due (colobu.com tips last run 2026-05-05; supplementary context-engineering review 2026-07-31). Offer to re-run the procedure at the bottom of modules/apps/cli/claude-code/README.md.";
+      due = "2027-01-31";
+      message = "claude-code module best-practices audit is due (ykdojo/claude-code-tips re-audited 2026-10-31; context-engineering review 2026-07-31). Offer to re-run the procedure at the bottom of modules/apps/cli/claude-code/README.md.";
     }
   ]
 )

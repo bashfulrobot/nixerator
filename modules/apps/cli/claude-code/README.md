@@ -88,9 +88,39 @@ review's three low-effort wins:
   in this README's "Not covered" Tip 21 entry below, which is the only place
   it can live. No file change; removed from the wins list below.
 
-**Reassess by: 2026-10-31** (3 months from the supplementary review). Refetch
-whichever of the two sources is still maintained (or a successor) and re-run
-the relevant procedure below.
+**Re-audit: 2026-10-31.** The colobu.com URL now returns 404. Its source,
+<https://github.com/ykdojo/claude-code-tips>, is maintained and now lists 50
+tips (0 to 49), renumbered, so the "Tip N" labels in the tables below still use
+the 2026-05-05 colobu numbering. Anthropic's context-engineering article is
+live at `claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models`
+(dated 2026-07-24). Its fetch redirects to `claude.dev`, which was not
+followed. Findings:
+
+- **Tips new since May, all already covered:** auto mode (31) by `/dk:auto`
+  and `auto-gate`; Remote Control (32) by `dk:rc-mgmt`; artifacts (33) by the
+  Artifact tool; Concise output style (49) by the `compact` and `dustin`
+  output styles in `config/output-styles/`.
+- **Tips new since May, not adopted:** per-account OAuth switching (46), GitHub
+  as a knowledge base (47, notes live in `~/Notes`), a `TESTING.md` review
+  document (48). Launch aliases (7) are fish abbreviations (`cfg/fish.nix:687`);
+  whether one launches Claude was not checked.
+- **Tip 21 (containerised `--dangerously-skip-permissions`):**
+  `skipDangerousModePermissionPrompt` is still set in the claude-stack
+  snapshots (`cfg/claude-stack/qbert.json`, `srv.json`) with no container. The
+  threat model now rests on single-user hosts and out-of-repo rendered secrets
+  (git-crypt is retired). Unchanged decision.
+- **Anthropic article:** the secondary summary mentions a `claude doctor`
+  command that flags duplicated or overconstrained instructions. UNVERIFIED:
+  not run, and not read from the primary post (the fetch redirected). Next
+  pass: run it against `~/.claude/CLAUDE.md` and this repo's `CLAUDE.md`.
+- **Tip-to-file checks:** `bash-guard`, `PreCompact`, the intent logs,
+  `statusline.sh`, `cleanupPeriodDays` and `additionalDirectories` all still
+  exist in `config/settings.json`, `default.nix`, `cfg/activation.nix` or the
+  claude-stack snapshots. The `tmux-claude` hook is named only in
+  `default.nix`.
+
+**Reassess by: 2027-01-31.** Refetch the ykdojo list and the Anthropic article
+(or a successor) and re-run the procedure below.
 
 ### Already covered (often more rigorously than the article)
 
