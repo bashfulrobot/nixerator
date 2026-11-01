@@ -344,7 +344,7 @@
       "state": "enabled"
     },
     "se-harness@claude-skills": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "security-audit@claude-skills": {
       "state": "enabled"

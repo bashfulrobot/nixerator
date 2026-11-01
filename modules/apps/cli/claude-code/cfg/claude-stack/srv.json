@@ -265,7 +265,7 @@
       "state": "enabled"
     },
     "se-harness@claude-skills": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "security-guidance@claude-plugins-official": {
       "state": "absent"
