@@ -1,27 +1,12 @@
 {
   lib,
-  mcpServers,
 }:
 
 let
-  # Reuse the Slack MCP config from mcp-servers.nix
-  slackMcpJson = builtins.toJSON {
-    mcpServers = {
-      inherit (mcpServers) slack;
-    };
-  };
-
   # Context definitions: each key becomes ~/.config/{key}/claude-context/
-  contexts = {
-    log-support-ticket = {
-      mcpJson = slackMcpJson;
-      permissions = [
-        "mcp__slack__slack_read_thread"
-        "mcp__slack__slack_read_channel"
-        "mcp__slack__slack_search_channels"
-      ];
-    };
-  };
+  # with a .mcp.json (cfg.mcpJson) and an allow list (cfg.permissions).
+  # Empty since the Slack MCP was removed: log-support-ticket was its only user.
+  contexts = { };
 
   # Generate Home Manager file entries for each context
   mkContextFiles =
