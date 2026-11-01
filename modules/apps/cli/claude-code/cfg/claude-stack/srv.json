@@ -273,6 +273,9 @@
     "skill-creator@claude-plugins-official": {
       "state": "absent"
     },
+    "slack@claude-plugins-official": {
+      "state": "absent"
+    },
     "superpowers@claude-plugins-official": {
       "state": "absent"
     },
