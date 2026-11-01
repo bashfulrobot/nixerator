@@ -145,13 +145,6 @@ in
             ForwardAgent = true;
           };
 
-          "dk" = {
-            HostName = "192.168.169.3";
-            User = globals.user.name;
-            IdentityFile = "~/.ssh/id_ed25519";
-            ForwardAgent = true;
-          };
-
           # Work Mac. Its firewall blocks all incoming connections, so the Mac
           # dials out to qbert (donkeykong's ssh-reverse-tunnel agent) and
           # qbert's localhost:2222 reaches the Mac's Homebrew sshd (key-only,

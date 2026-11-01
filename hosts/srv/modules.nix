@@ -449,6 +449,9 @@ in
       # phone-readable rca.html (https://srv.goat-cloud.ts.net/incidents/...)
       # instead of an unreadable filesystem path. Tailnet-only, never public.
       publish.enable = true;
+      # The LAN miniserve had no auth. The tailnet serve is authenticated by
+      # tailscale, so bundles are tailnet-only and the LAN listener is off.
+      publish.lan.enable = false;
     };
 
     # server.nanoclaw: see the NanoClaw note below, above warnings.
