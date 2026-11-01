@@ -163,12 +163,15 @@
       # Ollama defaults the context window to a few thousand tokens, which
       # truncates long opencode sessions. 32k is the working size for the
       # 22 GB Qwen3.6 35B-A3B (65% on the GPU, 35% on the CPU).
-      # Flash attention stays off: measured on this 6800 XT (2026-10-20,
-      # 10-task tool-call test), 32k context decoded at 55 tokens/s without it
-      # and 25 with it, and 16k at 58 without it. kvCacheType needs flash
-      # attention, so it stays unset too.
+      # Flash attention is left at ollama's automatic default. The 2026-10-20
+      # test (55 tokens/s off, 25 on at 32k) ran on an older ollama. On 0.40 the
+      # automatic default decodes at 58 tokens/s at 32k (2026-10-31) and
+      # flashAttention = false no longer turns it off. Set flashAttentionOff to
+      # rerun the comparison. kvCacheType stays unset: the 32k KV cache is
+      # 640 MiB, so q8_0 saves less than one expert layer.
       contextLength = 32768;
-      flashAttention = false;
+      # Keep the model resident: skips the 11 s reload after 5 min idle.
+      keepAlive = "-1";
       # srv and the Mac use this server as their opencode model over Tailscale.
       serveOnTailscale = true;
     };
