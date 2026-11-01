@@ -274,10 +274,10 @@
       "state": "absent"
     },
     "slack@claude-plugins-official": {
-      "state": "disabled"
+      "state": "absent"
     },
     "slack@claude-skills": {
-      "state": "disabled"
+      "state": "absent"
     },
     "superpowers@claude-plugins-official": {
       "state": "absent"
