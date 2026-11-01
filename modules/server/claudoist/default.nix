@@ -4,70 +4,35 @@
   config,
   globals,
   inputs,
-  versions,
   secretsLib,
   ...
 }:
-# claudoist -- the srv side of the Todoist task-level UI Extension. See
-# server.incidentInvestigator's own module comment for the shared opRunExec /
-# claude-subscription-auth pattern this mirrors; the differences here are the
-# request source (Todoist's HMAC-signed webhook, not a Grafana bearer secret)
-# and the write target (a Todoist comment via `td`, not an incident bundle).
+# claudoist -- the srv side of the Todoist task-level UI Extension. It only
+# answers Todoist's HMAC-signed POST /process with a card whose buttons open
+# the claudoist helper's loopback URL on the laptop (apps.cli.claudoist-helper
+# on qbert, a launchd agent on the Mac). The receiver runs nothing itself: no
+# `claude`, no `td`, no Pushover. See docs/spec.md in the claudoist repo.
 #
-# The receiver itself (TypeScript) is built by the claudoist flake, not
-# vendored into this tree -- see `inputs.claudoist` in nixerator's flake.nix.
-# Only actions/*.sh run from the cloned repo path, the same split
-# server.incidentInvestigator already uses for its own scripts.
+# The receiver (TypeScript) is built by the claudoist flake, not vendored into
+# this tree -- see `inputs.claudoist` in nixerator's flake.nix.
 #
-# Trigger path (all on srv):
+# Trigger path:
 #   Todoist UI Extension button -> cloudflared tunnel (claudoist.srvrs.co)
 #     -> claudoist receiver (this service, localhost:<port>, checks the
 #        x-todoist-hmac-sha256 header)
-#     -> actions/<name>.sh (scoped read-only `claude -p`)
-#     -> `td comment add` on the task + Pushover notify.
+#     -> card with http://127.0.0.1:47615/launch?... buttons
+#     -> the helper on the laptop opens kitty running claude.
 #
-# Secrets: VERIFICATION_TOKEN/PUSHOVER_* are op:// refs resolved at runtime by
-# the gopass runner (lib/secrets.nix gopassRun) (see opRunExec below, identical to incident-investigator's).
-# TODOIST_API_TOKEN is not an op:// ref -- it reuses the rendered secrets file
-# render-secrets already produces on srv (the same .todoist_token field
-# fish/`td` already read from at modules/apps/cli/fish/default.nix), read
-# directly by startScript below.
+# Secrets: VERIFICATION_TOKEN and HELPER_TOKEN are op:// refs resolved at
+# runtime by the gopass runner (lib/secrets.nix gopassRun). HELPER_TOKEN is the
+# same value the helper reads on each laptop. It ends up in card URLs, which
+# Todoist's servers see (claudoist issue 24 tracks signed links).
 let
   cfg = config.server.claudoist;
   homeDir = globals.user.homeDirectory;
   inherit (pkgs.stdenv.hostPlatform) system;
 
   receiverPkg = inputs.claudoist.packages.${system}.default;
-  actionsDir = "${cfg.repoDir}/actions";
-
-  # There is no pkgs.todoist-cli attribute -- apps.cli.todoist-cli builds it
-  # the same way, locally, via callPackage (see
-  # modules/apps/cli/todoist-cli/default.nix). Build it here too rather than
-  # depending on that module's option being enabled, so this service's `td`
-  # doesn't silently disappear if that toggle ever changes.
-  todoistCliPkg = pkgs.callPackage ../../apps/cli/todoist-cli/build { inherit versions; };
-
-  # Same self-contained pattern as todoistCliPkg above: build gws locally
-  # rather than depending on apps.cli.gws.enable, so this service's `gws`
-  # doesn't silently disappear if that toggle ever changes, and srv's
-  # otherwise-deliberate "no gws here" posture (see hosts/qbert/modules.nix)
-  # stays scoped to just this one systemd service.
-  gwsPkg = pkgs.callPackage ../../apps/cli/gws/build { inherit versions; };
-
-  runtimePath = lib.makeBinPath [
-    pkgs.bash
-    pkgs.llm-agents.claude-code
-    todoistCliPkg
-    gwsPkg
-    pkgs.jq
-    pkgs.curl
-    pkgs.coreutils
-    pkgs.gnugrep
-    pkgs.gnused
-    pkgs.findutils
-    pkgs.gh
-    pkgs.cacert
-  ];
 
   # Resolves every op:// value in the child env from the secauto gopass store, then
   # execs the command. Replaces `op run` and the 1Password service-account token.
@@ -77,60 +42,19 @@ let
       exec ${secretsLib.gopassRun { inherit pkgs; }} ${command}
     '';
 
-  # Same rendered-secrets file fish/`td` already read TODOIST_API_TOKEN from.
-  secretsFile = "${homeDir}/.config/nixos-secrets/secrets.json";
-
-  # Combined start wrapper for the receiver only (the cloudflared tunnel below
-  # uses opRunExec directly, since it needs only the op:// TUNNEL_TOKEN).
-  # Resolves TODOIST_API_TOKEN from the rendered secrets file, then execs
-  # the gopass runner (lib/secrets.nix gopassRun) (which resolves VERIFICATION_TOKEN/PUSHOVER_* from Environment=
-  # below) around the receiver binary. the gopass runner passes through any env value
-  # that isn't an op:// ref unchanged, so TODOIST_API_TOKEN reaches the
-  # receiver's actions/*.sh children as a literal value, not re-resolved.
-  startScript = pkgs.writeShellScript "claudoist-start" ''
-    set -eu
-    if [ ! -r "${secretsFile}" ]; then
-      echo "Rendered secrets file not found at ${secretsFile}; run render-secrets first." >&2
-      exit 1
-    fi
-    if ! ${pkgs.jq}/bin/jq -e '.todoist_token // empty' ${secretsFile} >/dev/null 2>&1; then
-      echo "No .todoist_token field in ${secretsFile}; run render-secrets or check the field name." >&2
-      exit 1
-    fi
-    TODOIST_API_TOKEN="$(${pkgs.jq}/bin/jq -r '.todoist_token' ${secretsFile})"
-    export TODOIST_API_TOKEN
-
-    exec ${secretsLib.gopassRun { inherit pkgs; }} ${receiverPkg}/bin/claudoist-receiver
-  '';
-
   runtimeEnv = [
     "HOME=${homeDir}"
-    "PATH=${runtimePath}"
     "PORT=${toString cfg.port}"
     "HOST=127.0.0.1"
     "VERIFICATION_TOKEN=${cfg.verificationTokenRef}"
-    "ACTIONS_DIR=${actionsDir}"
-    "PUSHOVER_TOKEN=${cfg.pushoverTokenRef}"
-    "PUSHOVER_USER=${cfg.pushoverUserRef}"
-    "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-  ]
-  ++ lib.optional (cfg.claudeModel != "") "CLAUDE_MODEL=${cfg.claudeModel}"
-  ++ lib.optional (cfg.claudeTimeout != "") "CLAUDE_TIMEOUT=${cfg.claudeTimeout}";
+    "HELPER_TOKEN=${cfg.helperTokenRef}"
+    "HELPER_BASE_URL=${cfg.helperBaseUrl}"
+    "CARD_MODE=${cfg.cardMode}"
+  ];
 in
 {
   options.server.claudoist = {
-    enable = lib.mkEnableOption "Todoist task-level UI Extension receiver (webhook + Claude Code actions)";
-
-    repoDir = lib.mkOption {
-      type = lib.types.str;
-      default = "${homeDir}/git/claudoist";
-      description = ''
-        Path to the claudoist clone on this host. actions/*.sh are read from
-        here; the receiver itself is installed as a package (see
-        inputs.claudoist), not run from this clone. Must be checked out on
-        srv before the service will start.
-      '';
-    };
+    enable = lib.mkEnableOption "Todoist task-level UI Extension receiver (returns launch cards for the local helper)";
 
     port = lib.mkOption {
       type = lib.types.port;
@@ -138,6 +62,35 @@ in
       description = ''
         Loopback port the receiver binds. cloudflared connects locally; no
         firewall port is opened, matching incident-investigator's posture.
+      '';
+    };
+
+    helperTokenRef = lib.mkOption {
+      type = lib.types.str;
+      default = "op://automation/claudoist/helper-token";
+      description = ''
+        gopass reference (op:// form, see lib/secrets.nix gopassRun) for the
+        shared secret the helper checks on /launch. The receiver puts it in the
+        card URLs. Same entry the helper reads on each laptop.
+      '';
+    };
+
+    helperBaseUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "http://127.0.0.1:47615";
+      description = "Where the helper listens on the laptop. Card buttons open this URL in the browser.";
+    };
+
+    cardMode = lib.mkOption {
+      type = lib.types.enum [
+        "url"
+        "clipboard"
+      ];
+      default = "url";
+      description = ''
+        `url` makes card buttons open the helper link. `clipboard` makes them
+        copy the claude command instead and keeps the helper token out of the
+        card, for when Todoist refuses localhost links (claudoist issue 14).
       '';
     };
 
@@ -150,32 +103,6 @@ in
         the gopass runner (lib/secrets.nix gopassRun). Create the `automation/claudoist` item with this field
         before enabling.
       '';
-    };
-
-    pushoverTokenRef = lib.mkOption {
-      type = lib.types.str;
-      default = "op://automation/Pushover-api/api-token";
-      description = "1Password `op://` reference for the Pushover application token (reuses the existing Pushover-api item).";
-    };
-
-    pushoverUserRef = lib.mkOption {
-      type = lib.types.str;
-      default = "op://automation/Pushover-api/user-key";
-      description = "1Password `op://` reference for the Pushover user key.";
-    };
-
-    claudeModel = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      example = "claude-opus-4-8";
-      description = "Optional `claude --model` override for the action scripts. Empty means each script's own default.";
-    };
-
-    claudeTimeout = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      example = "5m";
-      description = "Optional CLAUDE_TIMEOUT override for the action scripts. Empty means each script's own default (5m).";
     };
 
     tunnel = {
@@ -208,22 +135,10 @@ in
           Type = "simple";
           User = globals.user.name;
           Group = "users";
-          ExecStart = "${startScript}";
+          ExecStart = opRunExec "${receiverPkg}/bin/claudoist-receiver";
           Environment = runtimeEnv;
           Restart = "on-failure";
           RestartSec = 10;
-          # KillMode defaults to "control-group": a restart or redeploy would
-          # SIGTERM/SIGKILL every process in this unit's cgroup, including
-          # any in-flight detached action script (and the `claude -p` it
-          # spawned) that src/server.ts's spawn(..., {detached: true})
-          # deliberately tries to let outlive the receiver process. "process"
-          # limits the kill to the receiver's own main PID, so an action
-          # already running when this service restarts finishes normally
-          # instead of silently losing its Todoist comment.
-          KillMode = "process";
-          # Same rationale as incident-investigator: this process shells out
-          # to `claude` (Node) via actions/*.sh, which needs its own $HOME
-          # for credentials, so ProtectHome/ProtectSystem stay off.
           NoNewPrivileges = true;
           LockPersonality = true;
           ProtectKernelTunables = true;

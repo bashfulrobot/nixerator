@@ -319,13 +319,14 @@ in
     # both claudoist.service and cloudflared-claudoist.service will
     # crash-loop (loud gopass-runner failures on missing 1Password fields, no
     # secret ever half-resolves) rather than silently running broken:
-    #   1. `claude` already logged in on srv (~/.claude/.credentials.json).
-    #      -- satisfied: shared with incidentInvestigator, already enabled.
+    #   1. (retired: the receiver no longer runs `claude`; it only returns
+    #      launch cards for the helper on each laptop.)
     #   2. 1Password automation vault item `claudoist`:
     #      `hmac-verification-token` (from the Todoist App Management Console
     #      UI Extension) and `cloudflared-token` (the tunnel's "Get tunnel
     #      token" value). -- NOT YET DONE.
-    #   3. ~/git/claudoist cloned on srv (repoDir default). -- NOT YET DONE.
+    #   3. gopass entry automation/claudoist/helper-token (shared with the
+    #      helper on each laptop). -- done 2026-11-01.
     #   4. Todoist App Management Console: a context-menu UI Extension on
     #      Task, data-exchange endpoint https://claudoist.srvrs.co/process.
     #      -- NOT YET DONE.
