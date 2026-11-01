@@ -16,7 +16,8 @@ Dustin is a Technical Account Manager. Rank his open Todoist tasks by what deser
 - For each task write `summary`, one short line saying what the task is, and `reason`, one short line saying why it has this rank. No line breaks, no `|` character, 120 characters at most each.
 - Set `suggested_action` to exactly one of `do`, `defer`, `delegate`, `drop`. It is a hint only. Nothing acts on it.
 - Priority numbers in the input already use the report convention: 1 is the highest.
-- Return only a JSON array of objects with the keys `id`, `rank`, `summary`, `reason`, `suggested_action`. Return no other text.
+- Each task carries a short `description`. Use it to judge rule 1 (a promise to a customer, or something that blocks someone).
+- Return a JSON object with one key, `ranking`, holding an array with one object per task: `id`, `rank`, `summary`, `reason`, `suggested_action`. Return no other text.
 
 ## Safety
 

@@ -451,10 +451,16 @@ in
           description = "stale_after_hours written into the report, for `orch.py inbox`. The claudoist helper has its own 30 hour rule.";
         };
 
+        claudeTimeoutSeconds = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 600;
+          description = "Seconds before the claude call is killed. Must stay below `timeout` minus the Todoist retry ladders (up to 540 seconds).";
+        };
+
         timeout = lib.mkOption {
           type = lib.types.str;
-          default = "15min";
-          description = "TimeoutStartSec for the unit. A run takes 1 to 2 minutes.";
+          default = "30min";
+          description = "TimeoutStartSec for the unit. A run takes 1 to 2 minutes. The ceiling covers two Todoist retry ladders (540 seconds) plus the claude call.";
         };
       };
 
@@ -577,12 +583,32 @@ in
           serviceConfig = jobService // {
             ExecStart = "${triageRankStart}";
             TimeoutStartSec = cfg.triageRank.timeout;
+            # This job holds two API tokens and feeds untrusted text to a model,
+            # so it gets more than the heartbeat-grade defaults: a read-only
+            # system, no devices, no namespaces, no capabilities, and a bounded
+            # footprint. It writes only the reports folder and the GPG home that
+            # the gopass runner needs.
+            ProtectSystem = "strict";
+            ReadWritePaths = [
+              cfg.reportsDir
+              "${globals.user.homeDirectory}/.gnupg"
+            ];
+            PrivateDevices = true;
+            RestrictSUIDSGID = true;
+            RestrictNamespaces = true;
+            RestrictRealtime = true;
+            ProtectProc = "invisible";
+            ProtectHostname = true;
+            CapabilityBoundingSet = "";
+            MemoryMax = "2G";
+            CPUQuota = "100%";
             Environment = [
               "HOME=${globals.user.homeDirectory}"
               "TD_FILTER_FILE=${pkgs.writeText "triage-rank-filter" cfg.triageRank.filter}"
               "LIMIT=${toString cfg.triageRank.limit}"
               "POLICY_FILE=${cfg.triageRank.policyFile}"
               "STALE_AFTER=${toString cfg.triageRank.staleAfterHours}"
+              "CLAUDE_TIMEOUT=${toString cfg.triageRank.claudeTimeoutSeconds}"
               "CLAUDE_CODE_OAUTH_TOKEN=${cfg.triageRank.claudeOauthTokenRef}"
               "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
             ]
