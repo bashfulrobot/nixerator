@@ -104,6 +104,11 @@ in
             # kitty and claude come from the system and user profiles.
             "PATH=/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
           ];
+          # A restart (a rebuild, systemctl restart) must not end the Claude
+          # sessions the helper started. The default KillMode=control-group
+          # would SIGTERM every process in the unit's cgroup, kitty and claude
+          # included. "process" limits the kill to the helper itself.
+          KillMode = "process";
           Restart = "on-failure";
           RestartSec = 15;
         };
