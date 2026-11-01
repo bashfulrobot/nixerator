@@ -275,6 +275,9 @@
                   enable = true;
                   user = globals.user.name;
                   listenAddr = "127.0.0.1:8787";
+                  # The module's default reads `pkgs.system`, which now warns
+                  # at eval time. Set the package here to bypass that default.
+                  package = inputs.claudio.packages.${pkgs.stdenv.hostPlatform.system}.default;
                   # systemd services don't inherit the user's shell PATH, so
                   # "claude" alone isn't found -- point at the stable
                   # per-user profile symlink instead of a /nix/store path
