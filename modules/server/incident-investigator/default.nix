@@ -67,8 +67,8 @@ let
     pkgs.curl
     pkgs.git
     pkgs.gh
-    # RCA notification redesign: gh issue create/comment on a genuinely
-    # impacted verdict. This service runs as User=dustin with no dedicated
+    # investigate.sh runs gh issue create (every actionable fault) and gh label
+    # create; Claude itself only comments. This service runs as User=dustin with no dedicated
     # service account, so it shares whatever `gh auth login` credential is
     # stored under this $HOME with your own interactive use on this host --
     # in practice your broad personal token, not a fine-grained PAT scoped
@@ -80,6 +80,7 @@ let
     # service), so auth is a one-time manual step either way.
 
     pkgs.coreutils
+    pkgs.util-linux # watch-sweep.sh takes a flock so two sweeps never overlap
     pkgs.gnugrep
     pkgs.gnused
     pkgs.gawk # rightsize computes its percentile label with awk on every run; gcq's help uses it too
@@ -329,6 +330,26 @@ in
         type = lib.types.str;
         default = "Mon 04:00";
         description = "systemd `OnCalendar` expression for the weekly sweep.";
+      };
+    };
+
+    watchSweep = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Promote watched faults that never resolved. investigate.sh puts a fault
+          Claude called self-healed on a 2h watch list and stays silent; this timer
+          re-runs it through investigate.sh (opening a GitHub issue) when no
+          Grafana resolved event cleared it. Without the timer a watched fault is
+          only promoted by the 3-firings-in-24h flap rule.
+        '';
+      };
+
+      schedule = lib.mkOption {
+        type = lib.types.str;
+        default = "*:0/15";
+        description = "systemd `OnCalendar` expression for the watch sweep (default every 15 minutes).";
       };
     };
 
@@ -594,6 +615,30 @@ in
           };
         };
 
+        # Promotes watched faults that never resolved (watch-sweep.sh). A promotion
+        # re-runs investigate.sh, which needs the full investigator environment
+        # (Pushover, Claude token, Grafana read token, kubeconfig), so this reuses
+        # runtimeEnv and the gopass runner exactly like the receiver does. Oneshot
+        # on a timer; the script takes its own flock, so a slow promotion cannot
+        # overlap the next tick.
+        incident-investigator-watch-sweep = lib.mkIf cfg.watchSweep.enable {
+          description = "Promote unresolved watched faults to GitHub issues";
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = globals.user.name;
+            Group = "users";
+            ExecStart = opRunExec "${pkgs.bash}/bin/bash ${scriptsDir}/watch-sweep.sh";
+            Environment = runtimeEnv;
+            NoNewPrivileges = true;
+            LockPersonality = true;
+            ProtectKernelTunables = true;
+            ProtectKernelModules = true;
+            ProtectControlGroups = true;
+          };
+        };
+
         # Weekly cluster-wide rightsizing sweep: read-only, writes a bundle and
         # Pushes an over/under-provisioned summary. A oneshot service on a timer,
         # separate from the alert-driven receiver above.
@@ -613,6 +658,15 @@ in
             ProtectKernelModules = true;
             ProtectControlGroups = true;
           };
+        };
+      };
+
+      timers.incident-investigator-watch-sweep = lib.mkIf cfg.watchSweep.enable {
+        description = "Every-15-minute trigger for the incident watch sweep";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = cfg.watchSweep.schedule;
+          Persistent = true;
         };
       };
 
