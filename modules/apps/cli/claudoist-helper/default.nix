@@ -27,6 +27,34 @@ let
   start = pkgs.writeShellScript "claudoist-helper-start" ''
     exec ${secretsLib.gopassRun { inherit pkgs; }} ${helperPkg}/bin/claudoist-helper
   '';
+  # Publishes the resolved key to a runtime-dir file so the DankBar claudoist
+  # widget (hyprflake) can read it at run time. Runs under gopassRun as
+  # ExecStartPre, so HELPER_TOKEN already holds the resolved value; the script
+  # never prints it. The file is 0600 in $XDG_RUNTIME_DIR (tmpfs, owner-only
+  # dir), written to a temp name and renamed so a reader never sees a partial
+  # key.
+  writeToken = pkgs.writeShellScript "claudoist-token-write" ''
+    set -eu
+    umask 077
+    dest="''${XDG_RUNTIME_DIR:?}/claudoist-token"
+    # A writer killed between the write and the rename leaves a temp file that
+    # holds the key; clear any from an earlier start.
+    ${pkgs.coreutils}/bin/rm -f "$dest".??????
+    tmp="$(${pkgs.coreutils}/bin/mktemp "$dest.XXXXXX")"
+    trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
+    printf '%s' "''${HELPER_TOKEN:?}" > "$tmp"
+    ${pkgs.coreutils}/bin/chmod 600 "$tmp"
+    ${pkgs.coreutils}/bin/mv -f "$tmp" "$dest"
+    trap - EXIT
+  '';
+
+  # On stop, remove only temp leftovers. The key file itself stays across a
+  # restart, so the widget reads "down" (helper stopped) and not "no token"
+  # (key never written). It lives on tmpfs and goes at logout.
+  stopClean = pkgs.writeShellScript "claudoist-token-clean" ''
+    set -eu
+    ${pkgs.coreutils}/bin/rm -f "''${XDG_RUNTIME_DIR:?}"/claudoist-token.??????
+  '';
 in
 {
   options.apps.cli.claudoist-helper = {
@@ -46,15 +74,29 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # The DankBar claudoist widget (hyprflake) reads the key file written by
+    # ExecStartPre below and talks to this helper's port.
+    hyprflake.desktop.dank.claudoist = {
+      enable = true;
+      inherit (cfg) port;
+    };
+
     home-manager.users.${globals.user.name} = {
       systemd.user.services.claudoist-helper = {
         Unit = {
           Description = "claudoist helper (Todoist task to Claude session)";
           PartOf = [ "graphical-session.target" ];
           After = [ "graphical-session.target" ];
+          # ExecStartPre decrypts the key with gpg. Without a limit a missing
+          # or broken gopass entry would retry the decrypt forever; stop after
+          # 10 failures in 10 minutes and leave the unit failed.
+          StartLimitIntervalSec = 600;
+          StartLimitBurst = 10;
         };
         Service = {
+          ExecStartPre = "${secretsLib.gopassRun { inherit pkgs; }} ${writeToken}";
           ExecStart = "${start}";
+          ExecStopPost = "${stopClean}";
           Environment = [
             "HELPER_PORT=${toString cfg.port}"
             "HELPER_TOKEN=${cfg.tokenRef}"
@@ -63,7 +105,7 @@ in
             "PATH=/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
           ];
           Restart = "on-failure";
-          RestartSec = 5;
+          RestartSec = 15;
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
