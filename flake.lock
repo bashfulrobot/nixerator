@@ -307,11 +307,11 @@
     "claude-skills": {
       "flake": false,
       "locked": {
-        "lastModified": 1793557918,
-        "narHash": "sha256-y3JCx46ysGgNP2I0DjLP0lVrzJpwdc6B6c+zGns/9nk=",
+        "lastModified": 1793565291,
+        "narHash": "sha256-UqfqBgVvFX8+C9ERe1oSdih+KOErUP9lB5yKeXMx40Y=",
         "ref": "refs/heads/main",
-        "rev": "5ff951630bba1362f95440ebe09bc221a06cd198",
-        "revCount": 330,
+        "rev": "0f21e44a643f682be99e9f4b8b5d670d64cf5071",
+        "revCount": 335,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/claude-skills"
       },
