@@ -93,8 +93,9 @@ review's three low-effort wins:
 tips (0 to 49), renumbered, so the "Tip N" labels in the tables below still use
 the 2026-05-05 colobu numbering. Anthropic's context-engineering article is
 live at `claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models`
-(dated 2026-07-24). Its fetch redirects to `claude.dev`, which was not
-followed. Findings:
+(dated 2026-07-24, by Thariq Shihipar). That URL redirects to `claude.dev`,
+which Dustin confirmed is a valid domain; the article was read in full there.
+Findings:
 
 - **Tips new since May, all already covered:** auto mode (31) by `/dk:auto`
   and `auto-gate`; Remote Control (32) by `dk:rc-mgmt`; artifacts (33) by the
@@ -109,10 +110,13 @@ followed. Findings:
   snapshots (`cfg/claude-stack/qbert.json`, `srv.json`) with no container. The
   threat model now rests on single-user hosts and out-of-repo rendered secrets
   (git-crypt is retired). Unchanged decision.
-- **Anthropic article:** the secondary summary mentions a `claude doctor`
-  command that flags duplicated or overconstrained instructions. UNVERIFIED:
-  not run, and not read from the primary post (the fetch redirected). Next
-  pass: run it against `~/.claude/CLAUDE.md` and this repo's `CLAUDE.md`.
+- **Anthropic article:** it confirms the 2026-07-31 findings (deferred
+  loading, no duplicated guidance between system prompt and tool descriptions,
+  judgment over hard rules, a lightweight CLAUDE.md as a tree of files loaded
+  when needed, long skills split by progressive disclosure). It names
+  `/doctor` (`claude doctor`) as the command that rightsizes skills and
+  CLAUDE.md files. It does not say what that command checks. Next pass: run
+  `/doctor` against `~/.claude/CLAUDE.md` and this repo's `CLAUDE.md`.
 - **Tip-to-file checks:** `bash-guard`, `PreCompact`, the intent logs,
   `statusline.sh`, `cleanupPeriodDays` and `additionalDirectories` all still
   exist in `config/settings.json`, `default.nix`, `cfg/activation.nix` or the
