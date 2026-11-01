@@ -21,7 +21,6 @@ let
   cfg = config.apps.cli.claudoist-helper;
   inherit (pkgs.stdenv.hostPlatform) system;
   helperPkg = inputs.claudoist.packages.${system}.helper;
-  home = globals.user.homeDirectory;
 
   # HELPER_TOKEN is an op:// ref the gopass runner resolves from the secauto
   # store, so the value never enters the Nix store or the unit file.
@@ -60,7 +59,6 @@ in
             "HELPER_PORT=${toString cfg.port}"
             "HELPER_TOKEN=${cfg.tokenRef}"
             "HELPER_PYTHON=${pkgs.python3}/bin/python3"
-            "HELPER_WORKDIR=${home}"
             # kitty and claude come from the system and user profiles.
             "PATH=/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
           ];
