@@ -155,7 +155,7 @@ a host that has rebuilt with `stackApply` on.
 | `config/settings.json` force-owned keys (`env`, `model`, `statusLine`, `outputStyle`, `permissions.{deny,defaultMode,additionalDirectories}`, 9 flags) | `settings.force` | the `@STATUSLINE_COMMAND@` and `@USER_NAME@` sed in `cfg/activation.nix`, the matching capture canonicalization |
 | `config/settings.json` `PostToolUse` rows 1 and 2 | dk `warn-default-branch.sh` and `guard-git-bypass.sh` | `rehomedRowMarkers` and `isRehomedRow` in `default.nix` |
 | `config/settings.json` the other 6 `PostToolUse` rows, both `SessionStart` rows, the `Stop` row, the `UserPromptSubmit` row | the manifest rows that declare them | NOT deletable while `hookVarMarkers` reads their bodies out of this file. Move each body into dk or into the manifest first, then drop its `hookVarMarkers` entry and its `vars` entry together |
-| `config/agents/{bash,devops,go,nix,slack-search}.md` | dk 3.6.0 `agents/` | the agents loop in `cfg/activation.nix`, the `agents` capture section |
+| `config/agents/{bash,devops,go,nix}.md` | dk 3.6.0 `agents/` (slack-search already deleted) | the agents loop in `cfg/activation.nix`, the `agents` capture section |
 | `config/output-styles/{dustin,compact}.md` | dk 3.6.0 `output-styles/` | the output-styles loop in `cfg/activation.nix`, the `output-styles` capture section |
 | `output-styles/compact.md` (module root) | nothing, it is a dead copy referenced by no `.nix` | |
 | `statusline.sh` | `claude-stack/files/statusline.sh` | the `statusLineSource` conditional and the SC1003 exclusion in `default.nix` |

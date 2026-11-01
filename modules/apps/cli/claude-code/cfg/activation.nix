@@ -313,6 +313,11 @@ in
       $DRY_RUN_CMD cp --no-preserve=mode "$agent" "$claude_home/agents/$(basename "$agent")"
     done
 
+    # Retired agents -- the loop above only copies, so a removed source file
+    # leaves its live copy behind. slack-search listed the disabled Slack MCP
+    # tools; dk:slack-search (dk plugin) replaces it.
+    $DRY_RUN_CMD rm -f "$claude_home/agents/slack-search.md"
+
     # Skills -- mirror each Nix-managed skill into ~/.claude/skills/<skill>/
     # using rsync. --delete prunes anything removed from source.
     # --chmod=u+w makes files writable so Claude Code can edit them at runtime
