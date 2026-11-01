@@ -210,6 +210,9 @@
     "dk@claude-skills": {
       "state": "enabled"
     },
+    "final-answer@claude-skills": {
+      "state": "enabled"
+    },
     "frontend-design@claude-skills": {
       "state": "enabled"
     },
@@ -234,6 +237,9 @@
     "impeccable@claude-skills": {
       "state": "enabled"
     },
+    "journey-pane@claude-skills": {
+      "state": "enabled"
+    },
     "kode@claude-skills": {
       "secrets": {
         "kode_apikey": "gopass://automation/kode-internal-mcp-api-key/password"
@@ -255,6 +261,9 @@
     "pyright-lsp@claude-plugins-official": {
       "state": "enabled"
     },
+    "quiet-chat@claude-skills": {
+      "state": "enabled"
+    },
     "se-harness@claude-skills": {
       "state": "enabled"
     },
@@ -274,7 +283,7 @@
       "state": "absent"
     },
     "tactiq@claude-skills": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "terse@claude-skills": {
       "state": "enabled"
