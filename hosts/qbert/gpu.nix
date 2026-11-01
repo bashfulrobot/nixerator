@@ -41,7 +41,12 @@
   # OpenCL support for compute tasks
   hardware.amdgpu.opencl.enable = true;
 
-  # LACT - Linux AMDGPU Controller Tool (uncomment if needed)
-  # Provides GUI for overclocking, undervolting, fan curves
-  # services.lact.enable = true;
+  # Overdrive sets the amdgpu ppfeaturemask (0xfffd7fff, nixpkgs default) so
+  # the power cap, voltage offset and fan curve become writable.
+  hardware.amdgpu.overdrive.enable = true;
+
+  # LACT - Linux AMDGPU Controller Tool: GUI and daemon for power cap,
+  # undervolt and fan curves. Tune in the GUI, then copy the result from
+  # /etc/lact/config.yaml into services.lact.settings to make it declarative.
+  services.lact.enable = true;
 }
