@@ -147,10 +147,33 @@ in
         type = lib.types.bool;
         default = false;
         description = ''
-          Enable flash attention (OLLAMA_FLASH_ATTENTION=1). A mathematically
-          equivalent attention implementation with a smaller, faster KV cache,
-          so a larger contextLength fits in the same VRAM at no quality cost.
-          Also required before kvCacheType can quantize the KV cache.
+          Force flash attention on (OLLAMA_FLASH_ATTENTION=1). false sets
+          nothing: ollama 0.40 and later enables flash attention automatically
+          when the model supports it, so false does not turn it off (use
+          flashAttentionOff for that). A mathematically equivalent attention
+          implementation with a smaller, faster KV cache. Also required before
+          kvCacheType can quantize the KV cache.
+        '';
+      };
+
+      flashAttentionOff = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Force flash attention off (OLLAMA_FLASH_ATTENTION=0). Use it to
+          benchmark against ollama's automatic default.
+        '';
+      };
+
+      keepAlive = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "-1";
+        description = ''
+          How long a model stays loaded after its last request
+          (OLLAMA_KEEP_ALIVE). null keeps ollama's 5 minute default. "-1" keeps
+          the model resident, which skips the reload after idle at the cost of
+          holding its VRAM.
         '';
       };
 
@@ -201,6 +224,10 @@ in
         message = "apps.cli.ollama.serveOnTailscale binds 0.0.0.0, so it needs networking.firewall.enable = true to keep the LAN closed.";
       }
       {
+        assertion = !(cfg.flashAttention && cfg.flashAttentionOff);
+        message = "apps.cli.ollama.flashAttention and flashAttentionOff cannot both be true.";
+      }
+      {
         assertion = cfg.kvCacheType == null || cfg.flashAttention;
         message = "apps.cli.ollama.kvCacheType requires flashAttention = true (ollama only quantizes the KV cache with flash attention enabled).";
       }
@@ -227,6 +254,12 @@ in
         })
         // (lib.optionalAttrs cfg.flashAttention {
           OLLAMA_FLASH_ATTENTION = "1";
+        })
+        // (lib.optionalAttrs cfg.flashAttentionOff {
+          OLLAMA_FLASH_ATTENTION = "0";
+        })
+        // (lib.optionalAttrs (cfg.keepAlive != null) {
+          OLLAMA_KEEP_ALIVE = cfg.keepAlive;
         })
         // (lib.optionalAttrs (cfg.kvCacheType != null) {
           OLLAMA_KV_CACHE_TYPE = cfg.kvCacheType;

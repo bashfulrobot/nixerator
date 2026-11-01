@@ -31,6 +31,13 @@
     videoDrivers = [ "amdgpu" ];
   };
 
+  # GPU monitoring: amdgpu_top for live load, power and VRAM; rocm-smi is the
+  # binary the opencode allowlist already names.
+  environment.systemPackages = [
+    pkgs.amdgpu_top
+    pkgs.rocmPackages.rocm-smi
+  ];
+
   # OpenCL support for compute tasks
   hardware.amdgpu.opencl.enable = true;
 
