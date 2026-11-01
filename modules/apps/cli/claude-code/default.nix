@@ -30,10 +30,7 @@ let
       ;
     inherit (cfg) serverProfile;
   };
-  contextsConfig = import ./cfg/contexts.nix {
-    inherit lib;
-    inherit (mcpConfig) mcpServers;
-  };
+  contextsConfig = import ./cfg/contexts.nix { inherit lib; };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
   # Declarative, SHA-pinned plugin surface, derived from the claude-stack
   # manifest snapshot for cfg.stackHost (cfg/claude-stack/<host>.json, copied
