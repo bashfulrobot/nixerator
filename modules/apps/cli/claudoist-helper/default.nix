@@ -37,6 +37,9 @@ let
     set -eu
     umask 077
     dest="''${XDG_RUNTIME_DIR:?}/claudoist-token"
+    # A writer killed between the write and the rename leaves a temp file that
+    # holds the key; clear any from an earlier start.
+    ${pkgs.coreutils}/bin/rm -f "$dest".??????
     tmp="$(${pkgs.coreutils}/bin/mktemp "$dest.XXXXXX")"
     trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
     printf '%s' "''${HELPER_TOKEN:?}" > "$tmp"
@@ -45,8 +48,12 @@ let
     trap - EXIT
   '';
 
+  # On stop, remove only temp leftovers. The key file itself stays across a
+  # restart, so the widget reads "down" (helper stopped) and not "no token"
+  # (key never written). It lives on tmpfs and goes at logout.
   stopClean = pkgs.writeShellScript "claudoist-token-clean" ''
-    ${pkgs.coreutils}/bin/rm -f "''${XDG_RUNTIME_DIR:?}/claudoist-token"
+    set -eu
+    ${pkgs.coreutils}/bin/rm -f "''${XDG_RUNTIME_DIR:?}"/claudoist-token.??????
   '';
 in
 {
@@ -67,12 +74,24 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # The DankBar claudoist widget (hyprflake) reads the key file written by
+    # ExecStartPre below and talks to this helper's port.
+    hyprflake.desktop.dank.claudoist = {
+      enable = true;
+      inherit (cfg) port;
+    };
+
     home-manager.users.${globals.user.name} = {
       systemd.user.services.claudoist-helper = {
         Unit = {
           Description = "claudoist helper (Todoist task to Claude session)";
           PartOf = [ "graphical-session.target" ];
           After = [ "graphical-session.target" ];
+          # ExecStartPre decrypts the key with gpg. Without a limit a missing
+          # or broken gopass entry would retry the decrypt forever; stop after
+          # 10 failures in 10 minutes and leave the unit failed.
+          StartLimitIntervalSec = 600;
+          StartLimitBurst = 10;
         };
         Service = {
           ExecStartPre = "${secretsLib.gopassRun { inherit pkgs; }} ${writeToken}";
@@ -86,7 +105,7 @@ in
             "PATH=/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
           ];
           Restart = "on-failure";
-          RestartSec = 5;
+          RestartSec = 15;
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
