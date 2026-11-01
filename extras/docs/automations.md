@@ -70,9 +70,10 @@ activity log: task events by anyone, and comments (matched through their parent
 task). The report then lists only tasks nobody has touched for `idleDays` days.
 Adding a comment does not change a task's `updatedAt` (checked on a scratch task).
 
-With `flagRepeatDays` above 0 the runner also writes a worklog-style comment on
-each idle task: `[date] state: <label or active> | next: review idle task |
-idle-flag (idle Nd) | ref: <url>`. These are real writes to Todoist. The
+With `flagRepeatDays` above 0 the runner also writes a one-line comment on each
+idle task: `Idle Nd, flagged by srv (idle-flag)`. Todoist's timestamp is the
+date, and the state label already says who holds the ball. These are real writes
+to Todoist. The
 `idle-flag` text keeps those comments out of the activity that decides idleness,
 and a task gets another comment only after `flagRepeatDays` days. A failed comment
 is counted in the report and does not stop the run.
@@ -113,12 +114,11 @@ it from a Mac session.
   report stale. Use the longest gap between runs plus a day: 96 for Monday to
   Friday and Mon, Wed, Fri queries (the weekend gap), 120 for Mon and Thu, 192
   for weekly ones.
-- The orchestrator reads the newest worklog-shaped comment as a task's one-line
-  status. An `idle-flag` comment would replace it, so the runner reuses the
-  `next:` of the task's latest worklog comment, and falls back to `review idle
-  task` when there is none.
+- The orchestrator's worklog (dk 4.12) is one comment per action, appended, with
+  no `next:` field. The `idle-flag` note is therefore a short fixed line and the
+  runner reads no earlier comment.
 - `orch.py prepare` lists comments newer than the last sync as new findings, so
-  an `idle-flag` comment shows up there once. It carries the real next step.
+  an `idle-flag` comment shows up there once.
 - The orchestrator's own `audit <filter>` checks title, description and label
   conformance, so srv only flags a missing type label (`NO TYPE LABEL`) and does
   not duplicate that check.

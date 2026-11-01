@@ -257,7 +257,7 @@ in
           schedule = "Mon..Fri *-*-* 06:00:00";
           staleAfterHours = 96;
           idleDays = 2;
-          # Also write an idle-flag worklog comment on each idle task, at most
+          # Also write a one-line idle-flag comment on each idle task, at most
           # once a week per task. These are real writes to Todoist.
           flagRepeatDays = 7;
         };

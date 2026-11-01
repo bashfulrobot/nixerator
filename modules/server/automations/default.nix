@@ -248,28 +248,21 @@ let
       # shellcheck disable=SC2016
       jq_days='def days($iso): ((($now | fromdateiso8601) - (($iso | sub("\\.[0-9]+Z$"; "Z")) | fromdateiso8601)) / 86400 | floor);'
 
-      # Write one worklog-style comment per idle task that has no idle-flag
-      # comment in the last flag_days. A failed comment is counted, not fatal,
-      # so the report still lands.
+      # Write one short note per idle task that has no idle-flag comment in the
+      # last flag_days: "Idle Nd, flagged by srv (idle-flag)". The orchestrator's
+      # worklog format (dk 4.12) is one line per action with Todoist's own
+      # timestamp as the date, so the note carries no date, state, next step or
+      # link. A failed comment is counted, not fatal, so the report still lands.
       if [ "$flag_days" -gt 0 ]; then
         flag_cutoff=$(date -u -d "$flag_days days ago" +%FT%TZ)
-        today=$(date -u +%F)
         to_flag=$(jq -r --arg now "$now" --arg flagcut "$flag_cutoff" --argjson marks "$marker_map" "$jq_days"'
           .[]
           | select(($marks[.id] // "") < $flagcut)
-          | [.id,
-             ((.labels // []) | map(select(. == "waiting-customer" or . == "waiting-internal" or . == "backlog")) | .[0] // "active"),
-             (days(.lastActivity) | tostring),
-             .url]
+          | [.id, (days(.lastActivity) | tostring)]
           | @tsv' <<< "$results")
-        while IFS=$'\t' read -r tid tstate tidle turl; do
+        while IFS=$'\t' read -r tid tidle; do
           [ -n "$tid" ] || continue
-          # Keep the task's real next step: the newest worklog-shaped comment
-          # (the orchestrator's one-line status) already names it, and this
-          # comment becomes the newest line.
-          prev_next=$(td_retry comment list "id:$tid" --json | jq -r '[.results[].content | select(test("^\\[[0-9]{4}-[0-9]{2}-[0-9]{2}\\] state:"))] | (last // "") | (capture("\\| next: (?<n>[^(|]*)")? // {n: ""}) | .n | sub("\\s+$"; "")' || true)
-          [ -n "$prev_next" ] || prev_next="review idle task"
-          if td_retry comment add "id:$tid" --content "[$today] state: $tstate | next: $prev_next | $marker (idle ''${tidle}d) | ref: $turl" > /dev/null; then
+          if td_retry comment add "id:$tid" --content "Idle ''${tidle}d, flagged by srv ($marker)" > /dev/null; then
             flagged=$((flagged + 1))
           else
             flag_failed=$((flag_failed + 1))
@@ -425,12 +418,11 @@ in
                 type = lib.types.ints.unsigned;
                 default = 0;
                 description = ''
-                  When above 0 (and idleDays is set), add a worklog-style comment
-                  to each idle task: `[date] state: <label> | next: review idle
-                  task | idle-flag (idle Nd) | ref: <url>`. A task gets another
-                  comment only after this many days. The idle-flag text keeps
-                  these comments out of the activity that decides idleness. They
-                  are real writes to the Todoist account.
+                  When above 0 (and idleDays is set), add a one-line comment to
+                  each idle task: `Idle Nd, flagged by srv (idle-flag)`. A task
+                  gets another comment only after this many days. The idle-flag
+                  text keeps these comments out of the activity that decides
+                  idleness. They are real writes to the Todoist account.
                 '';
               };
 
