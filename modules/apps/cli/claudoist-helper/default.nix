@@ -101,6 +101,10 @@ in
             "HELPER_PORT=${toString cfg.port}"
             "HELPER_TOKEN=${cfg.tokenRef}"
             "HELPER_PYTHON=${pkgs.python3}/bin/python3"
+            # Owner-only unix socket for the bar widget's /top.json read, so
+            # the widget stops sending the key over TCP. %t is the user's
+            # runtime dir. A helper build without the socket ignores it.
+            "HELPER_SOCKET=%t/claudoist-helper.sock"
             # kitty and claude come from the system and user profiles.
             "PATH=/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
           ];
