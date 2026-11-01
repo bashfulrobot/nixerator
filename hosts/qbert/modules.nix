@@ -23,6 +23,11 @@
   system.resilient-boot.enable = true;
 
   apps.cli = {
+    # Opens a Claude Code session in kitty for a Todoist task. The card button
+    # comes from server.claudoist on srv. Token: gopass entry
+    # automation/claudoist/helper-token.
+    claudoist-helper.enable = true;
+
     # claude-skills owns the declared Claude Code settings keys on this host:
     # one `claude_stack.py apply` call at activation in place of the jq
     # force-merge, the resolved host file read out of the flake input, and
