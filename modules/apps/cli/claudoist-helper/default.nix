@@ -21,39 +21,24 @@ let
   cfg = config.apps.cli.claudoist-helper;
   inherit (pkgs.stdenv.hostPlatform) system;
   helperPkg = inputs.claudoist.packages.${system}.helper;
+  # File name of the helper's unix socket inside the runtime dir. hyprflake owns
+  # it so the widget and the unit cannot drift.
+  inherit (config.hyprflake.desktop.dank.claudoist) socketName;
 
   # HELPER_TOKEN is an op:// ref the gopass runner resolves from the secauto
   # store, so the value never enters the Nix store or the unit file.
   start = pkgs.writeShellScript "claudoist-helper-start" ''
     exec ${secretsLib.gopassRun { inherit pkgs; }} ${helperPkg}/bin/claudoist-helper
   '';
-  # Publishes the resolved key to a runtime-dir file so the DankBar claudoist
-  # widget (hyprflake) can read it at run time. Runs under gopassRun as
-  # ExecStartPre, so HELPER_TOKEN already holds the resolved value; the script
-  # never prints it. The file is 0600 in $XDG_RUNTIME_DIR (tmpfs, owner-only
-  # dir), written to a temp name and renamed so a reader never sees a partial
-  # key.
-  writeToken = pkgs.writeShellScript "claudoist-token-write" ''
+  # The bar widget reads the helper over its owner-only unix socket and never
+  # needs the key, so nothing writes the key to a file any more. On stop,
+  # remove the socket (the helper does not unlink it on SIGTERM) so the widget
+  # reads "down" while the helper is not running, and clear the key file and
+  # temp files an earlier version of this unit left in the runtime dir.
+  stopClean = pkgs.writeShellScript "claudoist-socket-clean" ''
     set -eu
-    umask 077
-    dest="''${XDG_RUNTIME_DIR:?}/claudoist-token"
-    # A writer killed between the write and the rename leaves a temp file that
-    # holds the key; clear any from an earlier start.
-    ${pkgs.coreutils}/bin/rm -f "$dest".??????
-    tmp="$(${pkgs.coreutils}/bin/mktemp "$dest.XXXXXX")"
-    trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
-    printf '%s' "''${HELPER_TOKEN:?}" > "$tmp"
-    ${pkgs.coreutils}/bin/chmod 600 "$tmp"
-    ${pkgs.coreutils}/bin/mv -f "$tmp" "$dest"
-    trap - EXIT
-  '';
-
-  # On stop, remove only temp leftovers. The key file itself stays across a
-  # restart, so the widget reads "down" (helper stopped) and not "no token"
-  # (key never written). It lives on tmpfs and goes at logout.
-  stopClean = pkgs.writeShellScript "claudoist-token-clean" ''
-    set -eu
-    ${pkgs.coreutils}/bin/rm -f "''${XDG_RUNTIME_DIR:?}"/claudoist-token.??????
+    d="''${XDG_RUNTIME_DIR:?}"
+    ${pkgs.coreutils}/bin/rm -f "$d/${socketName}" "$d"/claudoist-token "$d"/claudoist-token.??????
   '';
 in
 {
@@ -74,11 +59,13 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # The DankBar claudoist widget (hyprflake) reads the key file written by
-    # ExecStartPre below and talks to this helper's port.
+    # The DankBar claudoist widget (hyprflake) reads this helper over its unix
+    # socket (HELPER_SOCKET below) and never sends the key over TCP: with
+    # requireSocket a missing socket reads "down" in place of a TCP fallback.
     hyprflake.desktop.dank.claudoist = {
       enable = true;
       inherit (cfg) port;
+      requireSocket = true;
     };
 
     home-manager.users.${globals.user.name} = {
@@ -87,20 +74,23 @@ in
           Description = "claudoist helper (Todoist task to Claude session)";
           PartOf = [ "graphical-session.target" ];
           After = [ "graphical-session.target" ];
-          # ExecStartPre decrypts the key with gpg. Without a limit a missing
-          # or broken gopass entry would retry the decrypt forever; stop after
-          # 10 failures in 10 minutes and leave the unit failed.
+          # The gopass runner decrypts the key with gpg at start. Without a limit
+          # a missing or broken gopass entry would retry the decrypt forever;
+          # stop after 10 failures in 10 minutes and leave the unit failed.
           StartLimitIntervalSec = 600;
           StartLimitBurst = 10;
         };
         Service = {
-          ExecStartPre = "${secretsLib.gopassRun { inherit pkgs; }} ${writeToken}";
           ExecStart = "${start}";
           ExecStopPost = "${stopClean}";
           Environment = [
             "HELPER_PORT=${toString cfg.port}"
             "HELPER_TOKEN=${cfg.tokenRef}"
             "HELPER_PYTHON=${pkgs.python3}/bin/python3"
+            # Owner-only unix socket for the bar widget's /top.json read, so
+            # the widget never sends the key over TCP. %t is the user's runtime
+            # dir (0700). A helper build without the socket ignores it.
+            "HELPER_SOCKET=%t/${socketName}"
             # kitty and claude come from the system and user profiles.
             "PATH=/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
           ];

@@ -348,11 +348,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793576143,
-        "narHash": "sha256-vIzSJvKFd69ROHLMGWLilq3E0NoWxxKHLCZBB2V7MEg=",
+        "lastModified": 1793577013,
+        "narHash": "sha256-Jp6hswpTXGeUem+YuyTMGVh2s7DedA8rgSXcx2g9wlk=",
         "ref": "main",
-        "rev": "2546465e8f256857f7af42c410fd830284ab60c9",
-        "revCount": 50,
+        "rev": "84d5af6b799465d8bf88d146a13f73572925e6ff",
+        "revCount": 51,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/claudoist"
       },
@@ -886,11 +886,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793574967,
-        "narHash": "sha256-Ox3xxFxQZTF52TOFHtyvlm7coJ8nUNVrXq/7IyQuRCY=",
+        "lastModified": 1793577023,
+        "narHash": "sha256-fNiiLYo05V/fH054DTYNrzvZTE7aDY7Jqxq0/OXP7js=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "cbb673c70178d7071396825c50cbef00a0944837",
+        "rev": "f1862776ef2f894e3eed0914152aee73c1a92d9b",
         "type": "github"
       },
       "original": {
