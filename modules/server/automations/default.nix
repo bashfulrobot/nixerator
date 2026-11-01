@@ -327,6 +327,30 @@ let
     '';
   };
 
+  # Overnight pre-triage for claudoist (docs/phase3-spec.md in the claudoist
+  # repo). The script lives in triage-rank/ so shellcheck and review see it as a
+  # script. It reads Todoist and calls `claude -p` with every tool disabled.
+  triageRank = pkgs.writeShellApplication {
+    name = "automations-triage-rank";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnused
+      pkgs.gnugrep
+      pkgs.jq
+      todoistCli
+      pkgs.llm-agents.claude-code
+      report
+    ];
+    text = builtins.readFile ./triage-rank/triage-rank.sh;
+  };
+
+  # Same pattern as server.incidentInvestigator: the gopass runner resolves the
+  # op:// CLAUDE_CODE_OAUTH_TOKEN reference at run time, so the value never
+  # enters the Nix store or the unit file.
+  triageRankStart = pkgs.writeShellScript "automations-triage-rank-start" ''
+    exec ${secretsLib.gopassRun { inherit pkgs; }} ${lib.getExe triageRank}
+  '';
+
   tdQueryJob = name: "td-${name}";
 
   jobService = {
@@ -373,6 +397,64 @@ in
           type = lib.types.str;
           default = "*-*-* 06:30:00";
           description = "systemd OnCalendar expression for the heartbeat.";
+        };
+      };
+
+      triageRank = {
+        enable = lib.mkEnableOption "the overnight Todoist pre-triage job that ranks open tasks for the claudoist top-5";
+
+        schedule = lib.mkOption {
+          type = lib.types.str;
+          default = "Mon..Fri *-*-* 05:30:00";
+          description = "systemd OnCalendar expression. Kept away from the 06:00 pile the td queries share, to leave Todoist rate-limit room.";
+        };
+
+        filter = lib.mkOption {
+          type = lib.types.str;
+          default = "(overdue | due before: +8 days | #Inbox) & !subtask & !assigned to: others & !@waiting-customer & !@waiting-internal & !@backlog";
+          description = "Todoist filter for the candidate tasks.";
+        };
+
+        limit = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 60;
+          description = "Most tasks sent to the model. Tasks are pre-sorted by priority and due date before the cap.";
+        };
+
+        policyFile = lib.mkOption {
+          type = lib.types.path;
+          default = ./triage-rank/triage-policy.md;
+          description = "Ranking rules the model is given. Edit this file to change how tasks are ranked.";
+        };
+
+        model = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+          example = "claude-haiku-5-5";
+          description = "Optional `claude --model` override. Empty means the CLI default.";
+        };
+
+        claudeOauthTokenRef = lib.mkOption {
+          type = lib.types.str;
+          default = "op://automation/Claude-oauth-token/Oauth-token";
+          description = ''
+            gopass reference (op:// form) for the Claude token, resolved at run
+            time and passed as CLAUDE_CODE_OAUTH_TOKEN. Same entry as
+            server.incidentInvestigator. The token sits in claude's own
+            environment, and the call has every tool disabled.
+          '';
+        };
+
+        staleAfterHours = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 96;
+          description = "stale_after_hours written into the report, for `orch.py inbox`. The claudoist helper has its own 30 hour rule.";
+        };
+
+        timeout = lib.mkOption {
+          type = lib.types.str;
+          default = "15min";
+          description = "TimeoutStartSec for the unit. A run takes 1 to 2 minutes.";
         };
       };
 
@@ -482,6 +564,39 @@ in
             OnCalendar = cfg.heartbeat.schedule;
             Persistent = true;
             RandomizedDelaySec = "15m";
+          };
+        };
+      })
+
+      (lib.mkIf cfg.triageRank.enable {
+        services.automations-triage-rank = {
+          description = "Rank open Todoist tasks overnight into the synced automations folder";
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          onFailure = [ "automations-failed@triage-rank.service" ];
+          serviceConfig = jobService // {
+            ExecStart = "${triageRankStart}";
+            TimeoutStartSec = cfg.triageRank.timeout;
+            Environment = [
+              "HOME=${globals.user.homeDirectory}"
+              "TD_FILTER_FILE=${pkgs.writeText "triage-rank-filter" cfg.triageRank.filter}"
+              "LIMIT=${toString cfg.triageRank.limit}"
+              "POLICY_FILE=${cfg.triageRank.policyFile}"
+              "STALE_AFTER=${toString cfg.triageRank.staleAfterHours}"
+              "CLAUDE_CODE_OAUTH_TOKEN=${cfg.triageRank.claudeOauthTokenRef}"
+              "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+            ]
+            ++ lib.optional (cfg.triageRank.model != "") "CLAUDE_MODEL=${cfg.triageRank.model}";
+          };
+        };
+
+        timers.automations-triage-rank = {
+          description = "Weekday trigger for the overnight Todoist pre-triage";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnCalendar = cfg.triageRank.schedule;
+            Persistent = true;
+            RandomizedDelaySec = "2m";
           };
         };
       })

@@ -247,6 +247,10 @@ in
     # the shared scheduling pattern; real jobs (Slack follow-ups) come later.
     automations = {
       enable = true;
+      # Overnight Todoist ranking for the claudoist top-5 (claudoist issue 20,
+      # nixerator 668). Reads Todoist, one claude -p call with every tool off.
+      triageRank.enable = true;
+
       # Todoist filters kept one per file under modules/server/automations/queries/
       # and run on their own schedule. Reports land in reports/srv/td-<name>/.
       tdQueries = {

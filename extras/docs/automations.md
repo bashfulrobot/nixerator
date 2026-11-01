@@ -160,3 +160,9 @@ Write a script that ends with `... | automations-report <job> <status>`, run it
 from a `systemd.services` unit plus a timer with `Persistent = true`, and add
 `onFailure` to a unit that calls `automations-report <job> failed`. Jobs that
 need secrets read them from the secauto gopass store, never `op`.
+
+## triage-rank
+
+`server.automations.triageRank` ranks open Todoist tasks overnight for the claudoist top-5. Weekdays at 05:30 it runs one Todoist query and one `claude -p` call with every tool disabled, using the rules in `modules/server/automations/triage-rank/triage-policy.md`. It writes `reports/<host>/triage-rank/latest.md` and `latest.json`. Each task keeps the td-query shape and gains `rank`, `summary`, `reason` and `suggested_action`. A failed run writes status `failed` through `automations-failed`, and the claudoist helper then ignores the old report.
+
+It is read-only against Todoist and never sets `flagRepeatDays`. The Claude token resolves at run time through the gopass runner, the same entry `server.incidentInvestigator` uses. Run it by hand with `systemctl start automations-triage-rank`.
