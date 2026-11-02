@@ -69,6 +69,9 @@ in
     };
 
     home-manager.users.${globals.user.name} = {
+      # On PATH so `claudoist-helper triage` and `proposals` run from a terminal.
+      home.packages = [ helperPkg ];
+
       systemd.user.services.claudoist-helper = {
         Unit = {
           Description = "claudoist helper (Todoist task to Claude session)";
