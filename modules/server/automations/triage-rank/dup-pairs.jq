@@ -11,7 +11,7 @@
 # The model plays no part. Nothing merges or edits a task.
 def toks:
   ascii_downcase
-  | gsub("[^\\p{L}\\p{N}]+"; " ")
+  | gsub("[^\\p{L}\\p{M}\\p{N}]+"; " ")
   | split(" ")
   | map(select(length > 2 or test("[0-9]") or test("[^\\x00-\\x7f]")))
   | unique;

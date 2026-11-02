@@ -24,6 +24,8 @@ check "a quarter tag counts" "$(run '[{"id":"A","title":"Review Q3 plan"},{"id":
 check "one word titles never pair" "$(run '[{"id":"A","title":"Rent"},{"id":"B","title":"Rent"}]')" '[]'
 check "accented title matches itself" "$(pairs '[{"id":"A","title":"Réunion équipe"},{"id":"B","title":"réunion équipe"}]')" '[["A","B",1]]'
 check "accented and plain do not match" "$(run '[{"id":"A","title":"Réunion équipe"},{"id":"B","title":"Reunion equipe"}]')" '[]'
+nfd=$(printf 'Re\xcc\x81union e\xcc\x81quipe')
+check "decomposed accents stay inside words" "$(pairs "$(jq -nc --arg t "$nfd" '[{id:"A",title:$t},{id:"B",title:$t}]')")" '[["A","B",1]]'
 check "non-latin title pairs with itself" "$(pairs '[{"id":"A","title":"会议 记录 整理"},{"id":"B","title":"会议 记录 整理"}]')" '[["A","B",1]]'
 
 # 12 identical titles make 66 pairs; the cap keeps 50.
