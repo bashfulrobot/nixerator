@@ -302,6 +302,11 @@ test-text-polish:
 test-dup-pairs:
     nix shell nixpkgs#jq nixpkgs#coreutils --command bash modules/server/automations/triage-rank/dup-pairs.test.sh
 
+# Run the shared td caller tests (td-lib.sh: retry, Retry-After, gap, call count)
+[group('test')]
+test-td-lib:
+    nix shell nixpkgs#coreutils nixpkgs#gnugrep --command bash modules/server/automations/td-lib.test.sh
+
 # Run the triage-rank free-time file check tests (free-time-check.jq)
 [group('test')]
 test-free-time:

@@ -80,14 +80,58 @@ fi
 
 API="https://api.todoist.com/api/v1"
 
+# Rate-limit guard. Todoist allows 1000 partial and 100 full sync requests per
+# user per 15 minutes, and a 429 can lock the account out for 20 minutes or
+# more. One run makes 1 request for projects, then per project 2 for tasks and
+# sections plus 1 per task for comments (more when a list spans pages), so the
+# count grows with the task total and --kong multiplies it. Three limits:
+#   TODOIST_REPORT_MAX_CALLS  requests per run (default 400)
+#   TODOIST_REPORT_MAX_PAGES  pages followed per endpoint (default 10)
+#   TODOIST_REPORT_GAP        seconds between requests (default 0.3)
+# A 429 or the call cap stops all further requests. Comments for the remaining
+# tasks are then left empty and the run ends with a warning, never a retry.
+MAX_CALLS="${TODOIST_REPORT_MAX_CALLS:-400}"
+MAX_PAGES="${TODOIST_REPORT_MAX_PAGES:-10}"
+CALL_GAP="${TODOIST_REPORT_GAP:-0.3}"
+
+work_dir="$(mktemp -d)"
+trap 'rm -rf "$work_dir"' EXIT
+calls_file="${work_dir}/calls"
+stopped_file="${work_dir}/stopped"
+: >"$calls_file"
+
 api_get_raw() {
+  local calls resp code
+
+  if [[ -e "$stopped_file" ]]; then
+    return 1
+  fi
+  calls="$(wc -c <"$calls_file")"
+  if [[ "${calls//[[:space:]]/}" -ge "$MAX_CALLS" ]]; then
+    printf 'call cap of %s requests reached\n' "$MAX_CALLS" >"$stopped_file"
+    return 1
+  fi
+  printf 'x' >>"$calls_file"
+  sleep "$CALL_GAP"
+
   # Bearer via a curl -K config fd so the token stays off curl's argv.
-  curl -fsSL \
+  resp="$(curl -sSL \
     -K <(printf 'header = "Authorization: Bearer %s"\n' "${TODOIST_API_TOKEN}") \
-    "${API}/${1}"
+    -w '\n%{http_code}' \
+    "${API}/${1}")" || return 1
+  code="${resp##*$'\n'}"
+  if [[ "$code" == "429" ]]; then
+    printf 'Todoist answered HTTP 429 (rate limited)\n' >"$stopped_file"
+    return 1
+  fi
+  if [[ "$code" != 2* ]]; then
+    return 1
+  fi
+  printf '%s' "${resp%$'\n'*}"
 }
 
-# Fetches all pages of a paginated endpoint and returns a single combined array.
+# Fetches all pages of a paginated endpoint (up to MAX_PAGES) and returns a
+# single combined array.
 api_get_all() {
   local endpoint="$1"
   local all_results="[]"
@@ -96,6 +140,7 @@ api_get_all() {
   local page_json
   local page_results
   local req
+  local pages=0
 
   if [[ "$endpoint" == *"?"* ]]; then
     sep="&"
@@ -111,8 +156,13 @@ api_get_all() {
     page_results="$(printf '%s' "$page_json" | jq '.results')"
     all_results="$(printf '%s' "$all_results" | jq --argjson page "$page_results" '. + $page')"
     cursor="$(printf '%s' "$page_json" | jq -r '.next_cursor // ""')"
+    pages=$((pages + 1))
 
     [[ -z "$cursor" ]] && break
+    if [[ "$pages" -ge "$MAX_PAGES" ]]; then
+      gum log --level warn "Stopped ${endpoint%%\?*} after ${MAX_PAGES} pages; the list is cut short." >&2
+      break
+    fi
   done
 
   printf '%s' "$all_results"
@@ -171,9 +221,6 @@ else
   fi
 fi
 
-work_dir="$(mktemp -d)"
-trap 'rm -rf "$work_dir"' EXIT
-
 SEPARATOR="$(gum style --foreground 240 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')"
 
 report_project() {
@@ -200,7 +247,7 @@ report_project() {
     task_content="$(printf '%s' "$task_json" | jq -r '.content')"
     gum log --level info "[$((task_idx + 1))/$task_count] $task_content" >&2
 
-    if ! comments_raw="$(api_get_all "comments?task_id=${task_id}" 2>/dev/null)"; then
+    if [[ -e "$stopped_file" ]] || ! comments_raw="$(api_get_all "comments?task_id=${task_id}" 2>/dev/null)"; then
       comments_raw="[]"
     fi
 
@@ -435,4 +482,10 @@ if [[ "$JSON_MODE" == "true" ]]; then
   else
     cat "${work_dir}/proj_0.json"
   fi
+fi
+
+calls_made="$(wc -c <"$calls_file")"
+gum log --level info "Todoist requests this run: ${calls_made//[[:space:]]/}" >&2
+if [[ -e "$stopped_file" ]]; then
+  gum log --level warn "Stopped early: $(cat "$stopped_file"). Later comments are missing; wait 15 minutes before a rerun." >&2
 fi

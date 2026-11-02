@@ -84,11 +84,11 @@ is counted in the report and does not stop the run.
 | Query | Filter | Runs | Idle for | Comment again after |
 |---|---|---|---|---|
 | `kong-p1-idle` | `p1 & #kong-*` | Mon to Fri 06:00 | 2 days | 7 days |
-| `kong-p2-idle` | `p2 & #kong-* & (overdue \| today \| no date)` | Mon, Thu 06:00 | 5 days | 14 days |
-| `kong-p3-idle` | `p3 & #kong-* & (overdue \| today \| no date)` | Mon 06:00 | 14 days | none (report only) |
-| `waiting-stale` | `(@waiting-customer \| @waiting-internal) & (overdue \| today \| no date)` | Mon, Wed, Fri 06:00 | 5 days | 14 days |
-| `overdue-chronic` | `overdue & !(due after: -7 days) & (p1 \| p2)` | Mon 06:00 | none (updated age only) | none |
-| `inbox-stale` | `#Inbox & created before: -3 days` | Mon, Thu 06:00 | none (updated age only) | none |
+| `kong-p2-idle` | `p2 & #kong-* & (overdue \| today \| no date)` | Mon, Thu 06:05 | 5 days | 14 days |
+| `kong-p3-idle` | `p3 & #kong-* & (overdue \| today \| no date)` | Mon 06:10 | 14 days | none (report only) |
+| `waiting-stale` | `(@waiting-customer \| @waiting-internal) & (overdue \| today \| no date)` | Mon, Wed, Fri 06:15 | 5 days | 14 days |
+| `overdue-chronic` | `overdue & !(due after: -7 days) & (p1 \| p2)` | Mon 06:20 | none (updated age only) | none |
+| `inbox-stale` | `#Inbox & created before: -3 days` | Mon, Thu 06:25 | none (updated age only) | none |
 
 The cadence is about half the idle threshold, so a task is caught within half a
 window of crossing it. The `(overdue | today | no date)` clause hides future-dated
@@ -124,13 +124,32 @@ it from a Mac session.
   conformance, so srv only flags a missing type label (`NO TYPE LABEL`) and does
   not duplicate that check.
 
-Todoist rate limits the account with HTTP 429, and its `retry-after` has run past
-20 minutes after a burst of calls (seen 2026-10-31). Every `td` call in the
-runner goes through `td_retry`: on a 429 it waits 45, 90 and 135 seconds, then
-gives up and the job fails, so `automations-failed@<job>` marks the report
-`failed` and the next run restores it. Any other error fails at once. Do not
-trigger several queries back to back by hand; each run makes 3 to 10 calls, and
-the six timers share a 06:00 start with up to 5 minutes of random delay.
+Todoist rate limits the account with HTTP 429 (official limit: 1000 partial plus
+100 full sync requests per user per 15 minutes), and its `retry-after` has run
+past 20 minutes after a burst of calls (seen 2026-10-31). Three rules keep the
+jobs under it:
+
+- **Spaced starts.** The six timers start 5 minutes apart (06:00 to 06:25, the
+  four that read the activity feed first) with 1 minute of random delay.
+  triage-rank runs at 05:30. A lock in `/var/lib/automations` (mode 0700) makes
+  the td jobs run one at a time, even after a catch-up at boot.
+- **One activity fetch.** The 30 day activity feed is fetched once and cached
+  in `/var/lib/automations/activity-<since>.json` (mode 0600, 30 minute TTL).
+  The jobs that start inside the window reuse it, and a job that writes idle
+  flags records them in the cache so the next job does not flag the same task.
+- **Careful retries.** Every `td` call goes through `td_retry` in
+  `modules/server/automations/td-lib.sh`, shared with triage-rank. It leaves
+  1.5 seconds between calls. On a 429 it waits the Retry-After seconds when `td`
+  prints them, else 45 then 90 seconds, and stops after 3 calls. A Retry-After
+  over 180 seconds stops at once. Any other error fails at once. A failed job
+  makes `automations-failed@<job>` mark the report `failed`, and the next run
+  restores it. Tests: `just test-td-lib`.
+
+Each run logs `td calls: N` at exit (`journalctl -u automations-td-<name>`).
+Expected N: 2 (task list, project list), plus 1 per 1000 activity events on a
+cache miss, plus 1 per idle-flag comment. triage-rank expects 2.
+`todoist-report` stops at 400 requests, 10 pages per list or a 429, and logs its
+request count. Do not trigger several queries back to back by hand.
 
 To add a query: drop a `<name>.filter` file in
 `modules/server/automations/queries/`, add the entry in `hosts/srv/modules.nix`,
