@@ -5,6 +5,7 @@
   globals,
   inputs,
   secretsLib,
+  versions,
   ...
 }:
 # claudoist-helper -- the laptop side of "send a Todoist task to Claude".
@@ -21,6 +22,9 @@ let
   cfg = config.apps.cli.claudoist-helper;
   inherit (pkgs.stdenv.hostPlatform) system;
   helperPkg = inputs.claudoist.packages.${system}.helper;
+  # Same custom-built gws the gws module installs (not in nixpkgs). Built here
+  # so the freetime service works whether or not apps.cli.gws is enabled.
+  gws = pkgs.callPackage ../gws/build { inherit versions; };
   # File name of the helper's unix socket inside the runtime dir. hyprflake owns
   # it so the widget and the unit cannot drift.
   inherit (config.hyprflake.desktop.dank.claudoist) socketName;
@@ -55,6 +59,24 @@ in
       type = lib.types.str;
       default = "op://automation/claudoist/helper-token";
       description = "gopass reference (op:// form) for the shared launch token. Same entry as server.claudoist.helperTokenRef.";
+    };
+
+    freetime = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Run `claudoist-helper freetime` from a systemd user timer so
+          ~/automations/claudoist/free-time.json stays current for the 05:30
+          ranking on srv. srv ignores the file once it is older than 24 hours.
+        '';
+      };
+
+      workHours = lib.mkOption {
+        type = lib.types.str;
+        default = "08:00-17:00";
+        description = "Working hours, HH:MM-HH:MM, written to HELPER_WORK_HOURS for the freetime service.";
+      };
     };
   };
 
@@ -106,6 +128,38 @@ in
           RestartSec = 15;
         };
         Install.WantedBy = [ "graphical-session.target" ];
+      };
+
+      # Refreshes free-time.json from the calendar (needs gws logged in).
+      # A user timer that does not depend on the graphical session; the
+      # primary user lingers, so it fires with nobody logged in. A failed run
+      # (gws logged out, offline) logs and exits non-zero. No Restart=: the
+      # next slot is at most 4 hours away.
+      systemd.user.services.claudoist-freetime = lib.mkIf cfg.freetime.enable {
+        Unit.Description = "claudoist free-time refresh (calendar to free-time.json)";
+        Service = {
+          Type = "oneshot";
+          ExecStart = "${helperPkg}/bin/claudoist-helper freetime";
+          TimeoutStartSec = 90;
+          NoNewPrivileges = true;
+          Environment = [
+            "HELPER_WORK_HOURS=${cfg.freetime.workHours}"
+            "PATH=${lib.makeBinPath [ gws ]}:/run/current-system/sw/bin:/etc/profiles/per-user/${globals.user.name}/bin"
+          ];
+        };
+      };
+
+      systemd.user.timers.claudoist-freetime = lib.mkIf cfg.freetime.enable {
+        Unit.Description = "claudoist free-time refresh timer";
+        Timer = {
+          OnCalendar = [
+            "Mon..Fri *-*-* 05:00:00"
+            "Mon..Fri *-*-* 06,10,14,18:00:00"
+          ];
+          Persistent = true;
+          RandomizedDelaySec = "2min";
+        };
+        Install.WantedBy = [ "timers.target" ];
       };
     };
   };
