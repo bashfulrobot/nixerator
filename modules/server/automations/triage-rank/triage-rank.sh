@@ -199,18 +199,35 @@ if [ "$count" -gt 0 ]; then
 fi
 
 # 5. Merge the ranking into the full task shape and write the report body.
+# Possible duplicates are found here, by plain word overlap and not by the
+# model: two tasks whose titles share at least 80% of their words (3 letters or
+# more, at least 2 words each). The report lists pairs only. Nothing merges,
+# completes or edits a task, and the claudoist helper only shows the pairs.
 jq -c --slurpfile cand "$work/candidates.json" --arg filter "$TD_FILTER" --argjson stale "$STALE_AFTER" '
+  def toks: ascii_downcase | gsub("[^a-z0-9]+"; " ") | split(" ") | map(select(length > 2)) | unique;
+  def dup_pairs:
+    map({id, t: (.title | toks)}) as $x
+    | [ range(0; $x | length) as $i | range($i + 1; $x | length) as $j
+        | $x[$i] as $a | $x[$j] as $b
+        | select(($a.t | length) >= 2 and ($b.t | length) >= 2)
+        | (($a.t - ($a.t - $b.t)) | length) as $inter
+        | (($a.t + $b.t) | unique | length) as $uni
+        | select($inter / $uni >= 0.8)
+        | {a: $a.id, b: $b.id, score: ((($inter / $uni) * 100 | floor) / 100)} ]
+    | .[0:50];
   . as $rank
   | ($rank | map({key: .id, value: .}) | from_entries) as $byid
+  | ($cand[0]
+      | map(select($byid[.id] != null) | del(.description) | . + ($byid[.id] | del(.id)))
+      | sort_by(.rank)) as $tasks
   | {
       filter: $filter,
       age_label: "updated",
       idle_days: 0,
       stale_after_hours: $stale,
       proposal_advisory: true,
-      tasks: ($cand[0]
-        | map(select($byid[.id] != null) | del(.description) | . + ($byid[.id] | del(.id)))
-        | sort_by(.rank))
+      tasks: $tasks,
+      duplicate_pairs: ($tasks | dup_pairs)
     }' "$work/ranking.json" > "$work/body.json"
 
 {
@@ -220,9 +237,13 @@ jq -c --slurpfile cand "$work/candidates.json" --arg filter "$TD_FILTER" --argjs
   printf -- '- ids: %s\n' "$(jq -r '[.tasks[].id] | join(" ")' "$work/body.json")"
   printf -- '- act: orch.py inbox --report triage-rank --ids, then go <ids>\n\n'
   jq -r '.tasks[] | "\(.rank). " + (if .url then "[\(.title)](\(.url))" else .title end) + ": \(.reason) (\(.suggested_action))"' "$work/body.json"
+  if jq -e '.duplicate_pairs | length > 0' "$work/body.json" > /dev/null; then
+    printf '\n## Possible duplicates\n\n> Advisory only. Nothing is merged or edited.\n\n'
+    jq -r '.duplicate_pairs[] | "- \(.a) and \(.b) (overlap \(.score))"' "$work/body.json"
+  fi
   if jq -e '[.tasks[] | select(.proposal)] | length > 0' "$work/body.json" > /dev/null; then
     printf '\n## Inbox proposals\n\n> Advisory only. Nothing is written to Todoist.\n\n'
     jq -r '.tasks[] | select(.proposal) | "- \(.id): \(.title) -> \(.proposal.title) (label: \(if .proposal.type_label == "" then "none" else .proposal.type_label end))"' "$work/body.json"
   fi
 } | automations-report triage-rank ok "$work/body.json"
-echo "automations-triage-rank: $(jq '[.tasks[] | select(.project == "Inbox")] | length' "$work/body.json") Inbox tasks ranked, $(jq '[.tasks[] | select(.proposal)] | length' "$work/body.json") proposals kept" >&2
+echo "automations-triage-rank: $(jq '[.tasks[] | select(.project == "Inbox")] | length' "$work/body.json") Inbox tasks ranked, $(jq '[.tasks[] | select(.proposal)] | length' "$work/body.json") proposals kept, $(jq '.duplicate_pairs | length' "$work/body.json") duplicate pairs" >&2
