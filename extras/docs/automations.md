@@ -131,19 +131,24 @@ jobs under it:
 
 - **Spaced starts.** The six timers start 5 minutes apart (06:00 to 06:25, the
   four that read the activity feed first) with 1 minute of random delay.
-  triage-rank runs at 05:30. A lock in `/var/lib/automations` (mode 0700) makes
-  the td jobs run one at a time, even after a catch-up at boot.
+  triage-rank runs at 05:30 and takes no lock (2 calls). A lock in
+  `/var/lib/automations` (mode 0700) makes the six td jobs run one at a time,
+  even after a catch-up at boot. A job that waits 15 minutes for the lock logs a
+  skip and exits 0, so the old report stays and is not marked `failed`. The
+  units have a 40 minute start timeout, so a stuck call cannot hold the lock.
 - **One activity fetch.** The 30 day activity feed is fetched once and cached
-  in `/var/lib/automations/activity-<since>.json` (mode 0600, 30 minute TTL).
-  The jobs that start inside the window reuse it, and a job that writes idle
-  flags records them in the cache so the next job does not flag the same task.
+  in `/var/lib/automations/activity-<since>.json` (mode 0600, 30 minute TTL,
+  `activity-cache.sh`, at most 20 pages). The jobs that start inside the window
+  reuse it, and a job that writes idle flags records them in the cache so the
+  next job does not flag the same task. After 2 failed flag comments in a row
+  the job skips the rest and reports the count.
 - **Careful retries.** Every `td` call goes through `td_retry` in
   `modules/server/automations/td-lib.sh`, shared with triage-rank. It leaves
   1.5 seconds between calls. On a 429 it waits the Retry-After seconds when `td`
   prints them, else 45 then 90 seconds, and stops after 3 calls. A Retry-After
   over 180 seconds stops at once. Any other error fails at once. A failed job
   makes `automations-failed@<job>` mark the report `failed`, and the next run
-  restores it. Tests: `just test-td-lib`.
+  restores it. Tests: `just test-td-lib`, `just test-activity-cache`.
 
 Each run logs `td calls: N` at exit (`journalctl -u automations-td-<name>`).
 Expected N: 2 (task list, project list), plus 1 per 1000 activity events on a

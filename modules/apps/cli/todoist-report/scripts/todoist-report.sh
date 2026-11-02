@@ -88,17 +88,37 @@ API="https://api.todoist.com/api/v1"
 #   TODOIST_REPORT_MAX_CALLS  requests per run (default 400)
 #   TODOIST_REPORT_MAX_PAGES  pages followed per endpoint (default 10)
 #   TODOIST_REPORT_GAP        seconds between requests (default 0.3)
-# A 429 or the call cap stops all further requests. Comments for the remaining
-# tasks are then left empty and the run ends with a warning, never a retry.
+# A 429, any other HTTP error or the call cap stops all further requests. The
+# lists fetched so far are kept, comments for the remaining tasks are left
+# empty, --json output carries "truncated": true, and the run ends with a
+# warning, never a retry.
 MAX_CALLS="${TODOIST_REPORT_MAX_CALLS:-400}"
 MAX_PAGES="${TODOIST_REPORT_MAX_PAGES:-10}"
 CALL_GAP="${TODOIST_REPORT_GAP:-0.3}"
+# MAX_CALLS and MAX_PAGES reach bash arithmetic, so they must be plain numbers.
+if ! [[ "$MAX_CALLS" =~ ^[0-9]{1,6}$ && "$MAX_PAGES" =~ ^[0-9]{1,4}$ && "$CALL_GAP" =~ ^[0-9]{1,2}(\.[0-9]{1,3})?$ ]]; then
+  printf 'Error: TODOIST_REPORT_MAX_CALLS, _MAX_PAGES and _GAP must be numbers.\n' >&2
+  exit 1
+fi
 
 work_dir="$(mktemp -d)"
-trap 'rm -rf "$work_dir"' EXIT
 calls_file="${work_dir}/calls"
 stopped_file="${work_dir}/stopped"
+truncated_file="${work_dir}/truncated"
 : >"$calls_file"
+
+# Runs on every exit: logs the request count and, when a limit stopped the run,
+# says so.
+finish() {
+  local calls_made
+  calls_made="$(wc -c <"$calls_file")"
+  gum log --level info "Todoist requests this run: ${calls_made//[[:space:]]/}" >&2
+  if [[ -e "$stopped_file" ]]; then
+    gum log --level warn "Stopped early: $(cat "$stopped_file"). The report is incomplete; wait 15 minutes before a rerun." >&2
+  fi
+  rm -rf "$work_dir"
+}
+trap finish EXIT
 
 api_get_raw() {
   local calls resp code
@@ -115,7 +135,7 @@ api_get_raw() {
   sleep "$CALL_GAP"
 
   # Bearer via a curl -K config fd so the token stays off curl's argv.
-  resp="$(curl -sSL \
+  resp="$(curl -sS --proto '=https' --max-redirs 0 --connect-timeout 10 --max-time 30 \
     -K <(printf 'header = "Authorization: Bearer %s"\n' "${TODOIST_API_TOKEN}") \
     -w '\n%{http_code}' \
     "${API}/${1}")" || return 1
@@ -125,6 +145,7 @@ api_get_raw() {
     return 1
   fi
   if [[ "$code" != 2* ]]; then
+    printf 'Todoist answered HTTP %s for %s\n' "$code" "${1%%\?*}" >"$stopped_file"
     return 1
   fi
   printf '%s' "${resp%$'\n'*}"
@@ -152,7 +173,10 @@ api_get_all() {
       req="${endpoint}${sep}cursor=${cursor}"
     fi
 
-    page_json="$(api_get_raw "$req")"
+    if ! page_json="$(api_get_raw "$req")"; then
+      : >"$truncated_file"
+      break
+    fi
     page_results="$(printf '%s' "$page_json" | jq '.results')"
     all_results="$(printf '%s' "$all_results" | jq --argjson page "$page_results" '. + $page')"
     cursor="$(printf '%s' "$page_json" | jq -r '.next_cursor // ""')"
@@ -161,6 +185,7 @@ api_get_all() {
     [[ -z "$cursor" ]] && break
     if [[ "$pages" -ge "$MAX_PAGES" ]]; then
       gum log --level warn "Stopped ${endpoint%%\?*} after ${MAX_PAGES} pages; the list is cut short." >&2
+      : >"$truncated_file"
       break
     fi
   done
@@ -324,9 +349,11 @@ report_project() {
     printf '%s' "$sorted_tasks" | jq \
       --arg project "$project_name" \
       --arg generated "$generated" \
+      --argjson truncated "$([[ -e "$truncated_file" ]] && echo true || echo false)" \
       '{
         project: $project,
         generated: $generated,
+        truncated: $truncated,
         tasks: [.[] | {
           id: .id,
           content: .content,
@@ -484,8 +511,3 @@ if [[ "$JSON_MODE" == "true" ]]; then
   fi
 fi
 
-calls_made="$(wc -c <"$calls_file")"
-gum log --level info "Todoist requests this run: ${calls_made//[[:space:]]/}" >&2
-if [[ -e "$stopped_file" ]]; then
-  gum log --level warn "Stopped early: $(cat "$stopped_file"). Later comments are missing; wait 15 minutes before a rerun." >&2
-fi

@@ -20,9 +20,16 @@ td_max_tries=${td_max_tries:-3}
 td_max_wait=${td_max_wait:-180}
 td_backoff_base=${td_backoff_base:-45}
 
+# These reach bash arithmetic, which would run a crafted value. Digits only.
+for td_var in td_min_gap_ms td_max_tries td_max_wait td_backoff_base; do
+  if ! [[ ${!td_var} =~ ^[0-9]{1,6}$ ]]; then
+    echo "$td_tag: $td_var must be a number, got a bad value" >&2
+    exit 1
+  fi
+done
+
 td_state=$(mktemp -d)
 td_calls_file=$td_state/calls
-td_stamp_file=$td_state/last-call-ms
 : > "$td_calls_file"
 
 # Logs the call count. Call it from the EXIT trap, then it removes its state.
@@ -33,12 +40,18 @@ td_finish() {
   rm -rf "$td_state"
 }
 
-# Sleeps until td_min_gap_ms has passed since the last td call ended. The
-# timestamp lives in a file because td_retry usually runs in a $(...) subshell.
+# The last-call timestamp lives in a file because td_retry usually runs in a
+# $(...) subshell. A caller that holds a state directory sets td_stamp_dir to it,
+# so the gap also spans two jobs that run back to back.
+td_stamp_path() {
+  echo "${td_stamp_dir:-$td_state}/td-last-call-ms"
+}
+
+# Sleeps until td_min_gap_ms has passed since the last td call ended.
 td_throttle() {
   local now_ms last_ms wait_ms
   now_ms=$(( $(date +%s%N) / 1000000 ))
-  last_ms=$(cat "$td_stamp_file" 2> /dev/null || echo 0)
+  last_ms=$(cat "$(td_stamp_path)" 2> /dev/null || echo 0)
   wait_ms=$(( last_ms + td_min_gap_ms - now_ms ))
   if [ "$wait_ms" -gt 0 ]; then
     sleep "$(( wait_ms / 1000 )).$(printf '%03d' $(( wait_ms % 1000 )))"
@@ -46,7 +59,7 @@ td_throttle() {
 }
 
 td_stamp() {
-  echo $(( $(date +%s%N) / 1000000 )) > "$td_stamp_file"
+  echo $(( $(date +%s%N) / 1000000 )) > "$(td_stamp_path)"
 }
 
 # Seconds from a "Retry-After: 30", "retry_after=30" or "retry after 30" style
@@ -54,7 +67,7 @@ td_stamp() {
 # from the SDK error, so whether it ever carries the header is UNVERIFIED and
 # the fixed backoff below is the normal path.
 td_retry_after() {
-  grep -oiE 'retry[-_ ]?after"?[:= ]+[0-9]+' | head -n 1 | grep -oE '[0-9]+$' || true
+  grep -oiE 'retry[-_ ]?after"?[:= ]+[0-9]{1,9}' | head -n 1 | grep -oE '[0-9]+$' || true
 }
 
 # Runs `td "$@"`. Prints stdout on success. On failure prints nothing from td
@@ -76,11 +89,14 @@ td_retry() {
     td_stamp
     msg="$out$(< "$errfile")"
     if ! grep -q -e RATE_LIMITED -e 'HTTP 429' <<< "$msg"; then
-      echo "$td_tag: td $1 $2 failed" >&2
+      echo "$td_tag: td $1 ${2:-} failed" >&2
       rm -f "$errfile"
       return 1
     fi
-    wait_s=$(td_retry_after <<< "$msg")
+    # Read Retry-After from stderr only: stdout can carry task text that other
+    # people write. The nine digit cap in td_retry_after keeps the compare below
+    # inside integer range.
+    wait_s=$(td_retry_after < "$errfile")
     if [ -n "$wait_s" ] && [ "$wait_s" -gt "$td_max_wait" ]; then
       echo "$td_tag: Todoist rate limited, Retry-After ${wait_s}s is over ${td_max_wait}s, giving up" >&2
       rm -f "$errfile"
