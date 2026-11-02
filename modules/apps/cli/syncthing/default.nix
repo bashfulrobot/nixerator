@@ -101,7 +101,7 @@ in
           devices = {
             # Mac (../donkeykong). Shares upsight-data, upsight-config, dev and
             # automations below -- not the rest, which are either NixOS-shaped or hold keys a
-            # laptop should not carry. qbert is the Mac's only Syncthing peer.
+            # laptop should not carry. srv and the Mac also peer directly, for automations only.
             "MH36P2YMHX" = {
               addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
               id = globals.hosts.MH36P2YMHX.syncthing_id;
@@ -151,7 +151,10 @@ in
             # (claims/<id>.json) can be written by two laptops at once: Syncthing
             # keeps the newer file and renames the other to *.sync-conflict-*,
             # which the helper never reads (it opens claims/<id>.json only).
-            # See claudoist docs/adr/0005-syncthing-mesh.md.
+            # Two clicks inside the sync delay can still start two sessions,
+            # because each laptop creates its own claim before it sees the
+            # other. The claim only prevents the click that comes after the
+            # sync. See claudoist docs/adr/0005-syncthing-mesh.md.
             "automations" = {
               path = globals.paths.automations;
               devices = [ "MH36P2YMHX" ] ++ lib.optional hasSrvId "srv";
@@ -363,6 +366,9 @@ in
               ''} "$HOME/dev/.stignore"
               install -Dm644 ${pkgs.writeText "upsight-data-stignore" upsightIgnores} "$HOME/.local/share/upsight/.stignore"
               install -Dm644 ${pkgs.writeText "upsight-config-stignore" upsightIgnores} "$HOME/.config/upsight/.stignore"
+              install -Dm644 ${pkgs.writeText "automations-stignore" ''
+                *.sync-conflict-*
+              ''} "${globals.paths.automations}/.stignore"
             ''
           );
     };
