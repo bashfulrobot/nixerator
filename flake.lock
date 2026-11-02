@@ -348,11 +348,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793636976,
-        "narHash": "sha256-7Vk6sT4uLzObes0DdbF4+DenPrZxUNSJb5PAz6r55cA=",
+        "lastModified": 1793640536,
+        "narHash": "sha256-IiiagUrGZ4WSDJBSdisSofcFLjP7pWLdABU5bOCUSxY=",
         "ref": "main",
-        "rev": "c2aaa656d5b67c851789ad7aec9ea040d35ea087",
-        "revCount": 67,
+        "rev": "3a84aac3edb1f93626d38e05b9bdd4960768f21b",
+        "revCount": 69,
         "type": "git",
         "url": "ssh://git@github.com/bashfulrobot/claudoist"
       },
