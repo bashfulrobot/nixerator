@@ -17,7 +17,7 @@ Dustin is a Technical Account Manager. Rank his open Todoist tasks by what deser
 - Set `suggested_action` to exactly one of `do`, `defer`, `delegate`, `drop`. It is a hint only. Nothing acts on it.
 - Priority numbers in the input already use the report convention: 1 is the highest.
 - Each task carries a short `description`. Use it to judge rule 1 (a promise to a customer, or something that blocks someone).
-- For a task whose `project` is exactly `Inbox`, also return `proposal`, an object with `title` (an imperative action title, 80 characters at most), `description` (two sentences at most, 280 characters at most) and `type_label` (exactly one of `qa`, `followup`, `feature-request`, `meeting`, `initiative`, or an empty string when none fits). Same rules as above: no line breaks, no `|` character. Return no `proposal` for any other task. It is advisory: a person reviews it before anything changes in Todoist.
+- For a task whose `project` is exactly `Inbox`, also return `proposal`, an object with `title` (an imperative action title, 80 characters at most), `description` (two sentences at most, 280 characters at most) and `type_label` (exactly one of `qa`, `followup`, `feature-request`, `meeting`, `initiative`, or an empty string when none fits or when the task's `no_type_label` is false). Same rules as above: no line breaks, no `|` character. Return no `proposal` for any other task. It is advisory: a person reviews it before anything changes in Todoist.
 - Return a JSON object with one key, `ranking`, holding an array with one object per task: `id`, `rank`, `summary`, `reason`, `suggested_action`, plus `proposal` on Inbox tasks. Return no other text.
 
 ## Safety
