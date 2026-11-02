@@ -130,16 +130,34 @@ let
   # every task that was updated, commented on or otherwise touched in the last
   # N days. updatedAt covers edits and the activity log covers comments (their
   # parentItemId is the task) and task events by anyone (objectId).
+  #
+  # Rate limit (Todoist: 1000 partial plus 100 full sync requests per user per
+  # 15 minutes). td_retry in td-lib.sh spaces and retries the calls. Each run
+  # logs "td calls: N" at exit. Expected N, one run:
+  #   task list + project list                 2
+  #   activity feed, idleDays > 0, cache miss  1 per 1000 events (30 days)
+  #   activity feed, cache hit                 0
+  #   idle-flag comment                        1 per flagged task
+  # The six td jobs hold one lock, so two never overlap even after a Persistent
+  # catch-up at boot, and the first one to need the activity feed fetches it for
+  # the rest (activity-cache.sh). triage-rank takes no lock: it makes 2 calls at
+  # 05:30, 30 minutes before the first td job.
   tdQuery = pkgs.writeShellApplication {
     name = "automations-td-query";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.findutils
+      pkgs.gnugrep
       pkgs.gnused
       pkgs.jq
+      pkgs.util-linux
       todoistCli
       report
     ];
-    text = ''
+    text = builtins.readFile ./td-lib.sh + builtins.readFile ./activity-cache.sh + ''
+      td_tag=automations-td-query
+      trap td_finish EXIT
+
       job=$1
       file=$2
       limit=$3
@@ -147,31 +165,22 @@ let
       flag_days=$5
       stale_after=$6
 
-      # Todoist answers a burst of calls with HTTP 429 (RATE_LIMITED), and its
-      # retry-after can run past 20 minutes. Wait 45, 90 and 135 seconds, then
-      # give up so the failure handler marks the report failed. Hammering the API
-      # during the window only extends it. Other errors fail at once. Prints the
-      # command's stdout on success and both streams to stderr on failure.
-      td_retry() {
-        local out errfile attempt=0
-        errfile=$(mktemp)
-        while :; do
-          if out=$(td "$@" 2> "$errfile"); then
-            rm -f "$errfile"
-            printf '%s\n' "$out"
-            return 0
-          fi
-          if [ "$attempt" -ge 3 ] || ! grep -q -e RATE_LIMITED -e 'HTTP 429' <<< "$out$(<"$errfile")"; then
-            printf '%s\n' "$out" >&2
-            cat "$errfile" >&2
-            rm -f "$errfile"
-            return 1
-          fi
-          attempt=$((attempt + 1))
-          echo "automations-td-query: Todoist rate limited, retry $attempt of 3" >&2
-          sleep $((attempt * 45))
-        done
+      # One td job at a time. The lock file and the activity cache live in the
+      # unit's state directory (mode 0700, set by StateDirectory). Waiting more
+      # than 15 minutes for the lock skips the run (exit 0): a busy queue is not a
+      # Todoist failure, and the old report stays until the next run.
+      umask 077
+      state_dir=''${STATE_DIRECTORY:?STATE_DIRECTORY is not set, run this through the systemd unit}
+      exec 9> "$state_dir/td.lock"
+      flock -w 900 9 || {
+        echo "automations-td-query: another td job held the lock for 15 minutes, skipping $job" >&2
+        exit 0
       }
+      td_stamp_dir=$state_dir
+
+      # The activity feed is fetched once and reused by every job that starts
+      # within this many seconds. The cache key is the lookback date.
+      cache_ttl=1800
 
       if [ "$flag_days" -gt 0 ] && [ "$idle_days" -eq 0 ]; then
         echo "automations-td-query: flagging needs idleDays above 0" >&2
@@ -191,7 +200,8 @@ let
       events=$(mktemp)
       markers=$(mktemp)
       body_file=$(mktemp)
-      trap 'rm -f "$events" "$markers" "$body_file"' EXIT
+      flagged_ids=$(mktemp)
+      trap 'td_finish; rm -f "$events" "$markers" "$body_file" "$flagged_ids"' EXIT
       last_map='{}'
       marker_map='{}'
       cutoff=""
@@ -202,11 +212,15 @@ let
       [ "$idle_days" -gt 0 ] && age_label=idle
       flagged=0
       flag_failed=0
+      flag_skipped=0
 
       # idle-flag comments are written by this runner. They are kept out of the
       # activity that decides whether a task is idle, and tracked on their own
       # so a task is flagged again only after flag_days.
       marker='idle-flag'
+      # Matched against comment text. The full shape keeps a collaborator's comment
+      # that merely mentions idle-flag from counting as a flag.
+      marker_match="flagged by srv ($marker)"
 
       if [ "$idle_days" -gt 0 ]; then
         # Fetch at least 30 days of events so the idle age of a task reflects its
@@ -216,21 +230,47 @@ let
         cutoff=$(date -u -d "$idle_days days ago" +%FT%TZ)
         window="$idle_days days"
 
-        cursor=""
-        while :; do
-          if [ -n "$cursor" ]; then
-            page=$(td_retry activity --since "$since" --limit 1000 --cursor "$cursor" --json)
-          else
-            page=$(td_retry activity --since "$since" --limit 1000 --json)
-          fi
-          jq -c --arg marker "$marker" '.results[] | select(.objectType != "comment" or ((.extraData.content // "") | contains($marker) | not)) | {id: (if .objectType == "comment" then .parentItemId else .objectId end), at: .eventDate} | select(.id != null)' <<< "$page" >> "$events"
-          jq -c --arg marker "$marker" '.results[] | select(.objectType == "comment" and ((.extraData.content // "") | contains($marker))) | {id: .parentItemId, at: .eventDate} | select(.id != null)' <<< "$page" >> "$markers"
-          cursor=$(jq -r '.nextCursor // empty' <<< "$page")
-          [ -n "$cursor" ] || break
-        done
+        # Shared activity cache: {last: {taskId: latestEvent}, markers: {taskId:
+        # latestIdleFlag}}, mode 0600, fresh for cache_ttl seconds. A cache that
+        # does not parse is refetched.
+        cache="$state_dir/activity-$since.json"
+        activity_cache_prune "$state_dir"
+        if activity_cache_fresh "$cache" "$cache_ttl"; then
+          last_map=$(jq -c '.last' "$cache")
+          marker_map=$(jq -c '.markers' "$cache")
+          echo "automations-td-query: activity feed from cache (''${cache##*/}, $(activity_cache_age "$cache")s old)" >&2
+        else
+          cursor=""
+          pages=0
+          while :; do
+            pages=$((pages + 1))
+            if [ "$pages" -gt 20 ]; then
+              echo "automations-td-query: activity feed is over 20 pages (20000 events), stopping" >&2
+              exit 1
+            fi
+            if [ -n "$cursor" ]; then
+              page=$(td_retry activity --since "$since" --limit 1000 --cursor "$cursor" --json)
+            else
+              page=$(td_retry activity --since "$since" --limit 1000 --json)
+            fi
+            jq -c --arg marker "$marker_match" '.results[] | select(.objectType != "comment" or ((.extraData.content // "") | contains($marker) | not)) | {id: (if .objectType == "comment" then .parentItemId else .objectId end), at: .eventDate} | select(.id != null)' <<< "$page" >> "$events"
+            jq -c --arg marker "$marker_match" '.results[] | select(.objectType == "comment" and ((.extraData.content // "") | contains($marker))) | {id: .parentItemId, at: .eventDate} | select(.id != null)' <<< "$page" >> "$markers"
+            next=$(jq -r '.nextCursor // empty' <<< "$page")
+            [ -n "$next" ] || break
+            if [ "$next" = "$cursor" ]; then
+              echo "automations-td-query: activity cursor did not advance, stopping" >&2
+              exit 1
+            fi
+            cursor=$next
+          done
 
-        last_map=$(jq -s -c 'group_by(.id) | map({key: .[0].id, value: (map(.at) | max)}) | from_entries' "$events")
-        marker_map=$(jq -s -c 'group_by(.id) | map({key: .[0].id, value: (map(.at) | max)}) | from_entries' "$markers")
+          last_map=$(jq -s -c 'group_by(.id) | map({key: .[0].id, value: (map(.at) | max)}) | from_entries' "$events")
+          marker_map=$(jq -s -c 'group_by(.id) | map({key: .[0].id, value: (map(.at) | max)}) | from_entries' "$markers")
+
+          # Written only after the whole feed arrived, so a failed run never
+          # leaves a partial cache.
+          activity_cache_write "$state_dir" "$cache" "$last_map" "$marker_map"
+        fi
       fi
 
       # lastActivity is the later of updatedAt and the task's latest event. With
@@ -260,14 +300,29 @@ let
           | select(($marks[.id] // "") < $flagcut)
           | [.id, (days(.lastActivity) | tostring)]
           | @tsv' <<< "$results")
+        # Two failed comments in a row mean Todoist is refusing us, so the rest are
+        # skipped. Each failed call already cost up to 3 tries and a wait, and the
+        # lock is held meanwhile.
+        flag_streak=0
         while IFS=$'\t' read -r tid tidle; do
           [ -n "$tid" ] || continue
+          if [ "$flag_streak" -ge 2 ]; then
+            flag_skipped=$((flag_skipped + 1))
+            continue
+          fi
           if td_retry comment add "id:$tid" --content "Idle ''${tidle}d, flagged by srv ($marker)" > /dev/null; then
             flagged=$((flagged + 1))
+            flag_streak=0
+            echo "$tid" >> "$flagged_ids"
           else
             flag_failed=$((flag_failed + 1))
+            flag_streak=$((flag_streak + 1))
           fi
         done <<< "$to_flag"
+
+        # Record the new flags in the shared cache, so a job that starts later in
+        # the cache window does not comment on the same task again.
+        activity_cache_add_flags "$state_dir" "$cache" "$flagged_ids" "$now"
       fi
 
       # Machine-readable copy of the same tasks for orch.py inbox. automations-report
@@ -294,7 +349,7 @@ let
         printf -- '- ids: %s\n' "$(jq -r 'map(.id) | join(" ")' <<< "$results")"
         printf -- '- act: orch.py inbox --report %s --ids, then orch.py prepare <id> --goal "<goal>" for each id\n' "$job"
         if [ "$flag_days" -gt 0 ]; then
-          printf -- '- idle-flag comments written: %s (failed: %s, repeat after %s days)\n' "$flagged" "$flag_failed" "$flag_days"
+          printf -- '- idle-flag comments written: %s (failed: %s, skipped after repeated failures: %s, repeat after %s days)\n' "$flagged" "$flag_failed" "$flag_skipped" "$flag_days"
         fi
         jq -r --arg now "$now" --arg age "$age_label" "$jq_days"'
           group_by(.projectName)[]
@@ -341,7 +396,7 @@ let
       pkgs.llm-agents.claude-code
       report
     ];
-    text = builtins.readFile ./triage-rank/triage-rank.sh;
+    text = builtins.readFile ./td-lib.sh + builtins.readFile ./triage-rank/triage-rank.sh;
   };
 
   # Same pattern as server.incidentInvestigator: the gopass runner resolves the
@@ -406,7 +461,7 @@ in
         schedule = lib.mkOption {
           type = lib.types.str;
           default = "Mon..Fri *-*-* 05:30:00";
-          description = "systemd OnCalendar expression. Kept away from the 06:00 pile the td queries share, to leave Todoist rate-limit room.";
+          description = "systemd OnCalendar expression. Kept 30 minutes clear of the td queries (06:00 to 06:25), to leave Todoist rate-limit room.";
         };
 
         filter = lib.mkOption {
@@ -454,13 +509,13 @@ in
         claudeTimeoutSeconds = lib.mkOption {
           type = lib.types.ints.positive;
           default = 600;
-          description = "Seconds before the claude call is killed. Must stay below `timeout` minus the Todoist retry ladders (up to 540 seconds).";
+          description = "Seconds before the claude call is killed. Must stay below `timeout` minus the Todoist retry ladders (up to 720 seconds).";
         };
 
         timeout = lib.mkOption {
           type = lib.types.str;
           default = "30min";
-          description = "TimeoutStartSec for the unit. A run takes 1 to 2 minutes. The ceiling covers two Todoist retry ladders (540 seconds) plus the claude call.";
+          description = "TimeoutStartSec for the unit. A run takes 1 to 2 minutes. The ceiling covers two Todoist retry ladders (720 seconds) plus the claude call.";
         };
       };
 
@@ -639,6 +694,30 @@ in
             wants = [ "network-online.target" ];
             onFailure = [ "automations-failed@${tdQueryJob name}.service" ];
             serviceConfig = jobService // {
+              # A stuck td call would hold the lock for every other job. The ceiling is
+              # the 15 minute lock wait plus two retry ladders (720 seconds) and the run.
+              TimeoutStartSec = "40min";
+              # Same confinement as triage-rank: these jobs hold the Todoist token and
+              # write to the account. They write only the reports folder, the GPG home
+              # the gopass wrapper needs, and the state directory.
+              ProtectSystem = "strict";
+              ReadWritePaths = [
+                cfg.reportsDir
+                "${globals.user.homeDirectory}/.gnupg"
+              ];
+              PrivateDevices = true;
+              RestrictSUIDSGID = true;
+              RestrictNamespaces = true;
+              RestrictRealtime = true;
+              ProtectProc = "invisible";
+              ProtectHostname = true;
+              CapabilityBoundingSet = "";
+              MemoryMax = "1G";
+              Environment = [ "HOME=${globals.user.homeDirectory}" ];
+              # /var/lib/automations (mode 0700) holds the shared td lock and the
+              # activity-feed cache. STATE_DIRECTORY points the script at it.
+              StateDirectory = "automations";
+              StateDirectoryMode = "0700";
               ExecStart = "${lib.getExe tdQuery} ${tdQueryJob name} ${q.file} ${toString q.limit} ${toString q.idleDays} ${toString q.flagRepeatDays} ${toString q.staleAfterHours}";
             };
           }
@@ -652,7 +731,9 @@ in
             timerConfig = {
               OnCalendar = q.schedule;
               Persistent = true;
-              RandomizedDelaySec = "5m";
+              # Schedules sit 5 minutes apart, so the jitter stays under that and
+              # two jobs rarely queue on the lock. The lock still serializes them.
+              RandomizedDelaySec = "1m";
             };
           }
         ) cfg.tdQueries;

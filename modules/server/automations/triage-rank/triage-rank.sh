@@ -28,28 +28,13 @@
 : "${FREE_TIME_JQ:?FREE_TIME_JQ is not set}"
 
 work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT INT TERM
+trap 'td_finish; rm -rf "$work"' EXIT INT TERM
 
-# Todoist 429s are retried, anything else fails. Output of a failed call is
-# discarded, so a crash trace can never put a header in the journal.
-td_retry() {
-  local out errfile attempt=0
-  errfile=$(mktemp -p "$work")
-  while :; do
-    if out=$(td "$@" 2> "$errfile"); then
-      rm -f "$errfile"
-      printf '%s\n' "$out"
-      return 0
-    fi
-    if [ "$attempt" -ge 3 ] || ! grep -q -e RATE_LIMITED -e 'HTTP 429' <<< "$out$(<"$errfile")"; then
-      echo "automations-triage-rank: td $1 $2 failed" >&2
-      return 1
-    fi
-    attempt=$((attempt + 1))
-    echo "automations-triage-rank: Todoist rate limited, retry $attempt of 3" >&2
-    sleep $((attempt * 45))
-  done
-}
+# td_retry, td_finish and the call counter come from td-lib.sh, which
+# default.nix places in front of this script. Failed calls log a fixed line
+# only, so a crash trace can never put a header in the journal. The run logs
+# "td calls: N" at exit: 2 expected (task list, project list).
+td_tag=automations-triage-rank
 
 TD_FILTER=$(tr '\n' ' ' < "$TD_FILTER_FILE" | sed -e 's/[[:space:]]*$//')
 if [ -z "$TD_FILTER" ]; then

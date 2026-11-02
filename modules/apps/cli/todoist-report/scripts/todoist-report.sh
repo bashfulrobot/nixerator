@@ -80,14 +80,79 @@ fi
 
 API="https://api.todoist.com/api/v1"
 
+# Rate-limit guard. Todoist allows 1000 partial and 100 full sync requests per
+# user per 15 minutes, and a 429 can lock the account out for 20 minutes or
+# more. One run makes 1 request for projects, then per project 2 for tasks and
+# sections plus 1 per task for comments (more when a list spans pages), so the
+# count grows with the task total and --kong multiplies it. Three limits:
+#   TODOIST_REPORT_MAX_CALLS  requests per run (default 400)
+#   TODOIST_REPORT_MAX_PAGES  pages followed per endpoint (default 10)
+#   TODOIST_REPORT_GAP        seconds between requests (default 0.3)
+# A 429, any other HTTP error or the call cap stops all further requests. The
+# lists fetched so far are kept, comments for the remaining tasks are left
+# empty, --json output carries "truncated": true, and the run ends with a
+# warning, never a retry.
+MAX_CALLS="${TODOIST_REPORT_MAX_CALLS:-400}"
+MAX_PAGES="${TODOIST_REPORT_MAX_PAGES:-10}"
+CALL_GAP="${TODOIST_REPORT_GAP:-0.3}"
+# MAX_CALLS and MAX_PAGES reach bash arithmetic, so they must be plain numbers.
+if ! [[ "$MAX_CALLS" =~ ^[0-9]{1,6}$ && "$MAX_PAGES" =~ ^[0-9]{1,4}$ && "$CALL_GAP" =~ ^[0-9]{1,2}(\.[0-9]{1,3})?$ ]]; then
+  printf 'Error: TODOIST_REPORT_MAX_CALLS, _MAX_PAGES and _GAP must be numbers.\n' >&2
+  exit 1
+fi
+
+work_dir="$(mktemp -d)"
+calls_file="${work_dir}/calls"
+stopped_file="${work_dir}/stopped"
+truncated_file="${work_dir}/truncated"
+: >"$calls_file"
+
+# Runs on every exit: logs the request count and, when a limit stopped the run,
+# says so.
+finish() {
+  local calls_made
+  calls_made="$(wc -c <"$calls_file")"
+  gum log --level info "Todoist requests this run: ${calls_made//[[:space:]]/}" >&2
+  if [[ -e "$stopped_file" ]]; then
+    gum log --level warn "Stopped early: $(cat "$stopped_file"). The report is incomplete; wait 15 minutes before a rerun." >&2
+  fi
+  rm -rf "$work_dir"
+}
+trap finish EXIT
+
 api_get_raw() {
+  local calls resp code
+
+  if [[ -e "$stopped_file" ]]; then
+    return 1
+  fi
+  calls="$(wc -c <"$calls_file")"
+  if [[ "${calls//[[:space:]]/}" -ge "$MAX_CALLS" ]]; then
+    printf 'call cap of %s requests reached\n' "$MAX_CALLS" >"$stopped_file"
+    return 1
+  fi
+  printf 'x' >>"$calls_file"
+  sleep "$CALL_GAP"
+
   # Bearer via a curl -K config fd so the token stays off curl's argv.
-  curl -fsSL \
+  resp="$(curl -sS --proto '=https' --max-redirs 0 --connect-timeout 10 --max-time 30 \
     -K <(printf 'header = "Authorization: Bearer %s"\n' "${TODOIST_API_TOKEN}") \
-    "${API}/${1}"
+    -w '\n%{http_code}' \
+    "${API}/${1}")" || return 1
+  code="${resp##*$'\n'}"
+  if [[ "$code" == "429" ]]; then
+    printf 'Todoist answered HTTP 429 (rate limited)\n' >"$stopped_file"
+    return 1
+  fi
+  if [[ "$code" != 2* ]]; then
+    printf 'Todoist answered HTTP %s for %s\n' "$code" "${1%%\?*}" >"$stopped_file"
+    return 1
+  fi
+  printf '%s' "${resp%$'\n'*}"
 }
 
-# Fetches all pages of a paginated endpoint and returns a single combined array.
+# Fetches all pages of a paginated endpoint (up to MAX_PAGES) and returns a
+# single combined array.
 api_get_all() {
   local endpoint="$1"
   local all_results="[]"
@@ -96,6 +161,7 @@ api_get_all() {
   local page_json
   local page_results
   local req
+  local pages=0
 
   if [[ "$endpoint" == *"?"* ]]; then
     sep="&"
@@ -107,12 +173,21 @@ api_get_all() {
       req="${endpoint}${sep}cursor=${cursor}"
     fi
 
-    page_json="$(api_get_raw "$req")"
+    if ! page_json="$(api_get_raw "$req")"; then
+      : >"$truncated_file"
+      break
+    fi
     page_results="$(printf '%s' "$page_json" | jq '.results')"
     all_results="$(printf '%s' "$all_results" | jq --argjson page "$page_results" '. + $page')"
     cursor="$(printf '%s' "$page_json" | jq -r '.next_cursor // ""')"
+    pages=$((pages + 1))
 
     [[ -z "$cursor" ]] && break
+    if [[ "$pages" -ge "$MAX_PAGES" ]]; then
+      gum log --level warn "Stopped ${endpoint%%\?*} after ${MAX_PAGES} pages; the list is cut short." >&2
+      : >"$truncated_file"
+      break
+    fi
   done
 
   printf '%s' "$all_results"
@@ -171,9 +246,6 @@ else
   fi
 fi
 
-work_dir="$(mktemp -d)"
-trap 'rm -rf "$work_dir"' EXIT
-
 SEPARATOR="$(gum style --foreground 240 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')"
 
 report_project() {
@@ -200,7 +272,7 @@ report_project() {
     task_content="$(printf '%s' "$task_json" | jq -r '.content')"
     gum log --level info "[$((task_idx + 1))/$task_count] $task_content" >&2
 
-    if ! comments_raw="$(api_get_all "comments?task_id=${task_id}" 2>/dev/null)"; then
+    if [[ -e "$stopped_file" ]] || ! comments_raw="$(api_get_all "comments?task_id=${task_id}" 2>/dev/null)"; then
       comments_raw="[]"
     fi
 
@@ -277,9 +349,11 @@ report_project() {
     printf '%s' "$sorted_tasks" | jq \
       --arg project "$project_name" \
       --arg generated "$generated" \
+      --argjson truncated "$([[ -e "$truncated_file" ]] && echo true || echo false)" \
       '{
         project: $project,
         generated: $generated,
+        truncated: $truncated,
         tasks: [.[] | {
           id: .id,
           content: .content,
@@ -436,3 +510,4 @@ if [[ "$JSON_MODE" == "true" ]]; then
     cat "${work_dir}/proj_0.json"
   fi
 fi
+
