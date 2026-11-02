@@ -11,8 +11,11 @@
 # on HH:MM, ends after it starts, and has 1 to 1440 minutes. Anything else
 # returns null, and the ranking runs as it did before. Every value that survives
 # is re-built from strings and numbers this program checked, so nothing from the
-# file reaches the prompt unchecked. timezone is kept only when it looks like a
-# plain IANA name, else it is null.
+# file reaches the prompt unchecked. timezone is informational and kept only
+# when it looks like a plain zone name, else it is null. utc_offset_seconds is
+# the laptop's offset from UTC, kept only as an integer within 14 hours either
+# way, else null. The ranking script uses the offset, never the name, to find
+# the laptop's date.
 def ok_time: type == "string" and test("^([01][0-9]|2[0-3]):[0-5][0-9]$");
 def ok_day: type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
   and ((try (. + "T00:00:00Z" | fromdateiso8601 | todate[0:10]) catch null) == .);
@@ -37,7 +40,8 @@ def verdict:
       elif ([.days[].date] | unique | length) != (.days | length) then {reason: "malformed"}
       else {reason: "ok", out: {
         work_hours: .work_hours,
-        timezone: (if (.timezone | type) == "string" and (.timezone | test("^[A-Za-z0-9_+/-]{1,40}$")) then .timezone else null end),
+        timezone: (if (.timezone | type) == "string" and (.timezone | test("^[A-Za-z0-9_+:/-]{1,40}$")) then .timezone else null end),
+        utc_offset_seconds: (if (.utc_offset_seconds | type) == "number" and (.utc_offset_seconds == (.utc_offset_seconds | floor)) and (.utc_offset_seconds >= -50400) and (.utc_offset_seconds <= 50400) then .utc_offset_seconds else null end),
         days: [.days[] | {date, blocks: [.blocks[] | {start, end, minutes: (.minutes | floor)}]}]
       }}
       end

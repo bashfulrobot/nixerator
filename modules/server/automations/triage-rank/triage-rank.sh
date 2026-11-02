@@ -134,18 +134,27 @@ if [ -n "${FREE_TIME_FILE:-}" ] && [ -e "$FREE_TIME_FILE" ]; then
 fi
 printf '%s\n' "$free_json" > "$work/free-time.json"
 
-# The file's dates are the laptop's local dates, so "today" for free time comes
-# from the file's own zone. A zone that does not look like a plain IANA name, or
-# that date cannot use, falls back to the UTC date.
-free_today=$today
-if [ "$free_json" != null ]; then
-  free_tz=$(jq -r '.timezone // empty' <<< "$free_json")
-  if [[ "$free_tz" =~ ^[A-Za-z0-9_+/-]{1,40}$ ]] && [[ "$free_tz" != /* ]]; then
-    local_day=$(TZ="$free_tz" date +%F 2> /dev/null || true)
-    if [[ "$local_day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-      free_today=$local_day
+# BEGIN free_local_day
+# The file's dates are the laptop's local dates. free_local_day prints the date
+# at the laptop: UTC now plus the file's validated utc_offset_seconds. $1 is the
+# offset, $2 the UTC date used when the offset is missing or not an integer, and
+# $3 an optional epoch for tests. The zone name in the file is never used.
+free_local_day() {
+  local day
+  if [[ "$1" =~ ^-?[0-9]{1,5}$ ]]; then
+    day=$(jq -nr --argjson off "$1" --argjson at "${3:-null}" '(($at // now) + $off) | strftime("%Y-%m-%d")' 2> /dev/null || true)
+    if [[ "$day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+      printf '%s\n' "$day"
+      return 0
     fi
   fi
+  printf '%s\n' "$2"
+}
+# END free_local_day
+
+free_today=$today
+if [ "$free_json" != null ]; then
+  free_today=$(free_local_day "$(jq -r '.utc_offset_seconds // empty' <<< "$free_json")" "$today")
 fi
 
 # BEGIN free_time_block

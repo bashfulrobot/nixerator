@@ -13,9 +13,9 @@ check() {
 }
 NOW="2026-11-02T12:00:00Z"
 run() { jq -c --arg now "$NOW" -f "$here/free-time-check.jq" <<<"$1"; }
-good='{"version":1,"written_at":"2026-11-02T10:00:00Z","timezone":"America/Vancouver","work_hours":"08:00-17:00","days":[{"date":"2026-11-02","blocks":[{"start":"13:00","end":"14:30","minutes":90}]}],"extra":"drop me"}'
+good='{"version":1,"written_at":"2026-11-02T10:00:00Z","timezone":"America/Vancouver","utc_offset_seconds":-28800,"work_hours":"08:00-17:00","days":[{"date":"2026-11-02","blocks":[{"start":"13:00","end":"14:30","minutes":90}]}],"extra":"drop me"}'
 
-check "valid file is cleaned" "$(run "$good")" '{"work_hours":"08:00-17:00","timezone":"America/Vancouver","days":[{"date":"2026-11-02","blocks":[{"start":"13:00","end":"14:30","minutes":90}]}]}'
+check "valid file is cleaned" "$(run "$good")" '{"work_hours":"08:00-17:00","timezone":"America/Vancouver","utc_offset_seconds":-28800,"days":[{"date":"2026-11-02","blocks":[{"start":"13:00","end":"14:30","minutes":90}]}]}'
 check "extra keys do not survive" "$(run "$good" | grep -c extra)" '0'
 check "25 hours old is refused" "$(run "${good/2026-11-02T10:00:00Z/2026-11-01T10:30:00Z}")" 'null'
 check "23 hours old is kept" "$(run "${good/2026-11-02T10:00:00Z/2026-11-01T13:30:00Z}" | jq -c 'type')" '"object"'
@@ -55,6 +55,17 @@ check "a missing timezone becomes null" "$(run "$(jq -c 'del(.timezone)' <<<"$go
 long=$(printf 'A%.0s' {1..41})
 check "a 41 character timezone becomes null" "$(run "${good/America\/Vancouver/$long}" | jq -c '.timezone')" 'null'
 
+check "an offset name like UTC+05:30 is kept" "$(run "${good/America\/Vancouver/UTC+05:30}" | jq -c '.timezone')" '"UTC+05:30"'
+off() { run "${good/\"utc_offset_seconds\":-28800/$1}" | jq -c '.utc_offset_seconds'; }
+check "offset -28800 is kept" "$(off '"utc_offset_seconds":-28800')" '-28800'
+check "offset +14h is kept" "$(off '"utc_offset_seconds":50400')" '50400'
+check "offset over 14h becomes null" "$(off '"utc_offset_seconds":50401')" 'null'
+check "offset under -14h becomes null" "$(off '"utc_offset_seconds":-50401')" 'null'
+check "text offset becomes null" "$(off '"utc_offset_seconds":"-28800"')" 'null'
+check "fractional offset becomes null" "$(off '"utc_offset_seconds":3600.5')" 'null'
+check "missing offset becomes null" "$(run "$(jq -c 'del(.utc_offset_seconds)' <<<"$good")" | jq -c '.utc_offset_seconds')" 'null'
+check "a file with a bad offset is still used" "$(run "${good/\"utc_offset_seconds\":-28800/\"utc_offset_seconds\":\"x\"}" | jq -c 'type')" '"object"'
+
 # The reason a file was refused: one fixed word, never text from the file.
 why() { jq -r --arg now "$NOW" --arg why 1 -f "$here/free-time-check.jq" <<<"$1"; }
 check "reason ok" "$(why "$good")" 'ok'
@@ -78,6 +89,16 @@ check "data block heading" "$(grep -c '^## Free time data$' <<<"$out")" '1'
 check "data block opens with the nonce" "$(grep -c '^FREE-TIME-NONCE123$' <<<"$out")" '1'
 check "data block closes with the nonce" "$(grep -c '^END-FREE-TIME-NONCE123$' <<<"$out")" '1'
 check "data block carries the cleaned copy" "$(grep -c '"work_hours":"08:00-17:00"' <<<"$out")" '1'
+
+# The laptop's date (free_local_day in triage-rank.sh), cut out of the script.
+fd=$(sed -n '/^# BEGIN free_local_day/,/^# END free_local_day/p' "$src")
+eval "$fd"
+at=$(jq -nr '"2026-11-03T03:00:00Z" | fromdateiso8601')
+check "03:00Z at -08:00 is still 2 November" "$(free_local_day -28800 2026-11-03 "$at")" '2026-11-02'
+check "03:00Z at +14:00 is 3 November" "$(free_local_day 50400 2026-11-03 "$at")" '2026-11-03'
+check "a missing offset gives the UTC date" "$(free_local_day '' 2026-11-03 "$at")" '2026-11-03'
+check "a text offset gives the UTC date" "$(free_local_day 'x;y' 2026-11-03 "$at")" '2026-11-03'
+check "offset 0 gives the UTC date" "$(free_local_day 0 2026-11-03 "$at")" '2026-11-03'
 
 if [[ "$fails" -gt 0 ]]; then
   printf '%d check(s) failed\n' "$fails"
