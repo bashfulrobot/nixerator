@@ -21,9 +21,10 @@ cursors and last-run markers, stays local on the host and is not synced.
 
 ## Topology
 
-The Mac peers only with qbert. srv peers only with qbert. qbert holds the folder
-for both and relays between them. srv and the Mac never connect directly.
-UNVERIFIED until a report written on srv shows up on the Mac.
+srv, qbert and the Mac all peer with each other for this folder, so any one of
+them can be off and the other two still sync. The Mac and srv share only this
+folder (the Mac's dev and upsight folders go to qbert alone).
+UNVERIFIED until a report written on srv shows up on the Mac with qbert stopped.
 
 ## Module
 

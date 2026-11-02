@@ -52,8 +52,8 @@ in
           default = false;
           description = ''
             Enable Syncthing configuration for srv. srv shares only the
-            automations folder, and only with qbert: the Mac's sole peer is
-            qbert, which relays between the two.
+            automations folder, directly with both qbert and the Mac, so
+            either laptop can be off and the other still syncs with srv.
           '';
         };
       };
@@ -101,7 +101,7 @@ in
           devices = {
             # Mac (../donkeykong). Shares upsight-data, upsight-config, dev and
             # automations below -- not the rest, which are either NixOS-shaped or hold keys a
-            # laptop should not carry. qbert is the Mac's only Syncthing peer.
+            # laptop should not carry. srv and the Mac also peer directly, for automations only.
             "MH36P2YMHX" = {
               addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
               id = globals.hosts.MH36P2YMHX.syncthing_id;
@@ -146,8 +146,15 @@ in
             # Job reports (server.automations): reports/<host>/<job>/. Each host
             # writes only under its own reports/<host>/ directory, so the three
             # writers (srv, qbert, the Mac) never touch the same file and
-            # Syncthing never has a conflict to resolve. qbert is the relay: the
-            # Mac and srv both peer with qbert, not with each other.
+            # Syncthing never has a conflict to resolve. All three peer with
+            # each other, so any one host can be off. The claims files
+            # (claims/<id>.json) can be written by two laptops at once: Syncthing
+            # keeps the newer file and renames the other to *.sync-conflict-*,
+            # which the helper never reads (it opens claims/<id>.json only).
+            # Two clicks inside the sync delay can still start two sessions,
+            # because each laptop creates its own claim before it sees the
+            # other. The claim only prevents the click that comes after the
+            # sync. See claudoist docs/adr/0005-syncthing-mesh.md.
             "automations" = {
               path = globals.paths.automations;
               devices = [ "MH36P2YMHX" ] ++ lib.optional hasSrvId "srv";
@@ -168,12 +175,20 @@ in
               addresses = [ "tcp://${globals.hosts.qbert.tailscale_ip}:22000" ];
               id = globals.hosts.qbert.syncthing_id;
             };
+            # Mac (../donkeykong). srv shares only automations with it.
+            "MH36P2YMHX" = {
+              addresses = [ "tcp://${globals.hosts.MH36P2YMHX.tailscale_ip}:22000" ];
+              id = globals.hosts.MH36P2YMHX.syncthing_id;
+            };
           };
 
           folders = {
             "automations" = {
               path = globals.paths.automations;
-              devices = [ "qbert" ];
+              devices = [
+                "qbert"
+                "MH36P2YMHX"
+              ];
               versioning = simpleVersioning;
             };
           };
@@ -351,6 +366,9 @@ in
               ''} "$HOME/dev/.stignore"
               install -Dm644 ${pkgs.writeText "upsight-data-stignore" upsightIgnores} "$HOME/.local/share/upsight/.stignore"
               install -Dm644 ${pkgs.writeText "upsight-config-stignore" upsightIgnores} "$HOME/.config/upsight/.stignore"
+              install -Dm644 ${pkgs.writeText "automations-stignore" ''
+                *.sync-conflict-*
+              ''} "${globals.paths.automations}/.stignore"
             ''
           );
     };

@@ -160,7 +160,7 @@ in
     # cherry-picks individual apps.cli entries for headless srv.
     slack-token-refresh.enable = true;
     starship.enable = true;
-    # Shares ~/automations with qbert (which relays to the Mac) so job reports
+    # Shares ~/automations with qbert and the Mac (both peer with srv directly) so job reports
     # written here reach every workstation. Two-step rollout: after the first
     # rebuild, read srv's device ID from the Syncthing UI and add it as
     # `syncthing_id` under hosts.srv in settings/globals.nix, then rebuild qbert.
