@@ -607,6 +607,7 @@ in
               "TD_FILTER_FILE=${pkgs.writeText "triage-rank-filter" cfg.triageRank.filter}"
               "LIMIT=${toString cfg.triageRank.limit}"
               "POLICY_FILE=${cfg.triageRank.policyFile}"
+              "DUP_PAIRS_JQ=${./triage-rank/dup-pairs.jq}"
               "STALE_AFTER=${toString cfg.triageRank.staleAfterHours}"
               "CLAUDE_TIMEOUT=${toString cfg.triageRank.claudeTimeoutSeconds}"
               "CLAUDE_CODE_OAUTH_TOKEN=${cfg.triageRank.claudeOauthTokenRef}"

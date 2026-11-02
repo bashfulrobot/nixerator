@@ -297,6 +297,11 @@ prune-worktrees *args:
 test-text-polish:
     nix shell nixpkgs#jq nixpkgs#coreutils nixpkgs#gnugrep nixpkgs#gnused nixpkgs#gawk --command bash -c 'bash modules/apps/cli/text-polish/scripts/text-polish.test.sh && bash modules/apps/cli/text-polish/scripts/polish-editor.test.sh'
 
+# Run the triage-rank duplicate pair tests (dup-pairs.jq)
+[group('test')]
+test-dup-pairs:
+    nix shell nixpkgs#jq nixpkgs#coreutils --command bash modules/server/automations/triage-rank/dup-pairs.test.sh
+
 # Run skill-cache unit tests
 [group('test')]
 test-skill-cache:
