@@ -608,6 +608,8 @@ in
               "LIMIT=${toString cfg.triageRank.limit}"
               "POLICY_FILE=${cfg.triageRank.policyFile}"
               "DUP_PAIRS_JQ=${./triage-rank/dup-pairs.jq}"
+              "FREE_TIME_JQ=${./triage-rank/free-time-check.jq}"
+              "FREE_TIME_FILE=${globals.paths.automations}/claudoist/free-time.json"
               "STALE_AFTER=${toString cfg.triageRank.staleAfterHours}"
               "CLAUDE_TIMEOUT=${toString cfg.triageRank.claudeTimeoutSeconds}"
               "CLAUDE_CODE_OAUTH_TOKEN=${cfg.triageRank.claudeOauthTokenRef}"

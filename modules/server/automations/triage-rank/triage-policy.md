@@ -10,6 +10,16 @@ Dustin is a Technical Account Manager. Rank his open Todoist tasks by what deser
 4. Priority: p1 before p2 before p3. A task with no priority marker ranks last among equals.
 5. Tasks with no type label last, because they are probably unsorted.
 
+## Free time
+
+Some runs add a `Free time data` block: the free stretches on Dustin's calendar inside working hours, per day. When it is there:
+
+- It changes the order only a little. Rules 1 to 5 above still decide first. Use free time to break ties and to demote a task that cannot fit.
+- A task that clearly needs a long block (a customer prep, a write-up, a multi-step investigation) ranks below an otherwise equal task when today has no free block long enough for it. Say so in its `reason`.
+- Kong projects (a `project` that starts with `Kong`) are only scheduled inside working hours. Never rank a Kong task higher because it would fit a block outside working hours, and never suggest one for an evening or a weekend. Personal projects are not limited to working hours.
+- A task with a due date today or earlier keeps its rank from the rules above, whatever the free time.
+- If there is no `Free time data` block, ignore this section.
+
 ## Output rules
 
 - Rank every task you are given, from 1 (look at first) to N, with no gaps and no ties.
