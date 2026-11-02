@@ -25,8 +25,9 @@
 #
 # Secrets: VERIFICATION_TOKEN and HELPER_TOKEN are op:// refs resolved at
 # runtime by the gopass runner (lib/secrets.nix gopassRun). HELPER_TOKEN is the
-# same value the helper reads on each laptop. It ends up in card URLs, which
-# Todoist's servers see (claudoist issue 24 tracks signed links).
+# same value the helper reads on each laptop. The receiver uses it as an HMAC
+# key to sign each launch link (expiring, per task and mode), so the key never
+# appears in a card URL that Todoist's servers can see.
 let
   cfg = config.server.claudoist;
   homeDir = globals.user.homeDirectory;
@@ -70,8 +71,9 @@ in
       default = "op://automation/claudoist/helper-token";
       description = ''
         gopass reference (op:// form, see lib/secrets.nix gopassRun) for the
-        shared secret the helper checks on /launch. The receiver puts it in the
-        card URLs. Same entry the helper reads on each laptop.
+        shared secret the receiver signs launch links with and the helper checks
+        on /launch. The key itself never appears in a card URL. Same entry the
+        helper reads on each laptop.
       '';
     };
 
@@ -89,7 +91,7 @@ in
       default = "url";
       description = ''
         `url` makes card buttons open the helper link. `clipboard` makes them
-        copy the claude command instead and keeps the helper token out of the
+        copy the claude command instead and puts no launch link in the
         card, for when Todoist refuses localhost links (claudoist issue 14).
       '';
     };
