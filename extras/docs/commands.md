@@ -44,6 +44,13 @@ system, so they are all safe to run at any time.
 - `just test-skill-cache` -- the `skill-cache` CLI (the warm name-to-ID cache
   skills use instead of re-querying an external API). **Run it after changing
   `modules/apps/cli/skill-cache/`.**
+- `just test-free-time` -- `free-time-check.jq` (the laptop's free-time file
+  check) and the free time data block in `triage-rank.sh`. **Run it after
+  changing `modules/server/automations/triage-rank/free-time-check.jq` or the
+  free-time part of `triage-rank.sh`.**
+- `just test-dup-pairs` -- `dup-pairs.jq`, the possible-duplicate pairs in the
+  triage-rank report. **Run it after changing the word rule in that file** (the
+  claudoist helper's `capture` uses the same rule).
 
 ## Version Management
 
