@@ -32,6 +32,11 @@ matches:
   - trigger: ";do"
     replace: "follow links, get updates and current state"
 
+  - trigger: ";ship"
+    replace: >-
+      Do the merge, the git cleanup, and the ship to hosts. Then let me know
+      when this session is completely done so I can close it out.
+
   - trigger: ";repos"
     replace: "It needs to be done in two repositories. ~/git/donkeykong and ~/git/nixerator"
 
