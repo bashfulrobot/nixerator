@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }:
 
@@ -71,5 +72,25 @@ in
     # package, wires the LSP language servers, and lets the ollama module
     # contribute its local-provider settings to opencode.json.
     apps.cli.opencode.enable = true;
+
+    # Media toolchain for the dk:video-edit skill (`ve.sh` in claude-skills).
+    # The script shells out to `ffmpeg`, `ffprobe` and `whisper-cli`, so the
+    # binaries have to be on PATH for every AI-suite host, independent of
+    # which Claude Code plugins that host enables.
+    #
+    # ffmpeg-full is deliberately the same attribute the hyperframes runtime
+    # gate installs (modules/apps/cli/claude-code/default.nix). Listing one
+    # derivation twice in environment.systemPackages is a no-op, so the two
+    # paths share a single closure instead of pulling in a second ffmpeg.
+    #
+    # whisper-cpp 1.9.5 installs the transcriber as `bin/whisper-cli`
+    # (meta.mainProgram, asserted by the package's own installCheckPhase);
+    # there is no `bin/whisper-cpp`. Models are not provisioned here -- fetch
+    # them with `whisper-cpp-download-ggml-model`, which the same package
+    # ships.
+    environment.systemPackages = with pkgs; [
+      ffmpeg-full
+      whisper-cpp
+    ];
   };
 }
