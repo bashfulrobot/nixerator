@@ -25,6 +25,56 @@ let
   # Spicetify packages
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.stdenv.hostPlatform.system};
 
+  # NCSPOT PIN
+  #
+  # nixpkgs ships ncspot 1.5.0, which blocks on a blank screen for ~24 s at
+  # startup whenever Spotify answers the initial requests with HTTP 429. Two
+  # merged-but-unreleased upstream fixes remove that: hrkfdn/ncspot#1886 (the
+  # rate-limited startup stall) and #1887 (refetching every liked song on each
+  # start, which causes the rate limiting). Both are in main at the rev below.
+  #
+  # Retirement rule: `ncspotPackage` drops back to the stock package by itself
+  # once nixpkgs ships >= 1.5.1 (see `lib.versionOlder` below). Delete this
+  # block, `ncspotSrc`, `ncspotPinned` and `ncspotPackage` on the next touch
+  # after that happens.
+  #
+  # rev/version/hashes are fixed, so the derivation is constant and a normal
+  # rebuild reuses the store path. Refresh the hashes only when `rev` changes.
+  ncspotPin = {
+    rev = "91ad4f09c9127f689c2104914cb5fbe1dff512c8"; # main, 2026-11-02
+    version = "1.5.0-unstable-2026-11-02";
+    srcHash = "sha256-fPqHsGc/+0w9cHce0OejsCYK6pX7ey/gLMiYplSfrJw=";
+    cargoHash = "sha256-nmmrXc1TU1j22ffrM+MGenibk3fPZvPHl63/e7dJvWE=";
+  };
+
+  ncspotBase = pkgs.ncspot.override { withMPRIS = true; };
+
+  ncspotSrc = pkgs.fetchFromGitHub {
+    owner = "hrkfdn";
+    repo = "ncspot";
+    inherit (ncspotPin) rev;
+    hash = ncspotPin.srcHash;
+  };
+
+  ncspotPinned = ncspotBase.overrideAttrs (_: {
+    inherit (ncspotPin) version cargoHash;
+    src = ncspotSrc;
+    # buildRustPackage turns the `cargoHash` *argument* into `cargoDeps` before
+    # overrideAttrs runs, so overriding cargoHash alone is ignored and the
+    # vendor dir still carries 1.5.0's lockfile. Replace it outright.
+    cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
+      pname = "ncspot";
+      inherit (ncspotPin) version;
+      src = ncspotSrc;
+      hash = ncspotPin.cargoHash;
+    };
+    # Upstream's Cargo.toml still reads 1.5.0, so `ncspot --version` can never
+    # print the "-unstable-" string versionCheckHook greps for.
+    preVersionCheck = "version=1.5.0";
+  });
+
+  ncspotPackage = if lib.versionOlder pkgs.ncspot.version "1.5.1" then ncspotPinned else ncspotBase;
+
 in
 {
   options = {
@@ -59,7 +109,7 @@ in
       # Note: Theming is handled by stylix
       programs.ncspot = {
         enable = true;
-        package = pkgs.ncspot.override { withMPRIS = true; };
+        package = ncspotPackage;
         settings = {
           shuffle = true;
           gapless = true;
