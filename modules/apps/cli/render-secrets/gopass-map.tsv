@@ -35,3 +35,5 @@ tableau-pat/hostname	op://automation/Tableau-PAT/hostname
 tableau-pat/site-name	op://automation/Tableau-PAT/Site-Name
 tableau-pat/username	op://automation/Tableau-PAT/username
 tableau-pat/credential	op://automation/Tableau-PAT/credential
+spotify/ncspot-client-id	op://Personal/spotify.com/ncspot-client-id
+spotify/ncspot-client-secret	op://Personal/spotify.com/ncspot-client-secret
