@@ -55,12 +55,16 @@ let
   soloistRun = pkgs.writeShellApplication {
     name = "soloist-run";
     runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
       pkgs.gnupg # gopass shells out to gpg; a unit has no login PATH
       pkgs.gopass
       soloistBin
     ];
     text = ''
-      key="$(gopass show -o -- ${lib.escapeShellArg cfg.gopassEntry})"
+      # First non-empty line of the entry, whitespace stripped. `gopass show -o`
+      # prints only the first line and fails when the value sits in the body.
+      key="$(gopass show -f -- ${lib.escapeShellArg cfg.gopassEntry} | grep -m1 . | tr -d '[:space:]' || true)"
       if [ -z "$key" ]; then
         echo "soloist-run: gopass entry ${cfg.gopassEntry} is empty or unreadable" >&2
         exit 1
