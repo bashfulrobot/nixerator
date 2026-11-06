@@ -28,6 +28,10 @@
     # automation/claudoist/helper-token.
     claudoist-helper.enable = true;
 
+    # Spotify Soloist (Spotify Connect device). Launch with `soloist-run`;
+    # the API key comes from gopass entry automation/spotify-soloist/credential.
+    soloist.enable = true;
+
     # claude-skills owns the declared Claude Code settings keys on this host:
     # one `claude_stack.py apply` call at activation in place of the jq
     # force-merge, the resolved host file read out of the flake input, and
