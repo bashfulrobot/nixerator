@@ -7,7 +7,7 @@ artist=$(echo "$response" | jq -r '.playable.artists[0] // empty')
 cover_url=$(echo "$response" | jq -r '.playable.cover_url // empty')
 
 # Save the currently playing song
-echo "save" | nc -W 1 -U "$NCSPOT_SOCK"
+echo "save current" | nc -W 1 -U "$NCSPOT_SOCK"
 
 # Download album art if available
 cover_path="/tmp/ncspot_album_cover.jpg"

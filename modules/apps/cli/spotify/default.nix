@@ -69,7 +69,7 @@ in
       };
 
       # https://github.com/hrkfdn/ncspot/blob/main/doc/users.md#remote-control-ipc
-      # running: echo 'save' | nc -W 1 -U $NCSPOT_SOCK
+      # running: echo 'save current' | nc -W 1 -U $NCSPOT_SOCK
       #  will save the currently playing song to your library in NCSPOT
       home = {
         sessionVariables = {
