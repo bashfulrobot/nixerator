@@ -1,5 +1,6 @@
 {
   config,
+  globals,
   lib,
   pkgs,
   ...
@@ -54,6 +55,7 @@ let
   soloistRun = pkgs.writeShellApplication {
     name = "soloist-run";
     runtimeInputs = [
+      pkgs.gnupg # gopass shells out to gpg; a unit has no login PATH
       pkgs.gopass
       soloistBin
     ];
@@ -80,6 +82,12 @@ in
       description = "Gopass entry (secauto store) holding the Soloist API key.";
     };
 
+    autoStart = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Run soloist-run as a systemd user service from boot, restarted on failure.";
+    };
+
     deviceName = lib.mkOption {
       type = lib.types.str;
       default = config.networking.hostName;
@@ -93,5 +101,32 @@ in
       soloistBin
       soloistRun
     ];
+
+    # Soloist runs in the foreground, so a user service supervises it. The
+    # primary user lingers (modules/system/linger), so it starts at boot with
+    # nobody logged in. State and cache go under ~/.local/state/soloist and
+    # ~/.cache/soloist (StateDirectory/CacheDirectory), which keeps the device
+    # identity across restarts.
+    home-manager.users.${globals.user.name}.systemd.user.services.soloist = lib.mkIf cfg.autoStart {
+      Unit = {
+        Description = "Spotify Soloist (Spotify Connect device)";
+        # PipeWire is socket-activated; this orders the start after its units
+        # when both are up. No network-online.target exists in the user manager,
+        # so Restart covers an early boot with a dead link.
+        After = [ "pipewire.service" ];
+        StartLimitIntervalSec = 0;
+      };
+      Service = {
+        ExecStart = "${soloistRun}/bin/soloist-run";
+        StateDirectory = "soloist";
+        CacheDirectory = "soloist";
+        Restart = "always";
+        RestartSec = "15s";
+        # Exit code 10 means the build expired after 90 days. A restart loop
+        # cannot fix that, so stop and show failed in systemctl.
+        RestartPreventExitStatus = 10;
+      };
+      Install.WantedBy = [ "default.target" ];
+    };
   };
 }
