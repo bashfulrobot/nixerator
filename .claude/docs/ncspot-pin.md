@@ -13,19 +13,25 @@ editing `ncspotPin` or the ncspot override in `modules/apps/cli/spotify/default.
   main but not in release 1.5.0, which is what nixpkgs ships.
 - ncspot has no setting for a client ID (a constant in `src/authentication.rs`).
   A personal client ID needs a patched build.
+- A personal client ID costs access to Spotify's own playlists. A dev-mode
+  Spotify app cannot read Spotify-owned or followed playlists (Discover Weekly,
+  Release Radar, Daily Mix) over the Web API, so they vanish from the library.
+  The fork reads them through the librespot session instead, which the audio
+  path already authenticates. That is the fourth commit, added in `v1.5.0-dk2`.
 
 ## What the pin is
 
 - Fork: `github.com/bashfulrobot/ncspot`, branch `dk`, tags `v<upstream>-dk<N>`.
-  Upstream main plus a few small commits: a fixed redirect port (8888, because
+  Upstream main plus four small commits: a fixed redirect port (8888, because
   Spotify's dashboard rejects a portless loopback URI), the personal client ID,
-  and a maintenance `justfile` (`just status` in the fork lists them).
+  a maintenance `justfile`, and session-read Spotify playlists (`just status`
+  in the fork lists them).
 - `programs.ncspot.package` is `pkgs.ncspot.override { withMPRIS = true; }`
   with `overrideAttrs` swapping in the fork's source and cargo vendor. The pin
   (`rev`, `version`, `srcHash`, `cargoHash`) sits in one `let` block.
-- The override applies only while `pkgs.ncspot.version` is older than 1.5.1
-  (`lib.versionOlder`). That guard retires upstream's gap, not the fork: the
-  client ID patch is only in the fork. Revisit the guard when the pin moves.
+- The override is unconditional. There is no `lib.versionOlder` guard, because
+  the client ID and session-playlist patches exist only in the fork, so no
+  nixpkgs version replaces them.
 - The Mac pins the same rev in donkeykong's `Cargofile`. Keep both on one rev.
 
 ## Rebuild rule (do not break)
@@ -42,7 +48,11 @@ changes. Never add anything per-rebuild (timestamps, `builtins.currentTime`,
    - `srcHash`: `nix-prefetch-url --unpack https://github.com/bashfulrobot/ncspot/archive/<rev>.tar.gz`, then convert with `nix hash convert --hash-algo sha256 --to sri <hash>`.
    - `cargoHash`: set it to `lib.fakeHash`, build only the package
      (`nix build` of the override, not a system rebuild), and copy the `got:` hash
-     from the mismatch of the `vendor-staging` derivation.
+     from the mismatch of the `vendor-staging` derivation. It changes whenever the
+     fork touches `Cargo.lock`, and stays the same when the bump is source only,
+     so recompute it on every bump rather than reasoning about it. `v1.5.0-dk1`
+     kept the upstream value; `v1.5.0-dk2` added librespot-metadata and protobuf
+     and changed it.
    - Wrap remote scripts as `ssh qbert bash -s < script` (login shell is fish).
 3. Edit the `let` block, build the package on qbert, check `ncspot --version`.
 4. `buildRustPackage` consumes `cargoHash` before `overrideAttrs`, so the module
@@ -65,9 +75,11 @@ changes. Never add anything per-rebuild (timestamps, `builtins.currentTime`,
 ## Retire the fork
 
 Do it when upstream lets users set their own client ID, or when the shared ID
-stops being throttled and nixpkgs ships a release with #1886 and #1887. Then
-remove the override and `ncspotPin`, go back to `pkgs.ncspot.override`, and
-update the donkeykong pin in the same sitting.
+stops being throttled and nixpkgs ships a release with #1886 and #1887. A
+release alone is not enough while the Spotify playlists need the session read,
+so check that upstream covers that too. Then remove the override and
+`ncspotPin`, go back to `pkgs.ncspot.override`, and update the donkeykong pin
+in the same sitting.
 
 ## Related
 

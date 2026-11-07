@@ -28,12 +28,18 @@ let
   # NCSPOT PIN (fork: github.com/bashfulrobot/ncspot, branch dk)
   #
   # Built from our fork, not nixpkgs' ncspot and not upstream. The fork is
-  # upstream main 91ad4f0 plus three commits:
+  # upstream main 91ad4f0 plus four commits:
   #   - its own Spotify client ID, so ncspot has its own API quota instead of
   #     sharing upstream's ID with every other user, which is what produced the
   #     constant HTTP 429s,
   #   - a fixed redirect port (8888) for the Web API login,
-  #   - a justfile for fork maintenance.
+  #   - a justfile for fork maintenance,
+  #   - Spotify-owned and followed playlists (Discover Weekly, Release Radar,
+  #     Daily Mix) read through the librespot session instead of the Web API. A
+  #     dev-mode Spotify app cannot read those playlists over the Web API, so
+  #     with our own client ID they are invisible without this. It adds the
+  #     librespot-metadata and protobuf crates, which is why `cargoHash`
+  #     changed with this bump.
   # The upstream base already carries hrkfdn/ncspot#1886 (blank screen for
   # ~24 s at startup when rate limited) and #1887 (refetching every liked song
   # on each start), neither of which is in a release.
@@ -51,10 +57,10 @@ let
   ncspotPin = {
     owner = "bashfulrobot";
     repo = "ncspot";
-    rev = "197636458ceb3d4111496a9ef562633066f08841"; # tag v1.5.0-dk1
-    version = "1.5.0-dk1";
-    srcHash = "sha256-h7qCgHVoi6P/XmnL0fpko4XjK5Be10flexTOQv7kixQ=";
-    cargoHash = "sha256-nmmrXc1TU1j22ffrM+MGenibk3fPZvPHl63/e7dJvWE=";
+    rev = "efcdbee872c9baaa69088a313e68cf7753c10504"; # tag v1.5.0-dk2
+    version = "1.5.0-dk2";
+    srcHash = "sha256-8n7oprTHrz1smRW1tQYfemdNGj6U+4BhDLgFXX/bj+8=";
+    cargoHash = "sha256-K2dvHfZXzShburRIkBadybgiNAPIhZJF8P4pmP/LEF0=";
   };
 
   ncspotSrc = pkgs.fetchFromGitHub {
@@ -75,7 +81,7 @@ let
       hash = ncspotPin.cargoHash;
     };
     # The fork's Cargo.toml still reads 1.5.0, so `ncspot --version` can never
-    # print the "-dk1" suffix versionCheckHook greps for.
+    # print the "-dk2" suffix versionCheckHook greps for.
     preVersionCheck = "version=1.5.0";
   });
 
