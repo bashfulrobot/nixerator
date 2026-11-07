@@ -1,6 +1,7 @@
 {
   "acLockTimeout": 300,
   "acMonitorTimeout": 600,
+  "acSuspendTimeout": 0,
   "barConfigs": [
     {
       "borderEnabled": false,
@@ -104,6 +105,7 @@
   "lockBeforeSuspend": true,
   "lockScreenNotificationMode": 2,
   "lockScreenPowerOffMonitorsOnLock": true,
+  "loginctlLockIntegration": true,
   "muxType": "zellij",
   "notificationOverlayEnabled": true,
   "notificationPopupPosition": -1,
