@@ -57,9 +57,9 @@ let
   ncspotPin = {
     owner = "bashfulrobot";
     repo = "ncspot";
-    rev = "efcdbee872c9baaa69088a313e68cf7753c10504"; # tag v1.5.0-dk2
-    version = "1.5.0-dk2";
-    srcHash = "sha256-8n7oprTHrz1smRW1tQYfemdNGj6U+4BhDLgFXX/bj+8=";
+    rev = "46e2bdfbb5f46a71e19fc66a8df45f25af86a467"; # tag v1.5.0-dk3
+    version = "1.5.0-dk3";
+    srcHash = "sha256-NuHJZyy0Q/0UHZZPEz+xOV7w08FSMFZ5HkUECcN5D7g=";
     cargoHash = "sha256-K2dvHfZXzShburRIkBadybgiNAPIhZJF8P4pmP/LEF0=";
   };
 
