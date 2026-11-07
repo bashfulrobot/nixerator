@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, globals, ... }:
 
 # Desktop entry for rebooting to Windows on qbert
 # Windows is installed on nvme0n1 (Samsung 500GB)
@@ -22,4 +22,12 @@
       categories = [ "System" ];
     })
   ];
+
+  # Fish alias for the same reboot over SSH. The desktop entry runs without
+  # sudo because polkit trusts the active local session. An SSH session has no
+  # active seat, so polkit would prompt for a password; sudo (passwordless on
+  # qbert) skips that.
+  home-manager.users.${globals.user.name}.programs.fish.shellAliases = {
+    reboot-windows = "sudo ${pkgs.systemd}/bin/systemctl reboot --boot-loader-entry=auto-windows";
+  };
 }
