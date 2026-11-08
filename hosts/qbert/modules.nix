@@ -184,6 +184,19 @@
 
   # Server modules
   server = {
+    # The phone talks to this instance, which merges in the Mac's claudio
+    # (donkeykong runs that end, label "mac") and srv's through their
+    # `tailscale serve` HTTPS URLs. The Mac name is its current tailnet DNS
+    # name; `tailscale status` lists stale duplicates of the same Mac.
+    claudio = {
+      enable = true;
+      hostName = "qbert";
+      peers = {
+        mac = "https://mh36p2ymhx-2.goat-cloud.ts.net/claudio";
+        srv = "https://srv.goat-cloud.ts.net/claudio";
+      };
+    };
+
     # Virtualisation on qbert moved back from Incus to libvirt/KVM: Talos VMs
     # need real QEMU block-device semantics and a working qemu-guest-agent
     # channel that Incus VMs don't provide (system extensions, in-place

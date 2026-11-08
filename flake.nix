@@ -246,7 +246,6 @@
             inputs.disko.nixosModules.disko
             # Hyprland desktop environment
             inputs.hyprflake.nixosModules.default
-            inputs.claudio.nixosModules.default
             inputs.janus.nixosModules.default
             (
               { pkgs, ... }:
@@ -269,94 +268,8 @@
               }
             )
             (
-              { config, pkgs, ... }:
+              { ... }:
               {
-                services.claudio = {
-                  enable = true;
-                  user = globals.user.name;
-                  listenAddr = "127.0.0.1:8787";
-                  hostName = "qbert";
-                  # The phone talks to this instance, which merges in the
-                  # Mac's claudio through the Mac's `tailscale serve` HTTPS
-                  # URL (donkeykong runs the other end, label "mac"). The
-                  # name is the Mac's current tailnet DNS name; stale
-                  # duplicates of the same Mac exist in `tailscale status`.
-                  peers.mac = "https://mh36p2ymhx-2.goat-cloud.ts.net/claudio";
-                  # The module's default reads `pkgs.system`, which now warns
-                  # at eval time. Set the package here to bypass that default.
-                  package = inputs.claudio.packages.${pkgs.stdenv.hostPlatform.system}.default;
-                  # systemd services don't inherit the user's shell PATH, so
-                  # "claude" alone isn't found -- point at the stable
-                  # per-user profile symlink instead of a /nix/store path
-                  # that changes every generation.
-                  claudeBinary = "/etc/profiles/per-user/${globals.user.name}/bin/claude";
-                  roots = [
-                    "/home/${globals.user.name}/git"
-                    "/home/${globals.user.name}/dev"
-                  ];
-                };
-
-                # Publish claudio on the tailnet only, via `tailscale serve`
-                # -- never a raw firewall port. Mirrors the publish pattern
-                # in modules/server/incident-investigator/default.nix.
-                systemd.services.claudio-serve = {
-                  description = "Publish claudio on the tailnet (tailscale serve)";
-                  after = [
-                    "tailscaled.service"
-                    "network-online.target"
-                    "claudio.service"
-                  ];
-                  wants = [
-                    "tailscaled.service"
-                    "network-online.target"
-                  ];
-                  wantedBy = [ "multi-user.target" ];
-                  # `after = tailscaled.service` orders unit start only, and
-                  # tailscaled is "active" well before its ipn backend leaves
-                  # NoState. `tailscale serve` against a NoState backend exits
-                  # 1 ("unexpected state: NoState"), so any rebuild that
-                  # restarts tailscaled -- most nixpkgs/systemd bumps -- loses
-                  # this race. Restart= does not save activation: it schedules
-                  # a retry 10s later, while switch-to-configuration has
-                  # already seen the first start fail and exits status 4, so
-                  # `just qr` fails even though the serve lands seconds later.
-                  # The retry therefore happens inside ExecStart, where the
-                  # first start blocks until the serve command itself succeeds
-                  # (30 tries, 2s apart, 60s ceiling). Restart= stays as the
-                  # boot-time backstop: `on-failure` is the only Restart=
-                  # systemd permits for Type=oneshot, the unit is never
-                  # restarted on a clean exit, and StartLimitBurst bounds a
-                  # genuinely broken serve config rather than looping forever.
-                  startLimitBurst = 5;
-                  startLimitIntervalSec = 300;
-                  serviceConfig = {
-                    Type = "oneshot";
-                    RemainAfterExit = true;
-                    Restart = "on-failure";
-                    RestartSec = 10;
-                    ExecStart = pkgs.writeShellScript "claudio-serve-start" ''
-                      set -u
-                      tries=30
-                      i=1
-                      while [ "$i" -le "$tries" ]; do
-                        if ${config.services.tailscale.package}/bin/tailscale serve \
-                          --bg --yes --https=443 --set-path=/claudio 127.0.0.1:8787; then
-                          exit 0
-                        fi
-                        echo "tailscale serve attempt $i/$tries failed (backend likely still NoState); retrying in 2s" >&2
-                        sleep 2
-                        i=$((i + 1))
-                      done
-                      echo "tailscale serve did not succeed within 60s" >&2
-                      exit 1
-                    '';
-                    # `-` prefix: don't fail the stop if the toggle syntax is
-                    # rejected. Targets only this path, so any unrelated
-                    # serve config on qbert is left untouched.
-                    ExecStop = "-${config.services.tailscale.package}/bin/tailscale serve --https=443 --set-path=/claudio off";
-                  };
-                };
-
                 # Launcher entry for Claudio's local web UI. Plain browser
                 # window rather than the mkWebApp PWA wrapper -- this is a
                 # loopback-only admin console for the local claudio.service,
