@@ -72,6 +72,7 @@ in
     ../../modules/apps/cli/zellij
     ../../modules/archetypes/claudeWorkHost
     ../../modules/server/automations
+    ../../modules/server/claudio
     ../../modules/server/claudoist
     ../../modules/server/incident-investigator
     ../../modules/server/kvm
@@ -243,6 +244,13 @@ in
 
   # Server-specific modules
   server = {
+    # Session manager for `claude --bg` sessions on srv. qbert lists it as a
+    # peer and proxies spawn, stop and delete here; it needs no peers itself.
+    claudio = {
+      enable = true;
+      hostName = "srv";
+    };
+
     # Daily heartbeat report into the synced ~/automations folder. First job on
     # the shared scheduling pattern; real jobs (Slack follow-ups) come later.
     automations = {
