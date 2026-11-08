@@ -275,6 +275,13 @@
                   enable = true;
                   user = globals.user.name;
                   listenAddr = "127.0.0.1:8787";
+                  hostName = "qbert";
+                  # The phone talks to this instance, which merges in the
+                  # Mac's claudio through the Mac's `tailscale serve` HTTPS
+                  # URL (donkeykong runs the other end, label "mac"). The
+                  # name is the Mac's current tailnet DNS name; stale
+                  # duplicates of the same Mac exist in `tailscale status`.
+                  peers.mac = "https://mh36p2ymhx-2.goat-cloud.ts.net/claudio";
                   # The module's default reads `pkgs.system`, which now warns
                   # at eval time. Set the package here to bypass that default.
                   package = inputs.claudio.packages.${pkgs.stdenv.hostPlatform.system}.default;
