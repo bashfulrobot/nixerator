@@ -9,8 +9,10 @@
 }:
 
 let
-  # server.nanoclaw's secrets come from the nixerator 1Password vault like the
-  # rest of the repo: `just render-secrets` writes them to secrets.json, and an
+  # server.nanoclaw's secrets are edited in the nixerator 1Password vault (the
+  # source), snapshotted into the secauto gopass store by qbert, and rendered
+  # on srv from gopass after every pull (render-secrets --from gopass, rows in
+  # gopass-map.tsv). The render writes secrets.json, and an
   # activation script per secret (secretsLib.installValue) copies each to a
   # root-only file under /run/nanoclaw-secrets. Eval only checks that a key
   # exists, never its value. Until the core keys exist the service stays off and
@@ -491,8 +493,8 @@ in
   # the Claude subscription (setup-token), never an API key. Operator guide:
   # extras/docs/nanoclaw/README.md.
   #
-  # Secrets use the repo's one pattern (1Password -> render-secrets ->
-  # installValue). Each lands at /run/nanoclaw-secrets/<name> (root, 0400) at
+  # Secrets use the repo's one pattern (1Password edit -> gopass snapshot ->
+  # render-secrets --from gopass -> installValue). Each lands at /run/nanoclaw-secrets/<name> (root, 0400) at
   # activation; the module reads them only through systemd LoadCredential, so
   # no value is ever evaluated by Nix. A rotated value changes no store path,
   # so after `just render-secrets` restart the units by hand (README, "Rotate
@@ -510,7 +512,7 @@ in
     lib.optional (!nanoclawReady) ''
       server.nanoclaw is configured on srv but DISABLED: add the nanoclaw keys
       (claudeToken, onecliDbPassword) to secrets.json.tpl, create the 1Password
-      items, and run `just render-secrets` (extras/docs/nanoclaw/README.md,
+      items, import them to gopass, and re-render (extras/docs/nanoclaw/README.md,
       "Provision the secrets").
     ''
     ++ lib.optional (nanoclawReady && !nanoclawSlackReady) ''

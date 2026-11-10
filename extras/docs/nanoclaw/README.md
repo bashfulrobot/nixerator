@@ -11,8 +11,10 @@ only ever see `CLAUDE_CODE_OAUTH_TOKEN=placeholder`.
 ## Read first: caveats and deviations
 
 - **Secrets use the repo's one pattern.** The four values live in the
-  `nixerator` 1Password vault, render to `secrets.json` with
-  `just render-secrets`, and land at `/run/nanoclaw-secrets/<name>` (root,
+  `nixerator` 1Password vault (the edit point). Dustin snapshots them into
+  the secauto gopass store (`just import-secrets-to-gopass` on qbert), srv
+  pulls the store and renders `secrets.json` from gopass, and they land at
+  `/run/nanoclaw-secrets/<name>` (root,
   0400) through `secretsLib.installValue` at activation. See
   `extras/docs/secrets.md`. agenix was used in the first version of this
   module and removed: on single-user hosts keeping values out of `/nix/store`
@@ -132,9 +134,9 @@ workstation. Never paste a value into the chat or onto a command line.
    password generator for the `credential` field (64 hex-safe characters
    work). The value never needs to be seen.
 
-   The two Slack items are not in `secrets.json.tpl` yet, so
-   `just render-secrets` does not need them. Add them when you have the tokens
-   (Slack section).
+   The two Slack rows are already in `secrets.json.tpl` and `gopass-map.tsv`.
+   A missing Slack item leaves its key out of the render, so Slack stays off
+   and the core service still runs (Slack section).
 
 4. **Render, push and rebuild:**
 
