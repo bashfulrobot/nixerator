@@ -293,6 +293,53 @@ input to the agent, including text posted by other integrations. Invite the
 bot only where you want it, and wire each channel deliberately
 (`nanoclaw-ncl wirings create …`, see upstream's `/manage-channels`).
 
+## Signal
+
+`server.nanoclaw.signal` links `signal-cli` to your own number as a secondary
+device, with no bot API and no public port. The assistant answers in Note to
+Self, so it sends as you. Adapter: upstream's `add-signal` skill, applied in
+`build/default.nix` with no new npm dependency. Slack can stay off.
+
+Only your number is wired. The adapter itself routes any DM or group message,
+but the channel defaults to `unknownSenderPolicy: strict`, and the access gate
+admits only the owner, admins and members. Create no wirings for other chats.
+
+**1. Store the number.** Dustin creates the 1Password item
+`nanoclaw-signal-account` (field `credential`, value `+1...`) in the
+`nixerator` vault, then runs `just import-secrets-to-gopass` on qbert. The row
+is already in `secrets.json.tpl` and `gopass-map.tsv`. Wait for the srv pull,
+render, then `just qr` on srv. The number is not a credential, but it names
+the account, so it stays out of `/nix/store`.
+
+**2. Link the device.** On srv, with Signal open on the phone:
+
+```bash
+nanoclaw-signal-link                 # prints a QR and the sgnl:// link
+```
+
+Signal, Settings, Linked Devices, Link New Device, scan. The link expires
+after about 3 minutes. Until it succeeds the adapter logs a daemon start
+failure and the rest of NanoClaw keeps running.
+
+**3. Restart and wire yourself:**
+
+```bash
+sudo systemctl restart nanoclaw
+journalctl -u nanoclaw -b | grep -i signal
+nanoclaw-signal-wire --display-name Dustin --agent-name clanky
+```
+
+Then message Note to Self.
+
+**State.** The account keys live in `/var/lib/nanoclaw/.local/share/signal-cli`
+(0700, owner `nanoclaw`). It sits under `dataDir`, so the restic path that
+covers `dataDir` already backs it up. Anyone who reads it can send as you.
+Revoke it from Signal, Settings, Linked Devices. A linked device that stays
+offline for about 30 days is unlinked.
+
+**Maintenance.** `signal-cli` is unofficial. A Signal protocol change breaks
+old releases, so bump `nixpkgs` when linking or sending fails.
+
 ## Adding integrations
 
 Order of preference, cheapest first. Sources: upstream's
