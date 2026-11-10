@@ -101,18 +101,21 @@ exist.
 
 ## Provision the secrets
 
-Two 1Password items are needed for the core service, and two more for Slack.
-Each lives in the `nixerator` vault with a `credential` field. The core
-`op://` references are already in `secrets.json.tpl` under `nanoclaw`, so
-`just render-secrets` fails until those two items exist. Do this on a
-workstation. Never paste a value into the chat or onto a command line.
+Two 1Password items are needed for the core service, and one more for Signal.
+Each lives in the `nixerator` vault with a `credential` field, is edited only
+in 1Password, and reaches srv through the secauto gopass store. The `op://`
+references are already in `secrets.json.tpl` under `nanoclaw`. A key whose
+gopass entry is missing is left out of the render, so core keys missing keep
+the service off (evaluation warns) and a missing Signal key leaves it
+terminal-only. Do the 1Password steps on a workstation. Never paste a value
+into the chat or onto a command line.
 
 | Item | JSON key | Needed for |
 |------|----------|------------|
 | `nanoclaw-claude-token` | `nanoclaw.claudeToken` | core |
 | `nanoclaw-onecli-db-password` | `nanoclaw.onecliDbPassword` | core |
-| `clanky-slack-app`, field `Bot-User-Oauth-Token` | `nanoclaw.slackBotToken` | Slack |
-| `clanky-slack-app`, field `Default-clanky-App-Token` | `nanoclaw.slackAppToken` | Slack |
+| `nanoclaw-signal-account` | `nanoclaw.signalAccount` | Signal |
+| `clanky-slack-app`, fields `Bot-User-Oauth-Token`, `Default-clanky-App-Token` | `nanoclaw.slackBotToken`, `nanoclaw.slackAppToken` | Slack (off on srv) |
 
 1. **Generate the Claude setup-token.** It needs a browser, so run it on
    qbert:
@@ -134,17 +137,17 @@ workstation. Never paste a value into the chat or onto a command line.
    password generator for the `credential` field (64 hex-safe characters
    work). The value never needs to be seen.
 
-   The two Slack rows are already in `secrets.json.tpl` and `gopass-map.tsv`.
-   A missing Slack item leaves its key out of the render, so Slack stays off
-   and the core service still runs (Slack section).
+   The Signal and Slack rows are already in `secrets.json.tpl` and
+   `gopass-map.tsv`. Slack is off on srv (see the Slack section).
 
-4. **Render, push and rebuild:**
+4. **Snapshot, render and rebuild.** srv never calls `op`:
 
    ```bash
-   just render-secrets            # on the workstation
-   render-secrets --push srv      # copy secrets.json to srv
-   # then on srv:
-   just qr
+   # on qbert: copy the new 1Password value into the secauto gopass store
+   just import-secrets-to-gopass            # new entry; add --update to change one
+   # on srv: pull the store (a 15-minute timer; force it), render, activate
+   systemctl --user start secauto-pull
+   cd ~/git/nixerator && just render-secrets && just qr
    ```
 
 The plaintext exists only in `secrets.json` (0600, outside the repo and the
@@ -209,8 +212,10 @@ and `docker logs onecli`. To recover:
 
 1. `claude setup-token` on a workstation (step 2 above).
 2. Update the `credential` field of the `nanoclaw-claude-token` item.
-3. `just render-secrets`, push to srv, then on srv `just qr` (the activation
-   script rewrites `/run/nanoclaw-secrets/claude-token`).
+3. On qbert, `just import-secrets-to-gopass --update`. On srv, force the pull
+   (`systemctl --user start secauto-pull`), then `just render-secrets` and
+   `just qr` (the activation script rewrites
+   `/run/nanoclaw-secrets/claude-token`).
 4. Restart the sync: `sudo systemctl restart nanoclaw-vault-sync`. It PATCHes
    the existing `Anthropic` secret in place (same id, so per-agent grants
    survive). Restarting the sync also restarts `nanoclaw`.
@@ -220,10 +225,15 @@ units. The restart in step 4 is required.
 
 ## Slack
 
+**Slack is off on srv.** Signal replaced it, so `hosts/srv/modules.nix` no
+longer enables `server.nanoclaw.slack` or installs its tokens. The module
+options and build files stay, and these steps are kept for a return. To turn
+it back on, add a `slack` block and the two token files to the srv host
+config. The existing Slack wiring stays in the central DB.
+
 A personal workspace (not a work one) in Socket Mode: srv opens an outbound
 WebSocket to Slack, so nothing on srv is public. The two tokens are
-1Password items with their own gate. NanoClaw runs terminal-only until both
-keys are in `secrets.json`, and evaluation warns until then.
+1Password items with their own gate.
 
 **1. Create the app** at api.slack.com/apps → Create New App → From scratch,
 in your personal workspace:
@@ -252,8 +262,8 @@ These steps are the upstream skill's own, from `.claude/skills/add-slack/SKILL.m
 **2. Store the tokens** in the `nixerator` vault. The `clanky-slack-app` item
 holds the bot token (xoxb-…) in `Bot-User-Oauth-Token` and the app-level token
 (xapp-…, scope `connections:write`) in `Default-clanky-App-Token`. The template
-already references both. Run `render-secrets --push srv` from a checkout that
-has this template, then `just qr` on srv.
+already references both. Import them to gopass on qbert, then on srv run
+`just render-secrets` and `just qr`.
 
 **3. Check it connected, then wire yourself:**
 
@@ -284,9 +294,10 @@ every service start. NanoClaw reads them from `.env` only, never from the
 process environment, so agent containers never see them. The start step
 refuses anything that isn't `xoxb-` / `xapp-` shaped.
 
-**Rotating them.** Update the 1Password item, `just render-secrets`, push to
-srv, `just qr`, then `sudo systemctl restart nanoclaw`. The restart re-renders
-`.env`.
+**Rotating them.** Update the 1Password item, then
+`just import-secrets-to-gopass --update` on qbert. On srv, force the pull,
+`just render-secrets`, `just qr`, then `sudo systemctl restart nanoclaw`. The
+restart re-renders `.env`.
 
 **Channels other than your DM.** Anything in a channel the bot is in becomes
 input to the agent, including text posted by other integrations. Invite the
@@ -418,7 +429,8 @@ NEW=$(openssl rand -hex 32)
 printf "ALTER USER onecli PASSWORD '%s';\n" "$NEW" | docker exec -i onecli-postgres psql -U onecli -d onecli
 # put $NEW in the nanoclaw-onecli-db-password item (op item edit, blind), then
 unset NEW
-# just render-secrets, push to srv, just qr on srv, then:
+# import-secrets-to-gopass --update on qbert, then on srv: force the pull,
+# just render-secrets, just qr, then:
 sudo systemctl restart nanoclaw-onecli-env docker-onecli
 ```
 

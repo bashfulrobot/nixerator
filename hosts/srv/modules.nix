@@ -23,13 +23,8 @@ let
     onecli-db-password = "onecliDbPassword";
   };
 
-  # The Slack channel's two tokens, gated the same way but separately: the
-  # assistant can run terminal-only before these exist.
-  nanoclawSlackSecrets = {
-    slack-bot-token = "slackBotToken";
-    slack-app-token = "slackAppToken";
-  };
-  # The Signal channel's linked number (E.164), gated like Slack. It is not a
+  # The Signal channel's linked number (E.164), gated separately from the core
+  # keys so the assistant can run terminal-only before it exists. It is not a
   # credential, but it identifies the account, so it stays out of /nix/store.
   nanoclawSignalSecrets = {
     signal-account = "signalAccount";
@@ -37,7 +32,6 @@ let
   hasNanoclawKeys =
     set: lib.all (key: lib.hasAttrByPath [ "nanoclaw" key ] secrets) (lib.attrValues set);
   nanoclawReady = hasNanoclawKeys nanoclawSecrets;
-  nanoclawSlackReady = nanoclawReady && hasNanoclawKeys nanoclawSlackSecrets;
   nanoclawSignalReady = nanoclawReady && hasNanoclawKeys nanoclawSignalSecrets;
 
   nanoclawSecretPath = name: "${nanoclawSecretsDir}/${name}";
@@ -484,12 +478,8 @@ in
       claudeTokenFile = nanoclawSecretPath "claude-token";
       onecli.dbPasswordFile = nanoclawSecretPath "onecli-db-password";
 
-      # Personal Slack workspace, Socket Mode (no public URL on srv).
-      slack = lib.mkIf nanoclawSlackReady {
-        enable = true;
-        botTokenFile = nanoclawSecretPath "slack-bot-token";
-        appTokenFile = nanoclawSecretPath "slack-app-token";
-      };
+      # Slack is off on srv: Signal is the channel. The slack options and
+      # build files stay in the module for a later return.
 
       # Signal: signal-cli linked to Dustin's own number, reached through Note
       # to Self. Link once with `nanoclaw-signal-link`, then `nanoclaw-signal-wire`.
@@ -507,16 +497,15 @@ in
   # extras/docs/nanoclaw/README.md.
   #
   # Secrets use the repo's one pattern (1Password edit -> gopass snapshot ->
-  # render-secrets --from gopass -> installValue). Each lands at /run/nanoclaw-secrets/<name> (root, 0400) at
-  # activation; the module reads them only through systemd LoadCredential, so
-  # no value is ever evaluated by Nix. A rotated value changes no store path,
-  # so after `just render-secrets` restart the units by hand (README, "Rotate
-  # a secret").
+  # render-secrets --from gopass -> installValue). Each lands at
+  # /run/nanoclaw-secrets/<name> (root, 0400) at activation; the module reads
+  # them only through systemd LoadCredential, so no value is ever evaluated by
+  # Nix. A rotated value changes no store path: after the srv pull and render,
+  # run `just qr` and restart the units by hand (README, "Rotate a secret").
   system.activationScripts.nanoclawSecrets = lib.stringAfter [ "etc" ] (
     lib.concatStrings (
       lib.mapAttrsToList installNanoclawSecret (
         lib.optionalAttrs nanoclawReady nanoclawSecrets
-        // lib.optionalAttrs nanoclawSlackReady nanoclawSlackSecrets
         // lib.optionalAttrs nanoclawSignalReady nanoclawSignalSecrets
       )
     )
@@ -528,11 +517,6 @@ in
       (claudeToken, onecliDbPassword) to secrets.json.tpl, create the 1Password
       items, import them to gopass, and re-render (extras/docs/nanoclaw/README.md,
       "Provision the secrets").
-    ''
-    ++ lib.optional (nanoclawReady && !nanoclawSlackReady) ''
-      server.nanoclaw is running terminal-only: add the slackBotToken and
-      slackAppToken keys to secrets.json to turn on Slack
-      (extras/docs/nanoclaw/README.md, "Slack").
     ''
     ++ lib.optional (nanoclawReady && !nanoclawSignalReady) ''
       server.nanoclaw has no Signal channel: add the signalAccount key (the

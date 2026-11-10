@@ -485,13 +485,15 @@ let
       SLACK_BOT_TOKEN=$(tr -d '[:space:]' < "$CREDENTIALS_DIRECTORY/slack-bot-token")
       SLACK_APP_TOKEN=$(tr -d '[:space:]' < "$CREDENTIALS_DIRECTORY/slack-app-token")
       # Shape checks (upstream's own validators); nothing derived from the
-      # values is printed.
-      printf '%s' "$SLACK_BOT_TOKEN" | grep -qE '^xoxb-[A-Za-z0-9-]+$' \
-        || { echo "slack bot token file is not an xoxb- Bot User OAuth Token" >&2; exit 1; }
-      printf '%s' "$SLACK_APP_TOKEN" | grep -qE '^xapp-[A-Za-z0-9-]+$' \
-        || { echo "slack app token file is not an xapp- App-Level Token" >&2; exit 1; }
-      export SLACK_BOT_TOKEN SLACK_APP_TOKEN
-      envsubst '$SLACK_BOT_TOKEN $SLACK_APP_TOKEN' < ${./host-secrets.env.tpl} >> "$rendered.tmp"
+      # values is printed. A malformed token skips only Slack with a warning:
+      # a bad secret must not keep the whole host down.
+      if printf '%s' "$SLACK_BOT_TOKEN" | grep -qE '^xoxb-[A-Za-z0-9-]+$' \
+        && printf '%s' "$SLACK_APP_TOKEN" | grep -qE '^xapp-[A-Za-z0-9-]+$'; then
+        export SLACK_BOT_TOKEN SLACK_APP_TOKEN
+        envsubst '$SLACK_BOT_TOKEN $SLACK_APP_TOKEN' < ${./host-secrets.env.tpl} >> "$rendered.tmp"
+      else
+        echo "WARNING: slack tokens are not xoxb-/xapp- shaped; Slack channel skipped" >&2
+      fi
       unset SLACK_BOT_TOKEN SLACK_APP_TOKEN
     ''}
     ${lib.optionalString cfg.signal.enable ''
