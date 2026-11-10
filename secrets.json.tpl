@@ -41,7 +41,8 @@
     "claudeToken": "{{ op://nixerator/nanoclaw-claude-token/credential }}",
     "onecliDbPassword": "{{ op://nixerator/nanoclaw-onecli-db-password/3fqxhcsfzyenwg3rdblflsclgi }}",
     "slackBotToken": "{{ op://nixerator/clanky-slack-app/Bot-User-Oauth-Token }}",
-    "slackAppToken": "{{ op://nixerator/clanky-slack-app/Default-clanky-App-Token }}"
+    "slackAppToken": "{{ op://nixerator/clanky-slack-app/Default-clanky-App-Token }}",
+    "signalAccount": "{{ op://nixerator/nanoclaw-signal-account/credential }}"
   },
   "grafana": {
     "dashboardsToken": "{{ op://automation/grafana-cloud-dashboards/token }}"

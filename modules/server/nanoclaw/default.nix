@@ -46,6 +46,9 @@ let
 
   pkg = cfg.package;
   root = "${pkg}/share/nanoclaw";
+  # signal-cli keeps the account keys here ($HOME/.local/share/signal-cli,
+  # with HOME = dataDir). Back it up and keep it 0700.
+  signalDir = "${cfg.dataDir}/.local/share/signal-cli";
   inherit (pkg.passthru) nodejs;
   docker = config.virtualisation.docker.package;
 
@@ -117,6 +120,10 @@ let
     CONTAINER_IMAGE = imageRef;
     CONTAINER_IMAGE_BASE = image;
     NANOCLAW_EGRESS_LOCKDOWN = lib.boolToString cfg.egressLockdown;
+  }
+  // lib.optionalAttrs cfg.signal.enable {
+    SIGNAL_CLI_PATH = "${cfg.signal.package}/bin/signal-cli";
+    SIGNAL_DATA_DIR = signalDir;
   }
   // lib.optionalAttrs (cfg.timeZone != null) { TZ = cfg.timeZone; }
   // lib.optionalAttrs (cfg.assistantName != null) { ASSISTANT_NAME = cfg.assistantName; }
@@ -204,6 +211,74 @@ let
     export ${lib.concatStringsSep " " (lib.attrNames hostEnv)}
     exec ${nodejs}/bin/node ${root}/node_modules/tsx/dist/cli.mjs ${root}/scripts/init-first-agent.ts \
       --channel slack --user-id "$member" --platform-id "slack:$dm" \
+      --display-name "$display" --agent-name "$agent"
+  '';
+
+  # Signal device-link: runs `signal-cli link` as the service user (the
+  # account keys land in signalDir, 0700) and renders the sgnl:// URL as a
+  # terminal QR. Scan it from Signal, Settings, Linked Devices, Link New
+  # Device. Run it before the account number exists: the adapter stays inert
+  # until SIGNAL_ACCOUNT is set, so no daemon holds the data dir lock.
+  signalLinkCmd = pkgs.writeShellScriptBin "nanoclaw-signal-link" ''
+    set -euo pipefail
+    if [ "$(${pkgs.coreutils}/bin/id -un)" != ${lib.escapeShellArg cfg.user} ]; then
+      exec /run/wrappers/bin/sudo -u ${lib.escapeShellArg cfg.user} -- "$0" "$@"
+    fi
+    export HOME=${lib.escapeShellArg cfg.dataDir}
+    export PATH=${
+      lib.makeBinPath [
+        pkgs.qrencode
+        pkgs.coreutils
+      ]
+    }
+    ${cfg.signal.package}/bin/signal-cli link -n "''${1:-nanoclaw-srv}" | while IFS= read -r line; do
+      echo "$line"
+      case "$line" in
+        sgnl://*) printf '%s' "$line" | qrencode -t ANSIUTF8 ;;
+      esac
+    done
+  '';
+
+  # Signal owner wiring: creates the owner user and first agent on the Note to
+  # Self conversation. The account comes from the rendered .env, so the number
+  # never appears on argv. Group and third-party DM chats get no wiring, and
+  # the channel's `strict` unknown-sender policy drops them.
+  signalWireCmd = pkgs.writeShellScriptBin "nanoclaw-signal-wire" ''
+    set -euo pipefail
+    if [ "$(${pkgs.coreutils}/bin/id -un)" != ${lib.escapeShellArg cfg.user} ]; then
+      exec /run/wrappers/bin/sudo -u ${lib.escapeShellArg cfg.user} -- "$0" "$@"
+    fi
+    export PATH=${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.gnugrep
+      ]
+    }
+    usage() {
+      echo "usage: nanoclaw-signal-wire [--display-name NAME] [--agent-name NAME]" >&2
+      exit 2
+    }
+    display="Owner" agent="Andy"
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --display-name) display="''${2:-}"; shift 2 ;;
+        --agent-name) agent="''${2:-}"; shift 2 ;;
+        *) usage ;;
+      esac
+    done
+
+    env=${lib.escapeShellArg cfg.dataDir}/.env
+    account=$(grep -m1 '^SIGNAL_ACCOUNT=' "$env" 2>/dev/null | cut -d= -f2- || true)
+    if ! printf '%s' "$account" | grep -qE '^\+[0-9]{8,15}$'; then
+      echo "No SIGNAL_ACCOUNT in $env: is server.nanoclaw.signal enabled and nanoclaw running?" >&2
+      exit 1
+    fi
+
+    cd ${lib.escapeShellArg cfg.dataDir}
+    ${lib.toShellVars hostEnv}
+    export ${lib.concatStringsSep " " (lib.attrNames hostEnv)}
+    exec ${nodejs}/bin/node ${root}/node_modules/tsx/dist/cli.mjs ${root}/scripts/init-first-agent.ts \
+      --channel signal --user-id "signal:$account" --platform-id "$account" \
       --display-name "$display" --agent-name "$agent"
   '';
 
@@ -419,6 +494,13 @@ let
       envsubst '$SLACK_BOT_TOKEN $SLACK_APP_TOKEN' < ${./host-secrets.env.tpl} >> "$rendered.tmp"
       unset SLACK_BOT_TOKEN SLACK_APP_TOKEN
     ''}
+    ${lib.optionalString cfg.signal.enable ''
+      SIGNAL_ACCOUNT=$(tr -d '[:space:]' < "$CREDENTIALS_DIRECTORY/signal-account")
+      printf '%s' "$SIGNAL_ACCOUNT" | grep -qE '^\+[0-9]{8,15}$' \
+        || { echo "signal account file is not an E.164 number (+15551234567)" >&2; exit 1; }
+      printf 'SIGNAL_ACCOUNT=%s\n' "$SIGNAL_ACCOUNT" >> "$rendered.tmp"
+      unset SIGNAL_ACCOUNT
+    ''}
     chmod 600 "$rendered.tmp"
     mv "$rendered.tmp" "$rendered"
     ln -sfn "$rendered" .env
@@ -550,6 +632,25 @@ in
       };
     };
 
+    signal = {
+      enable = lib.mkEnableOption ''
+        the Signal channel: signal-cli linked as a secondary device on your
+        own number, reached through Note to Self (no bot API, no public port)
+      '';
+
+      accountFile = lib.mkOption {
+        type = lib.types.path;
+        example = "/run/nanoclaw-secrets/signal-account";
+        description = ''
+          Runtime path (outside /nix/store, root-readable) of the linked Signal
+          number in E.164 form (+15551234567). Rendered into the host's .env at
+          service start, so the number never lands in the Nix store.
+        '';
+      };
+
+      package = lib.mkPackageOption pkgs "signal-cli" { };
+    };
+
     backup = {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -653,6 +754,10 @@ in
         message = "server.nanoclaw.slack token files point into /nix/store; they must be runtime paths.";
       }
       {
+        assertion = !cfg.signal.enable || !(lib.hasPrefix "/nix/store" (toString cfg.signal.accountFile));
+        message = "server.nanoclaw.signal.accountFile points into /nix/store; it must be a runtime path.";
+      }
+      {
         assertion = config.virtualisation.oci-containers.backend == "docker";
         message = "server.nanoclaw needs virtualisation.oci-containers.backend = \"docker\" (NanoClaw drives the Docker CLI).";
       }
@@ -739,12 +844,35 @@ in
     ]
     ++ lib.optionals cfg.slack.enable [
       slackWireCmd
+    ]
+    ++ lib.optionals cfg.signal.enable [
+      signalLinkCmd
+      signalWireCmd
     ];
 
     systemd = {
-      tmpfiles.settings."10-nanoclaw".${cfg.dataDir}.d = {
-        inherit (cfg) user group;
-        mode = "0750";
+      tmpfiles.settings."10-nanoclaw" = {
+        ${cfg.dataDir}.d = {
+          inherit (cfg) user group;
+          mode = "0750";
+        };
+      }
+      // lib.optionalAttrs cfg.signal.enable {
+        "${cfg.dataDir}/.local".d = {
+          inherit (cfg) user group;
+          mode = "0750";
+        };
+        "${cfg.dataDir}/.local/share".d = {
+          inherit (cfg) user group;
+          mode = "0750";
+        };
+        # Account keys: owner only, so no other local user reads the linked
+        # device's identity.
+        ${signalDir}.d = {
+          inherit (cfg) user;
+          group = cfg.group;
+          mode = "0700";
+        };
       };
 
       timers.nanoclaw-backup = lib.mkIf cfg.backup.enable {
@@ -903,10 +1031,12 @@ in
             # Keep the rendered .env across `systemctl restart` so the operator
             # commands keep working; it is rebuilt on every start anyway.
             RuntimeDirectoryPreserve = "restart";
-            LoadCredential = lib.optionals cfg.slack.enable [
-              "slack-bot-token:${cfg.slack.botTokenFile}"
-              "slack-app-token:${cfg.slack.appTokenFile}"
-            ];
+            LoadCredential =
+              lib.optionals cfg.slack.enable [
+                "slack-bot-token:${cfg.slack.botTokenFile}"
+                "slack-app-token:${cfg.slack.appTokenFile}"
+              ]
+              ++ lib.optional cfg.signal.enable "signal-account:${cfg.signal.accountFile}";
             ExecStart = "${nodejs}/bin/node ${root}/dist/index.js";
             Restart = "on-failure";
             RestartSec = "10s";

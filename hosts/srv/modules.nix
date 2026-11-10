@@ -29,10 +29,16 @@ let
     slack-bot-token = "slackBotToken";
     slack-app-token = "slackAppToken";
   };
+  # The Signal channel's linked number (E.164), gated like Slack. It is not a
+  # credential, but it identifies the account, so it stays out of /nix/store.
+  nanoclawSignalSecrets = {
+    signal-account = "signalAccount";
+  };
   hasNanoclawKeys =
     set: lib.all (key: lib.hasAttrByPath [ "nanoclaw" key ] secrets) (lib.attrValues set);
   nanoclawReady = hasNanoclawKeys nanoclawSecrets;
   nanoclawSlackReady = nanoclawReady && hasNanoclawKeys nanoclawSlackSecrets;
+  nanoclawSignalReady = nanoclawReady && hasNanoclawKeys nanoclawSignalSecrets;
 
   nanoclawSecretPath = name: "${nanoclawSecretsDir}/${name}";
   installNanoclawSecret =
@@ -484,6 +490,13 @@ in
         botTokenFile = nanoclawSecretPath "slack-bot-token";
         appTokenFile = nanoclawSecretPath "slack-app-token";
       };
+
+      # Signal: signal-cli linked to Dustin's own number, reached through Note
+      # to Self. Link once with `nanoclaw-signal-link`, then `nanoclaw-signal-wire`.
+      signal = lib.mkIf nanoclawSignalReady {
+        enable = true;
+        accountFile = nanoclawSecretPath "signal-account";
+      };
     };
   };
 
@@ -504,6 +517,7 @@ in
       lib.mapAttrsToList installNanoclawSecret (
         lib.optionalAttrs nanoclawReady nanoclawSecrets
         // lib.optionalAttrs nanoclawSlackReady nanoclawSlackSecrets
+        // lib.optionalAttrs nanoclawSignalReady nanoclawSignalSecrets
       )
     )
   );
@@ -519,6 +533,11 @@ in
       server.nanoclaw is running terminal-only: add the slackBotToken and
       slackAppToken keys to secrets.json to turn on Slack
       (extras/docs/nanoclaw/README.md, "Slack").
+    ''
+    ++ lib.optional (nanoclawReady && !nanoclawSignalReady) ''
+      server.nanoclaw has no Signal channel: add the signalAccount key (the
+      linked number, +15551234567) to secrets.json after `nanoclaw-signal-link`
+      (extras/docs/nanoclaw/README.md, "Signal").
     '';
 
   apps.cli.restic = {
