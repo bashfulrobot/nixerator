@@ -495,10 +495,21 @@ let
       unset SLACK_BOT_TOKEN SLACK_APP_TOKEN
     ''}
     ${lib.optionalString cfg.signal.enable ''
-      SIGNAL_ACCOUNT=$(tr -d '[:space:]' < "$CREDENTIALS_DIRECTORY/signal-account")
-      printf '%s' "$SIGNAL_ACCOUNT" | grep -qE '^\+[0-9]{8,15}$' \
-        || { echo "signal account file is not an E.164 number (+15551234567)" >&2; exit 1; }
-      printf 'SIGNAL_ACCOUNT=%s\n' "$SIGNAL_ACCOUNT" >> "$rendered.tmp"
+      # Keep only digits and +, so "+1 (604) 555-1234" works. A bare NANP
+      # number (10 digits, or 11 starting with 1) gets its +1. A value that is
+      # still not E.164 skips Signal with a warning (nothing derived from the
+      # value is printed): a bad secret must not keep the whole host down.
+      SIGNAL_ACCOUNT=$(tr -dc '0-9+' < "$CREDENTIALS_DIRECTORY/signal-account")
+      case "$SIGNAL_ACCOUNT" in
+        +*) ;;
+        1[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) SIGNAL_ACCOUNT="+$SIGNAL_ACCOUNT" ;;
+        [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) SIGNAL_ACCOUNT="+1$SIGNAL_ACCOUNT" ;;
+      esac
+      if printf '%s' "$SIGNAL_ACCOUNT" | grep -qE '^\+[0-9]{8,15}$'; then
+        printf 'SIGNAL_ACCOUNT=%s\n' "$SIGNAL_ACCOUNT" >> "$rendered.tmp"
+      else
+        echo "WARNING: signal account file is not an E.164 number (+15551234567); Signal channel skipped" >&2
+      fi
       unset SIGNAL_ACCOUNT
     ''}
     chmod 600 "$rendered.tmp"
