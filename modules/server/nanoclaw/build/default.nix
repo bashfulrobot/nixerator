@@ -119,6 +119,19 @@ stdenv.mkDerivation (finalAttrs: {
       container/skills/slack-formatting/SKILL.md; do
       install -Dm644 "${channelsSrc}/$f" "$f"
     done
+
+    # .claude/skills/add-signal/SKILL.md, steps 2 and 3. The adapter uses only
+    # Node builtins, so there is no dependency and no lockfile change. The
+    # skill's `qrcode` dep only renders the device-link QR during setup;
+    # nanoclaw-signal-link renders it with qrencode instead. The import is
+    # appended here, after skills.patch has added the Slack imports to the
+    # barrel. The adapter stays inert until SIGNAL_ACCOUNT is in .env.
+    for f in \
+      src/channels/signal.ts \
+      src/channels/signal-registration.test.ts; do
+      install -Dm644 "${channelsSrc}/$f" "$f"
+    done
+    printf "\nimport './signal.js';\n" >> src/channels/index.ts
   '';
 
   buildPhase = ''

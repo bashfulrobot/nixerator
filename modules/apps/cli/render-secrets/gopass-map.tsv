@@ -28,6 +28,7 @@ snyk/credential	op://nixerator/snyk/credential
 todoist/credential	op://nixerator/todoist/credential
 nanoclaw-claude-token/credential	op://nixerator/nanoclaw-claude-token/credential
 nanoclaw-onecli-db-password/password	op://nixerator/nanoclaw-onecli-db-password/3fqxhcsfzyenwg3rdblflsclgi
+nanoclaw-signal-account/credential	op://nixerator/nanoclaw-signal-account/credential
 clanky-slack-app/bot-user-oauth-token	op://nixerator/clanky-slack-app/Bot-User-Oauth-Token
 clanky-slack-app/app-token	op://nixerator/clanky-slack-app/Default-clanky-App-Token
 grafana-cloud-dashboards/token	op://automation/grafana-cloud-dashboards/token

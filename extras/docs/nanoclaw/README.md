@@ -11,8 +11,10 @@ only ever see `CLAUDE_CODE_OAUTH_TOKEN=placeholder`.
 ## Read first: caveats and deviations
 
 - **Secrets use the repo's one pattern.** The four values live in the
-  `nixerator` 1Password vault, render to `secrets.json` with
-  `just render-secrets`, and land at `/run/nanoclaw-secrets/<name>` (root,
+  `nixerator` 1Password vault (the edit point). Dustin snapshots them into
+  the secauto gopass store (`just import-secrets-to-gopass` on qbert), srv
+  pulls the store and renders `secrets.json` from gopass, and they land at
+  `/run/nanoclaw-secrets/<name>` (root,
   0400) through `secretsLib.installValue` at activation. See
   `extras/docs/secrets.md`. agenix was used in the first version of this
   module and removed: on single-user hosts keeping values out of `/nix/store`
@@ -132,9 +134,9 @@ workstation. Never paste a value into the chat or onto a command line.
    password generator for the `credential` field (64 hex-safe characters
    work). The value never needs to be seen.
 
-   The two Slack items are not in `secrets.json.tpl` yet, so
-   `just render-secrets` does not need them. Add them when you have the tokens
-   (Slack section).
+   The two Slack rows are already in `secrets.json.tpl` and `gopass-map.tsv`.
+   A missing Slack item leaves its key out of the render, so Slack stays off
+   and the core service still runs (Slack section).
 
 4. **Render, push and rebuild:**
 
@@ -290,6 +292,53 @@ srv, `just qr`, then `sudo systemctl restart nanoclaw`. The restart re-renders
 input to the agent, including text posted by other integrations. Invite the
 bot only where you want it, and wire each channel deliberately
 (`nanoclaw-ncl wirings create …`, see upstream's `/manage-channels`).
+
+## Signal
+
+`server.nanoclaw.signal` links `signal-cli` to your own number as a secondary
+device, with no bot API and no public port. The assistant answers in Note to
+Self, so it sends as you. Adapter: upstream's `add-signal` skill, applied in
+`build/default.nix` with no new npm dependency. Slack can stay off.
+
+Only your number is wired. The adapter itself routes any DM or group message,
+but the channel defaults to `unknownSenderPolicy: strict`, and the access gate
+admits only the owner, admins and members. Create no wirings for other chats.
+
+**1. Store the number.** Dustin creates the 1Password item
+`nanoclaw-signal-account` (field `credential`, value `+1...`) in the
+`nixerator` vault, then runs `just import-secrets-to-gopass` on qbert. The row
+is already in `secrets.json.tpl` and `gopass-map.tsv`. Wait for the srv pull,
+render, then `just qr` on srv. The number is not a credential, but it names
+the account, so it stays out of `/nix/store`.
+
+**2. Link the device.** On srv, with Signal open on the phone:
+
+```bash
+nanoclaw-signal-link                 # prints a QR and the sgnl:// link
+```
+
+Signal, Settings, Linked Devices, Link New Device, scan. The link expires
+after about 3 minutes. Until it succeeds the adapter logs a daemon start
+failure and the rest of NanoClaw keeps running.
+
+**3. Restart and wire yourself:**
+
+```bash
+sudo systemctl restart nanoclaw
+journalctl -u nanoclaw -b | grep -i signal
+nanoclaw-signal-wire --display-name Dustin --agent-name clanky
+```
+
+Then message Note to Self.
+
+**State.** The account keys live in `/var/lib/nanoclaw/.local/share/signal-cli`
+(0700, owner `nanoclaw`). It sits under `dataDir`, so the restic path that
+covers `dataDir` already backs it up. Anyone who reads it can send as you.
+Revoke it from Signal, Settings, Linked Devices. A linked device that stays
+offline for about 30 days is unlinked.
+
+**Maintenance.** `signal-cli` is unofficial. A Signal protocol change breaks
+old releases, so bump `nixpkgs` when linking or sending fails.
 
 ## Adding integrations
 
