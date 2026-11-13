@@ -99,6 +99,9 @@ data, not a hunch:
   kong-skill, commit@kong-skills, feature-request@kong-skills, impeccable,
   hyperframes, kong-konnect@ai-marketplace: zero usage over 50 sessions; several
   were shadowed by the personal review-dev, commit and feature-request skills.
+  These ids are the old Kong Skills layout. The marketplace now ships
+  kong-skills, kong-forge and cs; commit, feature-request, kong-skill and
+  kong-doc-build no longer exist there.
 - token-optimizer@alexgreensh-token-optimizer: removed everywhere (module
   option, `cfg/token-optimizer.nix`, tmpfiles `/usr/local/bin/python3` rule,
   activation flag pinning, reminder, `installed_plugins.json` entry, doc). The
@@ -188,7 +191,7 @@ copy; run the block above on qbert and srv for each, then `just qr`:
 ```
 asana atlassian context7 feature-dev github kotlin-lsp learning-output-style
 pr-review-toolkit rust-analyzer-lsp frontend-design (@claude-plugins-official)
-commit feature-request kong-skill kong-skills (@kong-skills)
+commit feature-request kong-skill kong-skills (@kong-skills)  (old layout, ids gone upstream)
 hyperframes@hyperframes  impeccable@impeccable  kong-konnect@ai-marketplace
 ```
 

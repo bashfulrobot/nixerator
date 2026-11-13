@@ -56,7 +56,7 @@ Confirmed heavy, cross-project usage by a claude-code doctor scan
 `kong-technical-csm`, `todoist-cli`, `gws-cli`, `slack-post`
 
 Since 2026-10-08 the skills that used to live under `config/skills/` ship
-from `dk@claude-skills` / `kong-cs@claude-skills` only. `revealjs` and
+from `dk@claude-skills` / `kg@claude-skills` only. `revealjs` and
 `wave-invoicing` were the last two and were deleted in the follow-up (dk's
 copies are newer; `wave-invoicing`'s Camino Insync path moved to the
 `WAVE_INSYNC_ROOT` env var in `default.nix`'s `claudeEnv`). `config/skills/`

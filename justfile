@@ -167,7 +167,7 @@ upgrade:
         exit "$rc"
     fi
     gum style --foreground 82 "Flake inputs updated"
-    # claude-skills (dk/kong-cs/gitops) isn't a flake input -- it's a
+    # claude-skills (dk/kg/gitops) isn't a flake input -- it's a
     # commit-SHA pin in cfg/plugin-config.nix, so `nix flake update` above
     # never touches it. Bump it the same way, right before the rebuild picks
     # up whatever's currently pinned.
@@ -214,7 +214,7 @@ update input:
     @echo "Updating {{input}}..."
     @nix flake update {{input}}
 
-# Bump the claude-skills marketplace pin (dk/kong-cs/gitops) to its current
+# Bump the claude-skills marketplace pin (dk/kg/gitops) to its current
 # GitHub HEAD and refresh the claude-stack snapshot at that sha, without a full `just upgrade`. Not a flake input -- see
 # cfg/plugin-config.nix's selfPins (plus the cfg/claude-stack snapshot) -- so `just update claude-skills`
 # doesn't reach it; this is that recipe's equivalent for this one pin.
@@ -489,7 +489,7 @@ setup-hooks:
 # the bump, and it sweeps every vendored-skill input. Don't re-add it here.
 #
 # Also does NOT cover the claude-skills marketplace (dk@claude-skills /
-# kong-cs@claude-skills / gitops@claude-skills) added 2026-09-08: that one is
+# kg@claude-skills / gitops@claude-skills) added 2026-09-08: that one is
 # pinned by commit SHA in cfg/plugin-config.nix, not a flake input, so
 # neither this recipe nor a `nix flake update` moves it. Unlike the other
 # SHA-pinned marketplaceSources entries, `just upgrade` / `just
@@ -974,7 +974,7 @@ quiet-upgrade:
     rc=0
     # &&-chain so a failed `nix flake update` (or claude-skills pin bump)
     # aborts instead of rebuilding on stale/half-updated pins (a bare `;`
-    # group would mask its exit status). claude-skills (dk/kong-cs/gitops)
+    # group would mask its exit status). claude-skills (dk/kg/gitops)
     # isn't a flake input -- it's a commit-SHA pin in cfg/plugin-config.nix,
     # so `nix flake update` never touches it; bump-plugin-marketplace-sha.sh
     # does, the same way this bumps flake.lock.

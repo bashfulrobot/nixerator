@@ -30,7 +30,7 @@ in
           # rationale that used to live in this list (the #294 token-surface
           # audit and the 2026-07-30/31 usage-data drops: learning-output-style,
           # pr-review-toolkit, feature-dev, context7, asana/atlassian/github,
-          # code-review, the kotlin/rust LSPs, kong-skills extras, impeccable,
+          # code-review, the kotlin/rust LSPs, Kong Skills extras (kong-skills, kong-forge, cs), impeccable,
           # hyperframes, kong-konnect@ai-marketplace, ralph-loop, reap,
           # caveman) is in git history of this file and in
           # .claude/docs/claude-plugins.md. Re-adding any of them needs usage
