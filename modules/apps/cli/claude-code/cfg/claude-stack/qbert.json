@@ -91,7 +91,7 @@
       }
     },
     "kong-skills": {
-      "sha": "fe5c4d1b8f1fb3ee3b44e0124b6dd9cd54ebed22",
+      "sha": "74608626b1176a31d7e8f0857965133e82e5900f",
       "source": {
         "repo": "Kong/kong-skills",
         "source": "github"
@@ -133,12 +133,6 @@
       "scope": "library",
       "type": "http",
       "url": "https://mcp.grafana.com/mcp"
-    },
-    "granola": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://mcp.granola.ai/mcp"
     },
     "iso-topology": {
       "managedBy": "nix",
@@ -250,13 +244,22 @@
     "atlassian@claude-skills": {
       "state": "enabled"
     },
+    "backstory@claude-skills": {
+      "state": "disabled"
+    },
     "cloudflare@claude-skills": {
       "state": "disabled"
     },
     "commit-commands@claude-plugins-official": {
       "state": "absent"
     },
+    "cs@kong-skills": {
+      "state": "enabled"
+    },
     "dk@claude-skills": {
+      "state": "enabled"
+    },
+    "email-pane@claude-skills": {
       "state": "enabled"
     },
     "final-answer@claude-skills": {
@@ -286,10 +289,16 @@
     "humanizer@claude-skills": {
       "state": "enabled"
     },
+    "hyperframes@claude-skills": {
+      "state": "disabled"
+    },
     "impeccable@claude-skills": {
       "state": "enabled"
     },
     "journey-pane@claude-skills": {
+      "state": "enabled"
+    },
+    "kg@claude-skills": {
       "state": "enabled"
     },
     "kode@claude-skills": {
@@ -298,19 +307,16 @@
       },
       "state": "enabled"
     },
-    "kong-cs@claude-skills": {
-      "state": "enabled"
-    },
     "kong-demo-config-generator@claude-skills": {
-      "state": "enabled"
-    },
-    "kong-doc-build@kong-skills": {
       "state": "enabled"
     },
     "kong-docs-rag@claude-skills": {
       "config": {
         "repo_path": "${HOME}/git/kong-docs-rag"
       },
+      "state": "enabled"
+    },
+    "kong-forge@kong-skills": {
       "state": "enabled"
     },
     "kong-konnect@claude-skills": {
@@ -331,13 +337,22 @@
       },
       "state": "disabled"
     },
+    "lemo-opuscar@claude-skills": {
+      "state": "disabled"
+    },
     "mattpocock-skills@claude-skills": {
       "state": "enabled"
+    },
+    "onetake@claude-skills": {
+      "state": "disabled"
     },
     "plugin-dev@claude-plugins-official": {
       "state": "enabled"
     },
     "pyright-lsp@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "quick-answer@claude-skills": {
       "state": "enabled"
     },
     "quiet-chat@claude-skills": {
@@ -353,6 +368,9 @@
       "state": "enabled"
     },
     "semagraph@semagraph": {
+      "state": "enabled"
+    },
+    "sketchy@claude-skills": {
       "state": "enabled"
     },
     "skill-creator@claude-plugins-official": {

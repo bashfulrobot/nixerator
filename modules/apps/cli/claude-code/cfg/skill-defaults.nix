@@ -13,7 +13,7 @@
 #
 # 2026-09-08: most of the skills named below moved out of config/skills/ and
 # into the claude-skills marketplace (cfg/plugin-config.nix's dk@claude-skills
-# / kong-cs@claude-skills) -- see the retirement note this same commit left
+# / kg@claude-skills, formerly kong-cs) -- see the retirement note this same commit left
 # in default.nix near allVendoredSkillNames. This list still names them by
 # skill name, not by source, and that keeps working: mkOverlay's allNames is
 # a live `readDir configSkillsDir`, so a name absent from config/skills/ (now
@@ -23,7 +23,7 @@
 # read a name's continued presence here as proof it still lives under
 # config/skills/; check the directory.
 #
-# 2026-10-08: 23 more skills that were byte-identical to dk / kong-cs copies
+# 2026-10-08: 23 more skills that were byte-identical to dk / kg copies
 # were deleted from config/skills/. The last two, revealjs and wave-invoicing,
 # followed (dk's copies are newer: CSRF fix, no hardcoded insync path), so
 # config/skills/ now holds no skill directories at all. None of them is in

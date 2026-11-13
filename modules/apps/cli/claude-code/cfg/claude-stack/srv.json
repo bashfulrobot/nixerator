@@ -207,7 +207,13 @@
     "commit-commands@claude-plugins-official": {
       "state": "absent"
     },
+    "cs@kong-skills": {
+      "state": "absent"
+    },
     "dk@claude-skills": {
+      "state": "enabled"
+    },
+    "email-pane@claude-skills": {
       "state": "enabled"
     },
     "final-answer@claude-skills": {
@@ -234,6 +240,9 @@
     "humanizer@claude-skills": {
       "state": "enabled"
     },
+    "hyperframes@claude-skills": {
+      "state": "disabled"
+    },
     "impeccable@claude-skills": {
       "state": "enabled"
     },
@@ -249,16 +258,25 @@
     "kong-demo-config-generator@claude-skills": {
       "state": "absent"
     },
-    "kong-doc-build@kong-skills": {
+    "kong-forge@kong-skills": {
       "state": "absent"
+    },
+    "lemo-opuscar@claude-skills": {
+      "state": "disabled"
     },
     "mattpocock-skills@claude-skills": {
       "state": "enabled"
+    },
+    "onetake@claude-skills": {
+      "state": "disabled"
     },
     "plugin-dev@claude-plugins-official": {
       "state": "absent"
     },
     "pyright-lsp@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "quick-answer@claude-skills": {
       "state": "enabled"
     },
     "quiet-chat@claude-skills": {
