@@ -1,9 +1,28 @@
 {
   hostname,
   globals,
+  inputs,
+  pkgs,
   ...
 }:
 
+let
+  voxtypePkgs = inputs.voxtype.packages.${pkgs.stdenv.hostPlatform.system};
+
+  # voxtype's unwrapped Vulkan build fails to link on the 2026-11-11 nixpkgs
+  # (`cannot find -lsqlite3`): nixpkgs stopped supplying sqlite to it
+  # implicitly. Rebuild the unwrapped package with sqlite and keep upstream's
+  # wrapper (which puts wtype, wl-clipboard and the rest on PATH) by swapping
+  # only the wrapper's `paths`. Remove once upstream voxtype builds on current
+  # nixpkgs without this.
+  voxtypeVulkan = voxtypePkgs.vulkan.overrideAttrs (_old: {
+    paths = [
+      (voxtypePkgs.voxtype-vulkan-unwrapped.overrideAttrs (old: {
+        buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.sqlite ];
+      }))
+    ];
+  });
+in
 {
   # Import hardware configuration
   imports = [
@@ -32,8 +51,8 @@
   i18n.defaultLocale = globals.defaults.locale;
 
   # Voxtype on qbert: Vulkan on the AMD 6800 XT, thread cap kept. The module's
-  # `acceleration` option picks the vulkan variant, so no manual package
-  # override is needed. VAD is on by the module default, which fixes the
+  # `acceleration` option picks the vulkan variant, and `package` swaps in the
+  # sqlite-patched build from the let block above. VAD is on by the module default, which fixes the
   # occasional "dictated X, typed unrelated Y" whisper-hallucination-on-silence.
   hyprflake.desktop.voxtype = {
     #model = "large-v3-turbo";
@@ -41,6 +60,7 @@
     model = "small.en";
     threads = 16;
     acceleration = "vulkan";
+    package = voxtypeVulkan;
   };
 
   # Enable archetypes
