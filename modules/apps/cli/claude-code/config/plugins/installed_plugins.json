@@ -324,6 +324,36 @@
         "lastUpdated": "2026-10-28T19:03:49.371Z",
         "gitCommitSha": "7deeaaed15b1a85ed730f4025498aa18aba8f72c"
       }
+    ],
+    "kg@claude-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/claude-skills/kg/2.0.1",
+        "version": "2.0.1",
+        "installedAt": "2026-11-13T14:59:32.282Z",
+        "lastUpdated": "2026-11-13T14:59:32.282Z",
+        "gitCommitSha": "8e36987c34bd47e8db5cd2a6957a11ae8b1a7dc0"
+      }
+    ],
+    "cs@kong-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-skills/cs/74608626b117",
+        "version": "74608626b117",
+        "installedAt": "2026-11-13T15:00:26.142Z",
+        "lastUpdated": "2026-11-13T15:00:26.142Z",
+        "gitCommitSha": "74608626b1176a31d7e8f0857965133e82e5900f"
+      }
+    ],
+    "kong-forge@kong-skills": [
+      {
+        "scope": "user",
+        "installPath": "@HOME_DIR@/.claude/plugins/cache/kong-skills/kong-forge/74608626b117",
+        "version": "74608626b117",
+        "installedAt": "2026-11-13T15:00:26.815Z",
+        "lastUpdated": "2026-11-13T15:00:26.815Z",
+        "gitCommitSha": "74608626b1176a31d7e8f0857965133e82e5900f"
+      }
     ]
   }
 }
