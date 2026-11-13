@@ -2,6 +2,8 @@
   lib,
   rustPlatform,
   fetchFromGitHub,
+  pkg-config,
+  zstd,
   versions,
   ...
 }:
@@ -15,6 +17,11 @@ rustPlatform.buildRustPackage {
     rev = "${versions.cli.weave.tagPrefix}${versions.cli.weave.version}";
     inherit (versions.cli.weave) hash;
   };
+
+  # zstd-sys probes for libzstd through pkg-config. Newer nixpkgs no longer
+  # supplies pkg-config to Rust builds implicitly.
+  nativeBuildInputs = [ pkg-config ];
+  buildInputs = [ zstd ];
 
   cargoBuildFlags = [
     "--package"
