@@ -1,6 +1,7 @@
 {
   "acLockTimeout": 300,
   "acMonitorTimeout": 600,
+  "acSuspendTimeout": 0,
   "barConfigs": [
     {
       "borderEnabled": false,
@@ -9,13 +10,17 @@
         "clock"
       ],
       "enabled": true,
+      "followInterfaceStyle": false,
       "fontScale": 1.15,
       "gothCornersEnabled": false,
       "id": "default",
       "leftWidgets": [
         {
           "enabled": true,
-          "id": "workspaceSwitcher"
+          "id": "workspaceSwitcher",
+          "showOccupiedWorkspacesOnly": true,
+          "showWorkspaceApps": true,
+          "showWorkspaceIndex": true
         }
       ],
       "name": "Main Bar",
@@ -45,13 +50,16 @@
       ],
       "shadowIntensity": 0,
       "showOnLastDisplay": true,
-      "squareCorners": false
+      "squareCorners": false,
+      "widgetFollowInterfaceStyle": true
     }
   ],
   "barElevationEnabled": false,
   "batteryLockTimeout": 300,
   "batteryMonitorTimeout": 360,
   "batterySuspendTimeout": 600,
+  "blurBorderEnabled": true,
+  "blurBorderSeeded": true,
   "blurEnabled": true,
   "blurWallpaperOnOverview": true,
   "builtInPluginSettings": {
@@ -64,7 +72,7 @@
   },
   "clockDateFormat": "M/d",
   "clockFormat": "24h",
-  "configVersion": 18,
+  "configVersion": 42,
   "cursorSettings": {
     "dwl": {
       "cursorHideTimeout": 0
@@ -81,53 +89,97 @@
     "size": 24,
     "theme": "System Default"
   },
-  "desktopClockCustomColor": {
-    "a": 1,
-    "b": 1,
-    "g": 1,
-    "hslHue": -1,
-    "hslLightness": 1,
-    "hslSaturation": 0,
-    "hsvHue": -1,
-    "hsvSaturation": 0,
-    "hsvValue": 1,
-    "r": 1,
-    "rgba": -1,
-    "valid": true
-  },
   "displayProfileAutoSelect": true,
+  "dmsWindowsFloatingSeeded": [
+    "hyprland"
+  ],
+  "dockConfigs": [
+    {
+      "autoHide": false,
+      "borderColor": "surfaceText",
+      "borderEnabled": false,
+      "borderOpacity": 1,
+      "borderThickness": 1,
+      "bottomGap": 0,
+      "editOnRightClick": false,
+      "enabled": false,
+      "followInterfaceStyle": false,
+      "groupByApp": false,
+      "iconSize": 40,
+      "id": "dock",
+      "indicatorStyle": "circle",
+      "isolateDisplays": false,
+      "itemSpacing": 4,
+      "launcherEnabled": false,
+      "launcherLogoBrightness": 0.5,
+      "launcherLogoColorOverride": "",
+      "launcherLogoContrast": 1,
+      "launcherLogoCustomPath": "",
+      "launcherLogoMode": "apps",
+      "launcherLogoSizeOffset": 0,
+      "magnification": false,
+      "magnificationExpand": false,
+      "magnificationProfile": "parabolic",
+      "magnificationScale": 130,
+      "margin": 0,
+      "maxVisibleApps": 0,
+      "maxVisibleRunningApps": 0,
+      "middleClickAction": "close",
+      "mode": "compact",
+      "name": "Dock",
+      "openOnOverview": false,
+      "order": [],
+      "position": 1,
+      "restoreSpecialWorkspaceOnClick": false,
+      "screenPreferences": [
+        "all"
+      ],
+      "separatePinnedAndRunningApps": false,
+      "showOnFullscreen": false,
+      "showOnLastDisplay": true,
+      "showOverflowBadge": true,
+      "showTrash": false,
+      "smartAutoHide": false,
+      "spacing": 4,
+      "taskbarAlign": "center",
+      "transparency": 1,
+      "trashCustomCommand": "",
+      "trashFileManager": "default",
+      "useOverlayLayer": false,
+      "widgetExpansion": "popout",
+      "widgets": [
+        {
+          "enabled": true,
+          "id": "dock_launcher",
+          "widgetId": "dockLauncher"
+        },
+        {
+          "enabled": true,
+          "id": "dock_apps",
+          "widgetId": "appsDock"
+        },
+        {
+          "enabled": true,
+          "id": "dock_trash",
+          "widgetId": "dockTrash"
+        }
+      ]
+    }
+  ],
   "firstDayOfWeek": 2,
-  "launcherLogoColorOverride": "primary",
-  "launcherLogoMode": "os",
   "launcherStyle": "spotlight",
   "launcherUseOverlayLayer": true,
   "lockBeforeSuspend": true,
-  "lockScreenNotificationMode": 2,
   "lockScreenPowerOffMonitorsOnLock": true,
+  "loginctlLockIntegration": true,
   "muxType": "zellij",
   "notificationOverlayEnabled": true,
   "notificationPopupPosition": -1,
   "osdAlwaysShowValue": true,
   "osdMediaPlaybackEnabled": true,
   "osdPowerProfileEnabled": true,
-  "showOccupiedWorkspacesOnly": true,
-  "showWorkspaceApps": true,
   "showWorkspaceIndex": true,
   "sortAppsAlphabetically": true,
   "soundLogin": true,
-  "systemMonitorCustomColor": {
-    "a": 1,
-    "b": 1,
-    "g": 1,
-    "hslHue": -1,
-    "hslLightness": 1,
-    "hslSaturation": 0,
-    "hsvHue": -1,
-    "hsvSaturation": 0,
-    "hsvValue": 1,
-    "r": 1,
-    "rgba": -1,
-    "valid": true
-  },
   "systemTrayIconTintMode": "monochrome"
 }
