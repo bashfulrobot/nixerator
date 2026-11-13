@@ -1296,11 +1296,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794592573,
-        "narHash": "sha256-049pfv5E0WWDSAb6NJfo1KkDQyXDIUItTgPJWTlFcMM=",
+        "lastModified": 1794594527,
+        "narHash": "sha256-VdiMgJBhZDZdZmKbDt3QySn1ZuXPBDI3blDaWXDTat4=",
         "owner": "bashfulrobot",
         "repo": "snowstorm",
-        "rev": "d271d0a3534ce30948faa28c92de8558daa6929b",
+        "rev": "e0c2c760bd9c5023cc2f2c7fb8ac0b85f29f8361",
         "type": "github"
       },
       "original": {
