@@ -4,6 +4,7 @@
   fetchFromGitHub,
   pkg-config,
   zstd,
+  oniguruma,
   versions,
   ...
 }:
@@ -18,10 +19,13 @@ rustPlatform.buildRustPackage {
     inherit (versions.cli.weave) hash;
   };
 
-  # zstd-sys probes for libzstd through pkg-config. Newer nixpkgs no longer
-  # supplies pkg-config to Rust builds implicitly.
+  # zstd-sys and onig_sys probe for libzstd and oniguruma through pkg-config.
+  # Newer nixpkgs no longer supplies these to Rust builds implicitly.
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ zstd ];
+  buildInputs = [
+    zstd
+    oniguruma
+  ];
 
   cargoBuildFlags = [
     "--package"
