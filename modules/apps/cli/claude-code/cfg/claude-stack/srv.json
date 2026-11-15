@@ -75,6 +75,10 @@
       "mode": "0644",
       "source": "claude-stack/files/docs/writing.md"
     },
+    "${HOME}/.claude/retention-sweep.sh": {
+      "mode": "0755",
+      "source": "claude-stack/files/retention-sweep.sh"
+    },
     "${HOME}/.claude/statusline.sh": {
       "mode": "0755",
       "source": "claude-stack/files/statusline.sh"
@@ -190,8 +194,6 @@
       "Bash(ffmpeg *)",
       "Bash(ollama *)",
       "Bash(todoist *)",
-      "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack-post/scripts/slack-post.sh *)",
-      "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack/scripts/slack-read.sh *)",
       "Bash(wl-copy *)"
     ],
     "deny": []
@@ -208,6 +210,9 @@
       "state": "absent"
     },
     "cs@kong-skills": {
+      "state": "absent"
+    },
+    "dk-forge@claude-skills": {
       "state": "absent"
     },
     "dk@claude-skills": {
@@ -301,10 +306,10 @@
       "state": "disabled"
     },
     "terse@claude-skills": {
-      "state": "enabled"
+      "state": "absent"
     },
     "todoist@claude-skills": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "vibecurb@claude-skills": {
       "state": "enabled"
@@ -519,7 +524,6 @@
         "intent-layer": "off",
         "pixel-perfect": "off",
         "visual-redesign": "off",
-        "walkr-author": "off",
         "walkr-tutorial-author": "off"
       },
       "skipDangerousModePermissionPrompt": true,
