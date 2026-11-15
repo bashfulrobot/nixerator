@@ -118,7 +118,7 @@ build-host host:
 # path to test a different checkout/worktree:
 #
 #   just hyprflake-test
-#   just hyprflake-test /home/dustin/git/.worktrees/hyprflake-feature
+#   just hyprflake-test /home/dustin/git/hyprflake/.claude/worktrees/hyprflake-feature
 #
 # Uses {{host_flake}} so it targets whichever host it runs on, like `rebuild`.
 [doc('Rebuild the current host against a local hyprflake checkout')]
