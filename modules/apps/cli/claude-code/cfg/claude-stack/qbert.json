@@ -396,6 +396,9 @@
     "tactiq@claude-skills": {
       "state": "disabled"
     },
+    "tahoe-glass@claude-skills": {
+      "state": "enabled"
+    },
     "terse@claude-skills": {
       "state": "absent"
     },
