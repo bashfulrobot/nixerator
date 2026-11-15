@@ -21,15 +21,9 @@ let
       type = "http";
       url = "https://ai.todoist.net/mcp";
     };
-    # Atlassian Remote MCP Server (Rovo) -- Jira / Confluence access.
-    # Streamable-HTTP "authv2" endpoint; the legacy /v1/sse endpoint is
-    # deprecated after 2026-06-30, so we pin the HTTP one. Auth is OAuth 2.1
-    # with dynamic client registration (no clientId to pre-register) -- run
-    # `/mcp` in Claude Code to complete the browser authorization flow.
-    atlassian = {
-      type = "http";
-      url = "https://mcp.atlassian.com/v1/mcp/authv2";
-    };
+    # Atlassian (Jira / Confluence) is not declared here: the claude-skills
+    # `atlassian` plugin supplies it on https://mcp.atlassian.com/v2/mcp, and
+    # the old v1 authv2 endpoint is removed on 2027-03-01.
     # Tactiq Remote MCP -- meeting transcripts, summaries, and recordings.
     # Streamable-HTTP endpoint is the bare host (paths 404). Auth is OAuth 2.1
     # with discovery-based dynamic client registration (no clientId to
@@ -74,7 +68,7 @@ let
     # Grafana Cloud MCP -- hosted observability MCP (dashboards, metrics, logs,
     # alerts, incidents) for the bashfulrobot.grafana.net stack. Streamable-HTTP
     # endpoint; auth is OAuth 2.1 with browser authorization (no token in config,
-    # same shape as atlassian/tactiq) -- run `/mcp` in Claude Code to complete the
+    # same shape as tactiq) -- run `/mcp` in Claude Code to complete the
     # flow. The X-Grafana-URL header pins the stack so authorization skips the
     # URL-entry step and goes straight to the consent page.
     grafana = {
