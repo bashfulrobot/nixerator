@@ -54,10 +54,15 @@ This is unlike `enabledPlugins`: permissions stay runtime-owned. Capture
 round-trips into `config/settings.json`, appended rules included. The union is
 idempotent, so capture -> activation -> capture is a fixpoint. Consequence:
 removing a rule from the manifest does not revoke it on a host; delete it from
-`config/settings.json` and the live file by hand. Both snapshots currently
-declare an empty allow list, so the merge is a no-op until the manifest gains
-rules. Not verified end to end (no nix on the authoring Mac); the jq filter was
-tested standalone for ordering, `:*` normalisation and idempotence.
+`config/settings.json` and the live file by hand. Not verified end to end (no
+nix on the authoring Mac); the jq filter was tested standalone for ordering,
+`:*` normalisation and idempotence.
+
+All of the above is the `stackApply`-off path. Both hosts set
+`apps.cli.claude-code.stackApply.enable = true`, and with it on the union is
+dead: activation drops the repo block and `claude_stack.py apply` writes the
+manifest's 57 rules as the only writer. `.claude/docs/claude-stack-apply.md`
+has the ownership table and the rule counts.
 
 ### Changing the set, and the pin/snapshot coupling
 
@@ -76,9 +81,14 @@ makes a signed commit, opens the PR, asks once, then squash-merges and rebuilds
 qbert and srv. It prints the two Mac commands at the end. It stops before the
 merge if you answer no.
 
-Snapshot seeded from the unmerged claude-skills PR #54 (branch
-`feat/claude-stack-phase1`). Once #54 merges, re-run
-`just bump-claude-skills` so the pin and snapshot come from a main sha.
+Pin and snapshot both come from a claude-skills `main` sha now. They are not
+at the same one: PRs #803 and #804 bumped only `flake.lock` (to `bf7f501`),
+leaving the snapshot at the sha PR #794 fetched. So the snapshot still declares
+`terse@claude-skills` enabled and `todoist@claude-skills` enabled, where
+`bf7f501` resolves them to `absent` and `disabled`. Since `enabledPlugins` and
+`extraKnownMarketplaces` are built from the snapshot under either `stackApply`
+state, a rebuild today still enables both on qbert and srv. Run
+`just bump-claude-skills` to realign, then rebuild each host.
 
 ### Dropped plugins: why (moved from the old per-host lists)
 
@@ -106,13 +116,21 @@ data, not a hunch:
   option, `cfg/token-optimizer.nix`, tmpfiles `/usr/local/bin/python3` rule,
   activation flag pinning, reminder, `installed_plugins.json` entry, doc). The
   Mac does not use it and NixOS follows the Mac's patterns. The `qbert.json`
-  snapshot still lists it until `just bump-claude-skills` pulls a snapshot
-  regenerated from claude-skills `feat/claude-stack-unify`; do not hand-edit it.
-  Leftovers on already-deployed hosts (`~/.claude/plugins/data/token-optimizer-*`,
+  snapshot no longer lists it. Leftovers on already-deployed hosts (`~/.claude/plugins/data/token-optimizer-*`,
   the `/usr/local/bin/python3` symlink goes away on rebuild) can be deleted by hand.
 - ralph-loop, reap, caveman: autonomous-loop engines duplicating `auto`
   (`/auto` 18 sessions vs 1-2), and caveman's terse-output ruleset contradicted
   the global "run all prose through humanizer" rule.
+- terse@claude-skills: declared `absent` on 2026-11-14 (claude-skills PR #383).
+  Its forced output style and per-turn reminder hook are replaced by
+  `plugins/dk/output-styles/dustin.md` plus the dk hooks `style-reminder.sh`
+  and `wordcap-stop.sh`, so two rule sets no longer compete in one session. The
+  `.claude-plugin/marketplace.json` entry stays in claude-skills because every
+  declared plugin has to be listed there.
+- todoist@claude-skills: declared `disabled` on 2026-11-14 (claude-skills PR
+  #378). Three Todoist surfaces reached the same account; the `td` CLI behind
+  `dk:todoist-cli` is the one the skills use. The `cfg/mcp-servers.nix` entry
+  for the same server is still live and is a later audit item.
 
 Marketplaces no longer registered because no non-absent plugin needs them:
 `ai-marketplace`, `impeccable`, `hyperframes`.
