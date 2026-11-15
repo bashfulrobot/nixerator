@@ -615,10 +615,9 @@ def main() -> int:
     elif args.section == "all-but-claude-md":
         # What `just qr` passes once apps.cli.claude-code.stackApply.enable is
         # on. ~/.claude/CLAUDE.md is then written by claude_stack.py apply from
-        # claude-skills, so reconciling it against config/CLAUDE.md would read
-        # the shared file as a home-side edit of the repo copy and raise a
-        # conflict on every rebuild. config/CLAUDE.md stays in the repo, no
-        # longer deployed, until phase 8 of the central-config plan deletes it.
+        # claude-skills, and config/CLAUDE.md has been deleted, so the
+        # claude-md section has no repo side left to reconcile against. The
+        # section itself stays for the stackApply-off path.
         sections = ["skills", "agents", "output-styles"]
     elif args.section == "none":
         sections = []

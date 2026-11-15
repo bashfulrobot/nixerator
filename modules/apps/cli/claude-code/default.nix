@@ -604,21 +604,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Keep the global CLAUDE.md thin (#294): it deploys verbatim to
-    # ~/.claude/CLAUDE.md and is re-sent on every turn, so an unbounded
-    # regrowth silently erodes the token-budget win that issue fixed. Trips
-    # at eval time (any `just build-host` / `just qr`) rather than waiting
-    # for the next transcript audit to notice. The 8000 ceiling matches
-    # #294's own target exactly rather than leaving slack, so the file
-    # currently sits within ~200 bytes of it -- the next addition to this
-    # file should come with an equivalent trim, not a threshold bump.
     assertions = [
-      {
-        assertion = builtins.stringLength (builtins.readFile (configDir + "/CLAUDE.md")) < 8000;
-        message = "modules/apps/cli/claude-code/config/CLAUDE.md must stay under 8000 characters (see #294); it is currently ${
-          toString (builtins.stringLength (builtins.readFile (configDir + "/CLAUDE.md")))
-        }.";
-      }
       {
         # vibecurbSkillNames no longer reaches a shell loop (the symlink loop
         # went with the `vibecurb-skills` input on 2026-10-26), but it is still
@@ -671,9 +657,14 @@ in
         message = "claude-code: stackApply is on but the pinned claude-skills rev is missing claude-stack/files/CLAUDE.md or claude-stack/files/statusline.sh, so its manifest predates the settings/files/vars sections apply needs. Run `just update claude-skills`.";
       }
       {
-        # The same ceiling as the repo copy above, applied to the file apply
-        # actually deploys. Without it the thin-CLAUDE.md budget stops being
-        # enforced the moment claude-skills owns the file.
+        # Keep the global CLAUDE.md thin (#294): it deploys verbatim to
+        # ~/.claude/CLAUDE.md and is re-sent on every turn, so unbounded
+        # regrowth silently erodes the token-budget win that issue fixed.
+        # claude-skills owns the file, so the ceiling is checked against the
+        # pinned rev's copy, at eval time (any `just build-host` / `just qr`)
+        # rather than at the next transcript audit. The 8000 matches #294's
+        # own target exactly, so the next addition to that file should come
+        # with an equivalent trim, not a threshold bump.
         assertion =
           !(builtins.pathExists stackSharedClaudeMd)
           || builtins.stringLength (builtins.readFile stackSharedClaudeMd) < 8000;

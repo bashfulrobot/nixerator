@@ -281,9 +281,8 @@ in
           # capture-sync.py reads / writes $state_file (committed JSON) and
           # respects the same .capture-ignore files the old loop did.
           # all-but-claude-md once stackApply is on: apply writes
-          # ~/.claude/CLAUDE.md from claude-skills, so reconciling it against
-          # config/CLAUDE.md would read the shared file as a home-side edit and
-          # raise a conflict on every rebuild.
+          # ~/.claude/CLAUDE.md from claude-skills, and config/CLAUDE.md is
+          # gone, so reconciling the two sides has nothing left to compare.
           set -l sync_args \
             --state-file "$state_file" \
             --home-root "$claude_dir" \
