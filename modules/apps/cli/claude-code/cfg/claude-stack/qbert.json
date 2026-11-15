@@ -75,6 +75,10 @@
       "mode": "0644",
       "source": "claude-stack/files/docs/writing.md"
     },
+    "${HOME}/.claude/retention-sweep.sh": {
+      "mode": "0755",
+      "source": "claude-stack/files/retention-sweep.sh"
+    },
     "${HOME}/.claude/statusline.sh": {
       "mode": "0755",
       "source": "claude-stack/files/statusline.sh"
@@ -91,7 +95,7 @@
       }
     },
     "kong-skills": {
-      "sha": "74608626b1176a31d7e8f0857965133e82e5900f",
+      "sha": "1c687ad3bdf2f053478a07ecf0820a400e73e283",
       "source": {
         "repo": "Kong/kong-skills",
         "source": "github"
@@ -230,8 +234,6 @@
       "Bash(ffmpeg *)",
       "Bash(ollama *)",
       "Bash(todoist *)",
-      "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack-post/scripts/slack-post.sh *)",
-      "Bash(bash ~/.claude/plugins/cache/claude-skills/dk/*/skills/slack/scripts/slack-read.sh *)",
       "Bash(wl-copy *)"
     ],
     "deny": []
@@ -254,6 +256,9 @@
       "state": "absent"
     },
     "cs@kong-skills": {
+      "state": "enabled"
+    },
+    "dk-forge@claude-skills": {
       "state": "enabled"
     },
     "dk@claude-skills": {
@@ -346,6 +351,9 @@
     "onetake@claude-skills": {
       "state": "disabled"
     },
+    "personal-admin@claude-skills": {
+      "state": "disabled"
+    },
     "plugin-dev@claude-plugins-official": {
       "state": "enabled"
     },
@@ -379,6 +387,9 @@
     "slack@claude-plugins-official": {
       "state": "absent"
     },
+    "studio@claude-skills": {
+      "state": "disabled"
+    },
     "superpowers@claude-plugins-official": {
       "state": "absent"
     },
@@ -386,10 +397,10 @@
       "state": "disabled"
     },
     "terse@claude-skills": {
-      "state": "enabled"
+      "state": "absent"
     },
     "todoist@claude-skills": {
-      "state": "enabled"
+      "state": "disabled"
     },
     "vibecurb@claude-skills": {
       "state": "enabled"
@@ -605,7 +616,6 @@
         "intent-layer": "off",
         "pixel-perfect": "off",
         "visual-redesign": "off",
-        "walkr-author": "off",
         "walkr-tutorial-author": "off"
       },
       "skipDangerousModePermissionPrompt": true,
