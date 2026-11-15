@@ -2,25 +2,18 @@
 
 Personal NixOS / home-manager flake covering Dustin's hosts (`qbert`, `srv`). Module-based config, justfile-driven rebuilds, secrets edited in 1Password (the source), snapshotted into the secauto gopass store for automation (`op inject` or `render-secrets --from gopass`; git-crypt retired), claude-code stack auto-imported.
 
-See `~/.claude/CLAUDE.md` for the global *thin-CLAUDE.md protocol* and *Where curated knowledge goes* rubric. Project topic files live in `.claude/docs/`.
+Project topic files live in `.claude/docs/`.
+
+`claude-skills` is a flake input here, pinned in `flake.lock`, so it supplies
+`~/.claude/CLAUDE.md`, the status line and the plugin set. A merged
+`claude-skills` change reaches `qbert` and `srv` only after `just update
+claude-skills` plus a rebuild on each host.
 
 ## Assistant output
 
-Rules for how you talk to Dustin on screen — separate from `/dk:text-polish`,
-which governs prose sent elsewhere (Slack, email, docs):
-
-- Tag confidence on technical or factual claims: `[Certain]` (verified/hard
-  evidence), `[Likely]` (strong inference), `[Guessing]` (filling a gap).
-  Skip the tag on trivial or already-verified statements.
-- Never open a reply with "Great question", "You're absolutely right",
-  "That makes a lot of sense", "Absolutely", or "Definitely".
-- If there's a caveat, risk, or piece of bad news, lead with it — don't
-  bury it after the good news.
-- No warm-up paragraphs ("There are several ways to look at this..."). Start
-  with the most useful sentence.
-- If Dustin pushes back, hold your position unless he gives genuinely new
-  information — repeated disagreement without new facts isn't a reason to
-  fold.
+How Claude talks to Dustin on screen comes from the `dustin` output style,
+which the `dk` plugin in `claude-skills` ships globally. `/dk:text-polish`
+is the separate pass for prose sent elsewhere (Slack, email, docs).
 
 ## Topics
 
@@ -34,7 +27,7 @@ which governs prose sent elsewhere (Slack, email, docs):
 - When capturing DankMaterialShell (DMS) GUI settings back into Nix, or touching the dank capture/seed flow (`dank-capture`/`dank-diff`/`dank-discard`, `just capture`, `dank-profiles/`), read `.claude/docs/dank-capture.md`.
 - When touching ncspot (`apps.cli.spotify`, the `ncspotPin` override, the `bashfulrobot/ncspot` fork, Spotify client ID rows in `gopass-map.tsv`, or Spotify 429 rate limits), read `.claude/docs/ncspot-pin.md`.
 - When working with Claude Code plugins (the declarative marketplace/enabled surface in `cfg/plugin-config.nix`, `installed_plugins.json` capture behavior, or Kong Konnect skills showing installed but missing), read `.claude/docs/claude-plugins.md`.
-- When touching `apps.cli.claude-code.stackApply`, the `claude-skills` flake input, `cfg/scripts/stack-apply.sh`, or deciding whether a `~/.claude` file is still nixerator's to own, read `.claude/docs/claude-stack-apply.md` — it holds the per-key ownership table, the per-host switch-on and rollback, and the phase-8 delete list.
+- When touching `apps.cli.claude-code.stackApply`, the `claude-skills` flake input, `modules/apps/cli/claude-code/cfg/scripts/stack-apply.sh`, or deciding whether a `~/.claude` file is still nixerator's to own, read `.claude/docs/claude-stack-apply.md` — it holds the per-key ownership table, the per-host switch-on and rollback, and the phase-8 delete list.
 - When touching `systemd.user` timers, `users.users.<name>.linger`, or a unit that assumes a graphical session, read `.claude/docs/user-lingering.md` — `Linger=yes` on a running host is not evidence the declaration exists.
 - When adding a skill vendored from a flake input, or asking why a `~/.claude/skills` entry dangles, read `.claude/docs/vendored-skills.md`. No skill is vendored any more: `humanizer`, `walkr-author`, `walkr-tutorial-author`, `intent-layer` and the seven VibeCurb design skills were all retired, and that file holds the record, the add-one-back procedure and the by-hand cleanup each retirement leaves on qbert.
 - When touching `server.nanoclaw` on srv (NanoClaw + OneCLI vault, its Slack channel, its 1Password-backed secrets, the setup-token re-auth flow, its backups), read `extras/docs/nanoclaw/README.md`.

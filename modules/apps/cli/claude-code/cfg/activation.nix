@@ -113,17 +113,11 @@ in
     $DRY_RUN_CMD mkdir -p "$claude_home/skills"
     $DRY_RUN_CMD mkdir -p "$claude_home/output-styles"
 
-    # CLAUDE.md -- global instructions.
-    #
-    # With stackApply on, the manifest's `files` section owns this path and
-    # apply writes it from claude-skills (one copy for NixOS and the Mac), so
-    # this copy is skipped rather than written and immediately overwritten.
-    # config/CLAUDE.md stays in the repo until phase 8 of the central-config
-    # plan deletes it; see .claude/docs/claude-stack-apply.md.
-    ${lib.optionalString (!stackApply) ''
-      $DRY_RUN_CMD rm -f "$claude_home/CLAUDE.md"
-      $DRY_RUN_CMD cp --no-preserve=mode "${configDir}/CLAUDE.md" "$claude_home/CLAUDE.md"
-    ''}
+    # ~/.claude/CLAUDE.md is not written here. The claude-skills manifest's
+    # `files` section owns that path and apply writes it from
+    # claude-stack/files/CLAUDE.md, one copy for NixOS and the Mac. The repo's
+    # own config/CLAUDE.md was deleted with this copy; see
+    # .claude/docs/claude-stack-apply.md.
 
     # reminders.json -- Nix-rendered maintenance-reminder registry (cfg/reminders.nix),
     # read at SessionStart by claude-session-reminders.
