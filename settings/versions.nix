@@ -373,6 +373,14 @@
       hash = "sha256-qdM1Qysx5OOBwzr6A6tyPIfZcHxn2YkIPedGelvbk7I=";
     };
 
+    orca = {
+      source = "github-release";
+      repo = "stablyai/orca";
+      version = "1.4.259";
+      tagPrefix = "v";
+      hash = "sha256-PjxurGnjLiGfoI4sSpJogoYqsQc0X93RxPGWunsKmIU=";
+    };
+
     # Brave Origin — minimalist standalone Brave. Only the nightly channel
     # ships Linux artifacts. Asset: brave-origin-nightly-<version>-linux-amd64.zip
     # under release tag v<version>. The package build (modules/apps/gui/
