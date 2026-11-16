@@ -1,8 +1,10 @@
 # claude-code module
 
-Nix-managed Claude Code configuration: settings, hooks, agents, skills, MCP
-servers, plugins, status line. Built around the thin-CLAUDE.md protocol; most
-behaviour is enforced via hooks rather than left to discipline.
+Nix-managed Claude Code configuration: settings, hooks, agents, skills,
+plugins, status line. Built around the thin-CLAUDE.md protocol; most
+behaviour is enforced via hooks rather than left to discipline. MCP servers are
+claude-skills plugins (bar the host-local `opentabs` bridge); this module only installs the binaries they launch
+(`.claude/docs/claude-plugins.md`, "MCP servers").
 
 ## Plugins and marketplaces
 
@@ -143,7 +145,7 @@ Findings:
 | 24. Realpath | `Bash(realpath *)` allowed |
 | 25. CLAUDE.md vs skills vs commands vs plugins | Documented in `~/.claude/CLAUDE.md` ("Where curated knowledge goes") |
 | 26. Interactive PR reviews | `/review-dev`, `/review-security`, `/review`, `/ultrareview` |
-| 27. Research tool | gitmcp + qmd + chrome-devtools + playwright MCPs |
+| 27. Research tool | gitmcp + qmd + chrome-devtools + playwright MCP plugins (claude-skills) |
 | 28. Output verification | `superpowers:verification-before-completion` (mandatory) |
 | 29. DevOps automation | `devops` agent + `fluxcd` + `gitops-*` skills |
 | 30. Keep CLAUDE.md simple | Thin-CLAUDE.md protocol is the documented standard |

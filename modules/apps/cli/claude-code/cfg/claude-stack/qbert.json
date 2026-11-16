@@ -110,72 +110,7 @@
       }
     }
   },
-  "mcpServers": {
-    "chrome-devtools": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "flux-operator-mcp": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "gitmcp": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://gitmcp.io/docs"
-    },
-    "gopls": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "grafana": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://mcp.grafana.com/mcp"
-    },
-    "iso-topology": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "kubernetes-mcp-server": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "markitdown": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "playwright": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "qmd": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "tactiq": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://mcp.tactiq.io"
-    },
-    "todoist": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://ai.todoist.net/mcp"
-    }
-  },
+  "mcpServers": {},
   "permissions": {
     "allow": [
       "Bash(gh *)",
@@ -249,6 +184,9 @@
     "backstory@claude-skills": {
       "state": "disabled"
     },
+    "chrome-devtools@claude-skills": {
+      "state": "disabled"
+    },
     "cloudflare@claude-skills": {
       "state": "disabled"
     },
@@ -270,6 +208,9 @@
     "final-answer@claude-skills": {
       "state": "enabled"
     },
+    "flux-operator-mcp@claude-skills": {
+      "state": "disabled"
+    },
     "frontend-design@claude-skills": {
       "state": "enabled"
     },
@@ -285,6 +226,9 @@
     "gopls-lsp@claude-plugins-official": {
       "state": "enabled"
     },
+    "gopls@claude-skills": {
+      "state": "disabled"
+    },
     "grafana@claude-skills": {
       "config": {
         "grafana_url": "https://bashfulrobot.grafana.net"
@@ -299,6 +243,9 @@
     },
     "impeccable@claude-skills": {
       "state": "enabled"
+    },
+    "iso-topology@claude-skills": {
+      "state": "disabled"
     },
     "journey-pane@claude-skills": {
       "state": "enabled"
@@ -342,7 +289,13 @@
       },
       "state": "disabled"
     },
+    "kubernetes-mcp-server@claude-skills": {
+      "state": "disabled"
+    },
     "lemo-opuscar@claude-skills": {
+      "state": "disabled"
+    },
+    "markitdown@claude-skills": {
       "state": "disabled"
     },
     "mattpocock-skills@claude-skills": {
@@ -354,11 +307,17 @@
     "personal-admin@claude-skills": {
       "state": "disabled"
     },
+    "playwright@claude-skills": {
+      "state": "disabled"
+    },
     "plugin-dev@claude-plugins-official": {
       "state": "enabled"
     },
     "pyright-lsp@claude-plugins-official": {
       "state": "enabled"
+    },
+    "qmd@claude-skills": {
+      "state": "disabled"
     },
     "quick-answer@claude-skills": {
       "state": "enabled"
@@ -395,9 +354,6 @@
     },
     "tactiq@claude-skills": {
       "state": "disabled"
-    },
-    "tahoe-glass@claude-skills": {
-      "state": "enabled"
     },
     "terse@claude-skills": {
       "state": "absent"

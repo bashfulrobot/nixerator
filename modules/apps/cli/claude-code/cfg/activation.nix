@@ -21,8 +21,6 @@
   stackPermissions,
   stackAutoMode,
   skillOverlay,
-  secretServerFiles,
-  secretsFile,
   # claude-skills owns the declared settings keys and the two shared files when
   # this is true (apps.cli.claude-code.stackApply.enable). False keeps the jq
   # merge below, byte for byte. See .claude/docs/claude-stack-apply.md.
@@ -434,7 +432,10 @@ in
       $DRY_RUN_CMD cp --no-preserve=mode "$style" "$claude_home/output-styles/$(basename "$style")"
     done
 
-    # OpenTabs MCP -- bridge runtime secret into mcp-pick directory
+    # OpenTabs MCP -- bridge the runtime secret into ~/.claude/mcp-servers/opentabs
+    # (use it with `claude --mcp-config`). It stays here, not in a claude-skills
+    # plugin, because the bearer token is host-local and rotates with the
+    # OpenTabs install, so no manifest userConfig value can hold it.
     opentabs_auth="${homeDir}/.opentabs/extension/auth.json"
     opentabs_mcp_dir="$claude_home/mcp-servers/opentabs"
     if [ -f "$opentabs_auth" ]; then
@@ -465,39 +466,14 @@ in
       fi
     fi
 
-    # Secret-bearing MCP servers (tableau): their
-    # .mcp.json is written here at 0600 from the off-store secrets file, so the
-    # real token never lands in the world-readable store (issue #265). The
-    # placeholdered template lives in the store; each @TOKEN@ is replaced with
-    # the runtime value. Substitution runs through jq, so the value is escaped
-    # into the JSON string context (a value containing a quote or backslash can
-    # never produce malformed JSON), and jq reads the value with `--rawfile`
-    # from a 0600 temp so it never shows in `ps`. The placeholder tokens contain
-    # no regex metacharacters, so the `gsub` match is exact.
-    ${lib.concatStringsSep "\n" (
-      lib.mapAttrsToList (name: sf: ''
-        if [ -z "$DRY_RUN_CMD" ] && [ -f "${secretsFile}" ]; then
-          mcp_dir="$claude_home/mcp-servers/${name}"
-          mkdir -p "$mcp_dir"
-          (
-            umask 077
-            cp --no-preserve=mode ${pkgs.writeText "mcp-${name}.json.tpl" sf.json} "$mcp_dir/.mcp.json.tmp"
-            ${lib.concatMapStringsSep "\n" (s: ''
-              if ${pkgs.jq}/bin/jq -e '${s.path} // empty' "${secretsFile}" >/dev/null 2>&1; then
-                ${pkgs.jq}/bin/jq -j '${s.path}' "${secretsFile}" > "$mcp_dir/.val"
-                ${pkgs.jq}/bin/jq --rawfile val "$mcp_dir/.val" \
-                  '(.. | strings) |= gsub("${s.placeholder}"; $val)' \
-                  "$mcp_dir/.mcp.json.tmp" > "$mcp_dir/.mcp.json.tmp2"
-                mv "$mcp_dir/.mcp.json.tmp2" "$mcp_dir/.mcp.json.tmp"
-                rm -f "$mcp_dir/.val"
-              fi
-            '') sf.subs}
-            chmod 600 "$mcp_dir/.mcp.json.tmp"
-            mv "$mcp_dir/.mcp.json.tmp" "$mcp_dir/.mcp.json"
-          )
-        fi
-      '') secretServerFiles
-    )}
+    # The tableau MCP server used to be written here, at 0600, from the
+    # off-store secrets file (issue #265). The kong-tableau@claude-skills plugin
+    # replaced it (#424) and takes its values from the claude-stack manifest, so
+    # the whole directory that earlier generations left behind is removed, live
+    # credential file and temp files included. home-manager drops the other
+    # ~/.claude/mcp-servers/<name> links itself, since those were home.file
+    # entries; this one was not.
+    $DRY_RUN_CMD rm -rf "$claude_home/mcp-servers/tableau"
 
     # Plugins -- known_marketplaces.json and enabledPlugins are owned
     # declaratively (cfg/plugin-config.nix, merged into settings.json above);
