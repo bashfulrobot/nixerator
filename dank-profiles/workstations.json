@@ -183,6 +183,7 @@
   "osdAlwaysShowValue": true,
   "osdMediaPlaybackEnabled": true,
   "osdPowerProfileEnabled": true,
+  "showWorkspaceIndex": true,
   "sortAppsAlphabetically": true,
   "soundLogin": true,
   "systemTrayIconTintMode": "monochrome"
