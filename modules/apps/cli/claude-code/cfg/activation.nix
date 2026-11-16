@@ -469,14 +469,11 @@ in
     # The tableau MCP server used to be written here, at 0600, from the
     # off-store secrets file (issue #265). The kong-tableau@claude-skills plugin
     # replaced it (#424) and takes its values from the claude-stack manifest, so
-    # the live credential file that earlier generations left behind is removed.
-    # home-manager drops the other ~/.claude/mcp-servers/<name> links itself,
-    # since those were home.file entries; this one was not.
-    $DRY_RUN_CMD rm -f "$claude_home/mcp-servers/tableau/.mcp.json" \
-      "$claude_home/mcp-servers/tableau/.mcp.json.tmp" \
-      "$claude_home/mcp-servers/tableau/.mcp.json.tmp2" \
-      "$claude_home/mcp-servers/tableau/.val"
-    $DRY_RUN_CMD rmdir "$claude_home/mcp-servers/tableau" 2>/dev/null || true
+    # the whole directory that earlier generations left behind is removed, live
+    # credential file and temp files included. home-manager drops the other
+    # ~/.claude/mcp-servers/<name> links itself, since those were home.file
+    # entries; this one was not.
+    $DRY_RUN_CMD rm -rf "$claude_home/mcp-servers/tableau"
 
     # Plugins -- known_marketplaces.json and enabledPlugins are owned
     # declaratively (cfg/plugin-config.nix, merged into settings.json above);

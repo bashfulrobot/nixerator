@@ -98,8 +98,10 @@ nix flake update
 Every MCP server is a plugin from `bashfulrobot/claude-skills` (`gopls`, `qmd`,
 `markitdown`, `chrome-devtools`, `playwright`, `iso-topology`,
 `kubernetes-mcp-server`, `flux-operator-mcp`, `todoist`, `tactiq`, `gitmcp`,
-`grafana`, `atlassian`, `kong-konnect`, `kong-tableau`). They install disabled.
-Turn one on for a project from `/plugin` (project scope); `mcp-pick` is gone.
+`grafana`, `atlassian`, `kong-konnect`, `kong-tableau`, plus `sketchy`, `kode`,
+`cloudflare`, `backstory` and `kong-docs-rag`). Most install disabled; check
+`/plugin` for the state. Turn one on for a project from `/plugin` (project
+scope); `mcp-pick` is gone.
 
 ### Skills (per-project)
 

@@ -232,9 +232,6 @@
     "lemo-opuscar@claude-skills": {
       "state": "disabled"
     },
-    "markitdown@claude-skills": {
-      "state": "disabled"
-    },
     "mattpocock-skills@claude-skills": {
       "state": "enabled"
     },
@@ -246,9 +243,6 @@
     },
     "pyright-lsp@claude-plugins-official": {
       "state": "enabled"
-    },
-    "qmd@claude-skills": {
-      "state": "disabled"
     },
     "quick-answer@claude-skills": {
       "state": "enabled"

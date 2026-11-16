@@ -3,7 +3,7 @@
 Nix-managed Claude Code configuration: settings, hooks, agents, skills,
 plugins, status line. Built around the thin-CLAUDE.md protocol; most
 behaviour is enforced via hooks rather than left to discipline. MCP servers are
-claude-skills plugins; this module only installs the binaries they launch
+claude-skills plugins (bar the host-local `opentabs` bridge); this module only installs the binaries they launch
 (`.claude/docs/claude-plugins.md`, "MCP servers").
 
 ## Plugins and marketplaces

@@ -19,7 +19,7 @@ let
   # MCP servers are not defined here. Every one is a plugin in
   # bashfulrobot/claude-skills (plugins/<name>/.mcp.json, #424). This module
   # only installs the binaries a plugin launches (see environment.systemPackages
-  # below): gopls, node, uv, and for the "full" profile bubblewrap,
+  # below): gopls, and for the "full" profile node, uv, bubblewrap,
   # kubernetes-mcp-server, flux-operator-mcp and isotopo-mcp.
 
   # Import configuration fragments (symlink-based, stay as home.file)
@@ -675,13 +675,6 @@ in
         # may still shell out to it; drop it once that is checked.
         bc
 
-        # Launchers for the claude-skills MCP plugins. The plugins call these
-        # by name, so they have to be on PATH: `npx` runs qmd, chrome-devtools
-        # and playwright, `uvx` runs markitdown. Not gated by serverProfile,
-        # because the nixerator entries for qmd and markitdown were not either.
-        nodejs
-        uv
-
         # Language servers for Claude Code LSP integration. gopls also backs
         # the gopls MCP plugin (`gopls mcp`).
         bash-language-server
@@ -699,6 +692,14 @@ in
         # against a host-local kubeconfig. Pointless on minimal-profile hosts
         # where the kubernetes MCP server itself is gated out.
         (pkgs.writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
+
+        # Launchers for the claude-skills MCP plugins that fetch registry code
+        # at run time: `npx` runs qmd, chrome-devtools and playwright, `uvx`
+        # runs markitdown. Full profile only, as the plugins are (workstation
+        # in the manifest): srv is reachable through a token-authenticated web
+        # shell and should not carry a registry fetcher on PATH.
+        pkgs.nodejs
+        pkgs.uv
 
         # Binaries the claude-skills MCP plugins launch by name (plugins
         # kubernetes-mcp-server, flux-operator-mcp and iso-topology). The

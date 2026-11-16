@@ -355,18 +355,22 @@ everything else in `secrets.json.tpl`.
 
 ## MCP servers
 
-This repo defines no MCP server. Every one is a plugin in
+This repo defines no MCP server of its own, apart from `opentabs` (below). Every other one is a plugin in
 `bashfulrobot/claude-skills` (`plugins/<name>/.mcp.json`, #424), declared in the
-claude-stack manifest and carried here by the snapshots under
-`modules/apps/cli/claude-code/cfg/claude-stack/`. `cfg/mcp-servers.nix`, the
+claude-stack manifest. With `stackApply` on (qbert and srv), the plugin set is
+read from the `claude-skills` flake input (`claudeSkillsSrc` in
+`cfg/plugin-config.nix`), so a claude-skills change reaches the hosts only after
+`just update claude-skills` moves `flake.lock`. The snapshots under
+`modules/apps/cli/claude-code/cfg/claude-stack/` are the `stackApply`-off path
+and stay in step with it via `just bump-claude-skills`. `cfg/mcp-servers.nix`, the
 `~/.claude/mcp-servers/<name>/.mcp.json` files it wrote, the tableau
 secret-substitution activation block and the `mcp-pick` picker are gone. The
 claude-skills docs hold the per-server table (`docs/ai/claude-stack.md`,
 "MCP servers as plugins").
 
 What this module still does for them is install the binaries the plugins launch
-by name, in `environment.systemPackages` (`default.nix`): `nodejs` and `uv` for
-the `npx` and `uvx` servers, `gopls`, and for `serverProfile == "full"`
+by name, in `environment.systemPackages` (`default.nix`): `gopls`, and for
+`serverProfile == "full"` `nodejs` and `uv` (the `npx` and `uvx` servers),
 `kubernetes-mcp-server`, `flux-operator-mcp`, `isotopo-mcp` and `bubblewrap`.
 The cluster servers read `~/.kube/mcp-viewer.kubeconfig` (`k8s-mcp-setup`).
 
@@ -377,6 +381,6 @@ picked. Turn one on for a project from `/plugin` (project scope).
 host-local and rotates with the OpenTabs install, to
 `~/.claude/mcp-servers/opentabs/.mcp.json` for `claude --mcp-config`.
 
-Activation removes the 0600 `~/.claude/mcp-servers/tableau/.mcp.json` that
-earlier generations wrote. Home Manager drops the other `mcp-servers/<name>`
+Activation removes the `~/.claude/mcp-servers/tableau` directory, which held the
+0600 credential file earlier generations wrote. Home Manager drops the other `mcp-servers/<name>`
 links itself.
