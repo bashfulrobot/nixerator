@@ -4,7 +4,6 @@
   lib,
   pkgs,
   config,
-  secrets,
   versions,
   ...
 }:
@@ -17,19 +16,13 @@ let
   homeDir = globals.user.homeDirectory;
   kubeconfigFile = "${homeDir}/.kube/mcp-viewer.kubeconfig";
 
+  # MCP servers are not defined here. Every one is a plugin in
+  # bashfulrobot/claude-skills (plugins/<name>/.mcp.json, #424). This module
+  # only installs the binaries a plugin launches (see environment.systemPackages
+  # below): gopls, node, uv, and for the "full" profile bubblewrap,
+  # kubernetes-mcp-server, flux-operator-mcp and isotopo-mcp.
+
   # Import configuration fragments (symlink-based, stay as home.file)
-  mcpConfig = import ./cfg/mcp-servers.nix {
-    inherit
-      lib
-      pkgs
-      secrets
-      kubernetesMcpServer
-      fluxOperatorMcp
-      isoTopologyPkg
-      kubeconfigFile
-      ;
-    inherit (cfg) serverProfile;
-  };
   contextsConfig = import ./cfg/contexts.nix { inherit lib; };
   lspConfig = import ./cfg/lsp-plugins.nix { inherit lib; };
   # Declarative, SHA-pinned plugin surface, derived from the claude-stack
@@ -195,8 +188,6 @@ let
     stackPermissions = stackPermissionsFile;
     stackAutoMode = stackAutoModeFile;
     skillOverlay = skillOverlayFile;
-    inherit (mcpConfig) secretServerFiles;
-    inherit secretsFile;
     inherit stackApply claudeSkillsSrc;
     inherit (cfg) stackHost;
     stackApplyScript = stackApplyScriptPkg;
@@ -356,8 +347,6 @@ let
   # stackApply is on, and only after pathExists says it is there.
   stackSharedClaudeMd = claudeSkillsSrc + "/claude-stack/files/CLAUDE.md";
 
-  secretsFile = "${homeDir}/.config/nixos-secrets/secrets.json";
-
   # Status line script -- jq, curl, gawk in PATH via runtimeInputs.
   #
   # With stackApply on the body comes from claude-skills, which holds the
@@ -460,12 +449,11 @@ let
     builtins.readFile ./cfg/scripts/k8s-mcp-setup.fish
   );
 
-  mcpPick = builtins.readFile ./cfg/scripts/mcp-pick.bash;
-
-  # Same fzf-picker pattern as mcp-pick, but for skills: skills ship on by
-  # default in every project (unlike MCP servers, which are opt-in via
-  # mcp-pick), so this toggles OFF exceptions per project instead of building
-  # an include set from nothing. Writes skillOverrides into the project's
+  # fzf picker for skills: skills ship on by default in every project, so
+  # this toggles OFF exceptions per project instead of building an include set
+  # from nothing. (MCP servers are plugins now, enabled per project from
+  # /plugin; the old mcp-pick picker went with cfg/mcp-servers.nix, #424.)
+  # Writes skillOverrides into the project's
   # .claude/settings.local.json, merged in -- not a wholesale overwrite, since
   # that file also carries permission rules and other local state.
   skillPick = builtins.readFile ./cfg/scripts/skill-pick.bash;
@@ -675,7 +663,6 @@ in
     # System packages for MCP tooling and LSP servers
     environment.systemPackages =
       (with pkgs; [
-        (writeScriptBin "mcp-pick" mcpPick)
         (writeScriptBin "skill-pick" skillPick)
         fzf
         jq
@@ -688,7 +675,15 @@ in
         # may still shell out to it; drop it once that is checked.
         bc
 
-        # Language servers for Claude Code LSP integration
+        # Launchers for the claude-skills MCP plugins. The plugins call these
+        # by name, so they have to be on PATH: `npx` runs qmd, chrome-devtools
+        # and playwright, `uvx` runs markitdown. Not gated by serverProfile,
+        # because the nixerator entries for qmd and markitdown were not either.
+        nodejs
+        uv
+
+        # Language servers for Claude Code LSP integration. gopls also backs
+        # the gopls MCP plugin (`gopls mcp`).
         bash-language-server
         dart
         gopls
@@ -704,6 +699,16 @@ in
         # against a host-local kubeconfig. Pointless on minimal-profile hosts
         # where the kubernetes MCP server itself is gated out.
         (pkgs.writeScriptBin "k8s-mcp-setup" k8s-mcp-setup)
+
+        # Binaries the claude-skills MCP plugins launch by name (plugins
+        # kubernetes-mcp-server, flux-operator-mcp and iso-topology). The
+        # first two read ${kubeconfigFile}, so they stay off minimal hosts
+        # that have no cluster access. iso-topology runs isotopo-mcp inside
+        # bubblewrap with a read-only root and no network.
+        kubernetesMcpServer
+        fluxOperatorMcp
+        isoTopologyPkg
+        pkgs.bubblewrap
       ]
       ++ lib.optionals hasHyperframes [
         # Hyperframes plugin invokes `npx hyperframes` which spawns ffmpeg
@@ -778,8 +783,7 @@ in
           ] headroomConfig.activation;
         };
 
-        # Preserve per-server files for mcp-pick workflow compatibility.
-        file = mcpConfig.files // lspConfig.files // contextsConfig.files;
+        file = lspConfig.files // contextsConfig.files;
       };
     };
   };

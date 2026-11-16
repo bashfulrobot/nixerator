@@ -95,47 +95,7 @@
       }
     }
   },
-  "mcpServers": {
-    "gitmcp": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://gitmcp.io/docs"
-    },
-    "gopls": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "grafana": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://mcp.grafana.com/mcp"
-    },
-    "markitdown": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "qmd": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "stdio"
-    },
-    "tactiq": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://mcp.tactiq.io"
-    },
-    "todoist": {
-      "managedBy": "nix",
-      "scope": "library",
-      "type": "http",
-      "url": "https://ai.todoist.net/mcp"
-    }
-  },
+  "mcpServers": {},
   "permissions": {
     "allow": [
       "Bash(gh *)",
@@ -236,6 +196,9 @@
     "gopls-lsp@claude-plugins-official": {
       "state": "enabled"
     },
+    "gopls@claude-skills": {
+      "state": "disabled"
+    },
     "grafana@claude-skills": {
       "config": {
         "grafana_url": "https://bashfulrobot.grafana.net"
@@ -269,6 +232,9 @@
     "lemo-opuscar@claude-skills": {
       "state": "disabled"
     },
+    "markitdown@claude-skills": {
+      "state": "disabled"
+    },
     "mattpocock-skills@claude-skills": {
       "state": "enabled"
     },
@@ -280,6 +246,9 @@
     },
     "pyright-lsp@claude-plugins-official": {
       "state": "enabled"
+    },
+    "qmd@claude-skills": {
+      "state": "disabled"
     },
     "quick-answer@claude-skills": {
       "state": "enabled"
@@ -304,9 +273,6 @@
     },
     "tactiq@claude-skills": {
       "state": "disabled"
-    },
-    "tahoe-glass@claude-skills": {
-      "state": "enabled"
     },
     "terse@claude-skills": {
       "state": "absent"

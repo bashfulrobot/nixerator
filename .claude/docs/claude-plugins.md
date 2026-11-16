@@ -103,6 +103,7 @@ data, not a hunch:
   the former), dispatched once or never; review-dev/review-security cover it.
 - context7: duplicate mount. The user-scoped server in `cfg/mcp-servers.nix` was
   the single source until it was removed too (no context7 in nixerator now).
+  The whole file went in #424, see "MCP servers" below.
 - asana, atlassian, github: MCP servers sat unauthenticated, no real use
   (github work goes through `gh`).
 - code-review, kotlin-lsp, rust-analyzer-lsp, kong-skills@kong-skills,
@@ -130,7 +131,7 @@ data, not a hunch:
 - todoist@claude-skills: declared `disabled` on 2026-11-14 (claude-skills PR
   #378). Three Todoist surfaces reached the same account; the `td` CLI behind
   `dk:todoist-cli` is the one the skills use. The `cfg/mcp-servers.nix` entry
-  for the same server is still live and is a later audit item.
+  for the same server was removed in #424.
 
 Marketplaces no longer registered because no non-absent plugin needs them:
 `ai-marketplace`, `impeccable`, `hyperframes`.
@@ -342,10 +343,40 @@ and update the pin comment with what changed.
 ## 1Password vault: `automation`
 
 One vault, the same refs as the Mac (the Mac's donkeykong `Claudefile`). `secrets.json.tpl`
-now reads `kong-konnect-pat/lab-pat-2026-06` and all four `Tableau-PAT` fields
-(`hostname`, `Site-Name`, `username`, `credential`) from `op://automation/...`
-instead of `op://nixerator/...`. The account that runs `just render-secrets`
+now reads `kong-konnect-pat/lab-pat-2026-06` from `op://automation/...`
+instead of `op://nixerator/...`. The four `Tableau-PAT` fields (`hostname`,
+`Site-Name`, `username`, `credential`) are no longer in the template: the
+`kong-tableau@claude-skills` plugin reads them from gopass (`tableau-pat/*`,
+filled from `gopass-map.tsv`), not from the rendered file. The account that runs `just render-secrets`
 (and `op inject`) must have read access to `automation`.
 
 Still `op://nixerator/...` (not used by the Mac, no `automation` item known):
 everything else in `secrets.json.tpl`.
+
+## MCP servers
+
+This repo defines no MCP server. Every one is a plugin in
+`bashfulrobot/claude-skills` (`plugins/<name>/.mcp.json`, #424), declared in the
+claude-stack manifest and carried here by the snapshots under
+`modules/apps/cli/claude-code/cfg/claude-stack/`. `cfg/mcp-servers.nix`, the
+`~/.claude/mcp-servers/<name>/.mcp.json` files it wrote, the tableau
+secret-substitution activation block and the `mcp-pick` picker are gone. The
+claude-skills docs hold the per-server table (`docs/ai/claude-stack.md`,
+"MCP servers as plugins").
+
+What this module still does for them is install the binaries the plugins launch
+by name, in `environment.systemPackages` (`default.nix`): `nodejs` and `uv` for
+the `npx` and `uvx` servers, `gopls`, and for `serverProfile == "full"`
+`kubernetes-mcp-server`, `flux-operator-mcp`, `isotopo-mcp` and `bubblewrap`.
+The cluster servers read `~/.kube/mcp-viewer.kubeconfig` (`k8s-mcp-setup`).
+
+Every stdio plugin installs disabled, as the old library servers were off until
+picked. Turn one on for a project from `/plugin` (project scope).
+
+`opentabs` stays here: `cfg/activation.nix` writes its bearer token, which is
+host-local and rotates with the OpenTabs install, to
+`~/.claude/mcp-servers/opentabs/.mcp.json` for `claude --mcp-config`.
+
+Activation removes the 0600 `~/.claude/mcp-servers/tableau/.mcp.json` that
+earlier generations wrote. Home Manager drops the other `mcp-servers/<name>`
+links itself.

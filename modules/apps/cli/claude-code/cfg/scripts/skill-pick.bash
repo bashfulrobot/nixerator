@@ -112,9 +112,8 @@ selected="$(build_lines | fzf -m \
   --bind="load:${preselect_chain}" \
   --header="$header" \
   --header-first)"
-# Empty selection is valid (it means "everything off"), unlike mcp-pick where
-# an empty pick has nothing useful to write -- so don't bail out on empty;
-# only bail if the user hit Esc, which fzf reports as exit != 0, already
+# Empty selection is valid (it means "everything off"), so don't bail out on
+# empty; only bail if the user hit Esc, which fzf reports as exit != 0, already
 # handled by `set -e` above via the subshell's exit status.
 
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then

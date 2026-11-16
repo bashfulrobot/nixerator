@@ -8,10 +8,11 @@ Why skills default off, how the always-on baseline is chosen, and how
 Skills used to have no gate at all: everything in `config/skills/` shipped
 to every project, unconditionally -- unlike MCP servers, which already went
 through `mcp-pick` (opt-in per project, nothing active by default). This
-flipped skills to match that model, inverted:
+flipped skills to match that model, inverted. `mcp-pick` is gone since #424:
+MCP servers are claude-skills plugins that install disabled, enabled per
+project from `/plugin`, which is the same model.
 
-- **MCP servers**: off everywhere by default, `mcp-pick` opts one in per
-  project.
+- **MCP servers**: off everywhere by default, enabled per project as plugins.
 - **Skills**: off everywhere by default *except a short always-on baseline*,
   `skill-pick` opts anything else in per project.
 

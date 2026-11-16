@@ -95,11 +95,11 @@ nix flake update
 
 ### MCP Servers (per-project)
 
-```bash
-mcp-pick    # select servers to activate; writes .mcp.json (gitignored)
-```
-
-Available: `kubernetes-mcp-server`, `gopls`, `kong-konnect`, `slack`, `todoist`, `drawio`.
+Every MCP server is a plugin from `bashfulrobot/claude-skills` (`gopls`, `qmd`,
+`markitdown`, `chrome-devtools`, `playwright`, `iso-topology`,
+`kubernetes-mcp-server`, `flux-operator-mcp`, `todoist`, `tactiq`, `gitmcp`,
+`grafana`, `atlassian`, `kong-konnect`, `kong-tableau`). They install disabled.
+Turn one on for a project from `/plugin` (project scope); `mcp-pick` is gone.
 
 ### Skills (per-project)
 
@@ -109,8 +109,7 @@ skill-pick    # select skills to turn ON here; writes only the diff from default
 
 Most skills default OFF everywhere (`cfg/skill-defaults.nix` holds the
 always-on baseline -- humanizer, commit, text-polish, review-dev/security,
-and the handful your global CLAUDE.md names directly). Same UX as `mcp-pick`
-now: checked = on. Only writes an override where a pick differs from the
+and the handful your global CLAUDE.md names directly). Checked = on. Only writes an override where a pick differs from the
 Nix-owned default, so most projects need one `skill-pick` run to turn on
 whatever's relevant, nothing more.
 

@@ -46,11 +46,5 @@
   },
   "grafana": {
     "dashboardsToken": "{{ op://automation/grafana-cloud-dashboards/token }}"
-  },
-  "tableau": {
-    "server": "{{ op://automation/Tableau-PAT/hostname }}",
-    "siteName": "{{ op://automation/Tableau-PAT/Site-Name }}",
-    "patName": "{{ op://automation/Tableau-PAT/username }}",
-    "patValue": "{{ op://automation/Tableau-PAT/credential }}"
   }
 }
