@@ -14,6 +14,7 @@
       "fontScale": 1.15,
       "gothCornersEnabled": false,
       "id": "default",
+      "innerPadding": 2,
       "leftWidgets": [
         {
           "enabled": true,
@@ -51,13 +52,15 @@
       "shadowIntensity": 0,
       "showOnLastDisplay": true,
       "squareCorners": false,
-      "widgetFollowInterfaceStyle": true
+      "widgetFollowInterfaceStyle": true,
+      "widgetPadding": 8
     }
   ],
   "barElevationEnabled": false,
   "batteryLockTimeout": 300,
   "batteryMonitorTimeout": 360,
   "batterySuspendTimeout": 600,
+  "bluetoothMprisEnabled": true,
   "blurBorderEnabled": true,
   "blurBorderSeeded": true,
   "blurEnabled": true,
@@ -89,6 +92,7 @@
     "size": 24,
     "theme": "System Default"
   },
+  "density": "comfortable",
   "displayProfileAutoSelect": true,
   "dmsWindowsFloatingSeeded": [
     "hyprland"
@@ -109,7 +113,7 @@
       "id": "dock",
       "indicatorStyle": "circle",
       "isolateDisplays": false,
-      "itemSpacing": 4,
+      "itemSpacing": 8,
       "launcherEnabled": false,
       "launcherLogoBrightness": 0.5,
       "launcherLogoColorOverride": "",
@@ -140,7 +144,7 @@
       "showOverflowBadge": true,
       "showTrash": false,
       "smartAutoHide": false,
-      "spacing": 4,
+      "spacing": 8,
       "taskbarAlign": "center",
       "transparency": 1,
       "trashCustomCommand": "",
@@ -167,6 +171,7 @@
     }
   ],
   "firstDayOfWeek": 2,
+  "interfaceStyle": "expressive",
   "launcherStyle": "spotlight",
   "launcherUseOverlayLayer": true,
   "lockBeforeSuspend": true,
@@ -178,7 +183,6 @@
   "osdAlwaysShowValue": true,
   "osdMediaPlaybackEnabled": true,
   "osdPowerProfileEnabled": true,
-  "showWorkspaceIndex": true,
   "sortAppsAlphabetically": true,
   "soundLogin": true,
   "systemTrayIconTintMode": "monochrome"
