@@ -80,6 +80,7 @@ in
     ../../modules/server/kvm
     ../../modules/server/nanoclaw
     ../../modules/server/nfs
+    ../../modules/server/orca
     ../../modules/server/node-exporter
     ../../modules/server/postgres
     # Host-wide invariant, not a feature: declares users.users.<name>.linger so
@@ -393,6 +394,10 @@ in
       enable = true;
       openFirewallFrom = [ "192.168.168.0/23" ];
     };
+
+    # Orca headless server, tailnet-only. After the rebuild run `orca pair` as
+    # the primary user to mint a pairing link.
+    orca.enable = true;
 
     nfs = {
       enable = true;
