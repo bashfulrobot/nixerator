@@ -5,6 +5,10 @@
     gui = {
       # Go + Wails + Svelte rewrite of the original Kotlin app.
       upsight.enable = true;
+
+      # Agent development environment (orca.dev), AppImage. qbert-only: srv
+      # has no graphical session.
+      orca.enable = true;
     };
 
     # Chrome-wrapped shortcut for app.happy.engineering, alongside the
