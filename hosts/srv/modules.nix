@@ -56,7 +56,6 @@ in
     ../../modules/apps/cli/gcmt
     ../../modules/apps/cli/fresh-editor
     ../../modules/apps/cli/git
-    ../../modules/apps/cli/happy
     ../../modules/apps/cli/helix
     ../../modules/apps/cli/opencode
     ../../modules/apps/cli/render-secrets
@@ -107,9 +106,6 @@ in
     # Ctrl+G in Claude Code offers to polish the prompt. No keybind: srv has no
     # compositor, so only the editor wrapper, not `text-polish.enable`.
     text-polish.editor.enable = true;
-    # Mobile/web remote control for Claude Code sessions (happy.engineering).
-    # srv is always-on, the natural pairing target alongside qbert.
-    happy.enable = true;
     helix.enable = true;
     # media-rename (dlm/dltv) removed 2026-07-31: manual filebot-based
     # seedbox-pull-and-rename, superseded by the k8s download-sync CronJob +

@@ -63,21 +63,6 @@
       hash = "sha256-dbQ4ypYrGr0vyA67fcD+pSHHSVEAKNitdzKOM6hig2U=";
     };
 
-    # Happy -- mobile/web remote control for Claude Code (happy.engineering).
-    # updatePolicy=manual: build/package-lock.json is vendored (the published
-    # npm tarball ships none -- see the regeneration note in
-    # modules/apps/cli/happy/build/default.nix), and update-pkg does not
-    # regenerate vendored locks. Same hazard as todoist-cli/skillfish.
-    happy = {
-      source = "npm";
-      repo = "slopus/happy";
-      npmPkg = "happy-coder";
-      updatePolicy = "manual";
-      version = "1.1.9";
-      hash = "sha256-dvaFYNqgucwjL4oVdI6p/tt94vlTdhPfX2HAj5hAIko=";
-      npmDepsHash = "sha256-DEF1TFes/Ewg7p0bGnU0vQNLIFPcjN0j61sKppt3ZAY=";
-    };
-
     gws = {
       source = "github-release";
       repo = "googleworkspace/cli";
