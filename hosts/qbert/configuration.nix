@@ -9,12 +9,21 @@
 let
   voxtypePkgs = inputs.voxtype.packages.${pkgs.stdenv.hostPlatform.system};
 
-  # voxtype's unwrapped Vulkan build fails to link on the 2026-11-11 nixpkgs
-  # (`cannot find -lsqlite3`): nixpkgs stopped supplying sqlite to it
-  # implicitly. Rebuild the unwrapped package with sqlite and keep upstream's
-  # wrapper (which puts wtype, wl-clipboard and the rest on PATH) by swapping
-  # only the wrapper's `paths`. Remove once upstream voxtype builds on current
-  # nixpkgs without this.
+  # voxtype's unwrapped Vulkan build fails to link (`cannot find -lsqlite3`).
+  # The rustc link line asks for a bare `-lsqlite3` that nothing on the build
+  # inputs satisfies, even though Cargo.toml declares `rusqlite` with the
+  # `bundled` feature (UNVERIFIED: libsqlite3-sys presumably takes its
+  # system-link path rather than compiling the vendored amalgamation). Rebuild
+  # the unwrapped package with sqlite and keep upstream's wrapper (which puts
+  # wtype, wl-clipboard and the rest on PATH) by swapping only the wrapper's
+  # `paths`.
+  #
+  # Still required as of 2026-11-19 on nixpkgs d5cc683 (2026-11-13). Verified
+  # by building `voxtype-vulkan-unwrapped` without this override: it fails with
+  # the same error on both the locked voxtype fbedd62 (1.2.1) and upstream HEAD
+  # 96a4277 (1.2.2, 2026-11-17). voxtype's flake.nix supplies sqlite to no
+  # variant, so an upstream fix is warranted. Re-test on the next nixpkgs or
+  # voxtype bump and drop this once the unwrapped build links on its own.
   voxtypeVulkan = voxtypePkgs.vulkan.overrideAttrs (_old: {
     paths = [
       (voxtypePkgs.voxtype-vulkan-unwrapped.overrideAttrs (old: {
