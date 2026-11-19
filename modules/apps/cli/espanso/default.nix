@@ -40,6 +40,15 @@ in
       ];
     };
 
+    # Start only once the graphical session is up. Without ordering, the unit
+    # raced uwsm's WAYLAND_DISPLAY import at login: wlrctl aborted
+    # (`state.display` assertion, coredump every login) and the worker panicked
+    # with NoCompositor until Restart=on-failure retried.
+    systemd.user.services.espanso = {
+      after = [ "graphical-session.target" ];
+      partOf = [ "graphical-session.target" ];
+    };
+
     # nixpkgs's services.espanso points security.wrappers.espanso at
     # lib.getExe, which since espanso 2.4.1 is a makeWrapper bash script.
     # NixOS's ensure-wrapper-integrity check refuses non-ELF wrapper targets
