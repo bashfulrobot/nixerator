@@ -1,47 +1,31 @@
 {
   "acLockTimeout": 300,
-  "acMonitorTimeout": 600,
+  "acMonitorTimeout": 360,
   "acSuspendTimeout": 0,
   "barConfigs": [
     {
-      "borderEnabled": false,
       "centerWidgets": [
         "music",
         "clock"
       ],
       "enabled": true,
-      "followInterfaceStyle": false,
       "fontScale": 1.15,
-      "gothCornersEnabled": false,
       "id": "default",
-      "innerPadding": 2,
       "leftWidgets": [
-        {
-          "enabled": true,
-          "id": "workspaceSwitcher",
-          "showOccupiedWorkspacesOnly": true,
-          "showWorkspaceApps": true,
-          "showWorkspaceIndex": true
-        }
+        "workspaceSwitcher",
+        "focusedWindow"
       ],
       "name": "Main Bar",
       "noBackground": true,
       "position": 0,
       "rightWidgets": [
         "systemTray",
-        {
-          "enabled": true,
-          "id": "githubNotifier"
-        },
-        {
-          "enabled": true,
-          "id": "claudoist"
-        },
+        "githubNotifier",
+        "claudoist",
         "clipboard",
         "cpuUsage",
         "memUsage",
         "notificationButton",
-        "battery",
         "idleInhibitor",
         "privacyIndicator",
         "controlCenterButton"
@@ -49,142 +33,15 @@
       "screenPreferences": [
         "all"
       ],
-      "shadowIntensity": 0,
-      "showOnLastDisplay": true,
-      "squareCorners": false,
-      "widgetFollowInterfaceStyle": true,
-      "widgetPadding": 8
+      "showOnLastDisplay": true
     }
   ],
-  "barElevationEnabled": false,
   "batteryLockTimeout": 300,
   "batteryMonitorTimeout": 360,
-  "batterySuspendTimeout": 600,
-  "bluetoothMprisEnabled": true,
-  "blurBorderEnabled": true,
-  "blurBorderSeeded": true,
+  "batterySuspendTimeout": 0,
   "blurEnabled": true,
   "blurWallpaperOnOverview": true,
-  "builtInPluginSettings": {
-    "dms_clipboard_search": {
-      "trigger": "cb"
-    },
-    "dms_settings_search": {
-      "trigger": "?"
-    }
-  },
-  "clockDateFormat": "M/d",
-  "clockFormat": "24h",
-  "configVersion": 42,
-  "cursorSettings": {
-    "dwl": {
-      "cursorHideTimeout": 0
-    },
-    "hyprland": {
-      "hideOnKeyPress": false,
-      "hideOnTouch": false,
-      "inactiveTimeout": 0
-    },
-    "niri": {
-      "hideAfterInactiveMs": 0,
-      "hideWhenTyping": false
-    },
-    "size": 24,
-    "theme": "System Default"
-  },
-  "density": "comfortable",
-  "displayProfileAutoSelect": true,
-  "dmsWindowsFloatingSeeded": [
-    "hyprland"
-  ],
-  "dockConfigs": [
-    {
-      "autoHide": false,
-      "borderColor": "surfaceText",
-      "borderEnabled": false,
-      "borderOpacity": 1,
-      "borderThickness": 1,
-      "bottomGap": 0,
-      "editOnRightClick": false,
-      "enabled": false,
-      "followInterfaceStyle": false,
-      "groupByApp": false,
-      "iconSize": 40,
-      "id": "dock",
-      "indicatorStyle": "circle",
-      "isolateDisplays": false,
-      "itemSpacing": 8,
-      "launcherEnabled": false,
-      "launcherLogoBrightness": 0.5,
-      "launcherLogoColorOverride": "",
-      "launcherLogoContrast": 1,
-      "launcherLogoCustomPath": "",
-      "launcherLogoMode": "apps",
-      "launcherLogoSizeOffset": 0,
-      "magnification": false,
-      "magnificationExpand": false,
-      "magnificationProfile": "parabolic",
-      "magnificationScale": 130,
-      "margin": 0,
-      "maxVisibleApps": 0,
-      "maxVisibleRunningApps": 0,
-      "middleClickAction": "close",
-      "mode": "compact",
-      "name": "Dock",
-      "openOnOverview": false,
-      "order": [],
-      "position": 1,
-      "restoreSpecialWorkspaceOnClick": false,
-      "screenPreferences": [
-        "all"
-      ],
-      "separatePinnedAndRunningApps": false,
-      "showOnFullscreen": false,
-      "showOnLastDisplay": true,
-      "showOverflowBadge": true,
-      "showTrash": false,
-      "smartAutoHide": false,
-      "spacing": 8,
-      "taskbarAlign": "center",
-      "transparency": 1,
-      "trashCustomCommand": "",
-      "trashFileManager": "default",
-      "useOverlayLayer": false,
-      "widgetExpansion": "popout",
-      "widgets": [
-        {
-          "enabled": true,
-          "id": "dock_launcher",
-          "widgetId": "dockLauncher"
-        },
-        {
-          "enabled": true,
-          "id": "dock_apps",
-          "widgetId": "appsDock"
-        },
-        {
-          "enabled": true,
-          "id": "dock_trash",
-          "widgetId": "dockTrash"
-        }
-      ]
-    }
-  ],
-  "firstDayOfWeek": 2,
-  "interfaceStyle": "expressive",
-  "launcherStyle": "spotlight",
-  "launcherUseOverlayLayer": true,
   "lockBeforeSuspend": true,
-  "lockScreenPowerOffMonitorsOnLock": true,
   "loginctlLockIntegration": true,
-  "muxType": "zellij",
-  "notificationOverlayEnabled": true,
-  "notificationPopupPosition": -1,
-  "osdAlwaysShowValue": true,
-  "osdMediaPlaybackEnabled": true,
-  "osdPowerProfileEnabled": true,
-  "showWorkspaceIndex": true,
-  "sortAppsAlphabetically": true,
-  "soundLogin": true,
-  "systemTrayIconTintMode": "monochrome"
+  "showWorkspaceIndex": true
 }
