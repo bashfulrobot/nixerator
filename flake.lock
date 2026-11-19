@@ -68,11 +68,11 @@
         "sf-pro": "sf-pro_2"
       },
       "locked": {
-        "lastModified": 1789419105,
-        "narHash": "sha256-T5A/AqlF4iL908aIZh45e35Mvj8lTJKq8ddS5bk7nd8=",
+        "lastModified": 1793889225,
+        "narHash": "sha256-Fjj4Xtklbx6ki5/O+WgiKbJrm+wsI9lVUVNo7OKXsAo=",
         "owner": "Lyndeno",
         "repo": "apple-fonts.nix",
-        "rev": "3861e2249cb244bfbc7cfab2303c152cf5f9d9e9",
+        "rev": "58b7ab5a049c57c4f38f27eac84f45e2903bb687",
         "type": "github"
       },
       "original": {
@@ -365,17 +365,18 @@
     "dank-greeter": {
       "inputs": {
         "dank-qml-common": "dank-qml-common",
+        "dux-qt-base": "dux-qt-base",
         "nixpkgs": [
           "hyprflake",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1792916684,
-        "narHash": "sha256-0Hfww32ATWlBNUrKtiq1T81HZOp7ttRJsmSjKnQym94=",
+        "lastModified": 1795022150,
+        "narHash": "sha256-EINAcQZPXnTzHJNGqFxTMFSv7eT0wxymdg10Pud131E=",
         "owner": "AvengeMedia",
         "repo": "dank-greeter",
-        "rev": "f7f14eb752a3a5a84b7bb1f71526ee763667f13e",
+        "rev": "3e4affaf85f91fd98fdb83a27651d2597963e8ae",
         "type": "github"
       },
       "original": {
@@ -394,16 +395,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1791395223,
-        "narHash": "sha256-yDBOoDewH8LwfsZrG4x5vaCstmp6w2vV70j9hC6dIuk=",
+        "lastModified": 1794152448,
+        "narHash": "sha256-D8Ps69xp345EKBDqgznn5kDeb2UEOtNX5+wChMKGBDo=",
         "owner": "AvengeMedia",
         "repo": "DankMaterialShell",
-        "rev": "4a87e8227daf0840b3376fd5e7f891f5900165a6",
+        "rev": "43255a46ea01e9d0de1fe8ce9897c0d71566b2a8",
         "type": "github"
       },
       "original": {
         "owner": "AvengeMedia",
-        "ref": "v1.6.3",
+        "ref": "v2.1.2",
         "repo": "DankMaterialShell",
         "type": "github"
       }
@@ -411,11 +412,11 @@
     "dank-qml-common": {
       "flake": false,
       "locked": {
-        "lastModified": 1792829559,
-        "narHash": "sha256-8J9RuGpmYCFRcpLlRQunqL0FqjsNSzlsK/QFZV2hm1A=",
+        "lastModified": 1795021255,
+        "narHash": "sha256-fDhHTvIkU+oDuIvdOhG5RyNZSYuxwM3xscLLdxmLVY4=",
         "owner": "duxlabs-dev",
         "repo": "dux-qml-common",
-        "rev": "bb917ea0718892c875ca0955939f63b31dc64e1e",
+        "rev": "e7c185915fe2555c6e6681711054e6b79f546806",
         "type": "github"
       },
       "original": {
@@ -427,17 +428,16 @@
     "dank-qml-common_2": {
       "flake": false,
       "locked": {
-        "lastModified": 1791392812,
-        "narHash": "sha256-id6Y5XNO5K3KfXSOsEYVUwiq1ygYGNX5LeKSgHM3GR8=",
-        "owner": "AvengeMedia",
-        "repo": "dank-qml-common",
-        "rev": "1ae722232da7110d26cd2c355b6615e078e94197",
+        "lastModified": 1794150008,
+        "narHash": "sha256-04v9TZkFikV738/IQCqDqGj+ejT8R6/uwrsatDVlHdo=",
+        "owner": "duxlabs-dev",
+        "repo": "dux-qml-common",
+        "rev": "0877466a25b8e191a865bf75d0e500de6351ae04",
         "type": "github"
       },
       "original": {
-        "owner": "AvengeMedia",
-        "ref": "stable-1.6",
-        "repo": "dank-qml-common",
+        "owner": "duxlabs-dev",
+        "repo": "dux-qml-common",
         "type": "github"
       }
     },
@@ -449,17 +449,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1791819669,
-        "narHash": "sha256-9Iau9VhqHSQ3Es56WXC8ARuVvJJDxY1F+4YUytoTXHU=",
+        "lastModified": 1794282582,
+        "narHash": "sha256-gZENm8lqgHN4UIg7pceXZEvYRy4UkbnW5cdsz2l1f3E=",
         "owner": "AvengeMedia",
         "repo": "danksearch",
-        "rev": "8594864196e2fded51955b0e97619072c462bc3e",
+        "rev": "a25a7be5626ef4776a1600b1013583cff5ed71f9",
         "type": "github"
       },
       "original": {
         "owner": "AvengeMedia",
         "repo": "danksearch",
-        "rev": "8594864196e2fded51955b0e97619072c462bc3e",
+        "rev": "a25a7be5626ef4776a1600b1013583cff5ed71f9",
         "type": "github"
       }
     },
@@ -520,17 +520,17 @@
     "dms-emoji-launcher": {
       "flake": false,
       "locked": {
-        "lastModified": 1792904959,
-        "narHash": "sha256-bIXdsoT3vKkrFI13G7tvRmhzJfjVmC3b3iuyRfafm9k=",
+        "lastModified": 1794595716,
+        "narHash": "sha256-pTXb+f5mHgRkfLHlXrp/QJXP8156VgzQ13kXv8a0rto=",
         "owner": "devnullvoid",
         "repo": "dms-emoji-launcher",
-        "rev": "fc385900e6df292f0a7e5bdda4e3e37169897d7c",
+        "rev": "cd7bbba76c0d9b8da65337de5125659846e1ce5c",
         "type": "github"
       },
       "original": {
         "owner": "devnullvoid",
         "repo": "dms-emoji-launcher",
-        "rev": "fc385900e6df292f0a7e5bdda4e3e37169897d7c",
+        "rev": "cd7bbba76c0d9b8da65337de5125659846e1ce5c",
         "type": "github"
       }
     },
@@ -554,17 +554,39 @@
     "dms-plugins": {
       "flake": false,
       "locked": {
-        "lastModified": 1791214055,
-        "narHash": "sha256-3nHfkGzmmq8JpN7bmO8Z5zIumvx8dzwS1GtQ6V0XgMg=",
+        "lastModified": 1794262101,
+        "narHash": "sha256-4eovkpiyP92kHNgFNxNhsXzRiVZ8uQ/uLOSg2gDM5ds=",
         "owner": "AvengeMedia",
         "repo": "dms-plugins",
-        "rev": "a8a508bc371e7c3f2c7862d8840b88cf5c63978f",
+        "rev": "7a964dad725964550734e43dbbcf88c72829d847",
         "type": "github"
       },
       "original": {
         "owner": "AvengeMedia",
         "repo": "dms-plugins",
-        "rev": "a8a508bc371e7c3f2c7862d8840b88cf5c63978f",
+        "rev": "7a964dad725964550734e43dbbcf88c72829d847",
+        "type": "github"
+      }
+    },
+    "dux-qt-base": {
+      "inputs": {
+        "nixpkgs": [
+          "hyprflake",
+          "dank-greeter",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794899417,
+        "narHash": "sha256-E5xQiepbIMlywIAFHGt3c4uBGUysNfdmL/mscCspXrs=",
+        "owner": "duxlabs-dev",
+        "repo": "dux-qt-base",
+        "rev": "8a8c69406e75a797cf400ce151cc735ea2a02af1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "duxlabs-dev",
+        "repo": "dux-qt-base",
         "type": "github"
       }
     },
@@ -886,11 +908,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795102863,
-        "narHash": "sha256-bbqRsT5htX3uTCb1QRBcYZ3CZquWXR96zHwTPTqJBqg=",
+        "lastModified": 1795124121,
+        "narHash": "sha256-I5EmpDvHRlc+jiA6J+F546MblgvRZL7wd8Puo27p7xA=",
         "owner": "bashfulrobot",
         "repo": "hyprflake",
-        "rev": "600861e80ccaf0806838336bea7a399bf5ef1879",
+        "rev": "f9126023164e3def5fada0050cf684f6e71e5751",
         "type": "github"
       },
       "original": {
@@ -1161,7 +1183,7 @@
     "sf-compact_2": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-KjCzuJOrNxgptsMLGaR8wcrU/bBxCpwtUGzGDcCxJTc=",
+        "narHash": "sha256-5qI/CsQ4O06tlYKVCw6DDukYEeaWdB6iO6un0XUqTkw=",
         "type": "file",
         "url": "https://devimages-cdn.apple.com/design/resources/download/SF-Compact.dmg"
       },
@@ -1257,7 +1279,7 @@
     "sf-pro_2": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-dvGLO786y9ygKRSKDJlhIF6AGmn2NTJ5tBulKinPRxY=",
+        "narHash": "sha256-vDM+4k+glslI427ijDZNXR+5zEfve8FhR1/IiTVNlRQ=",
         "type": "file",
         "url": "https://devimages-cdn.apple.com/design/resources/download/SF-Pro.dmg"
       },
@@ -1275,11 +1297,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788878136,
-        "narHash": "sha256-UO9tWTCNkpX011xrrxop2FU5Sw5yWcVXDuOVXuxmkxk=",
+        "lastModified": 1793584708,
+        "narHash": "sha256-p7ACqIwIqBtuxDdDOv5Ili58fX9aM0ienO7JdCIIrd4=",
         "owner": "OpalAayan",
         "repo": "snappy-switcher",
-        "rev": "e12ad51aca77e16913723769849804b2a1efb849",
+        "rev": "88b8962e26c1fa22d703c2d7a981fc5696223088",
         "type": "github"
       },
       "original": {
