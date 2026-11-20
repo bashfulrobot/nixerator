@@ -41,7 +41,10 @@
   "batterySuspendTimeout": 0,
   "blurEnabled": true,
   "blurWallpaperOnOverview": true,
+  "configVersion": 42,
+  "dmsWindowsFloatingSeeded": [
+    "hyprland"
+  ],
   "lockBeforeSuspend": true,
-  "loginctlLockIntegration": true,
-  "showWorkspaceIndex": true
+  "loginctlLockIntegration": true
 }
