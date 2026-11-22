@@ -33,9 +33,6 @@
   "github": {
     "accessToken": "{{ op://nixerator/github-pat/credential }}"
   },
-  "tailscale": {
-    "caddyAuthKey": "{{ op://nixerator/tailscale-caddy-authkey/credential }}"
-  },
   "todoist_token": "{{ op://nixerator/todoist/credential }}",
   "nanoclaw": {
     "claudeToken": "{{ op://nixerator/nanoclaw-claude-token/credential }}",
