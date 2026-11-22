@@ -56,6 +56,16 @@ rec {
   # qwen3:14b.
   ai = {
     localCodeModel = "qwen3.6:35b-a3b";
+    # Extra models offered next to the default in opencode (qbert's own
+    # provider and srv/Mac's remote one). Each is pulled on qbert and joins the
+    # model picker; the default stays localCodeModel. Local tags only: Kimi K3
+    # is 2.8T parameters and cloud-only, so it was dropped. gpt-oss:20b is the
+    # fast one (fits VRAM); qwen3-coder:30b is untested here, so run the
+    # tool-call test on it before relying on it.
+    extraModels = [
+      "gpt-oss:20b"
+      "qwen3-coder:30b"
+    ];
   };
 
   # Remote editing (Zed SSH)

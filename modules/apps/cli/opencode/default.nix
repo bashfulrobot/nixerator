@@ -366,6 +366,16 @@ in
         example = "qwen3.6:35b-a3b";
         description = "Model the remote server has pulled; becomes the opencode default.";
       };
+
+      extraModels = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        example = [ "kimi-k3:cloud" ];
+        description = ''
+          Further models the remote server has pulled, listed in opencode's
+          model picker. The default stays `model`.
+        '';
+      };
     };
   };
 
@@ -414,7 +424,7 @@ in
             npm = "@ai-sdk/openai-compatible";
             name = "Ollama (remote, Tailscale)";
             options.baseURL = "http://${cfg.remoteOllama.host}:${toString cfg.remoteOllama.port}/v1";
-            models.${cfg.remoteOllama.model} = { };
+            models = lib.genAttrs ([ cfg.remoteOllama.model ] ++ cfg.remoteOllama.extraModels) (_: { });
           };
         };
       };

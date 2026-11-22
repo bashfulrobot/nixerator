@@ -124,6 +124,7 @@ in
         enable = true;
         host = globals.hosts.qbert.tailscale_ip;
         model = globals.ai.localCodeModel;
+        extraModels = globals.ai.extraModels;
       };
     };
     # srv renders its own secrets and document-backed files (feral-arr
