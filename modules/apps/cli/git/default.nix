@@ -47,6 +47,41 @@ let
     text = builtins.readFile ./forge.sh;
   };
 
+  # git-crypt reads its unlocked key from `git rev-parse --git-dir`/git-crypt/
+  # keys/default. A linked worktree's git dir is worktree-private and a
+  # Claude Desktop shadow git dir has no key at all, so copy the key in on first
+  # use: from the common dir when the main checkout is unlocked, else from the
+  # exported key file `just git-crypt-unlock` reads (same byte format as
+  # keys/default). Then delegate to the real git-crypt.
+  git-crypt-shim = pkgs.writeShellApplication {
+    name = "git-crypt-shim";
+    runtimeInputs = with pkgs; [
+      git
+      git-crypt
+      coreutils
+    ];
+    text = ''
+      mode="$1"; shift
+      gd="$(git rev-parse --git-dir)"
+      dest="$gd/git-crypt/keys/default"
+      if [ ! -f "$dest" ]; then
+        common="$(git rev-parse --git-common-dir)"
+        keyfile="''${GIT_CRYPT_KEYFILE:-$HOME/.config/git-crypt/homelab.key}"
+        src=""
+        if [ -f "$common/git-crypt/keys/default" ]; then
+          src="$common/git-crypt/keys/default"
+        elif [ -f "$keyfile" ]; then
+          src="$keyfile"
+        fi
+        if [ -n "$src" ]; then
+          mkdir -p "$gd/git-crypt/keys"
+          cp "$src" "$dest"
+        fi
+      fi
+      exec git-crypt "$mode" "$@"
+    '';
+  };
+
   # Build-time-generated .gitattributes covering every language mergiraf
   # currently supports. Stays in sync with the installed mergiraf version.
   mergirafAttributes = pkgs.runCommand "mergiraf-gitattributes" { } ''
@@ -181,16 +216,16 @@ in
             # git-crypt filter, global. Claude Desktop refuses to run a git
             # filter defined only in a repo's own .git/config, so repos that
             # `just git-crypt-unlock` wires locally (homelab) need it here too.
-            # The commands match the per-repo ones: they call the worktree shim
-            # that unlock copies to <git-common-dir>/git-crypt-worktree-shim.sh,
-            # so a repo without that shim errors (required = true) if it
-            # carries git-crypt attributes.
+            # Desktop also runs `git worktree add` against a throwaway git dir
+            # (~/.claude/remote/run/*/git-shadow/*) that holds neither the
+            # per-repo shim nor the unlocked key, so the filter calls a
+            # store-path shim (git-crypt-shim above) that finds the key itself.
             filter.git-crypt = {
-              smudge = ''exec "$(git rev-parse --git-common-dir)/git-crypt-worktree-shim.sh" smudge'';
-              clean = ''exec "$(git rev-parse --git-common-dir)/git-crypt-worktree-shim.sh" clean'';
+              smudge = "${lib.getExe git-crypt-shim} smudge";
+              clean = "${lib.getExe git-crypt-shim} clean";
               required = true;
             };
-            diff.git-crypt.textconv = ''exec "$(git rev-parse --git-common-dir)/git-crypt-worktree-shim.sh" diff'';
+            diff.git-crypt.textconv = "${lib.getExe git-crypt-shim} diff";
 
             # SSH signing configuration
             commit.gpgsign = true;
