@@ -14,6 +14,12 @@
 # Value-free by construction: nothing here takes or returns a secret value,
 # only the off-store path and a caller-supplied jq binary. That is what keeps
 # the helper (and everything importing it) out of the leak surface.
+let
+  # Single-quote a string for the shell, closing and reopening around any
+  # embedded quote. Mirrors lib.escapeShellArg; this file takes no `lib`
+  # argument, so the three-line version lives here.
+  esc = s: "'" + builtins.replaceStrings [ "'" ] [ "'\\''" ] s + "'";
+in
 {
   # Canonical off-store secrets path for a host.
   file = globals: "${globals.user.homeDirectory}/.config/nixos-secrets/secrets.json";
@@ -131,16 +137,16 @@
       suffix ? "",
     }:
     ''
-      if [ -f "${secretsFile}" ] && ${jq} -e '${path} // empty' "${secretsFile}" >/dev/null 2>&1; then
-        mkdir -p "$(dirname "${dest}")"
+      if [ -f ${esc secretsFile} ] && ${jq} -e ${esc "${path} // empty"} ${esc secretsFile} >/dev/null 2>&1; then
+        mkdir -p "$(dirname ${esc dest})"
         (
           umask 077
-          { printf '%s' '${prefix}'
-            ${jq} -j '${path}' "${secretsFile}"
-            printf '%s' '${suffix}'
-          } > "${dest}.tmp"
-          chmod ${mode} "${dest}.tmp"
-          mv "${dest}.tmp" "${dest}"
+          { printf '%s' ${esc prefix}
+            ${jq} -j ${esc path} ${esc secretsFile}
+            printf '%s' ${esc suffix}
+          } > ${esc "${dest}.tmp"}
+          chmod ${mode} ${esc "${dest}.tmp"}
+          mv ${esc "${dest}.tmp"} ${esc dest}
         )
       fi
     '';

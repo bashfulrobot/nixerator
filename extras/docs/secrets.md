@@ -273,7 +273,6 @@ for `op://nixerator/aha/credential`); `--mirror` adds the rest as
 | `zai` | API Credential | `credential` | gopass entry `zai/credential` only (not in the rendered blob, no Nix reader) |
 | `gemini` | API Credential | `credential` | gopass entry `gemini/credential`, read at run time by the `agy` wrapper (not in the rendered blob) |
 | `snyk` | API Credential | `credential` | gopass entry `snyk/credential`, read at run time by the `snyk-agent-scan` wrapper (not in the rendered blob) |
-| `tailscale-caddy-authkey` | API Credential | `credential` | `secrets.tailscale.caddyAuthKey` |
 | `github-pat` | API Credential | `credential` | `secrets.github.accessToken` |
 | `todoist` | API Credential | `credential` | `secrets.todoist_token` |
 | `syncthing-gui` | Login | `username` + `password` | `secrets.syncthing.gui.*` |

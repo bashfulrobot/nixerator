@@ -23,7 +23,6 @@ b2-credentials/applicationKey	op://nixerator/b2-credentials/applicationKey
 zai/credential	op://nixerator/zai/credential
 github-pat/credential	op://nixerator/github-pat/credential
 gemini/credential	op://nixerator/gemini/credential
-tailscale-caddy-authkey/credential	op://nixerator/tailscale-caddy-authkey/credential
 snyk/credential	op://nixerator/snyk/credential
 todoist/credential	op://nixerator/todoist/credential
 nanoclaw-claude-token/credential	op://nixerator/nanoclaw-claude-token/credential
