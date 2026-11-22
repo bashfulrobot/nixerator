@@ -50,6 +50,8 @@ in
         antigravity.enable = true;
         superpowers.enable = true;
         skillfish.enable = true;
+        # Claude Code profile (account) switcher, issue #380.
+        hop.enable = true;
         skill-cache.enable = true;
       };
     };

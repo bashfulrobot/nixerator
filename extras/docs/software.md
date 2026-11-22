@@ -18,6 +18,7 @@ Complete inventory of software managed by this NixOS configuration.
 | Gurk                  | Signal Messenger TUI client                                                           | Local build                      |
 | GWS                   | Google Workspace CLI for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin            | Local build                      |
 | Helix                 | Terminal text editor with LSP support and language-specific formatters                | nixpkgs                          |
+| Hop                   | Claude Code profile (account) switcher that wraps the `claude` CLI (`hop`)            | Local build (Go)                 |
 | JWTX                  | Terminal JWT decoder/encoder TUI                                                      | Local build (Go)                 |
 | Kubectl               | Kubernetes CLI with OIDC auth, kubecolor, kubelogin, krew, ktop                       | nixpkgs                          |
 | Kubernetes MCP Server | MCP server for Kubernetes cluster interaction from Claude Code                        | Local build (npm)                |
@@ -123,7 +124,7 @@ Modules that exist but are currently disabled (set to `false` or commented out i
 
 All version-pinned packages managed in `settings/versions.nix`:
 
-**CLI:** amber, cpx, gurk, gws, jwtx, kubernetes-mcp-server, lswt, meetsum, plannotator, salesforce-cli
+**CLI:** amber, cpx, gurk, gws, hop, jwtx, kubernetes-mcp-server, lswt, meetsum, plannotator, salesforce-cli
 
 **GUI:** comics-downloader, helium, insomnia
 

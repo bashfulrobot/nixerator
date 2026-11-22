@@ -178,6 +178,14 @@
       vendorHash = "sha256-X7bfALH9mM15HP6SM60CFIG1rm4Ma6LEh2p7z5LNW64=";
     };
 
+    hop = {
+      source = "github-release";
+      repo = "abhayarya1709/agent-hop";
+      version = "0.1.0";
+      tagPrefix = "v";
+      hash = "sha256-lUXRw7X8gxIhkYVC14p/oOO0w4saz4MB1ysN5Zac7sw=";
+    };
+
     jwtx = {
       source = "github-release";
       repo = "gurleensethi/jwtx";
