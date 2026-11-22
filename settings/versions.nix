@@ -38,12 +38,12 @@
     agent-scan = {
       source = "github-release";
       repo = "snyk/agent-scan";
-      version = "0.5.15";
+      version = "0.7.0";
       tagPrefix = "v";
       platformHashes = {
-        x86_64-linux = "sha256-9H3ubHfTM0k9CMvNn4pZ9NSCP3LEp1KWRjxfzpS68yI=";
-        aarch64-darwin = "sha256-pHLgI5qb2xBH2CGMPCHO625sbCJuZ6WHWG+H6MHYXxQ=";
-        x86_64-darwin = "sha256-XG5YlWfewtknwz9OBKgByiT5dhj7SUfkuGFNW6NgB2M=";
+        x86_64-linux = "sha256-6wW9IwGloJ2QCxf1l9HSbQAYJXdej5RW+yx/UOZuy9A=";
+        aarch64-darwin = "sha256-c+/P96PgLrfViFLIqnOb/xllq1X20t+O0sfWfovfoEE=";
+        x86_64-darwin = "sha256-6cDjy1xt/zibpDhv7ElKOWUNcDKkYOfzco4ktKsVE+k=";
       };
     };
 
@@ -76,9 +76,9 @@
     kongctl = {
       source = "github-release";
       repo = "Kong/kongctl";
-      version = "1.20.2";
+      version = "1.29.0";
       tagPrefix = "v";
-      hash = "sha256-9cZnGUgTLurzq4SQB8lhp1dMe5NRwF7DbdG8SOoazRA=";
+      hash = "sha256-vL0rA/+9gonLGqCwyCETtnB+lHW+VAWHPipKyaVbYBA=";
     };
 
     # Context-compression CLI (headroomlabs-ai/headroom), consumed by the
@@ -137,9 +137,9 @@
     cpx = {
       source = "github-release";
       repo = "11happy/cpx";
-      version = "0.1.4";
+      version = "0.2.1";
       tagPrefix = "v";
-      hash = "sha256-+XqoMGVAxUEY3v/fdlogqe8q2CoyCLK5e6Itp0P/NcE=";
+      hash = "sha256-xZW1zyiSXSt4Hqd4KAOLIwIIt0ibEeW/fk6ogRz+f/s=";
     };
 
     # Flux Operator MCP server -- ships as a GoReleaser binary in the
@@ -148,16 +148,16 @@
     flux-operator-mcp = {
       source = "github-release";
       repo = "controlplaneio-fluxcd/flux-operator";
-      version = "0.55.0";
+      version = "0.63.0";
       tagPrefix = "v";
-      hash = "sha256-UYYrBJNu9gabYxkdeOSZMsrIpyrv1auRUy8SsTRBKEw=";
+      hash = "sha256-cV02sitbFPBXMzI3x9SxjxW6EdU6Wr53U/UcYmkfuaQ=";
     };
 
     kubernetes-mcp-server = {
       source = "npm";
       repo = "containers/kubernetes-mcp-server";
-      version = "0.0.65";
-      hash = "sha256-pixDT+okUD6OMqWdkLrJ91yYSSqcgd5nmEyegfN6uJ8=";
+      version = "0.1.3";
+      hash = "sha256-lhnJo/5QU+KD3spMoOjlE7HfIduQkqLvE8hb87I0WS8=";
       npmPkg = "kubernetes-mcp-server-linux-amd64";
     };
 
@@ -172,10 +172,10 @@
     sheets = {
       source = "github-release";
       repo = "maaslalani/sheets";
-      version = "0.2.0";
+      version = "0.3.0";
       tagPrefix = "v";
-      hash = "sha256-sRJ1rqtxc4axAkVavxSR2afdvxCAjJdK2mBWnt+nzW0=";
-      vendorHash = "sha256-WWtAt0+W/ewLNuNgrqrgho5emntw3rZL9JTTbNo4GsI=";
+      hash = "sha256-xDu+jbWH7ubXC6ImvkRVgPI0OHAaUQ60sELDJN8hY1M=";
+      vendorHash = "sha256-X7bfALH9mM15HP6SM60CFIG1rm4Ma6LEh2p7z5LNW64=";
     };
 
     jwtx = {
@@ -212,9 +212,9 @@
     gurk = {
       source = "github-release";
       repo = "boxdot/gurk-rs";
-      version = "0.9.3";
+      version = "0.10.2";
       tagPrefix = "v";
-      hash = "sha256-ZFSUnZlp+BGIfJGs8V/K2YSmBtJrvmjplmRhxlC0o7g=";
+      hash = "sha256-sPkyvszoeR8t1JmbxjM5Xrho0dM8tgAEcOfzWmxWlPI=";
     };
 
     "iso-topology" = {
@@ -301,8 +301,8 @@
       source = "apt";
       aptRepo = "https://downloads.claude.ai/claude-desktop/apt/stable";
       package = "claude-desktop";
-      version = "1.22209.0";
-      hash = "sha256-bRiueSwr3a0B7cl8LD9M9IkATO/o/tZ2Cmlu0lxJv2E=";
+      version = "6.28899.6";
+      hash = "sha256-fjgWAdhlcBSWQ9Uum4nCZXWrEvp4iqQf/dTMpbBjjPg=";
     };
 
     comics-downloader = {
@@ -321,12 +321,12 @@
       # crashed on `write EPIPE` when stdout had no live reader (desktop-file
       # launch). 13.0.2 fixes it, so the pin is lifted and this tracks latest
       # again. No updatePolicy: nothing structural stops auto-bump here.
-      version = "13.0.2";
+      version = "13.4.0";
       tagPrefix = "core@";
       platformHashes = {
-        x86_64-linux = "sha256-lEEN23hkdpHn3DyyMEhz5rp5F5CURZGPUTdX0A9QuTU=";
-        aarch64-darwin = ""; # placeholder -- no darwin builds currently used
-        x86_64-darwin = ""; # placeholder -- no darwin builds currently used
+        x86_64-linux = "sha256-qij2kWs7ZYKMt7J6hmUv2mCQqY/EbslH2Q+Q7xjWSXw=";
+        aarch64-darwin = "sha256-c+/P96PgLrfViFLIqnOb/xllq1X20t+O0sfWfovfoEE="; # placeholder -- no darwin builds currently used
+        x86_64-darwin = "sha256-6cDjy1xt/zibpDhv7ElKOWUNcDKkYOfzco4ktKsVE+k="; # placeholder -- no darwin builds currently used
       };
     };
 
@@ -345,25 +345,25 @@
       updatePolicy = "manual";
       platformHashes = {
         x86_64-linux = "sha256-PlcKBQnkmgU/SsLRKX7ohrGHm7B4hK9FMkplwlbFolI=";
-        aarch64-darwin = ""; # placeholder -- no darwin builds currently used
-        x86_64-darwin = ""; # placeholder -- no darwin builds currently used
+        aarch64-darwin = "sha256-c+/P96PgLrfViFLIqnOb/xllq1X20t+O0sfWfovfoEE="; # placeholder -- no darwin builds currently used
+        x86_64-darwin = "sha256-6cDjy1xt/zibpDhv7ElKOWUNcDKkYOfzco4ktKsVE+k="; # placeholder -- no darwin builds currently used
       };
     };
 
     helium = {
       source = "github-release";
       repo = "imputnet/helium-linux";
-      version = "0.14.6.1";
+      version = "0.22.2.1";
       tagPrefix = "";
-      hash = "sha256-qdM1Qysx5OOBwzr6A6tyPIfZcHxn2YkIPedGelvbk7I=";
+      hash = "sha256-8JDIESU/1ovH64lLmCoL4iHRcB937UtT9hRkma+LrgQ=";
     };
 
     orca = {
       source = "github-release";
       repo = "stablyai/orca";
-      version = "1.4.259";
+      version = "1.4.269";
       tagPrefix = "v";
-      hash = "sha256-PjxurGnjLiGfoI4sSpJogoYqsQc0X93RxPGWunsKmIU=";
+      hash = "sha256-9/9anNIBwjD9pwCcYr2v7QwEobPmmZwdR9FjS0yua6k=";
     };
 
     # Brave Origin — minimalist standalone Brave. Only the nightly channel
