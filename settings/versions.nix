@@ -301,8 +301,8 @@
       source = "apt";
       aptRepo = "https://downloads.claude.ai/claude-desktop/apt/stable";
       package = "claude-desktop";
-      version = "6.28899.6";
-      hash = "sha256-fjgWAdhlcBSWQ9Uum4nCZXWrEvp4iqQf/dTMpbBjjPg=";
+      version = "1.52386.6";
+      hash = "sha256-LoOnbG7ZGHZxv+gGZPxtWYQBcfSiqB9AhmLIeaZ/Tgo=";
     };
 
     comics-downloader = {
