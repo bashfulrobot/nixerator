@@ -126,6 +126,19 @@ in
         '';
       };
 
+      extraOpencodeModels = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        example = [ "kimi-k3:cloud" ];
+        description = ''
+          Additional models listed under the local opencode provider, so they
+          show in opencode's model picker next to the default. Only used when
+          defaultOpencodeModel is set. These are registered, not pulled: add
+          them to loadModels as well. A ":cloud" tag runs on Ollama's servers
+          through this daemon and needs `ollama signin` once on this host.
+        '';
+      };
+
       contextLength = lib.mkOption {
         type = lib.types.nullOr lib.types.ints.positive;
         default = null;
@@ -293,7 +306,7 @@ in
             npm = "@ai-sdk/openai-compatible";
             name = "Ollama (local)";
             options.baseURL = "http://${endpoint}/v1";
-            models.${cfg.defaultOpencodeModel} = { };
+            models = lib.genAttrs ([ cfg.defaultOpencodeModel ] ++ cfg.extraOpencodeModels) (_: { });
           };
         };
       })

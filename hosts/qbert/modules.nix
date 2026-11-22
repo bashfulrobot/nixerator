@@ -156,8 +156,9 @@
     ollama = {
       enable = true;
       acceleration = "rocm";
-      loadModels = [ globals.ai.localCodeModel ];
+      loadModels = [ globals.ai.localCodeModel ] ++ globals.ai.extraModels;
       defaultOpencodeModel = globals.ai.localCodeModel;
+      extraOpencodeModels = globals.ai.extraModels;
       # Ollama defaults the context window to a few thousand tokens, which
       # truncates long opencode sessions. 32k is the working size for the
       # 22 GB Qwen3.6 35B-A3B (65% on the GPU, 35% on the CPU).
