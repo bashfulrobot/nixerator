@@ -178,6 +178,20 @@ in
             diff.tool = lib.mkForce "difftastic";
             difftool.difftastic.cmd = ''${lib.getExe pkgs.difftastic} --background=dark --color=always "$LOCAL" "$REMOTE"'';
 
+            # git-crypt filter, global. Claude Desktop refuses to run a git
+            # filter defined only in a repo's own .git/config, so repos that
+            # `just git-crypt-unlock` wires locally (homelab) need it here too.
+            # The commands match the per-repo ones: they call the worktree shim
+            # that unlock copies to <git-common-dir>/git-crypt-worktree-shim.sh,
+            # so a repo without that shim errors (required = true) if it
+            # carries git-crypt attributes.
+            filter.git-crypt = {
+              smudge = ''exec "$(git rev-parse --git-common-dir)/git-crypt-worktree-shim.sh" smudge'';
+              clean = ''exec "$(git rev-parse --git-common-dir)/git-crypt-worktree-shim.sh" clean'';
+              required = true;
+            };
+            diff.git-crypt.textconv = ''exec "$(git rev-parse --git-common-dir)/git-crypt-worktree-shim.sh" diff'';
+
             # SSH signing configuration
             commit.gpgsign = true;
             tag.gpgsign = true;
