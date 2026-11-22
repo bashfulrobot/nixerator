@@ -295,6 +295,9 @@
     "lemo-opuscar@claude-skills": {
       "state": "disabled"
     },
+    "lucid@claude-skills": {
+      "state": "disabled"
+    },
     "markitdown@claude-skills": {
       "state": "disabled"
     },
@@ -311,6 +314,9 @@
       "state": "disabled"
     },
     "plugin-dev@claude-plugins-official": {
+      "state": "enabled"
+    },
+    "promptr-deck@claude-skills": {
       "state": "enabled"
     },
     "pyright-lsp@claude-plugins-official": {
@@ -347,6 +353,9 @@
       "state": "absent"
     },
     "studio@claude-skills": {
+      "state": "disabled"
+    },
+    "superlogical@claude-skills": {
       "state": "disabled"
     },
     "superpowers@claude-plugins-official": {
@@ -529,7 +538,8 @@
       "outputStyle": "dustin",
       "permissions": {
         "additionalDirectories": [
-          "${HOME}/git"
+          "${HOME}/git",
+          "${HOME}/dev"
         ],
         "ask": [
           "Bash(sudo *)",
