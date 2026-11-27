@@ -95,7 +95,7 @@
       }
     },
     "kong-skills": {
-      "sha": "1c687ad3bdf2f053478a07ecf0820a400e73e283",
+      "sha": "68e22b2f96454c86eadb69fadc0cadaf0b19f9cf",
       "source": {
         "repo": "Kong/kong-skills",
         "source": "github"
